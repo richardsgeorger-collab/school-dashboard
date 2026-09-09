@@ -1,0 +1,197 @@
+Sep 9, 2026, 12:04 PM
+Engineering Math Lab
+ESG-162L 1 Credits Sep 8 - Dec 20
+Course Description
+The engineering math labs are the hands on applications of the foundational mathematics concepts applied to
+engineering problems in the engineering math course. Prerequisite: MAT-154. Co-Requisite: ESG-162.
+Instructor Contact Information
+Vance Collins
+Vance.Collins@gcu.edu
+Rebecca Collins
+Rebecca.Collins1@my.gcu.edu
+Class Resources
+Thinking Like an Engineer: An Active Learning Approach (REQUIRED)
+Stephan, E., Bowman, D., Park, W., Martin, W. & Ohland, M. (2021). Thinking like an engineer: An active learning
+approach (5th ed.). Pearson. ISBN: 9780137446711.
+Arduino IDE (REQUIRED)
+https://www.arduino.cc/en/main/software
+Topic 1: Data Acquisition, Analysis, and Presentation
+Sep 8, 2026 - Oct 11, 2026 Max Points: 350
+In engineering, acquiring, analyzing, and presenting data is essential across all domains.
+Resources
+Thinking Like An Engineer: An Active Learning Approach (REQUIRED)
+Read Chapters 1–3, 8 (Section 8.1), and 10 (Sections 10.1–10.3) in Thinking Like An Engineer: An Active Learning
+Approach.
+Assessments
+Summary of Current Course Content Knowledge
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 8, 2026, 11:59 PM 0
+Assessment Description
+Academic engagement through active participation in instructional activities related to the course objectives is
+paramount to your success in this course and future courses.
+Class Introductions
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 9, 2026, 11:59 PM 0
+Assessment Description
+Take a moment to explore your new classroom and introduce yourself to your fellow classmates.
+Week 1 Participation
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 13, 2026, 11:59 PM 10
+Effective Scheduling
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 14, 2026, 11:59 PM 50
+Assessment Description
+In engineering, one can quickly get overwhelmed with tasks. Time blocking and scheduling is essential to
+managing your time, productivity, and peace.
+Step 1: Ask your favorite AI to make a schedule for you starting on Sunday all the way through Saturday for all
+24 hours of the day (including sleeping).
+Week 2 Participation
+Start Date & Time Due Date & Time Points
+Sep 14, 2026, 12:00 AM Sep 20, 2026, 11:59 PM 10
+CLC - Mathematical Analysis Lab 1
+Start Date & Time Due Date & Time Points
+Sep 15, 2026, 12:00 AM Sep 21, 2026, 11:59 PM 50
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+Complete the lab as directed by the instructor.
+Week 3 Participation
+Start Date & Time Due Date & Time Points
+Sep 21, 2026, 12:00 AM Sep 27, 2026, 11:59 PM 10
+CLC – Mathematical Analysis Lab 2
+Start Date & Time Due Date & Time Points
+Sep 22, 2026, 12:00 AM Sep 28, 2026, 11:59 PM 50
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+Complete the lab as directed by the instructor.
+Week 4 Participation
+Start Date & Time Due Date & Time Points
+Sep 28, 2026, 12:00 AM Oct 4, 2026, 11:59 PM 10
+CLC – Engineering Design Report with Lab
+Start Date & Time Due Date & Time Points
+Sep 29, 2026, 12:00 AM Oct 5, 2026, 11:59 PM 150
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+An engineering report is a critical component of effective communication and documentation in the
+engineering field.
+Utilize the "ESG-162L Design Project Report Template," provided by the instructor.
+Week 5 Participation
+Start Date & Time Due Date & Time Points
+Oct 5, 2026, 12:00 AM Oct 11, 2026, 11:59 PM 10
+Topic 2: Equations in Action
+Oct 12, 2026 - Nov 8, 2026 Max Points: 290
+Engineers must possess a thorough understanding of equations of motion, design, materials selection, and
+production principles.
+Resources
+Thinking Like An Engineer: An Active Learning Approach (REQUIRED)
+Read Chapters 4, 5, 10 (Sections 10.4–10.6), 11 (Sections 11.1–11.4), and 12 (Sections 12.1–12.3) in Thinking Like
+An Engineer: An Active Learning Approach.
+Assessments
+CLC – Materials, Production, and Design Lab 1
+Start Date & Time Due Date & Time Points
+Oct 6, 2026, 12:00 AM Oct 12, 2026, 11:59 PM 50
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+Complete the lab as directed by the instructor.
+Week 6 Participation
+Start Date & Time Due Date & Time Points
+Oct 12, 2026, 12:00 AM Oct 18, 2026, 11:59 PM 10
+Week 7 Participation
+Start Date & Time Due Date & Time Points
+Oct 19, 2026, 12:00 AM Oct 25, 2026, 11:59 PM 10
+CLC – Materials, Production, and Design Lab 2
+Start Date & Time Due Date & Time Points
+Oct 20, 2026, 12:00 AM Oct 26, 2026, 11:59 PM 50
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+Complete the lab as directed by the instructor.
+Week 8 Participation
+Start Date & Time Due Date & Time Points
+Oct 26, 2026, 12:00 AM Nov 1, 2026, 11:59 PM 10
+CLC – Engineering Design Report and Demo 1
+Start Date & Time Due Date & Time Points
+Oct 13, 2026, 12:00 AM Nov 2, 2026, 11:59 PM 150
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+In the engineering process, product demonstrations play a crucial role in conveying the technical aspects and
+functionality of a product to stakeholders.
+Week 9 Participation
+Start Date & Time Due Date & Time Points
+Nov 2, 2026, 12:00 AM Nov 8, 2026, 11:59 PM 10
+Topic 3: Sensors in Engineering
+Nov 9, 2026 - Nov 22, 2026 Max Points: 120
+Sensor technology is a crucial component of modern engineering design and manufacturing.
+Resources
+Thinking Like An Engineer: An Active Learning Approach (REQUIRED)
+Read Chapter 6 and 7 in Thinking Like An Engineer: An Active Learning Approach.
+Assessments
+CLC – Sensor Lab 1
+Start Date & Time Due Date & Time Points
+Nov 3, 2026, 12:00 AM Nov 9, 2026, 11:59 PM 50
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+Complete the lab as directed by the instructor.
+Week 10 Participation
+Start Date & Time Due Date & Time Points
+Nov 9, 2026, 12:00 AM Nov 15, 2026, 11:59 PM 10
+Week 11 Participation
+Start Date & Time Due Date & Time Points
+Nov 16, 2026, 12:00 AM Nov 22, 2026, 11:59 PM 10
+CLC – Sensor Lab 2
+Start Date & Time Due Date & Time Points
+Nov 17, 2026, 12:00 AM Nov 30, 2026, 11:59 PM 50
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+Complete the lab as directed by the instructor.
+Topic 4: Equations by Design
+Nov 23, 2026 - Dec 20, 2026 Max Points: 240
+Understanding the tools available, as well as the math principles of the natural world, are important skills to
+acquire as an engineer.
+Resources
+Thinking Like an Engineer: An Active Learning Approach (REQUIRED)
+Read Chapter 8 and 9.1 in Thinking Like An Engineer: An Active Learning Approach.
+Assessments
+Week 12 Participation
+Start Date & Time Due Date & Time Points
+Nov 23, 2026, 12:00 AM Nov 29, 2026, 11:59 PM 10
+Week 13 Participation
+Start Date & Time Due Date & Time Points
+Nov 30, 2026, 12:00 AM Dec 6, 2026, 11:59 PM 10
+Course Reflection
+Start Date & Time Due Date & Time Points
+Dec 7, 2026, 12:00 AM Dec 11, 2026, 11:59 PM 50
+Assessment Description
+When it comes to engineering, the ability to work collaboratively, communicate effectively within a team, and
+manage projects efficiently are just as crucial as having strong mathematical abilities.
+Using the template provided:
+LIST THREE THINGS THAT YOU LEARNED THIS SEMESTER
+Week 14 Participation
+Start Date & Time Due Date & Time Points
+Dec 7, 2026, 12:00 AM Dec 13, 2026, 11:59 PM 10
+CLC – Engineering Design Report and Demo 2
+Start Date & Time Due Date & Time Points
+Dec 1, 2026, 12:00 AM Dec 15, 2026, 11:59 PM 150
+Assessment Traits
+Group
+Assessment Description
+This is a Collaborative Learning Community (CLC) assignment.
+The report will comprise a thorough evaluation of the previous labs pertaining to the topic. The demonstration
+will showcase the developed product(s).
+Week 15 Participation
+Start Date & Time Due Date & Time Points
+Dec 14, 2026, 12:00 AM Dec 20, 2026, 11:59 PM 10

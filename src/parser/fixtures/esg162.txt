@@ -1,0 +1,263 @@
+Sep 9, 2026, 12:04 PM
+Engineering Math
+ESG-162 3 Credits Sep 8 - Dec 20
+Course Description
+This course is founded in the application of mathematics to engineering problems and processes. Prerequisite: MAT-154. Co-Requisite: ESG-162L.
+Instructor Contact Information
+Jeff Hunt
+Jeff.Hunt@my.gcu.edu
+Class Resources
+Precalculus With zyBooks (REQUIRED)
+zyBooks, a Wiley brand. (2023). Precalculus. ISBN: 9798203163097
+MATLAB and Simulink (REQUIRED)
+This course requires the use of MATLAB and Simulink.
+Laptop ()
+This program requires students to have a laptop.
+Topic 1: Introduction Engineering
+Sep 8, 2026 - Sep 20, 2026 Max Points: 120
+Engineering is an exciting field that combines creativity, problem-solving, and innovation.
+Objectives:
+1. Solve engineering problems using algebra and basic mathematical functions.
+Resources
+Precalculus (REQUIRED)
+Read Chapters 1 and 2 in Precalculus.
+Assessments
+Summary of Current Course Content Knowledge
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 8, 2026, 11:59 PM 0
+Assessment Description
+Academic engagement through active participation in instructional activities related to the course objectives is
+paramount to your success in this course and future courses.
+Class Introductions
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 9, 2026, 11:59 PM 0
+Assessment Description
+Take a moment to explore your new classroom and introduce yourself to your fellow classmates.
+Academic Plan
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 13, 2026, 11:59 PM 40
+Assessment Description
+An academic plan serves as a valuable resource for students, assisting them in establishing objectives,
+organizing responsibilities, and achieving academic milestones.
+Using a spreadsheet application like Microsoft Excel or Google Sheets, create a new spreadsheet for your
+academic plan:
+Software Installation
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 13, 2026, 11:59 PM 0
+Assessment Traits
+Not Submitted in Halo
+Assessment Description
+Install the course and program software as directed by the instructor.
+This assignment will count toward your participation points as designated by the instructor.
+Topic 1 Review
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 13, 2026, 11:59 PM 25
+Assessment Description
+Throughout the course, students will review the main concepts for each topic presented in the textbook.
+Complete the assignment in zyBooks as directed by the instructor.
+Week 1 Participation
+Start Date & Time Due Date & Time Points
+Sep 8, 2026, 12:00 AM Sep 13, 2026, 11:59 PM 10
+Topic 1 Homework
+Start Date & Time Due Date & Time Points
+Sep 14, 2026, 12:00 AM Sep 20, 2026, 11:59 PM 35
+Assessment Description
+Throughout the course, each homework assignment will help to build foundational knowledge related to core
+areas of engineering mathematics.
+Complete the assignment as directed by the instructor.
+Attachments
+Topic 1 Homework - Addendum.docx
+Week 2 Participation
+Start Date & Time Due Date & Time Points
+Sep 14, 2026, 12:00 AM Sep 20, 2026, 11:59 PM 10
+Topic 2: Utilizing Algebraic Techniques and Concepts
+Sep 21, 2026 - Oct 4, 2026 Max Points: 175
+As students embark on their engineering journey, they come across fundamental mathematical concepts.
+Resources
+Precalculus (REQUIRED)
+Read Chapters 3 and 4 (Sections 4.1–4.6) in Precalculus.
+Assessments
+Topic 2 Review
+Start Date & Time Due Date & Time Points
+Sep 21, 2026, 12:00 AM Sep 27, 2026, 11:59 PM 25
+Assessment Description
+Complete the assignment in zyBooks as directed by the instructor.
+Week 3 Participation
+Start Date & Time Due Date & Time Points
+Sep 21, 2026, 12:00 AM Sep 27, 2026, 11:59 PM 10
+Quiz 1
+Start Date & Time Due Date & Time Points
+Sep 28, 2026, 12:00 AM Oct 4, 2026, 11:59 PM 70
+Assessment Description
+Complete the quiz as directed by the instructor.
+Topic 2 Homework
+Start Date & Time Due Date & Time Points
+Sep 28, 2026, 12:00 AM Oct 4, 2026, 11:59 PM 35
+Assessment Description
+Complete the assignment as directed by the instructor.
+Topic 3 Review
+Start Date & Time Due Date & Time Points
+Sep 28, 2026, 12:00 AM Oct 4, 2026, 11:59 PM 25
+Assessment Description
+Complete the assignment in zyBooks as directed by the instructor.
+Week 4 Participation
+Start Date & Time Due Date & Time Points
+Sep 28, 2026, 12:00 AM Oct 4, 2026, 11:59 PM 10
+Topic 3: Systems of Equations
+Oct 5, 2026 - Oct 18, 2026 Max Points: 95
+Studying systems of equations enables students to tackle problems involving multiple variables.
+Resources
+Precalculus (REQUIRED)
+Read Chapters 5 (Sections 5.1, 5.2, 5.5 and 5.7) and 6 (Sections 6.2–6.5) in Precalculus.
+Assessments
+Topic 3 Homework
+Start Date & Time Due Date & Time Points
+Oct 5, 2026, 12:00 AM Oct 11, 2026, 11:59 PM 35
+Assessment Description
+Complete the assignment as directed by the instructor.
+Week 5 Participation
+Start Date & Time Due Date & Time Points
+Oct 5, 2026, 12:00 AM Oct 11, 2026, 11:59 PM 10
+MATLAB: Systems of Equations
+Start Date & Time Due Date & Time Points
+Oct 12, 2026, 12:00 AM Oct 18, 2026, 11:59 PM 40
+Assessment Description
+Refer to the "ESG-162 Solving Linear Systems Assignment Guide," to complete this assignment.
+All computations are to be completed in the MATLAB environment, with very little done by hand.
+Attachments
+ESG-162-RS-SolvingLinearSystems-Guide.docx
+Week 6 Participation
+Start Date & Time Due Date & Time Points
+Oct 12, 2026, 12:00 AM Oct 18, 2026, 11:59 PM 10
+Topic 4: Introduction to Trigonometry and Sinusoids
+Oct 19, 2026 - Nov 8, 2026 Max Points: 200
+Trigonometry is a branch of mathematics that deals with angles, distances, and relationships between them.
+Resources
+Precalculus (REQUIRED)
+Read Chapters 7, 8, and 12 (optional) in Precalculus.
+Assessments
+Excel: Microchip Manufacturing
+Start Date & Time Due Date & Time Points
+Oct 19, 2026, 12:00 AM Oct 25, 2026, 11:59 PM 40
+Assessment Description
+In this assignment, you will use Excel and its built-in functions to statistically analyze engineering data and
+answer questions about probability theory.
+Attachments
+ESG-162-RS-UserSpeedDataCollection.xlsx
+Topic 4 Review
+Start Date & Time Due Date & Time Points
+Oct 19, 2026, 12:00 AM Oct 25, 2026, 11:59 PM 25
+Assessment Description
+Complete the assignment in zyBooks as directed by the instructor.
+Week 7 Participation
+Start Date & Time Due Date & Time Points
+Oct 19, 2026, 12:00 AM Oct 25, 2026, 11:59 PM 10
+Topic 4 Homework
+Start Date & Time Due Date & Time Points
+Oct 26, 2026, 12:00 AM Nov 1, 2026, 11:59 PM 35
+Assessment Description
+Complete the assignment as directed by the instructor.
+Week 8 Participation
+Start Date & Time Due Date & Time Points
+Oct 26, 2026, 12:00 AM Nov 1, 2026, 11:59 PM 10
+Quiz 2
+Start Date & Time Due Date & Time Points
+Nov 2, 2026, 12:00 AM Nov 8, 2026, 11:59 PM 70
+Assessment Description
+Complete the quiz as directed by the instructor.
+Week 9 Participation
+Start Date & Time Due Date & Time Points
+Nov 2, 2026, 12:00 AM Nov 8, 2026, 11:59 PM 10
+Topic 5: Vectors
+Nov 9, 2026 - Nov 22, 2026 Max Points: 120
+Understanding vectors is crucial in engineering.
+Resources
+Precalculus (REQUIRED)
+Read Chapters 6 (Section 6.1) and 9 (Section 9.1) in Precalculus.
+Assessments
+MATLAB: Trigonometry
+Start Date & Time Due Date & Time Points
+Nov 9, 2026, 12:00 AM Nov 15, 2026, 11:59 PM 40
+Assessment Description
+Refer to the "ESG-162 Trigonometry Assignment Guide," to complete this assignment.
+Attachments
+ESG-162-RS-Trigonometry-AssignmentGuide.docx
+Topic 5 Review
+Start Date & Time Due Date & Time Points
+Nov 9, 2026, 12:00 AM Nov 15, 2026, 11:59 PM 25
+Assessment Description
+Complete the assignment in zyBooks as directed by the instructor.
+Week 10 Participation
+Start Date & Time Due Date & Time Points
+Nov 9, 2026, 12:00 AM Nov 15, 2026, 11:59 PM 10
+Topic 5 Homework
+Start Date & Time Due Date & Time Points
+Nov 16, 2026, 12:00 AM Nov 22, 2026, 11:59 PM 35
+Assessment Description
+Complete the assignment as directed by the instructor.
+Week 11 Participation
+Start Date & Time Due Date & Time Points
+Nov 16, 2026, 12:00 AM Nov 22, 2026, 11:59 PM 10
+Topic 6: Complex Numbers
+Nov 23, 2026 - Dec 6, 2026 Max Points: 190
+Complex numbers are used in engineering for a simple reason.
+Resources
+Precalculus (REQUIRED)
+Read Chapter 4 (Section 4.7) and Chapter 10 in Precalculus.
+Assessments
+MATLAB: Vectors
+Start Date & Time Due Date & Time Points
+Nov 23, 2026, 12:00 AM Nov 29, 2026, 11:59 PM 40
+Assessment Description
+Complete the assignment as directed by the instructor.
+Topic 6 Review
+Start Date & Time Due Date & Time Points
+Nov 23, 2026, 12:00 AM Nov 29, 2026, 11:59 PM 25
+Assessment Description
+Complete the assignment in zyBooks as directed by the instructor.
+Week 12 Participation
+Start Date & Time Due Date & Time Points
+Nov 23, 2026, 12:00 AM Nov 29, 2026, 11:59 PM 10
+Quiz 3
+Start Date & Time Due Date & Time Points
+Nov 30, 2026, 12:00 AM Dec 6, 2026, 11:59 PM 70
+Assessment Description
+Complete the quiz as directed by the instructor.
+Topic 6 Homework
+Start Date & Time Due Date & Time Points
+Nov 30, 2026, 12:00 AM Dec 6, 2026, 11:59 PM 35
+Assessment Description
+Complete the assignment as directed by the instructor.
+Week 13 Participation
+Start Date & Time Due Date & Time Points
+Nov 30, 2026, 12:00 AM Dec 6, 2026, 11:59 PM 10
+Topic 7: Introduction to Calculus
+Dec 7, 2026 - Dec 20, 2026 Max Points: 100
+Learning calculus is important for engineering because it helps with understanding how things change and
+evolve.
+Resources
+Precalculus (REQUIRED)
+Read Chapter 11 in Precalculus.
+Assessments
+Academic Plan Reflection
+Start Date & Time Due Date & Time Points
+Dec 7, 2026, 12:00 AM Dec 13, 2026, 11:59 PM 20
+Assessment Description
+Based on your progress and experiences in all your courses this semester, update your academic plan as
+needed.
+Topic 7 Review
+Start Date & Time Due Date & Time Points
+Dec 7, 2026, 12:00 AM Dec 13, 2026, 11:59 PM 25
+Assessment Description
+Complete the assignment in zyBooks as directed by the instructor.
+Week 14 Participation
+Start Date & Time Due Date & Time Points
+Dec 7, 2026, 12:00 AM Dec 13, 2026, 11:59 PM 10
+Topic 7 Homework
+Start Date & Time Due Date & Time Points
+Dec 14, 2026, 12:00 AM Dec 20, 2026, 11:59 PM 35
+Assessment Description
+Complete the assignment as directed by the instructor.
+Week 15 Participation
+Start Date & Time Due Date & Time Points
+Dec 14, 2026, 12:00 AM Dec 20, 2026, 11:59 PM 10
