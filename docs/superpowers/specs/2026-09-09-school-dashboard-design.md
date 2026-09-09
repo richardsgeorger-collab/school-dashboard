@@ -261,3 +261,10 @@ GitHub Actions. Web manifest with icons for home-screen install.
 Push notifications, service worker/offline caching beyond localStorage,
 multi-user sharing, weighted grade categories, natural-language import of
 non-GCU syllabi.
+
+## 14. Implementation notes (deviations from §7)
+
+- Allocation targets `deadline − buffer` (1 day ≤ 4 h, else 2 days) and spills forward into the buffer days only when the buffered window is too small. `startBy` is the first allocated day; no separate subtraction.
+- Items whose open date is a real window (opens at least one day before due) are scheduled before unconstrained items, so later big items cannot starve them. An open date on the due day itself (in-class quizzes, lab notebooks) is ignored for scheduling.
+- Deletions sync as tombstones (`deleted_at`) so devices converge; the Supabase tables carry that column.
+- Course colors were validated with the dataviz palette checker for both surfaces; dark mode uses a separate validated set (`DARK_VARIANT`).
