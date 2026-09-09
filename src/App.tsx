@@ -5,6 +5,8 @@ import './styles/tokens.css';
 import './styles/base.css';
 import { Calendar } from './views/calendar/Calendar';
 import { Dashboard } from './views/Dashboard';
+import { Grades } from './views/Grades';
+import { Heatmap } from './views/Heatmap';
 
 function Placeholder({ name }: { name: string }) {
   return <h1 className="page-title">{name}</h1>;
@@ -16,9 +18,9 @@ function Screen() {
     case 'calendar':
       return <Calendar />;
     case 'load':
-      return <Placeholder name="Workload" />;
+      return <Heatmap />;
     case 'grades':
-      return <Placeholder name="Grades" />;
+      return <Grades />;
     case 'settings':
       return <Placeholder name="Settings" />;
     default:

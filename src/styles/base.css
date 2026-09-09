@@ -1094,3 +1094,241 @@ button {
 .agenda .day-group + .day-group {
   margin-top: var(--s-4);
 }
+
+/* ---- heatmap -------------------------------------------------------- */
+.heat-wrap {
+  margin-top: var(--s-4);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.heat {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  min-width: 100%;
+}
+.heat th {
+  font-weight: 500;
+  color: var(--ink-2);
+  text-align: left;
+  white-space: nowrap;
+  padding: 2px 6px 2px 0;
+  vertical-align: middle;
+}
+.heat thead th {
+  text-align: center;
+  font-size: 11px;
+  padding: 0 2px 4px;
+}
+.heat thead th[data-today='true'],
+.heat tbody tr[data-today='true'] > th {
+  color: var(--hi-ink);
+  background: var(--hi);
+  border-radius: 4px;
+}
+.heat td {
+  padding: 0;
+}
+.heat-cell {
+  width: 100%;
+  min-width: 40px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.heat-cell[data-level='1'] {
+  background: color-mix(in srgb, var(--course) 18%, var(--surface));
+  color: var(--ink);
+}
+.heat-cell[data-level='2'] {
+  background: color-mix(in srgb, var(--course) 36%, var(--surface));
+  color: var(--ink);
+}
+.heat-cell[data-level='3'] {
+  background: color-mix(in srgb, var(--course) 56%, var(--surface));
+  color: var(--ink);
+}
+.heat-cell[data-level='4'] {
+  background: color-mix(in srgb, var(--course) 78%, var(--surface));
+  color: #fff;
+}
+.heat-cell[data-level='5'] {
+  background: var(--course);
+  color: #fff;
+}
+.heat-total small {
+  font-size: 9px;
+  opacity: 0.7;
+}
+.heat-total[data-status='ok'] {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.heat-total[data-status='warn'] {
+  background: var(--risk-soft);
+  color: var(--risk);
+}
+.heat-total[data-status='over'] {
+  background: var(--overdue-soft);
+  color: var(--overdue);
+  font-weight: 500;
+}
+.heat-total-row th {
+  color: var(--ink);
+}
+.heat[data-wide='true'] {
+  table-layout: fixed;
+}
+.heat[data-wide='true'] .heat-corner {
+  width: 120px;
+}
+.heat-marks td {
+  vertical-align: top;
+}
+.heat-marks td > span {
+  display: inline-block;
+}
+.heat-marks td {
+  display: table-cell;
+}
+.heat-marks-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+.heat-mark {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--bg);
+  margin: 2px 1px 0;
+}
+.heat-mark-col {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: 2px;
+}
+.heat[data-wide='false'] th[scope='row'] {
+  min-width: 56px;
+}
+.heat[data-wide='false'] thead th .chip {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 4px 0;
+}
+.heat[data-wide='false'] .heat-cell {
+  min-width: 36px;
+}
+
+/* ---- grades --------------------------------------------------------- */
+.grade-grid {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+@media (min-width: 720px) {
+  .grade-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.grade-card {
+  border-top: 4px solid var(--course);
+}
+.grade-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+.grade-name {
+  font-size: 17px;
+  margin-top: 4px;
+}
+.grade-pct {
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.grade-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+  margin: var(--s-3) 0;
+}
+.grade-bar .earned {
+  background: var(--course);
+}
+.grade-bar .lost {
+  background: var(--line-strong);
+}
+.grade-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-2);
+  margin: 0 0 var(--s-3);
+  font-size: 12px;
+}
+.grade-stats dt {
+  color: var(--ink-3);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.grade-stats dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+}
+.score-list {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.score-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.score-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.score-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-3);
+  flex: 0 0 auto;
+}
+.score-input input {
+  width: 64px;
+  min-height: 36px;
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  text-align: right;
+}
