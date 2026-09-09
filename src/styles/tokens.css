@@ -1,0 +1,71 @@
+:root {
+  color-scheme: light;
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #e9edf1;
+  --surface-3: #dde3e9;
+  --line: #d6dce3;
+  --line-strong: #b9c2cc;
+  --ink: #151a21;
+  --ink-2: #4a545f;
+  --ink-3: #7b8590;
+  --hi: #f5e663;
+  --hi-soft: #fbf3b3;
+  --hi-ink: #3a3400;
+  --overdue: #b3261e;
+  --overdue-soft: #f9dedc;
+  --risk: #a15a00;
+  --risk-soft: #fbe7cc;
+  --soon: #1f4fb0;
+  --soon-soft: #dbe5fb;
+  --ok: #1d7a4a;
+  --ok-soft: #d6f0e1;
+  --shadow: 0 1px 2px rgb(21 26 33 / 0.06), 0 8px 24px -12px rgb(21 26 33 / 0.18);
+  --sheet-shadow: 0 -8px 40px -8px rgb(21 26 33 / 0.35);
+  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(21 26 33 / 0.28) 3px 5px);
+
+  --font-display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --tap: 44px;
+  --nav-h: 60px;
+  --content-max: 1120px;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1216;
+  --surface: #171b21;
+  --surface-2: #1f252d;
+  --surface-3: #2a323c;
+  --line: #2b333d;
+  --line-strong: #3d4854;
+  --ink: #e8ecf0;
+  --ink-2: #aeb7c2;
+  --ink-3: #7d8895;
+  --hi: #e9d94a;
+  --hi-soft: #4a4520;
+  --hi-ink: #fff8c2;
+  --overdue: #ff7b70;
+  --overdue-soft: #4a1f1c;
+  --risk: #f0a848;
+  --risk-soft: #46300f;
+  --soon: #8db0ff;
+  --soon-soft: #1f2d4d;
+  --ok: #5fcf8f;
+  --ok-soft: #173826;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --sheet-shadow: 0 -8px 40px -8px rgb(0 0 0 / 0.7);
+  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(232 236 240 / 0.3) 3px 5px);
+}

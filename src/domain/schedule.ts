@@ -1,4 +1,4 @@
-import { addDays, dateOf, eachDay, isWeekend, weekStart, zonedParts } from './dates';
+import { addDays, dateOf, diffDays, eachDay, isWeekend, weekStart, zonedParts } from './dates';
 import type { DateStr, Item, Risk, Settings } from './types';
 
 export interface ScheduledItem {
@@ -31,9 +31,13 @@ export function deadlineDay(item: Pick<Item, 'dueAt'>, tz: string): DateStr {
   return p.hh * 60 + p.mm < EVENING_CUTOFF ? addDays(d, -1) : d;
 }
 
+/** Safety margin between the planned finish and the deadline. */
 function bufferDays(minutes: number): number {
-  if (minutes <= TINY_MINUTES) return 1;
   return minutes <= 240 ? 1 : 2;
+}
+
+export function dayCapacity(settings: Pick<Settings, 'weekdayMinutes' | 'weekendMinutes'>, day: DateStr): number {
+  return isWeekend(day) ? settings.weekendMinutes : settings.weekdayMinutes;
 }
 
 const maxDate = (...ds: DateStr[]) => ds.reduce((a, b) => (b > a ? b : a));
@@ -58,7 +62,7 @@ export function computeSchedule(
 
   const capacityByDay: Record<DateStr, number> = {};
   for (const d of eachDay(from, to)) {
-    capacityByDay[d] = isWeekend(d) ? settings.weekendMinutes : settings.weekdayMinutes;
+    capacityByDay[d] = dayCapacity(settings, d);
   }
   const free: Record<DateStr, number> = { ...capacityByDay };
   const loadByDay: Record<DateStr, number> = {};
@@ -74,39 +78,59 @@ export function computeSchedule(
     row.total += minutes;
   };
 
-  const open = items
-    .filter((i) => i.status !== 'done')
-    .sort((a, b) => deadlines.get(b.id)!.localeCompare(deadlines.get(a.id)!) || b.points - a.points);
+  // An open date only constrains the work when it is a real window (opens at least a day
+  // before it is due). In-class quizzes and labs "open" the morning they happen.
+  const windowStart = (item: Item): DateStr | null => {
+    const rawOpens = item.opensAt ? dateOf(item.opensAt, tz) : null;
+    return rawOpens && diffDays(rawOpens, dateOf(item.dueAt, tz)) > 0 ? rawOpens : null;
+  };
+
+  // Latest-deadline first so later work claims later days. Items boxed into an open window
+  // go first within that order: unconstrained work can always slide earlier, they cannot.
+  const byDeadlineDesc = (a: Item, b: Item) =>
+    deadlines.get(b.id)!.localeCompare(deadlines.get(a.id)!) || b.points - a.points;
+  const pending = items.filter((i) => i.status !== 'done');
+  const open = [
+    ...pending.filter((i) => windowStart(i) !== null).sort(byDeadlineDesc),
+    ...pending.filter((i) => windowStart(i) === null).sort(byDeadlineDesc),
+  ];
 
   for (const item of open) {
     const dd = deadlines.get(item.id)!;
-    const opensDay = item.opensAt ? dateOf(item.opensAt, tz) : from;
-    const floor = maxDate(today, opensDay, from);
+    const opensDay = windowStart(item);
+    const floor = maxDate(today, opensDay ?? from, from);
     const planned: Record<DateStr, number> = {};
     let latestStart = dd;
     let fits = true;
 
     if (item.estimatedMinutes > TINY_MINUTES) {
+      // Aim to finish a buffer before the deadline; spill into the buffer days only if needed.
+      let end = addDays(dd, -bufferDays(item.estimatedMinutes));
+      if (end < floor) end = dd;
       let remaining = item.estimatedMinutes;
-      for (let day = dd; remaining > 0 && day >= floor; day = addDays(day, -1)) {
+      const take = (day: DateStr) => {
         const avail = free[day] ?? 0;
-        if (avail <= 0) continue;
-        const take = Math.min(avail, remaining);
-        free[day] = avail - take;
-        remaining -= take;
-        latestStart = day;
-        addLoad(item, day, take, planned);
-      }
+        if (avail <= 0 || remaining <= 0) return;
+        const t = Math.min(avail, remaining);
+        free[day] = avail - t;
+        remaining -= t;
+        if (day < latestStart) latestStart = day;
+        addLoad(item, day, t, planned);
+      };
+      latestStart = end;
+      for (let day = end; remaining > 0 && day >= floor; day = addDays(day, -1)) take(day);
+      for (let day = addDays(end, 1); remaining > 0 && day <= dd; day = addDays(day, 1)) take(day);
       if (remaining > 0) {
         fits = false;
         const dumpDay = floor > dd ? today : floor;
         addLoad(item, dumpDay, remaining, planned);
         if (dumpDay < latestStart) latestStart = dumpDay;
       }
+      if (Object.keys(planned).length === 0) latestStart = dd;
     }
 
-    let startBy = addDays(latestStart, -bufferDays(item.estimatedMinutes));
-    if (item.opensAt && startBy < opensDay) startBy = opensDay;
+    let startBy = item.estimatedMinutes > TINY_MINUTES ? latestStart : addDays(dd, -1);
+    if (opensDay && startBy < opensDay) startBy = opensDay;
     if (item.startByOverride) startBy = item.startByOverride;
 
     const dueMs = new Date(item.dueAt).getTime();

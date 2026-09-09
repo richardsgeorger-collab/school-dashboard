@@ -45,14 +45,22 @@ describe('deadlineDay', () => {
 });
 
 describe('computeSchedule', () => {
-  it('schedules a single item on its deadline day with a one-day buffer', () => {
+  it('plans a single item to finish a day before its deadline', () => {
     const a = item({ estimatedMinutes: 120, dueAt: '2026-09-13T23:59:00-07:00' });
     const s = run([a]).byItem[a.id];
     expect(s.deadlineDay).toBe('2026-09-13');
-    expect(s.latestStart).toBe('2026-09-13');
+    expect(s.latestStart).toBe('2026-09-12');
     expect(s.startBy).toBe('2026-09-12');
     expect(s.fits).toBe(true);
-    expect(s.plannedByDay).toEqual({ '2026-09-13': 120 });
+    expect(s.plannedByDay).toEqual({ '2026-09-12': 120 });
+  });
+
+  it('spills into the buffer days rather than failing when the buffered window is tight', () => {
+    const a = item({ estimatedMinutes: 300, dueAt: '2026-09-11T23:59:00-07:00' });
+    const s = run([a]).byItem[a.id];
+    expect(s.plannedByDay).toEqual({ '2026-09-09': 180, '2026-09-10': 120 });
+    expect(s.fits).toBe(true);
+    expect(s.startBy).toBe('2026-09-09');
   });
 
   it('gives tiny items no allocation and start-by the day before', () => {
@@ -67,11 +75,12 @@ describe('computeSchedule', () => {
     const a = item({ id: 'A', estimatedMinutes: 600, dueAt: '2026-09-20T23:59:00-07:00' });
     const b = item({ id: 'B', estimatedMinutes: 600, dueAt: '2026-09-21T23:59:00-07:00' });
     const r = run([a, b]);
-    expect(r.byItem.B.plannedByDay).toEqual({ '2026-09-21': 180, '2026-09-20': 300, '2026-09-19': 120 });
-    expect(r.byItem.A.plannedByDay).toEqual({ '2026-09-19': 180, '2026-09-18': 180, '2026-09-17': 180, '2026-09-16': 60 });
-    expect(r.byItem.A.latestStart).toBe('2026-09-16');
+    expect(r.byItem.B.plannedByDay).toEqual({ '2026-09-19': 300, '2026-09-18': 180, '2026-09-17': 120 });
+    expect(r.byItem.B.startBy).toBe('2026-09-17');
+    expect(r.byItem.A.plannedByDay).toEqual({ '2026-09-17': 60, '2026-09-16': 180, '2026-09-15': 180, '2026-09-14': 180 });
+    expect(r.byItem.A.latestStart).toBe('2026-09-14');
     expect(r.byItem.A.startBy).toBe('2026-09-14');
-    expect(r.loadByDay['2026-09-19']).toBe(300);
+    expect(r.loadByDay['2026-09-17']).toBe(180);
   });
 
   it('never plans before the item opens and flags overflow as at risk', () => {
@@ -85,6 +94,20 @@ describe('computeSchedule', () => {
     expect(s.fits).toBe(false);
     expect(s.risk).toBe('at_risk');
     expect(s.startBy).toBe('2026-09-14');
+  });
+
+  it('ignores an open date that falls on the due day (in-class quiz opening the morning of)', () => {
+    const a = item({
+      estimatedMinutes: 180,
+      opensAt: '2026-09-25T00:00:00-07:00',
+      dueAt: '2026-09-25T08:00:00-07:00',
+    });
+    const s = run([a]).byItem[a.id];
+    expect(s.deadlineDay).toBe('2026-09-24');
+    expect(s.plannedByDay).toEqual({ '2026-09-23': 180 });
+    expect(s.fits).toBe(true);
+    expect(s.startBy).toBe('2026-09-23');
+    expect(s.risk).toBeNull();
   });
 
   it('never plans before today', () => {
