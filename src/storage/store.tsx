@@ -179,7 +179,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       await flushPending();
       const remote = await repo.load();
-      const result = mergeData(dataRef.current, remote);
+      const local = dataRef.current;
+      const result = mergeData(local, remote);
+      // Connection details never come from the server.
+      result.merged.settings = {
+        ...result.merged.settings,
+        supabaseUrl: local.settings.supabaseUrl,
+        supabaseAnonKey: local.settings.supabaseAnonKey,
+      };
       setData(result.merged);
       dataRef.current = result.merged;
       if (result.pushCourses.length) await repo.saveCourses(result.pushCourses);

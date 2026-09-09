@@ -5,7 +5,7 @@ export interface TextItemLike {
   width: number;
 }
 
-const FOOTER = /^Page \d+\s+Grand Canyon University/;
+const FOOTER = /^Page \S+\s+Grand Canyon University/;
 /** Gap (in PDF user-space units) above which two runs on one baseline are separate words. */
 const WORD_GAP = 1;
 
@@ -47,7 +47,8 @@ export async function extractLines(data: ArrayBuffer | Uint8Array): Promise<stri
     const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
     pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   }
-  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  // pdf.js insists on a plain Uint8Array (Node's Buffer is rejected), so always re-wrap.
+  const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
   const task = pdfjs.getDocument({ data: bytes });
   const doc = await task.promise;
   const lines: string[] = [];

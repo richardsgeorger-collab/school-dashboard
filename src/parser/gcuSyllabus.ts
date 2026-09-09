@@ -39,7 +39,7 @@ const ASSESS_HDR = /^Start Date & Time\s+Due Date & Time\s+Points(\s+Time Limit)
 const DT = '([A-Z][a-z]{2} \\d{1,2}, \\d{4}, \\d{1,2}:\\d{2} [AP]M)';
 const ASSESS_ROW = new RegExp(`^${DT}\\s+${DT}\\s+(\\d+)(?:\\s+(.+))?$`);
 const TIMESTAMP = /^[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} [AP]M$/;
-const FOOTER = /^Page \d+\s+Grand Canyon University/;
+const FOOTER = /^Page \S+\s+Grand Canyon University/;
 const EMAIL = /^[\w.+-]+@[\w.-]+\.\w+$/;
 
 const KNOWN_TRAITS = ['Not Submitted in Halo', 'Requires LopesWrite', 'Timed', 'Group', 'Benchmark'];
@@ -144,8 +144,13 @@ export function parseGcuSyllabus(rawLines: string[], opts: { tz?: string } = {})
 
   headerIdxs.forEach((hi, k) => {
     const title = hi > 0 ? lines[hi - 1] : '';
-    const rowLine = lines[hi + 1] ?? '';
-    const row = ASSESS_ROW.exec(rowLine);
+    // The date row normally follows the header; tolerate one stray line (a page break artifact).
+    let row: RegExpExecArray | null = null;
+    let rowIdx = hi + 1;
+    for (let i = hi + 1; i <= hi + 2 && i < lines.length && !row; i++) {
+      row = ASSESS_ROW.exec(lines[i]);
+      rowIdx = i;
+    }
     if (!row) {
       warnings.push(`Could not read dates for "${title}"`);
       return;
@@ -159,7 +164,7 @@ export function parseGcuSyllabus(rawLines: string[], opts: { tz?: string } = {})
 
     const nextHeader = headerIdxs[k + 1];
     let end = nextHeader !== undefined ? nextHeader - 1 : lines.length;
-    for (let i = hi + 2; i < end; i++) {
+    for (let i = rowIdx + 1; i < end; i++) {
       if (isTopicLine(i)) {
         end = i;
         break;
@@ -169,7 +174,7 @@ export function parseGcuSyllabus(rawLines: string[], opts: { tz?: string } = {})
     const traits: string[] = [];
     const descLines: string[] = [];
     let mode: 'none' | 'traits' | 'desc' | 'stop' = 'none';
-    for (let i = hi + 2; i < end; i++) {
+    for (let i = rowIdx + 1; i < end; i++) {
       const l = lines[i];
       if (/^Assessment Traits$/i.test(l)) {
         mode = 'traits';
