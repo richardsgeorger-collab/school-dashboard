@@ -48,7 +48,8 @@ export async function extractLines(data: ArrayBuffer | Uint8Array): Promise<stri
     pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   }
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  const doc = await pdfjs.getDocument({ data: bytes }).promise;
+  const task = pdfjs.getDocument({ data: bytes });
+  const doc = await task.promise;
   const lines: string[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
@@ -60,6 +61,6 @@ export async function extractLines(data: ArrayBuffer | Uint8Array): Promise<stri
     }
     lines.push(...linesFromTextItems(items));
   }
-  await doc.destroy();
+  await task.destroy();
   return stripFooters(lines);
 }
