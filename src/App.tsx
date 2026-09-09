@@ -3,6 +3,7 @@ import { useRoute } from './router';
 import { StoreProvider } from './storage/store';
 import './styles/tokens.css';
 import './styles/base.css';
+import { Calendar } from './views/calendar/Calendar';
 import { Dashboard } from './views/Dashboard';
 
 function Placeholder({ name }: { name: string }) {
@@ -13,7 +14,7 @@ function Screen() {
   const { route } = useRoute();
   switch (route) {
     case 'calendar':
-      return <Placeholder name="Calendar" />;
+      return <Calendar />;
     case 'load':
       return <Placeholder name="Workload" />;
     case 'grades':

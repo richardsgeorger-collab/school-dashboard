@@ -787,3 +787,310 @@ button {
     transition: none !important;
   }
 }
+
+/* ---- calendar ------------------------------------------------------- */
+.cal-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.cal-title {
+  font-size: 24px;
+  flex: 1;
+  min-width: 0;
+}
+.cal-nav {
+  display: flex;
+  gap: 4px;
+}
+.cal-nav .btn {
+  min-width: 40px;
+  font-size: 18px;
+}
+.cal-nav .btn:nth-child(2) {
+  font-size: 13px;
+}
+.cal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: center;
+  margin-top: var(--s-3);
+}
+.cal-body {
+  margin-top: var(--s-4);
+}
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.filter-chip .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+.filter-chip[aria-pressed='true'] {
+  color: var(--ink);
+  border-color: var(--course);
+}
+.filter-chip[aria-pressed='true'] .dot {
+  background: var(--course);
+}
+
+.month-head {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.month-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-height: 60px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  text-align: left;
+  min-width: 0;
+}
+.month-cell:hover {
+  border-color: var(--line-strong);
+}
+.month-cell[data-other='true'] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-3);
+}
+.month-daynum {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.month-cell[data-today='true'] .month-daynum {
+  background: var(--hi);
+  color: var(--hi-ink);
+  font-weight: 500;
+}
+.month-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.month-chip {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 2px 4px 2px 6px;
+  border-left: 3px solid var(--course);
+  background: color-mix(in srgb, var(--course) 12%, var(--surface));
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.month-chip:hover {
+  background: color-mix(in srgb, var(--course) 24%, var(--surface));
+}
+.month-chip[data-done='true'] {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.month-chip[data-risk='overdue'] {
+  border-left-color: var(--overdue);
+}
+.month-more {
+  font-size: 11px;
+  color: var(--ink-3);
+  padding-left: 6px;
+}
+.month-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+}
+.month-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+.month-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  margin-left: 2px;
+}
+@media (min-width: 640px) {
+  .month-cell {
+    min-height: 104px;
+  }
+}
+
+.meeting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  min-height: 32px;
+  padding-left: 10px;
+  border-left: 3px solid var(--course);
+  margin: 4px 0;
+}
+
+.week-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.week-day {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-3);
+}
+.week-day[data-today='true'] {
+  border-color: var(--hi);
+  box-shadow: inset 4px 0 0 var(--hi);
+}
+.week-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.week-day-head b {
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: 48px repeat(7, minmax(0, 1fr));
+  gap: 0 4px;
+  align-items: start;
+}
+.week-col-head {
+  text-align: center;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+}
+.week-col-head[data-today='true'] {
+  background: var(--hi-soft);
+}
+.week-dayname {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.week-col-head b {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.1;
+}
+.week-planned {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.week-due {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 28px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+.week-due[data-today='true'] {
+  background: var(--hi-soft);
+}
+.week-hours {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  text-align: right;
+  padding-right: 6px;
+}
+.week-hours span {
+  display: block;
+  transform: translateY(-6px);
+}
+.week-col {
+  position: relative;
+  border-left: 1px solid var(--line);
+}
+.week-col[data-today='true'] {
+  background: color-mix(in srgb, var(--hi) 10%, transparent);
+}
+.week-hourline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--line);
+}
+.week-meeting {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  background: color-mix(in srgb, var(--course) 18%, var(--surface));
+  border-left: 3px solid var(--course);
+  border-radius: 4px;
+  padding: 3px 5px;
+  font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.week-meeting b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.week-meeting span {
+  color: var(--ink-2);
+}
+.week-corner {
+  min-height: 1px;
+}
+.agenda .day-group + .day-group {
+  margin-top: var(--s-4);
+}
