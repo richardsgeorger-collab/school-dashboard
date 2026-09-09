@@ -1,0 +1,132 @@
+export type ItemType =
+  | 'exam'
+  | 'quiz'
+  | 'homework'
+  | 'lab'
+  | 'paper'
+  | 'project'
+  | 'discussion'
+  | 'participation'
+  | 'other';
+
+export type ItemStatus = 'todo' | 'in_progress' | 'done';
+
+export type Risk = 'overdue' | 'at_risk' | 'due_soon' | 'start_today' | null;
+
+/** Calendar date in the settings time zone, formatted YYYY-MM-DD. */
+export type DateStr = string;
+
+export interface Meeting {
+  day: 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Sunday
+  start: string; // HH:mm
+  end: string; // HH:mm
+  location?: string;
+}
+
+export interface Instructor {
+  name: string;
+  email: string;
+}
+
+export interface Course {
+  id: string;
+  code: string;
+  name: string;
+  color: string;
+  credits: number;
+  instructors: Instructor[];
+  meetings: Meeting[];
+  online: boolean;
+  termStart: DateStr;
+  termEnd: DateStr;
+  updatedAt: string;
+}
+
+export interface ItemFlags {
+  inClass: boolean;
+  group: boolean;
+  lopesWrite: boolean;
+  timed: boolean;
+  practice: boolean;
+}
+
+export interface Item {
+  id: string;
+  courseId: string;
+  title: string;
+  type: ItemType;
+  points: number;
+  opensAt: string | null; // ISO with offset
+  dueAt: string; // ISO with offset
+  estimatedMinutes: number;
+  estimateOverridden: boolean;
+  startByOverride: DateStr | null;
+  status: ItemStatus;
+  completedAt: string | null;
+  score: number | null;
+  notes: string;
+  topic: string | null;
+  flags: ItemFlags;
+  source: 'parsed' | 'manual';
+  updatedAt: string;
+}
+
+export interface Settings {
+  timezone: string;
+  weekdayMinutes: number;
+  weekendMinutes: number;
+  theme: 'system' | 'light' | 'dark';
+  weekStartsOn: 0 | 1;
+  supabaseUrl: string | null;
+  supabaseAnonKey: string | null;
+  updatedAt: string;
+}
+
+export interface AppData {
+  courses: Course[];
+  items: Item[];
+  settings: Settings;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  timezone: 'America/Phoenix',
+  weekdayMinutes: 180,
+  weekendMinutes: 300,
+  theme: 'system',
+  weekStartsOn: 0,
+  supabaseUrl: null,
+  supabaseAnonKey: null,
+  updatedAt: '2026-09-09T00:00:00-07:00',
+};
+
+export const ITEM_TYPES: ItemType[] = [
+  'exam',
+  'quiz',
+  'homework',
+  'lab',
+  'paper',
+  'project',
+  'discussion',
+  'participation',
+  'other',
+];
+
+export const TYPE_LABELS: Record<ItemType, string> = {
+  exam: 'Exam',
+  quiz: 'Quiz',
+  homework: 'Homework',
+  lab: 'Lab',
+  paper: 'Paper',
+  project: 'Project',
+  discussion: 'Discussion',
+  participation: 'Participation',
+  other: 'Other',
+};
+
+export const DEFAULT_FLAGS: ItemFlags = {
+  inClass: false,
+  group: false,
+  lopesWrite: false,
+  timed: false,
+  practice: false,
+};
