@@ -57,7 +57,7 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
 }
 
 export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew?: boolean; onClose: () => void }) {
-  const { data, courseById, schedule, actions } = useStore();
+  const { data, courseById, schedule, actions, today } = useStore();
   const tz = data.settings.timezone;
   const [draft, setDraft] = useState<Draft>(() => {
     const due = zonedParts(item.dueAt, tz);
@@ -268,6 +268,14 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           <textarea value={draft.notes} onChange={(e) => set('notes', e.target.value)} />
         </label>
         {item.topic && <p className="hint">{item.topic}</p>}
+        {item.snoozedUntil && item.snoozedUntil > today && (
+          <p className="hint">
+            Pushed down until {fmtDate(item.snoozedUntil, 'long')} ·{' '}
+            <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { actions.upsertItem({ ...item, snoozedUntil: null }); onClose(); }}>
+              bring it back
+            </button>
+          </p>
+        )}
         <div className="modal-actions">
           {!isNew &&
             (confirmDelete ? (

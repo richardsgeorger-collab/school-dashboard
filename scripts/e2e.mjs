@@ -16,7 +16,7 @@ await page.click('.day-group .item-row .check');
 await new Promise((r) => setTimeout(r, 300));
 console.log('completed:', firstLabel, '| row done =', await page.$eval('.day-group .item-row', (el) => el.dataset.done));
 await page.reload({ waitUntil: 'networkidle0' });
-console.log('done rows after reload:', await page.$$eval('.item-row[data-done="true"]', (els) => els.length), '| xp:', await page.$eval('.levelbar', (el) => el.getAttribute('aria-label')));
+console.log('done rows after reload:', await page.$$eval('.item-row[data-done="true"]', (els) => els.length));
 
 await page.goto(base + '#/settings', { waitUntil: 'networkidle0' });
 for (const b of await page.$$('button')) if ((await b.evaluate((e) => e.textContent)).includes('Import syllabus')) { await b.click(); break; }

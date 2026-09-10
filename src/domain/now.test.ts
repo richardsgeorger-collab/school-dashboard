@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pressureLine, rankItems, termProgress } from './now';
+import { groupByDeadline, heroFraming, pressureLine, rankItems, termProgress, todayLine } from './now';
 import { computeSchedule } from './schedule';
 import { DEFAULT_FLAGS, DEFAULT_SETTINGS, type Item } from './types';
 
@@ -59,6 +59,37 @@ describe('rankItems', () => {
     const items = [morning, evening];
     expect(rankItems(items, sched(items), NOW, TZ).map((i) => i.id)).toEqual(['morning', 'evening']);
   });
+  it('sends snoozed items to the back until the snooze ends', () => {
+    const a = item({ id: 'a', dueAt: '2026-09-12T23:59:00-07:00', snoozedUntil: '2026-09-10' });
+    const b = item({ id: 'b', dueAt: '2026-09-15T23:59:00-07:00' });
+    const c = item({ id: 'c', dueAt: '2026-09-11T23:59:00-07:00', snoozedUntil: '2026-09-09' });
+    const items = [a, b, c];
+    expect(rankItems(items, sched(items), NOW, TZ).map((i) => i.id)).toEqual(['c', 'b', 'a']);
+  });
+});
+
+describe('todayLine and heroFraming', () => {
+  it('says nothing is due today and names the next deadline', () => {
+    const items = [item({ dueAt: '2026-09-13T23:59:00-07:00' }), item({ dueAt: '2026-09-13T23:59:00-07:00' }), item({ dueAt: '2026-09-15T23:59:00-07:00' })];
+    expect(todayLine(items, sched(items), TODAY, NOW, TZ)).toBe('Nothing due today. Next deadline Sunday, 2 things.');
+  });
+  it('counts today and overdue', () => {
+    const items = [item({ dueAt: '2026-09-09T23:59:00-07:00' }), item({ dueAt: '2026-09-09T20:00:00-07:00' }), item({ dueAt: '2026-09-08T23:59:00-07:00' })];
+    expect(todayLine(items, sched(items), TODAY, NOW, TZ)).toBe('1 overdue, 2 due today.');
+    expect(todayLine([items[0]], sched([items[0]]), TODAY, NOW, TZ)).toBe('1 due today.');
+  });
+  it('is quiet with nothing open', () => {
+    expect(todayLine([], sched([]), TODAY, NOW, TZ)).toBe('Nothing open.');
+  });
+  it('frames the hero as ahead when its start-by is still in the future', () => {
+    const ahead = item({ dueAt: '2026-09-20T23:59:00-07:00', estimatedMinutes: 60 });
+    const now = item({ dueAt: '2026-09-10T23:59:00-07:00', estimatedMinutes: 60 });
+    const items = [ahead, now];
+    const s = sched(items);
+    expect(heroFraming(ahead, s, TODAY, NOW)).toBe('ahead');
+    expect(heroFraming(now, s, TODAY, NOW)).toBe('now');
+    expect(heroFraming(item({ dueAt: '2026-09-08T23:59:00-07:00' }), s, TODAY, NOW)).toBe('overdue');
+  });
 });
 
 describe('pressureLine', () => {
@@ -74,13 +105,21 @@ describe('pressureLine', () => {
     const items = Array.from({ length: 5 }, (_, k) => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 + k * 30 }));
     expect(run(items)).toBe("Sunday is heavy: 5 items, 10h. You haven't started any.");
   });
-  it('counts progress on a heavy day', () => {
+  it('counts progress on a heavy day while under half done', () => {
     const items = [
-      ...Array.from({ length: 3 }, () => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 })),
+      ...Array.from({ length: 4 }, () => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 })),
       item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60, status: 'done' }),
-      item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60, status: 'in_progress' }),
     ];
     expect(run(items)).toBe('Sunday is heavy: 5 items, 5h. 1 of 5 done.');
+  });
+  it('stops calling a day heavy once more than half is done', () => {
+    const items = [
+      ...Array.from({ length: 4 }, () => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 })),
+      ...Array.from({ length: 5 }, () => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60, status: 'done' })),
+    ];
+    expect(run(items)).toBeNull();
+    const heavyRemainder = items.map((i) => (i.status === 'todo' ? { ...i, estimatedMinutes: 90 } : i)); // 6h left > 5h Sunday capacity
+    expect(run(heavyRemainder)).toBe('Sunday: 4 of 9 left, 6h to go.');
   });
   it('flags an item that will not fit', () => {
     const items = [item({ label: 'Chem Exam 1', dueAt: '2026-09-10T23:59:00-07:00', estimatedMinutes: 900 })];
@@ -88,16 +127,25 @@ describe('pressureLine', () => {
   });
 });
 
+describe('groupByDeadline', () => {
+  it('groups items by schedule deadline day in order', () => {
+    const a = item({ id: 'a', dueAt: '2026-09-13T23:59:00-07:00' });
+    const b = item({ id: 'b', dueAt: '2026-09-14T23:59:00-07:00' });
+    const c = item({ id: 'c', dueAt: '2026-09-13T23:59:00-07:00' });
+    const items = [a, b, c];
+    expect(groupByDeadline([a, c, b], sched(items)).map((g) => [g.day, g.items.map((i) => i.id)])).toEqual([
+      ['2026-09-13', ['a', 'c']],
+      ['2026-09-14', ['b']],
+    ]);
+  });
+});
+
 describe('termProgress', () => {
-  it('banks completed points, using real scores when present', () => {
-    const items = [
-      item({ points: 100, status: 'done', score: 90 }),
-      item({ points: 50, status: 'done' }),
-      item({ points: 50 }),
-    ];
-    expect(termProgress(items)).toEqual({ earned: 140, total: 200, pct: 70 });
+  it('banks completed points, using real scores when present, and reports term elapsed', () => {
+    const items = [item({ points: 100, status: 'done', score: 90 }), item({ points: 50, status: 'done' }), item({ points: 50 })];
+    expect(termProgress(items, TERM, '2026-09-29')).toEqual({ earned: 140, total: 200, pct: 70, elapsedPct: 20 });
   });
   it('handles an empty term', () => {
-    expect(termProgress([])).toEqual({ earned: 0, total: 0, pct: 0 });
+    expect(termProgress([], TERM, '2026-09-08')).toEqual({ earned: 0, total: 0, pct: 0, elapsedPct: 0 });
   });
 });

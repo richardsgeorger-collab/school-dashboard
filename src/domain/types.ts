@@ -80,6 +80,8 @@ export interface Item {
   flags: ItemFlags;
   source: 'parsed' | 'manual';
   award: Award | null;
+  /** "Not this one": kept out of the top of Now until this date. */
+  snoozedUntil?: DateStr | null;
   updatedAt: string;
 }
 
