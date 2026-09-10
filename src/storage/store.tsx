@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import seed from '../data/seed.json';
 import { addDays, todayStr } from '../domain/dates';
 import { shortLabel } from '../domain/labels';
+import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
@@ -35,6 +36,9 @@ export interface StoreActions {
 export interface Store {
   data: AppData;
   schedule: Schedule;
+  progress: Progress;
+  /** Points the item would earn now, or has locked in. */
+  previewAward(item: Item): number;
   today: DateStr;
   term: { start: DateStr; end: DateStr };
   courseById: Map<string, Course>;
@@ -152,6 +156,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [data.items, data.settings, today, term],
   );
   const courseById = useMemo(() => new Map(data.courses.map((c) => [c.id, c])), [data.courses]);
+  const progress = useMemo(() => computeProgress(data.items, data.settings, today), [data.items, data.settings, today]);
+  const scheduleRef = useRef(schedule);
+  scheduleRef.current = schedule;
+  const previewFor = useCallback(
+    (item: Item) => previewAward(item, scheduleRef.current.byItem[item.id]?.startBy ?? today, nowIso(), data.settings.timezone),
+    [today, data.settings.timezone],
+  );
 
   // ---- remote mirroring -------------------------------------------------
   const flushPending = useCallback(async () => {
@@ -251,7 +262,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const actions = useMemo<StoreActions>(
     () => ({
       upsertItem(item) {
-        const stamped = { ...item, updatedAt: nowIso() };
+        const stamped = { ...withScore(item, item.score), updatedAt: nowIso() };
         update((d) => ({
           ...d,
           items: d.items.some((i) => i.id === item.id)
@@ -266,19 +277,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       setStatus(id, status, score) {
         const now = nowIso();
+        const tz = dataRef.current.settings.timezone;
         update((d) => ({
           ...d,
-          items: d.items.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  status,
-                  completedAt: status === 'done' ? now : null,
-                  score: score === undefined ? i.score : score,
-                  updatedAt: now,
-                }
-              : i,
-          ),
+          items: d.items.map((i) => {
+            if (i.id !== id) return i;
+            let next: Item =
+              status === 'done'
+                ? completeItem(i, scheduleRef.current.byItem[id]?.startBy ?? todayStr(tz), now, tz)
+                : { ...reopenItem(i), status };
+            if (score !== undefined) next = withScore(next, score);
+            return { ...next, updatedAt: now };
+          }),
         }));
         mirror({ kind: 'items', ids: [id] });
       },
@@ -381,8 +391,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Store>(
-    () => ({ data, schedule, today, term, courseById, isDark, sync, actions }),
-    [data, schedule, today, term, courseById, isDark, sync, actions],
+    () => ({ data, schedule, progress, previewAward: previewFor, today, term, courseById, isDark, sync, actions }),
+    [data, schedule, progress, previewFor, today, term, courseById, isDark, sync, actions],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
