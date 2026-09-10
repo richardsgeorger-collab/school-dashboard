@@ -34,9 +34,19 @@ export function deriveDeadlines(items: Item[], courses: Course[], settings: Sett
   const day = new Map(dueDay);
   const reasons = new Map<string, string[]>(open.map((i) => [i.id, []]));
 
+  // An item can't be "really due" before it opens (real windows only; same-day opens are ignored).
+  const opensDay = new Map<string, DateStr | null>(
+    open.map((i) => {
+      const o = i.opensAt ? dateOf(i.opensAt, tz) : null;
+      return [i.id, o && o < dueDay.get(i.id)! ? o : null];
+    }),
+  );
+
   const tighten = (id: string, target: DateStr, reason: string) => {
     if (!day.has(id) || target >= day.get(id)!) return;
-    let t = target;
+    const floor = opensDay.get(id);
+    let t = floor && target < floor ? floor : target;
+    if (t >= day.get(id)!) return;
     const r = [reason];
     if (weekdayOf(t) === 0) {
       t = addDays(t, -1);

@@ -131,6 +131,12 @@ describe('deriveDeadlines', () => {
     expect(r.e).toBeUndefined();
   });
 
+  it('never moves a deadline before the item opens', () => {
+    const quiz = item({ id: 'quiz', type: 'quiz', points: 60, opensAt: '2026-09-14T00:00:00-07:00', dueAt: '2026-09-15T23:59:00-07:00', estimatedMinutes: 200 });
+    const r = run([quiz]);
+    expect(day(r.quiz.deadlineAt)).toBe('2026-09-14');
+  });
+
   it('ignores done items when counting clusters', () => {
     const items = [
       ...['a', 'b', 'c'].map((id) => item({ id, estimatedMinutes: 30, dueAt: '2026-09-16T23:59:00-07:00' })),
