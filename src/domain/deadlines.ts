@@ -6,7 +6,20 @@ export interface DerivedDeadline {
   reasons: string[];
 }
 
-const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** A reminder that isn't an item of its own: do this small thing by `day` so `itemId` goes well. */
+export interface Nudge {
+  key: string;
+  itemId: string;
+  day: DateStr;
+  label: string;
+  minutes: number;
+}
+
+export interface Derived {
+  deadlines: Record<string, DerivedDeadline>;
+  nudges: Nudge[];
+}
+
 const BIG_POINTS = 100;
 const BIG_MINUTES = 180;
 const EARLY_DAYS = 2;
@@ -22,11 +35,17 @@ function approxStartBy(day: DateStr, minutes: number, weekdayMinutes: number): D
   return addDays(day, -(buffer + workDays));
 }
 
+const PRELAB_MINUTES = 45;
+
 /**
  * When work really has to happen, as opposed to when the syllabus says it is due.
  * Every rule only tightens. Returns entries only for items whose deadline moved.
  */
 export function deriveDeadlines(items: Item[], courses: Course[], settings: Settings): Record<string, DerivedDeadline> {
+  return derive(items, courses, settings).deadlines;
+}
+
+export function derive(items: Item[], courses: Course[], settings: Settings): Derived {
   const tz = settings.timezone;
   const courseById = new Map(courses.map((c) => [c.id, c]));
   const open = items.filter((i) => i.status !== 'done');
@@ -66,7 +85,9 @@ export function deriveDeadlines(items: Item[], courses: Course[], settings: Sett
     if (i.type === 'participation' || i.type === 'discussion') tighten(i.id, addDays(dueDay.get(i.id)!, -EARLY_DAYS), 'first touch: post, then reply');
   }
 
-  // 3. Lab notebooks are prep for the lab meeting that precedes the due date.
+  // 3. Lab notebooks: the write-up is due as the syllabus says, but the pre-lab must be ready
+  //    before the lab meeting that precedes it. That becomes a nudge, not a moved deadline.
+  const nudges: Nudge[] = [];
   for (const i of open) {
     const c = courseById.get(i.courseId);
     if (!c || i.type !== 'lab' || !/L$/i.test(c.code) || c.meetings.length === 0) continue;
@@ -74,7 +95,9 @@ export function deriveDeadlines(items: Item[], courses: Course[], settings: Sett
     for (let k = 0; k <= 7; k++) {
       const d = addDays(dueDay.get(i.id)!, -k);
       if (meetingDays.has(weekdayOf(d) as Course['meetings'][number]['day'])) {
-        tighten(i.id, addDays(d, -1), `prep before the ${DAY_SHORT[weekdayOf(d)]} lab`);
+        let prep = addDays(d, -1);
+        if (weekdayOf(prep) === 0) prep = addDays(prep, -1);
+        nudges.push({ key: `prelab:${i.id}`, itemId: i.id, day: prep, label: `Pre-lab prep for ${i.label}`, minutes: PRELAB_MINUTES });
         break;
       }
     }
@@ -113,16 +136,21 @@ export function deriveDeadlines(items: Item[], courses: Course[], settings: Sett
     if (weekdayOf(day.get(i.id)!) === 0) tighten(i.id, addDays(day.get(i.id)!, -1), 'Sunday due → Saturday');
   }
 
-  // 6. Clusters: pull the smallest items earlier until no day holds four or more.
+  // 6. Clusters: pull the smallest items back one day until no day holds four or more.
+  //    Each item moves at most once for this rule, so nothing drifts to midweek.
+  const clusterMoved = new Set<string>();
   for (let pass = 0; pass < MAX_CLUSTER_PASSES; pass++) {
     const buckets = new Map<DateStr, Item[]>();
     for (const i of open) buckets.set(day.get(i.id)!, [...(buckets.get(day.get(i.id)!) ?? []), i]);
     let moved = false;
     for (const [d, group] of buckets) {
       if (group.length < CLUSTER) continue;
-      const smallest = [...group].sort((a, b) => a.estimatedMinutes - b.estimatedMinutes || a.points - b.points)[0];
-      tighten(smallest.id, addDays(d, -1), `${group.length} items that day, pulled earlier`);
-      moved = true;
+      const candidates = group.filter((i) => !clusterMoved.has(i.id)).sort((a, b) => a.estimatedMinutes - b.estimatedMinutes || a.points - b.points);
+      if (candidates.length === 0) continue;
+      const before = day.get(candidates[0].id)!;
+      tighten(candidates[0].id, addDays(d, -1), `${group.length} items that day, pulled a day earlier`);
+      clusterMoved.add(candidates[0].id);
+      if (day.get(candidates[0].id) !== before) moved = true;
     }
     if (!moved) break;
   }
@@ -132,5 +160,5 @@ export function deriveDeadlines(items: Item[], courses: Course[], settings: Sett
     const d = day.get(i.id)!;
     if (d !== dueDay.get(i.id)) out[i.id] = { deadlineAt: makeIso(d, '23:59', tz), reasons: reasons.get(i.id)! };
   }
-  return out;
+  return { deadlines: out, nudges: nudges.sort((a, b) => a.day.localeCompare(b.day)) };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveDeadlines } from './deadlines';
+import { derive, deriveDeadlines } from './deadlines';
 import { DEFAULT_FLAGS, DEFAULT_SETTINGS, type Course, type Item } from './types';
 
 const settings = DEFAULT_SETTINGS;
@@ -75,11 +75,11 @@ describe('deriveDeadlines', () => {
     expect(day(r.dq.deadlineAt)).toBe('2026-09-16');
   });
 
-  it('moves lab notebooks to the night before the lab meeting that precedes the due date', () => {
-    const labItem = item({ id: 'labItem', courseId: 'lab', type: 'lab', dueAt: '2026-09-25T23:59:00-07:00' }); // Friday; lab met Mon 21
-    const r = run([labItem]);
-    expect(day(r.labItem.deadlineAt)).toBe('2026-09-19'); // Sunday 20 → Saturday 19
-    expect(r.labItem.reasons).toEqual(['prep before the Mon lab', 'Sunday due → Saturday']);
+  it('keeps lab notebooks on their due date but adds a pre-lab nudge before the lab meeting', () => {
+    const labItem = item({ id: 'labItem', courseId: 'lab', type: 'lab', dueAt: '2026-09-25T23:59:00-07:00' }); // Friday; lab meets Mon 21
+    const d = derive([labItem], courses, settings);
+    expect(d.deadlines.labItem).toBeUndefined();
+    expect(d.nudges).toEqual([{ key: 'prelab:labItem', itemId: 'labItem', day: '2026-09-19', label: `Pre-lab prep for ${labItem.label}`, minutes: 45 }]);
   });
 
   it('moves Sunday deadlines to Saturday', () => {
@@ -124,11 +124,19 @@ describe('deriveDeadlines', () => {
     ];
     const r = run(items);
     expect(day(r.a.deadlineAt)).toBe('2026-09-15');
-    expect(r.a.reasons).toEqual(['5 items that day, pulled earlier']);
+    expect(r.a.reasons).toEqual(['5 items that day, pulled a day earlier']);
     expect(day(r.b.deadlineAt)).toBe('2026-09-15');
     expect(r.c).toBeUndefined();
     expect(r.d).toBeUndefined();
     expect(r.e).toBeUndefined();
+  });
+
+  it('moves an item at most one day for clustering', () => {
+    const items = Array.from({ length: 8 }, (_, k) => item({ id: `k${k}`, estimatedMinutes: 30 + k, dueAt: '2026-09-16T23:59:00-07:00' }));
+    const r = run(items);
+    const days = items.map((i) => (r[i.id] ? day(r[i.id].deadlineAt) : '2026-09-16'));
+    expect(days.every((d) => d === '2026-09-15' || d === '2026-09-16')).toBe(true);
+    expect(days.filter((d) => d === '2026-09-16').length).toBe(3);
   });
 
   it('never moves a deadline before the item opens', () => {
