@@ -6,8 +6,10 @@ Live app: https://richardsgeorger-collab.github.io/school-dashboard/
 
 ## What it does
 
-- **Today** shows what to start today, what needs attention (overdue or at risk), what is due in the next seven days, and the week as a time budget: planned hours per class stacked against your capacity.
-- **Calendar** has month, week, and agenda views, color-coded by class, with class meeting times in the week view. Tap any day for its details.
+- **Calendar** is the home screen. It opens on the current week with a level bar, risk counts, and a "Do next" list (overdue, at risk, start today, due soon) above month, week, and agenda views. Items show as state-aware chips: overdue is red, due today is solid class color, due soon is bold, at risk carries an amber bar, done is struck through. Heavy days get a tinted cell and a count badge; overflow collapses into a course-colored bar instead of "+N more."
+- **Short labels** like "Chem Quiz 1" or "Eng Math HW 3" are generated from each syllabus title (`src/domain/labels.ts`) and used everywhere; the full syllabus name stays as subtitle and tooltip, and each label is editable in the item editor.
+- **Plan** shows the week as a time budget (planned hours per class stacked against your capacity), hours by class, and your progress: level and XP, daily streak, clean-week streak, badges, and last week's recap.
+- **Points**: finishing an item earns its point value × 1.5 if done by its start-by date, × 1 by the due time, × 0.5 late, then × your score once graded. Awards lock at first completion, so undoing and redoing never re-awards. Badges: Early Bird (5 early finishes), Survived the Week (a full-capacity week cleared on time), Clean Sweep (every item one class had due in a week, on time). A recap card appears on Sundays.
 - **Load** is a heatmap of planned study hours per class per week for the whole term, so heavy weeks are visible in advance. Weeks over capacity turn red.
 - **Grades** tracks points earned over points graded per class. The syllabi publish no category weights, so it is points-based.
 - **Settings** holds sync, study-hour capacity, class colors and meeting times, syllabus import, and backup.

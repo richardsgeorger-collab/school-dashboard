@@ -3,6 +3,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { ItemRow } from '../../components/ItemRow';
 import type { Item, Risk } from '../../domain/types';
 import { useStore } from '../../storage/store';
+import { useLinger } from '../../ui/useLinger';
 
 const ORDER: NonNullable<Risk>[] = ['overdue', 'at_risk', 'start_today', 'due_soon'];
 const PILL: Record<NonNullable<Risk>, string> = { overdue: 'overdue', at_risk: 'at risk', start_today: 'to start today', due_soon: 'due soon' };
@@ -25,7 +26,8 @@ export function FocusStrip({ items, onOpen }: { items: Item[]; onOpen: (i: Item)
     return { groups, list };
   }, [items, schedule]);
 
-  const visible = all ? list : list.slice(0, SHOW);
+  const shown = useLinger(all ? list : list.slice(0, SHOW), items);
+  const visible = shown;
 
   return (
     <section className="focus" aria-label="Do next">
@@ -48,7 +50,7 @@ export function FocusStrip({ items, onOpen }: { items: Item[]; onOpen: (i: Item)
         )}
       </div>
       <ul className="item-list">
-        {list.length === 0 && <EmptyState>Nothing to start or chase today. Pick something ahead from the calendar, or rest.</EmptyState>}
+        {visible.length === 0 && <EmptyState>Nothing to start or chase today. Pick something ahead from the calendar, or rest.</EmptyState>}
         {visible.map((i) => (
           <ItemRow key={i.id} item={i} onOpen={onOpen} compact showStart />
         ))}

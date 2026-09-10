@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { IconPlus } from '../components/Icons';
 import { ItemRow } from '../components/ItemRow';
+import { ProgressCard } from '../components/ProgressCard';
 import { WeekLedger } from '../components/WeekLedger';
 import { addDays, fmtDate, fmtMinutes, weekStart } from '../domain/dates';
 import { dayCapacity } from '../domain/schedule';
@@ -81,8 +82,9 @@ export function Plan() {
           </section>
         </div>
         <div>
+          <ProgressCard />
           {inProgress.length > 0 && (
-            <section>
+            <section className="section">
               <h2 className="section-title">
                 In progress <span className="count">{inProgress.length}</span>
               </h2>

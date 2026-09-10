@@ -130,7 +130,10 @@ export function ImportSyllabus({ onClose }: { onClose: () => void }) {
                           }}
                         />
                       </td>
-                      <td className="preview-title">{i.title}</td>
+                      <td className="preview-title">
+                        <b>{i.label}</b>
+                        <span className="muted"> {i.title}</span>
+                      </td>
                       <td>{TYPE_LABELS[i.type]}</td>
                       <td className="mono">{fmtDate(dateOf(i.dueAt, tz), 'numeric')}</td>
                       <td className="mono">{i.points}</td>
