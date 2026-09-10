@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { DayBar, ItemChip, chipState } from '../../components/ItemChip';
+import { ItemChip, chipState, isBig } from '../../components/ItemChip';
+import { dayCapacity } from '../../domain/schedule';
 import { monthGrid } from '../../domain/calendar';
 import { dateOf } from '../../domain/dates';
 import type { DateStr, Item } from '../../domain/types';
@@ -8,11 +9,19 @@ import { useMediaQuery } from '../../ui/useMediaQuery';
 import { DaySheet } from './DaySheet';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MAX_CHIPS = 5;
-const HEAVY_COUNT = 4;
+const MAX_CHIPS = 2;
+
+/** 0–4: how loaded a day is, from open items due and planned study against capacity. */
+function warmth(openCount: number, planned: number, capacity: number): number {
+  const byCount = openCount >= 6 ? 4 : openCount >= 4 ? 3 : openCount >= 3 ? 2 : openCount >= 1 ? 1 : 0;
+  const ratio = capacity ? planned / capacity : 0;
+  // Planned study alone stays subtle (max 2); only what is actually due gets loud.
+  const byLoad = ratio >= 0.75 ? 2 : ratio > 0 ? 1 : 0;
+  return Math.max(byCount, byLoad);
+}
 
 export function MonthView({ month, items, onOpen }: { month: string; items: Item[]; onOpen: (i: Item) => void }) {
-  const { data, today, schedule, isDark } = useStore();
+  const { data, today, schedule } = useStore();
   const tz = data.settings.timezone;
   const wide = useMediaQuery('(min-width: 640px)');
   const [sheet, setSheet] = useState<DateStr | null>(null);
@@ -39,11 +48,12 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
           const dayItems = byDay.get(d) ?? [];
           const open = dayItems.filter((i) => i.status !== 'done');
           const other = !d.startsWith(month);
-          const states = dayItems.map((i) => chipState(i, schedule.byItem[i.id], today, tz));
+          const states = open.map((i) => chipState(i, schedule.byItem[i.id], today, tz));
           const marker = states.includes('overdue') ? 'overdue' : null;
-          const heavy = open.length >= HEAVY_COUNT;
-          const shown = wide ? dayItems.slice(0, MAX_CHIPS) : [];
-          const rest = wide ? dayItems.slice(MAX_CHIPS) : dayItems;
+          const level = other ? 0 : warmth(open.length, schedule.loadByDay[d] ?? 0, dayCapacity(data.settings, d));
+          const big = open.some(isBig);
+          const shown = wide ? open.slice(0, MAX_CHIPS) : [];
+          const rest = open.length - shown.length;
           return (
             <button
               type="button"
@@ -51,15 +61,15 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
               className="month-cell"
               data-other={other}
               data-today={d === today}
-              data-heavy={heavy && !other}
+              data-level={level}
               data-marker={marker ?? undefined}
               onClick={() => setSheet(d)}
-              aria-label={`${d}, ${dayItems.length} items${heavy ? ', heavy day' : ''}`}
+              aria-label={`${d}, ${open.length} open items${big ? ', includes a big item' : ''}`}
             >
               <span className="month-cell-top">
                 <span className="month-daynum">{Number(d.slice(-2))}</span>
                 {open.length > 0 && (
-                  <span className="month-count" data-bold={open.length >= 4}>
+                  <span className="month-count" data-bold={open.length >= 4} data-big={big}>
                     {open.length}
                   </span>
                 )}
@@ -67,12 +77,12 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
               {wide ? (
                 <span className="month-chips">
                   {shown.map((i) => (
-                    <ItemChip key={i.id} item={i} onOpen={onOpen} />
+                    <ItemChip key={i.id} item={i} onOpen={onOpen} plain />
                   ))}
-                  {rest.length > 0 && <DayBar items={rest} courses={data.courses} isDark={isDark} label={`+${rest.length}`} />}
+                  {rest > 0 && <span className="month-more">+{rest}</span>}
                 </span>
               ) : (
-                <DayBar items={rest} courses={data.courses} isDark={isDark} />
+                big && <span className="month-big" aria-hidden />
               )}
             </button>
           );

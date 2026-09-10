@@ -33,17 +33,21 @@ export function useChipState(item: Item): ChipState {
   return chipState(item, schedule.byItem[item.id], today, data.settings.timezone);
 }
 
-export function ItemChip({ item, onOpen }: { item: Item; onOpen: (i: Item) => void }) {
+export const isBig = (item: Item) => item.type === 'exam' || item.points >= 100;
+
+export function ItemChip({ item, onOpen, plain = false }: { item: Item; onOpen: (i: Item) => void; plain?: boolean }) {
   const { courseById } = useStore();
   const course = courseById.get(item.courseId);
   const color = useCourseColor(course);
   const state = useChipState(item);
-  const glyph = GLYPH[state];
+  const glyph = plain && state === 'today' ? undefined : GLYPH[state];
   return (
     <button
       type="button"
       className="chip-item"
       data-state={state}
+      data-plain={plain}
+      data-big={plain && isBig(item)}
       style={{ '--course': color } as React.CSSProperties}
       onClick={(e) => {
         e.stopPropagation();
@@ -52,6 +56,7 @@ export function ItemChip({ item, onOpen }: { item: Item; onOpen: (i: Item) => vo
       title={`${course?.code ?? ''} · ${item.title}${STATE_LABEL[state] ? ` · ${STATE_LABEL[state]}` : ''}`}
       aria-label={`${item.label}, ${course?.code ?? ''}${STATE_LABEL[state] ? `, ${STATE_LABEL[state]}` : ''}`}
     >
+      {plain && <span className="chip-dot" aria-hidden />}
       {glyph && (
         <span className="glyph" aria-hidden>
           {glyph}

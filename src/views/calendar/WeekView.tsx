@@ -1,37 +1,75 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '../../components/EmptyState';
-import { useCourseColor } from '../../components/CourseChip';
-import { ItemRow } from '../../components/ItemRow';
-import { meetingsOn, type MeetingOn } from '../../domain/calendar';
-import { addDays, dateOf, fmtClock, fmtDate, fmtMinutes, hhmmToMinutes } from '../../domain/dates';
+import { ItemChip } from '../../components/ItemChip';
+import { addDays, dateOf, fmtDate, fmtMinutes, fmtTime } from '../../domain/dates';
 import { dayCapacity } from '../../domain/schedule';
 import type { DateStr, Item } from '../../domain/types';
 import { useStore } from '../../storage/store';
-import { useMediaQuery } from '../../ui/useMediaQuery';
-import { ItemChip, MeetingRow } from './shared';
 
-const HOUR_START = 7;
-const HOUR_END = 22;
-const PX_PER_HOUR = 40;
+const SHOW_NAMES_UP_TO = 2;
 
-function MeetingBlock({ m }: { m: MeetingOn }) {
-  const color = useCourseColor(m.course);
-  const s = hhmmToMinutes(m.meeting.start);
-  const e = hhmmToMinutes(m.meeting.end);
-  const top = ((s - HOUR_START * 60) / 60) * PX_PER_HOUR;
-  const height = ((e - s) / 60) * PX_PER_HOUR;
+function LoadBar({ planned, capacity }: { planned: number; capacity: number }) {
+  const ratio = capacity ? planned / capacity : 0;
+  const status = planned === 0 ? 'none' : ratio <= 0.8 ? 'ok' : ratio <= 1 ? 'warn' : 'over';
   return (
-    <div className="week-meeting" style={{ top, height, '--course': color } as React.CSSProperties} title={`${m.course.code} ${m.meeting.start}–${m.meeting.end}`}>
-      <b>{m.course.code}</b>
-      <span>{fmtClock(Math.floor(s / 60), s % 60)}</span>
+    <span className="week-load" data-status={status} title={`${fmtMinutes(planned)} planned of ${fmtMinutes(capacity)}`} aria-label={`${fmtMinutes(planned)} planned of ${fmtMinutes(capacity)}`}>
+      <span style={{ width: `${Math.min(100, ratio * 100)}%` }} />
+    </span>
+  );
+}
+
+function DayRow({ day, items, onOpen }: { day: DateStr; items: Item[]; onOpen: (i: Item) => void }) {
+  const { data, schedule, today, nudges } = useStore();
+  const tz = data.settings.timezone;
+  const [expanded, setExpanded] = useState(false);
+  const open = items.filter((i) => i.status !== 'done');
+  const planned = schedule.loadByDay[day] ?? 0;
+  const capacity = dayCapacity(data.settings, day);
+  const dayNudges = nudges.filter((nd) => nd.day === day);
+  const showAll = open.length <= SHOW_NAMES_UP_TO || expanded;
+
+  return (
+    <div className="week-row" data-today={day === today} data-past={day < today}>
+      <div className="week-row-date">
+        <b>{day === today ? 'Today' : fmtDate(day, 'long').split(',')[0]}</b>
+        <span className="mono muted">{fmtDate(day, 'short')}</span>
+        <LoadBar planned={planned} capacity={capacity} />
+      </div>
+      <div className="week-row-body">
+        {open.length === 0 && dayNudges.length === 0 && <span className="muted">—</span>}
+        {dayNudges.map((nd) => (
+          <span key={nd.key} className="week-nudge">
+            {nd.label} · {fmtMinutes(nd.minutes)}
+          </span>
+        ))}
+        {showAll ? (
+          open.map((i) => {
+            const time = fmtTime(i.dueAt, tz);
+            return (
+              <span key={i.id} className="week-item">
+                <ItemChip item={i} onOpen={onOpen} />
+                {time !== '11:59 PM' && <span className="mono muted week-time">{time}</span>}
+              </span>
+            );
+          })
+        ) : (
+          <button type="button" className="week-count" onClick={() => setExpanded(true)} aria-expanded={false}>
+            {open.length} due{planned ? ` · ${fmtMinutes(planned)} planned` : ''}
+          </button>
+        )}
+        {expanded && open.length > SHOW_NAMES_UP_TO && (
+          <button type="button" className="muted week-collapse" onClick={() => setExpanded(false)}>
+            collapse
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
 export function WeekView({ start, items, onOpen }: { start: DateStr; items: Item[]; onOpen: (i: Item) => void }) {
-  const { data, schedule, today } = useStore();
+  const { data } = useStore();
   const tz = data.settings.timezone;
-  const wide = useMediaQuery('(min-width: 768px)');
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(start, i)), [start]);
   const byDay = useMemo(() => {
     const m = new Map<DateStr, Item[]>();
@@ -42,85 +80,12 @@ export function WeekView({ start, items, onOpen }: { start: DateStr; items: Item
     return m;
   }, [items, tz]);
 
-  if (!wide) {
-    return (
-      <div className="week-stack">
-        {days.map((d) => {
-          const meetings = meetingsOn(data.courses, d);
-          const due = byDay.get(d) ?? [];
-          const planned = schedule.loadByDay[d] ?? 0;
-          return (
-            <section key={d} className="week-day" data-today={d === today}>
-              <header className="week-day-head">
-                <b>{d === today ? 'Today' : fmtDate(d, 'long')}</b>
-                <span className="mono muted">
-                  {fmtMinutes(planned)} / {fmtMinutes(dayCapacity(data.settings, d))}
-                </span>
-              </header>
-              {meetings.map((m) => (
-                <MeetingRow key={m.course.id + m.meeting.start} m={m} />
-              ))}
-              {due.length > 0 && (
-                <ul className="item-list" style={{ marginTop: 6 }}>
-                  {due.map((i) => (
-                    <ItemRow key={i.id} item={i} onOpen={onOpen} />
-                  ))}
-                </ul>
-              )}
-              {meetings.length === 0 && due.length === 0 && (
-                <p className="hint">{planned > 0 ? `Nothing due. ${fmtMinutes(planned)} of study planned.` : 'Nothing due, nothing planned.'}</p>
-              )}
-            </section>
-          );
-        })}
-      </div>
-    );
-  }
-
-  const hours = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+  if (items.length === 0) return <EmptyState>No items match the filter.</EmptyState>;
   return (
-    <div className="week-grid">
-      <div className="week-corner" />
+    <div className="week-rows">
       {days.map((d) => (
-        <div key={`h${d}`} className="week-col-head" data-today={d === today}>
-          <span className="week-dayname">{fmtDate(d, 'long').split(',')[0]}</span>
-          <b>{Number(d.slice(-2))}</b>
-          <span className="week-planned mono">{schedule.loadByDay[d] ? `${fmtMinutes(schedule.loadByDay[d])} planned` : '—'}</span>
-        </div>
+        <DayRow key={d} day={d} items={byDay.get(d) ?? []} onOpen={onOpen} />
       ))}
-      <div className="week-corner" />
-      {days.map((d) => {
-        const due = byDay.get(d) ?? [];
-        return (
-          <div key={`d${d}`} className="week-due" data-today={d === today}>
-            {due.map((i) => (
-              <ItemChip key={i.id} item={i} onOpen={onOpen} />
-            ))}
-          </div>
-        );
-      })}
-      <div className="week-hours">
-        {hours.map((h) => (
-          <span key={h} style={{ height: PX_PER_HOUR }}>
-            {fmtClock(h, 0).replace(':00', '')}
-          </span>
-        ))}
-      </div>
-      {days.map((d) => (
-        <div key={`t${d}`} className="week-col" data-today={d === today} style={{ height: hours.length * PX_PER_HOUR }}>
-          {hours.map((h) => (
-            <span key={h} className="week-hourline" style={{ top: (h - HOUR_START) * PX_PER_HOUR }} />
-          ))}
-          {meetingsOn(data.courses, d).map((m) => (
-            <MeetingBlock key={m.course.id + m.meeting.start} m={m} />
-          ))}
-        </div>
-      ))}
-      {items.length === 0 && (
-        <div style={{ gridColumn: '1 / -1' }}>
-          <EmptyState>No items match the filter.</EmptyState>
-        </div>
-      )}
     </div>
   );
 }
