@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-10T00:06:18.244Z",
+  "generatedAt": "2026-09-10T02:57:35.180Z",
   "courses": [
     {
       "id": "3d1d0b61-2b14-6d9e-ee6d-aed16fff8ab1",
@@ -32,7 +32,7 @@
       "online": false,
       "termStart": "2026-09-08",
       "termEnd": "2026-12-20",
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "75a5982d-cf08-a154-b6ba-303d4e9ebb5d",
@@ -56,7 +56,7 @@
       "online": false,
       "termStart": "2026-09-08",
       "termEnd": "2026-12-20",
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ca79973e-ede0-0955-b005-c52e54ae930e",
@@ -93,7 +93,7 @@
       "online": false,
       "termStart": "2026-09-08",
       "termEnd": "2026-12-20",
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "1aabda34-d588-36db-b6a4-6484c5e0f064",
@@ -122,7 +122,7 @@
       "online": false,
       "termStart": "2026-09-08",
       "termEnd": "2026-12-20",
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "218108de-a741-c2e3-54b6-560ed671f22e",
@@ -150,7 +150,7 @@
       "online": false,
       "termStart": "2026-09-08",
       "termEnd": "2026-12-20",
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "a35afd34-04eb-cfa7-bbc4-ac6409ec0644",
@@ -168,7 +168,7 @@
       "online": true,
       "termStart": "2026-09-08",
       "termEnd": "2026-10-25",
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     }
   ],
   "items": [
@@ -182,7 +182,7 @@
       "points": 20,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -199,7 +199,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "34c29ac2-0ce5-6ea9-ae73-ccf240d76192",
@@ -211,7 +211,7 @@
       "points": 10,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -228,7 +228,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f72e73e7-30ee-79a2-b4dc-fab72c885c57",
@@ -240,7 +240,7 @@
       "points": 20,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -257,7 +257,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "719fddb4-bdac-8427-c102-afe449f83704",
@@ -269,7 +269,7 @@
       "points": 10,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -286,7 +286,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "3e396a09-dcd2-a3aa-5bcc-5c7984e9e999",
@@ -298,7 +298,7 @@
       "points": 10,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -315,7 +315,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "7df5544e-acd2-13e5-d714-343e19ebcf5e",
@@ -327,7 +327,7 @@
       "points": 15,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-21T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -344,7 +344,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f5cd3d01-a61d-b40c-9052-223124bfd591",
@@ -356,7 +356,7 @@
       "points": 50,
       "opensAt": "2026-09-25T00:00:00-07:00",
       "dueAt": "2026-09-25T08:00:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -373,7 +373,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "6bbaaff1-163f-a882-199d-39219ccc16c1",
@@ -385,7 +385,7 @@
       "points": 10,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -402,7 +402,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e054375f-971d-f83c-3ce2-4d0f9d7a59af",
@@ -414,7 +414,7 @@
       "points": 10,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -431,7 +431,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "38643a31-962f-109e-b774-7f2118674941",
@@ -443,7 +443,7 @@
       "points": 15,
       "opensAt": "2026-09-22T00:00:00-07:00",
       "dueAt": "2026-10-05T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -460,7 +460,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "02d974c5-f32f-8e82-b40f-2e7564904a95",
@@ -472,7 +472,7 @@
       "points": 10,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -489,7 +489,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "789e80ae-72ce-8175-a344-995e5288a1fe",
@@ -501,7 +501,7 @@
       "points": 10,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -518,7 +518,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "610ba225-6d68-1614-d833-c8f5dd5f9115",
@@ -530,7 +530,7 @@
       "points": 20,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -547,7 +547,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "65fa1351-4034-2f4e-b5c2-05018b29dc21",
@@ -559,7 +559,7 @@
       "points": 10,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -576,7 +576,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "6406e606-b7af-db21-db1a-90b68c088ad6",
@@ -588,7 +588,7 @@
       "points": 10,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -605,7 +605,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e245d907-4fd6-1748-89df-9977330b8117",
@@ -617,7 +617,7 @@
       "points": 15,
       "opensAt": "2026-10-06T00:00:00-07:00",
       "dueAt": "2026-10-19T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -634,7 +634,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "34e1ba0c-b24e-647d-941f-147cc98af2dc",
@@ -646,7 +646,7 @@
       "points": 50,
       "opensAt": "2026-10-23T00:00:00-07:00",
       "dueAt": "2026-10-23T08:00:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -663,7 +663,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "9492aead-847f-b696-7cbb-c95d3efe4ffd",
@@ -675,7 +675,7 @@
       "points": 10,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -692,7 +692,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "31332353-fe78-bba0-53f5-44232d48f103",
@@ -704,7 +704,7 @@
       "points": 150,
       "opensAt": "2026-10-30T00:00:00-07:00",
       "dueAt": "2026-10-30T23:59:00-07:00",
-      "estimatedMinutes": 630,
+      "estimatedMinutes": 420,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -721,7 +721,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "8e7ab26f-a0f1-a288-bf48-8edfefcd757f",
@@ -733,7 +733,7 @@
       "points": 10,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-11-01T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -750,7 +750,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "973eb555-ae50-cdd6-7677-6185ea7a8125",
@@ -762,7 +762,7 @@
       "points": 10,
       "opensAt": "2026-10-26T00:00:00-07:00",
       "dueAt": "2026-11-01T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -779,7 +779,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "219b745b-5557-9b44-808f-008bc1fb712b",
@@ -791,7 +791,7 @@
       "points": 15,
       "opensAt": "2026-10-20T00:00:00-07:00",
       "dueAt": "2026-11-02T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -808,7 +808,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "a780514b-e3fc-1448-aa4b-1bfb7a24869b",
@@ -820,7 +820,7 @@
       "points": 10,
       "opensAt": "2026-11-02T00:00:00-07:00",
       "dueAt": "2026-11-08T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -837,7 +837,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ee21a074-1e43-565d-e0e4-4304cce40424",
@@ -849,7 +849,7 @@
       "points": 20,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -866,7 +866,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ead918f9-7b44-0456-8a59-e4a91e9dbf49",
@@ -878,7 +878,7 @@
       "points": 10,
       "opensAt": "2026-11-02T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -895,7 +895,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "74f473d7-849b-480e-d67e-af47f9a475e7",
@@ -907,7 +907,7 @@
       "points": 10,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -924,7 +924,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b6ab7e35-6eb2-cd0a-65d0-b0e5955e1885",
@@ -936,7 +936,7 @@
       "points": 15,
       "opensAt": "2026-11-03T00:00:00-07:00",
       "dueAt": "2026-11-16T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -953,7 +953,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "095d6427-5ffb-ee66-f05e-d9575ea90db7",
@@ -965,7 +965,7 @@
       "points": 50,
       "opensAt": "2026-11-20T00:00:00-07:00",
       "dueAt": "2026-11-20T08:00:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -982,7 +982,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e26f4d4e-080c-a7c3-c498-a1be0b5af0de",
@@ -994,7 +994,7 @@
       "points": 10,
       "opensAt": "2026-11-16T00:00:00-07:00",
       "dueAt": "2026-11-22T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1011,7 +1011,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "a6a092a0-98cc-08b5-2336-09d09c2f80f0",
@@ -1023,7 +1023,7 @@
       "points": 10,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-11-29T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1040,7 +1040,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e6b8ffa2-bacd-a709-0723-eb927e10bcb2",
@@ -1052,7 +1052,7 @@
       "points": 15,
       "opensAt": "2026-11-17T00:00:00-07:00",
       "dueAt": "2026-11-30T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1069,7 +1069,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "435b5183-a5bd-14f0-e5a7-e1f333e1a193",
@@ -1081,7 +1081,7 @@
       "points": 10,
       "opensAt": "2026-11-16T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1098,7 +1098,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ffd97ec4-86ed-fef9-cfb1-e8d424864074",
@@ -1110,7 +1110,7 @@
       "points": 20,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1127,7 +1127,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "91611d8a-7016-1621-fc9f-3afa2f54b99a",
@@ -1139,7 +1139,7 @@
       "points": 10,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1156,7 +1156,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "67629e7b-91ac-bdf6-f838-622b3a7669cb",
@@ -1168,7 +1168,7 @@
       "points": 10,
       "opensAt": "2026-11-30T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1185,7 +1185,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "a25ef0c8-e435-bfc3-493e-caf8cf336c98",
@@ -1197,7 +1197,7 @@
       "points": 15,
       "opensAt": "2026-12-01T00:00:00-07:00",
       "dueAt": "2026-12-07T23:59:00-07:00",
-      "estimatedMinutes": 90,
+      "estimatedMinutes": 60,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1214,7 +1214,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "91b8fe4b-9349-3b2a-4e06-567be0bc6b5b",
@@ -1226,7 +1226,7 @@
       "points": 50,
       "opensAt": "2026-12-11T00:00:00-07:00",
       "dueAt": "2026-12-11T08:00:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1243,7 +1243,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "93887d48-1ffc-c8d5-9183-a1f824f80758",
@@ -1255,7 +1255,7 @@
       "points": 25,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1272,7 +1272,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "7aad2dd4-b957-88a5-cdd2-13c4f5fe8864",
@@ -1284,7 +1284,7 @@
       "points": 10,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1301,7 +1301,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c442048b-ad34-66b8-9f0d-975beff59d3b",
@@ -1313,7 +1313,7 @@
       "points": 200,
       "opensAt": "2026-12-18T00:00:00-07:00",
       "dueAt": "2026-12-18T08:00:00-07:00",
-      "estimatedMinutes": 720,
+      "estimatedMinutes": 480,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1330,7 +1330,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c0648fd5-3aae-3ba0-83aa-6f0505134825",
@@ -1342,7 +1342,7 @@
       "points": 10,
       "opensAt": "2026-12-14T00:00:00-07:00",
       "dueAt": "2026-12-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1359,7 +1359,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "124ba88a-d4b6-f64f-8c89-af1af3801b7a",
@@ -1371,7 +1371,7 @@
       "points": 10,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1388,7 +1388,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "377105c4-fd4d-d96f-bc2b-6674685be494",
@@ -1400,7 +1400,7 @@
       "points": 50,
       "opensAt": "2026-09-18T00:00:00-07:00",
       "dueAt": "2026-09-18T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1417,7 +1417,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "619119f1-e3bc-773c-b2fa-b2c1745b15a1",
@@ -1429,7 +1429,7 @@
       "points": 10,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1446,7 +1446,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e92425a6-2de0-6b1d-adf8-4556cad42e76",
@@ -1458,7 +1458,7 @@
       "points": 60,
       "opensAt": "2026-09-25T00:00:00-07:00",
       "dueAt": "2026-09-25T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1475,7 +1475,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "985959b9-517b-5378-2029-4a099d1956e9",
@@ -1487,7 +1487,7 @@
       "points": 10,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1504,7 +1504,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c57c0e5a-bc73-fe53-96be-1baabe6db1ca",
@@ -1516,7 +1516,7 @@
       "points": 50,
       "opensAt": "2026-10-02T00:00:00-07:00",
       "dueAt": "2026-10-02T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1533,7 +1533,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c901c698-8230-7525-3e56-02a80c56d148",
@@ -1545,7 +1545,7 @@
       "points": 75,
       "opensAt": "2026-09-27T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1562,7 +1562,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f40ac4a3-3be5-072c-739d-05d327061a73",
@@ -1574,7 +1574,7 @@
       "points": 75,
       "opensAt": "2026-10-09T00:00:00-07:00",
       "dueAt": "2026-10-09T23:59:00-07:00",
-      "estimatedMinutes": 360,
+      "estimatedMinutes": 270,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1591,7 +1591,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e67a0cd0-67b5-66cd-b555-cbe008a73b40",
@@ -1603,7 +1603,7 @@
       "points": 10,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1620,7 +1620,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "24ee7e86-ff33-a907-9763-5f56cc3ab536",
@@ -1632,7 +1632,7 @@
       "points": 10,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1649,7 +1649,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "759a68ee-e1fc-094f-5cb8-39fe8659bf5e",
@@ -1661,7 +1661,7 @@
       "points": 10,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1678,7 +1678,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c58dd1b6-1e19-a269-4005-410652b99566",
@@ -1690,7 +1690,7 @@
       "points": 50,
       "opensAt": "2026-10-23T00:00:00-07:00",
       "dueAt": "2026-10-23T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1707,7 +1707,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "44185e45-4831-d380-0e8b-0c15cf1088f5",
@@ -1719,7 +1719,7 @@
       "points": 10,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1736,7 +1736,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "4af3d0df-fe0c-cd5c-a9c9-a04fe0ba52af",
@@ -1748,7 +1748,7 @@
       "points": 60,
       "opensAt": "2026-10-30T00:00:00-07:00",
       "dueAt": "2026-10-30T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1765,7 +1765,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "5353703d-4327-4388-854c-394db2785c2d",
@@ -1777,7 +1777,7 @@
       "points": 10,
       "opensAt": "2026-10-26T00:00:00-07:00",
       "dueAt": "2026-11-01T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1794,7 +1794,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "032ac1d6-58c5-7cef-0374-cf26ef929e06",
@@ -1806,7 +1806,7 @@
       "points": 10,
       "opensAt": "2026-10-26T00:00:00-07:00",
       "dueAt": "2026-11-01T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1823,7 +1823,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c14186e1-ce39-806a-9c9a-50f16f246cd1",
@@ -1835,7 +1835,7 @@
       "points": 10,
       "opensAt": "2026-11-02T00:00:00-07:00",
       "dueAt": "2026-11-08T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1852,7 +1852,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "92d79b46-996e-1079-b3b3-0996d9571576",
@@ -1864,7 +1864,7 @@
       "points": 60,
       "opensAt": "2026-11-13T00:00:00-07:00",
       "dueAt": "2026-11-13T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1881,7 +1881,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "fce253ae-40d9-b475-e3a9-ad9e68b441be",
@@ -1893,7 +1893,7 @@
       "points": 60,
       "opensAt": "2026-11-20T00:00:00-07:00",
       "dueAt": "2026-11-20T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1910,7 +1910,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "d52319d6-91c2-aa81-02ad-3a269a8b1506",
@@ -1922,7 +1922,7 @@
       "points": 10,
       "opensAt": "2026-11-16T00:00:00-07:00",
       "dueAt": "2026-11-22T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1939,7 +1939,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "6551887c-08c0-4f8b-b033-aa2c6d4466cc",
@@ -1951,7 +1951,7 @@
       "points": 100,
       "opensAt": "2026-11-29T00:00:00-07:00",
       "dueAt": "2026-11-29T23:59:00-07:00",
-      "estimatedMinutes": 480,
+      "estimatedMinutes": 360,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1968,7 +1968,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "0ecdcd38-0b6d-266b-2e5b-dec8ebf793a8",
@@ -1980,7 +1980,7 @@
       "points": 10,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-11-29T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -1997,7 +1997,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "caa890be-27e9-7839-a3c6-80ae4189130e",
@@ -2009,7 +2009,7 @@
       "points": 60,
       "opensAt": "2026-12-06T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2026,7 +2026,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "d5ed9b43-258d-1d60-fbc1-1653c06ec0b3",
@@ -2038,7 +2038,7 @@
       "points": 10,
       "opensAt": "2026-11-30T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2055,7 +2055,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "fad20411-da77-9614-0a9b-d261bbdaee81",
@@ -2067,7 +2067,7 @@
       "points": 60,
       "opensAt": "2026-12-11T00:00:00-07:00",
       "dueAt": "2026-12-11T23:59:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2084,7 +2084,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e9330fd3-ef03-29b6-36cd-d3a36427d403",
@@ -2096,7 +2096,7 @@
       "points": 100,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 240,
+      "estimatedMinutes": 150,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2113,7 +2113,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "2ab6535c-f9cd-9283-3aa5-6a6c162821cc",
@@ -2125,7 +2125,7 @@
       "points": 10,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2142,7 +2142,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b5f101ad-0cb2-eb68-1b60-24dd057d377d",
@@ -2154,7 +2154,7 @@
       "points": 20,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2171,7 +2171,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "4acaa5d9-9885-ec36-87b8-a5c9250df569",
@@ -2183,7 +2183,7 @@
       "points": 20,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 60,
+      "estimatedMinutes": 40,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2200,7 +2200,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "6229284d-dd03-f56a-1534-c57d2633169d",
@@ -2212,7 +2212,7 @@
       "points": 10,
       "opensAt": "2026-10-07T00:00:00-07:00",
       "dueAt": "2026-10-07T12:45:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2229,7 +2229,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "479123d2-db37-8caf-e2ea-fbc29e9f49a2",
@@ -2241,7 +2241,7 @@
       "points": 20,
       "opensAt": "2026-10-07T00:00:00-07:00",
       "dueAt": "2026-10-07T12:45:00-07:00",
-      "estimatedMinutes": 140,
+      "estimatedMinutes": 105,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2258,7 +2258,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "cae8c4ed-eaaf-062c-1df7-805dc6a1f17d",
@@ -2270,7 +2270,7 @@
       "points": 20,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2287,7 +2287,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c816a529-0ded-a092-fa30-7e7981d72c19",
@@ -2299,7 +2299,7 @@
       "points": 210,
       "opensAt": "2026-10-09T00:00:00-07:00",
       "dueAt": "2026-10-09T12:45:00-07:00",
-      "estimatedMinutes": 300,
+      "estimatedMinutes": 200,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2316,7 +2316,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b764f6fb-e2c3-3d46-5225-282b876d42cb",
@@ -2328,7 +2328,7 @@
       "points": 20,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2345,7 +2345,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f373cd07-7a4c-2bf4-7331-5237bb488457",
@@ -2357,7 +2357,7 @@
       "points": 20,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 60,
+      "estimatedMinutes": 40,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2374,7 +2374,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "a65e1a0e-7b4e-8adb-f4c4-d67e05698b1e",
@@ -2386,7 +2386,7 @@
       "points": 20,
       "opensAt": "2026-10-26T00:00:00-07:00",
       "dueAt": "2026-11-08T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2403,7 +2403,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "aaac5317-2bc3-49c4-e69e-aa47aa030c67",
@@ -2415,7 +2415,7 @@
       "points": 10,
       "opensAt": "2026-11-13T00:00:00-07:00",
       "dueAt": "2026-11-13T12:45:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2432,7 +2432,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e04a56a5-5e20-845e-026b-a535bc4cab15",
@@ -2444,7 +2444,7 @@
       "points": 40,
       "opensAt": "2026-11-13T00:00:00-07:00",
       "dueAt": "2026-11-13T12:45:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2461,7 +2461,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b7cbc30c-81f4-ce63-67a3-201c394090bc",
@@ -2473,7 +2473,7 @@
       "points": 220,
       "opensAt": "2026-11-15T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 300,
+      "estimatedMinutes": 200,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2490,7 +2490,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "28138d05-58d5-3070-711a-7eb5317a1855",
@@ -2502,7 +2502,7 @@
       "points": 20,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-22T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2519,7 +2519,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "13f66e07-fceb-b310-dfdf-dc3712a8e7d7",
@@ -2531,7 +2531,7 @@
       "points": 20,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 60,
+      "estimatedMinutes": 40,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2548,7 +2548,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "20d0624b-c3b4-b10a-df95-58fb4f25771b",
@@ -2560,7 +2560,7 @@
       "points": 20,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2577,7 +2577,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "19eb3728-915c-5d27-44e4-fb98bebdb1f8",
@@ -2589,7 +2589,7 @@
       "points": 10,
       "opensAt": "2026-12-09T00:00:00-07:00",
       "dueAt": "2026-12-09T12:45:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2606,7 +2606,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ef99c0e1-bc1a-b54a-06c7-6e91f6f0d4b1",
@@ -2618,7 +2618,7 @@
       "points": 40,
       "opensAt": "2026-12-09T00:00:00-07:00",
       "dueAt": "2026-12-09T12:45:00-07:00",
-      "estimatedMinutes": 150,
+      "estimatedMinutes": 100,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2635,7 +2635,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "0f3db944-6c93-42e7-b0e7-4b1499393ef4",
@@ -2647,7 +2647,7 @@
       "points": 240,
       "opensAt": "2026-12-13T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 300,
+      "estimatedMinutes": 200,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2664,7 +2664,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "db17d078-4453-9b39-2e3e-b0a878ff2fc8",
@@ -2676,7 +2676,7 @@
       "points": 20,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2693,7 +2693,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "94559161-15c4-9184-8851-0251f9240df1",
@@ -2705,7 +2705,7 @@
       "points": 40,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2722,7 +2722,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e642d4e1-bd3e-f09e-8714-05d1f7836371",
@@ -2734,7 +2734,7 @@
       "points": 25,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2751,7 +2751,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "531a734f-62ce-af54-aa76-1b9f4e826b3f",
@@ -2763,7 +2763,7 @@
       "points": 10,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2780,7 +2780,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f1e68cb1-a48e-c3a2-1ccf-68415816f261",
@@ -2792,7 +2792,7 @@
       "points": 35,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2809,7 +2809,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "621ff43c-7810-965f-5cad-360c9066812c",
@@ -2821,7 +2821,7 @@
       "points": 10,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2838,7 +2838,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "8d7a8d6b-3264-35a8-d92e-435bdd2c4f7b",
@@ -2850,7 +2850,7 @@
       "points": 25,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2867,7 +2867,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "cfded078-750f-93d3-9301-ee484bdbf1e8",
@@ -2879,7 +2879,7 @@
       "points": 10,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2896,7 +2896,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c800006d-3f1e-ece6-c57e-93dd60a9e8bd",
@@ -2908,7 +2908,7 @@
       "points": 70,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2925,7 +2925,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c3de674a-2c9a-631d-8918-f95af544d8fa",
@@ -2937,7 +2937,7 @@
       "points": 35,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2954,7 +2954,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c1c247b1-0b3d-a286-36c7-ad21f3b632c1",
@@ -2966,7 +2966,7 @@
       "points": 25,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -2983,7 +2983,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ea4ef83e-1ba5-e84d-e040-114e4f27fc6e",
@@ -2995,7 +2995,7 @@
       "points": 10,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3012,7 +3012,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f3f16b65-d231-cb42-e5d9-caf5a5fe8495",
@@ -3024,7 +3024,7 @@
       "points": 35,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3041,7 +3041,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "7d972607-5307-a18c-a4ac-1617b7eb38b7",
@@ -3053,7 +3053,7 @@
       "points": 10,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3070,7 +3070,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "aeba3bf3-6b0e-93d4-aac8-080324adec23",
@@ -3082,7 +3082,7 @@
       "points": 40,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3099,7 +3099,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "605f864f-b170-00a0-0cd5-871fe52d363f",
@@ -3111,7 +3111,7 @@
       "points": 10,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3128,7 +3128,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "37d0d98f-16e6-78d0-5eca-b27f5090a2df",
@@ -3140,7 +3140,7 @@
       "points": 40,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3157,7 +3157,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c4312ac9-95e3-dc12-293c-6d39c9c47fd9",
@@ -3169,7 +3169,7 @@
       "points": 25,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3186,7 +3186,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c6955080-873d-2273-864f-1a509d8c9570",
@@ -3198,7 +3198,7 @@
       "points": 10,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3215,7 +3215,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b26ea886-0ed2-2121-9674-86563ead90f6",
@@ -3227,7 +3227,7 @@
       "points": 35,
       "opensAt": "2026-10-26T00:00:00-07:00",
       "dueAt": "2026-11-01T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3244,7 +3244,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c18ac088-f838-368b-0305-e31807706138",
@@ -3256,7 +3256,7 @@
       "points": 10,
       "opensAt": "2026-10-26T00:00:00-07:00",
       "dueAt": "2026-11-01T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3273,7 +3273,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b697437f-171a-dac8-24d4-d1af9aa7c48f",
@@ -3285,7 +3285,7 @@
       "points": 70,
       "opensAt": "2026-11-02T00:00:00-07:00",
       "dueAt": "2026-11-08T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3302,7 +3302,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "3e262a52-bf12-6cb9-3db6-80e202d64282",
@@ -3314,7 +3314,7 @@
       "points": 10,
       "opensAt": "2026-11-02T00:00:00-07:00",
       "dueAt": "2026-11-08T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3331,7 +3331,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "13d790fe-cdd6-3641-ad33-9f8e72b0476e",
@@ -3343,7 +3343,7 @@
       "points": 40,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3360,7 +3360,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "db26f3e6-4967-7631-571b-799676329736",
@@ -3372,7 +3372,7 @@
       "points": 25,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3389,7 +3389,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "28309cb4-f06e-6999-ada7-8b04831ddd24",
@@ -3401,7 +3401,7 @@
       "points": 10,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3418,7 +3418,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ea89fa02-2cef-1a39-718c-7c1228f25c32",
@@ -3430,7 +3430,7 @@
       "points": 35,
       "opensAt": "2026-11-16T00:00:00-07:00",
       "dueAt": "2026-11-22T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3447,7 +3447,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "88607181-90ef-f458-5dfc-4b112bb7a0b1",
@@ -3459,7 +3459,7 @@
       "points": 10,
       "opensAt": "2026-11-16T00:00:00-07:00",
       "dueAt": "2026-11-22T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3476,7 +3476,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ea219114-a7f7-0b9d-4101-2d247c6d7584",
@@ -3488,7 +3488,7 @@
       "points": 40,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-11-29T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3505,7 +3505,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "931fe3a4-fc80-d0f7-25b1-df94f8620934",
@@ -3517,7 +3517,7 @@
       "points": 25,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-11-29T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3534,7 +3534,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "020aed6b-5c96-10aa-2821-75bbb667acdb",
@@ -3546,7 +3546,7 @@
       "points": 10,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-11-29T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3563,7 +3563,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "882566fb-8c91-b360-0fc0-b1ab4208d20b",
@@ -3575,7 +3575,7 @@
       "points": 70,
       "opensAt": "2026-11-30T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3592,7 +3592,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "abd79d2a-257f-9ae1-2e69-d77a70c2f39a",
@@ -3604,7 +3604,7 @@
       "points": 35,
       "opensAt": "2026-11-30T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3621,7 +3621,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "1c2ae460-274f-e501-c851-4fb065e95250",
@@ -3633,7 +3633,7 @@
       "points": 10,
       "opensAt": "2026-11-30T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3650,7 +3650,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "71303626-05e5-2785-b699-7b363d9c7316",
@@ -3662,7 +3662,7 @@
       "points": 20,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3679,7 +3679,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "cf527167-9a22-69bc-1ec5-1917bc8d2037",
@@ -3691,7 +3691,7 @@
       "points": 25,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3708,7 +3708,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f06b5983-938f-dcae-9fd0-6f13874e97b3",
@@ -3720,7 +3720,7 @@
       "points": 10,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3737,7 +3737,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "dfff67fb-395c-3ea4-b1c5-8e8bfb29612b",
@@ -3749,7 +3749,7 @@
       "points": 35,
       "opensAt": "2026-12-14T00:00:00-07:00",
       "dueAt": "2026-12-20T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3766,7 +3766,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "06d63c3e-6f3c-d927-7e22-5bcef6c9ecee",
@@ -3778,7 +3778,7 @@
       "points": 10,
       "opensAt": "2026-12-14T00:00:00-07:00",
       "dueAt": "2026-12-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3795,7 +3795,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "04bfeb09-7ce1-7990-e4c1-a6f992753559",
@@ -3807,7 +3807,7 @@
       "points": 10,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3824,7 +3824,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "876ecb81-8ddd-57b8-e7b0-c4d19c3b4d31",
@@ -3836,7 +3836,7 @@
       "points": 50,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-14T23:59:00-07:00",
-      "estimatedMinutes": 110,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3853,7 +3853,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c7a9ae8a-e20c-7deb-24c9-bdfac7f16eda",
@@ -3865,7 +3865,7 @@
       "points": 10,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3882,7 +3882,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "677c8003-73df-eb58-21c6-c23338d6b713",
@@ -3894,7 +3894,7 @@
       "points": 50,
       "opensAt": "2026-09-15T00:00:00-07:00",
       "dueAt": "2026-09-21T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3911,7 +3911,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c9d81de2-3e9f-d8e7-8c1d-63127f250d72",
@@ -3923,7 +3923,7 @@
       "points": 10,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3940,7 +3940,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "58c1f7e5-2ca9-1ec6-454d-8bf595559f95",
@@ -3952,7 +3952,7 @@
       "points": 50,
       "opensAt": "2026-09-22T00:00:00-07:00",
       "dueAt": "2026-09-28T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3969,7 +3969,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "72f9f41c-4da2-cb89-c298-418c586f886c",
@@ -3981,7 +3981,7 @@
       "points": 10,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -3998,7 +3998,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "21db8415-e9bd-874c-c041-4ac55283b425",
@@ -4010,7 +4010,7 @@
       "points": 150,
       "opensAt": "2026-09-29T00:00:00-07:00",
       "dueAt": "2026-10-05T23:59:00-07:00",
-      "estimatedMinutes": 360,
+      "estimatedMinutes": 240,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4027,7 +4027,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "cc482055-9100-5c80-198e-ad85d8c891e5",
@@ -4039,7 +4039,7 @@
       "points": 10,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4056,7 +4056,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "3846d45f-bb1f-92b4-39aa-fe4fccdc8caf",
@@ -4068,7 +4068,7 @@
       "points": 50,
       "opensAt": "2026-10-06T00:00:00-07:00",
       "dueAt": "2026-10-12T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4085,7 +4085,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "480fb101-f1f7-2fb4-ca93-2ff11579cc51",
@@ -4097,7 +4097,7 @@
       "points": 10,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4114,7 +4114,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "a3a42cf6-b0c0-f4af-1516-b7263d18b606",
@@ -4126,7 +4126,7 @@
       "points": 10,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4143,7 +4143,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c0b1e2a7-9d88-d1cc-3aaf-9c178d5b74f7",
@@ -4155,7 +4155,7 @@
       "points": 50,
       "opensAt": "2026-10-20T00:00:00-07:00",
       "dueAt": "2026-10-26T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4172,7 +4172,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "0efa4336-b7df-a2c7-5b5e-b166b5d16246",
@@ -4184,7 +4184,7 @@
       "points": 10,
       "opensAt": "2026-10-26T00:00:00-07:00",
       "dueAt": "2026-11-01T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4201,7 +4201,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "656e62f9-6299-d0f0-214c-c109764256e9",
@@ -4213,7 +4213,7 @@
       "points": 150,
       "opensAt": "2026-10-13T00:00:00-07:00",
       "dueAt": "2026-11-02T23:59:00-07:00",
-      "estimatedMinutes": 360,
+      "estimatedMinutes": 240,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4230,7 +4230,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "985efc28-05dd-ebe5-cce5-2798201284f8",
@@ -4242,7 +4242,7 @@
       "points": 10,
       "opensAt": "2026-11-02T00:00:00-07:00",
       "dueAt": "2026-11-08T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4259,7 +4259,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "d88cc922-5af5-085f-9f92-e4126f2c8772",
@@ -4271,7 +4271,7 @@
       "points": 50,
       "opensAt": "2026-11-03T00:00:00-07:00",
       "dueAt": "2026-11-09T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4288,7 +4288,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "5eff67ee-7819-0a85-3b97-c71eb36042fe",
@@ -4300,7 +4300,7 @@
       "points": 10,
       "opensAt": "2026-11-09T00:00:00-07:00",
       "dueAt": "2026-11-15T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4317,7 +4317,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "53398ba3-75c4-29dc-05e2-939361ecebf3",
@@ -4329,7 +4329,7 @@
       "points": 10,
       "opensAt": "2026-11-16T00:00:00-07:00",
       "dueAt": "2026-11-22T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4346,7 +4346,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "8b85d203-8f25-dd0e-ea78-cff3d1cfc153",
@@ -4358,7 +4358,7 @@
       "points": 50,
       "opensAt": "2026-11-17T00:00:00-07:00",
       "dueAt": "2026-11-30T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 90,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4375,7 +4375,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e7d54c95-a8dc-35ee-07e8-9f85acc9c665",
@@ -4387,7 +4387,7 @@
       "points": 10,
       "opensAt": "2026-11-23T00:00:00-07:00",
       "dueAt": "2026-11-29T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4404,7 +4404,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "63381856-ebeb-e2fd-1747-5f068dff71e6",
@@ -4416,7 +4416,7 @@
       "points": 10,
       "opensAt": "2026-11-30T00:00:00-07:00",
       "dueAt": "2026-12-06T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4433,7 +4433,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "720b3fc1-644a-c3ea-49a9-d41121bc87f1",
@@ -4445,7 +4445,7 @@
       "points": 50,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-11T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4462,7 +4462,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "88038b05-47d5-ecba-e014-f175661d1f55",
@@ -4474,7 +4474,7 @@
       "points": 10,
       "opensAt": "2026-12-07T00:00:00-07:00",
       "dueAt": "2026-12-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4491,7 +4491,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f668880d-c95f-7b98-dde7-e39d67ca9c7d",
@@ -4503,7 +4503,7 @@
       "points": 150,
       "opensAt": "2026-12-01T00:00:00-07:00",
       "dueAt": "2026-12-15T23:59:00-07:00",
-      "estimatedMinutes": 360,
+      "estimatedMinutes": 240,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4520,7 +4520,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "331e7100-5fe5-c3a3-bcf3-b83073cf9f10",
@@ -4532,7 +4532,7 @@
       "points": 10,
       "opensAt": "2026-12-14T00:00:00-07:00",
       "dueAt": "2026-12-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4549,7 +4549,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e6577c94-c5ab-802b-2fbb-afc459a37ca4",
@@ -4561,7 +4561,7 @@
       "points": 5,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-09T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4578,7 +4578,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "61dd7a2e-6b22-eb6d-0fec-869e4cdc14fe",
@@ -4590,7 +4590,7 @@
       "points": 5,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-11T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4607,7 +4607,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "84112c70-3744-385b-5bb8-694046ce86e0",
@@ -4619,7 +4619,7 @@
       "points": 50,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 60,
+      "estimatedMinutes": 40,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4636,7 +4636,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "f9e3c9b2-a2c1-8143-6bcf-89e257d64102",
@@ -4648,7 +4648,7 @@
       "points": 20,
       "opensAt": "2026-09-08T00:00:00-07:00",
       "dueAt": "2026-09-13T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4665,7 +4665,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "ab9065b7-b772-3040-43a5-6a2765991587",
@@ -4677,7 +4677,7 @@
       "points": 5,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-16T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4694,7 +4694,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b09a4558-1d4a-5f0b-a26d-6108ea2ad7e8",
@@ -4706,7 +4706,7 @@
       "points": 5,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-18T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4723,7 +4723,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "3f291218-5855-a469-8a0a-206883437f48",
@@ -4735,7 +4735,7 @@
       "points": 60,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 60,
+      "estimatedMinutes": 40,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4752,7 +4752,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "8b924d39-f8ef-c310-76b6-ee294a401b49",
@@ -4764,7 +4764,7 @@
       "points": 20,
       "opensAt": "2026-09-14T00:00:00-07:00",
       "dueAt": "2026-09-20T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4781,7 +4781,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "bdb6bce2-aa23-ed31-757c-399252d00472",
@@ -4793,7 +4793,7 @@
       "points": 5,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-23T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4810,7 +4810,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e424cc5d-4fd5-a3a2-d973-09cd8792832d",
@@ -4822,7 +4822,7 @@
       "points": 5,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-25T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4839,7 +4839,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "d6e2210e-d04f-d92b-bc1e-717eb5153e5e",
@@ -4851,7 +4851,7 @@
       "points": 100,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4868,7 +4868,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "0d84c0e1-1fdc-33a4-b2dc-1c9156fd9831",
@@ -4880,7 +4880,7 @@
       "points": 20,
       "opensAt": "2026-09-21T00:00:00-07:00",
       "dueAt": "2026-09-27T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4897,7 +4897,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c213e7d5-6c50-f946-bd05-edc51fabc225",
@@ -4909,7 +4909,7 @@
       "points": 5,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-09-30T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4926,7 +4926,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "c1197035-be7d-38ae-8533-16a5699c4585",
@@ -4938,7 +4938,7 @@
       "points": 5,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-02T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4955,7 +4955,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "77d0353f-e324-c3d0-0890-79af4dfbac4f",
@@ -4967,7 +4967,7 @@
       "points": 100,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -4984,7 +4984,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "dd594dcf-195e-4912-81ff-b47f61782d9f",
@@ -4996,7 +4996,7 @@
       "points": 20,
       "opensAt": "2026-09-28T00:00:00-07:00",
       "dueAt": "2026-10-04T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5013,7 +5013,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "a51d18a8-ffb4-90f7-7a22-5b189a816b78",
@@ -5025,7 +5025,7 @@
       "points": 5,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-07T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5042,7 +5042,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "5e1d3b23-ff46-9058-3e0c-8fd3758bf8b3",
@@ -5054,7 +5054,7 @@
       "points": 5,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-09T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5071,7 +5071,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "174a9a8f-7b97-be52-a653-489f35211c3f",
@@ -5083,7 +5083,7 @@
       "points": 100,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 180,
+      "estimatedMinutes": 120,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5100,7 +5100,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "e3b0531e-f012-0823-04c5-214e57ad3dee",
@@ -5112,7 +5112,7 @@
       "points": 20,
       "opensAt": "2026-10-05T00:00:00-07:00",
       "dueAt": "2026-10-11T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5129,7 +5129,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "81782d9b-aca1-d874-65b3-764bce7fd72b",
@@ -5141,7 +5141,7 @@
       "points": 5,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-14T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5158,7 +5158,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "dfa841dc-001c-5bdf-853c-9b4c992b96ac",
@@ -5170,7 +5170,7 @@
       "points": 5,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-16T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5187,7 +5187,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "26d901a5-ded3-7880-bf36-6bb570b9cb55",
@@ -5199,7 +5199,7 @@
       "points": 140,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 200,
+      "estimatedMinutes": 150,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5216,7 +5216,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "5585bd3e-4d9f-bded-4b39-e48ec60fc12e",
@@ -5228,7 +5228,7 @@
       "points": 80,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 60,
+      "estimatedMinutes": 40,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5245,7 +5245,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "5af48e76-7d94-ddfb-ee90-94a6fa4b1946",
@@ -5257,7 +5257,7 @@
       "points": 20,
       "opensAt": "2026-10-12T00:00:00-07:00",
       "dueAt": "2026-10-18T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5274,7 +5274,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "52355a8e-5ac1-2f75-c38a-cb7ecdb0ccde",
@@ -5286,7 +5286,7 @@
       "points": 5,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-21T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5303,7 +5303,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "b5a9a759-a416-5dae-adb1-bec96fd7a1a9",
@@ -5315,7 +5315,7 @@
       "points": 5,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-23T23:59:00-07:00",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 25,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5332,7 +5332,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "50b3b0c4-25c6-23db-e320-6234ae217c14",
@@ -5344,7 +5344,7 @@
       "points": 80,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 120,
+      "estimatedMinutes": 75,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5361,7 +5361,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "0038170b-3db1-d92c-f272-469b8dc3233b",
@@ -5373,7 +5373,7 @@
       "points": 80,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 60,
+      "estimatedMinutes": 40,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5390,7 +5390,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     },
     {
       "id": "d1d6fc1d-39d6-fe84-6809-6e4dca85deed",
@@ -5402,7 +5402,7 @@
       "points": 20,
       "opensAt": "2026-10-19T00:00:00-07:00",
       "dueAt": "2026-10-25T23:59:00-07:00",
-      "estimatedMinutes": 45,
+      "estimatedMinutes": 20,
       "estimateOverridden": false,
       "startByOverride": null,
       "status": "todo",
@@ -5419,7 +5419,7 @@
       },
       "source": "parsed",
       "award": null,
-      "updatedAt": "2026-09-10T00:06:18.244Z"
+      "updatedAt": "2026-09-10T02:57:35.180Z"
     }
   ]
 }

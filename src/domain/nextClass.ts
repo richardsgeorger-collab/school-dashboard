@@ -36,14 +36,6 @@ export function nextMeeting(courses: Course[], nowIso: string, tz: string): Next
   return null;
 }
 
-function nextSameCourseDay(course: Course, afterDay: DateStr): DateStr {
-  for (let k = 1; k <= 7; k++) {
-    const d = addDays(afterDay, k);
-    if (course.meetings.some((m) => m.day === weekdayOf(d))) return d;
-  }
-  return addDays(afterDay, 7);
-}
-
 export interface Prep {
   text: string;
   item: Item | null;
@@ -61,11 +53,23 @@ function dayWord(today: DateStr, d: DateStr): string {
   return WEEKDAY_LONG[weekdayOf(d)];
 }
 
-/** What, if anything, the next class needs from you before or right after it. */
-export function nextClassPrep(meeting: NextMeeting, items: Item[], schedule: Schedule, nudges: Nudge[], today: DateStr, tz: string): Prep {
+/** The one start-by phrase used everywhere on Now. */
+export function startPhrase(startBy: DateStr, today: DateStr): string {
+  const k = diffDays(today, startBy);
+  if (k <= 0) return 'start today';
+  if (k === 1) return 'start tomorrow';
+  return `start by ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][weekdayOf(startBy)]}`;
+}
+
+/**
+ * What the next class needs from you before it meets: an in-class item, something due
+ * before the meeting, or a pre-lab nudge. Anything merely due afterwards belongs to the hero.
+ */
+export function nextClassPrep(meeting: NextMeeting, items: Item[], schedule: Schedule, nudges: Nudge[], today: DateStr, tz: string, heroId?: string): Prep {
   const course = meeting.course;
   const isLab = /L$/i.test(course.code);
   const ownIds = new Set(items.filter((i) => i.courseId === course.id).map((i) => i.id));
+  const none = (text: string): Prep => ({ text, item: null, nudge: null, inferred: false });
 
   const nudge = nudges.filter((nd) => ownIds.has(nd.itemId) && nd.day <= meeting.day).sort((a, b) => a.day.localeCompare(b.day))[0];
   if (nudge) {
@@ -73,23 +77,18 @@ export function nextClassPrep(meeting: NextMeeting, items: Item[], schedule: Sch
     return { text: `${nudge.label} — ${approx(nudge.minutes)} before ${WEEKDAY_LONG[weekdayOf(meeting.day)]}'s ${isLab ? 'lab' : 'class'}.`, item, nudge, inferred: true };
   }
 
-  // Anything due before this class meets again is "for this class."
-  const window = addDays(nextSameCourseDay(course, meeting.day), -1);
-  const candidates = items
+  const pick = items
     .filter((i) => i.courseId === course.id && i.status !== 'done' && i.type !== 'participation')
-    .map((i) => ({ i, due: dateOf(i.dueAt, tz), deadline: schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz) }))
-    .filter((c) => c.due <= window)
-    .sort((a, b) => a.due.localeCompare(b.due) || a.deadline.localeCompare(b.deadline));
-  const pick = candidates[0];
-  if (!pick) return { text: 'Nothing to prep.', item: null, nudge: null, inferred: false };
+    .map((i) => ({ i, due: dateOf(i.dueAt, tz) }))
+    .filter(({ i, due }) => due < meeting.day || (i.flags.inClass && due === meeting.day) || i.dueAt < meeting.startAt)
+    .sort((a, b) => a.due.localeCompare(b.due))[0];
+  if (!pick) return none('Nothing to prep before class.');
+  if (heroId && pick.i.id === heroId) return none('Nothing else to prep before class.');
 
   const { i, due } = pick;
   const est = approx(i.estimatedMinutes);
-  if (i.flags.inClass && due === meeting.day) return { text: `${i.label} is in class — ${est} of prep tonight.`, item: i, nudge: null, inferred: false };
-  if (due < meeting.day) {
-    const when = dayWord(today, due);
-    return { text: `${i.label} is due ${when} — ${est}.${when === 'tonight' ? '' : ' Due before class.'}`, item: i, nudge: null, inferred: false };
-  }
-  const tail = i.estimatedMinutes >= 60 ? ' Worth starting tonight.' : ' Quick one.';
-  return { text: `${i.label} is due ${dayWord(today, due)} — ${est}.${tail}`, item: i, nudge: null, inferred: false };
+  const startBy = schedule.byItem[i.id]?.startBy ?? today;
+  if (i.flags.inClass && due === meeting.day) return { text: `${i.label} is in class — ${est} of prep, ${startPhrase(startBy, today)}.`, item: i, nudge: null, inferred: false };
+  const when = dayWord(today, due);
+  return { text: `${i.label} is due ${when} — ${est}.${when === 'tonight' ? '' : ` Due before class, ${startPhrase(startBy, today)}.`}`, item: i, nudge: null, inferred: false };
 }

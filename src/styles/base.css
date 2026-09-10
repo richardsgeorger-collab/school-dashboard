@@ -2627,3 +2627,74 @@ button {
   font-weight: 400;
   font-style: italic;
 }
+
+/* ---- Now: calm states, reason, chunk, tags ---- */
+.hero {
+  animation: hero-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.hero-why {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.hero-chunk {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.hero-source {
+  margin-top: 12px;
+}
+.hero-actions .hero-btn.primary {
+  flex: 1;
+  max-width: 200px;
+}
+.calm {
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.calm[data-tone='fine'] {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  box-shadow: inset 4px 0 0 var(--ok);
+}
+.calm[data-tone='enough'] {
+  border-color: var(--hi);
+  box-shadow: inset 4px 0 0 var(--hi);
+}
+.calm-title {
+  font-size: 30px;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.calm-text {
+  margin-top: 10px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.calm-more {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.then-all {
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

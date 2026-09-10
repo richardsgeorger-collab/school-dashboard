@@ -34,7 +34,7 @@ describe('toAppData', () => {
     expect(quiz.label).toBe('Chem Quiz 1');
     expect(quiz.labelOverridden).toBe(false);
     expect(quiz.award).toBeNull();
-    expect(quiz.estimatedMinutes).toBe(180);
+    expect(quiz.estimatedMinutes).toBe(120);
     expect(quiz.flags.inClass).toBe(true);
     expect(quiz.flags.practice).toBe(false);
     expect(quiz.topic).toBe('Topic 2: Electronic Structure of Atoms and Periodicity of Elements');

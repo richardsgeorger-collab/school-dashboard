@@ -3,6 +3,7 @@ import seed from '../data/seed.json';
 import { addDays, dateOf, todayStr } from '../domain/dates';
 import { derive, type DerivedDeadline, type Nudge } from '../domain/deadlines';
 import { DERIVED_DEADLINES } from '../domain/flags';
+import { estimateMinutes } from '../domain/estimate';
 import { shortLabel } from '../domain/labels';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
@@ -84,9 +85,12 @@ export function normalizeData(data: AppData): AppData {
     items: data.items.map((i) => {
       const raw = i as Partial<Item> & Item;
       const needsLabel = !raw.label;
+      const courseCode = codeById.get(i.courseId) ?? '';
       return {
         ...i,
-        label: needsLabel ? shortLabel({ title: i.title, courseCode: codeById.get(i.courseId) ?? '', type: i.type }) : raw.label,
+        // Estimate rules get recalibrated over time; untouched parsed items follow the current table.
+        estimatedMinutes: i.source === 'parsed' && !raw.estimateOverridden ? estimateMinutes({ title: i.title, type: i.type, points: i.points, courseCode }) : i.estimatedMinutes,
+        label: needsLabel ? shortLabel({ title: i.title, courseCode, type: i.type }) : raw.label,
         labelOverridden: raw.labelOverridden ?? false,
         award: raw.award ?? null,
       };

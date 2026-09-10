@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupByDeadline, heroFraming, pressureLine, rankItems, termProgress, todayLine } from './now';
+import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine } from './now';
 import { computeSchedule } from './schedule';
 import { DEFAULT_FLAGS, DEFAULT_SETTINGS, type Item } from './types';
 
@@ -138,5 +138,81 @@ describe('termProgress', () => {
   });
   it('handles an empty term', () => {
     expect(termProgress([], TERM, '2026-09-08')).toEqual({ earned: 0, total: 0, pct: 0, elapsedPct: 0 });
+  });
+});
+
+describe('openCountByDay and startPhrase', () => {
+  it('counts open work per deadline day from one source', () => {
+    const items = [
+      item({ dueAt: '2026-09-12T23:59:00-07:00' }),
+      item({ dueAt: '2026-09-12T23:59:00-07:00' }),
+      item({ dueAt: '2026-09-12T23:59:00-07:00', status: 'done' }),
+      item({ dueAt: '2026-09-15T23:59:00-07:00' }),
+    ];
+    const counts = openCountByDay(items, sched(items));
+    expect(counts).toEqual({ '2026-09-12': 2, '2026-09-15': 1 });
+    expect(todayLine(items, sched(items), TODAY, NOW, TZ)).toBe('Nothing due today. Next deadline Saturday, 2 things.');
+  });
+  it('phrases the one start-by date', () => {
+    expect(startPhrase('2026-09-08', TODAY)).toBe('start today');
+    expect(startPhrase('2026-09-09', TODAY)).toBe('start today');
+    expect(startPhrase('2026-09-10', TODAY)).toBe('start tomorrow');
+    expect(startPhrase('2026-09-11', TODAY)).toBe('start by Fri');
+  });
+});
+
+describe('pickReason', () => {
+  it('explains an overdue pick', () => {
+    const a = item({ dueAt: '2026-09-07T23:59:00-07:00' });
+    expect(pickReason(a, [a], sched([a]), TODAY, NOW, TZ, {})).toBe('Picked because it was due Monday and is still open.');
+  });
+  it('explains a due-today pick', () => {
+    const a = item({ dueAt: '2026-09-09T23:59:00-07:00', estimatedMinutes: 30 });
+    expect(pickReason(a, [a], sched([a]), TODAY, NOW, TZ, {})).toBe("Picked because it's due today.");
+  });
+  it('explains size, deadline, and company on that day', () => {
+    const a = item({ id: 'a', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 120 });
+    const others = [1, 2, 3].map(() => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 30 }));
+    expect(pickReason(a, [a, ...others], sched([a, ...others]), TODAY, NOW, TZ, {})).toBe("Picked because it's ~2h, due Sunday, and 3 other things land that day.");
+  });
+  it('mentions a derived deadline and an open start window', () => {
+    const a = item({ id: 'a', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 600 });
+    const derived = { a: { deadlineAt: '2026-09-12T23:59:00-07:00', reasons: ['Sunday due → Saturday'] } };
+    const s = computeSchedule([{ ...a, deadlineAt: derived.a.deadlineAt }], DEFAULT_SETTINGS, TODAY, TERM, NOW);
+    expect(pickReason(a, [a], s, TODAY, NOW, TZ, derived)).toBe("Picked because it's ~10h, really due Saturday, and it's the only thing in its start window.");
+  });
+});
+
+describe('nowMode', () => {
+  it('is fine when the next deadline is at least two days out and nothing presses', () => {
+    const a = item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 });
+    const m = nowMode([a], sched([a]), DEFAULT_SETTINGS, TODAY, NOW);
+    expect(m).toEqual({ mode: 'fine', daysUntilNext: 4 });
+  });
+  it('is urgent with something due today or tomorrow, or pressure', () => {
+    const a = item({ dueAt: '2026-09-10T23:59:00-07:00' });
+    expect(nowMode([a], sched([a]), DEFAULT_SETTINGS, TODAY, NOW).mode).toBe('urgent');
+    const big = item({ points: 150, dueAt: '2026-09-12T23:59:00-07:00', estimatedMinutes: 420 });
+    expect(nowMode([big], sched([big]), DEFAULT_SETTINGS, TODAY, NOW).mode).toBe('urgent');
+  });
+  it('is enough when nothing is due today and nothing is planned for today', () => {
+    const a = item({ dueAt: '2026-09-20T23:59:00-07:00', estimatedMinutes: 60 });
+    const m = nowMode([a], sched([a]), DEFAULT_SETTINGS, TODAY, NOW, true);
+    expect(m.mode).toBe('enough');
+    const b = item({ dueAt: '2026-09-09T23:59:00-07:00', estimatedMinutes: 60 });
+    expect(nowMode([b], sched([b]), DEFAULT_SETTINGS, TODAY, NOW, true).mode).toBe('urgent');
+  });
+  it('is empty with nothing open', () => {
+    expect(nowMode([], sched([]), DEFAULT_SETTINGS, TODAY, NOW).mode).toBe('empty');
+  });
+});
+
+describe('chunkSuggestion', () => {
+  it('offers a first chunk for anything over 90 minutes', () => {
+    const a = item({ id: 'a', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 120 });
+    expect(chunkSuggestion(a, sched([a]), TODAY)).toEqual({ chunk: 45, text: '~2h total — do 45 min tonight, finish Saturday.' });
+    const big = item({ id: 'b', dueAt: '2026-09-20T23:59:00-07:00', estimatedMinutes: 420 });
+    expect(chunkSuggestion(big, sched([big]), TODAY)?.chunk).toBe(60);
+    expect(chunkSuggestion(item({ estimatedMinutes: 90 }), sched([]), TODAY)).toBeNull();
   });
 });

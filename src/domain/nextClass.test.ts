@@ -85,19 +85,24 @@ describe('nextClassPrep', () => {
   it('says nothing to prep when that class has nothing due soon', () => {
     const far = item({ dueAt: '2026-09-27T23:59:00-07:00' });
     const other = item({ courseId: 'chm', dueAt: '2026-09-10T23:59:00-07:00' });
-    expect(prep([far, other])).toEqual({ text: 'Nothing to prep.', item: null, nudge: null, inferred: false });
+    expect(prep([far, other])).toEqual({ text: 'Nothing to prep before class.', item: null, nudge: null, inferred: false });
   });
 
-  it('names an item due shortly after the class and suggests starting', () => {
+  it('does not surface an item that is merely due after the class', () => {
     const rev = item({ id: 'rev', label: 'Eng Math Review 1', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 120 });
-    const r = prep([rev]);
-    expect(r.item?.id).toBe('rev');
-    expect(r.text).toBe('Eng Math Review 1 is due Sunday — ~2h. Worth starting tonight.');
+    expect(prep([rev]).text).toBe('Nothing to prep before class.');
+  });
+
+  it('defers to the hero when the prep item is already the hero', () => {
+    const hw = item({ id: 'hw', label: 'Eng Math HW 1', dueAt: '2026-09-09T23:59:00-07:00', estimatedMinutes: 40 });
+    const r = nextClassPrep(meeting, [hw], computeSchedule([hw], DEFAULT_SETTINGS, TODAY, TERM, NOW), [], TODAY, TZ, 'hw');
+    expect(r.text).toBe('Nothing else to prep before class.');
+    expect(r.item).toBeNull();
   });
 
   it('flags an in-class item as prep for that meeting', () => {
     const quiz = item({ id: 'q', label: 'Eng Math Quiz 1', type: 'quiz', dueAt: '2026-09-10T08:00:00-07:00', estimatedMinutes: 120, flags: { ...DEFAULT_FLAGS, inClass: true } });
-    expect(prep([quiz]).text).toBe('Eng Math Quiz 1 is in class — ~2h of prep tonight.');
+    expect(prep([quiz]).text).toBe('Eng Math Quiz 1 is in class — ~2h of prep, start today.');
   });
 
   it('flags something due before the class', () => {
@@ -117,6 +122,6 @@ describe('nextClassPrep', () => {
   it('ignores participation and done items', () => {
     const part = item({ type: 'participation', dueAt: '2026-09-10T23:59:00-07:00' });
     const done = item({ status: 'done', dueAt: '2026-09-10T23:59:00-07:00' });
-    expect(prep([part, done]).text).toBe('Nothing to prep.');
+    expect(prep([part, done]).text).toBe('Nothing to prep before class.');
   });
 });
