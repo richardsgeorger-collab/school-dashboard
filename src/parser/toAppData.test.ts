@@ -31,6 +31,9 @@ describe('toAppData', () => {
     const { items } = toAppData(parsed, { includeZeroPoint: false, tz: 'America/Phoenix' });
     const quiz = items.find((i) => i.title === 'Quiz #1')!;
     expect(quiz.type).toBe('quiz');
+    expect(quiz.label).toBe('Chem Quiz 1');
+    expect(quiz.labelOverridden).toBe(false);
+    expect(quiz.award).toBeNull();
     expect(quiz.estimatedMinutes).toBe(180);
     expect(quiz.flags.inClass).toBe(true);
     expect(quiz.flags.practice).toBe(false);

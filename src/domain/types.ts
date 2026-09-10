@@ -50,10 +50,21 @@ export interface ItemFlags {
   practice: boolean;
 }
 
+/** Points locked at first completion. Value = base × multiplier × (scoreFactor ?? 1). */
+export interface Award {
+  base: number;
+  multiplier: 1.5 | 1 | 0.5;
+  earnedAt: string;
+  scoreFactor: number | null;
+}
+
 export interface Item {
   id: string;
   courseId: string;
   title: string;
+  /** Short generated label, e.g. "Chem Quiz 1". Primary text everywhere. */
+  label: string;
+  labelOverridden: boolean;
   type: ItemType;
   points: number;
   opensAt: string | null; // ISO with offset
@@ -68,6 +79,7 @@ export interface Item {
   topic: string | null;
   flags: ItemFlags;
   source: 'parsed' | 'manual';
+  award: Award | null;
   updatedAt: string;
 }
 

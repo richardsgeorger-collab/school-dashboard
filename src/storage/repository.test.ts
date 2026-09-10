@@ -19,6 +19,8 @@ const item = (id: string, updatedAt: string, title = 'x'): Item => ({
   id,
   courseId: 'c',
   title,
+  label: title,
+  labelOverridden: false,
   type: 'homework',
   points: 1,
   opensAt: null,
@@ -32,6 +34,7 @@ const item = (id: string, updatedAt: string, title = 'x'): Item => ({
   notes: '',
   topic: null,
   flags: { ...DEFAULT_FLAGS },
+  award: null,
   source: 'manual',
   updatedAt,
 });

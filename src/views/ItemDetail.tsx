@@ -4,11 +4,14 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { dateOf, fmtDate, fmtMinutes, makeIso, zonedParts } from '../domain/dates';
 import { estimateMinutes } from '../domain/estimate';
 import { newId } from '../domain/ids';
+import { shortLabel } from '../domain/labels';
 import { DEFAULT_FLAGS, ITEM_TYPES, TYPE_LABELS, type Item, type ItemStatus, type ItemType } from '../domain/types';
 import { useStore } from '../storage/store';
 
 interface Draft {
   title: string;
+  label: string;
+  labelOverridden: boolean;
   courseId: string;
   type: ItemType;
   dueDate: string;
@@ -32,6 +35,8 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
     id: newId(),
     courseId,
     title: '',
+    label: '',
+    labelOverridden: false,
     type: 'homework',
     points: 0,
     opensAt: null,
@@ -46,6 +51,7 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
     topic: null,
     flags: { ...DEFAULT_FLAGS },
     source: 'manual',
+    award: null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -57,6 +63,8 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
     const due = zonedParts(item.dueAt, tz);
     return {
       title: item.title,
+      label: item.label,
+      labelOverridden: item.labelOverridden,
       courseId: item.courseId,
       type: item.type,
       dueDate: dateOf(item.dueAt, tz),
@@ -82,6 +90,11 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
     [draft.title, draft.type, draft.points, course?.code],
   );
   const sched = schedule.byItem[item.id];
+  const suggestedLabel = useMemo(
+    () => shortLabel({ title: draft.title, courseCode: course?.code ?? '', type: draft.type }),
+    [draft.title, draft.type, course?.code],
+  );
+  const effectiveLabel = draft.labelOverridden && draft.label.trim() ? draft.label.trim() : suggestedLabel;
 
   const save = () => {
     if (!draft.title.trim()) return;
@@ -89,6 +102,8 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
     const next: Item = {
       ...item,
       title: draft.title.trim(),
+      label: effectiveLabel,
+      labelOverridden: draft.labelOverridden && draft.label.trim() !== '' && draft.label.trim() !== suggestedLabel,
       courseId: draft.courseId,
       type: draft.type,
       points: Math.max(0, Number(draft.points) || 0),
@@ -108,7 +123,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
   };
 
   return (
-    <Modal title={isNew ? 'New item' : 'Edit item'} onClose={onClose}>
+    <Modal title={isNew ? 'New item' : effectiveLabel || 'Edit item'} onClose={onClose}>
       <form
         className="modal-body"
         onSubmit={(e) => {
@@ -117,8 +132,32 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         }}
       >
         <label className="field">
-          <span>Title</span>
+          <span>Full name (from the syllabus)</span>
           <input value={draft.title} onChange={(e) => set('title', e.target.value)} required autoComplete="off" />
+        </label>
+        <label className="field">
+          <span>Short label</span>
+          <input
+            value={draft.labelOverridden ? draft.label : suggestedLabel}
+            onChange={(e) => {
+              set('label', e.target.value);
+              set('labelOverridden', true);
+            }}
+            autoComplete="off"
+            maxLength={40}
+          />
+          <span className="hint">
+            {draft.labelOverridden && draft.label.trim() !== suggestedLabel ? (
+              <>
+                Suggested "{suggestedLabel}" ·{' '}
+                <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { set('label', suggestedLabel); set('labelOverridden', false); }}>
+                  use suggested
+                </button>
+              </>
+            ) : (
+              'Shown on the calendar and in lists; the full name stays as the subtitle.'
+            )}
+          </span>
         </label>
         <div className="field-row">
           <label className="field">

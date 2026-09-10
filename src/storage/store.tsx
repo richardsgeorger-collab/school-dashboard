@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import seed from '../data/seed.json';
 import { addDays, todayStr } from '../domain/dates';
+import { shortLabel } from '../domain/labels';
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
@@ -65,6 +66,24 @@ export function seedData(): AppData {
   };
 }
 
+/** Fill fields added after a row was written (older caches, other devices, imports). */
+export function normalizeData(data: AppData): AppData {
+  const codeById = new Map(data.courses.map((c) => [c.id, c.code]));
+  return {
+    ...data,
+    items: data.items.map((i) => {
+      const raw = i as Partial<Item> & Item;
+      const needsLabel = !raw.label;
+      return {
+        ...i,
+        label: needsLabel ? shortLabel({ title: i.title, courseCode: codeById.get(i.courseId) ?? '', type: i.type }) : raw.label,
+        labelOverridden: raw.labelOverridden ?? false,
+        award: raw.award ?? null,
+      };
+    }),
+  };
+}
+
 function initialData(): AppData {
   const cached = localCache.load();
   if (cached) {
@@ -73,7 +92,7 @@ function initialData(): AppData {
       settings.supabaseUrl = env('VITE_SUPABASE_URL');
       settings.supabaseAnonKey = env('VITE_SUPABASE_ANON_KEY');
     }
-    return { ...cached, settings };
+    return normalizeData({ ...cached, settings });
   }
   return seedData();
 }
@@ -181,6 +200,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const remote = await repo.load();
       const local = dataRef.current;
       const result = mergeData(local, remote);
+      result.merged = normalizeData(result.merged);
       // Connection details never come from the server.
       result.merged.settings = {
         ...result.merged.settings,
@@ -292,7 +312,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           merged = items.map((i) => {
             const prev = byTitle.get(i.title);
             return prev
-              ? { ...i, status: prev.status, completedAt: prev.completedAt, score: prev.score, estimatedMinutes: prev.estimateOverridden ? prev.estimatedMinutes : i.estimatedMinutes, estimateOverridden: prev.estimateOverridden, startByOverride: prev.startByOverride, updatedAt: now }
+              ? {
+                  ...i,
+                  status: prev.status,
+                  completedAt: prev.completedAt,
+                  score: prev.score,
+                  award: prev.award,
+                  estimatedMinutes: prev.estimateOverridden ? prev.estimatedMinutes : i.estimatedMinutes,
+                  estimateOverridden: prev.estimateOverridden,
+                  startByOverride: prev.startByOverride,
+                  label: prev.labelOverridden ? prev.label : i.label,
+                  labelOverridden: prev.labelOverridden,
+                  updatedAt: now,
+                }
               : { ...i, updatedAt: now };
           });
         } else {
@@ -332,7 +364,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!Array.isArray(parsed.courses) || !Array.isArray(parsed.items)) throw new Error('File does not contain courses and items');
         const now = nowIso();
         const courses = parsed.courses.map((c) => ({ ...c, updatedAt: now }));
-        const items = parsed.items.map((i) => ({ ...i, updatedAt: now }));
+        const items = normalizeData({ courses, items: parsed.items, settings: dataRef.current.settings }).items.map((i) => ({ ...i, updatedAt: now }));
         update((d) => ({
           courses: [...d.courses.filter((c) => !courses.some((n) => n.id === c.id)), ...courses],
           items: [...d.items.filter((i) => !items.some((n) => n.id === i.id)), ...items],

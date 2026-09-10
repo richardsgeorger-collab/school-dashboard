@@ -2,6 +2,7 @@ import { classifyItem } from '../domain/classify';
 import { zonedParts } from '../domain/dates';
 import { estimateMinutes } from '../domain/estimate';
 import { stableId } from '../domain/ids';
+import { shortLabel } from '../domain/labels';
 import type { Course, Item } from '../domain/types';
 import type { ParsedSyllabus } from './gcuSyllabus';
 
@@ -41,6 +42,8 @@ export function toAppData(parsed: ParsedSyllabus, opts: ToAppDataOptions): { cou
       id: stableId(`item|${parsed.code}|${a.title}|${a.dueAt}`),
       courseId,
       title: a.title,
+      label: shortLabel({ title: a.title, courseCode: parsed.code, type }),
+      labelOverridden: false,
       type,
       points: a.points,
       opensAt: a.opensAt,
@@ -61,6 +64,7 @@ export function toAppData(parsed: ParsedSyllabus, opts: ToAppDataOptions): { cou
         practice: /practice/i.test(a.title),
       },
       source: 'parsed',
+      award: null,
       updatedAt: now,
     });
   }
