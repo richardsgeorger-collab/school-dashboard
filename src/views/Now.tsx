@@ -283,7 +283,7 @@ export function Now() {
         </span>
         <span className="mono muted">
           {pace.pct}% banked · {pace.elapsedPct}% of the term elapsed
-          {updatedAt ? ` · syllabi updated ${fmtDate(updatedAt.slice(0, 10), 'short')}` : ''}
+          {updatedAt ? ` · syllabi updated ${fmtDate(dateOf(updatedAt, tz), 'short')}` : ''}
         </span>
       </div>
 

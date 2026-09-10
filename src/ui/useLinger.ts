@@ -17,7 +17,11 @@ export function useLinger(list: Item[], all: Item[]): Item[] {
   const now = Date.now();
 
   for (const [id, t] of linger.current) {
-    if (now - t > LINGER_MS || listIds.has(id) || byId.get(id)?.status !== 'done') linger.current.delete(id);
+    if (now - t > LINGER_MS || listIds.has(id) || byId.get(id)?.status !== 'done') {
+      linger.current.delete(id);
+      // Forget its slot too, or it would be re-added on the next line and linger forever.
+      if (!listIds.has(id)) positions.current.delete(id);
+    }
   }
   for (const id of positions.current.keys()) {
     if (!listIds.has(id) && byId.get(id)?.status === 'done' && !linger.current.has(id)) linger.current.set(id, now);
