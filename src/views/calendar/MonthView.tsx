@@ -1,22 +1,18 @@
 import { useMemo, useState } from 'react';
-import { useCourseColor } from '../../components/CourseChip';
+import { DayBar, ItemChip, chipState } from '../../components/ItemChip';
 import { monthGrid } from '../../domain/calendar';
 import { dateOf } from '../../domain/dates';
-import type { Course, DateStr, Item } from '../../domain/types';
+import type { DateStr, Item } from '../../domain/types';
 import { useStore } from '../../storage/store';
 import { useMediaQuery } from '../../ui/useMediaQuery';
 import { DaySheet } from './DaySheet';
-import { ItemChip } from './shared';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function Dot({ course }: { course: Course | undefined }) {
-  const color = useCourseColor(course);
-  return <span className="month-dot" style={{ background: color }} />;
-}
+const MAX_CHIPS = 5;
+const HEAVY_COUNT = 4;
 
 export function MonthView({ month, items, onOpen }: { month: string; items: Item[]; onOpen: (i: Item) => void }) {
-  const { data, today, courseById } = useStore();
+  const { data, today, schedule, isDark } = useStore();
   const tz = data.settings.timezone;
   const wide = useMediaQuery('(min-width: 640px)');
   const [sheet, setSheet] = useState<DateStr | null>(null);
@@ -38,11 +34,16 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
           <span key={n}>{wide ? n : n.slice(0, 2)}</span>
         ))}
       </div>
-      <div className="month-grid" role="grid">
+      <div className="month-grid" role="grid" data-wide={wide}>
         {cells.map((d) => {
           const dayItems = byDay.get(d) ?? [];
+          const open = dayItems.filter((i) => i.status !== 'done');
           const other = !d.startsWith(month);
-          const openCount = dayItems.filter((i) => i.status !== 'done').length;
+          const states = dayItems.map((i) => chipState(i, schedule.byItem[i.id], today, tz));
+          const marker = states.includes('overdue') ? 'overdue' : null;
+          const heavy = open.length >= HEAVY_COUNT;
+          const shown = wide ? dayItems.slice(0, MAX_CHIPS) : [];
+          const rest = wide ? dayItems.slice(MAX_CHIPS) : dayItems;
           return (
             <button
               type="button"
@@ -50,26 +51,28 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
               className="month-cell"
               data-other={other}
               data-today={d === today}
+              data-heavy={heavy && !other}
+              data-marker={marker ?? undefined}
               onClick={() => setSheet(d)}
-              aria-label={`${d}, ${dayItems.length} items`}
+              aria-label={`${d}, ${dayItems.length} items${heavy ? ', heavy day' : ''}`}
             >
-              <span className="month-daynum">{Number(d.slice(-2))}</span>
+              <span className="month-cell-top">
+                <span className="month-daynum">{Number(d.slice(-2))}</span>
+                {open.length > 0 && (
+                  <span className="month-count" data-bold={open.length >= 4}>
+                    {open.length}
+                  </span>
+                )}
+              </span>
               {wide ? (
                 <span className="month-chips">
-                  {dayItems.slice(0, 3).map((i) => (
+                  {shown.map((i) => (
                     <ItemChip key={i.id} item={i} onOpen={onOpen} />
                   ))}
-                  {dayItems.length > 3 && <span className="month-more">+{dayItems.length - 3} more</span>}
+                  {rest.length > 0 && <DayBar items={rest} courses={data.courses} isDark={isDark} label={`+${rest.length}`} />}
                 </span>
               ) : (
-                dayItems.length > 0 && (
-                  <span className="month-dots">
-                    {[...new Set(dayItems.map((i) => i.courseId))].slice(0, 4).map((cid) => (
-                      <Dot key={cid} course={courseById.get(cid)} />
-                    ))}
-                    {openCount > 0 && <span className="month-count">{openCount}</span>}
-                  </span>
-                )
+                <DayBar items={rest} courses={data.courses} isDark={isDark} />
               )}
             </button>
           );

@@ -5,8 +5,8 @@ import { useStore } from '../storage/store';
 import { IconCalendar, IconGrades, IconHome, IconLoad, IconSettings } from './Icons';
 
 const LINKS: { route: Route; label: string; icon: () => ReactElement }[] = [
-  { route: 'home', label: 'Today', icon: IconHome },
   { route: 'calendar', label: 'Calendar', icon: IconCalendar },
+  { route: 'plan', label: 'Plan', icon: IconHome },
   { route: 'load', label: 'Load', icon: IconLoad },
   { route: 'grades', label: 'Grades', icon: IconGrades },
   { route: 'settings', label: 'Settings', icon: IconSettings },
@@ -38,7 +38,7 @@ export function TopBar() {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <a href="#/home" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a href="#/calendar" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
           <span className="brand-mark" aria-hidden>
             S
           </span>

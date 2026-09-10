@@ -5,7 +5,7 @@ import { useSupabaseSession } from './storage/useSupabaseSession';
 import './styles/tokens.css';
 import './styles/base.css';
 import { Calendar } from './views/calendar/Calendar';
-import { Dashboard } from './views/Dashboard';
+import { Plan } from './views/Plan';
 import { Grades } from './views/Grades';
 import { Heatmap } from './views/Heatmap';
 import { Settings } from './views/Settings';
@@ -18,8 +18,8 @@ function SyncBootstrap() {
 function Screen() {
   const { route } = useRoute();
   switch (route) {
-    case 'calendar':
-      return <Calendar />;
+    case 'plan':
+      return <Plan />;
     case 'load':
       return <Heatmap />;
     case 'grades':
@@ -27,7 +27,7 @@ function Screen() {
     case 'settings':
       return <Settings />;
     default:
-      return <Dashboard />;
+      return <Calendar />;
   }
 }
 

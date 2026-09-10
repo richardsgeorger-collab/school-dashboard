@@ -4,6 +4,8 @@ import type { MeetingOn } from '../../domain/calendar';
 import type { Item } from '../../domain/types';
 import { useStore } from '../../storage/store';
 
+export { ItemChip } from '../../components/ItemChip';
+
 export function MeetingRow({ m }: { m: MeetingOn }) {
   const color = useCourseColor(m.course);
   const s = hhmmToMinutes(m.meeting.start);
@@ -16,29 +18,6 @@ export function MeetingRow({ m }: { m: MeetingOn }) {
       <CourseChip course={m.course} />
       <span className="muted">class</span>
     </div>
-  );
-}
-
-export function ItemChip({ item, onOpen }: { item: Item; onOpen: (i: Item) => void }) {
-  const { courseById, schedule } = useStore();
-  const course = courseById.get(item.courseId);
-  const color = useCourseColor(course);
-  const risk = schedule.byItem[item.id]?.risk;
-  return (
-    <button
-      type="button"
-      className="month-chip"
-      data-done={item.status === 'done'}
-      data-risk={risk ?? undefined}
-      style={{ '--course': color } as React.CSSProperties}
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpen(item);
-      }}
-      title={`${course?.code ?? ''} ${item.title}`}
-    >
-      {item.title}
-    </button>
   );
 }
 

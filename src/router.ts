@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Route = 'home' | 'calendar' | 'load' | 'grades' | 'settings';
-const ROUTES: Route[] = ['home', 'calendar', 'load', 'grades', 'settings'];
+export type Route = 'calendar' | 'plan' | 'load' | 'grades' | 'settings';
+const ROUTES: Route[] = ['calendar', 'plan', 'load', 'grades', 'settings'];
+const ALIASES: Record<string, Route> = { home: 'plan', '': 'calendar' };
 
 export interface RouteState {
   route: Route;
@@ -11,7 +12,7 @@ export interface RouteState {
 function parse(): RouteState {
   const hash = window.location.hash.replace(/^#\/?/, '');
   const [path, query = ''] = hash.split('?');
-  const route = (ROUTES as string[]).includes(path) ? (path as Route) : 'home';
+  const route = (ROUTES as string[]).includes(path) ? (path as Route) : (ALIASES[path] ?? 'calendar');
   return { route, params: new URLSearchParams(query) };
 }
 

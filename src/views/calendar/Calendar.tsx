@@ -6,7 +6,9 @@ import { addDays, fmtDate, fmtMonth, weekStart } from '../../domain/dates';
 import type { Course, Item } from '../../domain/types';
 import { useRoute } from '../../router';
 import { useStore } from '../../storage/store';
-import { ItemDetail } from '../ItemDetail';
+import { IconPlus } from '../../components/Icons';
+import { blankItem, ItemDetail } from '../ItemDetail';
+import { FocusStrip } from './FocusStrip';
 import { AgendaView } from './AgendaView';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
@@ -27,12 +29,13 @@ function FilterChip({ course, active, onToggle }: { course: Course; active: bool
 export function Calendar() {
   const { data, today } = useStore();
   const { params, navigate } = useRoute();
-  const view = (['month', 'week', 'agenda'].includes(params.get('v') ?? '') ? params.get('v') : 'month') as View;
+  const view = (['month', 'week', 'agenda'].includes(params.get('v') ?? '') ? params.get('v') : 'week') as View;
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(params.get('d') ?? '') ? params.get('d')! : today;
   const filterParam = params.get('c');
   const codes = useMemo(() => (filterParam ? new Set(filterParam.split(',')) : null), [filterParam]);
   const items = useFilteredItems(codes);
-  const [open, setOpen] = useState<Item | null>(null);
+  const [open, setOpen] = useState<{ item: Item; isNew: boolean } | null>(null);
+  const openItem = (item: Item) => setOpen({ item, isNew: false });
 
   const set = (patch: Partial<{ v: View; d: string; c: string | null }>) => {
     const next: Record<string, string> = { v: view, d: anchor };
@@ -76,8 +79,17 @@ export function Calendar() {
           <button type="button" className="btn small" onClick={() => step(1)} aria-label="Next">
             ›
           </button>
+          <button
+            type="button"
+            className="btn small primary"
+            aria-label="Add item"
+            onClick={() => setOpen({ item: blankItem(data.courses[0]?.id ?? '', data.settings.timezone, today), isNew: true })}
+          >
+            <IconPlus />
+          </button>
         </div>
       </div>
+      <FocusStrip items={items} onOpen={openItem} />
       <div className="cal-controls">
         <SegmentedControl
           label="Calendar view"
@@ -96,11 +108,11 @@ export function Calendar() {
         </div>
       </div>
       <div className="cal-body">
-        {view === 'month' && <MonthView month={month} items={items} onOpen={setOpen} />}
-        {view === 'week' && <WeekView start={wkStart} items={items} onOpen={setOpen} />}
-        {view === 'agenda' && <AgendaView from={anchor} items={items} onOpen={setOpen} />}
+        {view === 'month' && <MonthView month={month} items={items} onOpen={openItem} />}
+        {view === 'week' && <WeekView start={wkStart} items={items} onOpen={openItem} />}
+        {view === 'agenda' && <AgendaView from={anchor} items={items} onOpen={openItem} />}
       </div>
-      {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
+      {open && <ItemDetail key={open.item.id} item={open.item} isNew={open.isNew} onClose={() => setOpen(null)} />}
     </>
   );
 }

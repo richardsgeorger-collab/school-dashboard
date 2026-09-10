@@ -67,7 +67,9 @@ export function WeekView({ start, items, onOpen }: { start: DateStr; items: Item
                   ))}
                 </ul>
               )}
-              {meetings.length === 0 && due.length === 0 && <p className="hint">Free day.</p>}
+              {meetings.length === 0 && due.length === 0 && (
+                <p className="hint">{planned > 0 ? `Nothing due. ${fmtMinutes(planned)} of study planned.` : 'Nothing due, nothing planned.'}</p>
+              )}
             </section>
           );
         })}
