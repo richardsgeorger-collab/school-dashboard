@@ -2051,8 +2051,21 @@ button {
 }
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--s-2);
   margin-top: var(--s-5);
+}
+.hero-skip {
+  flex-basis: 100%;
+  text-align: left;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 6px 0 0;
+}
+.hero-skip:hover {
+  color: var(--ink);
 }
 .hero-btn {
   min-height: 48px;

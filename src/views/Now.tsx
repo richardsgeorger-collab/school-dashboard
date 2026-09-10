@@ -84,7 +84,8 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
     [item, data.items, schedule, today, now.slice(0, 16), data.settings.timezone, derived],
   );
   const chunk = done ? null : chunkSuggestion(item, schedule, today);
-  const inferredDeadline = !!derived[item.id];
+  // Only flag an inferred deadline while it is still the binding one.
+  const inferredDeadline = !!derived[item.id] && dateOf(derived[item.id].deadlineAt, data.settings.timezone) >= today;
 
   return (
     <section key={item.id} className="hero" data-state={framing} style={{ '--course': color } as React.CSSProperties} aria-label="Next up">
@@ -126,7 +127,7 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
           <button type="button" className="btn hero-btn" onClick={() => onOpen(item)}>
             Open
           </button>
-          <button type="button" className="btn hero-btn" onClick={() => onSkip(item)} title="Push this down until tomorrow">
+          <button type="button" className="hero-skip" onClick={() => onSkip(item)} title="Push this down until tomorrow">
             Not this one
           </button>
         </div>
@@ -161,7 +162,7 @@ function ThenRow({ item, onOpen }: { item: Item; onOpen: (i: Item) => void }) {
           </p>
           <p className="hint" style={{ display: 'flex', gap: 6 }}>
             <span className="tag-source">{sourceTag(item, course)}</span>
-            {derived[item.id] && (
+            {derived[item.id] && dateOf(derived[item.id].deadlineAt, data.settings.timezone) >= today && (
               <span className="tag-inferred" title={derived[item.id].reasons.join('; ')}>
                 deadline inferred
               </span>
