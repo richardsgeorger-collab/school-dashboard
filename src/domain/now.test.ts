@@ -97,35 +97,24 @@ describe('pressureLine', () => {
   it('is silent when nothing is pressing', () => {
     expect(run([item({ dueAt: '2026-09-25T23:59:00-07:00' })])).toBeNull();
   });
-  it('names overdue first', () => {
-    const items = [item({ dueAt: '2026-09-08T23:59:00-07:00' }), item({ label: 'Chem HW 1', dueAt: '2026-09-07T23:59:00-07:00' })];
-    expect(run(items)).toBe('2 overdue. Chem HW 1 first.');
+  it('stays quiet about overdue and small things (the status line covers them)', () => {
+    expect(run([item({ dueAt: '2026-09-08T23:59:00-07:00', estimatedMinutes: 30 })])).toBeNull();
   });
-  it('describes a heavy day with untouched work', () => {
-    const items = Array.from({ length: 5 }, (_, k) => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 + k * 30 }));
-    expect(run(items)).toBe("Sunday is heavy: 5 items, 10h. You haven't started any.");
+  it('warns when a big item is inside its start window and untouched', () => {
+    const items = [item({ label: 'Chem Exam 1', points: 150, dueAt: '2026-09-12T23:59:00-07:00', estimatedMinutes: 420 })];
+    expect(run(items)).toBe('Chem Exam 1 is inside its start window — ~7h, due Saturday. Start today.');
+    const started = [{ ...items[0], status: 'in_progress' as const }];
+    expect(run(started)).toBeNull();
   });
-  it('counts progress on a heavy day while under half done', () => {
-    const items = [
-      ...Array.from({ length: 4 }, () => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 })),
-      item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60, status: 'done' }),
-    ];
-    expect(run(items)).toBe('Sunday is heavy: 5 items, 5h. 1 of 5 done.');
+  it('warns about a heavy day only when nothing on it has started', () => {
+    const heavy = Array.from({ length: 4 }, (_, k) => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 30 + k * 10 }));
+    expect(run(heavy)).toBe('Sunday is heavy: 4 things, ~3h. Nothing started yet.');
+    const touched = [{ ...heavy[0], status: 'in_progress' as const }, ...heavy.slice(1)];
+    expect(run(touched)).toBeNull();
   });
-  it('stops calling a day heavy once more than half is done', () => {
-    const items = [
-      ...Array.from({ length: 4 }, () => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60 })),
-      ...Array.from({ length: 5 }, () => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 60, status: 'done' })),
-    ];
+  it('does not count participation toward a heavy day', () => {
+    const items = Array.from({ length: 5 }, () => item({ type: 'participation', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 30 }));
     expect(run(items)).toBeNull();
-    const heavyRemainder = items.map((i) => (i.status === 'todo' ? { ...i, estimatedMinutes: 90 } : i)); // 6h left > 5h Sunday capacity
-    expect(run(heavyRemainder)).toBe('Sunday: 4 of 9 left, 6h to go.');
-  });
-  it('flags an item that will not fit, but only within two weeks', () => {
-    const items = [item({ label: 'Chem Exam 1', dueAt: '2026-09-10T23:59:00-07:00', estimatedMinutes: 900 })];
-    expect(run(items)).toBe("Chem Exam 1 won't fit before Thursday unless you start now.");
-    const far = [item({ label: 'Chem Exam 2', opensAt: '2026-10-05T00:00:00-07:00', dueAt: '2026-10-06T23:59:00-07:00', estimatedMinutes: 900 })];
-    expect(run(far)).toBeNull();
   });
 });
 

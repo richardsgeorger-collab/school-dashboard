@@ -2546,3 +2546,84 @@ button {
     display: none;
   }
 }
+
+/* ---- next class card ---- */
+.nextclass {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 14px var(--s-4);
+}
+.nextclass-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+}
+.nextclass-eyebrow .chip {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.nextclass-text {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 1.4;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.nextclass-text[data-quiet='true'] {
+  color: var(--ink-2);
+}
+.nextclass-link {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.nextclass-link:hover {
+  text-decoration-color: var(--ink);
+}
+.tag-inferred,
+.tag-source {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.tag-inferred {
+  border: 1px dashed var(--risk);
+  color: var(--risk);
+}
+.tag-source {
+  border: 1px solid var(--line-strong);
+  color: var(--ink-3);
+}
+
+/* ---- participation reads as "show up," not "do this" ---- */
+.chip-item[data-type='participation'] {
+  opacity: 0.6;
+  border-left-style: dashed;
+  font-style: italic;
+}
+.chip-item[data-type='participation'][data-plain='true'] {
+  border: 1px dashed var(--line-strong);
+  border-left-width: 1px;
+  background: transparent;
+}
+.item-row[data-type='participation'] {
+  border-left-style: dashed;
+  opacity: 0.75;
+}
+.item-row[data-type='participation'] .item-title {
+  font-weight: 400;
+  font-style: italic;
+}

@@ -46,6 +46,7 @@ export function ItemChip({ item, onOpen, plain = false }: { item: Item; onOpen: 
       type="button"
       className="chip-item"
       data-state={state}
+      data-type={item.type}
       data-plain={plain}
       data-big={plain && isBig(item)}
       style={{ '--course': color } as React.CSSProperties}

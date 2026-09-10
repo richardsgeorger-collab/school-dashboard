@@ -23,7 +23,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
   const showSubtitle = item.title !== item.label;
 
   return (
-    <li className="item-row" data-done={done} data-state={state} data-compact={compact} data-flash={!!burst} style={{ '--course': color } as React.CSSProperties}>
+    <li className="item-row" data-done={done} data-state={state} data-type={item.type} data-compact={compact} data-flash={!!burst} style={{ '--course': color } as React.CSSProperties}>
       <button
         type="button"
         className="check"
