@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import seed from '../data/seed.json';
-import { addDays, todayStr } from '../domain/dates';
+import { addDays, dateOf, todayStr } from '../domain/dates';
 import { derive, type DerivedDeadline, type Nudge } from '../domain/deadlines';
 import { DERIVED_DEADLINES } from '../domain/flags';
 import { shortLabel } from '../domain/labels';
@@ -164,7 +164,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const derived = derivedAll.deadlines;
   const nudges = derivedAll.nudges;
   const schedule = useMemo(
-    () => computeSchedule(data.items.map((i) => (derived[i.id] ? { ...i, deadlineAt: derived[i.id].deadlineAt } : i)), data.settings, today, term),
+    () =>
+      computeSchedule(
+        // A derived deadline that has already passed stops binding; the syllabus date takes over.
+        data.items.map((i) => (derived[i.id] && dateOf(derived[i.id].deadlineAt, data.settings.timezone) >= today ? { ...i, deadlineAt: derived[i.id].deadlineAt } : i)),
+        data.settings,
+        today,
+        term,
+      ),
     [data.items, derived, data.settings, today, term],
   );
   const courseById = useMemo(() => new Map(data.courses.map((c) => [c.id, c])), [data.courses]);

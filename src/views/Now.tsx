@@ -6,6 +6,7 @@ import { groupByDeadline, heroFraming, pressureLine, rankItems, termProgress, to
 import type { DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
+import { ChatCard } from '../chat/ChatCard';
 import { ItemDetail } from './ItemDetail';
 
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -142,6 +143,7 @@ export function Now() {
           {progress.pct}% banked · {progress.elapsedPct}% of the term elapsed
         </span>
       </div>
+      <ChatCard />
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
     </div>
   );

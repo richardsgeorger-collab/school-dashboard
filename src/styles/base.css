@@ -2126,3 +2126,138 @@ button {
   background: var(--ink-3);
   border-radius: 1px;
 }
+
+/* ---- chat ---- */
+.chat {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.chat-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chat-head-actions {
+  display: flex;
+  gap: 6px;
+}
+.chat-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chat-connect-row {
+  display: flex;
+  gap: 8px;
+}
+.chat-connect-row input,
+.chat-input input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.chat-input input {
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.chat-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chat-msg {
+  max-width: 92%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.chat-msg[data-role='user'] {
+  align-self: flex-end;
+  background: var(--ink);
+  color: var(--bg);
+  border-bottom-right-radius: 4px;
+}
+.chat-msg[data-role='assistant'] {
+  align-self: flex-start;
+  background: var(--surface-2);
+  border-bottom-left-radius: 4px;
+}
+.chat-dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.chat-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  animation: dot 1s infinite ease-in-out;
+}
+.chat-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.chat-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.chat-input {
+  display: flex;
+  gap: 8px;
+}
+.chat-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.chat-notes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--hi-soft);
+  border-radius: var(--r-sm);
+}
+@media (max-width: 639px) {
+  .chat-input {
+    position: sticky;
+    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px);
+    background: var(--surface);
+    padding-top: 6px;
+  }
+}
