@@ -8,7 +8,7 @@ const base = 'http://localhost:4173/school-dashboard/';
 const text = (sel) => page.$eval(sel, (el) => el.textContent.trim());
 
 await page.goto(base, { waitUntil: 'networkidle0' });
-console.log('default route:', await page.evaluate(() => location.hash), '| view:', await text('.segmented button[aria-pressed=true]'));
+console.log('default route hero:', await text('.hero-title'), '| then rows:', await page.$$eval('.then-row', (els) => els.length), '| pressure:', await page.$('.pressure') ? await text('.pressure') : 'none');
 
 await page.goto(base + '#/calendar?v=agenda', { waitUntil: 'networkidle0' });
 const firstLabel = await text('.day-group .item-row .item-title');

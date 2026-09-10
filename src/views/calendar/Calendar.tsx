@@ -8,10 +8,7 @@ import { useRoute } from '../../router';
 import { useStore } from '../../storage/store';
 import { IconPlus } from '../../components/Icons';
 import { blankItem, ItemDetail } from '../ItemDetail';
-import { FocusStrip } from './FocusStrip';
-import { LevelBar } from '../../components/LevelBar';
-import { RecapCard } from '../../components/Recap';
-import { weekdayOf } from '../../domain/dates';
+
 import { AgendaView } from './AgendaView';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
@@ -92,9 +89,7 @@ export function Calendar() {
           </button>
         </div>
       </div>
-      <LevelBar />
-      {weekdayOf(today) === 0 && <RecapCard />}
-      <FocusStrip items={items} onOpen={openItem} />
+
       <div className="cal-controls">
         <SegmentedControl
           label="Calendar view"
