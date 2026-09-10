@@ -24,10 +24,17 @@ export const TINY_MINUTES = 45;
 const EVENING_CUTOFF = 18 * 60;
 const DUE_SOON_MS = 48 * 3_600_000;
 
-/** Last calendar day the work can happen. Due before 6 PM means the night before. */
-export function deadlineDay(item: Pick<Item, 'dueAt'>, tz: string): DateStr {
-  const p = zonedParts(item.dueAt, tz);
-  const d = dateOf(item.dueAt, tz);
+/** An item with an optional real-deadline override (see deadlines.ts). Never stored. */
+export type SchedulableItem = Item & { deadlineAt?: string | null };
+
+/**
+ * Last calendar day the work can happen. A derived deadline wins when present;
+ * otherwise the due time, where due before 6 PM means the night before.
+ */
+export function deadlineDay(item: Pick<SchedulableItem, 'dueAt' | 'deadlineAt'>, tz: string): DateStr {
+  const at = item.deadlineAt ?? item.dueAt;
+  const p = zonedParts(at, tz);
+  const d = dateOf(at, tz);
   return p.hh * 60 + p.mm < EVENING_CUTOFF ? addDays(d, -1) : d;
 }
 
@@ -44,7 +51,7 @@ const maxDate = (...ds: DateStr[]) => ds.reduce((a, b) => (b > a ? b : a));
 const minDate = (...ds: DateStr[]) => ds.reduce((a, b) => (b < a ? b : a));
 
 export function computeSchedule(
-  items: Item[],
+  items: SchedulableItem[],
   settings: Settings,
   today: DateStr,
   term: { start: DateStr; end: DateStr },

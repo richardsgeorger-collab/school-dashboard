@@ -57,7 +57,8 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
 }
 
 export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew?: boolean; onClose: () => void }) {
-  const { data, courseById, schedule, actions, today } = useStore();
+  const { data, courseById, schedule, actions, today, derived } = useStore();
+  const inference = derived[item.id];
   const tz = data.settings.timezone;
   const [draft, setDraft] = useState<Draft>(() => {
     const due = zonedParts(item.dueAt, tz);
@@ -267,6 +268,13 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           <span>Notes</span>
           <textarea value={draft.notes} onChange={(e) => set('notes', e.target.value)} />
         </label>
+        {sched && (
+          <p className="hint mono">
+            Due {fmtDate(dateOf(item.dueAt, tz), 'long')}
+            {inference ? ` · really ${fmtDate(dateOf(inference.deadlineAt, tz), 'long')}` : ''} · start by {fmtDate(sched.startBy, 'long')}
+            {inference ? ` · ${inference.reasons.join('; ')}` : ''}
+          </p>
+        )}
         {item.topic && <p className="hint">{item.topic}</p>}
         {item.snoozedUntil && item.snoozedUntil > today && (
           <p className="hint">

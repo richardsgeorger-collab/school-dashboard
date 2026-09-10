@@ -47,6 +47,18 @@ describe('deadlineDay', () => {
   });
 });
 
+describe('deadlineAt override', () => {
+  it('schedules against the derived deadline but stays not-overdue until the real due time', () => {
+    const a = { ...item({ estimatedMinutes: 120, dueAt: '2026-09-20T23:59:00-07:00' }), deadlineAt: '2026-09-16T23:59:00-07:00' };
+    const s = run([a]).byItem[a.id];
+    expect(s.deadlineDay).toBe('2026-09-16');
+    expect(s.plannedByDay).toEqual({ '2026-09-15': 120 });
+    expect(s.risk).toBeNull();
+    const passed = { ...a, deadlineAt: '2026-09-08T23:59:00-07:00' };
+    expect(run([passed]).byItem[a.id].risk).toBe('at_risk');
+  });
+});
+
 describe('computeSchedule', () => {
   it('plans a single item to finish a day before its deadline', () => {
     const a = item({ estimatedMinutes: 120, dueAt: '2026-09-13T23:59:00-07:00' });

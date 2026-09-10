@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import seed from '../data/seed.json';
 import { addDays, todayStr } from '../domain/dates';
+import { deriveDeadlines, type DerivedDeadline } from '../domain/deadlines';
+import { DERIVED_DEADLINES } from '../domain/flags';
 import { shortLabel } from '../domain/labels';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
@@ -36,6 +38,8 @@ export interface StoreActions {
 export interface Store {
   data: AppData;
   schedule: Schedule;
+  /** Real-deadline inferences by item id (empty when the layer is off). */
+  derived: Record<string, DerivedDeadline>;
   progress: Progress;
   /** Points the item would earn now, or has locked in. */
   previewAward(item: Item): number;
@@ -151,9 +155,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [data.settings.theme]);
 
   const term = useMemo(() => termOf(data.courses, today), [data.courses, today]);
+  const derived = useMemo<Record<string, DerivedDeadline>>(
+    () => (DERIVED_DEADLINES ? deriveDeadlines(data.items, data.courses, data.settings) : {}),
+    [data.items, data.courses, data.settings],
+  );
   const schedule = useMemo(
-    () => computeSchedule(data.items, data.settings, today, term),
-    [data.items, data.settings, today, term],
+    () => computeSchedule(data.items.map((i) => (derived[i.id] ? { ...i, deadlineAt: derived[i.id].deadlineAt } : i)), data.settings, today, term),
+    [data.items, derived, data.settings, today, term],
   );
   const courseById = useMemo(() => new Map(data.courses.map((c) => [c.id, c])), [data.courses]);
   const progress = useMemo(() => computeProgress(data.items, data.settings, today), [data.items, data.settings, today]);
@@ -391,8 +399,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Store>(
-    () => ({ data, schedule, progress, previewAward: previewFor, today, term, courseById, isDark, sync, actions }),
-    [data, schedule, progress, previewFor, today, term, courseById, isDark, sync, actions],
+    () => ({ data, schedule, derived, progress, previewAward: previewFor, today, term, courseById, isDark, sync, actions }),
+    [data, schedule, derived, progress, previewFor, today, term, courseById, isDark, sync, actions],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
