@@ -4,6 +4,7 @@ import type { DateStr, Item, Settings } from './types';
 
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const HEAVY_COUNT = 4;
+const RISK_HORIZON_DAYS = 14;
 const ms = (iso: string) => new Date(iso).getTime();
 
 const isSnoozed = (i: Item, today: DateStr) => !!i.snoozedUntil && i.snoozedUntil > today;
@@ -80,7 +81,8 @@ export function pressureLine(items: Item[], schedule: Schedule, settings: Settin
     return `${overdue.length} overdue. ${first.label} first.`;
   }
 
-  const atRisk = open.filter((i) => schedule.byItem[i.id]?.risk === 'at_risk');
+  const horizon = addDays(today, RISK_HORIZON_DAYS);
+  const atRisk = open.filter((i) => schedule.byItem[i.id]?.risk === 'at_risk' && schedule.byItem[i.id].deadlineDay <= horizon);
   if (atRisk.length > 0) {
     const i = rankItems(atRisk, schedule, now, tz)[0];
     const day = schedule.byItem[i.id].deadlineDay;

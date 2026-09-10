@@ -121,9 +121,11 @@ describe('pressureLine', () => {
     const heavyRemainder = items.map((i) => (i.status === 'todo' ? { ...i, estimatedMinutes: 90 } : i)); // 6h left > 5h Sunday capacity
     expect(run(heavyRemainder)).toBe('Sunday: 4 of 9 left, 6h to go.');
   });
-  it('flags an item that will not fit', () => {
+  it('flags an item that will not fit, but only within two weeks', () => {
     const items = [item({ label: 'Chem Exam 1', dueAt: '2026-09-10T23:59:00-07:00', estimatedMinutes: 900 })];
     expect(run(items)).toBe("Chem Exam 1 won't fit before Thursday unless you start now.");
+    const far = [item({ label: 'Chem Exam 2', opensAt: '2026-10-05T00:00:00-07:00', dueAt: '2026-10-06T23:59:00-07:00', estimatedMinutes: 900 })];
+    expect(run(far)).toBeNull();
   });
 });
 
