@@ -13,6 +13,7 @@ import { Now } from './views/Now';
 import { Plan } from './views/Plan';
 import { Grades } from './views/Grades';
 import { Heatmap } from './views/Heatmap';
+import { Record } from './views/Record';
 import { Settings } from './views/Settings';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
@@ -57,6 +58,8 @@ function Screen() {
       return <Plan />;
     case 'load':
       return <Heatmap />;
+    case 'record':
+      return <Record />;
     case 'grades':
       return <Grades />;
     case 'settings':

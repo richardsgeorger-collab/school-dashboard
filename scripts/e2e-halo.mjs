@@ -32,6 +32,7 @@ console.log('banner:', await page.$eval('.halo-banner', (e) => e.textContent.tri
 // 1. Handoff path: synthetic message with Halo's origin.
 await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload1);
 await page.waitForSelector('.modal .diff-section', { timeout: 5000 });
+const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
 const heads = async () => page.$$eval('.diff-section h3', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').replace(/(hide|show|all|none)/g, '').trim()));
 console.log('sections:', (await heads()).join(' | '));
 console.log('trust:', await page.$eval('.diff-trust', (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => 'none'));
@@ -81,4 +82,20 @@ await page.waitForSelector('.halo-paste');
 await page.type('.halo-paste', 'not json');
 await page.$$eval('.modal .modal-actions .btn', (els) => els.find((e) => e.textContent.includes('Read export')).click());
 console.log('bad paste:', await page.$eval('.modal .hint[style]', (e) => e.textContent.trim()).catch(() => 'no error shown'));
+// 3. Zone misread: bare local strings read as UTC land at 4:59 PM → warning, row tags, two-step apply, toggle clears it.
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+const bare = { ...payload1, exportedAt: new Date().toISOString(), classes: [cls([mk('e2e-z1', A, { dueDate: '2026-10-05 23:59:00' }), mk('e2e-z2', B, { dueDate: '2026-10-06 23:59:00' })])] };
+await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), bare);
+await page.waitForSelector('.modal .diff-zone', { timeout: 5000 });
+console.log('zone warn:', await page.$eval('.diff-zone', (e) => e.dataset.warn), '|', await t('.diff-zone-warn'));
+console.log('zone tags:', await page.$$eval('.tag-zone', (els) => els.length), '| read as:', await t('.diff-zone b'));
+await page.screenshot({ path: (process.argv[2] ?? 'halo-diff.png').replace(/\.png$/, '-zone.png'), fullPage: false });
+const applyBtns = await page.$$('.modal .modal-actions .btn.primary, .modal .modal-actions .btn.danger');
+await applyBtns[0].click();
+await sleep(200);
+console.log('first apply click:', await page.$$eval('.modal .modal-actions .btn', (els) => els.map((e) => e.textContent.trim()).join(' | ')), '| modal open:', !!(await page.$('.modal')));
+await page.$$eval('.diff-zone button', (els) => els.find((e) => e.textContent.includes('Phoenix')).click());
+await sleep(300);
+console.log('after toggle: warn', await page.$eval('.diff-zone', (e) => e.dataset.warn), '| tags', await page.$$eval('.tag-zone', (els) => els.length), '| read as:', await t('.diff-zone b'), '| sections:', (await heads()).slice(0, 2).join(' | '));
 await browser.close();

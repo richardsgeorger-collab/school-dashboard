@@ -59,3 +59,9 @@ export const IconPlus = () => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
+export const IconRecord = () => (
+  <svg {...base}>
+    <circle cx="12" cy="12" r="8.5" />
+    <circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none" />
+  </svg>
+);

@@ -144,3 +144,35 @@ describe('diffHalo', () => {
     expect(local.added[0].item.dueAt).toBe('2026-09-14T06:59:00-07:00');
   });
 });
+
+describe('zone warning', () => {
+  const chm2 = mkCourse({ id: 'c1', code: 'CHM-113' });
+  const bareLocal = mkExport([
+    mkClass({
+      id: 'hc1',
+      courseCode: 'CHM-113',
+      assessments: [
+        mkAssessment({ id: 'h1', title: 'Quiz 1', dueDate: '2026-09-14 23:59:00' }),
+        mkAssessment({ id: 'h2', title: 'Quiz 2', dueDate: '2026-09-21 23:59:00' }),
+        mkAssessment({ id: 'h3', title: 'In-class activity', dueDate: '2026-09-16 08:15:00' }),
+      ],
+    }),
+  ]);
+  it('flags :59 landings away from 11 PM and clears when the reading is flipped', () => {
+    const wrong = diffHalo(bareLocal, mkData([chm2], []), { tz: TZ, now: NOW, bareAs: 'utc' });
+    expect(wrong.zoneSuspects.map((s) => s.time)).toEqual(['4:59 PM', '4:59 PM']);
+    expect(wrong.zoneWarning).toMatch(/2 due times land at 4:59 PM/);
+    expect(wrong.zoneWarning).toMatch(/Flip the reading/);
+    expect(wrong.added.find((e) => e.item.title === 'Quiz 1')?.oddTime).toBe('4:59 PM');
+    const right = diffHalo(bareLocal, mkData([chm2], []), { tz: TZ, now: NOW, bareAs: 'local' });
+    expect(right.zoneSuspects).toEqual([]);
+    expect(right.zoneWarning).toBeNull();
+  });
+  it('stays quiet for zoned strings that land at 11:59 PM', () => {
+    const d = diffHalo(payloadZoned(), mkData([chm2], []), { tz: TZ, now: NOW });
+    expect(d.zoneWarning).toBeNull();
+  });
+  function payloadZoned() {
+    return mkExport([mkClass({ id: 'hc1', courseCode: 'CHM-113', assessments: [mkAssessment({ id: 'h1', title: 'Quiz 1', dueDate: '2026-09-15T06:59:00Z' })] })]);
+  }
+});

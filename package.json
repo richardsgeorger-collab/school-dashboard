@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/secrets.mjs",
     "preview": "vite preview",
     "test": "vitest",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "check:secrets": "node scripts/secrets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

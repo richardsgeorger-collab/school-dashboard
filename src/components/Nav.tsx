@@ -2,13 +2,14 @@ import type { ReactElement } from 'react';
 import { fmtDate } from '../domain/dates';
 import { useRoute, type Route } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconSettings } from './Icons';
+import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconRecord, IconSettings } from './Icons';
 
 const LINKS: { route: Route; label: string; icon: () => ReactElement; mobile: boolean }[] = [
   { route: 'now', label: 'Now', icon: IconNow, mobile: true },
   { route: 'calendar', label: 'Calendar', icon: IconCalendar, mobile: true },
   { route: 'plan', label: 'Plan', icon: IconHome, mobile: true },
   { route: 'load', label: 'Load', icon: IconLoad, mobile: true },
+  { route: 'record', label: 'Record', icon: IconRecord, mobile: true },
   { route: 'grades', label: 'Grades', icon: IconGrades, mobile: true },
   { route: 'settings', label: 'Settings', icon: IconSettings, mobile: false },
 ];

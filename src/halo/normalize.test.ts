@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mkAssessment, mkClass, mkCourse, NOW, TZ } from './fixtures';
-import { assessmentIssue, findCourse, haloFlags, haloItemId, haloType, hasZone, isSubmitted, normCode, normTitle, parseHaloDate, stripHtml, toCourse, toItem } from './normalize';
+import { assessmentIssue, findCourse, haloFlags, haloItemId, haloType, hasZone, isSubmitted, normCode, normTitle, oddDueTime, parseHaloDate, stripHtml, toCourse, toItem } from './normalize';
 
 describe('parseHaloDate', () => {
   it('reads a zoned ISO instant into Phoenix wall time', () => {
@@ -113,5 +113,31 @@ describe('courses', () => {
     const unknown = toCourse(mkClass({ id: 'h2', courseCode: 'MAT-261', modality: 'ONLINE' }), undefined, { tz: TZ, now: NOW, index: 1 });
     expect(unknown.online).toBe(true);
     expect(unknown.meetings).toEqual([]);
+  });
+});
+
+describe('time zones, defensively', () => {
+  const july = '2026-07-14T06:59:00Z';
+  it('uses real zone rules, not a fixed offset: Phoenix has no DST, Denver does', () => {
+    expect(parseHaloDate(july, 'America/Phoenix')).toBe('2026-07-13T23:59:00-07:00');
+    expect(parseHaloDate(july, 'America/Denver')).toBe('2026-07-14T00:59:00-06:00');
+    expect(parseHaloDate('2026-11-15T06:59:00Z', 'America/Denver')).toBe('2026-11-14T23:59:00-07:00');
+    expect(parseHaloDate('2026-11-15T06:59:00Z', 'America/Phoenix')).toBe('2026-11-14T23:59:00-07:00');
+  });
+  it('reads the same bare string both ways and the wrong way shows its fingerprint', () => {
+    const asUtc = parseHaloDate('2026-07-14 06:59:00', TZ, 'utc')!;
+    const asLocal = parseHaloDate('2026-07-14 06:59:00', TZ, 'local')!;
+    expect(asUtc).toBe('2026-07-13T23:59:00-07:00');
+    expect(asLocal).toBe('2026-07-14T06:59:00-07:00');
+    expect(oddDueTime(asUtc, TZ)).toBeNull();
+    expect(oddDueTime(asLocal, TZ)).toBe('6:59 AM');
+    const localString = '2026-09-14 23:59:00';
+    expect(oddDueTime(parseHaloDate(localString, TZ, 'utc')!, TZ)).toBe('4:59 PM');
+    expect(oddDueTime(parseHaloDate(localString, TZ, 'local')!, TZ)).toBeNull();
+  });
+  it('leaves normal times alone', () => {
+    expect(oddDueTime('2026-09-14T07:00:00-07:00', TZ)).toBeNull();
+    expect(oddDueTime('2026-09-14T12:30:00-07:00', TZ)).toBeNull();
+    expect(oddDueTime('2026-09-14T23:59:00-07:00', TZ)).toBeNull();
   });
 });

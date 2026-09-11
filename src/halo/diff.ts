@@ -2,7 +2,7 @@ import { dateOf } from '../domain/dates';
 import { estimateMinutes } from '../domain/estimate';
 import { shortLabel } from '../domain/labels';
 import type { AppData, Course, Item } from '../domain/types';
-import { assessmentIssue, findCourse, hasZone, isSubmitted, normTitle, parseHaloDate, toCourse, toItem, type BareDateMode } from './normalize';
+import { assessmentIssue, findCourse, hasZone, isSubmitted, normTitle, oddDueTime, parseHaloDate, toCourse, toItem, type BareDateMode } from './normalize';
 import type { HaloAssessment, HaloExport } from './types';
 
 export interface FieldChange {
@@ -16,6 +16,8 @@ export interface AddedEntry {
   halo: HaloAssessment;
   course: Course;
   submitted: boolean;
+  /** Clock time when the due time looks like a zone misread. */
+  oddTime: string | null;
 }
 export interface ChangedEntry {
   key: string;
@@ -24,6 +26,7 @@ export interface ChangedEntry {
   halo: HaloAssessment;
   course: Course;
   changes: FieldChange[];
+  oddTime: string | null;
 }
 export interface MissingEntry {
   key: string;
@@ -61,6 +64,10 @@ export interface HaloDiff {
   /** A few raw Halo due strings, for the trust line. */
   rawDates: string[];
   bareDates: boolean;
+  /** Items whose due time ends in :59 at an hour other than 11 PM. */
+  zoneSuspects: { key: string; title: string; time: string }[];
+  /** One sentence when the suspects say the zone reading is probably wrong. */
+  zoneWarning: string | null;
 }
 export interface DiffOptions {
   tz: string;
@@ -159,6 +166,8 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
     untouched: [],
     rawDates: [],
     bareDates: false,
+    zoneSuspects: [],
+    zoneWarning: null,
   };
   const courses = [...data.courses];
   let created = 0;
@@ -194,14 +203,14 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
         tz,
       );
       if (!match) {
-        diff.added.push({ key: next.id, item: next, halo: a, course, submitted });
+        diff.added.push({ key: next.id, item: next, halo: a, course, submitted, oddTime: oddDueTime(next.dueAt, tz) });
         if (submitted) diff.submitted.push({ key: `s:${next.id}`, id: next.id, title: next.title, course, at, score, isNew: true });
         continue;
       }
       taken.add(match.id);
       const merged = mergeItem(match, next, course, now);
       const changes = changesBetween(match, merged);
-      const entry: ChangedEntry = { key: match.id, existing: match, next: merged, halo: a, course, changes };
+      const entry: ChangedEntry = { key: match.id, existing: match, next: merged, halo: a, course, changes, oddTime: oddDueTime(merged.dueAt, tz) };
       if (changes.length) diff.changed.push(entry);
       else if (differs(match, merged)) diff.unchanged.push(entry);
       if (submitted && match.status !== 'done') diff.submitted.push({ key: `s:${match.id}`, id: match.id, title: merged.title, course, at, score, isNew: false });
@@ -212,5 +221,20 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       else diff.untouched.push(i);
     }
   }
+  for (const e of diff.added) if (e.oddTime) diff.zoneSuspects.push({ key: e.key, title: e.item.label, time: e.oddTime });
+  for (const e of [...diff.changed, ...diff.unchanged]) if (e.oddTime) diff.zoneSuspects.push({ key: e.key, title: e.existing.label, time: e.oddTime });
+  diff.zoneWarning = zoneWarningFor(diff.zoneSuspects, diff.bareDates);
   return diff;
+}
+
+/** The most common odd clock time, phrased as a warning, or null when nothing looks off. */
+export function zoneWarningFor(suspects: { time: string }[], bareDates: boolean): string | null {
+  if (suspects.length === 0) return null;
+  const counts = new Map<string, number>();
+  for (const s of suspects) counts.set(s.time, (counts.get(s.time) ?? 0) + 1);
+  const [time, n] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const what = `${n} due time${n === 1 ? '' : 's'} land${n === 1 ? 's' : ''} at ${time}.`;
+  const why = ' Halo deadlines are 11:59 PM, so the time zone reading is probably wrong.';
+  const fix = bareDates ? ' Flip the reading above and check again before applying.' : ' Do not apply until this is understood.';
+  return what + why + fix;
 }

@@ -191,3 +191,15 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     updatedAt: opts.now,
   };
 }
+
+/**
+ * Halo deadlines are nearly always 11:59 PM. A due time ending in :59 at any other hour
+ * (4:59 PM, 6:59 AM) is the fingerprint of a time-zone misread, not a real deadline.
+ * Returns the odd clock time, or null when the time looks normal.
+ */
+export function oddDueTime(iso: string, tz: string): string | null {
+  const p = zonedParts(iso, tz);
+  if (p.mm !== 59 || p.hh === 23) return null;
+  const h12 = p.hh % 12 === 0 ? 12 : p.hh % 12;
+  return `${h12}:59 ${p.hh < 12 ? 'AM' : 'PM'}`;
+}
