@@ -17,6 +17,8 @@ export interface ChatTurn {
 
 export interface SendArgs {
   apiKey: string;
+  /** Test hook: a fetch that answers instead of api.anthropic.com. */
+  fetch?: typeof globalThis.fetch;
   history: ChatTurn[];
   userText: string;
   context: string;
@@ -24,9 +26,9 @@ export interface SendArgs {
 }
 
 /** One user message through the model, running tool calls locally until it answers in text. */
-export async function sendChat({ apiKey, history, userText, context, api }: SendArgs): Promise<string> {
+export async function sendChat({ apiKey, history, userText, context, api, fetch }: SendArgs): Promise<string> {
   const Anthropic = await sdk();
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 1 });
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: fetch ? 0 : 1, ...(fetch ? { fetch } : {}) });
   const messages: Anthropic.MessageParam[] = [
     ...history.slice(-20).map((t) => ({ role: t.role, content: t.text }) as Anthropic.MessageParam),
     { role: 'user', content: userText },
