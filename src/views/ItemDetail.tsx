@@ -276,6 +276,13 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           </p>
         )}
         {item.topic && <p className="hint">{item.topic}</p>}
+        {item.url && (
+          <p className="hint">
+            <a href={item.url} target="_blank" rel="noreferrer">
+              Open in Halo
+            </a>
+          </p>
+        )}
         {item.snoozedUntil && item.snoozedUntil > today && (
           <p className="hint">
             Pushed down until {fmtDate(item.snoozedUntil, 'long')} ·{' '}

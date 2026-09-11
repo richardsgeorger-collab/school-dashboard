@@ -27,10 +27,10 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
 
   return (
     <section className="card settings-card">
-      <h2 className="section-title">Halo</h2>
+      <h2 className="section-title">Halo bookmark, fallback</h2>
       <p className="hint">
-        Pull assignments from Halo without giving this site your login. The bookmark runs on Halo&apos;s own page, reads your session there, and sends only assignment
-        data here. You approve every change before it applies.
+        The normal way to sync is the Sync button in the top bar with Better Halo&apos;s .ics export. Keep this bookmark for when that export is not available: it runs on
+        Halo&apos;s own page, reads your session there, and sends only assignment data here. You approve every change before it applies.
       </p>
       <ol className="halo-steps">
         <li>

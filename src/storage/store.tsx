@@ -92,7 +92,7 @@ export function normalizeData(data: AppData): AppData {
       return {
         ...i,
         // Estimate rules get recalibrated over time; untouched parsed items follow the current table.
-        estimatedMinutes: (i.source === 'parsed' || i.source === 'halo') && !raw.estimateOverridden ? estimateMinutes({ title: i.title, type: i.type, points: i.points, courseCode }) : i.estimatedMinutes,
+        estimatedMinutes: (i.source === 'parsed' || i.source === 'halo' || i.source === 'ics') && !raw.estimateOverridden ? estimateMinutes({ title: i.title, type: i.type, points: i.points, courseCode }) : i.estimatedMinutes,
         label: needsLabel ? shortLabel({ title: i.title, courseCode, type: i.type }) : raw.label,
         labelOverridden: raw.labelOverridden ?? false,
         award: raw.award ?? null,

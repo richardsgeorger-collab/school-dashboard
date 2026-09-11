@@ -81,9 +81,15 @@ export interface Item {
   notes: string;
   topic: string | null;
   flags: ItemFlags;
-  source: 'parsed' | 'manual' | 'halo';
+  source: 'parsed' | 'manual' | 'halo' | 'ics';
   /** Halo assessment id, set once an item is linked to Halo. */
   haloId?: string | null;
+  /** Calendar-export UID, set when the item came from or matched an .ics import. */
+  icsUid?: string | null;
+  /** Link into Halo when the export carried one. */
+  url?: string | null;
+  /** Minutes it actually took, from the after-done prompt. */
+  actualMinutes?: number | null;
   award: Award | null;
   /** "Not this one": kept out of the top of Now until this date. */
   snoozedUntil?: DateStr | null;
@@ -98,6 +104,11 @@ export interface Settings {
   weekStartsOn: 0 | 1;
   supabaseUrl: string | null;
   supabaseAnonKey: string | null;
+  /** LOCATION text in .ics exports → course id, as confirmed by the user. */
+  icsClassMap?: Record<string, string>;
+  /** Last assignments import: when it was applied, and the export's own timestamp. */
+  syncedAt?: string | null;
+  syncStamp?: string | null;
   updatedAt: string;
 }
 

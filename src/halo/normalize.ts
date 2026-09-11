@@ -108,11 +108,15 @@ export function isSubmitted(a: HaloAssessment): boolean {
   return a.status === 'LATE' && !!a.submittedAt;
 }
 
+export type SyncSource = 'halo' | 'ics';
+
 export interface ToItemOptions {
   tz: string;
   now: string;
   bareAs?: BareDateMode;
   includeZeroPoint?: boolean;
+  /** Which path the payload came from; decides the identity field and the source tag. */
+  source?: SyncSource;
 }
 
 /** Why an assessment can't become an item, or null when it can. */
@@ -129,8 +133,9 @@ export function toItem(a: HaloAssessment, course: Course, opts: ToItemOptions): 
   const dueAt = parseHaloDate(a.dueDate, opts.tz, opts.bareAs)!;
   const opensAt = parseHaloDate(a.startDate, opts.tz, opts.bareAs);
   const points = Number(a.points) > 0 ? Number(a.points) : 0;
+  const source = opts.source ?? 'halo';
   return {
-    id: haloItemId(a.id),
+    id: source === 'ics' ? stableId(`ics|${a.id}`) : haloItemId(a.id),
     courseId: course.id,
     title,
     label: shortLabel({ title, courseCode: course.code, type }),
@@ -148,8 +153,10 @@ export function toItem(a: HaloAssessment, course: Course, opts: ToItemOptions): 
     notes: stripHtml(a.description),
     topic: a.unit ?? null,
     flags: haloFlags(a),
-    source: 'halo',
-    haloId: a.id,
+    source,
+    haloId: source === 'halo' ? a.id : null,
+    icsUid: source === 'ics' ? a.id : null,
+    url: a.url ?? null,
     award: null,
     updatedAt: opts.now,
   };
@@ -168,8 +175,9 @@ export function findCourse(courses: Course[], c: HaloClass): Course | undefined 
     .sort((a, b) => normCode(b.code).length - normCode(a.code).length)[0];
 }
 
-export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz: string; now: string; index: number }): Course {
-  if (existing) return { ...existing, haloSlugId: c.slugId, haloClassId: c.id, updatedAt: opts.now };
+export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz: string; now: string; index: number; stampHalo?: boolean }): Course {
+  const stamp = opts.stampHalo !== false;
+  if (existing) return stamp ? { ...existing, haloSlugId: c.slugId, haloClassId: c.id, updatedAt: opts.now } : existing;
   const code = c.courseCode?.trim() || c.classCode?.trim() || 'CLASS';
   const d = COURSE_DEFAULTS[code.toUpperCase()] ?? {};
   const today = dateOf(opts.now, opts.tz);
@@ -184,8 +192,8 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     instructors: [],
     meetings: d.meetings ?? [],
     online: d.online ?? (c.modality === 'ONLINE' || c.modality === 'TRADONLINE'),
-    haloSlugId: c.slugId,
-    haloClassId: c.id,
+    haloSlugId: stamp ? c.slugId : null,
+    haloClassId: stamp ? c.id : null,
     termStart,
     termEnd,
     updatedAt: opts.now,

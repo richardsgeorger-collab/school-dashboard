@@ -3204,3 +3204,89 @@ button {
   overflow: auto;
   margin: 8px 0 0;
 }
+
+/* ---- Sync assignments ---- */
+.topbar-sync {
+  margin-right: 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgb(21 26 33 / 0.55);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  pointer-events: none;
+  border: 6px dashed rgb(255 255 255 / 0.5);
+}
+.sync-drop {
+  display: grid;
+  gap: 4px;
+  place-items: center;
+  text-align: center;
+  padding: 36px 16px;
+  border: 2px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  cursor: pointer;
+  margin: 10px 0;
+  font-size: 16px;
+}
+.sync-drop[data-dragging='true'],
+.sync-drop:hover {
+  border-color: var(--ink);
+  background: var(--surface-3);
+}
+.sync-map {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 8px 0;
+}
+.sync-map th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  padding: 4px 0;
+}
+.sync-map td {
+  padding: 8px 8px 8px 0;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+.sync-map select,
+.sync-code {
+  font: inherit;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+}
+.sync-code {
+  margin-top: 6px;
+}
+.stale {
+  margin: 6px 0 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.stale[data-level='loud'] {
+  background: var(--risk-soft);
+  color: var(--risk);
+  border: 1px solid var(--risk);
+  font-weight: 600;
+}

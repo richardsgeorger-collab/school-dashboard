@@ -2,8 +2,8 @@ import { dateOf } from '../domain/dates';
 import { estimateMinutes } from '../domain/estimate';
 import { shortLabel } from '../domain/labels';
 import type { AppData, Course, Item } from '../domain/types';
-import { assessmentIssue, findCourse, hasZone, isSubmitted, normTitle, oddDueTime, parseHaloDate, toCourse, toItem, type BareDateMode } from './normalize';
-import type { HaloAssessment, HaloExport } from './types';
+import { assessmentIssue, findCourse, hasZone, isSubmitted, normTitle, oddDueTime, parseHaloDate, toCourse, toItem, type BareDateMode, type SyncSource } from './normalize';
+import type { HaloAssessment, HaloClass, HaloExport } from './types';
 
 export interface FieldChange {
   field: 'dueAt' | 'points' | 'title';
@@ -61,8 +61,10 @@ export interface HaloDiff {
   skipped: SkippedEntry[];
   /** Local items in synced classes with no Halo counterpart. Left alone. */
   untouched: Item[];
-  /** A few raw Halo due strings, for the trust line. */
+  /** A few raw due strings, for the trust line. */
   rawDates: string[];
+  /** One raw due string next to how it was read, for the trust line. */
+  sample: { raw: string; dueAt: string } | null;
   bareDates: boolean;
   /** Items whose due time ends in :59 at an hour other than 11 PM. */
   zoneSuspects: { key: string; title: string; time: string }[];
@@ -74,6 +76,9 @@ export interface DiffOptions {
   now: string;
   includeZeroPoint?: boolean;
   bareAs?: BareDateMode;
+  source?: SyncSource;
+  /** ICS: the class each export group maps to (may be a course not yet saved). Default: match by Halo link or code. */
+  resolveCourse?: (c: HaloClass) => Course | undefined;
 }
 
 const SKIP_STAGES = new Set(['CLOSED', 'INACTIVE']);
@@ -96,8 +101,8 @@ function sameInstant(a: string | null, b: string | null): boolean {
 
 /** Link, then exact title, then a close title due the same day. */
 export function findMatch(candidates: Item[], next: Item, tz: string): Item | undefined {
-  const byHalo = candidates.find((i) => i.haloId && i.haloId === next.haloId);
-  if (byHalo) return byHalo;
+  const byKey = candidates.find((i) => (next.haloId && i.haloId === next.haloId) || (next.icsUid && (i.icsUid === next.icsUid || i.haloId === next.icsUid)));
+  if (byKey) return byKey;
   const nt = normTitle(next.title);
   const byTitle = candidates.find((i) => normTitle(i.title) === nt);
   if (byTitle) return byTitle;
@@ -112,13 +117,15 @@ export function findMatch(candidates: Item[], next: Item, tz: string): Item | un
 }
 
 /** Halo's facts onto the local item. Everything the user owns stays: status, score, award, estimate and label overrides, start-by, snooze, notes. */
-export function mergeItem(existing: Item, next: Item, course: Course, now: string): Item {
+export function mergeItem(existing: Item, next: Item, course: Course, now: string, source: SyncSource = 'halo'): Item {
   const points = next.points > 0 ? next.points : existing.points;
   const merged: Item = {
     ...existing,
     title: next.title,
     label: existing.labelOverridden ? existing.label : shortLabel({ title: next.title, courseCode: course.code, type: existing.type }),
-    haloId: next.haloId,
+    haloId: next.haloId ?? existing.haloId ?? null,
+    icsUid: next.icsUid ?? existing.icsUid ?? null,
+    url: next.url ?? existing.url ?? null,
     dueAt: next.dueAt,
     opensAt: next.opensAt ?? existing.opensAt,
     points,
@@ -131,7 +138,7 @@ export function mergeItem(existing: Item, next: Item, course: Course, now: strin
     },
     notes: existing.notes?.trim() ? existing.notes : next.notes,
     topic: existing.topic ?? next.topic,
-    source: existing.source === 'manual' ? 'manual' : 'halo',
+    source: existing.source === 'manual' ? 'manual' : source,
     updatedAt: now,
   };
   if (!existing.estimateOverridden) {
@@ -165,6 +172,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
     skipped: [],
     untouched: [],
     rawDates: [],
+    sample: null,
     bareDates: false,
     zoneSuspects: [],
     zoneWarning: null,
@@ -173,11 +181,19 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
   let created = 0;
   for (const c of payload.classes) {
     if (c.stage && SKIP_STAGES.has(c.stage)) continue;
-    const existing = findCourse(courses, c);
-    const course = toCourse(c, existing, { tz, now, index: data.courses.length + created });
-    if (existing) {
-      diff.courses.linked.push(course);
-      courses[courses.indexOf(existing)] = course;
+    const source = opts.source ?? 'halo';
+    const existing = opts.resolveCourse ? opts.resolveCourse(c) : findCourse(courses, c);
+    const known = !!existing && data.courses.some((x) => x.id === existing.id);
+    const course = toCourse(c, existing, { tz, now, index: data.courses.length + created, stampHalo: source === 'halo' });
+    if (existing && known) {
+      if (source === 'halo') {
+        diff.courses.linked.push(course);
+        courses[courses.indexOf(existing)] = course;
+      }
+    } else if (existing) {
+      diff.courses.created.push(course);
+      courses.push(course);
+      created++;
     } else {
       diff.courses.created.push(course);
       courses.push(course);
@@ -186,7 +202,8 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
     const local = data.items.filter((i) => i.courseId === course.id);
     const taken = new Set<string>();
     for (const a of c.assessments ?? []) {
-      if (a.dueDate && diff.rawDates.length < 3 && !diff.rawDates.includes(a.dueDate)) diff.rawDates.push(a.dueDate);
+      const raw = a.rawDue ?? a.dueDate;
+      if (raw && diff.rawDates.length < 3 && !diff.rawDates.includes(raw)) diff.rawDates.push(raw);
       if (a.dueDate && !hasZone(a.dueDate)) diff.bareDates = true;
       const issue = assessmentIssue(a, opts);
       if (issue) {
@@ -194,6 +211,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
         continue;
       }
       const next = toItem(a, course, opts);
+      if (!diff.sample && raw) diff.sample = { raw, dueAt: next.dueAt };
       const submitted = isSubmitted(a);
       const at = parseHaloDate(a.submittedAt, tz, opts.bareAs) ?? payload.exportedAt;
       const score = a.status === 'PUBLISHED' ? a.score : null;
@@ -208,16 +226,18 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
         continue;
       }
       taken.add(match.id);
-      const merged = mergeItem(match, next, course, now);
+      const merged = mergeItem(match, next, course, now, source);
       const changes = changesBetween(match, merged);
       const entry: ChangedEntry = { key: match.id, existing: match, next: merged, halo: a, course, changes, oddTime: oddDueTime(merged.dueAt, tz) };
       if (changes.length) diff.changed.push(entry);
       else if (differs(match, merged)) diff.unchanged.push(entry);
       if (submitted && match.status !== 'done') diff.submitted.push({ key: `s:${match.id}`, id: match.id, title: merged.title, course, at, score, isNew: false });
     }
+    // Only items this path itself brought in can be "no longer in" its export.
     for (const i of local) {
       if (taken.has(i.id)) continue;
-      if (i.haloId) diff.missing.push({ key: i.id, existing: i, course, suggestRemove: i.status === 'todo' });
+      const linkedHere = source === 'ics' ? !!i.icsUid : !!i.haloId;
+      if (linkedHere) diff.missing.push({ key: i.id, existing: i, course, suggestRemove: i.status === 'todo' });
       else diff.untouched.push(i);
     }
   }

@@ -57,3 +57,22 @@ selector switches to local time if Halo ever sends bare local strings.
   origin rejected, apply, paste path, removal, bad paste.
 - `scripts/halo-capture.js` — paste into Halo's console to capture redacted real responses when
   the API shape needs re-checking.
+
+## The .ics export is the primary path (added 2026-09-11)
+
+Better Halo's "Export Assignments" button on the Halo home page writes an .ics of every assignment.
+The Sync button in the top bar (or dropping the file anywhere on the app) opens `src/views/SyncAssignments.tsx`:
+parse (`src/ics/parse.ts`), confirm which class each LOCATION means (remembered in `settings.icsClassMap`),
+then the same approve-before-apply diff (`src/views/DiffReview.tsx`, `src/halo/diff.ts` with `source: 'ics'`).
+
+Field mapping: SUMMARY → title (leading class code stripped), DTEND → due (DTSTART is fifteen minutes earlier,
+a display artifact), LOCATION → class, DESCRIPTION "Points: N" and "Type: X" → points and type, URL → link on the
+item, UID → identity (`icsUid`; fallback title + class + day). The export carries no submission status, so this
+path never marks anything done or undone and never touches notes, estimates, snoozes, awards, or manual items.
+
+**Time rule, which is the opposite of the bookmark path:** .ics DTSTART/DTEND are floating local time, already
+Phoenix wall-clock, and are read as written. Bare strings from the GraphQL bookmark are UTC. Both rules are tested
+side by side in `src/ics/timezones.test.ts`; do not merge the code paths.
+
+Staleness: the export's DTSTAMP is shown on the import screen and turns loud after seven days; Now shows one line
+when the last import is more than ten days old. The bookmark stays in Settings as the fallback.

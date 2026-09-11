@@ -65,3 +65,9 @@ export const IconRecord = () => (
     <circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none" />
   </svg>
 );
+export const IconSync = () => (
+  <svg {...base}>
+    <path d="M20 12a8 8 0 0 1-14.5 4.6M4 12a8 8 0 0 1 14.5-4.6" />
+    <path d="M18.5 3.5v4h-4M5.5 20.5v-4h4" />
+  </svg>
+);

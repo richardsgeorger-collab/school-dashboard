@@ -32,8 +32,9 @@ function dueLine(item: Item, tz: string, today: DateStr, startBy: string | undef
 }
 
 function sourceTag(item: Item, course: Course | undefined): string {
-  if (item.source === 'halo') return 'Halo';
-  return item.source === 'parsed' ? `${course?.code ?? 'syllabus'} syllabus` : 'added by you';
+  if (item.source === 'ics') return 'from ICS export';
+  if (item.source === 'halo') return 'from Halo';
+  return item.source === 'parsed' ? `from ${course?.code ?? 'the'} syllabus` : 'added by me';
 }
 
 function NextClassCard({ heroId, onOpen }: { heroId: string | undefined; onOpen: (i: Item) => void }) {
@@ -200,6 +201,8 @@ export function Now() {
   const status = todayLine(work, schedule, today, now, tz);
   const pace = termProgress(data.items, term, today);
   const updatedAt = data.courses.map((c) => c.updatedAt).sort().at(-1);
+  const syncedAt = data.settings.syncedAt ?? null;
+  const syncAge = syncedAt ? Math.floor((Date.now() - new Date(syncedAt).getTime()) / 86_400_000) : null;
   const nextDeadline = Object.keys(counts).filter((d) => d >= today).sort()[0];
 
   const skip = (i: Item) => actions.upsertItem({ ...i, snoozedUntil: addDays(today, 1) });
@@ -285,7 +288,7 @@ export function Now() {
         </span>
         <span className="mono muted">
           {pace.pct}% banked · {pace.elapsedPct}% of the term elapsed
-          {updatedAt ? ` · syllabi updated ${fmtDate(dateOf(updatedAt, tz), 'short')}` : ''}
+          {syncedAt && syncAge !== null ? (syncAge > 10 ? ` · Assignments last synced ${syncAge} days ago.` : ` · synced ${fmtDate(dateOf(syncedAt, tz), 'short')}`) : updatedAt ? ` · syllabi updated ${fmtDate(dateOf(updatedAt, tz), 'short')}` : ''}
         </span>
       </div>
 

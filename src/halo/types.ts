@@ -3,7 +3,7 @@ export interface HaloExport {
   kind: 'halo-export';
   version: 1;
   exportedAt: string;
-  source: 'bookmarklet' | 'paste';
+  source: 'bookmarklet' | 'paste' | 'ics';
   classes: HaloClass[];
 }
 
@@ -46,4 +46,8 @@ export interface HaloAssessment {
   submittedAt: string | null;
   /** Points earned, when Halo has published a grade. */
   score: number | null;
+  /** Link into Halo, when the export carried one. */
+  url?: string | null;
+  /** The date string exactly as the export wrote it, for the trust line. */
+  rawDue?: string | null;
 }

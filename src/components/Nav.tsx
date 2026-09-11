@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { fmtDate } from '../domain/dates';
 import { useRoute, type Route } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconRecord, IconSettings } from './Icons';
+import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconRecord, IconSettings, IconSync } from './Icons';
 
 const LINKS: { route: Route; label: string; icon: () => ReactElement; mobile: boolean }[] = [
   { route: 'now', label: 'Now', icon: IconNow, mobile: true },
@@ -27,7 +27,7 @@ function Links({ current, mobile = false }: { current: Route; mobile?: boolean }
   );
 }
 
-export function TopBar() {
+export function TopBar({ onSync }: { onSync: () => void }) {
   const { route } = useRoute();
   const { today, sync } = useStore();
   const syncTitle = {
@@ -51,6 +51,9 @@ export function TopBar() {
         </nav>
         <div className="topbar-date mono">
           {fmtDate(today, 'long')}
+          <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync assignments from Halo" aria-label="Sync assignments from Halo">
+            <IconSync />
+          </button>
           <a href="#/settings" className="topbar-gear" title={syncTitle} aria-label={`Settings. ${syncTitle}`}>
             <IconSettings />
             <span className="sync-dot" data-status={sync.status} />

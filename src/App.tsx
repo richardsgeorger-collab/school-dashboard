@@ -3,6 +3,7 @@ import { BottomNav, TopBar } from './components/Nav';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloImport } from './views/HaloImport';
+import { SyncAssignments } from './views/SyncAssignments';
 import { useRoute } from './router';
 import { StoreProvider } from './storage/store';
 import { useSupabaseSession } from './storage/useSupabaseSession';
@@ -44,6 +45,51 @@ function HaloHandoff() {
   );
 }
 
+/** The Sync button and a whole-window drop target for the .ics export. */
+function SyncHost({ open, file, onClose }: { open: boolean; file: File | null; onClose: () => void }) {
+  return open ? <SyncAssignments initialFile={file} onClose={onClose} /> : null;
+}
+
+function useWindowDrop(onFile: (f: File) => void): boolean {
+  const [over, setOver] = useState(false);
+  useEffect(() => {
+    let depth = 0;
+    const hasFile = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes('Files');
+    const enter = (e: DragEvent) => {
+      if (!hasFile(e)) return;
+      depth++;
+      setOver(true);
+    };
+    const leave = (e: DragEvent) => {
+      if (!hasFile(e)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setOver(false);
+    };
+    const over = (e: DragEvent) => {
+      if (hasFile(e)) e.preventDefault();
+    };
+    const drop = (e: DragEvent) => {
+      depth = 0;
+      setOver(false);
+      const f = e.dataTransfer?.files?.[0];
+      if (!f || !/\.ics$/i.test(f.name)) return;
+      e.preventDefault();
+      onFile(f);
+    };
+    window.addEventListener('dragenter', enter);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('dragover', over);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragenter', enter);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('drop', drop);
+    };
+  }, [onFile]);
+  return over;
+}
+
 function SyncBootstrap() {
   useSupabaseSession();
   return null;
@@ -70,12 +116,28 @@ function Screen() {
 }
 
 export default function App() {
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncFile, setSyncFile] = useState<File | null>(null);
+  const onFile = useCallback((f: File) => {
+    setSyncFile(f);
+    setSyncOpen(true);
+  }, []);
+  const dragging = useWindowDrop(onFile);
   return (
     <StoreProvider>
       <SyncBootstrap />
       <HaloHandoff />
+      <SyncHost
+        open={syncOpen}
+        file={syncFile}
+        onClose={() => {
+          setSyncOpen(false);
+          setSyncFile(null);
+        }}
+      />
+      {dragging && <div className="drop-overlay">Drop the .ics to sync assignments</div>}
       <div className="app">
-        <TopBar />
+        <TopBar onSync={() => setSyncOpen(true)} />
         <main className="main">
           <Screen />
         </main>
