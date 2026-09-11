@@ -60,7 +60,7 @@ await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
 await page.screenshot({ path: (process.argv[2] ?? 'halo-diff.png').replace(/\.png$/, '-settings.png'), fullPage: true });
 await page.screenshot({ path: (process.argv[2] ?? 'halo-diff.png').replace(/\.png$/, '-settings.png'), fullPage: true });
 console.log('halo card:', await page.$eval('.halo-steps', (e) => e.textContent.replace(/\s+/g, ' ').trim().slice(0, 80)));
-console.log('bookmark href ok:', await page.$eval('.halo-drag', (e) => e.getAttribute('href')?.startsWith('javascript:') && decodeURIComponent(e.getAttribute('href')).includes('var D="http://localhost:4173"')));
+console.log('bookmark href ok:', await page.$eval('.halo-drag', (e) => e.getAttribute('href')?.startsWith('javascript:') && decodeURIComponent(e.getAttribute('href')).includes('var D="' + new URL(location.href).origin + '"')));
 await page.$$eval('.settings-actions .btn', (els) => els.find((e) => e.textContent.includes('Paste Halo export')).click());
 await page.waitForSelector('.halo-paste');
 await page.evaluate((json) => { const ta = document.querySelector('.halo-paste'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(ta, json); ta.dispatchEvent(new Event('input', { bubbles: true })); }, JSON.stringify(payload2));
