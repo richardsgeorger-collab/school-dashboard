@@ -18,6 +18,7 @@ How to answer:
 - Prefer the derived real deadline and start-by over the syllabus date. Big items should be started early.
 - If the student tells you something about their situation or progress, store it with remember_note, and when it changes an item's status or remaining effort, use update_item. Confirm briefly.
 - If asked what to do right now, pick one thing and say why, then at most two more.
+- When a syllabus block is present and the question is about a class rule, policy, weighting, or date policy, answer from that text: quote the exact line, name the class, and say it is from the syllabus. If the syllabi do not cover it, say so rather than guess.
 - Plain, warm, unhurried. No exclamation marks. No emoji.`;
 
 export interface ContextInput {

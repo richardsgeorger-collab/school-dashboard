@@ -22,11 +22,13 @@ export interface SendArgs {
   history: ChatTurn[];
   userText: string;
   context: string;
+  /** Syllabus text per class, when any has been added. Stable across turns, so it is cached. */
+  syllabi?: string;
   api: ToolApi;
 }
 
 /** One user message through the model, running tool calls locally until it answers in text. */
-export async function sendChat({ apiKey, history, userText, context, api, fetch }: SendArgs): Promise<string> {
+export async function sendChat({ apiKey, history, userText, context, syllabi, api, fetch }: SendArgs): Promise<string> {
   const Anthropic = await sdk();
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: fetch ? 0 : 1, ...(fetch ? { fetch } : {}) });
   const messages: Anthropic.MessageParam[] = [
@@ -41,6 +43,7 @@ export async function sendChat({ apiKey, history, userText, context, api, fetch 
       thinking: { type: 'adaptive' },
       system: [
         { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+        ...(syllabi ? [{ type: 'text' as const, text: `Syllabi:\n${syllabi}`, cache_control: { type: 'ephemeral' as const } }] : []),
         { type: 'text', text: `Context:\n${context}` },
       ],
       tools: CHAT_TOOLS,

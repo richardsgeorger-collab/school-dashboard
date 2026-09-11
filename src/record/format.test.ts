@@ -26,3 +26,18 @@ describe('recording formatting', () => {
     expect(snippets(text, '')).toEqual([]);
   });
 });
+
+describe('imported audio helpers', () => {
+  it('names the mime type from the file or its extension', async () => {
+    const { audioMime, isAudioFile, memoTitle } = await import('./format');
+    expect(audioMime('lecture.m4a')).toBe('audio/mp4');
+    expect(audioMime('lecture.M4A', '')).toBe('audio/mp4');
+    expect(audioMime('lecture.mp3')).toBe('audio/mpeg');
+    expect(audioMime('lecture.wav', 'audio/x-wav')).toBe('audio/x-wav');
+    expect(audioMime('lecture.bin')).toBe('audio/mpeg');
+    expect(isAudioFile('x.m4a')).toBe(true);
+    expect(isAudioFile('x.pdf')).toBe(false);
+    expect(isAudioFile('x', 'audio/mp4')).toBe(true);
+    expect(memoTitle('CHM-113', '2026-09-15')).toBe('CHM-113 — Sep 15');
+  });
+});

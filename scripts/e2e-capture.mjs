@@ -1,0 +1,35 @@
+// Quick capture: the + button and ⌘K open one box; a typed line becomes a reviewed proposal; approving updates the planner.
+import puppeteer from 'puppeteer-core';
+const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const page = await browser.newPage();
+await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
+const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
+await page.goto(`${BASE}#/calendar`, { waitUntil: 'networkidle0' });
+const before = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('school-dashboard:v1')); const chm = s.courses.find((c) => c.code === 'CHM-113'); return s.items.filter((i) => i.courseId === chm.id && i.type === 'quiz' && i.status !== 'done').sort((a, b) => a.dueAt.localeCompare(b.dueAt)).map((i) => ({ id: i.id, label: i.label, dueAt: i.dueAt }))[0]; });
+console.log('next open chem quiz:', before.label, before.dueAt);
+await page.keyboard.down('Meta');
+await page.keyboard.press('k');
+await page.keyboard.up('Meta');
+await page.waitForSelector('.capture-input', { timeout: 5000 });
+console.log('opened with ⌘K:', !!(await page.$('.capture-input')), '| examples:', (await t('.modal .hint')));
+await page.type('.capture-input', 'chem quiz moved to friday');
+await sleep(200);
+console.log('read as:', await t('.capture-read'));
+await page.keyboard.press('Enter');
+await page.waitForSelector('.rev-mention', { timeout: 5000 });
+console.log('review:', await t('.rev .hint.mono'), '|', await t('.rev-mention .rev-proposal'));
+await page.screenshot({ path: process.argv[2] ?? 'capture.png', fullPage: false });
+await page.$$eval('.rev-mention .rev-actions .btn', (els) => els[0].click());
+await sleep(900);
+const after = await page.evaluate((id) => { const s = JSON.parse(localStorage.getItem('school-dashboard:v1')); const i = s.items.find((x) => x.id === id); return { dueAt: i.dueAt, notes: i.notes }; }, before.id);
+console.log('after approve:', after.dueAt, '| note:', after.notes.slice(0, 80), '| modal closed:', !(await page.$('.modal')));
+// The + button opens it too; a line without a date is held back with a hint.
+await page.click('button[aria-label="Quick capture"]');
+await page.waitForSelector('.capture-input', { timeout: 5000 });
+await page.type('.capture-input', 'read ch 4');
+await sleep(200);
+console.log('no date:', await t('.capture-read'), '|', await page.$$eval('.modal .hint', (els) => els.map((e) => e.textContent.trim()).find((x) => /Add a day/.test(x))), '| review disabled:', await page.$eval('.modal .btn.primary', (e) => e.disabled));
+await browser.close();

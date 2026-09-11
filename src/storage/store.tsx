@@ -8,6 +8,7 @@ import { shortLabel } from '../domain/labels';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { applyHaloPlan, type HaloPlan } from '../halo/apply';
+import { actualStats, calibrate as calibrateItem, withCalibration, type Calibrated } from '../domain/calibration';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
@@ -37,6 +38,7 @@ export interface StoreActions {
   syncNow(): Promise<void>;
   /** Apply an approved Halo diff. */
   applyHaloSync(plan: HaloPlan): void;
+  dismissTimeAsk(): void;
 }
 
 export interface Store {
@@ -49,6 +51,10 @@ export interface Store {
   progress: Progress;
   /** Points the item would earn now, or has locked in. */
   previewAward(item: Item): number;
+  /** Minutes the planner uses for an item and where that number comes from. */
+  calibrate(item: Item): Calibrated;
+  /** The item just marked done, so the app can ask how long it took. */
+  justDone: { id: string; at: string } | null;
   today: DateStr;
   term: { start: DateStr; end: DateStr };
   courseById: Map<string, Course>;
@@ -130,6 +136,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [today, setToday] = useState<DateStr>(() => todayStr(data.settings.timezone));
   const [sync, setSync] = useState<SyncState>({ status: 'off', lastSync: null, error: null, email: null, pending: localCache.loadPending().length });
   const [isDark, setIsDark] = useState(false);
+  const [justDone, setJustDone] = useState<{ id: string; at: string } | null>(null);
   const remoteRef = useRef<Repository | null>(null);
   const dataRef = useRef(data);
   dataRef.current = data;
@@ -170,18 +177,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const derived = derivedAll.deadlines;
   const nudges = derivedAll.nudges;
+  const stats = useMemo(() => actualStats(data.items), [data.items]);
   const schedule = useMemo(
     () =>
       computeSchedule(
         // A derived deadline that has already passed stops binding; the syllabus date takes over.
-        data.items.map((i) => (derived[i.id] && dateOf(derived[i.id].deadlineAt, data.settings.timezone) >= today ? { ...i, deadlineAt: derived[i.id].deadlineAt } : i)),
+        // Real timings, once there are enough, replace table estimates for the plan.
+        withCalibration(
+          data.items.map((i) => (derived[i.id] && dateOf(derived[i.id].deadlineAt, data.settings.timezone) >= today ? { ...i, deadlineAt: derived[i.id].deadlineAt } : i)),
+          stats,
+        ),
         data.settings,
         today,
         term,
       ),
-    [data.items, derived, data.settings, today, term],
+    [data.items, derived, data.settings, today, term, stats],
   );
   const courseById = useMemo(() => new Map(data.courses.map((c) => [c.id, c])), [data.courses]);
+  const calibrate = useCallback((item: Item) => calibrateItem(item, stats, courseById.get(item.courseId)), [stats, courseById]);
   const progress = useMemo(() => computeProgress(data.items, data.settings, today), [data.items, data.settings, today]);
   const scheduleRef = useRef(schedule);
   scheduleRef.current = schedule;
@@ -312,6 +325,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               status === 'done'
                 ? completeItem(i, scheduleRef.current.byItem[id]?.startBy ?? todayStr(tz), now, tz)
                 : { ...reopenItem(i), status };
+            if (status === 'done' && i.status !== 'done') setJustDone({ id, at: now });
             if (score !== undefined) next = withScore(next, score);
             return { ...next, updatedAt: now };
           }),
@@ -417,6 +431,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         update(() => r.data);
         for (const op of r.ops) mirror(op);
       },
+      dismissTimeAsk() {
+        setJustDone(null);
+      },
       connectRemote,
       syncNow,
     }),
@@ -424,8 +441,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Store>(
-    () => ({ data, schedule, derived, nudges, progress, previewAward: previewFor, today, term, courseById, isDark, sync, actions }),
-    [data, schedule, derived, nudges, progress, previewFor, today, term, courseById, isDark, sync, actions],
+    () => ({ data, schedule, derived, nudges, progress, previewAward: previewFor, calibrate, justDone, today, term, courseById, isDark, sync, actions }),
+    [data, schedule, derived, nudges, progress, previewFor, calibrate, justDone, today, term, courseById, isDark, sync, actions],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

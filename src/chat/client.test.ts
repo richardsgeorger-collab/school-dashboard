@@ -87,3 +87,19 @@ describe('coach client', () => {
     expect(text).toBe('That API key was rejected. Check it and try again.');
   });
 });
+
+describe('syllabus block', () => {
+  it('is sent as its own cached system block between the rules and the context, only when present', async () => {
+    const reply = message([{ type: 'text', text: 'From the CHM-113 syllabus: "Late work loses 10% per day."' }]);
+    const { fetch, seen } = fakeApi([reply, reply]);
+    const base = { apiKey: 'sk-ant-test', fetch, history: [], userText: 'late policy for chem?', context: '{}', api: { items, addNote: () => undefined, updateItem: () => undefined } };
+    await sendChat({ ...base, syllabi: '## CHM-113 General Chemistry (syllabus, chm.pdf)\nLate work loses 10% per day.' });
+    const sys = seen[0].body.system as { text: string; cache_control?: unknown }[];
+    expect(sys.length).toBe(3);
+    expect(sys[1].text).toMatch(/^Syllabi:\n## CHM-113/);
+    expect(sys[1].cache_control).toEqual({ type: 'ephemeral' });
+    expect(sys[0].text).toMatch(/quote the exact line/);
+    await sendChat(base);
+    expect((seen[1].body.system as unknown[]).length).toBe(2);
+  });
+});

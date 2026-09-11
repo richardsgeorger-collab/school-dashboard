@@ -1,3 +1,5 @@
+import { fmtDate } from '../domain/dates';
+import type { DateStr } from '../domain/types';
 import { BITRATE } from './support';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -45,3 +47,15 @@ export function snippets(text: string, query: string, radius = 60, max = 3): str
   }
   return out;
 }
+
+const MIME_BY_EXT: Record<string, string> = { m4a: 'audio/mp4', mp4: 'audio/mp4', aac: 'audio/aac', mp3: 'audio/mpeg', wav: 'audio/wav', webm: 'audio/webm', ogg: 'audio/ogg', oga: 'audio/ogg', caf: 'audio/x-caf' };
+/** The file's own type when the browser knows it, else by extension. */
+export function audioMime(name: string, declared?: string): string {
+  if (declared && declared.startsWith('audio/')) return declared;
+  const ext = name.toLowerCase().split('.').pop() ?? '';
+  return MIME_BY_EXT[ext] ?? 'audio/mpeg';
+}
+export const isAudioFile = (name: string, declared?: string): boolean => (declared ?? '').startsWith('audio/') || /\.(m4a|mp4|aac|mp3|wav|webm|ogg|oga|caf)$/i.test(name);
+
+/** "CHM-113 — Sep 15" */
+export const memoTitle = (courseCode: string, day: DateStr): string => `${courseCode} — ${fmtDate(day, 'short')}`;

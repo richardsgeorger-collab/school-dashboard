@@ -175,9 +175,10 @@ export function LectureReview({
     <Modal title={dryRun ? 'Sample lecture review' : 'Lecture notes'} onClose={onClose}>
       <div className="modal-body rev">
         <p className="hint mono">
-          {title} · {fmtDate(lectureDate, 'long')} · {notes.model === 'sample' ? 'sample, not a real recording' : `by ${notes.model}`}
+          {title} · {fmtDate(lectureDate, 'long')} · {notes.model === 'sample' ? 'sample, not a real recording' : notes.model === 'capture' ? 'typed by you' : `by ${notes.model}`}
         </p>
         {dryRun && <p className="rev-dry">Preview. Approving here shows what would happen and saves nothing.</p>}
+        {notes.summary.length > 0 && (
         <section>
           <h3>Summary</h3>
           <ul className="rev-summary">
@@ -186,6 +187,7 @@ export function LectureReview({
             ))}
           </ul>
         </section>
+        )}
         {notes.concepts.length > 0 && (
           <section>
             <h3>Concepts</h3>
@@ -214,9 +216,11 @@ export function LectureReview({
           <p className="hint">Nothing enters the planner until you approve it here. Each approval is one item.</p>
         </section>
         <section>
-          <button type="button" className="diff-toggle" onClick={() => setShowTranscript((s) => !s)}>
-            {showTranscript ? 'Hide transcript' : 'Show transcript'}
-          </button>
+          {notes.model !== 'capture' && (
+            <button type="button" className="diff-toggle" onClick={() => setShowTranscript((s) => !s)}>
+              {showTranscript ? 'Hide transcript' : 'Show transcript'}
+            </button>
+          )}
           {showTranscript && <pre className="rev-transcript">{transcript}</pre>}
         </section>
         <div className="modal-actions">

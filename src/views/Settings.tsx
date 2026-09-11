@@ -11,6 +11,7 @@ import { HaloImport } from './HaloImport';
 import { HaloPanel } from './HaloPanel';
 import { ImportSyllabus } from './ImportSyllabus';
 import { blankItem, ItemDetail } from './ItemDetail';
+import { SyllabusPanel } from './SyllabusPanel';
 import { SyncPanel } from './SyncPanel';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -170,6 +171,8 @@ export function Settings() {
           </ul>
           <p className="hint">Tap a class to change its color, meeting times, or delete it.</p>
         </section>
+
+        <SyllabusPanel />
 
         <section className="card settings-card">
           <h2 className="section-title">Your data</h2>

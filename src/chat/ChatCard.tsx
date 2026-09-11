@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../storage/store';
 import { describeError, sendChat, type ChatTurn } from './client';
 import { buildContext } from './context';
+import { syllabusContext } from '../syllabus/context';
+import { syllabiDb } from '../syllabus/db';
 
 const KEY_KEY = 'school-dashboard:anthropic-key';
 const HISTORY_KEY = 'school-dashboard:chat';
@@ -35,8 +37,15 @@ export function ChatCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
+  const [syllabi, setSyllabi] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    syllabiDb
+      .list()
+      .then((docs) => setSyllabi(syllabusContext(data.courses, docs)))
+      .catch(() => setSyllabi(''));
+  }, [data.courses]);
   useEffect(() => save(HISTORY_KEY, history), [history]);
   useEffect(() => save(NOTES_KEY, notes), [notes]);
   useEffect(() => {
@@ -75,6 +84,7 @@ export function ChatCard() {
         history,
         userText,
         context: buildContext({ items: data.items, courses: data.courses, settings: data.settings, schedule, derived, nudges, today, notes }),
+        syllabi,
         api: {
           items: data.items,
           addNote: (n) => {

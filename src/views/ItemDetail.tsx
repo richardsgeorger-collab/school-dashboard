@@ -276,6 +276,24 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           </p>
         )}
         {item.topic && <p className="hint">{item.topic}</p>}
+        {item.status === 'done' && (
+          <p className="hint">
+            Actually took{' '}
+            <input
+              type="number"
+              min={0}
+              className="inline-num"
+              aria-label="Minutes it actually took"
+              defaultValue={item.actualMinutes ?? ''}
+              placeholder="min"
+              onBlur={(e) => {
+                const n = Number(e.target.value);
+                if (e.target.value !== '' && Number.isFinite(n) && n >= 0 && n !== (item.actualMinutes ?? null)) actions.upsertItem({ ...item, actualMinutes: n || null });
+              }}
+            />{' '}
+            minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
+          </p>
+        )}
         {item.url && (
           <p className="hint">
             <a href={item.url} target="_blank" rel="noreferrer">
@@ -286,7 +304,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         {item.snoozedUntil && item.snoozedUntil > today && (
           <p className="hint">
             Pushed down until {fmtDate(item.snoozedUntil, 'long')} ·{' '}
-            <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { actions.upsertItem({ ...item, snoozedUntil: null }); onClose(); }}>
+            <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { actions.upsertItem({ ...item, snoozedUntil: null, startByOverride: item.startByOverride === item.snoozedUntil ? null : item.startByOverride }); onClose(); }}>
               bring it back
             </button>
           </p>

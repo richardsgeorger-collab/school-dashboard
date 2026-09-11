@@ -20,6 +20,10 @@ export interface Recording {
   processedAt: string | null;
   /** Mention id → what the user decided in the review screen. */
   review: Record<string, 'approved' | 'dismissed'>;
+  /** Recorded in the browser, or a file dropped in (Voice Memos). */
+  kind?: 'recorded' | 'imported';
+  /** Where the transcript came from. Pasted (Apple's) beats browser speech. */
+  transcriptSource?: 'speech' | 'pasted' | null;
 }
 
 export interface Chunk {
@@ -139,6 +143,11 @@ export const recordingsDb = {
     if (r) t.objectStore('recordings').put({ ...r, audioDeleted: true, bytes: 0, chunkCount: 0 });
     await finished(t);
   },
+  async clearSegments(recordingId: string): Promise<void> {
+    const t = await tx('segments', 'readwrite');
+    await clearByRecording(t.objectStore('segments'), recordingId);
+    await finished(t);
+  },
   async addSegment(s: Segment): Promise<void> {
     const t = await tx('segments', 'readwrite');
     t.objectStore('segments').put(s);
@@ -194,4 +203,45 @@ export async function recoverInterrupted(): Promise<Recording[]> {
     });
   }
   return (await recordingsDb.list()).filter((r) => r.status === 'interrupted');
+}
+
+/** A dropped audio file becomes a finished recording with one chunk. Playback and the library treat it like any other. */
+export async function importAudioFile(file: File, courseId: string, title: string, durationMs: number, mimeType: string, id: string): Promise<Recording> {
+  const when = new Date(file.lastModified || Date.now()).toISOString();
+  const rec: Recording = {
+    id,
+    courseId,
+    title,
+    startedAt: when,
+    endedAt: when,
+    status: 'done',
+    durationMs,
+    bytes: file.size,
+    mimeType,
+    chunkCount: 1,
+    segmentCount: 0,
+    audioDeleted: false,
+    notes: null,
+    processedAt: null,
+    review: {},
+    kind: 'imported',
+    transcriptSource: null,
+  };
+  await recordingsDb.put(rec);
+  await recordingsDb.addChunk({ recordingId: id, seq: 1, at: 0, blob: file });
+  return rec;
+}
+
+/** Replace whatever transcript exists with pasted text, one segment per paragraph. */
+export async function setPastedTranscript(rec: Recording, text: string): Promise<Recording> {
+  const paras = text
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  await recordingsDb.clearSegments(rec.id);
+  let seq = 0;
+  for (const p of paras) await recordingsDb.addSegment({ recordingId: rec.id, seq: ++seq, at: 0, text: p });
+  const updated: Recording = { ...rec, segmentCount: seq, transcriptSource: 'pasted', notes: null, processedAt: null, review: {} };
+  await recordingsDb.put(updated);
+  return updated;
 }

@@ -3,8 +3,9 @@ import { CourseChip } from '../components/CourseChip';
 import { loadApiKey } from '../chat/key';
 import { describeError } from '../chat/client';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
-import { recordingsDb, recoverInterrupted, type Recording, type Segment } from '../record/db';
-import { fmtBytes, fmtDuration, hoursOfAudio, snippets, wordCount } from '../record/format';
+import { newId } from '../domain/ids';
+import { importAudioFile, recordingsDb, recoverInterrupted, setPastedTranscript, type Recording, type Segment } from '../record/db';
+import { audioMime, fmtBytes, fmtDuration, hoursOfAudio, isAudioFile, memoTitle, snippets, wordCount } from '../record/format';
 import type { LectureNotes } from '../record/notes';
 import { recorder, useRecorder } from '../record/recorder';
 import { SAMPLE_TRANSCRIPT, sampleNotes } from '../record/sample';
@@ -15,6 +16,26 @@ import { LectureReview, type Decision } from './LectureReview';
 
 type ReviewState = { recording: Recording | null; notes: LectureNotes; transcript: string; courseId: string; lectureDate: string; dryRun: boolean; title: string };
 
+/** Length of an audio file by letting the browser read its header. Zero when it cannot. */
+function probeDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const a = new Audio();
+    let done = false;
+    const finish = (ms: number) => {
+      if (done) return;
+      done = true;
+      URL.revokeObjectURL(url);
+      resolve(ms);
+    };
+    a.preload = 'metadata';
+    a.onloadedmetadata = () => finish(Number.isFinite(a.duration) ? Math.round(a.duration * 1000) : 0);
+    a.onerror = () => finish(0);
+    setTimeout(() => finish(0), 5000);
+    a.src = url;
+  });
+}
+
 export function Record() {
   const { data, today, courseById } = useStore();
   const tz = data.settings.timezone;
@@ -22,17 +43,25 @@ export function Record() {
   const rec = useRecorder();
   const [courseId, setCourseId] = useState(data.courses[0]?.id ?? '');
   const [title, setTitle] = useState('');
+  const [showRecorder, setShowRecorder] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [impTitle, setImpTitle] = useState('');
+  const [impDragging, setImpDragging] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [list, setList] = useState<Recording[]>([]);
   const [interrupted, setInterrupted] = useState<Recording[]>([]);
   const [quota, setQuota] = useState<{ usage: number; quota: number } | null>(null);
   const [query, setQuery] = useState('');
   const [transcripts, setTranscripts] = useState<Record<string, string>>({});
   const [openId, setOpenId] = useState<string | null>(null);
+  const [pasteFor, setPasteFor] = useState<string | null>(null);
+  const [pasteText, setPasteText] = useState('');
   const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [review, setReview] = useState<ReviewState | null>(null);
+  const [sampleDecisions, setSampleDecisions] = useState<Record<string, Decision>>({});
   const liveRef = useRef<HTMLDivElement>(null);
   const apiKey = loadApiKey();
 
@@ -61,13 +90,16 @@ export function Record() {
     liveRef.current?.scrollTo({ top: liveRef.current.scrollHeight });
   }, [rec.finals, rec.interim]);
 
-  const loadTranscript = useCallback(async (id: string): Promise<string> => {
-    if (transcripts[id] !== undefined) return transcripts[id];
-    const segs = await recordingsDb.segments(id);
-    const text = segs.map((s: Segment) => s.text).join(' ');
-    setTranscripts((t) => ({ ...t, [id]: text }));
-    return text;
-  }, [transcripts]);
+  const loadTranscript = useCallback(
+    async (id: string, force = false): Promise<string> => {
+      if (!force && transcripts[id] !== undefined) return transcripts[id];
+      const segs = await recordingsDb.segments(id);
+      const text = segs.map((s: Segment) => s.text).join(segs.some((s) => s.at === 0 && segs.length > 1) ? '\n\n' : ' ');
+      setTranscripts((t) => ({ ...t, [id]: text }));
+      return text;
+    },
+    [transcripts],
+  );
   useEffect(() => {
     if (!query.trim()) return;
     for (const r of list) if (transcripts[r.id] === undefined) void loadTranscript(r.id);
@@ -79,6 +111,45 @@ export function Record() {
   const course = courseById.get(courseId);
   const defaultTitle = course ? `${course.code} lecture, ${fmtDate(today, 'short')}` : `Lecture, ${fmtDate(today, 'short')}`;
   const canRecord = support.mediaRecorder && support.opus && support.indexedDb && data.courses.length > 0;
+
+  const chooseFile = (f: File) => {
+    if (!isAudioFile(f.name, f.type)) {
+      setNote('That is not an audio file. Voice Memos exports .m4a; .mp3 and .wav also work.');
+      return;
+    }
+    setNote(null);
+    setPendingFile(f);
+    const c = courseById.get(courseId) ?? data.courses[0];
+    setImpTitle(c ? memoTitle(c.code, dateOf(new Date(f.lastModified || Date.now()).toISOString(), tz)) : f.name);
+  };
+  const saveImport = async () => {
+    if (!pendingFile || !courseId) return;
+    setSaving(true);
+    try {
+      const c = courseById.get(courseId);
+      const t = impTitle.trim() || (c ? memoTitle(c.code, today) : pendingFile.name);
+      const r = await importAudioFile(pendingFile, courseId, t, await probeDuration(pendingFile), audioMime(pendingFile.name, pendingFile.type), newId());
+      setPendingFile(null);
+      await refresh();
+      setPasteFor(r.id);
+      setPasteText('');
+      setNote('Saved. Paste the transcript from Voice Memos to pull out any dates it mentions.');
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const savePaste = async (r: Recording) => {
+    const text = pasteText.trim();
+    if (!text) return;
+    const updated = await setPastedTranscript(r, text);
+    setTranscripts((t) => ({ ...t, [r.id]: text }));
+    setPasteFor(null);
+    setPasteText('');
+    await refresh();
+    setNote(`Transcript saved for ${updated.title}: ${wordCount(text).toLocaleString()} words.`);
+  };
 
   const start = () => void recorder.start(courseId, title.trim() || defaultTitle);
   const stop = async () => {
@@ -127,14 +198,14 @@ export function Record() {
 
   const openReview = (r: Recording, notes: LectureNotes, transcript: string) =>
     setReview({ recording: r, notes, transcript, courseId: r.courseId, lectureDate: dateOf(r.startedAt, tz), dryRun: false, title: r.title });
-  const summarize = async (r: Recording) => {
+  const extract = async (r: Recording) => {
     const c = courseById.get(r.courseId);
     if (!c) return;
     setBusyId(r.id);
     setNote(null);
     try {
-      const transcript = await loadTranscript(r.id);
-      if (wordCount(transcript) < 20) throw new Error('The transcript is too short to summarize. The audio is still there to re-listen.');
+      const transcript = await loadTranscript(r.id, true);
+      if (wordCount(transcript) < 20) throw new Error('The transcript is too short to work with. Paste the one from Voice Memos first.');
       const notes = await summarizeLecture({ apiKey, transcript, course: c, lectureDate: dateOf(r.startedAt, tz), items: data.items, tz });
       const updated = { ...r, notes, processedAt: new Date().toISOString() };
       await recordingsDb.put(updated);
@@ -151,7 +222,6 @@ export function Record() {
     if (!c) return;
     setReview({ recording: null, notes: sampleNotes(today, data.items, c, tz), transcript: SAMPLE_TRANSCRIPT, courseId: c.id, lectureDate: today, dryRun: true, title: `${c.code} sample lecture` });
   };
-  const [sampleDecisions, setSampleDecisions] = useState<Record<string, Decision>>({});
   const decide = async (id: string, d: Decision, applied: string) => {
     if (!review) return;
     if (applied) setNote(applied);
@@ -165,11 +235,13 @@ export function Record() {
     await refresh();
   };
 
-  const filtered = query.trim() ? list.filter((r) => (transcripts[r.id] ?? '').toLowerCase().includes(query.trim().toLowerCase()) || r.title.toLowerCase().includes(query.trim().toLowerCase())) : list;
+  const q = query.trim().toLowerCase();
+  const filtered = q ? list.filter((r) => (transcripts[r.id] ?? '').toLowerCase().includes(q) || r.title.toLowerCase().includes(q)) : list;
   const byCourse = new Map<string, Recording[]>();
   for (const r of filtered) byCourse.set(r.courseId, [...(byCourse.get(r.courseId) ?? []), r]);
   const free = quota ? Math.max(0, quota.quota - quota.usage) : null;
   const liveText = rec.finals.map((s) => s.text).join(' ');
+  const recorderVisible = showRecorder || rec.phase !== 'idle';
 
   return (
     <>
@@ -177,7 +249,7 @@ export function Record() {
         Record <span className="light">lectures</span>
       </h1>
 
-      {support.reason && (
+      {recorderVisible && support.reason && (
         <div className="rec-banner" data-level={support.ok ? 'warn' : 'stop'} role="status">
           {support.reason}
         </div>
@@ -199,9 +271,79 @@ export function Record() {
 
       <div className="rec-grid">
         <section className="card rec-panel">
-          {rec.phase === 'idle' ? (
-            <>
-              <h2 className="section-title">New recording</h2>
+          <h2 className="section-title">Add a lecture recording</h2>
+          <p className="hint">Record with Voice Memos on the Mac, then drop the file here. Voice Memos writes its own transcript: copy it from the memo and paste it next to the recording.</p>
+          {!pendingFile ? (
+            <label
+              className="sync-drop rec-import"
+              data-dragging={impDragging}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setImpDragging(true);
+              }}
+              onDragLeave={() => setImpDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setImpDragging(false);
+                const f = e.dataTransfer.files[0];
+                if (f) chooseFile(f);
+              }}
+            >
+              <input type="file" accept="audio/*,.m4a,.mp3,.wav" className="visually-hidden" onChange={(e) => e.target.files?.[0] && chooseFile(e.target.files[0])} />
+              <b>Drop a .m4a, .mp3, or .wav here</b>
+              <span className="hint">or tap to choose the file</span>
+            </label>
+          ) : (
+            <div className="rec-import-form">
+              <p className="hint mono">
+                {pendingFile.name} · {fmtBytes(pendingFile.size)}
+              </p>
+              <div className="field-row">
+                <label className="field">
+                  <span>Class</span>
+                  <select
+                    value={courseId}
+                    onChange={(e) => {
+                      setCourseId(e.target.value);
+                      const c = courseById.get(e.target.value);
+                      if (c) setImpTitle(memoTitle(c.code, dateOf(new Date(pendingFile.lastModified || Date.now()).toISOString(), tz)));
+                    }}
+                  >
+                    {data.courses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.code} {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Title</span>
+                  <input value={impTitle} onChange={(e) => setImpTitle(e.target.value)} />
+                </label>
+              </div>
+              <div className="settings-actions">
+                <button type="button" className="btn primary" disabled={saving} onClick={() => void saveImport()}>
+                  {saving ? 'Saving…' : 'Save recording'}
+                </button>
+                <button type="button" className="btn" onClick={() => setPendingFile(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!recorderVisible ? (
+            <p className="hint" style={{ marginTop: 12 }}>
+              <button type="button" className="diff-toggle" onClick={() => setShowRecorder(true)}>
+                Record in the browser instead
+              </button>{' '}
+              (rougher: the tab must stay open, and the live transcript is Chrome&apos;s guess).
+            </p>
+          ) : rec.phase === 'idle' ? (
+            <div className="rec-inapp">
+              <h3 className="section-title" style={{ marginTop: 14 }}>
+                Record in the browser
+              </h3>
               <div className="field-row" style={{ marginTop: 10 }}>
                 <label className="field">
                   <span>Class</span>
@@ -223,11 +365,13 @@ export function Record() {
               </button>
               {rec.error && <p className="hint rec-error">{rec.error}</p>}
               <p className="hint">
-                Audio is saved as Opus at 24 kbps, about 11 MB an hour. The live transcript comes from Chrome&apos;s speech recognition: it is rough in a lecture hall and
-                the audio is the real record. Both are written to this browser every {FLUSH_MS / 1000} seconds, so a closed tab loses at most that much. Keep the lid open;
-                the tab can be in the background.
+                Opus at 24 kbps, about 11 MB an hour. Audio and transcript are written to this browser every {FLUSH_MS / 1000} seconds, so a closed tab loses at most that much. Keep the
+                lid open; the tab can be in the background.{' '}
+                <button type="button" className="diff-toggle" onClick={() => setShowRecorder(false)}>
+                  hide
+                </button>
               </p>
-            </>
+            </div>
           ) : (
             <div className="rec-live">
               <div className="rec-live-head">
@@ -280,16 +424,18 @@ export function Record() {
               <ul className="rec-list">
                 {recs.map((r) => {
                   const text = transcripts[r.id];
-                  const hits = query.trim() && text ? snippets(text, query, 50) : [];
+                  const hits = q && text ? snippets(text, query, 50) : [];
                   const open = openId === r.id;
+                  const hasTranscript = r.segmentCount > 0;
                   return (
                     <li key={r.id} className="rec-card" data-status={r.status}>
                       <div className="rec-card-head">
                         <div>
                           <div className="rec-card-title">{r.title}</div>
                           <div className="hint mono">
-                            {fmtDate(dateOf(r.startedAt, tz), 'short')} {fmtTime(r.startedAt, tz)} · {fmtDuration(r.durationMs)} · {r.audioDeleted ? 'audio deleted' : fmtBytes(r.bytes)}
-                            {text !== undefined && ` · ${wordCount(text).toLocaleString()} words`}
+                            {fmtDate(dateOf(r.startedAt, tz), 'short')} {fmtTime(r.startedAt, tz)} · {r.durationMs ? fmtDuration(r.durationMs) : 'length unknown'} · {r.audioDeleted ? 'audio deleted' : fmtBytes(r.bytes)}
+                            {hasTranscript && ` · transcript ${r.transcriptSource === 'pasted' ? 'pasted' : 'from browser speech'}`}
+                            {text !== undefined && hasTranscript && ` · ${wordCount(text).toLocaleString()} words`}
                             {r.status === 'interrupted' && ' · interrupted'}
                             {r.notes && ' · notes ready'}
                           </div>
@@ -308,22 +454,34 @@ export function Record() {
                             {playing?.id === r.id ? 'Close player' : 'Play'}
                           </button>
                         )}
-                        <button type="button" className="btn small" onClick={() => setOpenId(open ? null : r.id)}>
-                          {open ? 'Hide transcript' : 'Transcript'}
+                        <button
+                          type="button"
+                          className={`btn small ${!hasTranscript ? 'primary' : ''}`}
+                          onClick={() => {
+                            setPasteFor(pasteFor === r.id ? null : r.id);
+                            setPasteText('');
+                          }}
+                        >
+                          {hasTranscript ? 'Replace transcript' : 'Paste transcript'}
                         </button>
+                        {hasTranscript && (
+                          <button type="button" className="btn small" onClick={() => setOpenId(open ? null : r.id)}>
+                            {open ? 'Hide transcript' : 'Transcript'}
+                          </button>
+                        )}
                         {r.notes ? (
-                          <button type="button" className="btn small" onClick={() => void loadTranscript(r.id).then((t) => openReview(r, r.notes!, t))}>
+                          <button type="button" className="btn small" onClick={() => void loadTranscript(r.id).then((tx) => openReview(r, r.notes!, tx))}>
                             Review notes
                           </button>
                         ) : (
                           <button
                             type="button"
-                            className="btn small"
-                            disabled={!apiKey || busyId === r.id}
-                            title={apiKey ? 'Send the transcript to Claude for a summary and deadline mentions' : 'Connect your Anthropic key in the coach on the Now tab first'}
-                            onClick={() => void summarize(r)}
+                            className={`btn small ${hasTranscript && apiKey ? 'primary' : ''}`}
+                            disabled={!apiKey || !hasTranscript || busyId === r.id}
+                            title={!hasTranscript ? 'Paste the transcript first' : apiKey ? 'Send the transcript to Claude for a summary and any dates it mentions' : 'Connect your Anthropic key in the coach on the Now tab first'}
+                            onClick={() => void extract(r)}
                           >
-                            {busyId === r.id ? 'Summarizing…' : 'Summarize'}
+                            {busyId === r.id ? 'Extracting…' : 'Extract'}
                           </button>
                         )}
                         {!r.audioDeleted && (
@@ -341,6 +499,19 @@ export function Record() {
                           </button>
                         )}
                       </div>
+                      {pasteFor === r.id && (
+                        <div className="rec-paste">
+                          <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} rows={6} placeholder="In Voice Memos: open the memo, open its transcript, select all, copy. Paste here." />
+                          <div className="settings-actions">
+                            <button type="button" className="btn primary small" disabled={!pasteText.trim()} onClick={() => void savePaste(r)}>
+                              Save transcript
+                            </button>
+                            <button type="button" className="btn small" onClick={() => setPasteFor(null)}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {playing?.id === r.id && <audio className="rec-audio" controls autoPlay src={playing.url} />}
                       {open && <div className="rec-transcript">{text === undefined ? 'Loading…' : text || 'No speech was recognized. The audio may still be fine.'}</div>}
                     </li>
@@ -349,13 +520,17 @@ export function Record() {
               </ul>
             </div>
           ))}
-          {!apiKey && list.length > 0 && <p className="hint">Summaries and deadline extraction run on Claude with your own key, which is not set. Recording never needs it.</p>}
+          {!apiKey && list.length > 0 && <p className="hint">Extracting summaries and dates runs on Claude with your own key, which is not set. Recording and transcripts never need it.</p>}
           <div className="settings-actions" style={{ marginTop: 12 }}>
             <button type="button" className="btn" onClick={previewSample}>
               Preview the review flow with a sample lecture
             </button>
           </div>
-          {note && <p className="hint" style={{ marginTop: 8 }}>{note}</p>}
+          {note && (
+            <p className="hint" style={{ marginTop: 8 }}>
+              {note}
+            </p>
+          )}
         </section>
       </div>
 

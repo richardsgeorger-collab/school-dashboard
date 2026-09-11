@@ -1,4 +1,5 @@
 // Coach on Now against the preview build, with api.anthropic.com answered by canned responses: no-key message, context sent, tool round trip, rejected key.
+import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -23,6 +24,13 @@ page.on('request', (req) => {
   return req.respond({ status: next.status, headers: { ...cors, 'content-type': 'application/json' }, body: next.body });
 });
 
+// Syllabus for the coach: a text syllabus for CHM-113 through Settings.
+const syl = (process.argv[2] ?? 'chat.png').replace(/\.png$/, '-syllabus.txt');
+fs.writeFileSync(syl, 'CHM-113 General Chemistry I\nGrading: exams 40%, homework 20%, labs 20%, final 20%.\nLate work: 10% per day, nothing accepted after five days.\n' + 'Attendance is expected. '.repeat(20));
+await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await (await page.$('input[aria-label="Syllabus file for CHM-113"]')).uploadFile(syl);
+await page.waitForFunction(() => document.querySelector('.syllabus-row .syllabus-status')?.textContent.includes('characters'), { timeout: 8000 });
+console.log('syllabus row:', await t('.syllabus-row'), '|', await t('.settings-card .hint[style]'));
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
 console.log('no key:', await t('.chat-connect .hint'));
 console.log('key field is password:', await page.$eval('.chat-connect input', (e) => e.type));
@@ -38,7 +46,8 @@ await page.$$eval('.chat-suggest .btn', (els) => els[0].click());
 await page.waitForFunction(() => document.querySelectorAll('.chat-msg[data-role="assistant"]').length >= 1 && !document.querySelector('.chat-dots'), { timeout: 10000 });
 console.log('reply:', await page.$$eval('.chat-msg[data-role="assistant"]', (els) => els.map((e) => e.textContent.trim()).join(' || ')));
 const req = seen[0];
-const ctx = JSON.parse(req.system[1].text.replace(/^Context:\n/, ''));
+const ctx = JSON.parse(req.system.find((b) => b.text.startsWith('Context:')).text.replace(/^Context:\n/, ''));
+console.log('system blocks:', req.system.length, '| syllabus block:', /Syllabi:\n## CHM-113/.test(req.system[1]?.text ?? '') && /Late work: 10% per day/.test(req.system[1].text), '| cached:', JSON.stringify(req.system[1]?.cache_control));
 console.log('request:', req.model, '| system rule:', /Two or three sentences/.test(req.system[0].text), '| tools:', req.tools.map((x) => x.name).join(','), '| thinking:', JSON.stringify(req.thinking), '| effort:', JSON.stringify(req.output_config));
 console.log('context keys:', Object.keys(ctx).join(','), '| capacity:', JSON.stringify(ctx.capacity), '| open sample:', JSON.stringify(ctx.open[0]), '| done:', ctx.done, '| openTotal:', ctx.openTotal);
 const has = (k) => ctx.open.every((o) => k in o);

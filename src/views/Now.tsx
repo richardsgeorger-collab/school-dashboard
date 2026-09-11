@@ -3,7 +3,7 @@ import { ChatCard } from '../chat/ChatCard';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { IconCheck } from '../components/Icons';
-import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
+import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime, weekdayOf } from '../domain/dates';
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
@@ -72,8 +72,51 @@ function NextClassCard({ heroId, onOpen }: { heroId: string | undefined; onOpen:
   );
 }
 
-function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional: boolean; onOpen: (i: Item) => void; onSkip: (i: Item) => void; onDone: (i: Item) => void }) {
-  const { courseById, schedule, data, today, derived, actions } = useStore();
+
+/** "Not this one" → pick when instead. The choice sets both the snooze and the start-by day, so the plan moves with it. */
+function SnoozeChooser({ item, today, deadlineDay, onPick }: { item: Item; today: DateStr; deadlineDay: DateStr; onPick: (day: DateStr) => void }) {
+  const [open, setOpen] = useState(false);
+  const [custom, setCustom] = useState('');
+  const options: { day: DateStr; label: string }[] = [];
+  const tomorrow = addDays(today, 1);
+  options.push({ day: tomorrow, label: 'Tomorrow' });
+  for (let k = 2; k <= 7; k++) {
+    const d = addDays(today, k);
+    const wd = weekdayOf(d);
+    if (wd === 6 || wd === 0) options.push({ day: d, label: wd === 6 ? 'Saturday' : 'Sunday' });
+    if (options.length >= 3) break;
+  }
+  const usable = options.filter((o) => o.day < deadlineDay);
+  if (!open) {
+    return (
+      <button type="button" className="hero-skip" onClick={() => setOpen(true)} title="Push this down and plan it for another day">
+        Not this one
+      </button>
+    );
+  }
+  return (
+    <div className="hero-snooze" role="group" aria-label={`When instead for ${item.label}`}>
+      <span className="hint">Do it</span>
+      {usable.map((o) => (
+        <button key={o.day} type="button" className="btn small" onClick={() => onPick(o.day)}>
+          {o.label}
+        </button>
+      ))}
+      {usable.length > 0 ? (
+        <input type="date" className="hero-snooze-date" value={custom} min={tomorrow} max={addDays(deadlineDay, -1)} aria-label="Pick a day" onChange={(e) => { setCustom(e.target.value); if (e.target.value && e.target.value < deadlineDay) onPick(e.target.value); }} />
+      ) : (
+        <span className="hint">It is due too soon to push.</span>
+      )}
+      <button type="button" className="hero-skip" style={{ flexBasis: 'auto', padding: 0 }} onClick={() => setOpen(false)}>
+        never mind
+      </button>
+    </div>
+  );
+}
+
+function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional: boolean; onOpen: (i: Item) => void; onSkip: (i: Item, day: DateStr) => void; onDone: (i: Item) => void }) {
+  const { courseById, schedule, data, today, derived, actions , calibrate } = useStore();
+  const cal = calibrate(item);
   const course = courseById.get(item.courseId);
   const color = useCourseColor(course);
   const sched = schedule.byItem[item.id];
@@ -98,7 +141,7 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
       <h1 className="hero-title">{item.label}</h1>
       {item.title !== item.label && <p className="hero-sub">{item.title}</p>}
       <p className="hero-meta mono">
-        <span>{approx(item.estimatedMinutes)}</span>
+        <span>{cal.basis === 'actual' ? `${fmtMinutes(cal.minutes)} · ${cal.label}` : approx(cal.minutes)}</span>
         {item.points > 0 && <span>{item.points} pts</span>}
         <span data-overdue={framing === 'overdue'}>{dueLine(item, data.settings.timezone, today, sched?.startBy)}</span>
         {inferredDeadline && (
@@ -129,9 +172,7 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
           <button type="button" className="btn hero-btn" onClick={() => onOpen(item)}>
             Open
           </button>
-          <button type="button" className="hero-skip" onClick={() => onSkip(item)} title="Push this down until tomorrow">
-            Not this one
-          </button>
+          <SnoozeChooser item={item} today={today} deadlineDay={sched?.deadlineDay ?? dateOf(item.dueAt, data.settings.timezone)} onPick={(day) => onSkip(item, day)} />
         </div>
       )}
       <p className="hero-source">
@@ -205,7 +246,8 @@ export function Now() {
   const syncAge = syncedAt ? Math.floor((Date.now() - new Date(syncedAt).getTime()) / 86_400_000) : null;
   const nextDeadline = Object.keys(counts).filter((d) => d >= today).sort()[0];
 
-  const skip = (i: Item) => actions.upsertItem({ ...i, snoozedUntil: addDays(today, 1) });
+  // "Not this one" records a day, not just a skip: the item is pushed down until then and planned to start then.
+  const skip = (i: Item, day: DateStr) => actions.upsertItem({ ...i, snoozedUntil: day, startByOverride: day });
   const finish = (i: Item) => {
     setFinished({ xp: previewAward(i), label: i.label });
     setShowAnyway(false);

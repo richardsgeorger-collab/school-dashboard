@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BottomNav, TopBar } from './components/Nav';
+import { TimeAsk } from './components/TimeAsk';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloImport } from './views/HaloImport';
+import { QuickCapture } from './views/QuickCapture';
 import { SyncAssignments } from './views/SyncAssignments';
 import { useRoute } from './router';
 import { StoreProvider } from './storage/store';
@@ -123,6 +125,17 @@ export default function App() {
     setSyncOpen(true);
   }, []);
   const dragging = useWindowDrop(onFile);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCaptureOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   return (
     <StoreProvider>
       <SyncBootstrap />
@@ -137,11 +150,13 @@ export default function App() {
       />
       {dragging && <div className="drop-overlay">Drop the .ics to sync assignments</div>}
       <div className="app">
-        <TopBar onSync={() => setSyncOpen(true)} />
+        <TopBar onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} />
+        {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
         <main className="main">
           <Screen />
         </main>
         <BottomNav />
+        <TimeAsk />
       </div>
     </StoreProvider>
   );
