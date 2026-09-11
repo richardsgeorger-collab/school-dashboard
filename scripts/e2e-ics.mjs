@@ -50,7 +50,7 @@ await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
 await page.evaluate((id) => { const s = JSON.parse(localStorage.getItem('school-dashboard:v1')); const it = s.items.find((i) => i.id === id); it.status = 'done'; it.completedAt = new Date().toISOString(); it.score = 8; it.award = { base: it.points, multiplier: 1.5, earnedAt: it.completedAt, scoreFactor: 0.8 }; it.notes = 'kept'; localStorage.setItem('school-dashboard:v1', JSON.stringify(s)); }, C.id);
 await page.reload({ waitUntil: 'networkidle0' });
 
-await page.click('.topbar-sync');
+await page.click('button[aria-label="Sync assignments from Halo"]');
 await page.waitForSelector('.sync-drop', { timeout: 5000 });
 console.log('drop zone:', await t('.sync-drop'));
 const input = await page.$('input[type=file]');
@@ -79,7 +79,7 @@ console.log('settings:', JSON.stringify({ map: s.settings.icsClassMap, syncedAt:
 console.log('now footer:', await t('.term-progress .mono'));
 
 // Second import: stale, and without the new item. Mapping is remembered, so it goes straight to the diff.
-await page.click('.topbar-sync');
+await page.click('button[aria-label="Sync assignments from Halo"]');
 await page.waitForSelector('.sync-drop', { timeout: 5000 });
 await (await page.$('input[type=file]')).uploadFile(f2);
 await page.waitForSelector('.diff-section', { timeout: 5000 });
