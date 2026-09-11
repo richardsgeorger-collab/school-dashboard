@@ -39,7 +39,6 @@ export async function sendChat({ apiKey, history, userText, context, api, fetch 
       model: CHAT_MODEL,
       max_tokens: 600,
       thinking: { type: 'adaptive' },
-      output_config: { effort: 'low' },
       system: [
         { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
         { type: 'text', text: `Context:\n${context}` },
