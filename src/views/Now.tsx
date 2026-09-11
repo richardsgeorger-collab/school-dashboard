@@ -32,6 +32,7 @@ function dueLine(item: Item, tz: string, today: DateStr, startBy: string | undef
 }
 
 function sourceTag(item: Item, course: Course | undefined): string {
+  if (item.source === 'halo') return 'Halo';
   return item.source === 'parsed' ? `${course?.code ?? 'syllabus'} syllabus` : 'added by you';
 }
 

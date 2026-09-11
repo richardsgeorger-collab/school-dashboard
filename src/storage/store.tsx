@@ -7,6 +7,7 @@ import { estimateMinutes } from '../domain/estimate';
 import { shortLabel } from '../domain/labels';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
+import { applyHaloPlan, type HaloPlan } from '../halo/apply';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
@@ -34,6 +35,8 @@ export interface StoreActions {
   /** Wire a remote repository (Supabase). Pass null to disconnect. */
   connectRemote(repo: Repository | null, email: string | null): Promise<void>;
   syncNow(): Promise<void>;
+  /** Apply an approved Halo diff. */
+  applyHaloSync(plan: HaloPlan): void;
 }
 
 export interface Store {
@@ -89,7 +92,7 @@ export function normalizeData(data: AppData): AppData {
       return {
         ...i,
         // Estimate rules get recalibrated over time; untouched parsed items follow the current table.
-        estimatedMinutes: i.source === 'parsed' && !raw.estimateOverridden ? estimateMinutes({ title: i.title, type: i.type, points: i.points, courseCode }) : i.estimatedMinutes,
+        estimatedMinutes: (i.source === 'parsed' || i.source === 'halo') && !raw.estimateOverridden ? estimateMinutes({ title: i.title, type: i.type, points: i.points, courseCode }) : i.estimatedMinutes,
         label: needsLabel ? shortLabel({ title: i.title, courseCode, type: i.type }) : raw.label,
         labelOverridden: raw.labelOverridden ?? false,
         award: raw.award ?? null,
@@ -406,6 +409,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         mirror({ kind: 'courses', ids: courses.map((c) => c.id) });
         mirror({ kind: 'items', ids: items.map((i) => i.id) });
         return { courses: courses.length, items: items.length };
+      },
+      applyHaloSync(plan) {
+        const now = nowIso();
+        const tz = dataRef.current.settings.timezone;
+        const r = applyHaloPlan(dataRef.current, plan, (id) => scheduleRef.current.byItem[id]?.startBy, now, tz);
+        update(() => r.data);
+        for (const op of r.ops) mirror(op);
       },
       connectRemote,
       syncNow,

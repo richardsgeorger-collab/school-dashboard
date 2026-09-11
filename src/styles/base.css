@@ -2711,3 +2711,157 @@ button {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* ---- Halo sync ---- */
+.halo-steps {
+  margin: 10px 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.halo-drag {
+  cursor: grab;
+  display: inline-flex;
+  vertical-align: middle;
+  text-decoration: none;
+}
+.halo-paste {
+  width: 100%;
+  font: 12px/1.4 var(--font-mono);
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--ink);
+  resize: vertical;
+}
+.halo-banner {
+  position: fixed;
+  top: calc(var(--nav-h) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: var(--hi-soft);
+  color: var(--hi-ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: 8px 14px;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  max-width: min(92vw, 520px);
+}
+.diff-trust {
+  font-size: 12px;
+  color: var(--ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 6px 0 10px;
+}
+.diff-trust code {
+  font-family: var(--font-mono);
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.diff-trust select {
+  font: inherit;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.diff-section {
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+}
+.diff-section h3 {
+  font-size: 14px;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diff-section h3 .count {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.diff-bulk {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+.diff-toggle {
+  background: none;
+  border: 0;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline dotted;
+}
+.diff-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  align-items: start;
+  padding: 8px 0;
+  border-top: 1px dashed var(--line);
+  font-size: 14px;
+  cursor: pointer;
+}
+.diff-row:first-of-type {
+  border-top: 0;
+}
+.diff-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--ink);
+}
+.diff-row .title {
+  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+.diff-row .meta {
+  color: var(--ink-2);
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+.diff-change {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.diff-change .old {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+.diff-change mark {
+  background: var(--hi-soft);
+  color: var(--hi-ink);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.diff-raw {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.diff-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+  font-size: 13px;
+}

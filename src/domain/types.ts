@@ -37,6 +37,9 @@ export interface Course {
   instructors: Instructor[];
   meetings: Meeting[];
   online: boolean;
+  /** Set when the class is linked to Halo. */
+  haloSlugId?: string | null;
+  haloClassId?: string | null;
   termStart: DateStr;
   termEnd: DateStr;
   updatedAt: string;
@@ -78,7 +81,9 @@ export interface Item {
   notes: string;
   topic: string | null;
   flags: ItemFlags;
-  source: 'parsed' | 'manual';
+  source: 'parsed' | 'manual' | 'halo';
+  /** Halo assessment id, set once an item is linked to Halo. */
+  haloId?: string | null;
   award: Award | null;
   /** "Not this one": kept out of the top of Now until this date. */
   snoozedUntil?: DateStr | null;

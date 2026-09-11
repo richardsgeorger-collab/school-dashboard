@@ -7,6 +7,8 @@ import { newId } from '../domain/ids';
 import type { Course } from '../domain/types';
 import { useStore } from '../storage/store';
 import { CourseEditor } from './CourseEditor';
+import { HaloImport } from './HaloImport';
+import { HaloPanel } from './HaloPanel';
 import { ImportSyllabus } from './ImportSyllabus';
 import { blankItem, ItemDetail } from './ItemDetail';
 import { SyncPanel } from './SyncPanel';
@@ -29,6 +31,7 @@ export function Settings() {
   const { data, today, actions } = useStore();
   const [editing, setEditing] = useState<Course | null>(null);
   const [importing, setImporting] = useState(false);
+  const [halo, setHalo] = useState(false);
   const [adding, setAdding] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -60,6 +63,7 @@ export function Settings() {
       <h1 className="page-title">Settings</h1>
       <div className="settings-grid">
         <SyncPanel />
+        <HaloPanel onPaste={() => setHalo(true)} />
 
         <section className="card settings-card">
           <h2 className="section-title">Study time and display</h2>
@@ -202,6 +206,7 @@ export function Settings() {
 
       {editing && <CourseEditor key={editing.id} course={editing} onClose={() => setEditing(null)} />}
       {importing && <ImportSyllabus onClose={() => setImporting(false)} />}
+      {halo && <HaloImport onClose={() => setHalo(false)} />}
       {adding && <ItemDetail item={blankItem(data.courses[0]?.id ?? '', data.settings.timezone, today)} isNew onClose={() => setAdding(false)} />}
     </>
   );
