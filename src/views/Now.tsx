@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import { ChatCard } from '../chat/ChatCard';
+import { ItemRow } from '../components/ItemRow';
+import { Modal } from '../components/Modal';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { IconCheck } from '../components/Icons';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime, weekdayOf } from '../domain/dates';
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
+import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -220,10 +223,94 @@ function ThenRow({ item, onOpen }: { item: Item; onOpen: (i: Item) => void }) {
   );
 }
 
+
+/** Exam mode hero: the exam, a countdown, and how much study is left. Replaces the normal hero; nothing stacks. */
+function ExamHero({ plan, onOpen, onDone, onLog }: { plan: ExamPlan; onOpen: (i: Item) => void; onDone: (i: Item) => void; onLog: (minutes: number) => void }) {
+  const { data, courseById } = useStore();
+  const [logging, setLogging] = useState(false);
+  const tz = data.settings.timezone;
+  const course = courseById.get(plan.exam.courseId);
+  const countdown = plan.daysLeft === 0 ? 'Exam today' : plan.daysLeft === 1 ? 'Exam tomorrow' : `Exam in ${plan.daysLeft} days`;
+  return (
+    <section className="hero hero-exam" aria-label="Exam mode">
+      <div className="hero-eyebrow">
+        <span className="hero-framing" data-framing="exam">
+          {countdown}
+        </span>
+        <CourseChip course={course} />
+      </div>
+      <h1 className="hero-title">{plan.exam.label}</h1>
+      <p className="hero-meta">
+        <span>
+          {fmtDate(plan.examDay, 'long')} {fmtTime(plan.exam.dueAt, tz)}
+        </span>
+        <span>{plan.exam.points} pts</span>
+        <span>{plan.remainingMinutes > 0 ? `${fmtMinutes(plan.remainingMinutes)} of study left` : 'study logged'}</span>
+      </p>
+      <p className="hero-why">
+        Exam mode. Study is spread over the days left, inside your hours.
+        {plan.suppressed.length > 0 ? ` ${plan.suppressed.length} smaller thing${plan.suppressed.length === 1 ? '' : 's'} due in the two weeks after wait.` : ''}
+      </p>
+      <div className="hero-actions">
+        <button type="button" className="btn primary hero-btn" onClick={() => onDone(plan.exam)}>
+          <IconCheck /> Done
+        </button>
+        <button type="button" className="btn hero-btn" onClick={() => onOpen(plan.exam)}>
+          Open
+        </button>
+        {plan.remainingMinutes > 0 && !logging && (
+          <button type="button" className="hero-skip" onClick={() => setLogging(true)}>
+            Log study time
+          </button>
+        )}
+        {logging && (
+          <div className="hero-snooze" role="group" aria-label="Log study time">
+            <span className="hint">Studied</span>
+            {[30, 60, 90, 120].map((m) => (
+              <button
+                key={m}
+                type="button"
+                className="btn small"
+                onClick={() => {
+                  onLog(m);
+                  setLogging(false);
+                }}
+              >
+                {fmtMinutes(m)}
+              </button>
+            ))}
+            <button type="button" className="hero-skip" style={{ flexBasis: 'auto', padding: 0 }} onClick={() => setLogging(false)}>
+              never mind
+            </button>
+          </div>
+        )}
+      </div>
+      <p className="hero-source">
+        <span className="tag-source">{sourceTag(plan.exam, course)}</span>
+      </p>
+    </section>
+  );
+}
+
+function ExamSheet({ plan, onClose, onOpen }: { plan: ExamPlan; onClose: () => void; onOpen: (i: Item) => void }) {
+  return (
+    <Modal title="Due before the exam" onClose={onClose}>
+      <div className="modal-body">
+        <ul className="item-list">
+          {plan.mustDoBefore.map((i) => (
+            <ItemRow key={i.id} item={i} onOpen={onOpen} showStart />
+          ))}
+        </ul>
+      </div>
+    </Modal>
+  );
+}
+
 export function Now() {
-  const { data, schedule, today, term, actions, progress, previewAward } = useStore();
+  const { data, schedule, today, term, actions, progress, previewAward, calibrate } = useStore();
   const tz = data.settings.timezone;
   const [open, setOpen] = useState<Item | null>(null);
+  const [examSheet, setExamSheet] = useState(false);
   const [sheetDay, setSheetDay] = useState<DateStr | null>(null);
   const [finished, setFinished] = useState<{ xp: number; label: string } | null>(null);
   const [showAnyway, setShowAnyway] = useState(false);
@@ -240,6 +327,12 @@ export function Now() {
   const mode = useMemo(() => nowMode(work, schedule, data.settings, today, now, finished !== null), [work, schedule, data.settings, today, minuteKey, finished]);
   const line = useMemo(() => pressureLine(work, schedule, data.settings, today, now), [work, schedule, data.settings, today, minuteKey]);
   const status = todayLine(work, schedule, today, now, tz);
+  // An exam within a week reshapes the screen: exam hero, study sessions as the then-lines, one pressure line.
+  const exam = useMemo(() => examMode(work, schedule, data.settings, today, (i) => calibrate(i).minutes), [work, schedule, data.settings, today, calibrate]);
+  const logStudy = (minutes: number) => {
+    if (!exam) return;
+    actions.upsertItem({ ...exam.exam, estimatedMinutes: Math.max(0, exam.exam.estimatedMinutes - minutes), estimateOverridden: true, status: 'in_progress' });
+  };
   const pace = termProgress(data.items, term, today);
   const updatedAt = data.courses.map((c) => c.updatedAt).sort().at(-1);
   const syncedAt = data.settings.syncedAt ?? null;
@@ -255,7 +348,7 @@ export function Now() {
   };
   const heroDay = hero ? (schedule.byItem[hero.id]?.deadlineDay ?? dateOf(hero.dueAt, tz)) : null;
 
-  const showQueue = mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway);
+  const showQueue = !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
 
   return (
     <div className="now">
@@ -264,11 +357,46 @@ export function Now() {
         <span>{status}</span>
       </p>
 
-      <NextClassCard heroId={hero?.id} onOpen={setOpen} />
+      <NextClassCard heroId={exam?.exam.id ?? hero?.id} onOpen={setOpen} />
 
-      {mode.mode === 'empty' && <EmptyState>Nothing open. Import a syllabus from Settings, or enjoy the quiet.</EmptyState>}
+      {exam && <ExamHero plan={exam} onOpen={setOpen} onDone={finish} onLog={logStudy} />}
+      {exam && (
+        <section className="then" aria-label="Study plan">
+          <h2 className="section-title">study plan</h2>
+          {exam.sessions.length === 0 ? (
+            <p className="hint">{exam.remainingMinutes > 0 ? 'No study hours left before the exam at your current capacity.' : 'All the planned study is logged. Review, then rest.'}</p>
+          ) : (
+            <ul className="then-list exam-sessions">
+              {exam.sessions.slice(0, 3).map((s) => (
+                <li key={s.day} className="exam-session" data-today={s.day === today}>
+                  <span className="mono">{s.label}</span>
+                  {s.day === today && (
+                    <button type="button" className="btn small" onClick={() => logStudy(s.minutes)}>
+                      Log {fmtMinutes(s.minutes)}
+                    </button>
+                  )}
+                </li>
+              ))}
+              {exam.sessions.length > 3 && <li className="exam-session muted">+ {exam.sessions.length - 3} more session{exam.sessions.length - 3 === 1 ? '' : 's'}</li>}
+            </ul>
+          )}
+        </section>
+      )}
+      {exam && examPressure(exam) && (
+        <p className="pressure">
+          {exam.mustDoBefore.length > 0 ? (
+            <button type="button" className="pressure-link" onClick={() => setExamSheet(true)}>
+              {examPressure(exam)}
+            </button>
+          ) : (
+            examPressure(exam)
+          )}
+        </p>
+      )}
 
-      {mode.mode === 'enough' && !showAnyway && (
+      {!exam && mode.mode === 'empty' && <EmptyState>Nothing open. Import a syllabus from Settings, or enjoy the quiet.</EmptyState>}
+
+      {!exam && mode.mode === 'enough' && !showAnyway && (
         <section className="calm" data-tone="enough" aria-label="Done for today">
           <h1 className="calm-title">That's enough for today.</h1>
           <p className="calm-text">
@@ -282,7 +410,7 @@ export function Now() {
         </section>
       )}
 
-      {mode.mode === 'fine' && hero && (
+      {!exam && mode.mode === 'fine' && hero && (
         <section className="calm" data-tone="fine" aria-label="You're good">
           <h1 className="calm-title">You're good.</h1>
           <p className="calm-text">
@@ -321,7 +449,7 @@ export function Now() {
         </section>
       )}
 
-      {line && mode.mode !== 'enough' && <p className="pressure">{line}</p>}
+      {!exam && line && mode.mode !== 'enough' && <p className="pressure">{line}</p>}
 
       <div className="term-progress" role="img" aria-label={`${pace.pct}% of the term's points banked, ${pace.elapsedPct}% of the term elapsed`}>
         <span className="term-progress-track">
@@ -335,6 +463,7 @@ export function Now() {
       </div>
 
       <ChatCard />
+      {examSheet && exam && <ExamSheet plan={exam} onClose={() => setExamSheet(false)} onOpen={(i) => { setExamSheet(false); setOpen(i); }} />}
       {sheetDay && <DaySheet date={sheetDay} items={work} onClose={() => setSheetDay(null)} onOpen={(i) => { setSheetDay(null); setOpen(i); }} />}
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
     </div>

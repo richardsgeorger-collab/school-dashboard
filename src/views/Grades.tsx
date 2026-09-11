@@ -4,6 +4,7 @@ import { dateOf, fmtDate } from '../domain/dates';
 import { courseGrade } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
+import { WhatIf } from './WhatIf';
 
 function ScoreInput({ item }: { item: Item }) {
   const { actions } = useStore();
@@ -37,6 +38,7 @@ function CourseCard({ course }: { course: Course }) {
   const color = useCourseColor(course);
   const g = courseGrade(course.id, data.items);
   const [expanded, setExpanded] = useState(false);
+  const [whatIf, setWhatIf] = useState(false);
   const items = data.items.filter((i) => i.courseId === course.id).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const gradedPct = g.totalPossible ? (g.possibleGraded / g.totalPossible) * 100 : 0;
 
@@ -73,9 +75,15 @@ function CourseCard({ course }: { course: Course }) {
           <dd>{g.projected === null ? '—' : `${g.projected}%`}</dd>
         </div>
       </dl>
-      <button type="button" className="btn small" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}>
-        {expanded ? 'Hide scores' : `Enter scores (${items.length} items)`}
-      </button>
+      <div className="settings-actions">
+        <button type="button" className="btn small" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}>
+          {expanded ? 'Hide scores' : `Enter scores (${items.length} items)`}
+        </button>
+        <button type="button" className="btn small" onClick={() => setWhatIf((w) => !w)} aria-expanded={whatIf}>
+          {whatIf ? 'Hide what-if' : 'What if'}
+        </button>
+      </div>
+      {whatIf && <WhatIf course={course} />}
       {expanded && (
         <ul className="score-list">
           {items.map((i) => (

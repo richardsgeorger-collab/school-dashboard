@@ -3428,3 +3428,123 @@ button {
   background: var(--surface);
   color: var(--ink);
 }
+
+/* ---- Exam mode ---- */
+.hero-exam {
+  border-color: var(--soon);
+  box-shadow: 0 0 0 1px var(--soon) inset, var(--shadow);
+}
+.hero-framing[data-framing='exam'] {
+  color: var(--soon);
+  font-weight: 700;
+}
+.exam-sessions {
+  display: grid;
+  gap: 6px;
+}
+.exam-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-size: 15px;
+}
+.exam-session[data-today='true'] {
+  border-color: var(--soon);
+  background: var(--soon-soft);
+}
+.exam-session.muted {
+  border-style: dashed;
+  font-size: 13px;
+}
+.pressure-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+
+/* ---- Grade what-if ---- */
+.whatif {
+  margin-top: 12px;
+  display: grid;
+  gap: 14px;
+}
+.whatif-block h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin: 0 0 6px;
+}
+.whatif-weights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.whatif-weights li {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  font-size: 14px;
+}
+.whatif-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--course, var(--surface-3));
+  opacity: 0.16;
+}
+.whatif-name {
+  position: relative;
+  font-weight: 600;
+}
+.whatif-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  font-size: 14px;
+}
+.whatif-row select,
+.whatif-num {
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+}
+.whatif-num {
+  width: 72px;
+}
+.whatif-targets {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.whatif-targets .btn[data-on='true'] {
+  background: var(--ink);
+  color: var(--surface);
+}
+.whatif-out {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.whatif-out[data-live='true'] {
+  color: var(--ink);
+}
