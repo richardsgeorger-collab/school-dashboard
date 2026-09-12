@@ -57,7 +57,7 @@ export function toAppData(parsed: ParsedSyllabus, opts: ToAppDataOptions): { cou
       notes: a.description,
       topic: a.topic,
       flags: {
-        inClass: a.traits.includes('Not Submitted in Halo') || dueBeforeEod,
+        inClass: !course.online && (a.traits.includes('Not Submitted in Halo') || dueBeforeEod),
         group: a.traits.includes('Group'),
         lopesWrite: a.traits.includes('Requires LopesWrite'),
         timed: a.traits.includes('Timed') || a.timeLimit !== null,

@@ -55,26 +55,34 @@ function CourseCard({ course }: { course: Course }) {
         <span className="earned" style={{ width: `${g.totalPossible ? (g.earned / g.totalPossible) * 100 : 0}%` }} />
         <span className="lost" style={{ width: `${g.totalPossible ? ((g.possibleGraded - g.earned) / g.totalPossible) * 100 : 0}%` }} />
       </div>
-      <dl className="grade-stats mono">
-        <div>
-          <dt>Earned</dt>
-          <dd>
-            {g.earned} / {g.possibleGraded}
-          </dd>
-        </div>
-        <div>
-          <dt>Graded so far</dt>
-          <dd>{Math.round(gradedPct)}%</dd>
-        </div>
-        <div>
-          <dt>Still open</dt>
-          <dd>{g.remaining} pts</dd>
-        </div>
-        <div>
-          <dt>Projected</dt>
-          <dd>{g.projected === null ? '—' : `${g.projected}%`}</dd>
-        </div>
-      </dl>
+      {g.possibleGraded === 0 ? (
+        <p className="grade-empty mono">
+          No scores entered yet · {g.totalPossible} pts across {items.length} item{items.length === 1 ? '' : 's'}
+        </p>
+      ) : (
+        <dl className="grade-stats mono">
+          <div>
+            <dt>Earned</dt>
+            <dd>
+              {g.earned} / {g.possibleGraded}
+            </dd>
+          </div>
+          <div>
+            <dt>Graded so far</dt>
+            <dd>{Math.round(gradedPct)}%</dd>
+          </div>
+          <div>
+            <dt>Still open</dt>
+            <dd>
+              {g.remaining} of {g.totalPossible} pts
+            </dd>
+          </div>
+          <div>
+            <dt>Projected</dt>
+            <dd>{g.projected === null ? '—' : `${g.projected}%`}</dd>
+          </div>
+        </dl>
+      )}
       <div className="settings-actions">
         <button type="button" className="btn small" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}>
           {expanded ? 'Hide scores' : `Enter scores (${items.length} items)`}

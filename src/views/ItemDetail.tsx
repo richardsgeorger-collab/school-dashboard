@@ -288,7 +288,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
               placeholder="min"
               onBlur={(e) => {
                 const n = Number(e.target.value);
-                if (e.target.value !== '' && Number.isFinite(n) && n >= 0 && n !== (item.actualMinutes ?? null)) actions.upsertItem({ ...item, actualMinutes: n || null });
+                if (e.target.value !== '' && Number.isFinite(n) && n >= 0 && n !== (item.actualMinutes ?? null)) actions.logActual(item.id, n || null);
               }}
             />{' '}
             minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.

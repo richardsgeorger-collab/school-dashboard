@@ -3548,3 +3548,13 @@ button {
 .whatif-out[data-live='true'] {
   color: var(--ink);
 }
+.class-admin {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.grade-empty {
+  margin: 8px 0 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+}

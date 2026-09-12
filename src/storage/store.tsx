@@ -9,6 +9,7 @@ import { completeItem, computeProgress, previewAward, reopenItem, withScore, typ
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { applyHaloPlan, type HaloPlan } from '../halo/apply';
 import { actualStats, calibrate as calibrateItem, withCalibration, type Calibrated } from '../domain/calibration';
+import { applyOnline, bankedAsItems, ledgerWith, logTiming, resetCourseItems } from '../domain/classAdmin';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
@@ -39,6 +40,10 @@ export interface StoreActions {
   /** Apply an approved Halo diff. */
   applyHaloSync(plan: HaloPlan): void;
   dismissTimeAsk(): void;
+  /** Record how long an item really took, on the item and in the ledger. */
+  logActual(id: string, minutes: number | null): void;
+  /** Delete every item of one class, keeping its earned awards and logged minutes. Returns how many went. */
+  resetCourseItems(courseId: string): number;
 }
 
 export interface Store {
@@ -144,6 +149,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localCache.save(data);
   }, [data]);
+  useEffect(() => {
+    const ledger = ledgerWith(data.items, data.settings.timings);
+    if (ledger !== (data.settings.timings ?? ledger)) setData((d) => ({ ...d, settings: { ...d.settings, timings: ledger } }));
+  }, [data.items, data.settings.timings]);
 
   useEffect(() => {
     const tick = () => setToday(todayStr(dataRef.current.settings.timezone));
@@ -177,7 +186,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const derived = derivedAll.deadlines;
   const nudges = derivedAll.nudges;
-  const stats = useMemo(() => actualStats(data.items), [data.items]);
+  const stats = useMemo(() => actualStats(data.items, data.settings.timings), [data.items, data.settings.timings]);
   const schedule = useMemo(
     () =>
       computeSchedule(
@@ -195,7 +204,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const courseById = useMemo(() => new Map(data.courses.map((c) => [c.id, c])), [data.courses]);
   const calibrate = useCallback((item: Item) => calibrateItem(item, stats, courseById.get(item.courseId)), [stats, courseById]);
-  const progress = useMemo(() => computeProgress(data.items, data.settings, today), [data.items, data.settings, today]);
+  // Awards of deleted items stay in the bank, so XP, streaks, and badges never drop because a class was reset.
+  const progress = useMemo(
+    () => computeProgress([...data.items, ...bankedAsItems(data.settings.bankedAwards, new Set(data.items.map((i) => i.id)))], data.settings, today),
+    [data.items, data.settings, today],
+  );
   const scheduleRef = useRef(schedule);
   scheduleRef.current = schedule;
   const previewFor = useCallback(
@@ -333,21 +346,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         mirror({ kind: 'items', ids: [id] });
       },
       upsertCourse(course) {
-        const stamped = { ...course, updatedAt: nowIso() };
+        const now = nowIso();
+        // An online class has no meeting times and nothing happens "in class".
+        const stamped = { ...course, meetings: course.online ? [] : course.meetings, updatedAt: now };
+        const cleared = applyOnline(dataRef.current.items, course.id, course.online);
         update((d) => ({
           ...d,
           courses: d.courses.some((c) => c.id === course.id)
             ? d.courses.map((c) => (c.id === course.id ? stamped : c))
             : [...d.courses, stamped],
+          items: cleared.touched.length ? cleared.items.map((i) => (cleared.touched.includes(i.id) ? { ...i, updatedAt: now } : i)) : d.items,
         }));
         mirror({ kind: 'courses', ids: [course.id] });
+        if (cleared.touched.length) mirror({ kind: 'items', ids: cleared.touched });
       },
       deleteCourse(id) {
         const now = nowIso();
-        const doomed = dataRef.current.items.filter((i) => i.courseId === id).map((i) => i.id);
-        update((d) => ({ ...d, courses: d.courses.filter((c) => c.id !== id), items: d.items.filter((i) => i.courseId !== id) }));
-        for (const itemId of doomed) mirror({ kind: 'deleteItem', id: itemId, deletedAt: now });
+        const plan = resetCourseItems(dataRef.current, id, now);
+        update((d) => ({ ...d, courses: d.courses.filter((c) => c.id !== id), items: plan.items, settings: plan.settings }));
+        for (const itemId of plan.deletedIds) mirror({ kind: 'deleteItem', id: itemId, deletedAt: now });
         mirror({ kind: 'deleteCourse', id, deletedAt: now });
+        mirror({ kind: 'settings' });
+      },
+      resetCourseItems(courseId) {
+        const now = nowIso();
+        const plan = resetCourseItems(dataRef.current, courseId, now);
+        update((d) => ({ ...d, items: plan.items, settings: plan.settings }));
+        for (const itemId of plan.deletedIds) mirror({ kind: 'deleteItem', id: itemId, deletedAt: now });
+        mirror({ kind: 'settings' });
+        return plan.deletedIds.length;
+      },
+      logActual(id, minutes) {
+        const now = nowIso();
+        const item = dataRef.current.items.find((i) => i.id === id);
+        if (!item) return;
+        const value = minutes && minutes > 0 ? Math.round(minutes) : null;
+        update((d) => ({
+          ...d,
+          items: d.items.map((i) => (i.id === id ? { ...i, actualMinutes: value, updatedAt: now } : i)),
+          settings: { ...d.settings, timings: value ? logTiming(d.settings.timings, item, value, now) : (d.settings.timings ?? []).filter((t) => t.itemId !== id), updatedAt: now },
+        }));
+        mirror({ kind: 'items', ids: [id] });
+        mirror({ kind: 'settings' });
       },
       updateSettings(patch) {
         update((d) => ({ ...d, settings: { ...d.settings, ...patch, updatedAt: nowIso() } }));

@@ -169,7 +169,7 @@ export function Settings() {
               </li>
             ))}
           </ul>
-          <p className="hint">Tap a class to change its color, meeting times, or delete it.</p>
+          <p className="hint">Tap a class to edit its code, name, instructor, meeting times, or online status, to reset its items before a fresh sync, or to delete it.</p>
         </section>
 
         <SyllabusPanel />

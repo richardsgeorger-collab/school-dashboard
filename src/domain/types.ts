@@ -96,6 +96,24 @@ export interface Item {
   updatedAt: string;
 }
 
+export interface TimingEntry {
+  itemId: string;
+  courseId: string;
+  type: ItemType;
+  minutes: number;
+  at: string;
+}
+
+export interface BankedAward {
+  itemId: string;
+  courseId: string;
+  label: string;
+  dueAt: string;
+  points: number;
+  completedAt: string;
+  award: Award;
+}
+
 export interface Settings {
   timezone: string;
   weekdayMinutes: number;
@@ -109,6 +127,10 @@ export interface Settings {
   /** Last assignments import: when it was applied, and the export's own timestamp. */
   syncedAt?: string | null;
   syncStamp?: string | null;
+  /** Real minutes logged per item, kept here so a class reset does not lose them. */
+  timings?: TimingEntry[];
+  /** Awards of items that were deleted after being done, so XP and streaks survive a reset. */
+  bankedAwards?: BankedAward[];
   updatedAt: string;
 }
 

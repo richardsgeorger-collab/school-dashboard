@@ -1,5 +1,5 @@
 import { courseShortName } from './labels';
-import { TYPE_LABELS, type Course, type Item, type ItemType } from './types';
+import { TYPE_LABELS, type Course, type Item, type ItemType, type TimingEntry } from './types';
 
 /** How many finished items with a real time it takes before their average replaces the table estimate. */
 export const MIN_SAMPLES = 3;
@@ -12,16 +12,26 @@ export type Stats = Map<string, ActualStat>;
 
 export const statKey = (courseId: string, type: ItemType): string => `${courseId}|${type}`;
 
-/** Average real minutes per class and item type, from items the student timed. */
-export function actualStats(items: Item[]): Stats {
+/** Average real minutes per class and item type, from items the student timed, plus the ledger for items since deleted. */
+export function actualStats(items: Item[], ledger: TimingEntry[] = []): Stats {
   const sums = new Map<string, { n: number; total: number }>();
-  for (const i of items) {
-    if (i.status !== 'done' || !i.actualMinutes || i.actualMinutes <= 0) continue;
-    const k = statKey(i.courseId, i.type);
+  const seen = new Set<string>();
+  const add = (courseId: string, type: ItemType, minutes: number) => {
+    const k = statKey(courseId, type);
     const s = sums.get(k) ?? { n: 0, total: 0 };
     s.n++;
-    s.total += i.actualMinutes;
+    s.total += minutes;
     sums.set(k, s);
+  };
+  for (const i of items) {
+    if (i.status !== 'done' || !i.actualMinutes || i.actualMinutes <= 0) continue;
+    seen.add(i.id);
+    add(i.courseId, i.type, i.actualMinutes);
+  }
+  const live = new Set(items.map((i) => i.id));
+  for (const t of ledger) {
+    if (seen.has(t.itemId) || live.has(t.itemId) || !(t.minutes > 0)) continue;
+    add(t.courseId, t.type, t.minutes);
   }
   const out: Stats = new Map();
   for (const [k, s] of sums) out.set(k, { n: s.n, mean: s.total / s.n });

@@ -246,7 +246,7 @@ export function icsToExport(file: IcsFile, mapping: Record<string, string>, cour
       points,
       type: type ?? 'ASSIGNMENT',
       tags: [],
-      inPerson: hh < 23,
+      inPerson: !course.online && hh < 23,
       isGroupEnabled: false,
       requiresLopesWrite: false,
       status: null,

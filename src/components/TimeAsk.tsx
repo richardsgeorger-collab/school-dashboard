@@ -20,7 +20,7 @@ export function TimeAsk() {
   const item = justDone ? data.items.find((i) => i.id === justDone.id) : null;
   if (!justDone || !item || item.status !== 'done') return null;
   const log = (minutes: number) => {
-    if (Number.isFinite(minutes) && minutes > 0) actions.upsertItem({ ...item, actualMinutes: Math.round(minutes) });
+    if (Number.isFinite(minutes) && minutes > 0) actions.logActual(item.id, minutes);
     actions.dismissTimeAsk();
   };
   return (

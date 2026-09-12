@@ -152,7 +152,7 @@ export function toItem(a: HaloAssessment, course: Course, opts: ToItemOptions): 
     score: null,
     notes: stripHtml(a.description),
     topic: a.unit ?? null,
-    flags: haloFlags(a),
+    flags: course.online ? { ...haloFlags(a), inClass: false } : haloFlags(a),
     source,
     haloId: source === 'halo' ? a.id : null,
     icsUid: source === 'ics' ? a.id : null,

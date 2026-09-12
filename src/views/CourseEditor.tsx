@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Modal } from '../components/Modal';
 import { PALETTE } from '../data/courseDefaults';
-import type { Course, Meeting } from '../domain/types';
+import type { Course, Instructor, Meeting } from '../domain/types';
+import { syllabiDb } from '../syllabus/db';
 import { useStore } from '../storage/store';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -10,13 +11,22 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
   const { actions, data } = useStore();
   const [draft, setDraft] = useState<Course>({ ...course, meetings: course.meetings.map((m) => ({ ...m })) });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
   const set = <K extends keyof Course>(k: K, v: Course[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const setMeeting = (idx: number, patch: Partial<Meeting>) =>
     set(
       'meetings',
       draft.meetings.map((m, i) => (i === idx ? { ...m, ...patch } : m)),
     );
-  const itemCount = data.items.filter((i) => i.courseId === course.id).length;
+  const mine = data.items.filter((i) => i.courseId === course.id);
+  const itemCount = mine.length;
+  const doneCount = mine.filter((i) => i.status === 'done').length;
+  const setInstructor = (idx: number, patch: Partial<Instructor>) =>
+    set(
+      'instructors',
+      draft.instructors.map((p, i) => (i === idx ? { ...p, ...patch } : p)),
+    );
 
   return (
     <Modal title={course.code ? `Edit ${course.code}` : 'New class'} onClose={onClose}>
@@ -44,6 +54,21 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
           <input value={draft.name} onChange={(e) => set('name', e.target.value)} />
         </label>
         <div className="field">
+          <span>Instructor{draft.instructors.length === 1 ? '' : 's'}</span>
+          {draft.instructors.map((p, idx) => (
+            <div key={idx} className="meeting-edit">
+              <input value={p.name} placeholder="Name" aria-label="Instructor name" onChange={(e) => setInstructor(idx, { name: e.target.value })} />
+              <input value={p.email} placeholder="Email" aria-label="Instructor email" onChange={(e) => setInstructor(idx, { email: e.target.value })} />
+              <button type="button" className="btn small" onClick={() => set('instructors', draft.instructors.filter((_, i) => i !== idx))} aria-label="Remove instructor">
+                ×
+              </button>
+            </div>
+          ))}
+          <button type="button" className="btn small" onClick={() => set('instructors', [...draft.instructors, { name: '', email: '' }])}>
+            Add instructor
+          </button>
+        </div>
+        <div className="field">
           <span>Color</span>
           <div className="swatches">
             {PALETTE.map((hex) => (
@@ -70,8 +95,8 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
           </label>
         </div>
         <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <input type="checkbox" checked={draft.online} onChange={(e) => set('online', e.target.checked)} />
-          <span style={{ fontWeight: 500, fontSize: 14 }}>Online class (no meeting times)</span>
+          <input type="checkbox" checked={draft.online} onChange={(e) => setDraft((d) => ({ ...d, online: e.target.checked, meetings: e.target.checked ? [] : d.meetings }))} />
+          <span style={{ fontWeight: 500, fontSize: 14 }}>Online class: no meeting times, no in-class items, no next-class prep</span>
         </label>
         {!draft.online && (
           <div className="field">
@@ -97,17 +122,53 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
             </button>
           </div>
         )}
+        {course.code && (
+          <div className="class-admin">
+            <h3 className="section-title">This class only</h3>
+            <p className="hint">
+              {itemCount} item{itemCount === 1 ? '' : 's'}, {doneCount} done. Resetting or deleting touches this class alone: other classes, your logged times, recordings, notes on other
+              classes, and XP and streaks all stay.
+            </p>
+            <div className="settings-actions">
+              {confirmReset ? (
+                <button
+                  type="button"
+                  className="btn danger"
+                  onClick={() => {
+                    const n = actions.resetCourseItems(course.id);
+                    setConfirmReset(false);
+                    setNote(`Deleted ${n} item${n === 1 ? '' : 's'} in ${course.code}. The next sync fills it back in.`);
+                  }}
+                >
+                  Yes, delete {itemCount} item{itemCount === 1 ? '' : 's'} in {course.code}
+                </button>
+              ) : (
+                <button type="button" className="btn" disabled={itemCount === 0} onClick={() => setConfirmReset(true)}>
+                  Reset items
+                </button>
+              )}
+              {confirmDelete ? (
+                <button
+                  type="button"
+                  className="btn danger"
+                  onClick={() => {
+                    actions.deleteCourse(course.id);
+                    void syllabiDb.remove(course.id).catch(() => undefined);
+                    onClose();
+                  }}
+                >
+                  Yes, delete {course.code} and its {itemCount} item{itemCount === 1 ? '' : 's'}
+                </button>
+              ) : (
+                <button type="button" className="btn" onClick={() => setConfirmDelete(true)}>
+                  Delete class
+                </button>
+              )}
+            </div>
+            {note && <p className="hint">{note}</p>}
+          </div>
+        )}
         <div className="modal-actions">
-          {course.code &&
-            (confirmDelete ? (
-              <button type="button" className="btn danger" onClick={() => { actions.deleteCourse(course.id); onClose(); }}>
-                Delete class and {itemCount} items
-              </button>
-            ) : (
-              <button type="button" className="btn" onClick={() => setConfirmDelete(true)}>
-                Delete class
-              </button>
-            ))}
           <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>
             Cancel
