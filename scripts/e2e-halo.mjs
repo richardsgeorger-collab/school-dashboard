@@ -63,12 +63,12 @@ await page.screenshot({ path: (process.argv[2] ?? 'halo-diff.png').replace(/\.pn
 console.log('halo card:', await page.$eval('.halo-steps', (e) => e.textContent.replace(/\s+/g, ' ').trim().slice(0, 80)));
 console.log('bookmark href ok:', await page.$eval('.halo-drag', (e) => e.getAttribute('href')?.startsWith('javascript:') && decodeURIComponent(e.getAttribute('href')).includes('var D="' + new URL(location.href).origin + '"')));
 await page.$$eval('.settings-actions .btn', (els) => els.find((e) => e.textContent.includes('Paste Halo export')).click());
-await page.waitForSelector('.halo-paste');
-await page.evaluate((json) => { const ta = document.querySelector('.halo-paste'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(ta, json); ta.dispatchEvent(new Event('input', { bubbles: true })); }, JSON.stringify(payload2));
+await page.waitForSelector('.modal .halo-paste');
+await page.evaluate((json) => { const ta = document.querySelector('.modal .halo-paste'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(ta, json); ta.dispatchEvent(new Event('input', { bubbles: true })); }, JSON.stringify(payload2));
 await page.$$eval('.modal .modal-actions .btn', (els) => els.find((e) => e.textContent.includes('Read export')).click());
 await page.waitForSelector('.modal .diff-section', { timeout: 5000 });
 console.log('sections 2:', (await heads()).join(' | '));
-console.log('missing row:', await page.$eval('.diff-section:nth-of-type(4) .diff-row', (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => 'none'));
+console.log('missing row:', await page.$eval('.diff-section:nth-of-type(5) .diff-row', (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => 'none'));
 const apply2 = (await page.$$('.modal .modal-actions .btn.primary'))[0];
 console.log('apply label 2:', await apply2.evaluate((e) => e.textContent.trim()));
 await apply2.click();
@@ -78,8 +78,8 @@ console.log('removed:', !s.items.some((i) => i.title === 'Halo Only Quiz'), '| i
 // Bad paste
 await (await page.$('.modal .modal-actions .btn.primary')).click();
 await page.$$eval('.settings-actions .btn', (els) => els.find((e) => e.textContent.includes('Paste Halo export')).click());
-await page.waitForSelector('.halo-paste');
-await page.type('.halo-paste', 'not json');
+await page.waitForSelector('.modal .halo-paste');
+await page.type('.modal .halo-paste', 'not json');
 await page.$$eval('.modal .modal-actions .btn', (els) => els.find((e) => e.textContent.includes('Read export')).click());
 console.log('bad paste:', await page.$eval('.modal .hint[style]', (e) => e.textContent.trim()).catch(() => 'no error shown'));
 // 3. Zone misread: bare local strings read as UTC land at 4:59 PM → warning, row tags, two-step apply, toggle clears it.

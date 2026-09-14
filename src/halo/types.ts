@@ -18,6 +18,8 @@ export interface HaloClass {
   stage: string | null;
   modality: string | null;
   credits: number | null;
+  /** Instructor names, when the export carried them. */
+  instructors?: string[];
   assessments: HaloAssessment[];
 }
 

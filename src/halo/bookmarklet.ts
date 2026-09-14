@@ -15,7 +15,7 @@ export const HALO_HOST = 'halo.gcu.edu';
 export const GATEWAY = 'https://gateway.halo.gcu.edu/';
 
 const Q_CLASSES =
-  'query getCourseClassesForUser($pgNum: Int, $pgSize: Int) { getCourseClassesForUser(pgNum: $pgNum, pgSize: $pgSize) { courseClasses { id classCode slugId startDate endDate name stage modality credits courseCode units { id title sequence startDate endDate assessments { id sequence title description startDate dueDate points type tags requiresLopesWrite isGroupEnabled inPerson } } } } }';
+  'query getCourseClassesForUser($pgNum: Int, $pgSize: Int) { getCourseClassesForUser(pgNum: $pgNum, pgSize: $pgSize) { courseClasses { id classCode slugId startDate endDate name stage modality credits courseCode instructors { user { firstName lastName preferredFirstName } } units { id title sequence startDate endDate assessments { id sequence title description startDate dueDate points type tags requiresLopesWrite isGroupEnabled inPerson } } } } }';
 const Q_GRADES =
   'query AllAssessmentGrades($courseClassSlugId: String!, $courseUnitId: String) { assessmentGrades: getAllClassGrades(courseClassSlugId: $courseClassSlugId, courseUnitId: $courseUnitId) { grades { id status dueDate accommodatedDueDate assessment { id } assignmentSubmission { submissionDate } history { status points } } } }';
 
@@ -66,7 +66,8 @@ for(var a=0;a<as.length;a++){var t=as[a];var gg=byId[t.id];
 var hist=((gg&&gg.history)||[]).filter(function(h){return h&&h.points!=null;});
 var personal=gg&&(gg.accommodatedDueDate||gg.dueDate);
 out.push({id:t.id,title:t.title,description:t.description||null,unit:un.title||null,unitSequence:un.sequence==null?null:un.sequence,sequence:t.sequence==null?null:t.sequence,startDate:t.startDate||null,dueDate:personal||t.dueDate||null,classDueDate:t.dueDate||null,points:t.points==null?null:t.points,type:t.type||'ASSIGNMENT',tags:t.tags||[],inPerson:!!t.inPerson,isGroupEnabled:!!t.isGroupEnabled,requiresLopesWrite:!!t.requiresLopesWrite,status:(gg&&gg.status)||null,submittedAt:(gg&&gg.assignmentSubmission&&gg.assignmentSubmission.submissionDate)||null,score:hist.length?hist[hist.length-1].points:null});}}
-classes.push({id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out});}
+var who=(c.instructors||[]).map(function(x){var u=x&&x.user;return u?((u.preferredFirstName||u.firstName||'')+' '+(u.lastName||'')).trim():'';}).filter(Boolean);
+classes.push({id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',instructors:who,startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out});}
 var payload={kind:'halo-export',version:1,exportedAt:new Date().toISOString(),source:'bookmarklet',classes:classes};
 var n=0;for(var q=0;q<classes.length;q++){n+=classes[q].assessments.length;}
 say('Read '+n+' assignments in '+classes.length+' classes. Sending to the dashboard\\u2026');

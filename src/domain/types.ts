@@ -90,6 +90,8 @@ export interface Item {
   url?: string | null;
   /** Minutes it actually took, from the after-done prompt. */
   actualMinutes?: number | null;
+  /** Where the score came from: Halo's gradebook, or typed as an override. */
+  scoreSource?: 'halo' | 'manual' | null;
   award: Award | null;
   /** "Not this one": kept out of the top of Now until this date. */
   snoozedUntil?: DateStr | null;
@@ -114,6 +116,27 @@ export interface BankedAward {
   award: Award;
 }
 
+export interface HaloCheckRecord {
+  at: string;
+  clean: boolean;
+  findings: number;
+}
+
+export interface QuizStat {
+  courseId: string;
+  topic: string;
+  attempts: number;
+  misses: number;
+  lastAt: string;
+}
+
+export interface SundayReviewState {
+  skips: number;
+  lastOffered: string | null;
+  lastDone: string | null;
+  off?: boolean;
+}
+
 export interface Settings {
   timezone: string;
   weekdayMinutes: number;
@@ -135,6 +158,11 @@ export interface Settings {
   haloAuditPrompt?: string | null;
   /** First word of a file name → course id, remembered from the Library's top-level drop zone. */
   materialsNameMap?: Record<string, string>;
+  /** Check Halo results, oldest first, capped. */
+  haloChecks?: HaloCheckRecord[];
+  /** Practice results per class and topic. */
+  quizStats?: Record<string, QuizStat>;
+  sundayReview?: SundayReviewState;
   updatedAt: string;
 }
 

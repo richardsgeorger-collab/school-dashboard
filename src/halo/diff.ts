@@ -44,6 +44,18 @@ export interface SubmittedEntry {
   score: number | null;
   isNew: boolean;
 }
+/** A score Halo has posted that the planner does not have yet. */
+export interface GradedEntry {
+  key: string;
+  id: string;
+  title: string;
+  course: Course;
+  score: number;
+  points: number;
+  previous: number | null;
+  at: string;
+  isNew: boolean;
+}
 export interface SkippedEntry {
   title: string;
   course: string;
@@ -58,6 +70,7 @@ export interface HaloDiff {
   unchanged: ChangedEntry[];
   missing: MissingEntry[];
   submitted: SubmittedEntry[];
+  graded: GradedEntry[];
   skipped: SkippedEntry[];
   /** Local items in synced classes with no Halo counterpart. Left alone. */
   untouched: Item[];
@@ -169,6 +182,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
     unchanged: [],
     missing: [],
     submitted: [],
+    graded: [],
     skipped: [],
     untouched: [],
     rawDates: [],
@@ -214,7 +228,8 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       if (!diff.sample && raw) diff.sample = { raw, dueAt: next.dueAt };
       const submitted = isSubmitted(a);
       const at = parseHaloDate(a.submittedAt, tz, opts.bareAs) ?? payload.exportedAt;
-      const score = a.status === 'PUBLISHED' ? a.score : null;
+      // A posted score is a fact from the gradebook; it never depends on our own done flag.
+      const score = a.score != null && Number.isFinite(a.score) ? a.score : null;
       const match = findMatch(
         local.filter((i) => !taken.has(i.id)),
         next,
@@ -222,7 +237,8 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       );
       if (!match) {
         diff.added.push({ key: next.id, item: next, halo: a, course, submitted, oddTime: oddDueTime(next.dueAt, tz) });
-        if (submitted) diff.submitted.push({ key: `s:${next.id}`, id: next.id, title: next.title, course, at, score, isNew: true });
+        if (submitted) diff.submitted.push({ key: `s:${next.id}`, id: next.id, title: next.title, course, at, score: null, isNew: true });
+        if (score != null) diff.graded.push({ key: `g:${next.id}`, id: next.id, title: next.title, course, score, points: next.points, previous: null, at, isNew: true });
         continue;
       }
       taken.add(match.id);
@@ -231,7 +247,8 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       const entry: ChangedEntry = { key: match.id, existing: match, next: merged, halo: a, course, changes, oddTime: oddDueTime(merged.dueAt, tz) };
       if (changes.length) diff.changed.push(entry);
       else if (differs(match, merged)) diff.unchanged.push(entry);
-      if (submitted && match.status !== 'done') diff.submitted.push({ key: `s:${match.id}`, id: match.id, title: merged.title, course, at, score, isNew: false });
+      if (submitted && match.status !== 'done') diff.submitted.push({ key: `s:${match.id}`, id: match.id, title: merged.title, course, at, score: null, isNew: false });
+      if (score != null && score !== match.score) diff.graded.push({ key: `g:${match.id}`, id: match.id, title: merged.title, course, score, points: merged.points, previous: match.score, at, isNew: false });
     }
     // Only items this path itself brought in can be "no longer in" its export.
     for (const i of local) {

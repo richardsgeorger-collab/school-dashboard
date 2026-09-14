@@ -6,7 +6,7 @@ import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
 
 const EXAMPLES = ['chem quiz moved to friday', 'read ch 4 before wednesday', 'office hours thursday 2pm'];
-const KIND_WORD = { new: 'New item', date_change: 'Date change', cancel: 'Cancelled', info: 'Note' } as const;
+const KIND_WORD = { new: 'New item', date_change: 'Date change', cancel: 'Cancelled', info: 'Note', grade: 'Grade' } as const;
 
 /**
  * One line in, one proposal out. The escape hatch for anything the export does not know:

@@ -9,7 +9,20 @@ import { useStore } from '../storage/store';
 
 export type Decision = 'approved' | 'dismissed';
 
-const KIND_LABEL: Record<Mention['kind'], string> = { new: 'New', date_change: 'Date change', cancel: 'Cancelled', info: 'Info' };
+const KIND_LABEL: Record<Mention['kind'], string> = { new: 'New', date_change: 'Date change', cancel: 'Cancelled', info: 'Info', grade: 'Grade' };
+const GROUPS: { key: string; label: string }[] = [
+  { key: 'changed', label: 'Changed dates' },
+  { key: 'announce', label: 'From announcements' },
+  { key: 'new', label: 'New in Halo' },
+  { key: 'missing', label: 'Not in Halo' },
+  { key: 'grade', label: 'Grades posted' },
+  { key: 'overdue', label: 'Flagged overdue' },
+  { key: 'schedule', label: 'Schedule differs' },
+  { key: 'ENG105-PENDING', label: 'ENG-105, waiting on the section switch' },
+  { key: 'OLD-SECTION', label: 'Old Engineering Math section' },
+  { key: 'note', label: 'Could not read' },
+];
+const groupKey = (m: Mention) => m.audit?.prefix ?? m.audit?.status ?? 'other';
 const pad = (n: number) => String(n).padStart(2, '0');
 
 function MentionRow({
@@ -59,6 +72,9 @@ function MentionRow({
     } else if (base.kind === 'remove') {
       applied = `Removed ${base.item.label}`;
       if (!dryRun) actions.deleteItem(base.item.id);
+    } else if (base.kind === 'score') {
+      applied = `${base.item.label}: ${base.score} of ${base.item.points}`;
+      if (!dryRun) actions.applyScore(base.item.id, base.score, 'halo');
     } else {
       applied = 'Noted';
     }
@@ -83,6 +99,12 @@ function MentionRow({
         return (
           <>
             Remove <b>{p.item.label}</b> from the planner
+          </>
+        );
+      case 'score':
+        return (
+          <>
+            <b>{p.item.label}</b>: score <span className="old">{p.item.score ?? '—'}</span> → <mark>{p.score}</mark> / {p.item.points}
           </>
         );
       default:
@@ -137,7 +159,7 @@ function MentionRow({
           ) : (
             <>
               <button type="button" className={`btn small ${base.kind === 'remove' ? 'danger' : 'primary'}`} onClick={approve}>
-                {base.kind === 'update' ? 'Approve move' : base.kind === 'add' ? 'Add it' : 'Remove it'}
+                {base.kind === 'update' ? 'Approve move' : base.kind === 'add' ? 'Add it' : base.kind === 'score' ? 'Record score' : 'Remove it'}
               </button>
               <button type="button" className="btn small" onClick={() => onDecide(m.id, 'dismissed', '')}>
                 Dismiss
@@ -204,11 +226,26 @@ export function LectureReview({
         )}
         <section>
           <h3>
-            Dates and deadlines mentioned <span className="count">{pending ? `${pending} to review` : 'all reviewed'}</span>
+            {notes.model === 'capture' && notes.mentions.some((m) => m.audit) ? 'Findings' : 'Dates and deadlines mentioned'} <span className="count">{pending ? `${pending} to review` : 'all reviewed'}</span>
           </h3>
           {notes.mentions.length === 0 ? (
             <p className="hint">Nothing about dates or assignments came up.</p>
-          ) : (
+          ) : notes.mentions.some((m) => m.audit) ? (
+              GROUPS.filter((g) => notes.mentions.some((m) => groupKey(m) === g.key)).map((g) => (
+                <div key={g.key} className="rev-group">
+                  <h4 className="rev-group-title">
+                    {g.label} <span className="count">{notes.mentions.filter((m) => groupKey(m) === g.key).length}</span>
+                  </h4>
+                  <ul className="rev-mentions">
+                    {notes.mentions
+                      .filter((m) => groupKey(m) === g.key)
+                      .map((m) => (
+                        <MentionRow key={m.id} m={m} course={course} lectureDate={lectureDate} decision={decisions[m.id]} dryRun={dryRun} onDecide={onDecide} />
+                      ))}
+                  </ul>
+                </div>
+              ))
+            ) : (
             <ul className="rev-mentions">
               {notes.mentions.map((m) => (
                 <MentionRow key={m.id} m={m} course={course} lectureDate={lectureDate} decision={decisions[m.id]} dryRun={dryRun} onDecide={onDecide} />

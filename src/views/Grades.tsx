@@ -12,7 +12,7 @@ function ScoreInput({ item }: { item: Item }) {
   const commit = () => {
     const score = val.trim() === '' ? null : Number(val);
     if (score === item.score || (score !== null && Number.isNaN(score))) return;
-    actions.upsertItem({ ...item, score, status: score !== null && item.status !== 'done' ? 'done' : item.status, completedAt: score !== null ? (item.completedAt ?? new Date().toISOString()) : item.completedAt });
+    actions.upsertItem({ ...item, score, scoreSource: score === null ? null : 'manual', status: score !== null && item.status !== 'done' ? 'done' : item.status, completedAt: score !== null ? (item.completedAt ?? new Date().toISOString()) : item.completedAt });
   };
   return (
     <span className="score-input mono">
@@ -85,7 +85,7 @@ function CourseCard({ course }: { course: Course }) {
       )}
       <div className="settings-actions">
         <button type="button" className="btn small" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}>
-          {expanded ? 'Hide scores' : `Enter scores (${items.length} items)`}
+          {expanded ? 'Hide scores' : 'Scores'}
         </button>
         <button type="button" className="btn small" onClick={() => setWhatIf((w) => !w)} aria-expanded={whatIf}>
           {whatIf ? 'Hide what-if' : 'What if'}
@@ -100,7 +100,10 @@ function CourseCard({ course }: { course: Course }) {
                 {i.title}
                 <span className="muted mono"> · {fmtDate(dateOf(i.dueAt, data.settings.timezone), 'short')}</span>
               </span>
-              <ScoreInput item={i} />
+              <span className="score-cell">
+                <ScoreInput item={i} />
+                {i.score !== null && <span className="hint mono">{i.scoreSource === 'manual' ? 'typed' : 'Halo'}</span>}
+              </span>
             </li>
           ))}
         </ul>
@@ -117,8 +120,8 @@ export function Grades() {
         Grades <span className="light">by points</span>
       </h1>
       <p className="hint" style={{ marginTop: 6, maxWidth: 640 }}>
-        None of the syllabi publish category weights, so this is points earned over points graded. Projected assumes the
-        rest of the term scores at your current average. Enter a score to mark an item graded.
+        Scores arrive from Halo&apos;s gradebook through the Sync button. None of the syllabi publish category weights, so this is points earned over points
+        graded, and Projected assumes the rest of the term scores at your current average. Typing a score is an override for when Halo is wrong or missing.
       </p>
       <div className="grade-grid">
         {data.courses.map((c) => (

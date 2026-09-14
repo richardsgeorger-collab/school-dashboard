@@ -17,6 +17,7 @@ export interface AppliedSummary {
   changed: number;
   removed: number;
   completed: number;
+  scored: number;
   linked: number;
 }
 
@@ -120,7 +121,7 @@ export function DiffReview({
     if (!sel) return;
     const plan = planFromDiff(diff, sel);
     actions.applyHaloSync(plan);
-    const summary = { added: sel.added.size, changed: sel.changed.size, removed: sel.missing.size, completed: plan.complete.length, linked: diff.unchanged.length };
+    const summary = { added: sel.added.size, changed: sel.changed.size, removed: sel.missing.size, completed: plan.complete.length, scored: plan.scores.length, linked: diff.unchanged.length };
     setApplied(summary);
     onApplied?.(summary);
   };
@@ -145,6 +146,7 @@ export function DiffReview({
           <li>{applied.added} added</li>
           <li>{applied.changed} updated</li>
           {source === 'halo' && <li>{applied.completed} marked done</li>}
+          {source === 'halo' && <li>{applied.scored} scores from the gradebook</li>}
           <li>{applied.removed} removed</li>
           <li>{applied.linked} linked with nothing else touched</li>
         </ul>
@@ -262,6 +264,24 @@ export function DiffReview({
                 <div className="meta">
                   <span>mark done as of {when(e.at)}</span>
                   {e.score != null && <span>score {e.score}</span>}
+                </div>
+              </div>
+            </label>
+          ))}
+        </Section>
+      )}
+
+      {source === 'halo' && (
+        <Section title="Grades from the gradebook" count={diff.graded.length} onAll={() => setAll('graded', diff.graded.map((e) => e.key))} onNone={() => setAll('graded', [])}>
+          {diff.graded.map((e) => (
+            <label key={e.key} className="diff-row">
+              <input type="checkbox" checked={sel.graded.has(e.key)} onChange={() => toggle('graded', e.key)} />
+              <div>
+                <div className="title">
+                  {e.title} <CourseChip course={e.course} />
+                </div>
+                <div className="diff-change">
+                  Score: <span className="old">{e.previous == null ? '—' : e.previous}</span> → <mark>{e.score}</mark> / {e.points}
                 </div>
               </div>
             </label>

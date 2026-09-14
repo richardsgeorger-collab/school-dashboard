@@ -1,5 +1,5 @@
 /** What the optional Claude pass produces from a transcript. */
-export type MentionKind = 'new' | 'date_change' | 'cancel' | 'info';
+export type MentionKind = 'new' | 'date_change' | 'cancel' | 'info' | 'grade';
 export type Confidence = 'high' | 'medium' | 'low';
 
 export interface Mention {
@@ -19,6 +19,10 @@ export interface Mention {
   itemId: string | null;
   /** Class this mention is about, when mentions span classes (Halo check). Defaults to the review's class. */
   courseId?: string | null;
+  /** Points earned, for a posted grade. */
+  score?: number | null;
+  /** Where a Halo check line came from, so the review can group by it. */
+  audit?: { status: string; prefix: 'ENG105-PENDING' | 'OLD-SECTION' | null };
 }
 
 export interface LectureNotes {

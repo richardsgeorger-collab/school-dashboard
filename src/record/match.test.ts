@@ -29,6 +29,17 @@ describe('matching a mention to the planner', () => {
 
 describe('proposals', () => {
   const at = (d: string, t = '23:59') => `${d}T${t}:00-07:00`;
+  it('records a posted score, confirms a known one, and sits out the prefixed and schedule lines', () => {
+    const score = proposalFor(mention({ kind: 'grade', title: 'Quiz 2', score: 8, points: 10, audit: { status: 'grade', prefix: null } }), items[0], chm, TZ, '2026-09-14', NOW);
+    expect(score).toEqual({ kind: 'score', item: items[0], score: 8 });
+    const known = proposalFor(mention({ kind: 'grade', title: 'Quiz 2', score: 7, audit: { status: 'grade', prefix: null } }), { ...items[0], score: 7 }, chm, TZ, '2026-09-14', NOW);
+    expect(known.kind).toBe('confirm');
+    expect(proposalFor(mention({ kind: 'grade', title: 'Nothing', score: 7 }), null, chm, TZ, '2026-09-14', NOW).kind).toBe('none');
+    expect(proposalFor(mention({ kind: 'new', title: 'Essay 1', date: '2026-09-20', audit: { status: 'new', prefix: 'ENG105-PENDING' } }), null, chm, TZ, '2026-09-14', NOW)).toMatchObject({ kind: 'none', text: expect.stringContaining('ENG-105') });
+    expect(proposalFor(mention({ kind: 'date_change', title: 'Quiz 2', date: '2026-09-18', audit: { status: 'changed', prefix: 'OLD-SECTION' } }), items[0], chm, TZ, '2026-09-14', NOW).kind).toBe('none');
+    expect(proposalFor(mention({ kind: 'info', title: 'schedule', audit: { status: 'schedule', prefix: null } }), null, chm, TZ, '2026-09-14', NOW)).toMatchObject({ kind: 'none', text: expect.stringContaining('Settings') });
+    expect(proposalFor(mention({ kind: 'info', title: 'Quiz 2', audit: { status: 'overdue', prefix: null } }), items[0], chm, TZ, '2026-09-14', NOW)).toMatchObject({ kind: 'confirm', item: items[0] });
+  });
   it('moves a matched deadline, adds an unmatched one, removes a cancelled one, confirms info', () => {
     const move = proposalFor(mention({ kind: 'date_change', title: 'Quiz 2', date: '2026-09-18' }), items[0], chm, TZ, '2026-09-14', NOW);
     expect(move).toEqual({ kind: 'update', item: items[0], dueAt: at('2026-09-18') });

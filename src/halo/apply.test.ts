@@ -32,7 +32,8 @@ describe('plan and apply', () => {
     expect([...sel.changed]).toEqual(['moved']);
     expect([...sel.missing]).toEqual(['gone']);
     expect([...sel.submitted]).toEqual(['s:turned']);
-    expect(countVisible(sel)).toBe(4);
+    expect([...sel.graded]).toEqual(['g:turned']);
+    expect(countVisible(sel)).toBe(5);
   });
   it('applies the approved plan and leaves manual items alone', () => {
     const plan = planFromDiff(diff, defaultSelection(diff));
@@ -46,6 +47,7 @@ describe('plan and apply', () => {
     expect(turned.status).toBe('done');
     expect(turned.completedAt).toBe('2026-09-10T13:00:00-07:00');
     expect(turned.score).toBe(4);
+    expect(turned.scoreSource).toBe('halo');
     expect(turned.award?.base).toBe(5);
     expect(turned.award?.scoreFactor).toBeCloseTo(0.8);
     expect(byId.get('mine')).toEqual(items[3]);
@@ -56,6 +58,7 @@ describe('plan and apply', () => {
     const sel = defaultSelection(diff);
     sel.missing.clear();
     sel.submitted.clear();
+    sel.graded.clear();
     sel.added.clear();
     const plan = planFromDiff(diff, sel);
     const r = applyHaloPlan(data, plan, () => undefined, NOW, TZ);
@@ -69,5 +72,23 @@ describe('plan and apply', () => {
     const done = mkItem({ id: 'turned', courseId: 'c1', title: 'Lab Safety', status: 'done', completedAt: NOW, award: { base: 5, multiplier: 1.5, earnedAt: NOW, scoreFactor: null } });
     const d = diffHalo(payload, mkData([chm], [done]), { tz: TZ, now: NOW });
     expect(d.submitted.map((s) => s.id)).not.toContain('turned');
+    const plan = planFromDiff(d, defaultSelection(d));
+    const r = applyHaloPlan(mkData([chm], [done]), plan, () => undefined, NOW, TZ);
+    const after = r.data.items.find((i) => i.id === 'turned')!;
+    expect(after.score).toBe(4);
+    expect(after.award?.earnedAt).toBe(NOW);
+    expect(after.completedAt).toBe(NOW);
+  });
+  it('a score approved alone marks the item done without a second approval', () => {
+    const sel = defaultSelection(diff);
+    sel.submitted.clear();
+    const plan = planFromDiff(diff, sel);
+    expect(plan.complete).toEqual([]);
+    expect(plan.scores).toEqual([{ id: 'turned', score: 4, at: '2026-09-10T13:00:00-07:00' }]);
+    const r = applyHaloPlan(data, plan, () => '2026-09-09', NOW, TZ);
+    const turned = r.data.items.find((i) => i.id === 'turned')!;
+    expect(turned.status).toBe('done');
+    expect(turned.score).toBe(4);
+    expect(turned.scoreSource).toBe('halo');
   });
 });

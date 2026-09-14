@@ -9,6 +9,8 @@ export interface HaloPlan {
   upserts: Item[];
   deletes: string[];
   complete: { id: string; at: string; score: number | null }[];
+  /** Posted scores to write, marking the item done if it is not yet. */
+  scores: { id: string; score: number; at: string }[];
 }
 
 export interface Selection {
@@ -16,6 +18,7 @@ export interface Selection {
   changed: Set<string>;
   missing: Set<string>;
   submitted: Set<string>;
+  graded: Set<string>;
 }
 
 export function defaultSelection(diff: HaloDiff): Selection {
@@ -24,6 +27,7 @@ export function defaultSelection(diff: HaloDiff): Selection {
     changed: new Set(diff.changed.map((e) => e.key)),
     missing: new Set(diff.missing.filter((e) => e.suggestRemove).map((e) => e.key)),
     submitted: new Set(diff.submitted.map((e) => e.key)),
+    graded: new Set(diff.graded.map((e) => e.key)),
   };
 }
 
@@ -37,12 +41,13 @@ export function planFromDiff(diff: HaloDiff, sel: Selection): HaloPlan {
     .filter((e) => sel.submitted.has(e.key) && (!e.isNew || ids.has(e.id)))
     .map((e) => ({ id: e.id, at: e.at, score: e.score }));
   const deletes = diff.missing.filter((e) => sel.missing.has(e.key)).map((e) => e.key);
-  return { courses: [...diff.courses.created, ...diff.courses.linked], upserts, deletes, complete };
+  const scores = diff.graded.filter((e) => sel.graded.has(e.key) && (!e.isNew || ids.has(e.id))).map((e) => ({ id: e.id, score: e.score, at: e.at }));
+  return { courses: [...diff.courses.created, ...diff.courses.linked], upserts, deletes, complete, scores };
 }
 
 /** Changes the user will notice: new, updated, removed, marked done. Links and blank fill-ins are not counted. */
 export function countVisible(sel: Selection): number {
-  return sel.added.size + sel.changed.size + sel.missing.size + sel.submitted.size;
+  return sel.added.size + sel.changed.size + sel.missing.size + sel.submitted.size + sel.graded.size;
 }
 
 export function applyHaloPlan(
@@ -72,7 +77,13 @@ export function applyHaloPlan(
     if (c.score != null) done = withScore(done, c.score);
     byId.set(c.id, { ...done, updatedAt: now });
   }
-  const touched = new Set([...plan.upserts.map((u) => u.id), ...plan.complete.map((c) => c.id)].filter((id) => byId.has(id)));
+  for (const s of plan.scores ?? []) {
+    const item = byId.get(s.id);
+    if (!item) continue;
+    const done = item.status === 'done' ? item : completeItem(item, startByOf(s.id) ?? dateOf(s.at, tz), s.at, tz);
+    byId.set(s.id, { ...withScore(done, s.score), scoreSource: 'halo', updatedAt: now });
+  }
+  const touched = new Set([...plan.upserts.map((u) => u.id), ...plan.complete.map((c) => c.id), ...(plan.scores ?? []).map((s) => s.id)].filter((id) => byId.has(id)));
   if (touched.size) ops.push({ kind: 'items', ids: [...touched] });
   for (const id of plan.deletes) ops.push({ kind: 'deleteItem', id, deletedAt: now });
   return { data: { ...data, courses, items: [...byId.values()] }, ops };

@@ -8,6 +8,7 @@ import { IconCheck } from '../components/Icons';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime, weekdayOf } from '../domain/dates';
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
+import { verificationLine } from '../halo/verification';
 import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -461,6 +462,15 @@ export function Now() {
           {syncedAt && syncAge !== null ? (syncAge > 10 ? ` · Assignments last synced ${syncAge} days ago.` : ` · synced ${fmtDate(dateOf(syncedAt, tz), 'short')}`) : updatedAt ? ` · syllabi updated ${fmtDate(dateOf(updatedAt, tz), 'short')}` : ''}
         </span>
       </div>
+
+      {(() => {
+        const v = verificationLine(data.settings.haloChecks, today, tz);
+        return (
+          <p className="verify mono" data-level={v.level}>
+            {v.text}
+          </p>
+        );
+      })()}
 
       <ChatCard />
       {examSheet && exam && <ExamSheet plan={exam} onClose={() => setExamSheet(false)} onOpen={(i) => { setExamSheet(false); setOpen(i); }} />}

@@ -7,7 +7,7 @@ import { LectureReview, type Decision } from './LectureReview';
 
 /** Where the audit results land: paste, read, review. Nothing is saved until each row is approved. */
 export function HaloCheck({ onClose, onHint }: { onClose: () => void; onHint: (text: string) => void }) {
-  const { data, today } = useStore();
+  const { data, today, actions } = useStore();
   const tz = data.settings.timezone;
   const [text, setText] = useState('');
   const [reviewing, setReviewing] = useState(false);
@@ -37,6 +37,7 @@ export function HaloCheck({ onClose, onHint }: { onClose: () => void; onHint: (t
         onDecide={(id, d) => setDecisions((s) => ({ ...s, [id]: d }))}
         onClose={() => {
           clearPendingCheck();
+          actions.recordHaloCheck({ at: new Date().toISOString(), clean: false, findings: parsed.mentions.filter((m) => m.audit?.status !== 'note').length });
           onClose();
         }}
       />
@@ -52,7 +53,7 @@ export function HaloCheck({ onClose, onHint }: { onClose: () => void; onHint: (t
           <p className="hint mono">
             {parsed.allMatch && parsed.mentions.length === 0
               ? 'Halo matches the planner. Nothing to review.'
-              : `${parsed.mentions.length} difference${parsed.mentions.length === 1 ? '' : 's'} read${parsed.same ? `, ${parsed.same} match${parsed.same === 1 ? '' : 'es'}` : ''}${parsed.unread.length ? `, ${parsed.unread.length} line${parsed.unread.length === 1 ? '' : 's'} not understood` : ''}.`}
+              : `${parsed.mentions.length - parsed.unread.length} finding${parsed.mentions.length - parsed.unread.length === 1 ? '' : 's'} read${parsed.same ? `, ${parsed.same} match${parsed.same === 1 ? '' : 'es'}` : ''}${parsed.unread.length ? `, ${parsed.unread.length} line${parsed.unread.length === 1 ? '' : 's'} kept as notes` : ''}${parsed.reported != null && parsed.reported !== parsed.mentions.length - parsed.unread.length ? ` (Claude counted ${parsed.reported})` : ''}.`}
           </p>
         )}
         {parsed && parsed.unread.length > 0 && (
@@ -77,9 +78,24 @@ export function HaloCheck({ onClose, onHint }: { onClose: () => void; onHint: (t
           >
             Not now
           </button>
-          <button type="button" className="btn primary" disabled={!parsed || parsed.mentions.length === 0} onClick={() => setReviewing(true)}>
-            Review
-          </button>
+          {parsed && parsed.allMatch && parsed.mentions.length === 0 ? (
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => {
+                actions.recordHaloCheck({ at: new Date().toISOString(), clean: true, findings: 0 });
+                clearPendingCheck();
+                onHint('Verified against Halo. Clean.');
+                onClose();
+              }}
+            >
+              Record clean check
+            </button>
+          ) : (
+            <button type="button" className="btn primary" disabled={!parsed || parsed.mentions.length === 0} onClick={() => setReviewing(true)}>
+              Review {parsed && parsed.mentions.length > 0 ? `${parsed.mentions.length} finding${parsed.mentions.length === 1 ? '' : 's'}` : ''}
+            </button>
+          )}
         </div>
       </div>
     </Modal>

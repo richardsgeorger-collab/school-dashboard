@@ -54,7 +54,7 @@ export function HaloImport({ payload: initial = null, onClose }: { payload?: Hal
           <DiffReview
             payload={payload}
             source="halo"
-            onApplied={(s) => saveLastSync({ at: new Date().toISOString(), added: s.added, changed: s.changed, removed: s.removed, completed: s.completed })}
+            onApplied={(s) => saveLastSync({ at: new Date().toISOString(), added: s.added, changed: s.changed, removed: s.removed, completed: s.completed + s.scored })}
             onClose={onClose}
           />
         )}

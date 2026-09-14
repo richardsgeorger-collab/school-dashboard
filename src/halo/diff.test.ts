@@ -113,15 +113,24 @@ describe('diffHalo', () => {
       ['gone-done', false],
     ]);
     expect(diff.submitted.map((e) => [e.id, e.isNew, e.score])).toEqual([
-      ['turned', false, 5],
+      ['turned', false, null],
       [haloItemId('h-new-sub'), true, null],
     ]);
     expect(diff.submitted[0].at).toBe('2026-09-10T13:00:00-07:00');
+    expect(diff.graded.map((e) => [e.id, e.score, e.points, e.previous, e.isNew])).toEqual([['turned', 5, 5, null, false]]);
     expect(diff.skipped.map((s) => [s.title, s.reason])).toEqual([
       ['Ungraded Reading', 'worth 0 points'],
       ['Participation', 'no due date'],
     ]);
     expect(diff.untouched.map((i) => i.id)).toEqual(['syll']);
+  });
+  it('reports a posted score only when it differs from what the planner has, even on a done item', () => {
+    const turned = mkItem({ id: 'turned', courseId: 'c1', title: 'Lab Safety', haloId: 'h-turned', status: 'done', score: 5, completedAt: NOW });
+    const p = mkExport([mkClass({ id: 'hc1', courseCode: 'CHM-113', assessments: [mkAssessment({ id: 'h-turned', title: 'Lab Safety', points: 5, status: 'PUBLISHED', score: 5 })] })]);
+    expect(diffHalo(p, mkData([{ ...chm, haloClassId: 'hc1' }], [turned]), opts).graded).toEqual([]);
+    const regraded = mkExport([mkClass({ id: 'hc1', courseCode: 'CHM-113', assessments: [mkAssessment({ id: 'h-turned', title: 'Lab Safety', points: 5, status: 'PUBLISHED', score: 4 })] })]);
+    const g = diffHalo(regraded, mkData([{ ...chm, haloClassId: 'hc1' }], [turned]), opts).graded;
+    expect(g.map((e) => [e.id, e.score, e.previous])).toEqual([['turned', 4, 5]]);
   });
   it('records raw dates for the trust line', () => {
     expect(diff.rawDates[0]).toBe('2026-09-14T06:59:00Z');

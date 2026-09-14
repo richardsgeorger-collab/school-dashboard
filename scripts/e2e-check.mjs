@@ -49,4 +49,21 @@ console.log('prompt saved:', await page.evaluate(() => JSON.parse(localStorage.g
 await page.$$eval('.settings-card .btn', (els) => els.find((e) => e.textContent.trim() === 'Copy full prompt').click());
 await sleep(200);
 console.log('copied custom:', (await page.evaluate(() => navigator.clipboard.readText())).startsWith('My own audit words\n\nMY PLANNER'));
+console.log('history after review:', await t('.settings-card .hint.mono'));
+// ALL MATCH: records a clean check, skips the review, and the receipt shows on Now.
+await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+console.log('verify line before:', await t('.verify'), '|', await page.$eval('.verify', (e) => e.dataset.level));
+await page.evaluate(() => localStorage.setItem('school-dashboard:halo-check', JSON.stringify(new Date().toISOString())));
+await page.reload({ waitUntil: 'networkidle0' });
+await page.click('button[aria-label="Check Halo"]');
+await page.waitForSelector('.modal textarea', { timeout: 5000 });
+await page.$eval('.modal textarea', (el) => { const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(el, 'ALL MATCH'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+await sleep(200);
+console.log('all match read line:', await t('.modal .hint.mono'), '| button:', await t('.modal .btn.primary'));
+await page.$$eval('.modal .btn.primary', (els) => els[0].click());
+await sleep(300);
+console.log('modal closed:', !(await page.$('.modal')), '| checks:', JSON.stringify(await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).settings.haloChecks.map((c) => [c.clean, c.findings]))));
+console.log('verify line after:', await t('.verify'), '|', await page.$eval('.verify', (e) => e.dataset.level));
+await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+console.log('history:', await t('.settings-card .hint.mono'));
 await browser.close();

@@ -8,6 +8,7 @@ import type { Course } from '../domain/types';
 import { icsLocations, icsToExport, parseIcs, suggestCourse, type IcsFile, type IcsLocation } from '../ics/parse';
 import { useStore } from '../storage/store';
 import { DiffReview } from './DiffReview';
+import { HaloImport } from './HaloImport';
 
 const NEW = '__new__';
 
@@ -65,6 +66,7 @@ export function SyncAssignments({ initialFile = null, onClose }: { initialFile?:
   const [newCodes, setNewCodes] = useState<Record<string, string>>({});
   const [step, setStep] = useState<'drop' | 'map' | 'diff'>('drop');
   const [dragging, setDragging] = useState(false);
+  const [showHalo, setShowHalo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const now = useMemo(() => new Date().toISOString(), []);
 
@@ -151,8 +153,21 @@ export function SyncAssignments({ initialFile = null, onClose }: { initialFile?:
               </p>
             )}
             <p className="hint">The export carries no submission status: this never marks anything done or undone, and never touches your notes, estimates, snoozes, or items you added yourself.</p>
+            <div className="sync-grades">
+              <h3 className="section-title">Scores and submissions</h3>
+              <p className="hint">On halo.gcu.edu, press the <b>Sync Halo</b> bookmark. It reads the gradebook and opens this site with every posted score and submission to approve. No typing.</p>
+              <div className="settings-actions">
+                <button type="button" className="btn" onClick={() => setShowHalo(true)}>
+                  Paste a bookmark export
+                </button>
+                <a className="btn" href="#/settings">
+                  Get the bookmark
+                </a>
+              </div>
+            </div>
           </>
         )}
+        {showHalo && <HaloImport onClose={() => setShowHalo(false)} />}
 
         {step === 'map' && file && (
           <>

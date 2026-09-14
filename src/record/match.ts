@@ -69,6 +69,7 @@ export type Proposal =
   | { kind: 'update'; item: Item; dueAt: string }
   | { kind: 'add'; item: Item }
   | { kind: 'remove'; item: Item }
+  | { kind: 'score'; item: Item; score: number }
   | { kind: 'confirm'; item: Item | null; text: string }
   | { kind: 'none'; text: string };
 
@@ -112,6 +113,8 @@ function timeOf(item: Item, tz: string): string {
 }
 
 export function proposalFor(m: Mention, match: Item | null, course: Course, tz: string, lectureDate: DateStr, now: string): Proposal {
+  if (m.audit?.prefix === 'ENG105-PENDING') return { kind: 'none', text: 'ENG-105 is waiting on the section switch. Nothing to do until Halo updates.' };
+  if (m.audit?.prefix === 'OLD-SECTION') return { kind: 'none', text: 'Old Engineering Math section. Ignored.' };
   const dueAt = m.date ? makeIso(m.date, m.time ?? (match ? timeOf(match, tz) : '23:59'), tz) : null;
   const sameDay = match && dueAt ? dateOf(match.dueAt, tz) === dateOf(dueAt, tz) : false;
   switch (m.kind) {
@@ -125,8 +128,14 @@ export function proposalFor(m: Mention, match: Item | null, course: Course, tz: 
       return { kind: 'none', text: 'No date given. Add it by hand if it matters.' };
     case 'cancel':
       return match ? { kind: 'remove', item: match } : { kind: 'none', text: 'Nothing in the planner matches this.' };
+    case 'grade':
+      if (match && m.score != null) return match.score === m.score ? { kind: 'confirm', item: match, text: `${match.label} already has ${m.score}.` } : { kind: 'score', item: match, score: m.score };
+      return { kind: 'none', text: match ? 'No score could be read from this line.' : 'Nothing in the planner matches this, so there is nowhere to put the score.' };
     case 'info':
     default:
+      if (m.audit?.status === 'overdue') return { kind: 'confirm', item: match, text: match ? `Halo flags ${match.label} as overdue.` : 'Halo flags this as overdue; nothing here matches it.' };
+      if (m.audit?.status === 'schedule') return { kind: 'none', text: 'Meeting days or times differ in Halo. Edit the class in Settings if Halo is right.' };
+      if (m.audit?.status === 'note') return { kind: 'none', text: 'Could not read this line. Left here so it is not lost.' };
       if (match && dueAt && !sameDay) return { kind: 'update', item: match, dueAt };
       return { kind: 'confirm', item: match, text: match ? `Matches ${match.label}. Nothing to change.` : 'Nothing to change.' };
   }

@@ -177,7 +177,12 @@ export function findCourse(courses: Course[], c: HaloClass): Course | undefined 
 
 export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz: string; now: string; index: number; stampHalo?: boolean }): Course {
   const stamp = opts.stampHalo !== false;
-  if (existing) return stamp ? { ...existing, haloSlugId: c.slugId, haloClassId: c.id, updatedAt: opts.now } : existing;
+  const names = (c.instructors ?? []).map((n) => n.trim()).filter(Boolean);
+  if (existing) {
+    if (!stamp) return existing;
+    const instructors = existing.instructors.length === 0 && names.length ? names.map((name) => ({ name, email: '' })) : existing.instructors;
+    return { ...existing, haloSlugId: c.slugId, haloClassId: c.id, instructors, updatedAt: opts.now };
+  }
   const code = c.courseCode?.trim() || c.classCode?.trim() || 'CLASS';
   const d = COURSE_DEFAULTS[code.toUpperCase()] ?? {};
   const today = dateOf(opts.now, opts.tz);
@@ -189,7 +194,7 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     name: c.name?.trim() || code,
     color: d.color ?? PALETTE[opts.index % PALETTE.length],
     credits: c.credits ?? 3,
-    instructors: [],
+    instructors: names.map((name) => ({ name, email: '' })),
     meetings: d.meetings ?? [],
     online: d.online ?? (c.modality === 'ONLINE' || c.modality === 'TRADONLINE'),
     haloSlugId: stamp ? c.slugId : null,

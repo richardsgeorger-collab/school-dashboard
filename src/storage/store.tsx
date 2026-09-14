@@ -10,7 +10,8 @@ import { computeSchedule, type Schedule } from '../domain/schedule';
 import { applyHaloPlan, type HaloPlan } from '../halo/apply';
 import { actualStats, calibrate as calibrateItem, withCalibration, type Calibrated } from '../domain/calibration';
 import { applyOnline, bankedAsItems, ledgerWith, logTiming, resetCourseItems } from '../domain/classAdmin';
-import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type Item, type ItemStatus, type Settings } from '../domain/types';
+import { recordCheck } from '../halo/verification';
+import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type HaloCheckRecord, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
 
@@ -40,6 +41,10 @@ export interface StoreActions {
   /** Apply an approved Halo diff. */
   applyHaloSync(plan: HaloPlan): void;
   dismissTimeAsk(): void;
+  /** Write a posted or typed score; marks the item done if it is not. */
+  applyScore(id: string, score: number, source: 'halo' | 'manual'): void;
+  /** Append a Check Halo result. */
+  recordHaloCheck(rec: HaloCheckRecord): void;
   /** Record how long an item really took, on the item and in the ledger. */
   logActual(id: string, minutes: number | null): void;
   /** Delete every item of one class, keeping its earned awards and logged minutes. Returns how many went. */
@@ -375,6 +380,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         for (const itemId of plan.deletedIds) mirror({ kind: 'deleteItem', id: itemId, deletedAt: now });
         mirror({ kind: 'settings' });
         return plan.deletedIds.length;
+      },
+      applyScore(id, score, source) {
+        const now = nowIso();
+        const tz = dataRef.current.settings.timezone;
+        update((d) => ({
+          ...d,
+          items: d.items.map((i) => {
+            if (i.id !== id) return i;
+            const done = i.status === 'done' ? i : completeItem(i, scheduleRef.current.byItem[id]?.startBy ?? todayStr(tz), now, tz);
+            return { ...withScore(done, score), scoreSource: source, updatedAt: now };
+          }),
+        }));
+        mirror({ kind: 'items', ids: [id] });
+      },
+      recordHaloCheck(rec) {
+        update((d) => ({ ...d, settings: { ...d.settings, haloChecks: recordCheck(d.settings.haloChecks, rec), updatedAt: nowIso() } }));
+        mirror({ kind: 'settings' });
       },
       logActual(id, minutes) {
         const now = nowIso();
