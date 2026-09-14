@@ -12,7 +12,7 @@ function fmtChars(n: number): string {
 }
 
 /** One syllabus per class, as text the coach can quote. Reference only; assignments come from the .ics export. */
-export function SyllabusPanel() {
+export function SyllabusPanel({ courseId: onlyCourse }: { courseId?: string } = {}) {
   const { data } = useStore();
   const tz = data.settings.timezone;
   const [docs, setDocs] = useState<Record<string, SyllabusDoc>>({});
@@ -53,12 +53,10 @@ export function SyllabusPanel() {
     await refresh();
   };
 
-  return (
-    <section className="card settings-card">
-      <h2 className="section-title">Syllabi, for the coach</h2>
-      <p className="hint">Drop each class&apos;s syllabus PDF so you can ask things like &ldquo;what&apos;s the late policy for chem&rdquo; and get the line quoted back. Reference only: assignments and dates come from the Halo export, never from here.</p>
-      <ul className="course-list syllabus-list">
-        {data.courses.map((c) => {
+  const rows = (
+    <>
+      <ul className="course-list syllabus-list" data-one={!!onlyCourse}>
+        {data.courses.filter((c) => !onlyCourse || c.id === onlyCourse).map((c) => {
           const d = docs[c.id];
           return (
             <li key={c.id} className="syllabus-row">
@@ -99,6 +97,14 @@ export function SyllabusPanel() {
           {note}
         </p>
       )}
+    </>
+  );
+  if (onlyCourse) return rows;
+  return (
+    <section className="card settings-card">
+      <h2 className="section-title">Syllabi, for the coach</h2>
+      <p className="hint">Drop each class&apos;s syllabus PDF so you can ask things like &ldquo;what&apos;s the late policy for chem&rdquo; and get the line quoted back. Reference only: assignments and dates come from the Halo export, never from here.</p>
+      {rows}
     </section>
   );
 }

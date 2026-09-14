@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CourseChip } from '../components/CourseChip';
+import { InlineTitle } from '../components/InlineTitle';
+import { MoveSelect } from '../components/MoveSelect';
+import { LIBRARY_EVENT, moveMaterial, renameMaterial } from '../library/ingest';
 import { loadApiKey } from '../chat/key';
 import { describeError } from '../chat/client';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
@@ -37,12 +40,13 @@ function probeDuration(file: File): Promise<number> {
   });
 }
 
-export function Record({ embedded = false }: { embedded?: boolean } = {}) {
+export function Record({ embedded = false, courseId: onlyCourse, collapseOver }: { embedded?: boolean; courseId?: string; collapseOver?: number } = {}) {
   const { data, today, courseById } = useStore();
   const tz = data.settings.timezone;
   const support = useMemo(() => detectSupport(), []);
   const rec = useRecorder();
-  const [courseId, setCourseId] = useState(data.courses[0]?.id ?? '');
+  const [courseId, setCourseId] = useState((onlyCourse && onlyCourse !== 'none' ? onlyCourse : null) ?? data.courses[0]?.id ?? '');
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [title, setTitle] = useState('');
   const [showRecorder, setShowRecorder] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -85,6 +89,9 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
       }
       await refresh();
     })();
+    const onChange = () => void refresh();
+    window.addEventListener(LIBRARY_EVENT, onChange);
+    return () => window.removeEventListener(LIBRARY_EVENT, onChange);
   }, [refresh]);
   useEffect(() => {
     if (rec.phase === 'idle') void refresh();
@@ -239,7 +246,8 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
   };
 
   const q = query.trim().toLowerCase();
-  const filtered = q ? list.filter((r) => (transcripts[r.id] ?? '').toLowerCase().includes(q) || r.title.toLowerCase().includes(q)) : list;
+  const scoped = onlyCourse === 'none' ? list.filter((r) => !courseById.has(r.courseId)) : onlyCourse ? list.filter((r) => r.courseId === onlyCourse) : list;
+  const filtered = q ? scoped.filter((r) => (transcripts[r.id] ?? '').toLowerCase().includes(q) || r.title.toLowerCase().includes(q)) : scoped;
   const byCourse = new Map<string, Recording[]>();
   for (const r of filtered) byCourse.set(r.courseId, [...(byCourse.get(r.courseId) ?? []), r]);
   const free = quota ? Math.max(0, quota.quota - quota.usage) : null;
@@ -274,8 +282,10 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
       ))}
 
-      <div className="rec-grid">
-        <section className="card rec-panel">
+      <div className="rec-grid" data-single={!!onlyCourse}>
+        <section className="card rec-panel" data-slim={!!onlyCourse}>
+          {!onlyCourse && (
+            <>
           <h2 className="section-title">Add a lecture recording</h2>
           <p className="hint">Record with Voice Memos on the Mac, then drop the file here. Voice Memos writes its own transcript: copy it from the memo and paste it next to the recording.</p>
           {!pendingFile ? (
@@ -337,6 +347,8 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
             </div>
           )}
 
+            </>
+          )}
           {!recorderVisible ? (
             <p className="hint" style={{ marginTop: 12 }}>
               <button type="button" className="diff-toggle" onClick={() => setShowRecorder(true)}>
@@ -350,16 +362,18 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
                 Record in the browser
               </h3>
               <div className="field-row" style={{ marginTop: 10 }}>
-                <label className="field">
-                  <span>Class</span>
-                  <select value={courseId} onChange={(e) => setCourseId(e.target.value)}>
-                    {data.courses.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.code} {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {!onlyCourse && (
+                  <label className="field">
+                    <span>Class</span>
+                    <select value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+                      {data.courses.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.code} {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label className="field">
                   <span>Title</span>
                   <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={defaultTitle} />
@@ -420,12 +434,17 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
               ? `${fmtBytes(quota.usage)} used of ${fmtBytes(quota.quota)} this browser allows · about ${Math.round(hoursOfAudio(free)).toLocaleString()} more hours at ${BITRATE / 1000} kbps`
               : 'Storage quota unknown.'}
           </p>
-          {list.length === 0 && <p className="hint">No recordings yet.</p>}
-          {[...byCourse.entries()].map(([cid, recs]) => (
+          {scoped.length === 0 && <p className="hint">No recordings yet.</p>}
+          {[...byCourse.entries()].map(([cid, all]) => {
+            const collapsed = !!collapseOver && all.length > collapseOver && !expandedGroups[cid];
+            const recs = collapsed ? all.slice(0, collapseOver) : all;
+            return (
             <div key={cid} className="rec-group">
-              <h3>
-                <CourseChip course={courseById.get(cid)} /> <span className="count">{recs.length}</span>
-              </h3>
+              {!onlyCourse && (
+                <h3>
+                  <CourseChip course={courseById.get(cid)} /> <span className="count">{all.length}</span>
+                </h3>
+              )}
               <ul className="rec-list">
                 {recs.map((r) => {
                   const text = transcripts[r.id];
@@ -436,7 +455,7 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
                     <li key={r.id} className="rec-card" data-status={r.status}>
                       <div className="rec-card-head">
                         <div>
-                          <div className="rec-card-title">{r.title}</div>
+                          <InlineTitle value={r.title} onSave={(v) => void renameMaterial('recording', r.id, v).then(refresh)} />
                           <div className="hint mono">
                             {fmtDate(dateOf(r.startedAt, tz), 'short')} {fmtTime(r.startedAt, tz)} · {r.durationMs ? fmtDuration(r.durationMs) : 'length unknown'} · {r.audioDeleted ? 'audio deleted' : fmtBytes(r.bytes)}
                             {hasTranscript && ` · transcript ${r.transcriptSource === 'pasted' ? 'pasted' : 'from browser speech'}`}
@@ -515,6 +534,7 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
                             Delete
                           </button>
                         )}
+                        <MoveSelect courseId={r.courseId} label={`Move ${r.title} to another class`} onMove={(cid2) => void moveMaterial('recording', r.id, cid2).then(refresh)} />
                       </div>
                       {pasteFor === r.id && (
                         <div className="rec-paste">
@@ -535,9 +555,15 @@ export function Record({ embedded = false }: { embedded?: boolean } = {}) {
                   );
                 })}
               </ul>
+              {collapsed && (
+                <button type="button" className="diff-toggle" onClick={() => setExpandedGroups((g) => ({ ...g, [cid]: true }))}>
+                  Show all {all.length}
+                </button>
+              )}
             </div>
-          ))}
-          {!apiKey && list.length > 0 && <p className="hint">Extracting summaries and dates runs on Claude with your own key, which is not set. Recording and transcripts never need it.</p>}
+            );
+          })}
+          {!apiKey && scoped.length > 0 && <p className="hint">Extracting summaries and dates runs on Claude with your own key, which is not set. Recording and transcripts never need it.</p>}
           <div className="settings-actions" style={{ marginTop: 12 }}>
             <button type="button" className="btn" onClick={previewSample}>
               Preview the review flow with a sample lecture

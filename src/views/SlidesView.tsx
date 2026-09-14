@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CourseChip } from '../components/CourseChip';
+import { InlineTitle } from '../components/InlineTitle';
+import { MoveSelect } from '../components/MoveSelect';
+import { LIBRARY_EVENT, moveMaterial, renameMaterial } from '../library/ingest';
 import { dateOf, fmtDate } from '../domain/dates';
 import { newId } from '../domain/ids';
 import { libraryDb, type Deck, type DeckPage } from '../library/db';
@@ -11,7 +14,7 @@ import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 
 /** Lecture slides per class: drop a PDF or PPTX, keep the text for search and the coach, link it to the day's recording. */
-export function SlidesView() {
+export function SlidesView({ courseId: onlyCourse, collapseOver }: { courseId?: string; collapseOver?: number } = {}) {
   const { data, courseById, today } = useStore();
   const { params } = useRoute();
   const tz = data.settings.timezone;
@@ -19,7 +22,8 @@ export function SlidesView() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [quota, setQuota] = useState<{ usage: number; quota: number } | null>(null);
   const [pending, setPending] = useState<File | null>(null);
-  const [courseId, setCourseId] = useState(data.courses[0]?.id ?? '');
+  const [courseId, setCourseId] = useState((onlyCourse && onlyCourse !== 'none' ? onlyCourse : null) ?? data.courses[0]?.id ?? '');
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [title, setTitle] = useState('');
   const [tag, setTag] = useState('');
   const [date, setDate] = useState(today);
@@ -42,6 +46,9 @@ export function SlidesView() {
   }, []);
   useEffect(() => {
     void refresh();
+    const onChange = () => void refresh();
+    window.addEventListener(LIBRARY_EVENT, onChange);
+    return () => window.removeEventListener(LIBRARY_EVENT, onChange);
   }, [refresh]);
   useEffect(() => {
     if (highlight) document.getElementById(`deck-${highlight}`)?.scrollIntoView({ block: 'center' });
@@ -122,12 +129,14 @@ export function SlidesView() {
     await refresh();
   };
 
+  const scoped = onlyCourse === 'none' ? decks.filter((d) => !courseById.has(d.courseId)) : onlyCourse ? decks.filter((d) => d.courseId === onlyCourse) : decks;
   const byCourse = new Map<string, Deck[]>();
-  for (const d of decks) byCourse.set(d.courseId, [...(byCourse.get(d.courseId) ?? []), d]);
+  for (const d of scoped) byCourse.set(d.courseId, [...(byCourse.get(d.courseId) ?? []), d]);
   const free = quota ? Math.max(0, quota.quota - quota.usage) : null;
 
   return (
-    <div className="rec-grid">
+    <div className="rec-grid" data-single={!!onlyCourse}>
+      {!onlyCourse && (
       <section className="card rec-panel">
         <h2 className="section-title">Add slides</h2>
         <p className="hint">Drop the lecture deck as PDF or PowerPoint. The text is kept for search and for the coach, with slide numbers, so you can ask about slide 12 later.</p>
@@ -213,24 +222,30 @@ export function SlidesView() {
         <p className="hint">PowerPoint files are read directly; pictures, charts, and SmartArt carry no text. If a deck comes out thin, export it as PDF from PowerPoint and drop that instead.</p>
       </section>
 
+      )}
       <section className="card rec-panel">
         <h2 className="section-title">Slides</h2>
         <p className="hint mono">
           {quota && free !== null ? `${fmtBytes(quota.usage)} used of ${fmtBytes(quota.quota)} this browser allows` : 'Storage quota unknown.'} · {decks.length} deck{decks.length === 1 ? '' : 's'}
         </p>
-        {decks.length === 0 && <p className="hint">No slides yet.</p>}
-        {[...byCourse.entries()].map(([cid, list]) => (
+        {scoped.length === 0 && <p className="hint">No slides yet.</p>}
+        {[...byCourse.entries()].map(([cid, all]) => {
+          const collapsed = !!collapseOver && all.length > collapseOver && !expandedGroups[cid];
+          const list = collapsed ? all.slice(0, collapseOver) : all;
+          return (
           <div key={cid} className="rec-group">
-            <h3>
-              <CourseChip course={courseById.get(cid)} /> <span className="count">{list.length}</span>
-            </h3>
+            {!onlyCourse && (
+              <h3>
+                <CourseChip course={courseById.get(cid)} /> <span className="count">{all.length}</span>
+              </h3>
+            )}
             <ul className="rec-list">
               {list.map((d) => {
                 const linked = d.recordingId ? recordings.find((r) => r.id === d.recordingId) : null;
                 const dayRecs = sameDayRecordings(d, recordings, tz);
                 return (
                   <li key={d.id} id={`deck-${d.id}`} className="rec-card deck-card" data-highlight={highlight === d.id}>
-                    <div className="rec-card-title">{d.title}</div>
+                    <InlineTitle value={d.title} onSave={(v) => void renameMaterial('deck', d.id, v).then(refresh)} />
                     <div className="hint mono">
                       {fmtDate(d.date, 'short')} · {d.pages} {d.kind === 'pptx' ? 'slides' : 'pages'} · {d.fileDeleted ? 'file deleted, text kept' : fmtBytes(d.bytes)}
                       {d.tag && ` · ${d.tag}`}
@@ -270,6 +285,7 @@ export function SlidesView() {
                           Delete
                         </button>
                       )}
+                      <MoveSelect courseId={d.courseId} label={`Move ${d.title} to another class`} onMove={(cid2) => void moveMaterial('deck', d.id, cid2).then(refresh)} />
                     </div>
                     {openText?.id === d.id && (
                       <div className="rec-transcript deck-text">
@@ -286,8 +302,14 @@ export function SlidesView() {
                 );
               })}
             </ul>
+            {collapsed && (
+              <button type="button" className="diff-toggle" onClick={() => setExpandedGroups((g) => ({ ...g, [cid]: true }))}>
+                Show all {all.length}
+              </button>
+            )}
           </div>
-        ))}
+          );
+        })}
       </section>
     </div>
   );

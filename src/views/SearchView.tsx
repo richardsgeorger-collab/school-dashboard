@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CourseChip } from '../components/CourseChip';
 import { fmtDate } from '../domain/dates';
 import { libraryDb, type Deck } from '../library/db';
+import { LIBRARY_EVENT } from '../library/ingest';
 import { searchDocs, type SearchDoc } from '../library/search';
 import { recordingsDb } from '../record/db';
 import { syllabiDb } from '../syllabus/db';
@@ -10,12 +11,12 @@ import { useStore } from '../storage/store';
 const KIND = { slide: 'Slides', transcript: 'Recording', syllabus: 'Syllabus' } as const;
 
 /** One box across slides, transcripts, and the syllabus for a class. */
-export function SearchView() {
+export function SearchView({ defaultCourseId, initialQuery }: { defaultCourseId?: string; initialQuery?: string } = {}) {
   const { data, courseById } = useStore();
   const [docs, setDocs] = useState<SearchDoc[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
-  const [courseId, setCourseId] = useState('');
-  const [query, setQuery] = useState('');
+  const [courseId, setCourseId] = useState(defaultCourseId ?? '');
+  const [query, setQuery] = useState(initialQuery ?? '');
   const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
@@ -38,6 +39,9 @@ export function SearchView() {
   }, []);
   useEffect(() => {
     void load();
+    const onChange = () => void load();
+    window.addEventListener(LIBRARY_EVENT, onChange);
+    return () => window.removeEventListener(LIBRARY_EVENT, onChange);
   }, [load]);
 
   const hits = useMemo(() => searchDocs(query, courseId ? docs.filter((d) => d.courseId === courseId) : docs), [query, docs, courseId]);
@@ -46,15 +50,21 @@ export function SearchView() {
   return (
     <section className="card rec-panel search-panel">
       <div className="search-row">
-        <input className="rec-search search-main" type="search" autoFocus placeholder="Search slides, transcripts, syllabi" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search everything" />
-        <select value={courseId} onChange={(e) => setCourseId(e.target.value)} aria-label="Class">
-          <option value="">All classes</option>
-          {data.courses.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.code}
-            </option>
-          ))}
-        </select>
+        <input className="rec-search search-main" type="search" autoFocus={!defaultCourseId} placeholder={defaultCourseId ? 'Search this class' : 'Search slides, transcripts, syllabi'} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search everything" />
+        {defaultCourseId ? (
+          <button type="button" className="btn small" aria-pressed={!courseId} onClick={() => setCourseId(courseId ? '' : defaultCourseId)}>
+            {courseId ? 'Search all classes' : 'This class only'}
+          </button>
+        ) : (
+          <select value={courseId} onChange={(e) => setCourseId(e.target.value)} aria-label="Class">
+            <option value="">All classes</option>
+            {data.courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.code}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <p className="hint mono">
         {loaded ? `${counts.slide} slides · ${counts.transcript} transcripts · ${counts.syllabus} syllabi on file` : 'Loading…'}

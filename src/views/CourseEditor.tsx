@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { deleteMaterials, materialsFor } from '../library/ingest';
 import { Modal } from '../components/Modal';
 import { PALETTE } from '../data/courseDefaults';
 import type { Course, Instructor, Meeting } from '../domain/types';
-import { syllabiDb } from '../syllabus/db';
 import { useStore } from '../storage/store';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -13,6 +13,12 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [mat, setMat] = useState<{ recordings: number; decks: number; syllabus: boolean } | null>(null);
+  useEffect(() => {
+    if (course.code) materialsFor(course.id).then(setMat).catch(() => setMat(null));
+  }, [course.id, course.code]);
+  const matCount = mat ? mat.recordings + mat.decks + (mat.syllabus ? 1 : 0) : 0;
+  const matWords = mat ? [mat.recordings ? `${mat.recordings} recording${mat.recordings === 1 ? '' : 's'}` : '', mat.decks ? `${mat.decks} slide deck${mat.decks === 1 ? '' : 's'}` : '', mat.syllabus ? 'the syllabus' : ''].filter(Boolean).join(', ') : '';
   const set = <K extends keyof Course>(k: K, v: Course[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const setMeeting = (idx: number, patch: Partial<Meeting>) =>
     set(
@@ -126,39 +132,71 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
           <div className="class-admin">
             <h3 className="section-title">This class only</h3>
             <p className="hint">
-              {itemCount} item{itemCount === 1 ? '' : 's'}, {doneCount} done. Resetting or deleting touches this class alone: other classes, your logged times, recordings, notes on other
-              classes, and XP and streaks all stay.
+              {itemCount} item{itemCount === 1 ? '' : 's'}, {doneCount} done{matCount ? `, plus ${matWords} in the Library` : ''}. Resetting or deleting touches this class alone: other classes, your logged times, notes on
+              other classes, and XP and streaks all stay. You choose whether its materials go with it.
             </p>
             <div className="settings-actions">
               {confirmReset ? (
-                <button
-                  type="button"
-                  className="btn danger"
-                  onClick={() => {
-                    const n = actions.resetCourseItems(course.id);
-                    setConfirmReset(false);
-                    setNote(`Deleted ${n} item${n === 1 ? '' : 's'} in ${course.code}. The next sync fills it back in.`);
-                  }}
-                >
-                  Yes, delete {itemCount} item{itemCount === 1 ? '' : 's'} in {course.code}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => {
+                      const n = actions.resetCourseItems(course.id);
+                      setConfirmReset(false);
+                      setNote(`Deleted ${n} item${n === 1 ? '' : 's'} in ${course.code}${matCount ? ', kept its materials' : ''}. The next sync fills it back in.`);
+                    }}
+                  >
+                    Yes, delete {itemCount} item{itemCount === 1 ? '' : 's'}{matCount ? ', keep materials' : ''}
+                  </button>
+                  {matCount > 0 && (
+                    <button
+                      type="button"
+                      className="btn danger"
+                      onClick={() => {
+                        const n = actions.resetCourseItems(course.id);
+                        void deleteMaterials(course.id).then((m) => {
+                          setMat({ recordings: 0, decks: 0, syllabus: false });
+                          setNote(`Deleted ${n} item${n === 1 ? '' : 's'} and ${m} material${m === 1 ? '' : 's'} in ${course.code}.`);
+                        });
+                        setConfirmReset(false);
+                      }}
+                    >
+                      Delete items and {matWords} too
+                    </button>
+                  )}
+                </>
               ) : (
                 <button type="button" className="btn" disabled={itemCount === 0} onClick={() => setConfirmReset(true)}>
                   Reset items
                 </button>
               )}
               {confirmDelete ? (
-                <button
-                  type="button"
-                  className="btn danger"
-                  onClick={() => {
-                    actions.deleteCourse(course.id);
-                    void syllabiDb.remove(course.id).catch(() => undefined);
-                    onClose();
-                  }}
-                >
-                  Yes, delete {course.code} and its {itemCount} item{itemCount === 1 ? '' : 's'}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => {
+                      actions.deleteCourse(course.id);
+                      onClose();
+                    }}
+                  >
+                    Yes, delete {course.code} and its {itemCount} item{itemCount === 1 ? '' : 's'}{matCount ? ', keep materials as Unassigned' : ''}
+                  </button>
+                  {matCount > 0 && (
+                    <button
+                      type="button"
+                      className="btn danger"
+                      onClick={() => {
+                        actions.deleteCourse(course.id);
+                        void deleteMaterials(course.id).catch(() => undefined);
+                        onClose();
+                      }}
+                    >
+                      Delete {course.code}, its items, and {matWords}
+                    </button>
+                  )}
+                </>
               ) : (
                 <button type="button" className="btn" onClick={() => setConfirmDelete(true)}>
                   Delete class

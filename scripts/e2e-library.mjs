@@ -1,12 +1,13 @@
-// Library: drop a PDF and a PPTX as slides, search across sources, feed the coach, link a deck to a recording and to an item, keep text after deleting the file.
+// Library by class: home rows with counts, a top-level drop that asks once, class pages that file drops automatically,
+// move and rename, scoped search with an all-classes toggle, collapsing, delete-or-keep materials, coach materials.
 import fs from 'node:fs';
 import { deflateRawSync } from 'node:zlib';
 import puppeteer from 'puppeteer-core';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 const out = (process.argv[2] ?? 'library.png').replace(/\.png$/, '');
+const dir = out.slice(0, out.lastIndexOf('/') + 1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// A two-page PDF with real text objects.
 function makePdf(pages) {
   const objs = [];
   const add = (s) => (objs.push(s), objs.length);
@@ -39,48 +40,111 @@ function makeZip(files) {
   return Buffer.concat([...parts, cd, eocd]);
 }
 const slideXml = (paras) => `<p:sld xmlns:a="a"><p:cSld>${paras.map((p) => `<p:sp><p:txBody><a:p><a:r><a:t>${p}</a:t></a:r></a:p></p:txBody></p:sp>`).join('')}</p:cSld></p:sld>`;
-const pdfPath = `${out}-Topic3_Stoichiometry.pdf`;
-const pptxPath = `${out}-Week5_GasLaws.pptx`;
-fs.writeFileSync(pdfPath, makePdf([['Stoichiometry basics', 'Mole ratios from balanced equations'], ['Limiting reagent', 'The reactant that runs out first caps the product']]));
-fs.writeFileSync(pptxPath, makeZip([{ name: 'ppt/slides/slide1.xml', text: slideXml(['Gas laws', 'Boyle: pressure times volume is constant']) }, { name: 'ppt/slides/slide2.xml', text: slideXml(['Charles: volume over temperature is constant']) }, { name: 'ppt/slides/slide3.xml', text: slideXml([]) }]));
+const files = {
+  pdf: `${dir}CHM113_Topic3_Stoichiometry.pdf`,
+  pptx: `${dir}CHM113_Week5_GasLaws.pptx`,
+  syl: `${dir}CHM113 syllabus.txt`,
+  wav: `${dir}memo.wav`,
+};
+fs.writeFileSync(files.pdf, makePdf([['Stoichiometry basics', 'Mole ratios from balanced equations'], ['Limiting reagent', 'The reactant that runs out first caps the product']]));
+fs.writeFileSync(files.pptx, makeZip([{ name: 'ppt/slides/slide1.xml', text: slideXml(['Gas laws', 'Boyle: pressure times volume is constant']) }, { name: 'ppt/slides/slide2.xml', text: slideXml(['Charles: volume over temperature is constant']) }]));
+fs.writeFileSync(files.syl, 'CHM-113 General Chemistry I syllabus.\nLate work: 10% per day, nothing after five days.\n' + 'Attendance is expected. '.repeat(20));
+{ const sr = 16000, data = Buffer.alloc(sr * 2), h = Buffer.alloc(44); h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVE', 8); h.write('fmt ', 12); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(sr, 24); h.writeUInt32LE(sr * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40); fs.writeFileSync(files.wav, Buffer.concat([h, data])); }
+const extra = [];
+for (let i = 1; i <= 6; i++) { const p = `${dir}CHM113_Extra${i}.pdf`; fs.writeFileSync(p, makePdf([[`Extra deck ${i} on reaction kinetics`, `Rate laws relate concentration to speed of reaction`], [`Activation energy and the Arrhenius equation`, `Catalysts lower the barrier without being used up`]])); extra.push(p); }
 
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
 const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
-const click = (sel, text) => page.$$eval(sel, (els, text) => { const el = els.find((e) => e.textContent.trim().startsWith(text)); if (!el) throw new Error('no ' + text); el.click(); }, text);
+const rows = () => page.$$eval('.lib-row', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()).join(' || '));
+const upload = async (path) => (await page.$('.lib-drop input[type=file]')).uploadFile(path);
+const waitNote = async (re) => page.waitForFunction((src) => [...document.querySelectorAll('.lib-notes li')].some((li) => new RegExp(src).test(li.textContent)), { timeout: 30000 }, re.source);
 
-await page.goto(`${BASE}#/record`, { waitUntil: 'networkidle0' });
-console.log('alias → library:', page.url().includes('#/record') || page.url().includes('library'), '| title:', await t('.page-title'), '| tabs:', await page.$$eval('.nav-bottom .nav-link', (els) => els.map((e) => e.textContent.trim()).join(' ')));
-await page.goto(`${BASE}#/library?v=slides`, { waitUntil: 'networkidle0' });
-// PDF
-await (await page.$('input[aria-label="Slides file"]')).uploadFile(pdfPath);
-await page.waitForSelector('.rec-import-form', { timeout: 5000 });
-console.log('pdf form title:', await page.$eval('.rec-import-form .field-row input:not([type])', (e) => e.value));
-await page.$eval('.rec-import-form input[placeholder^="Topic 3"]', (el) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'Topic 3'); el.dispatchEvent(new Event('input', { bubbles: true })); });
-await click('.rec-import-form .btn', 'Save slides');
-await page.waitForFunction(() => document.querySelectorAll('.deck-card').length >= 1, { timeout: 30000 });
-console.log('pdf saved:', await t('.rec-panel:first-of-type .hint[style]'));
-// PPTX
-await (await page.$('input[aria-label="Slides file"]')).uploadFile(pptxPath);
-await page.waitForSelector('.rec-import-form', { timeout: 5000 });
-await click('.rec-import-form .btn', 'Save slides');
-await page.waitForFunction(() => document.querySelectorAll('.deck-card').length >= 2, { timeout: 30000 });
-console.log('pptx saved:', await t('.rec-panel:first-of-type .hint[style]'));
-console.log('deck cards:', await page.$$eval('.deck-card .hint.mono', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()).join(' || ')));
-await click('.deck-card .btn', 'Text');
-await sleep(200);
-console.log('deck text:', (await t('.deck-text'))?.slice(0, 120));
-await page.screenshot({ path: `${out}-slides.png`, fullPage: false });
-// Search across sources
-await page.goto(`${BASE}#/library?v=search`, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => /on file/.test(document.querySelector('.search-panel .hint.mono')?.textContent ?? ''), { timeout: 10000 });
-await page.type('.search-main', 'limiting reagent');
+// Home: rows with counts, top-level drop asks once and remembers.
+await page.goto(`${BASE}#/library`, { waitUntil: 'networkidle0' });
+await page.waitForSelector('.lib-row', { timeout: 5000 });
+console.log('home rows:', await rows());
+await upload(files.pdf);
+await page.waitForSelector('.modal select', { timeout: 5000 });
+console.log('asked:', await t('.modal .modal-head h2'), '| suggested:', await page.$eval('.modal select', (e) => e.selectedOptions[0].textContent.trim()), '| remember:', await t('.modal label.hint'));
+await page.$$eval('.modal .btn.primary', (els) => els[0].click());
+await waitNote(/CHM-113: CHM113 Topic3 Stoichiometry/);
+console.log('first note:', await t('.lib-notes li'));
+await upload(files.pptx);
 await sleep(300);
-console.log('search:', await t('.search-panel .hint.mono'), '|', await page.$$eval('.search-hit', (els) => els.map((e) => e.querySelector('.search-hit-head').textContent.replace(/\s+/g, ' ').trim() + ' → ' + e.querySelector('.search-snippet').textContent.trim().slice(0, 60)).join(' || ')));
-await page.screenshot({ path: `${out}-search.png`, fullPage: false });
-// Coach gets a Materials block with the deck index and the picked slide.
+console.log('second asked?', !!(await page.$('.modal')));
+await waitNote(/CHM113 Week5 GasLaws/);
+console.log('remembered:', await t('.lib-notes li'), '| map:', await page.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('school-dashboard:v1')).settings.materialsNameMap)));
+await sleep(300);
+console.log('home rows after:', (await rows()).split(' || ')[0]);
+await page.screenshot({ path: `${out}-home.png`, fullPage: false });
+
+// Class page: drops file automatically; sections; syllabus; rename; move; search scope; collapse.
+await page.$$eval('.lib-row', (els) => els.find((e) => /CHM-113/.test(e.textContent)).click());
+await page.waitForSelector('.lib-class-title', { timeout: 5000 });
+console.log('class page:', await t('.lib-class-title'), '| drop label:', await t('.lib-drop b'));
+await upload(files.wav);
+await waitNote(/Recording saved/);
+await upload(files.syl);
+await waitNote(/Syllabus saved/);
+await sleep(400);
+console.log('sections:', await page.$$eval('.lib-section', (els) => els.map((e) => e.dataset.kind).join(' | ')), '| headings:', await page.$$eval('.lib-section .section-title', (els) => els.map((e) => e.textContent.trim()).join(' | ')));
+console.log('recording:', await t('.lib-section[data-kind="recordings"] .rec-card .inline-title'), '| decks:', await page.$$eval('.lib-section[data-kind="slides"] .deck-card .inline-title', (els) => els.map((e) => e.textContent.trim()).join(' | ')), '| syllabus:', await t('.syllabus-row .syllabus-status'));
+console.log('no class headers inside class page:', !(await page.$('.lib-section .rec-group h3')));
+// rename the stoichiometry deck
+await page.$$eval('.deck-card .inline-title', (els) => els.find((e) => /Stoichiometry/.test(e.textContent)).click());
+await page.waitForSelector('.inline-title-input', { timeout: 3000 });
+await page.$eval('.inline-title-input', (el) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'Stoichiometry lecture'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+await page.keyboard.press('Enter');
+await sleep(400);
+console.log('renamed:', await page.$$eval('.deck-card .inline-title', (els) => els.map((e) => e.textContent.trim()).join(' | ')));
+// scoped search then all classes
+await page.type('.search-main', 'gas laws');
+await sleep(300);
+console.log('search in class:', await t('.search-panel .hint.mono'));
+// move Gas Laws to ESG-162
+const esgId = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'ESG-162').id);
+await page.$$eval('.deck-card', (els, esgId) => { const card = els.find((e) => /GasLaws/.test(e.textContent)); const sel = card.querySelector('select[aria-label^="Move"]'); sel.value = esgId; sel.dispatchEvent(new Event('change', { bubbles: true })); }, esgId);
+await sleep(500);
+console.log('after move, decks here:', await page.$$eval('.lib-section[data-kind="slides"] .deck-card .inline-title', (els) => els.map((e) => e.textContent.trim()).join(' | ')));
+await page.$eval('.search-main', (el) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'gas laws'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+await sleep(300);
+console.log('scoped after move:', await t('.search-panel .hint.mono'));
+await page.$$eval('.search-row .btn', (els) => els[0].click());
+await sleep(300);
+console.log('all classes:', await t('.search-row .btn'), '|', await t('.search-panel .hint.mono'), '|', await t('.search-hit .search-hit-head'));
+// collapse: six more decks → 7 in CHM
+for (const p of extra) { await upload(p); await waitNote(new RegExp(`Extra${p.match(/Extra(\d)/)[1]}`)); }
+await sleep(500);
+console.log('collapsed decks shown:', await page.$$eval('.lib-section[data-kind="slides"] .deck-card', (els) => els.length), '| toggle:', await t('.lib-section[data-kind="slides"] .diff-toggle'));
+await page.$$eval('.lib-section[data-kind="slides"] .diff-toggle', (els) => els.find((e) => /Show all/.test(e.textContent))?.click());
+await sleep(300);
+console.log('expanded decks shown:', await page.$$eval('.lib-section[data-kind="slides"] .deck-card', (els) => els.length));
+await page.screenshot({ path: `${out}-class.png`, fullPage: false });
+// ESG page has the moved deck
+await page.goto(`${BASE}#/library?c=${esgId}`, { waitUntil: 'networkidle0' });
+await sleep(500);
+console.log('ESG decks:', await page.$$eval('.deck-card .inline-title', (els) => els.map((e) => e.textContent.trim()).join(' | ')));
+// Delete ESG-162 keeping materials → Unassigned row → move it back
+await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.$$eval('.course-row', (els) => els.find((e) => /ESG-162(?!L)/.test(e.textContent) && !/Lab/.test(e.textContent)).click());
+await page.waitForSelector('.modal form', { timeout: 5000 });
+await page.waitForFunction(() => /slide deck/.test(document.querySelector('.class-admin .hint')?.textContent ?? ''), { timeout: 5000 });
+console.log('admin text:', await t('.class-admin .hint'));
+await page.$$eval('.modal .btn', (els) => els.find((e) => e.textContent.trim() === 'Delete class').click());
+await sleep(200);
+console.log('delete options:', await page.$$eval('.modal .btn.danger', (els) => els.map((e) => e.textContent.trim()).join(' || ')));
+await page.$$eval('.modal .btn.danger', (els) => els.find((e) => /keep materials/.test(e.textContent)).click());
+await sleep(500);
+await page.goto(`${BASE}#/library`, { waitUntil: 'networkidle0' });
+await page.waitForSelector('.lib-row', { timeout: 5000 });
+console.log('home has Unassigned:', /Unassigned/.test(await rows()));
+await page.$$eval('.lib-row', (els) => els.find((e) => /Unassigned/.test(e.textContent)).click());
+await sleep(600);
+console.log('unassigned page:', await t('.lib-class-title'), '| decks:', await page.$$eval('.deck-card .inline-title', (els) => els.map((e) => e.textContent.trim()).join(' | ')), '| move options:', await page.$eval('.deck-card select[aria-label^="Move"]', (e) => [...e.options].map((o) => o.textContent.trim()).join(',')));
+// Coach still gets materials
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS' };
 const seen = [];
 await page.setRequestInterception(true);
@@ -89,7 +153,7 @@ page.on('request', (req) => {
   if (!url.startsWith('https://api.anthropic.com/')) return req.continue();
   if (req.method() === 'OPTIONS') return req.respond({ status: 204, headers: cors });
   seen.push(JSON.parse(req.postData() ?? '{}'));
-  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'text', text: 'The limiting reagent runs out first (Topic3 Stoichiometry, page 2).' }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
+  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'text', text: 'ok (Stoichiometry lecture, page 2)' }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
 });
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
@@ -97,26 +161,5 @@ await page.type('.chat-input input', 'what did we cover on the limiting reagent'
 await page.$$eval('.chat-input button', (els) => els[0].click());
 await page.waitForFunction(() => document.querySelectorAll('.chat-msg[data-role="assistant"]').length >= 1 && !document.querySelector('.chat-dots'), { timeout: 10000 });
 const mat = seen[0]?.system?.find((b) => b.text.startsWith('Materials:'))?.text ?? '';
-console.log('materials block:', /Decks on file:/.test(mat), '| index has both decks:', /Topic3 Stoichiometry/.test(mat) && /Week5 GasLaws/.test(mat), '| picked slide:', /Stoichiometry · slide 2\]\nLimiting reagent/.test(mat), '| rule:', /cite the deck title and slide number/.test(seen[0].system[0].text));
-// Item link: a CHM-113 item titled with Topic 3 shows the deck.
-await page.goto(`${BASE}#/calendar`, { waitUntil: 'networkidle0' });
-const target = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('school-dashboard:v1')); const chm = s.courses.find((c) => c.code === 'CHM-113'); return s.items.find((i) => i.courseId === chm.id && /topic 3/i.test(i.title))?.label ?? null; });
-console.log('item with Topic 3:', target);
-await page.$$eval('button', (els) => els.find((b) => b.textContent.trim() === 'Agenda')?.click());
-await sleep(300);
-const opened = await page.evaluate((label) => { const el = [...document.querySelectorAll('.item-row .item-main')].find((e) => e.querySelector('.item-title')?.textContent.trim() === label); if (el) el.click(); return !!el; }, target);
-await sleep(400);
-console.log('opened item:', opened, '| slides line:', await page.$$eval('.modal .hint', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()).find((x) => x.startsWith('Slides:')) ?? 'none'));
-await page.keyboard.press('Escape');
-// Delete the PDF file, keep the text: search still finds it.
-await page.goto(`${BASE}#/library?v=slides`, { waitUntil: 'networkidle0' });
-await page.waitForSelector('.deck-card', { timeout: 5000 });
-await page.$$eval('.deck-card', (els) => { const card = els.find((e) => /Stoichiometry/.test(e.textContent)); [...card.querySelectorAll('.btn')].find((b) => b.textContent.trim() === 'Delete file').click(); });
-await sleep(400);
-console.log('after delete file:', await page.$$eval('.deck-card .hint.mono', (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()).find((x) => /Stoichiometry|text kept/.test(x))));
-await page.goto(`${BASE}#/library?v=search`, { waitUntil: 'networkidle0' });
-await page.waitForFunction(() => /on file/.test(document.querySelector('.search-panel .hint.mono')?.textContent ?? ''), { timeout: 10000 });
-await page.type('.search-main', 'mole ratios');
-await sleep(300);
-console.log('search after file delete:', await page.$$eval('.search-hit', (els) => els.length), 'hit(s)');
+console.log('materials block:', /Decks on file:/.test(mat), '| picked:', /Stoichiometry lecture · slide 2\]\nLimiting reagent/.test(mat));
 await browser.close();

@@ -17,15 +17,16 @@ await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
 const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
 const click = (sel, text) => page.$$eval(sel, (els, text) => { const el = els.find((e) => (text.startsWith('=') ? e.textContent.trim() === text.slice(1) : e.textContent.includes(text))); if (!el) throw new Error('no button ' + text); el.click(); }, text);
 
-await page.goto(`${BASE}#/record`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
-await page.reload({ waitUntil: 'networkidle0' });
+const chmId = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113').id);
+await page.goto(`${BASE}#/library?c=${chmId}`, { waitUntil: 'networkidle0' });
 await click('.diff-toggle', 'Record in the browser instead');
-console.log('title:', await t('.page-title'), '| banner:', await t('.rec-banner'));
+console.log('title:', await t('.lib-class-title'), '| banner:', await t('.rec-banner'));
 console.log('quota:', await t('.rec-panel:nth-of-type(2) .hint.mono'));
 
 // 1. Record, flush once, then kill the tab mid-recording.
-await page.type('.rec-panel input[placeholder]', 'E2E lecture one');
+await page.type('.rec-inapp input[placeholder]', 'E2E lecture one');
 await click('.rec-big', 'Record');
 await page.waitForSelector('.rec-stop', { timeout: 10000 });
 for (let i = 0; i < 4; i++) { await sleep(3200); console.log(`  t+${(i + 1) * 3.2}s:`, await t('.rec-live .hint.mono'), '|', await t('.rec-clock')); }
@@ -40,7 +41,7 @@ await click('.diff-toggle', 'Record in the browser instead');
 console.log('kept:', await t('.rec-card .rec-card-title'), '|', await t('.rec-card .hint.mono'));
 
 // 2. Second recording, stopped properly.
-await page.type('.rec-panel input[placeholder]', 'E2E lecture two');
+await page.type('.rec-inapp input[placeholder]', 'E2E lecture two');
 await click('.rec-big', 'Record');
 await page.waitForSelector('.rec-stop', { timeout: 10000 });
 await sleep(11000);
@@ -81,10 +82,11 @@ const wavPath = `${out}-memo.wav`;
   h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVE', 8); h.write('fmt ', 12); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(sr, 24); h.writeUInt32LE(sr * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40);
   fs.writeFileSync(wavPath, Buffer.concat([h, data]));
 }
-await (await page.$('input[type=file][accept^="audio"]')).uploadFile(wavPath);
-await page.waitForSelector('.rec-import-form', { timeout: 5000 });
-console.log('import form:', await t('.rec-import-form .hint.mono'), '| title:', await page.$eval('.rec-import-form input:not([type])', (e) => e.value));
-await click('.rec-import-form .btn', 'Save recording');
+await (await page.$('.lib-drop input[type=file]')).uploadFile(wavPath);
+await page.waitForFunction(() => [...document.querySelectorAll('.lib-notes li')].some((li) => /Recording saved/.test(li.textContent)), { timeout: 20000 });
+await sleep(600);
+console.log('import note:', await t('.lib-notes li'), '| title:', await t('.rec-card:first-child .inline-title'));
+await click('.rec-card:first-child .btn', 'Paste transcript');
 await page.waitForSelector('.rec-paste textarea', { timeout: 5000 });
 console.log('imported card:', await t('.rec-card:first-child .hint.mono'));
 await page.type('.rec-paste textarea', 'Today we cover stoichiometry. The mole links mass to particle count.\n\nOne more thing, the quiz moves to Friday, same format.');

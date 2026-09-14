@@ -3646,3 +3646,64 @@ button {
   background: var(--risk-soft);
   color: var(--risk);
 }
+
+/* ---- Library by class ---- */
+.lib-rows {
+  margin-top: 12px;
+}
+.lib-row {
+  text-decoration: none;
+  color: inherit;
+}
+.lib-drop {
+  margin-top: 16px;
+}
+.lib-notes {
+  margin-top: 8px;
+}
+.lib-class-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.lib-section {
+  margin-top: 18px;
+}
+.lib-section > .section-title {
+  margin-bottom: 8px;
+}
+.rec-grid[data-single='true'] {
+  grid-template-columns: 1fr;
+}
+.rec-panel[data-slim='true'] {
+  padding: 10px 14px;
+}
+.inline-title {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+}
+.inline-title:hover {
+  border-bottom-color: var(--line-strong);
+}
+.inline-title-input {
+  font: inherit;
+  font-weight: 600;
+  padding: 2px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  width: min(100%, 360px);
+}
+.syllabus-list[data-one='true'] .syllabus-row {
+  border-top: 0;
+  padding-top: 0;
+}

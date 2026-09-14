@@ -133,6 +133,8 @@ export interface Settings {
   bankedAwards?: BankedAward[];
   /** Editable template for the Check Halo prompt; the planner's item list is appended when copied. */
   haloAuditPrompt?: string | null;
+  /** First word of a file name → course id, remembered from the Library's top-level drop zone. */
+  materialsNameMap?: Record<string, string>;
   updatedAt: string;
 }
 
