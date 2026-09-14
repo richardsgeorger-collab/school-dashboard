@@ -44,7 +44,7 @@ export function TopBar({ onSync, onCapture, onCheckHalo }: { onSync: () => void;
           <span className="brand-mark" aria-hidden>
             S
           </span>
-          School Dashboard
+          <span className="brand-text">School Dashboard</span>
         </a>
         <nav className="nav-top" aria-label="Primary">
           <Links current={route} />

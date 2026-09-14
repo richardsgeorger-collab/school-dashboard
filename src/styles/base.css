@@ -3707,3 +3707,14 @@ button {
   border-top: 0;
   padding-top: 0;
 }
+@media (max-width: 480px) {
+  .brand-text {
+    display: none;
+  }
+  .topbar-inner {
+    flex-wrap: nowrap;
+  }
+  .topbar-date {
+    gap: 2px;
+  }
+}
