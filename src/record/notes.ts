@@ -17,6 +17,8 @@ export interface Mention {
   confidence: Confidence;
   /** Planner item id when the model matched one from the list it was given. */
   itemId: string | null;
+  /** Class this mention is about, when mentions span classes (Halo check). Defaults to the review's class. */
+  courseId?: string | null;
 }
 
 export interface LectureNotes {

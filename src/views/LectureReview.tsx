@@ -14,7 +14,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 function MentionRow({
   m,
-  course,
+  course: fallback,
   lectureDate,
   decision,
   dryRun,
@@ -27,9 +27,11 @@ function MentionRow({
   dryRun: boolean;
   onDecide: (id: string, d: Decision, applied: string) => void;
 }) {
-  const { data, actions } = useStore();
+  const { data, actions, courseById } = useStore();
   const tz = data.settings.timezone;
   const now = useMemo(() => new Date().toISOString(), []);
+  // A mention can name its own class (Halo check spans classes); otherwise it is the review's class.
+  const course = (m.courseId && courseById.get(m.courseId)) || fallback;
   const match = useMemo(() => matchMention(m, data.items, course.id), [m, data.items, course.id]);
   const base = useMemo(() => proposalFor(m, match, course, tz, lectureDate, now), [m, match, course, tz, lectureDate, now]);
   const initialDue = base.kind === 'update' ? base.dueAt : base.kind === 'add' ? base.item.dueAt : null;
@@ -93,7 +95,7 @@ function MentionRow({
       <div className="rev-kind">
         <span className={`rev-badge kind-${m.kind}`}>{KIND_LABEL[m.kind]}</span>
         <span className="hint">{m.confidence} confidence</span>
-        {match && base.kind !== 'add' && <CourseChip course={course} />}
+        <CourseChip course={course} />
       </div>
       <blockquote className="rev-quote">“{m.quote}”</blockquote>
       <div className="rev-proposal">{proposalLine(base)}</div>

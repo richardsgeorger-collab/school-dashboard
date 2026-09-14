@@ -131,6 +131,8 @@ export interface Settings {
   timings?: TimingEntry[];
   /** Awards of items that were deleted after being done, so XP and streaks survive a reset. */
   bankedAwards?: BankedAward[];
+  /** Editable template for the Check Halo prompt; the planner's item list is appended when copied. */
+  haloAuditPrompt?: string | null;
   updatedAt: string;
 }
 

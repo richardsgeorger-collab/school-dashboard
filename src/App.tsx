@@ -4,6 +4,10 @@ import { TimeAsk } from './components/TimeAsk';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloImport } from './views/HaloImport';
+import { buildAuditPrompt, HALO_URL } from './halo/audit';
+import { pendingCheck, setPendingCheck } from './halo/checkState';
+import { useStore } from './storage/store';
+import { HaloCheck } from './views/HaloCheck';
 import { QuickCapture } from './views/QuickCapture';
 import { SyncAssignments } from './views/SyncAssignments';
 import { useRoute } from './router';
@@ -92,6 +96,44 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
   return over;
 }
 
+/** Check Halo: first press copies the prompt and opens Halo; the next press opens the paste box. */
+function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () => void; onClose: () => void }) {
+  const { data, today } = useStore();
+  const [hint, setHint] = useState<string | null>(null);
+  useEffect(() => {
+    if (!hint) return;
+    const t = setTimeout(() => setHint(null), 9000);
+    return () => clearTimeout(t);
+  }, [hint]);
+  const press = useCallback(() => {
+    if (pendingCheck()) {
+      onOpen();
+      return;
+    }
+    const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, data.settings.timezone, today);
+    void navigator.clipboard?.writeText(prompt).catch(() => undefined);
+    window.open(HALO_URL, '_blank', 'noopener');
+    setPendingCheck();
+    setHint('Copied. Paste this into Claude in Chrome on the Halo tab, then come back and press Check Halo.');
+  }, [data, today, onOpen]);
+  return (
+    <>
+      <CheckHaloPress press={press} />
+      {hint && (
+        <div className="halo-banner" role="status">
+          {hint}
+        </div>
+      )}
+      {open && <HaloCheck onClose={onClose} onHint={setHint} />}
+    </>
+  );
+}
+const checkHaloPress: { current: (() => void) | null } = { current: null };
+function CheckHaloPress({ press }: { press: () => void }) {
+  checkHaloPress.current = press;
+  return null;
+}
+
 function SyncBootstrap() {
   useSupabaseSession();
   return null;
@@ -126,6 +168,7 @@ export default function App() {
   }, []);
   const dragging = useWindowDrop(onFile);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [checkOpen, setCheckOpen] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -140,6 +183,7 @@ export default function App() {
     <StoreProvider>
       <SyncBootstrap />
       <HaloHandoff />
+      <CheckHaloHost open={checkOpen} onOpen={() => setCheckOpen(true)} onClose={() => setCheckOpen(false)} />
       <SyncHost
         open={syncOpen}
         file={syncFile}
@@ -150,7 +194,7 @@ export default function App() {
       />
       {dragging && <div className="drop-overlay">Drop the .ics to sync assignments</div>}
       <div className="app">
-        <TopBar onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} />
+        <TopBar onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} onCheckHalo={() => checkHaloPress.current?.()} />
         {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
         <main className="main">
           <Screen />

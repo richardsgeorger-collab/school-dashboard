@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { fmtDate } from '../domain/dates';
 import { useRoute, type Route } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconPlus, IconRecord, IconSettings, IconSync } from './Icons';
+import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconCheckHalo, IconPlus, IconRecord, IconSettings, IconSync } from './Icons';
 
 const LINKS: { route: Route; label: string; icon: () => ReactElement; mobile: boolean }[] = [
   { route: 'now', label: 'Now', icon: IconNow, mobile: true },
@@ -27,7 +27,7 @@ function Links({ current, mobile = false }: { current: Route; mobile?: boolean }
   );
 }
 
-export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: () => void }) {
+export function TopBar({ onSync, onCapture, onCheckHalo }: { onSync: () => void; onCapture: () => void; onCheckHalo: () => void }) {
   const { route } = useRoute();
   const { today, sync } = useStore();
   const syncTitle = {
@@ -53,6 +53,9 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
           <span className="topbar-day">{fmtDate(today, 'long')}</span>
           <button type="button" className="topbar-gear topbar-sync" onClick={onCapture} title="Quick capture (⌘K)" aria-label="Quick capture">
             <IconPlus />
+          </button>
+          <button type="button" className="topbar-gear topbar-sync" onClick={onCheckHalo} title="Check Halo: copy the audit prompt and open Halo" aria-label="Check Halo">
+            <IconCheckHalo />
           </button>
           <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync assignments from Halo" aria-label="Sync assignments from Halo">
             <IconSync />

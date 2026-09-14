@@ -71,3 +71,9 @@ export const IconSync = () => (
     <path d="M18.5 3.5v4h-4M5.5 20.5v-4h4" />
   </svg>
 );
+export const IconCheckHalo = () => (
+  <svg {...base}>
+    <path d="M4 6h9M4 12h9M4 18h6" />
+    <path d="m14 15 2.5 2.5L21 13" />
+  </svg>
+);

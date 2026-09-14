@@ -7,6 +7,7 @@ import { newId } from '../domain/ids';
 import type { Course } from '../domain/types';
 import { useStore } from '../storage/store';
 import { CourseEditor } from './CourseEditor';
+import { HaloCheckPanel } from './HaloCheckPanel';
 import { HaloImport } from './HaloImport';
 import { HaloPanel } from './HaloPanel';
 import { ImportSyllabus } from './ImportSyllabus';
@@ -64,6 +65,7 @@ export function Settings() {
       <h1 className="page-title">Settings</h1>
       <div className="settings-grid">
         <SyncPanel />
+        <HaloCheckPanel />
         <HaloPanel onPaste={() => setHalo(true)} />
 
         <section className="card settings-card">
