@@ -12,7 +12,7 @@ export function HaloCheck({ onClose, onHint }: { onClose: () => void; onHint: (t
   const [text, setText] = useState('');
   const [reviewing, setReviewing] = useState(false);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
-  const parsed = useMemo(() => (text.trim() ? parseAuditResults(text, data.courses, today, tz) : null), [text, data.courses, today, tz]);
+  const parsed = useMemo(() => (text.trim() ? parseAuditResults(text, data.courses, today) : null), [text, data.courses, today, tz]);
   const course = data.courses.find((c) => c.id === parsed?.mentions[0]?.courseId) ?? data.courses[0];
 
   const again = () => {

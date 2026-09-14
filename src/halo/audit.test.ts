@@ -34,7 +34,7 @@ describe('reading what Claude found', () => {
       '- CHM-113 | Something | weird | 2026-10-01',
       'noise line with no structure',
     ].join('\n');
-    const r = parseAuditResults(text, courses, today, TZ);
+    const r = parseAuditResults(text, courses, today);
     expect(r.allMatch).toBe(false);
     expect(r.same).toBe(1);
     expect(r.unread).toEqual(['CHM-113 | Something | weird | 2026-10-01', 'noise line with no structure']);
@@ -46,10 +46,10 @@ describe('reading what Claude found', () => {
     expect(r.mentions[0].quote).toContain('was 2026-09-25');
   });
   it('accepts loose sentences through the capture parser and recognizes ALL MATCH', () => {
-    const r = parseAuditResults('chem topic 3 quiz moved to sep 27\nALL MATCH', courses, today, TZ);
+    const r = parseAuditResults('chem topic 3 quiz moved to sep 27\nALL MATCH', courses, today);
     expect(r.allMatch).toBe(true);
     expect(r.mentions.length).toBe(1);
     expect(r.mentions[0]).toMatchObject({ kind: 'date_change', courseId: 'chm', date: '2026-09-27' });
-    expect(parseAuditResults('ALL MATCH', courses, today, TZ)).toMatchObject({ allMatch: true, mentions: [], unread: [] });
+    expect(parseAuditResults('ALL MATCH', courses, today)).toMatchObject({ allMatch: true, mentions: [], unread: [] });
   });
 });

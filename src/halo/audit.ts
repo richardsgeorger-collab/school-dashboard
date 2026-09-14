@@ -100,7 +100,7 @@ function courseByCode(code: string, courses: Course[]): Course | null {
  * Claude's answer → mentions for the review screen. Pipe lines are read exactly; other lines go through
  * the quick-capture parser; whatever is left is reported back rather than guessed.
  */
-export function parseAuditResults(text: string, courses: Course[], today: DateStr, tz: string): AuditParse {
+export function parseAuditResults(text: string, courses: Course[], today: DateStr): AuditParse {
   const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: false };
   const lines = text
     .split(/\r?\n/)
