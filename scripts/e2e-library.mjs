@@ -98,7 +98,6 @@ await page.$$eval('.chat-input button', (els) => els[0].click());
 await page.waitForFunction(() => document.querySelectorAll('.chat-msg[data-role="assistant"]').length >= 1 && !document.querySelector('.chat-dots'), { timeout: 10000 });
 const mat = seen[0]?.system?.find((b) => b.text.startsWith('Materials:'))?.text ?? '';
 console.log('materials block:', /Decks on file:/.test(mat), '| index has both decks:', /Topic3 Stoichiometry/.test(mat) && /Week5 GasLaws/.test(mat), '| picked slide:', /Stoichiometry · slide 2\]\nLimiting reagent/.test(mat), '| rule:', /cite the deck title and slide number/.test(seen[0].system[0].text));
-await page.setRequestInterception(false);
 // Item link: a CHM-113 item titled with Topic 3 shows the deck.
 await page.goto(`${BASE}#/calendar`, { waitUntil: 'networkidle0' });
 const target = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('school-dashboard:v1')); const chm = s.courses.find((c) => c.code === 'CHM-113'); return s.items.find((i) => i.courseId === chm.id && /topic 3/i.test(i.title))?.label ?? null; });
