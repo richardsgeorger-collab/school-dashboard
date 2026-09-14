@@ -3718,3 +3718,38 @@ button {
     gap: 2px;
   }
 }
+
+/* Top bar: the icon cluster never stacks; the desktop nav scrolls instead of shoving it. */
+.topbar-date {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.nav-top {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-top::-webkit-scrollbar {
+  display: none;
+}
+.nav-top .nav-link {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@media (max-width: 1099px) {
+  .topbar-day {
+    display: none;
+  }
+}
+@media (min-width: 768px) and (max-width: 999px) {
+  .brand-text {
+    display: none;
+  }
+  .nav-top .nav-link {
+    padding: 0 8px;
+    font-size: 13px;
+  }
+}
