@@ -11,6 +11,7 @@ import { recorder, useRecorder } from '../record/recorder';
 import { SAMPLE_TRANSCRIPT, sampleNotes } from '../record/sample';
 import { summarizeLecture } from '../record/summarize';
 import { detectSupport, BITRATE, FLUSH_MS } from '../record/support';
+import { libraryDb, type Deck } from '../library/db';
 import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
 
@@ -36,7 +37,7 @@ function probeDuration(file: File): Promise<number> {
   });
 }
 
-export function Record() {
+export function Record({ embedded = false }: { embedded?: boolean } = {}) {
   const { data, today, courseById } = useStore();
   const tz = data.settings.timezone;
   const support = useMemo(() => detectSupport(), []);
@@ -49,6 +50,7 @@ export function Record() {
   const [impDragging, setImpDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [list, setList] = useState<Recording[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
   const [interrupted, setInterrupted] = useState<Recording[]>([]);
   const [quota, setQuota] = useState<{ usage: number; quota: number } | null>(null);
   const [query, setQuery] = useState('');
@@ -69,6 +71,7 @@ export function Record() {
     try {
       setList(await recordingsDb.list());
       setQuota(await recordingsDb.estimate());
+      setDecks(await libraryDb.listDecks().catch(() => []));
     } catch (e) {
       setNote(e instanceof Error ? e.message : String(e));
     }
@@ -245,9 +248,11 @@ export function Record() {
 
   return (
     <>
-      <h1 className="page-title">
-        Record <span className="light">lectures</span>
-      </h1>
+      {!embedded && (
+        <h1 className="page-title">
+          Record <span className="light">lectures</span>
+        </h1>
+      )}
 
       {recorderVisible && support.reason && (
         <div className="rec-banner" data-level={support.ok ? 'warn' : 'stop'} role="status">
@@ -439,6 +444,18 @@ export function Record() {
                             {r.status === 'interrupted' && ' · interrupted'}
                             {r.notes && ' · notes ready'}
                           </div>
+                          {decks.some((d) => d.recordingId === r.id) && (
+                            <div className="hint">
+                              Slides:{' '}
+                              {decks
+                                .filter((d) => d.recordingId === r.id)
+                                .map((d) => (
+                                  <a key={d.id} className="diff-toggle" href={`#/library?v=slides&deck=${d.id}`} style={{ marginRight: 8 }}>
+                                    {d.title}
+                                  </a>
+                                ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                       {hits.length > 0 && (

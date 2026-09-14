@@ -42,6 +42,11 @@ export function stripFooters(lines: string[]): string[] {
 
 /** Extract text lines from a PDF. Works in the browser (with worker) and in Node (fake worker). */
 export async function extractLines(data: ArrayBuffer | Uint8Array): Promise<string[]> {
+  return (await extractPages(data)).flatMap((page) => page.split('\n'));
+}
+
+/** Text per page, footers stripped, so a slide can be cited by number. */
+export async function extractPages(data: ArrayBuffer | Uint8Array): Promise<string[]> {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
   if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
     const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
@@ -51,7 +56,7 @@ export async function extractLines(data: ArrayBuffer | Uint8Array): Promise<stri
   const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
   const task = pdfjs.getDocument({ data: bytes });
   const doc = await task.promise;
-  const lines: string[] = [];
+  const pages: string[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
@@ -60,8 +65,8 @@ export async function extractLines(data: ArrayBuffer | Uint8Array): Promise<stri
       if (!('str' in raw)) continue;
       items.push({ str: raw.str, x: raw.transform[4], y: raw.transform[5], width: raw.width });
     }
-    lines.push(...linesFromTextItems(items));
+    pages.push(stripFooters(linesFromTextItems(items)).join('\n'));
   }
   await task.destroy();
-  return stripFooters(lines);
+  return pages;
 }

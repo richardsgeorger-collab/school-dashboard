@@ -77,3 +77,9 @@ export const IconCheckHalo = () => (
     <path d="m14 15 2.5 2.5L21 13" />
   </svg>
 );
+export const IconLibrary = () => (
+  <svg {...base}>
+    <path d="M4 5h4v15H4zM10 5h4v15h-4z" />
+    <path d="m16 6 3.5-1 3.5 13.5-3.5 1z" />
+  </svg>
+);

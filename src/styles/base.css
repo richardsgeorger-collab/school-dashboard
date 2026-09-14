@@ -3558,3 +3558,91 @@ button {
   font-size: 13px;
   color: var(--ink-2);
 }
+
+/* ---- Library ---- */
+.lib-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.deck-card[data-highlight='true'] {
+  border-color: var(--soon);
+  box-shadow: 0 0 0 1px var(--soon) inset;
+}
+.deck-link,
+.deck-tag {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  max-width: 200px;
+}
+.deck-text p {
+  margin: 0 0 10px;
+}
+.search-panel {
+  max-width: 760px;
+}
+.search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.search-main {
+  flex: 1;
+  max-width: none;
+  font-size: 16px;
+  padding: 10px 12px;
+}
+.search-row select {
+  font: inherit;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+}
+.search-hits {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.search-hit {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+}
+.search-hit-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 14px;
+}
+.search-hit-title {
+  font-weight: 600;
+}
+.search-snippet {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.rev-badge.src-slide {
+  background: var(--soon-soft);
+  color: var(--soon);
+}
+.rev-badge.src-transcript {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.rev-badge.src-syllabus {
+  background: var(--risk-soft);
+  color: var(--risk);
+}

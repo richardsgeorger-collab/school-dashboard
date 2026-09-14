@@ -4,6 +4,8 @@ import { describeError, sendChat, type ChatTurn } from './client';
 import { buildContext } from './context';
 import { syllabusContext } from '../syllabus/context';
 import { syllabiDb } from '../syllabus/db';
+import { libraryDb } from '../library/db';
+import { materialsContext } from '../library/retrieve';
 
 const KEY_KEY = 'school-dashboard:anthropic-key';
 const HISTORY_KEY = 'school-dashboard:chat';
@@ -79,12 +81,20 @@ export function ChatCard() {
     setHistory(next);
     const localNotes = [...notes];
     try {
+      let materials = '';
+      try {
+        const [decks, pages] = await Promise.all([libraryDb.listDecks(), libraryDb.allPages()]);
+        materials = materialsContext(userText, decks, pages, data.courses, today);
+      } catch {
+        materials = '';
+      }
       const reply = await sendChat({
         apiKey,
         history,
         userText,
         context: buildContext({ items: data.items, courses: data.courses, settings: data.settings, schedule, derived, nudges, today, notes }),
         syllabi,
+        materials,
         api: {
           items: data.items,
           addNote: (n) => {

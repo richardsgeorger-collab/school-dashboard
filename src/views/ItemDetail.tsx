@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { libraryDb, type Deck } from '../library/db';
+import { decksForItem } from '../library/links';
 import { Modal } from '../components/Modal';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { dateOf, fmtDate, fmtMinutes, makeIso, zonedParts } from '../domain/dates';
@@ -58,6 +60,13 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
 
 export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew?: boolean; onClose: () => void }) {
   const { data, courseById, schedule, actions, today, derived } = useStore();
+  const [decks, setDecks] = useState<Deck[]>([]);
+  useEffect(() => {
+    libraryDb
+      .listDecks()
+      .then((all) => setDecks(decksForItem(item, all)))
+      .catch(() => setDecks([]));
+  }, [item]);
   const inference = derived[item.id];
   const tz = data.settings.timezone;
   const [draft, setDraft] = useState<Draft>(() => {
@@ -292,6 +301,16 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
               }}
             />{' '}
             minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
+          </p>
+        )}
+        {decks.length > 0 && (
+          <p className="hint">
+            Slides:{' '}
+            {decks.map((d) => (
+              <a key={d.id} className="diff-toggle" href={`#/library?v=slides&deck=${d.id}`} style={{ marginRight: 8 }} onClick={onClose}>
+                {d.title} ({fmtDate(d.date, 'short')})
+              </a>
+            ))}
           </p>
         )}
         {item.url && (
