@@ -16,6 +16,9 @@ await page.click('button[aria-label="Check Halo"]');
 await sleep(800);
 console.log('hint:', await t('.halo-banner'));
 console.log('opened tab:', opened.find((u) => u.includes('halo.gcu.edu')) ?? opened.join(','));
+for (const tg of browser.targets()) if (tg.url().includes('halo.gcu.edu')) { const p = await tg.page(); if (p) await p.close(); }
+await page.bringToFront();
+await sleep(300);
 const clip = await page.evaluate(() => navigator.clipboard.readText());
 console.log('clipboard starts:', JSON.stringify(clip.slice(0, 60)), '| has planner list:', /MY PLANNER/.test(clip), '| lines:', clip.split('\n').length, '| sample line:', clip.split('\n').find((l) => /^CHM-113 \|/.test(l)));
 console.log('modal opened on first press:', !!(await page.$('.modal')));
