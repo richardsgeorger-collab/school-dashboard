@@ -28,8 +28,15 @@ export function titleSimilarity(a: string, b: string): number {
   return inter / (A.size + B.size - inter);
 }
 
+/** The audit says this was already handed in. */
+export const saysSubmitted = (m: Mention): boolean => /\b(already )?(submitted|turned in|handed in|completed|done)\b/i.test(m.note ?? '') && !/\b(not( yet)? submitted|unsubmitted|never submitted|not turned in)\b/i.test(m.note ?? '');
+
 /** A finding that gates other work: it names what it unlocks, or its note calls it a prerequisite. */
-export const isGating = (m: Mention): boolean => (m.gates?.length ?? 0) > 0 || /\b(gates?|gating|prerequisite|required before|must be (done|claimed|completed|submitted) before|before (you|the student) can)\b/i.test(m.note ?? '');
+/** A finding that gates other work: it names what it unlocks, its note calls it a prerequisite, or it is a post that claims a topic for later work. */
+export const isGating = (m: Mention): boolean =>
+  (m.gates?.length ?? 0) > 0 ||
+  /\b(gates?|gating|prerequisite|required before|must be (done|claimed|completed|submitted) before|before (you|the student) can)\b/i.test(m.note ?? '') ||
+  /\b(name-claiming|claim(ing)? (your|a|the) [^.]{0,30}topic|pick your [^.]{0,40}topic)\b/i.test(`${m.title} ${m.note ?? ''}`);
 
 /** How alike a mention and an item are, by title or label; 1 is the same words. */
 export function matchScore(m: Mention, item: Item): number {
@@ -147,14 +154,27 @@ export function proposalFor(m: Mention, match: Item | null, course: Course, tz: 
       if (match && dueAt) return sameDay ? { kind: 'confirm', item: match, text: `${match.label} is already due that day.` } : { kind: 'update', item: match, dueAt };
       if (!match && dueAt) return { kind: 'add', item: newItemFrom(m, course, dueAt, lectureDate, now) };
       return { kind: 'none', text: `"${m.title}": no date could be read from this. Nothing to change.` };
-    case 'new':
+    case 'new': {
       if (match) return dueAt && !sameDay ? { kind: 'update', item: match, dueAt } : { kind: 'confirm', item: match, text: `Already in the planner as ${match.label}.` };
-      if (dueAt) return { kind: 'add', item: newItemFrom(m, course, dueAt, lectureDate, now) };
+      const handedIn = saysSubmitted(m);
+      if (handedIn && (m.points ?? 0) === 0) return { kind: 'confirm', item: null, text: `"${m.title}" is a 0-point item already submitted in Halo. Nothing to track.` };
+      // A 0-point item whose date has passed without Halo flagging it late would only sit on Now as a stale row.
+      if ((m.points ?? 0) === 0 && m.date && m.date < lectureDate) return { kind: 'confirm', item: null, text: `"${m.title}" is a 0-point item already past its date, and Halo does not flag it late. Nothing to track.` };
+      if (dueAt) {
+        const fresh = newItemFrom(m, course, dueAt, lectureDate, now);
+        return { kind: 'add', item: handedIn ? { ...fresh, status: 'done', completedAt: dueAt } : fresh };
+      }
       return { kind: 'none', text: `"${m.title}": no date given. Add it by hand if it matters.` };
+    }
     case 'cancel':
       return match ? { kind: 'remove', item: match } : { kind: 'none', text: `"${m.title}": nothing in the planner matches it.` };
     case 'grade':
       if (match && m.score != null) return match.score === m.score ? { kind: 'confirm', item: match, text: `${match.label} already has ${m.score}.` } : { kind: 'score', item: match, score: m.score };
+      // A posted grade for something the planner never had: bring it in done, with its score, so Grades sees it.
+      if (!match && m.score != null && dueAt && (m.points ?? 0) > 0) {
+        const fresh = newItemFrom(m, course, dueAt, lectureDate, now);
+        return { kind: 'add', item: { ...fresh, status: 'done', completedAt: dueAt, score: m.score, scoreSource: 'halo', points: m.points ?? fresh.points } };
+      }
       return { kind: 'none', text: match ? `No score could be read for ${match.label}.` : `"${m.title}"${m.score != null ? ` scored ${m.score}` : ''}: nothing in the planner matches it, so there is nowhere to put the score.` };
     case 'info':
     default:

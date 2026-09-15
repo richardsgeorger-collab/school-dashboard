@@ -1,0 +1,193 @@
+=== CLASS: CHM-113 General Chemistry I-Lecture ===
+
+COVERAGE PLAN — CHM-113 — 14 pages
+
+Calendar (class home)
+Announcements
+Syllabus
+Gradebook
+Discussion Forums
+Class Questions
+Class Resources
+Topic 1
+Topic 2
+Topic 3
+Topic 4
+Topic 5
+Topic 6
+Topic 7
+
+(Skipping per your instructions: Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies — all present, all generic.)
+
+Starting Phase 2 now — visiting Calendar in "ALL" view first to get the full term-long item list, then each nav page in order.
+
+Used Claude in Chrome (48 actions) · 8 notes
+
+VISITED — Calendar, Announcements (6 read), Syllabus, Gradebook, Discussion Forums, Class Questions, Class Resources, Topic 1–7 — all 14 pages, all assessments expanded, all attached PDFs identified (lecture notes only, no rubric attachments with separate dates found on assignments themselves).
+
+=== PHASE 3: REPORT — CHM-113 ===
+
+CHM-113 | Summary of Current Course Content Knowledge | new | 2026-09-08 23:59 | 0 pts, discussion-forum intro item, already submitted Sep 9, not in your planner
+CHM-113 | Class Introductions | new | 2026-09-09 23:59 | 0 pts, discussion-forum intro item, already submitted Sep 9, not in your planner
+CHM-113 | CHM113 Prerequisite Concept Assignment | grade | 2026-09-13 23:59 | 19.66/20 (98.3%) posted — not in your planner list at all
+
+=== PHASE 4: PROVE COVERAGE ===
+COVERAGE — CHM-113 — visited 14 of 14 pages
+Skipped (per your standing exclusion list, all present and generic): Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies.
+No page failed to load. All 25 planner items cross-checked exactly against Gradebook + every Topic page — all dates and points matched with zero discrepancies.
+
+Moving to class 2 of 6 now: CHM-113L General Chemistry I - Lab.
+
+Used Claude in Chrome (5 actions)
+
+=== CLASS: CHM-113L General Chemistry I - Lab ===
+
+COVERAGE PLAN — CHM-113L — 14 pages
+
+Calendar (class home)
+Announcements
+Syllabus
+Gradebook
+Discussion Forums
+Class Questions
+Class Resources
+Topic 1
+Topic 2
+Topic 3
+Topic 4
+Topic 5
+Topic 6
+Topic 7
+
+(Skipping: Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies)
+
+Used Claude in Chrome (66 actions) · 12 notes
+
+=== PHASE 3: REPORT — CHM-113L ===
+
+CHM-113L | Summary of Current Course Content Knowledge | new | 2026-09-08 23:59 | 0 pts, discussion-forum intro item, not in your planner
+CHM-113L | Class Introductions | new | 2026-09-09 23:59 | 0 pts, discussion-forum intro item, submitted Sep 8, not in your planner
+CHM-113L | Chemistry Connections Topic (name-claiming post) | announce | 2026-09-20 23:59 | Ungraded discussion-forum requirement mentioned only in two announcements (Sep 5 & Sep 14) — pick your essay/presentation topic and post it by this date before classmates take it. No separate Halo gradebook entry, not in your planner at all.
+
+=== PHASE 4: PROVE COVERAGE ===
+COVERAGE — CHM-113L — visited 14 of 14 pages
+Skipped (per your standing exclusion list, all present and generic): Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies.
+Opened attachments: Week-1 Worksheet preview (no hidden dates beyond announced), Chemistry Connections Presentation rubric (grading criteria only, no dates). All other lab worksheets/procedures referenced identical dates to what's already in Halo topic pages and announcements — no separate hidden deadlines found.
+No page failed to load (two get_page_text calls timed out on Topic 7 but the page itself loaded fine — verified via screenshot/scroll instead). All 13 planner items cross-checked exactly against Gradebook + every Topic page — zero discrepancies on dates/points.
+
+Moving to class 3 of 6 now: ESG-162L Engineering Math Lab.
+
+Used Claude in Chrome (55 actions) · 5 notes
+
+=== PHASE 3: REPORT — ESG-162L ===
+
+ESG-162L | Summary of Current Course Content Knowledge | overdue | 2026-09-08 23:59 | Halo flags Late (submitted Sep 9, 11:20 AM); 0 pts; not in your planner
+ESG-162L | Class Introductions | overdue | 2026-09-09 23:59 | Halo flags Late (submitted Sep 10, 12:55 PM); 0 pts; not in your planner
+ESG-162L | Effective Scheduling | new | 2026-09-14 23:59 | 50 pts, real graded assignment entirely missing from your planner — already submitted (Sep 9), no score posted yet
+
+One more thing worth flagging even though it's a participation item (normally out of scope): Week 1 Participation is already graded 0/10 (0%), which is why the class currently shows an F. Not a date/planner issue, just flagging since it's a live grade.
+
+=== PHASE 4: PROVE COVERAGE ===
+COVERAGE — ESG-162L — visited 12 of 12 pages
+Skipped (per your standing exclusion list, all present and generic): Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies.
+Opened attachments: Day-2 Lab Instructions PDF/DOCX (3-page CLC template, no hidden dates beyond the Sep 21 already in Halo). Checked the Groups page (new nav item this class has — a group-project board) — no separate assignment dates found there beyond what's on the Topic page.
+No page failed to load. All 10 planner items cross-checked exactly against Gradebook + every Topic page — zero date/point discrepancies.
+
+Moving to class 4 of 6 now: UNV-106 University On-Campus Success.
+
+Used Claude in Chrome (42 actions) · 10 notes
+
+=== PHASE 3: REPORT — UNV-106 ===
+
+UNV-106 | Summary of Current Course Content Knowledge | new | 2026-09-08 23:59 | 0 pts, not in your planner (already submitted, done)
+UNV-106 | Class Introductions | new | 2026-09-09 23:59 | 0 pts, not in your planner (already submitted, done)
+UNV-106 | Topic 1 DQ 1 | grade | 2026-09-09 23:59 | 5/5 (100%) posted — not in your planner (Topic 1 is fully complete already)
+UNV-106 | Topic 1 DQ 2 | grade | 2026-09-11 23:59 | 5/5 (100%) posted — not in your planner
+UNV-106 | Topic 1 Quiz | grade | 2026-09-13 23:59 | 43.19/50 (86.38%) posted — not in your planner
+
+=== PHASE 4: PROVE COVERAGE ===
+COVERAGE — UNV-106 — visited 14 of 14 pages
+Skipped (per your standing exclusion list, all present and generic): Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies.
+No rubric/attachment openings turned up extra dates beyond what Halo's Topic pages and Gradebook already show (checked the Study Guide/Walkthrough doc references — all descriptive, no new deadlines). No page failed to load. All 20 planner items cross-checked exactly against Gradebook + every Topic page — zero discrepancies. The 5 findings above are all Topic 1 items already fully completed before Sep 15 and simply absent from your "open items" planner (which makes sense since they're closed out) — nothing actionable, just flagging per your instructions.
+
+Moving to class 5 of 6 now: ESG-162 Engineering Math (lecture).
+
+Used Claude in Chrome (40 actions) · 8 notes
+
+=== PHASE 3: REPORT — ESG-162 ===
+
+ESG-162 | Software Installation | overdue | 2026-09-13 23:59 | Halo flags Overdue, not submitted. MATLAB/Simulink install task, 0 pts but "counts toward participation points as designated by instructor" — not in your planner at all
+ESG-162 | Academic Plan | new | 2026-09-13 23:59 | 40 pts, real graded assignment entirely missing from your planner — already submitted (Sep 12, early), no score posted yet
+ESG-162 | Topic 1 Review | grade | 2026-09-13 23:59 | 13.67/25 (54.68%) posted — not in your planner. This is the sole graded item so far and is why the class currently shows an F.
+ESG-162 | Summary of Current Course Content Knowledge | new | 2026-09-08 23:59 | 0 pts, not in planner, submitted Sep 12 (4 days after due, but Halo doesn't flag it late)
+ESG-162 | Class Introductions | new | 2026-09-09 23:59 | 0 pts, not in planner, submitted Sep 12 (3 days after due, not flagged late)
+
+=== PHASE 4: PROVE COVERAGE ===
+COVERAGE — ESG-162 — visited 14 of 14 pages
+Skipped (per your standing exclusion list, all present and generic): Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies.
+Read all 12 announcements (mostly resource-attachment dumps and instructor bio — no hidden dates diverging from Halo). All 21 planner items cross-checked exactly against Gradebook + every Topic page — zero date/point discrepancies. No page failed to load.
+
+Moving to the last class: ENG-105-ONL4 English Composition I.
+
+Used Claude in Chrome (71 actions), ran 3 commands · 11 notes
+
+VISITED — Topic 3: Revising a Rhetorical Analysis — 5 items (incl. rubric on Final Draft, 175 pts verified)
+VISITED — Topic 4: Research and Invention for Reviews — 4 items
+VISITED — Topic 5: Revising a Review — 6 items (incl. rubric on Final Draft, 125 pts verified)
+VISITED — Topic 6: Research and Invention for an Op-Ed — 5 items
+VISITED — Topic 7: Writing an Op-Ed — 5 items (incl. rubric on Final Draft, 200 pts verified)
+
+All 7 Topic Max Points (90+60+250+55+200+85+260) sum to 1000, matching the Gradebook header. Every DQ, quiz, and assignment on Topics 3–7 matches Gradebook exactly — no hidden dates in any of the three rubrics opened (Final Draft of Rhetorical Analysis, Final Draft of Review, Final Draft of Op-Ed).
+
+REPORT — ENG-105
+
+Your planner has zero entries for this class, so every non-participation item below is new relative to your planner — that's expected, not a red flag, except where noted.
+
+ENG-105 | Summary of Current Course Content Knowledge | new | 2026-09-14 23:59 | 0pts, submitted late (Sep 15, 1:00 PM) — Halo flags status "Late"
+ENG-105 | Class Introductions | new | 2026-09-16 23:59 | 0pts, not yet submitted
+ENG-105 | Topic 1 DQ 1 | new | 2026-09-16 23:59 | 5pts
+ENG-105 | Topic 1 DQ 2 | new | 2026-09-18 23:59 | 5pts
+ENG-105 | Rhetorical Analysis Pre-writing (Online) | new | 2026-09-20 23:59 | 40pts, requires LopesWrite
+ENG-105 | APA Quiz 1 | new | 2026-09-20 23:59 | 20pts, 1hr limit
+ENG-105 | Topic 2 DQ 1 | new | 2026-09-23 23:59 | 5pts
+ENG-105 | Topic 2 DQ 2 | new | 2026-09-25 23:59 | 5pts
+ENG-105 | First Draft of a Rhetorical Analysis (Online) | new | 2026-09-27 23:59 | 30pts, requires LopesWrite
+ENG-105 | Topic 3 DQ 1 | new | 2026-09-30 23:59 | 5pts
+ENG-105 | Topic 3 DQ 2 | new | 2026-10-02 23:59 | 5pts
+ENG-105 | Review of AI Generated Text (Online) | new | 2026-10-04 23:59 | 25pts, requires LopesWrite
+ENG-105 | APA Quiz 2 | new | 2026-10-04 23:59 | 20pts, 1hr limit
+ENG-105 | Final Draft of a Rhetorical Analysis (Online) | new | 2026-10-07 23:59 | 175pts, rubric total verified 175
+ENG-105 | Topic 4 DQ 1 | new | 2026-10-07 23:59 | 5pts
+ENG-105 | Topic 4 DQ 2 | new | 2026-10-09 23:59 | 5pts
+ENG-105 | First Draft of a Review Assignment (Online) | new | 2026-10-11 23:59 | 25pts, requires LopesWrite
+ENG-105 | Topic 5 DQ 1 | new | 2026-10-14 23:59 | 5pts
+ENG-105 | Topic 5 DQ 2 | new | 2026-10-16 23:59 | 5pts
+ENG-105 | Review Assignment- Self Review (Online) | new | 2026-10-18 23:59 | 25pts, requires LopesWrite
+ENG-105 | APA Quiz 3 | new | 2026-10-18 23:59 | 20pts, 1hr limit
+ENG-105 | Final Draft of a Review Assignment (Online) | new | 2026-10-21 23:59 | 125pts, rubric total verified 125
+ENG-105 | Topic 6 DQ 1 | new | 2026-10-21 23:59 | 5pts
+ENG-105 | Topic 6 DQ 2 | new | 2026-10-23 23:59 | 5pts
+ENG-105 | First Draft of an Op-Ed Assignment (Online) | new | 2026-10-25 23:59 | 30pts, requires LopesWrite
+ENG-105 | Self-Review and Reflection on an Op-ed (Online) | new | 2026-10-25 23:59 | 25pts, requires LopesWrite
+ENG-105 | Topic 7 DQ 1 | new | 2026-10-28 23:59 | 5pts
+ENG-105 | Topic 7 DQ 2 | new | 2026-10-30 23:59 | 5pts
+ENG-105 | Course Reflection (Online) | new | 2026-11-01 23:59 | 30pts, requires LopesWrite
+ENG-105 | Final Draft of an Op-Ed Assignment (Online) | new | 2026-11-01 23:59 | 200pts, rubric total verified 200
+
+30 rows. The one worth your attention above the rest: Summary of Current Course Content Knowledge was due Sep 14 and you submitted it late (Sep 15, 1:00 PM) — Halo has already logged that as "Late" even though it's worth 0 points, consistent with the pattern where intro/diagnostic items get flagged late in some classes but not others.
+
+COVERAGE — ENG-105 — visited 14 of 14 pages
+Skipped (allowed, no dates in any class): Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies.
+
+I have to stop you before I print a FINAL COVERAGE line, and be straight about why.
+
+This session hit a context-length limit partway through the audit and was automatically compacted. Compaction replaced my working memory of CHM-113, CHM-113L, ESG-162L, UNV-106, and ESG-162 with a prose summary — it did not preserve the literal COVERAGE PLAN, VISITED, REPORT, and COVERAGE lines I actually printed for those five classes. I just checked the raw session log directly to see if I could recover them verbatim, and confirmed they aren't recoverable from here — only the summary survived.
+
+That means I can't responsibly print FINAL COVERAGE right now, because I'd be guessing at the "visited x of n pages" and "n findings" numbers for five of the six classes instead of reporting what I actually verified. That's exactly the false confidence you told me not to give you.
+
+Two honest options:
+
+Scroll up in this chat — the actual COVERAGE PLAN, VISITED, REPORT, and COVERAGE output for CHM-113, CHM-113L, ESG-162L, UNV-106, and ESG-162 are still there in full, above the compaction point. You can read the exact per-class coverage lines and finding counts directly from what I already sent, and just take the ENG-105 report above as the sixth. I'm confident in the ENG-105 work above — it was done entirely in this current context, live, with the Gradebook cross-check and every rubric total verified.
+Say the word and I'll re-run Phase 1–4 on those five classes from scratch in this fresh context, so I can give you one single, currently-verified FINAL COVERAGE + END OF FINDINGS line across all six classes with numbers I actually just checked rather than numbers I'm reconstructing from a summary.
+
+I'd lean toward option 2 if you want a single trustworthy final tally — a summary of a summary is precisely the shallow-pass risk you flagged at the start.

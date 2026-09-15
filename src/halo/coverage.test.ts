@@ -78,7 +78,7 @@ describe('a whole-class import is one line and one button', () => {
     expect(judged.filter((j) => j.course.id === 'eng' && j.lane === 'auto').length).toBe(30);
     const lines = needLines(judged, items, TZ);
     expect(lines.some((l) => l.text.includes('ENG-105'))).toBe(false);
-    expect(lines.map((l) => l.text)).toEqual(['ESG-162 Software Installation is overdue and unsubmitted (due Sep 13).']);
+    expect(lines.map((l) => l.text)).toEqual(['ESG-162 Software Installation is overdue and unsubmitted (due Sep 13).', "ESG-162 Topic 1 Review: new, due Sep 12 — not applied because this class's coverage came back incomplete."]);
   });
   it('folds all 30 into one line and one button when the class is held back, never thirty rows', () => {
     const short = parseAuditResults(text.replace('visited 14 of 14 pages', 'visited 12 of 14 pages'), courses, today, courses);

@@ -1,7 +1,7 @@
 import { dateOf, fmtDate } from '../domain/dates';
 import type { AppData, Course, DateStr, Item } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
-import { isNoiseLine, isPageNameLine } from './noise';
+import { CONTENT, isNoiseLine, isPageNameLine } from './noise';
 import { normCode, resolveCourse } from './normalize';
 
 export const HALO_URL = 'https://halo.gcu.edu/';
@@ -294,7 +294,8 @@ const CODE = /\b([A-Z]{2,4}-?\d{3}[A-Z]?)\b/i;
 const DASH = /\s*[—–\-:]+\s*/;
 const FAILED = /\b(fail|failed|couldn.t|can.t reach|unable|didn.t load|not load|error 4\d\d|error)\b/i;
 const STOPPED_LOOSE = /\b(ran out of room|out of room|stopped at|stopping here|resume (from|at|here)|stopped before)\b/i;
-const SKIPPED = /^(skipped|not visited|did not visit|could not visit|unvisited)\b/i;
+const SKIPPED = /^\(?(skipped|skipping|not visited|did not visit|could not visit|unvisited)\b/i;
+const NOT_A_FAILURE = /\bno (page|pages|failures?|errors?|links?)\b[^.]{0,20}\b(failed|fail|error)\b|^\(?no (page|pages|failures?|errors?|links?)\b/i;
 const HEADER = /^(?:=+\s*)?(?:class\s*:\s*|#+\s*)?([A-Z]{2,4}-?\d{3}[A-Z]?)\b\s*([^=|]*?)\s*(?:=+)?\s*$/i;
 
 function readDue(s: string): { date: string | null; time: string | null } {
@@ -377,11 +378,11 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
       continue;
     }
     // "PHASE 3: REPORT — ESG-162L" is often the only header a class gets.
-    const phaseHead = /^(?:=+\s*)?phase\s*\d[^A-Z]*?([A-Z]{2,4}-?\d{3}[A-Z]?)/i.exec(raw);
-    if (phaseHead) {
+    const phaseHead = /^(?:=+\s*)?(?:phase\s*\d\b.*?|report\b\s*[—–\-:]*\s*)([A-Z]{2,4}-?\d{3}[A-Z]?)\b/i.exec(raw);
+    if (phaseHead && !raw.includes('|')) {
       const named = courseByCode(phaseHead[1], courses);
       if (named && named.id !== current) enter(named);
-      if (/phase\s*[34]/i.test(raw)) phase = 'visit';
+      if (/phase\s*[34]|^report/i.test(raw)) phase = 'visit';
       continue;
     }
     if (/^final coverage\b/i.test(raw)) {
@@ -509,11 +510,11 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
       continue;
     }
     if (SKIPPED.test(line)) {
-      section(current, false).skipped.push(line.replace(SKIPPED, '').replace(/^\s*[—–\-:]+\s*/, '').trim() || line);
+      section(current, false).skipped.push(line.replace(SKIPPED, '').replace(/^\s*[—–\-:]+\s*/, '').replace(/\)$/, '').trim() || line);
       continue;
     }
     // A two-part line is a page plus a remark ("Syllabus | page failed to load"), never a finding.
-    if (parts.length === 2 || FAILED.test(line)) {
+    if (parts.length === 2 || (FAILED.test(line) && !NOT_A_FAILURE.test(line))) {
       section(current, false).failed.push(line);
       note(raw);
       continue;
@@ -526,8 +527,9 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
       section(current, false).planPages.push(line);
       continue;
     }
-    // The fallback reads pipe rows only; anything else in prose is kept as a note for the model or the student.
-    note(raw);
+    // The fallback reads pipe rows only. Prose that carries a date, a point value, or a score is kept as a note so it
+    // is not lost; prose without one is narration.
+    if (CONTENT.test(line)) note(raw);
   }
   for (const cc of Object.values(out.classes)) {
     if (cc.plan === null && cc.planPages.length > 0 && cc.visited.length > 0) cc.plan = cc.planPages.length;

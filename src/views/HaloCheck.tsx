@@ -157,7 +157,7 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
     const skipRows = new Set(judged.flatMap((j) => (j.lane === 'auto' ? [] : [j.m.id])));
     const recs: HaloCheckRecord[] = outcomes
       .filter((o) => o.reached && o.outcome)
-      .map((o) => ({ at: new Date().toISOString(), courseId: o.course.id, clean: o.outcome!.clean && (parsed.unread.length ?? 0) === 0, partial: o.outcome!.partial || parsed.unread.length > 0, findings: parsed.mentions.filter((m) => m.courseId === o.course.id && m.audit?.status !== 'note' && skipRows.has(m.id)).length, coverage: o.outcome!.coverage, skipped: o.outcome!.skipped }));
+      .map((o) => ({ at: new Date().toISOString(), courseId: o.course.id, clean: o.outcome!.clean && (parsed.unread.length ?? 0) === 0, partial: o.outcome!.partial, findings: parsed.mentions.filter((m) => m.courseId === o.course.id && m.audit?.status !== 'note' && skipRows.has(m.id)).length, coverage: o.outcome!.coverage, skipped: o.outcome!.skipped }));
     actions.recordHaloChecks(recs);
     if (stopped && remaining.length > 0 && stoppedLabel) setPendingCheck(remaining.map((c) => c.id), { courseIds: remaining.map((c) => c.id), stoppedAt: stoppedLabel });
     else clearPendingCheck();

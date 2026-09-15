@@ -152,18 +152,17 @@ describe('reading an all-classes audit', () => {
     // The class's own line is authoritative: 4 of 4 is complete even when the plan counted 6.
     expect(classifyClass({ courseId: 'chm', plan: 6, planPages: [], visited: [], coverage: { visited: 4, planned: 4 }, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, coverageFrom: 'class', reached: true }, 0, true)).toMatchObject({ clean: true, partial: false, reason: 'All 4 pages visited.' });
   });
-  it('reads pipe rows only: section suffixes resolve, an unreadable class column defaults to the current section, prose is kept as notes', () => {
+  it('reads pipe rows only: section suffixes resolve, an unreadable class column defaults to the current section, prose with a date is kept as a note and narration is dropped', () => {
     const r = parseAuditResults('=== CLASS: CHM-113 ===\n?? | Mystery worksheet | new | 2026-10-01 23:59 | 10 pts\nOLD-SECTION ESG-162 | Homework 2 | changed | 2026-09-22 08:00 | old section\nthis line means nothing\nESG-162-101 | Exam 1 | same\nchem topic 3 quiz moved to sep 27\nESG-162 (Engineering Math) | Homework 3 | rubric | | in Lab3_handout.pdf', courses, today, courses);
     expect(r.source).toBe('pipes');
     expect(r.mentions.map((m) => [m.title, m.courseId, m.audit?.status, m.audit?.prefix])).toEqual([
       ['Mystery worksheet', 'chm', 'new', null],
       ['Homework 2', 'esg', 'changed', 'OLD-SECTION'],
-      ['this line means nothing', 'chm', 'note', null],
       ['chem topic 3 quiz moved to sep 27', 'chm', 'note', null],
       ['Homework 3', 'esg', 'rubric', null],
     ]);
-    expect(r.mentions[4].note).toBe('in Lab3_handout.pdf');
+    expect(r.mentions[3].note).toBe('in Lab3_handout.pdf');
     expect(r.same).toBe(1);
-    expect(r.unread).toEqual(['this line means nothing', 'chem topic 3 quiz moved to sep 27']);
+    expect(r.unread).toEqual(['chem topic 3 quiz moved to sep 27']);
   });
 });

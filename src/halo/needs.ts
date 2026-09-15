@@ -1,6 +1,6 @@
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course, Item } from '../domain/types';
-import { isGating, matchScore, type Proposal } from '../record/match';
+import { isGating, matchScore, saysSubmitted, type Proposal } from '../record/match';
 import type { Mention } from '../record/notes';
 import type { ClassOutcome } from './audit';
 
@@ -30,9 +30,11 @@ export function judge(m: Mention, course: Course, proposal: Proposal, match: Ite
   const classIncomplete = !outcome || !outcome.reached || !outcome.outcome || !outcome.outcome.coverageComplete || outcome.outcome.missingRows;
   if (m.audit?.status === 'note') return { ...base, lane: 'info', why: null };
   if (m.audit?.status === 'schedule') return { ...base, lane: 'needs', why: 'schedule' };
-  if (isGating(m)) return { ...base, lane: 'needs', why: 'gating' };
+  // A posted grade is a grade even on something that gates other work.
+  if (isGating(m) && proposal.kind !== 'score') return { ...base, lane: 'needs', why: 'gating' };
   if (proposal.kind === 'flag') return { ...base, lane: 'needs', why: 'late' };
-  if (m.audit?.status === 'overdue') return { ...base, lane: 'needs', why: 'overdue' };
+  // Halo's late flag on something already handed in is a flag to read, not an overdue item to do.
+  if (m.audit?.status === 'overdue') return { ...base, lane: 'needs', why: saysSubmitted(m) ? 'late' : 'overdue' };
   if (proposal.kind === 'remove') return { ...base, lane: 'needs', why: 'removal' };
   if (proposal.kind === 'confirm' || proposal.kind === 'none') return { ...base, lane: 'info', why: null };
   if (m.confidence === 'low') return { ...base, lane: 'needs', why: 'low' };
@@ -90,7 +92,7 @@ export function needLines(judged: Judged[], items: Item[], tz: string): NeedLine
     for (const group of byClass.values()) {
       const c = group[0].course;
       const zero = group.every((j) => j.m.points === 0);
-      const submitted = group.every((j) => /submitted/i.test(j.m.note ?? j.m.quote));
+      const submitted = group.every((j) => saysSubmitted(j.m));
       if (group.length === 1) {
         const j = group[0];
         out.push({ id: `n${out.length + 1}`, ids: [j.m.id], action: j.proposal.kind === 'flag' ? 'note' : 'none', text: why === 'late' ? `${c.code} ${label(j)} is flagged late in Halo${submitted ? ' even though it was submitted' : ''}${j.m.points === 0 ? ', 0 pts' : ''}.` : `${c.code} ${j.m.title} is overdue and unsubmitted${j.m.date ? ` (due ${fmtDate(j.m.date, 'short')})` : ''}.` });
