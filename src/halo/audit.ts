@@ -1,6 +1,7 @@
 import { dateOf, fmtDate } from '../domain/dates';
 import type { AppData, Course, DateStr, Item } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
+import { isNoiseLine, isPageNameLine } from './noise';
 import { normCode, resolveCourse } from './normalize';
 
 export const HALO_URL = 'https://halo.gcu.edu/';
@@ -198,9 +199,17 @@ export function buildAuditPrompt(template: string | null | undefined, data: AppD
 export const GENERIC_PAGES = ['Mission Statement', 'Doctrinal Statement', 'Library', 'Student Success Center', 'Student AI Resources', 'Learning Support', 'Classroom Policies'];
 const GENERIC_KEYS = GENERIC_PAGES.map((p) => p.toLowerCase());
 export const isGenericPage = (name: string): boolean => {
-  const n = name.toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const n = name.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/\b(generic|institution resources|university wide|gcu wide|same 7|same seven)\b/.test(n)) return true;
   return GENERIC_KEYS.some((k) => n === k || n.startsWith(`${k} `) || n.startsWith(`${k}:`) || (k !== 'library' && n.includes(k)) || (k === 'library' && /^library\b/.test(n)));
 };
+/** How many whitelisted pages a set of skip notes accounts for: the distinct names found, or all seven when the note only says "the generic ones". */
+export function genericAllowance(notes: string[]): number {
+  const text = notes.join(' \n ').toLowerCase();
+  const named = GENERIC_KEYS.filter((k) => text.includes(k)).length;
+  const vague = notes.some((n) => /\b(generic|institution resources|university-wide|gcu-wide|same 7|same seven)\b/i.test(n));
+  return Math.max(named, vague ? GENERIC_PAGES.length : 0);
+}
 
 export type AuditStatus = 'new' | 'changed' | 'missing' | 'grade' | 'overdue' | 'announce' | 'schedule' | 'rubric' | 'same' | 'note';
 export type AuditPrefix = 'ENG105-PENDING' | 'OLD-SECTION';
@@ -217,6 +226,8 @@ export interface ClassCoverage {
   stoppedAt: string | null;
   /** What the FINAL COVERAGE line said for this class, when there was one. */
   verdict: string | null;
+  /** The finding count that line gave, when it gave one ("clean" is 0). */
+  reportedFindings: number | null;
   /** Any header, plan, visit, coverage, or finding was seen for this class. */
   reached: boolean;
 }
@@ -298,7 +309,16 @@ const codeIn = (s: string, courses: Course[]): Course | null => {
   return m ? courseByCode(m[1], courses) : null;
 };
 
-const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reached: false });
+const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, reached: false });
+
+/** "3 findings" → 3, "clean" → 0, anything else → null. */
+export function readVerdictCount(verdict: string | null): number | null {
+  if (!verdict) return null;
+  const m = /(\d+)\s*findings?/i.exec(verdict);
+  if (m) return Number(m[1]);
+  if (/\b(clean|no findings|all match|nothing)\b/i.test(verdict)) return 0;
+  return null;
+}
 
 /**
  * Claude's answer → findings for the review screen plus per-class coverage proof. Pipe lines are read exactly; class
@@ -312,7 +332,7 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
     .map((l) => l.replace(/^[\s\-*•]+|^\d+[.)]\s+/g, '').trim())
     .filter(Boolean);
   let n = 0;
-  let phase: 'plan' | 'visit' | 'after' | 'final' = 'plan';
+  let phase: 'plan' | 'visit' | 'after' | 'final' | 'done' = 'plan';
   let current: string = audited.length === 1 ? audited[0].id : '';
   const section = (id: string, touch = true): ClassCoverage => {
     const key = id || '';
@@ -335,13 +355,21 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
   for (const raw of lines) {
     if (/^all match\b/i.test(raw)) {
       out.allMatch = true;
-      phase = 'after';
+      phase = 'done';
       continue;
     }
     const end = /^end of findings\b[^\d]*(\d+)?/i.exec(raw);
     if (end) {
       if (end[1]) out.reported = Number(end[1]);
-      phase = 'after';
+      phase = 'done';
+      continue;
+    }
+    // "PHASE 3: REPORT — ESG-162L" is often the only header a class gets.
+    const phaseHead = /^(?:=+\s*)?phase\s*\d[^A-Z]*?([A-Z]{2,4}-?\d{3}[A-Z]?)/i.exec(raw);
+    if (phaseHead) {
+      const named = courseByCode(phaseHead[1], courses);
+      if (named && named.id !== current) enter(named);
+      if (/phase\s*[34]/i.test(raw)) phase = 'visit';
       continue;
     }
     if (/^final coverage\b/i.test(raw)) {
@@ -384,10 +412,12 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
           const cc = section(c.id);
           cc.coverage = cc.coverage ?? { visited: Number(fc[2]), planned: Number(fc[3]) };
           cc.verdict = fc[4].trim() || null;
+          cc.reportedFindings = readVerdictCount(cc.verdict);
         }
         continue;
       }
     }
+    if (isNoiseLine(raw)) continue;
     const vis = /^visited\b/i.exec(raw);
     if (vis) {
       const rest = raw.slice(vis[0].length).replace(/^\s*[—–\-:]+\s*/, '');
@@ -431,7 +461,9 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
       const course = resolveCourse(cls, courses) ?? (prefix ? courseByCode(PREFIX_COURSE[prefix], courses) : null) ?? courses.find((c) => c.id === current) ?? audited[0] ?? null;
       if (course) section(course.id);
       const { date, time } = readDue(due);
-      const frac = /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(noteText) ?? /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(due);
+      // A score fraction ("19.66/20"), never a date ("9/9", "9/10 12:55 PM").
+      const fracOf = (s: string) => [...s.matchAll(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/g)].find((f) => f[1].includes('.') || f[2].includes('.') || Number(f[1]) > 12 || Number(f[2]) > 31 || status === 'grade') ?? null;
+      const frac = fracOf(noteText) ?? fracOf(due);
       const pts = /(\d+(?:\.\d+)?)\s*pts?\b/i.exec(noteText) ?? /(\d+(?:\.\d+)?)\s*pts?\b/i.exec(due);
       const kind: MentionKind = auditStatusKind(status, date);
       out.mentions.push({
@@ -441,7 +473,7 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
         title,
         date,
         time,
-        points: frac ? Number(frac[2]) : pts ? Number(pts[1]) : null,
+        points: pts ? Number(pts[1]) : frac ? Number(frac[2]) : null,
         score: status === 'grade' && frac ? Number(frac[1]) : null,
         confidence: course && (date || status === 'missing' || status === 'grade') ? 'high' : 'medium',
         itemId: null,
@@ -469,11 +501,11 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
       note(raw);
       continue;
     }
-    if (phase === 'after') {
+    if (phase === 'after' && isPageNameLine(line)) {
       section(current, false).skipped.push(line);
       continue;
     }
-    if (phase === 'plan') {
+    if (phase === 'plan' && (isPageNameLine(line) || line.length < 60)) {
       section(current, false).planPages.push(line);
       continue;
     }
@@ -513,15 +545,17 @@ export interface CheckOutcome {
 export function classifyClass(cc: ClassCoverage, findings: number, allMatch: boolean): CheckOutcome {
   const cov = cc.coverage;
   const named = [...cc.skipped, ...cc.failed.filter((f) => !cc.skipped.includes(f))];
-  const generic = named.filter(isGenericPage).length;
+  const generic = genericAllowance(named.filter(isGenericPage));
   const skipped = named.filter((s) => !isGenericPage(s));
   // Pages on the whitelist may be the whole gap between visited and planned; that gap is not a gap.
   const gap = cov ? cov.planned - cov.visited : 0;
   const short = cov ? gap > generic || (cc.plan !== null && cov.planned < cc.plan - generic) : true;
-  const partial = short || skipped.length > 0 || cc.stoppedAt !== null;
+  const missingRows = cc.reportedFindings !== null && findings < cc.reportedFindings;
+  const partial = short || skipped.length > 0 || cc.stoppedAt !== null || missingRows;
   const clean = (allMatch || findings === 0) && findings === 0 && !partial;
   let reason: string;
   if (cc.stoppedAt) reason = `Stopped early at ${cc.stoppedAt}.`;
+  else if (missingRows) reason = `The final summary counts ${cc.reportedFindings} finding${cc.reportedFindings === 1 ? '' : 's'} for this class, but only ${findings} ${findings === 1 ? 'was' : 'were'} read. Its report section may be missing from the paste.`;
   else if (!cov) reason = 'No coverage count, so this cannot count as a full check.';
   else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages${cc.plan !== null && cov.planned < cc.plan ? ` (planned ${cc.plan})` : ''}.`;
   else if (skipped.length) reason = `All ${cov.planned} pages counted, but ${skipped.length} named as skipped or failed.`;

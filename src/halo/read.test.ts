@@ -49,7 +49,7 @@ describe('the model’s reading, shaped into a parse', () => {
     expect(p.order).toEqual(['chm', 'eng', 'esgl']);
     expect(p.classes.chm.coverage).toEqual({ visited: 11, planned: 11 });
     expect(p.classes.eng.coverage).toEqual({ visited: 8, planned: 9 });
-    expect(p.classes.eng.skipped).toEqual(['Course materials — link timed out']);
+    expect(p.classes.eng.skipped).toEqual(['Course materials — link timed out', 'Mission Statement', 'Classroom Policies']);
     expect(p.classes.esgl.coverage).toBeNull();
     expect(p.classes.esgl.stoppedAt).toBe('Topic 3');
     expect(p.stopped).toEqual({ courseId: 'esgl', page: 'Topic 3' });
@@ -73,7 +73,7 @@ describe('the model’s reading, shaped into a parse', () => {
     const o = auditOutcomes(p, courses);
     expect(o.map((x) => [x.course.code, x.reached, x.findings, x.outcome?.partial, x.outcome?.reason])).toEqual([
       ['CHM-113', true, 2, false, 'Every one of 11 planned pages visited.'],
-      ['ENG-105', true, 1, true, 'Visited 8 of 9 pages.'],
+      ['ENG-105', true, 1, true, 'All 9 pages counted, but 1 named as skipped or failed.'],
       ['ESG-162L', true, 2, true, 'Stopped early at Topic 3.'],
     ]);
   });

@@ -1,7 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Course, DateStr } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
-import { auditStatusKind, isGenericPage, type AuditParse, type AuditStatus, type ClassCoverage } from './audit';
+import { auditStatusKind, type AuditParse, type AuditStatus, type ClassCoverage } from './audit';
+import { isCoverageLine, isNoiseLine, isPageNameLine } from './noise';
 import { resolveCourse } from './normalize';
 
 /** Same model as the coach and the lecture pass. */
@@ -25,7 +26,7 @@ export const READ_TOOL = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['code', 'planned_pages', 'visited_pages', 'coverage_visited', 'coverage_planned', 'skipped', 'stopped_at', 'notes'],
+          required: ['code', 'planned_pages', 'visited_pages', 'coverage_visited', 'coverage_planned', 'skipped', 'stopped_at', 'reported_findings', 'notes'],
           properties: {
             code: { type: 'string', description: 'The planner class code exactly as listed, e.g. "ENG-105", never a section like "ENG-105-ONL4".' },
             planned_pages: { type: ['integer', 'null'], description: 'From the COVERAGE PLAN line, if any.' },
@@ -34,6 +35,7 @@ export const READ_TOOL = {
             coverage_planned: { type: ['integer', 'null'], description: 'n from that line, if stated.' },
             skipped: { type: 'array', items: { type: 'string' }, description: 'Pages the audit said it skipped, failed to load, or could not reach, with the reason. Not the generic GCU pages it was told it may skip.' },
             stopped_at: { type: ['string', 'null'], description: 'The page where the audit said it ran out of room in this class, if it did.' },
+            reported_findings: { type: ['integer', 'null'], description: 'The finding count the audit itself stated for this class (a FINAL COVERAGE line like "ESG-162 — 3 findings"), so a missing report section can be caught. Null when it never said.' },
             notes: { type: 'string', description: 'Anything else worth knowing about this class’s coverage, one short line, or empty.' },
           },
         },
@@ -108,7 +110,7 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: o.all_match === true, reported: null, classes: {}, order: [], stopped: null, source: 'claude' };
   const section = (id: string): ClassCoverage => {
-    if (!out.classes[id]) out.classes[id] = { courseId: id, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reached: true };
+    if (!out.classes[id]) out.classes[id] = { courseId: id, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, reached: true };
     if (!out.order.includes(id)) out.order.push(id);
     return out.classes[id];
   };
@@ -123,9 +125,11 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
     const cv = int(e.coverage_visited);
     const cp = int(e.coverage_planned);
     if (cv !== null && cp !== null) cc.coverage = { visited: cv, planned: cp };
-    cc.skipped.push(...strs(e.skipped).filter((s) => !isGenericPage(s)));
+    cc.skipped.push(...strs(e.skipped));
     const stoppedAt = str(e.stopped_at);
     if (stoppedAt) cc.stoppedAt = stoppedAt;
+    const reported = int(e.reported_findings);
+    if (reported !== null) cc.reportedFindings = reported;
     const notes = str(e.notes);
     if (notes) cc.verdict = notes;
   }
@@ -179,9 +183,6 @@ export async function readAudit(args: ReadArgs & { apiKey: string; audited?: Cou
 
 export type LineKind = 'finding' | 'coverage' | 'header' | 'noise' | 'unknown';
 
-const NARRATION = /^(used claude in chrome|clicked|navigated|scrolled|reading|opening|opened|checking|checked|looking|let me|i'll|i will|i'm|i am|i (have|audited|opened|read|checked|visited|went|found|listed|expanded|scrolled|see)|now (i|let|checking|moving|on)|next,?|moving on|starting|done with|finished|here (is|are)|this class|okay|ok,|good[,.]|great[,.]|all (of the|the) (pages|topics)|nothing (new|else|different) (here|on this page|in this)|no (new|other) (items|findings|differences)|that('s| is) (all|it|everything)|continuing|proceeding|the (page|class) (loaded|shows)|expanding|visiting|going to|summary:?$)/i;
-const PAGE_NAME = /^[-•*]?\s*(topic|module|week|unit|gradebook|grades?|announcements?|syllabus|course (materials|resources|home)|class (home|calendar|policies)|resources|home(page)?|calendar|library|mission statement|doctrinal statement|student (success center|ai resources)|learning support|discussion forums?|assignments?|quizzes|files|people|attendance)\b/i;
-
 /** Each line of the paste labeled by whether the reader used it, for the "what was and wasn't recognized" view. */
 export function markLines(text: string, parse: AuditParse): { line: string; kind: LineKind }[] {
   const quotes = parse.mentions.filter((m) => m.audit?.status !== 'note').map((m) => m.quote.toLowerCase().replace(/\s+/g, ' ').trim());
@@ -192,9 +193,8 @@ export function markLines(text: string, parse: AuditParse): { line: string; kind
     .map((raw) => {
       const line = raw.trim();
       const norm = line.toLowerCase().replace(/\s+/g, ' ');
-      if (!line || /^[-=_*#~.\s]+$/.test(line)) return { line: raw, kind: 'noise' as LineKind };
-      if (/\(\d+ actions?\)/i.test(line)) return { line: raw, kind: 'noise' };
-      if (/^(=+\s*)?(class\s*:|phase \d|=== |rules)/i.test(line) || /^#+\s/.test(line) || /^[A-Z]{2,4}-?\d{3}[A-Z]?(-[A-Z0-9]+)?\s*[:—–-]?\s*[A-Za-z ]*$/.test(line)) {
+      if (!line || /^[-=_*#~.\s]+$/.test(line) || /\(\d+ actions?\)/i.test(line)) return { line: raw, kind: 'noise' as LineKind };
+      if (/^(=+\s*)?(class\s*:|phase\s*\d|=== |rules)/i.test(line) || /^#+\s/.test(line) || /^[A-Z]{2,4}-?\d{3}[A-Z]?(-[A-Z0-9]+)?\s*[:—–-]?\s*[A-Za-z ]*$/.test(line)) {
         inPlan = false;
         return { line: raw, kind: 'header' };
       }
@@ -202,19 +202,20 @@ export function markLines(text: string, parse: AuditParse): { line: string; kind
         inPlan = true;
         return { line: raw, kind: 'coverage' };
       }
-      if (/^(coverage|visited|stopped|final coverage|all match|end of findings|skipped|not visited)\b/i.test(line)) {
+      if (isCoverageLine(line)) {
         inPlan = false;
         return { line: raw, kind: 'coverage' };
       }
-      if (quotes.some((q) => q.length > 12 && (norm.includes(q) || q.includes(norm)))) {
+      if (inPlan && isPageNameLine(line) && line.length < 80) return { line: raw, kind: 'coverage' };
+      if (quotes.some((q) => q.length > 12 && (norm.includes(q) || (norm.length >= 24 && q.includes(norm))))) {
         inPlan = false;
         return { line: raw, kind: 'finding' };
       }
       if ((line.match(/\|/g) ?? []).length >= 2) return { line: raw, kind: 'finding' };
       if (unread.some((u) => u.length > 8 && (norm.includes(u) || u.includes(norm)))) return { line: raw, kind: 'unknown' };
-      if (inPlan && PAGE_NAME.test(line) && line.length < 80) return { line: raw, kind: 'coverage' };
-      if (PAGE_NAME.test(line) && line.length < 40 && !/\d{1,2}\/\d{1,2}|\d{4}-\d{2}|due|pts|points|late|missing|new/i.test(line)) return { line: raw, kind: 'coverage' };
-      if (NARRATION.test(line) && !/\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2}|\b(due|pts|points|late|missing|overdue|changed|graded?|score)\b/i.test(line)) return { line: raw, kind: 'noise' };
+      if (inPlan && isPageNameLine(line) && line.length < 80) return { line: raw, kind: 'coverage' };
+      if (isPageNameLine(line) && line.length < 40 && !/\d{1,2}\/\d{1,2}|\d{4}-\d{2}|due|pts|points|late|missing|new/i.test(line)) return { line: raw, kind: 'coverage' };
+      if (isNoiseLine(line)) return { line: raw, kind: 'noise' };
       return { line: raw, kind: 'unknown' };
     });
 }
