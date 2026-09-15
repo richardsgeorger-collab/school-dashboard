@@ -11,6 +11,14 @@ import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { checkDue, verificationLine } from '../halo/verification';
 import { checkHaloPress } from '../halo/checkState';
 import { paceLine, riskLine } from '../domain/pace';
+import { pileupAhead } from '../domain/pileup';
+import { submissionCheck } from '../domain/confirm';
+import { okayPress } from './Okay';
+import { nextStep, stepProgress, isMilestoneWork } from '../work/steps';
+import { sessionTopics, topicBlocks, type SessionTopic } from '../domain/examTopics';
+import { libraryDb } from '../library/db';
+import { weakSpots } from '../domain/weak';
+import { QuizLink } from './Quiz';
 import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '../domain/away';
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
@@ -162,6 +170,14 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
         {item.status === 'in_progress' && <span className="flag">in progress</span>}
       </p>
       {!done && <p className="hero-why">{reason}</p>}
+      {!done && isMilestoneWork(item) && item.steps && item.steps.length > 0 && (
+        <p className="hero-steps mono">
+          <span className="work-steps-bar" aria-hidden>
+            <span style={{ width: `${(stepProgress(item.steps) ?? 0) * 100}%` }} />
+          </span>
+          {nextStep(item.steps) ? `Next: ${nextStep(item.steps)!.label}` : 'All steps done'}
+        </p>
+      )}
       {chunk && (
         <p className="hero-chunk">
           <span>{chunk.text}</span>
@@ -313,6 +329,31 @@ function ExamSheet({ plan, onClose, onOpen }: { plan: ExamPlan; onClose: () => v
   );
 }
 
+/** Which slides each study session should open: weak ground first, the rest in order, practice on every one. */
+function useExamTopics(plan: ExamPlan | null, stats: Record<string, import('../domain/types').QuizStat> | undefined, items: Item[]): SessionTopic[] {
+  const [topics, setTopics] = useState<SessionTopic[]>([]);
+  const key = plan ? `${plan.exam.id}:${plan.sessions.length}` : '';
+  useEffect(() => {
+    if (!plan) {
+      setTopics([]);
+      return;
+    }
+    let live = true;
+    Promise.all([libraryDb.listDecks(), libraryDb.allPages()])
+      .then(([decks, pages]) => {
+        if (!live) return;
+        const weak = weakSpots(plan.exam.courseId, items).map((w) => w.item.title);
+        setTopics(sessionTopics(plan.sessions.length, topicBlocks(plan.exam.courseId, decks, pages, stats, weak)));
+      })
+      .catch(() => live && setTopics([]));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return topics;
+}
+
 export function Now() {
   const { data, schedule, today, term, actions, progress, previewAward, calibrate } = useStore();
   const tz = data.settings.timezone;
@@ -336,8 +377,11 @@ export function Now() {
   const paceText = useMemo(() => {
     const pace = paceLine(data.courses, work, schedule, today);
     const risk = riskLine(work, schedule, today);
-    return [pace, risk].filter(Boolean).join(' · ') || null;
+    const pile = pileupAhead(work, schedule, today);
+    // One line: the pileup two weeks out beats the pace sentence; a big untouched item beats both.
+    return [risk ?? pile?.line ?? pace].filter(Boolean).join(' ') || null;
   }, [data.courses, work, schedule, today]);
+  const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
   // Back after days away: one card that says what changed, then the normal screen behind one button.
   const [lastSeen] = useState(() => readLastSeen());
   const [welcomed, setWelcomed] = useState(false);
@@ -358,6 +402,7 @@ export function Now() {
   const status = todayLine(work, schedule, today, now, tz);
   // An exam within a week reshapes the screen: exam hero, study sessions as the then-lines, one pressure line.
   const exam = useMemo(() => examMode(work, schedule, data.settings, today, (i) => calibrate(i).minutes), [work, schedule, data.settings, today, calibrate]);
+  const examTopics = useExamTopics(exam, data.settings.quizStats, data.items);
   const logStudy = (minutes: number) => {
     if (!exam) return;
     actions.upsertItem({ ...exam.exam, estimatedMinutes: Math.max(0, exam.exam.estimatedMinutes - minutes), estimateOverridden: true, status: 'in_progress' });
@@ -383,7 +428,9 @@ export function Now() {
     <div className="now">
       <p className="now-status">
         <span className="mono muted">{fmtDate(today, 'long')}</span>
-        <span>{status}</span>
+        <button type="button" className="now-status-btn" onClick={() => okayPress.current?.()} title="Am I okay?">
+          {status}
+        </button>
       </p>
 
       {back && <WelcomeBack summary={back} first={hero ?? null} onOpen={setOpen} onShowAll={() => setWelcomed(true)} />}
@@ -398,9 +445,18 @@ export function Now() {
             <p className="hint">{exam.remainingMinutes > 0 ? 'No study hours left before the exam at your current capacity.' : 'All the planned study is logged. Review, then rest.'}</p>
           ) : (
             <ul className="then-list exam-sessions">
-              {exam.sessions.slice(0, 3).map((s) => (
+              {exam.sessions.slice(0, 3).map((s, idx) => (
                 <li key={s.day} className="exam-session" data-today={s.day === today}>
-                  <span className="mono">{s.label}</span>
+                  <span className="mono">
+                    {s.label}
+                    {examTopics[idx] && (
+                      <span className="exam-topic" data-weak={examTopics[idx].weak}>
+                        {' '}
+                        · {examTopics[idx].text}{' '}
+                        {examTopics[idx].topic && <QuizLink courseId={exam.exam.courseId} topic={examTopics[idx].topic} label="practice" />}
+                      </span>
+                    )}
+                  </span>
                   {s.day === today && (
                     <button type="button" className="btn small" onClick={() => logStudy(s.minutes)}>
                       Log {fmtMinutes(s.minutes)}
@@ -480,7 +536,7 @@ export function Now() {
         </section>
       )}
 
-      {!back && !exam && paceText && <p className="pace mono">{paceText}</p>}
+      {!back && !exam && paceText && !(data.settings.eveningQuiet && Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date())) >= 21 && !work.some((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now())) && <p className="pace mono">{paceText}</p>}
 
       <div className="term-progress" role="img" aria-label={`${pace.pct}% of the term's points banked, ${pace.elapsedPct}% of the term elapsed`}>
         <span className="term-progress-track">
@@ -496,6 +552,13 @@ export function Now() {
       {(() => {
         const v = verificationLine(data.settings.haloChecks, data.courses, data.items, today, tz);
         const due = checkDue(data.settings.haloChecks, today, tz);
+        if (sub.line && !due) {
+          return (
+            <p className="verify mono" data-level={sub.level === 'alarm' ? 'alarm' : sub.level}>
+              {sub.line} <span className="muted">{v.text}</span>
+            </p>
+          );
+        }
         return due ? (
           <p className="verify mono" data-level="amber">
             <button type="button" className="verify-nudge" onClick={() => checkHaloPress.current?.('all')}>

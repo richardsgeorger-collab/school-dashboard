@@ -22,6 +22,11 @@ export function rankItems(items: Item[], schedule: Schedule, now: string, tz: st
   const today = dateOf(now, tz);
   const dl = (i: Item) => schedule.byItem[i.id]?.deadlineDay ?? i.dueAt.slice(0, 10);
   const pts = (i: Item) => effectivePoints(i, items);
+  // The day a thing needs attention: its deadline, or today once its start window has opened and it is big and untouched.
+  const attention = (i: Item) => {
+    const sb = schedule.byItem[i.id]?.startBy;
+    return i.status === 'todo' && sb && sb <= today && (pts(i) >= 100 || i.estimatedMinutes >= 180) ? today : dl(i);
+  };
   return items
     .filter((i) => i.status !== 'done')
     .sort((a, b) => {
@@ -32,6 +37,8 @@ export function rankItems(items: Item[], schedule: Schedule, now: string, tz: st
       const bo = ms(b.dueAt) < nowMs ? 0 : 1;
       if (ao !== bo) return ao - bo;
       if (ao === 0 && a.dueAt !== b.dueAt) return a.dueAt.localeCompare(b.dueAt);
+      const att = attention(a).localeCompare(attention(b));
+      if (att !== 0) return att;
       const d = dl(a).localeCompare(dl(b));
       if (d !== 0) return d;
       if (a.estimatedMinutes !== b.estimatedMinutes) return b.estimatedMinutes - a.estimatedMinutes;

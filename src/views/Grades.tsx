@@ -6,6 +6,7 @@ import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { WhatIf } from './WhatIf';
 import { weakLine, weakTopicFor } from '../domain/weak';
+import { gradeFloor } from '../domain/floor';
 import { QuizLink } from './Quiz';
 
 function ScoreInput({ item }: { item: Item }) {
@@ -39,6 +40,7 @@ function CourseCard({ course }: { course: Course }) {
   const { data, today } = useStore();
   const color = useCourseColor(course);
   const weak = weakLine(course, data.items, data.settings.quizStats, today, data.settings.timezone);
+  const floor = gradeFloor(course.id, data.items);
   const g = courseGrade(course.id, data.items);
   const [expanded, setExpanded] = useState(false);
   const [whatIf, setWhatIf] = useState(false);
@@ -89,6 +91,12 @@ function CourseCard({ course }: { course: Course }) {
             <dd>{g.projected === null ? '—' : `${g.projected}%`}</dd>
           </div>
         </dl>
+      )}
+      {floor.line && (
+        <p className="grade-floor">
+          {floor.line}
+          {floor.zeroLine && <span className="hint"> {floor.zeroLine}</span>}
+        </p>
       )}
       {weak && (
         <p className="hint grade-weak">

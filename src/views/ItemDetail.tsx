@@ -6,6 +6,7 @@ import { recordingsDb, type Recording } from '../record/db';
 import { syllabiDb } from '../syllabus/db';
 import { QuizLink } from './Quiz';
 import { gatedBy } from '../domain/gating';
+import { WorkPanel } from './WorkPanel';
 import { addDays } from '../domain/dates';
 import { Modal } from '../components/Modal';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -328,6 +329,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
           </p>
         )}
+        {!isNew && course && <WorkPanel item={item} course={course} />}
         {!isNew && (decks.length > 0 || recs.length > 0 || sylLine) && (
           <div className="study">
             <p className="hint">

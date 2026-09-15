@@ -11,6 +11,8 @@ export interface HaloPlan {
   complete: { id: string; at: string; score: number | null }[];
   /** Posted scores to write, marking the item done if it is not yet. */
   scores: { id: string; score: number; at: string }[];
+  /** Halo's own submission state per item; metadata, never a planner change. */
+  facts: { id: string; status: string | null; submittedAt: string | null }[];
 }
 
 export interface Selection {
@@ -42,7 +44,7 @@ export function planFromDiff(diff: HaloDiff, sel: Selection): HaloPlan {
     .map((e) => ({ id: e.id, at: e.at, score: e.score }));
   const deletes = diff.missing.filter((e) => sel.missing.has(e.key)).map((e) => e.key);
   const scores = diff.graded.filter((e) => sel.graded.has(e.key) && (!e.isNew || ids.has(e.id))).map((e) => ({ id: e.id, score: e.score, at: e.at }));
-  return { courses: [...diff.courses.created, ...diff.courses.linked], upserts, deletes, complete, scores };
+  return { courses: [...diff.courses.created, ...diff.courses.linked], upserts, deletes, complete, scores, facts: diff.facts };
 }
 
 /** Changes the user will notice: new, updated, removed, marked done. Links and blank fill-ins are not counted. */
@@ -83,7 +85,12 @@ export function applyHaloPlan(
     const done = item.status === 'done' ? item : completeItem(item, startByOf(s.id) ?? dateOf(s.at, tz), s.at, tz);
     byId.set(s.id, { ...withScore(done, s.score), scoreSource: 'halo', updatedAt: now });
   }
-  const touched = new Set([...plan.upserts.map((u) => u.id), ...plan.complete.map((c) => c.id), ...(plan.scores ?? []).map((s) => s.id)].filter((id) => byId.has(id)));
+  for (const f of plan.facts ?? []) {
+    const item = byId.get(f.id);
+    if (!item) continue;
+    byId.set(f.id, { ...item, halo: { status: f.status, submittedAt: f.submittedAt, checkedAt: now }, updatedAt: now });
+  }
+  const touched = new Set([...plan.upserts.map((u) => u.id), ...plan.complete.map((c) => c.id), ...(plan.scores ?? []).map((s) => s.id), ...(plan.facts ?? []).map((f) => f.id)].filter((id) => byId.has(id)));
   if (touched.size) ops.push({ kind: 'items', ids: [...touched] });
   for (const id of plan.deletes) ops.push({ kind: 'deleteItem', id, deletedAt: now });
   return { data: { ...data, courses, items: [...byId.values()] }, ops };

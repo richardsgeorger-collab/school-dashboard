@@ -10,11 +10,12 @@ import { IconPlus } from '../../components/Icons';
 import { blankItem, ItemDetail } from '../ItemDetail';
 
 import { AgendaView } from './AgendaView';
+import { TermView } from './TermView';
 import { MonthView } from './MonthView';
 import { WeekView } from './WeekView';
 import { useFilteredItems } from './shared';
 
-type View = 'month' | 'week' | 'agenda';
+type View = 'month' | 'week' | 'agenda' | 'term';
 
 function FilterChip({ course, active, onToggle }: { course: Course; active: boolean; onToggle: () => void }) {
   const color = useCourseColor(course);
@@ -29,7 +30,7 @@ function FilterChip({ course, active, onToggle }: { course: Course; active: bool
 export function Calendar() {
   const { data, today } = useStore();
   const { params, navigate } = useRoute();
-  const view = (['month', 'week', 'agenda'].includes(params.get('v') ?? '') ? params.get('v') : 'week') as View;
+  const view = (['month', 'week', 'agenda', 'term'].includes(params.get('v') ?? '') ? params.get('v') : 'week') as View;
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(params.get('d') ?? '') ? params.get('d')! : today;
   const filterParam = params.get('c');
   const codes = useMemo(() => (filterParam ? new Set(filterParam.split(',')) : null), [filterParam]);
@@ -98,6 +99,7 @@ export function Calendar() {
             { value: 'month', label: 'Month' },
             { value: 'week', label: 'Week' },
             { value: 'agenda', label: 'Agenda' },
+            { value: 'term', label: 'Term' },
           ]}
           onChange={(v) => set({ v })}
         />
@@ -111,6 +113,7 @@ export function Calendar() {
         {view === 'month' && <MonthView month={month} items={items} onOpen={openItem} />}
         {view === 'week' && <WeekView start={wkStart} items={items} onOpen={openItem} />}
         {view === 'agenda' && <AgendaView from={anchor} items={items} onOpen={openItem} />}
+        {view === 'term' && <TermView items={items} onOpen={openItem} />}
       </div>
       {open && <ItemDetail key={open.item.id} item={open.item} isNew={open.isNew} onClose={() => setOpen(null)} />}
     </>

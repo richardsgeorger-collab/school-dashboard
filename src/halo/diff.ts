@@ -71,6 +71,8 @@ export interface HaloDiff {
   missing: MissingEntry[];
   submitted: SubmittedEntry[];
   graded: GradedEntry[];
+  /** What Halo says about every matched item, written as metadata whatever gets approved. */
+  facts: { id: string; status: string | null; submittedAt: string | null }[];
   skipped: SkippedEntry[];
   /** Local items in synced classes with no Halo counterpart. Left alone. */
   untouched: Item[];
@@ -183,6 +185,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
     missing: [],
     submitted: [],
     graded: [],
+    facts: [],
     skipped: [],
     untouched: [],
     rawDates: [],
@@ -237,6 +240,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       );
       if (!match) {
         diff.added.push({ key: next.id, item: next, halo: a, course, submitted, oddTime: oddDueTime(next.dueAt, tz) });
+        diff.facts.push({ id: next.id, status: a.status ?? null, submittedAt: a.submittedAt ?? null });
         if (submitted) diff.submitted.push({ key: `s:${next.id}`, id: next.id, title: next.title, course, at, score: null, isNew: true });
         if (score != null) diff.graded.push({ key: `g:${next.id}`, id: next.id, title: next.title, course, score, points: next.points, previous: null, at, isNew: true });
         continue;
@@ -247,6 +251,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       const entry: ChangedEntry = { key: match.id, existing: match, next: merged, halo: a, course, changes, oddTime: oddDueTime(merged.dueAt, tz) };
       if (changes.length) diff.changed.push(entry);
       else if (differs(match, merged)) diff.unchanged.push(entry);
+      diff.facts.push({ id: match.id, status: a.status ?? null, submittedAt: a.submittedAt ?? null });
       if (submitted && match.status !== 'done') diff.submitted.push({ key: `s:${match.id}`, id: match.id, title: merged.title, course, at, score: null, isNew: false });
       if (score != null && score !== match.score) diff.graded.push({ key: `g:${match.id}`, id: match.id, title: merged.title, course, score, points: merged.points, previous: match.score, at, isNew: false });
     }

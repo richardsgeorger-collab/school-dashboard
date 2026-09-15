@@ -4275,3 +4275,255 @@ button {
   align-items: center;
   font-size: 13px;
 }
+
+/* Am I okay, submission line, milestones, work panel, grade floor, term shape */
+.now-status-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong, var(--line));
+  text-underline-offset: 4px;
+}
+.okay-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+}
+.okay[data-verdict='fine'] .okay-text::after {
+  content: '';
+}
+.verify[data-level='alarm'] {
+  color: var(--overdue);
+  font-weight: 600;
+}
+.hero-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.work-steps-bar,
+.item-steps-bar {
+  display: inline-block;
+  width: 72px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+  vertical-align: middle;
+}
+.work-steps-bar > span,
+.item-steps-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+.item-steps-bar {
+  width: 56px;
+  height: 3px;
+  margin-top: 3px;
+}
+.work {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+}
+.work-brief {
+  display: grid;
+  gap: 6px;
+}
+.work-asks,
+.work-rubric {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.work-rubric li {
+  display: grid;
+  gap: 2px;
+}
+.work-crit {
+  font-weight: 600;
+}
+.work-steps summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.work-steps ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.work-draft {
+  display: grid;
+  gap: 6px;
+}
+.work-check {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.work-hits,
+.work-misses {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 3px;
+}
+.work-hits li::marker {
+  color: var(--ok);
+}
+.work-misses li::marker {
+  color: var(--risk);
+}
+.work-next {
+  margin: 0;
+  font-weight: 600;
+}
+.grade-floor {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.term {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+.term-weeks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  height: 120px;
+  align-items: end;
+}
+.term-week {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  height: 100%;
+  align-items: end;
+  justify-items: center;
+  gap: 2px;
+}
+.term-bar {
+  display: block;
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--line-strong, var(--line));
+  align-self: end;
+}
+.term-week[data-brutal='true'] .term-bar {
+  background: var(--risk);
+}
+.term-week[data-current='true'] .term-bar {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.term-week[data-past='true'] .term-bar {
+  opacity: 0.45;
+}
+.term-marks {
+  display: flex;
+  gap: 2px;
+  min-height: 8px;
+}
+.term-mark {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  background: var(--ink-3);
+  cursor: pointer;
+}
+.term-mark.exam {
+  background: var(--overdue);
+}
+.term-mark.big {
+  background: var(--ok);
+}
+.term-num {
+  font-size: 10px;
+  color: var(--ink-3);
+}
+.term-legend {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+}
+.term-bigs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.stakes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.stake {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.stake-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+.stake-bar .banked {
+  background: var(--course);
+}
+.stake-bar .lost {
+  background: var(--risk);
+  opacity: 0.6;
+}
+.stake-num {
+  grid-column: 2;
+  color: var(--ink-3);
+}
+.stake-num .muted {
+  margin-left: 4px;
+}
+.exam-topic {
+  color: var(--ink-2);
+  font-weight: 400;
+}
+.exam-topic[data-weak='true'] {
+  color: var(--risk);
+}
+.exam-topic .btn {
+  margin-left: 4px;
+}

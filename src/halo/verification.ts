@@ -93,8 +93,10 @@ export function verificationLine(list: HaloCheckRecord[] | undefined, courses: C
   const amber = weakest.state === 'never' || weakest.state === 'partial' || weakest.stale;
   if (!amber) {
     const oldest = Math.max(...checked.map((v) => v.days ?? 0));
-    if (vs.length === 1) return { text: `${describe(recent)} — ${recent.state === 'clean' ? 'clean.' : 'reviewed.'}`, level: 'quiet' };
-    return { text: `All ${vs.length} classes verified ${oldest <= 0 ? 'today' : `within ${oldest} day${oldest === 1 ? '' : 's'}`}.`, level: 'quiet' };
+    const streak = cleanStreak(list);
+    const tail = streak >= 3 ? ` Halo has agreed ${streak} checks running.` : '';
+    if (vs.length === 1) return { text: `${describe(recent)} — ${recent.state === 'clean' ? 'clean.' : 'reviewed.'}${tail}`, level: 'quiet' };
+    return { text: `All ${vs.length} classes verified ${oldest <= 0 ? 'today' : `within ${oldest} day${oldest === 1 ? '' : 's'}`}.${tail}`, level: 'quiet' };
   }
   if (recent.course.id === weakest.course.id) return { text: `${describe(weakest)}.`, level: 'amber' };
   return { text: `${describe(recent)} · ${describe(weakest)}`, level: 'amber' };

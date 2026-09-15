@@ -1,0 +1,133 @@
+import type Anthropic from '@anthropic-ai/sdk';
+import type { Brief, Course, Item } from '../domain/types';
+
+/** Same model as the coach and the lecture pass. */
+export const BRIEF_MODEL = 'claude-sonnet-4-6';
+const MAX_CHARS = 40_000;
+
+export const BRIEF_TOOL = {
+  name: 'assignment_brief',
+  description: 'What an assignment asks for, what earns points, and the steps it implies, from its description and rubric.',
+  strict: true,
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['asks', 'rubric', 'steps'],
+    properties: {
+      asks: { type: 'array', items: { type: 'string' }, description: 'Two to five short plain lines on what the student has to hand in and what it must do. No fluff.' },
+      rubric: {
+        type: 'array',
+        description: 'What earns points, one entry per criterion, from the rubric when there is one, else from the description. Empty when neither says.',
+        items: { type: 'object', additionalProperties: false, required: ['criterion', 'points', 'how'], properties: { criterion: { type: 'string' }, points: { type: ['number', 'null'] }, how: { type: 'string', description: 'What full marks look like, one line.' } } },
+      },
+      steps: { type: 'array', items: { type: 'string' }, description: 'Three to seven milestones in order, each a short verb phrase the student can tick off (Outline, Draft, Cite in APA, Proofread).' },
+    },
+  },
+} as const;
+
+const BRIEF_SYSTEM = `You read a college assignment's description and rubric for the student who has to do it, and say plainly what it asks for, what earns points, and the steps it implies. Short lines, no restating the whole page, no advice beyond the work itself. Never invent requirements the text does not carry. Answer only through the assignment_brief tool.`;
+
+export interface BriefArgs {
+  item: Item;
+  course: Course;
+  /** The description Halo carried, already stripped of markup. */
+  description: string;
+  /** Rubric or handout text from the class library, when a matching file is on hand. */
+  rubricText: string;
+}
+
+export function buildBriefPrompt({ item, course, description, rubricText }: BriefArgs): { system: string; user: string } {
+  const body = `${description}`.slice(0, MAX_CHARS);
+  const rubric = rubricText ? `\n\nRubric or handout text:\n${rubricText.slice(0, MAX_CHARS)}` : '';
+  return { system: BRIEF_SYSTEM, user: `Class: ${course.code} ${course.name}\nAssignment: ${item.title} (${item.points} pts, ${item.type})\n\nDescription:\n${body || '(none)'}${rubric}` };
+}
+
+const str = (v: unknown, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const strs = (v: unknown, max: number) => (Array.isArray(v) ? v.map((s) => str(s)).filter(Boolean).slice(0, max) : []);
+
+export function briefFromTool(raw: unknown, at = new Date().toISOString()): Brief {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const rubric = (Array.isArray(o.rubric) ? o.rubric : [])
+    .map((r) => {
+      const e = (r && typeof r === 'object' ? r : {}) as Record<string, unknown>;
+      return { criterion: str(e.criterion, 160), points: typeof e.points === 'number' && Number.isFinite(e.points) ? e.points : null, how: str(e.how, 240) };
+    })
+    .filter((r) => r.criterion)
+    .slice(0, 12);
+  return { asks: strs(o.asks, 5), rubric, steps: strs(o.steps, 7), at, source: 'claude' };
+}
+
+/** The brief without a model: the description's first lines, no rubric, the usual steps. Honest and short. */
+export function localBrief(args: BriefArgs, at = new Date().toISOString()): Brief {
+  const lines = args.description
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 20)
+    .slice(0, 4);
+  return { asks: lines, rubric: [], steps: [], at, source: 'local' };
+}
+
+export async function briefItem(args: BriefArgs & { apiKey: string; fetch?: typeof globalThis.fetch }): Promise<Brief> {
+  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
+  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+  const { system, user } = buildBriefPrompt(args);
+  const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [BRIEF_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: BRIEF_TOOL.name }, messages: [{ role: 'user', content: user }] });
+  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+  if (!use) throw new Error('The model did not answer.');
+  return briefFromTool(use.input);
+}
+
+// ---- Draft check --------------------------------------------------------------
+
+export interface DraftCheck {
+  hits: { criterion: string; note: string }[];
+  misses: { criterion: string; what: string }[];
+  /** The single most useful next thing to do to the draft. */
+  next: string;
+}
+
+export const DRAFT_TOOL = {
+  name: 'draft_check',
+  description: 'A draft held against the assignment’s real rubric: what it hits, what is missing, the one next thing. Not a grade, not a rewrite.',
+  strict: true,
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['hits', 'misses', 'next'],
+    properties: {
+      hits: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['criterion', 'note'], properties: { criterion: { type: 'string' }, note: { type: 'string', description: 'Where the draft meets it, one line.' } } } },
+      misses: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['criterion', 'what'], properties: { criterion: { type: 'string' }, what: { type: 'string', description: 'What is missing or thin, one line, concrete.' } } } },
+      next: { type: 'string', description: 'The one most useful thing to do next, one sentence.' },
+    },
+  },
+} as const;
+
+const DRAFT_SYSTEM = `You hold a student's draft against the assignment's own rubric and description. For each criterion say whether the draft meets it and where, or what is missing. No grade, no score guess, no rewriting, no style notes beyond what the rubric asks. Plain words, one line each, then the single most useful next step. Answer only through the draft_check tool.`;
+
+export function buildDraftPrompt(args: BriefArgs & { brief: Brief; draft: string }): { system: string; user: string } {
+  const rubric = args.brief.rubric.length ? args.brief.rubric.map((r) => `- ${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}: ${r.how}`).join('\n') : '(no rubric on file; use the description)';
+  return { system: DRAFT_SYSTEM, user: `Class: ${args.course.code}\nAssignment: ${args.item.title}\n\nWhat it asks for:\n${args.brief.asks.map((a) => `- ${a}`).join('\n') || '(none)'}\n\nRubric:\n${rubric}\n\nDescription:\n${args.description.slice(0, 20_000) || '(none)'}\n\nDraft:\n${args.draft.slice(0, 60_000)}` };
+}
+
+export function draftFromTool(raw: unknown): DraftCheck {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const pairs = (v: unknown, k2: 'note' | 'what') =>
+    (Array.isArray(v) ? v : [])
+      .map((r) => {
+        const e = (r && typeof r === 'object' ? r : {}) as Record<string, unknown>;
+        return { criterion: str(e.criterion, 160), [k2]: str(e[k2], 300) } as { criterion: string; note: string } & { criterion: string; what: string };
+      })
+      .filter((r) => r.criterion)
+      .slice(0, 15);
+  return { hits: pairs(o.hits, 'note'), misses: pairs(o.misses, 'what'), next: str(o.next, 300) };
+}
+
+export async function checkDraft(args: BriefArgs & { brief: Brief; draft: string; apiKey: string; fetch?: typeof globalThis.fetch }): Promise<DraftCheck> {
+  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
+  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+  const { system, user } = buildDraftPrompt(args);
+  const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [DRAFT_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: DRAFT_TOOL.name }, messages: [{ role: 'user', content: user }] });
+  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+  if (!use) throw new Error('The model did not answer.');
+  return draftFromTool(use.input);
+}

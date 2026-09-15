@@ -99,6 +99,12 @@ export interface Item {
   blocks?: string[];
   /** Halo flags this late or missing even though it looks done here; a note to check, never auto-resolved. */
   haloLate?: string | null;
+  /** What Halo last said about this item: its submission state, straight from the gradebook. Written on every sync, never approved, never changes the planner. */
+  halo?: HaloFact | null;
+  /** The steps inside a big assignment. One item everywhere; this is just its inside. */
+  steps?: Step[];
+  /** What the assignment asks for, read from its description and rubric. */
+  brief?: Brief | null;
   updatedAt: string;
 }
 
@@ -118,6 +124,31 @@ export interface BankedAward {
   points: number;
   completedAt: string;
   award: Award;
+}
+
+export interface HaloFact {
+  /** UPCOMING | ACTIVE | IN_PROGRESS | SUBMITTED | LATE | OVERDUE | REASSIGNED | PUBLISHED, or null when Halo gave none. */
+  status: string | null;
+  submittedAt: string | null;
+  /** When the sync that carried this ran. */
+  checkedAt: string;
+}
+
+export interface Step {
+  id: string;
+  label: string;
+  done: boolean;
+}
+
+export interface Brief {
+  /** What it asks for, in plain words, two to five lines. */
+  asks: string[];
+  /** What earns points. */
+  rubric: { criterion: string; points: number | null; how: string }[];
+  /** The milestones the rubric implies. */
+  steps: string[];
+  at: string;
+  source: 'claude' | 'local';
 }
 
 export interface HaloCheckRecord {
@@ -173,6 +204,8 @@ export interface Settings {
   /** Practice results per class and topic. */
   quizStats?: Record<string, QuizStat>;
   sundayReview?: SundayReviewState;
+  /** Off by default: after 9 PM, Now stops nudging unless something is overdue. */
+  eveningQuiet?: boolean;
   updatedAt: string;
 }
 

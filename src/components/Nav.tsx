@@ -2,7 +2,8 @@ import type { ReactElement } from 'react';
 import { fmtDate } from '../domain/dates';
 import { useRoute, type Route } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconCheckHalo, IconLibrary, IconPlus, IconSettings, IconSync } from './Icons';
+import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconCheckHalo, IconLibrary, IconOkay, IconPlus, IconSettings, IconSync } from './Icons';
+import { okayPress } from '../views/Okay';
 
 const LINKS: { route: Route; label: string; icon: () => ReactElement; mobile: boolean }[] = [
   { route: 'now', label: 'Now', icon: IconNow, mobile: true },
@@ -53,6 +54,9 @@ export function TopBar({ onSync, onCapture, onCheckHalo }: { onSync: () => void;
           <span className="topbar-day">{fmtDate(today, 'long')}</span>
           <button type="button" className="topbar-gear topbar-sync" onClick={onCapture} title="Quick capture (⌘K)" aria-label="Quick capture">
             <IconPlus />
+          </button>
+          <button type="button" className="topbar-gear topbar-okay" onClick={() => okayPress.current?.()} title="Am I okay? One paragraph on where you stand" aria-label="Am I okay">
+            <IconOkay />
           </button>
           <button type="button" className="topbar-gear topbar-sync" onClick={onCheckHalo} title="Check Halo: copy the audit prompt and open Halo" aria-label="Check Halo">
             <IconCheckHalo />

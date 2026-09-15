@@ -6,6 +6,7 @@ import { CourseChip, useCourseColor } from './CourseChip';
 import { IconCheck } from './Icons';
 import { useChipState } from './ItemChip';
 import { RiskBadge } from './RiskBadge';
+import { haloSaysNotIn } from '../domain/confirm';
 
 export function ItemRow({ item, onOpen, showStart = false, compact = false }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean }) {
   const { courseById, schedule, today, data, actions, previewAward } = useStore();
@@ -44,6 +45,11 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
       </button>
       <button type="button" className="item-main" onClick={() => onOpen(item)} title={item.title}>
         <span className="item-title">{item.label}</span>
+        {!done && item.steps && item.steps.length > 0 && item.steps.some((s) => s.done) && (
+          <span className="item-steps-bar" aria-label={`${item.steps.filter((s) => s.done).length} of ${item.steps.length} steps`}>
+            <span style={{ width: `${(item.steps.filter((s) => s.done).length / item.steps.length) * 100}%` }} />
+          </span>
+        )}
         {showSubtitle && !compact && <span className="item-sub">{item.title}</span>}
         <span className="item-meta">
           <CourseChip course={course} />
@@ -54,6 +60,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
           {item.flags.group && <span className="flag">group</span>}
           {(item.blocks?.length ?? 0) > 0 && <span className="flag">unlocks {item.blocks!.length}</span>}
           {item.haloLate && <span className="flag flag-late">Halo says late</span>}
+          {done && haloSaysNotIn(item) && item.halo && item.halo.checkedAt > item.dueAt && <span className="flag flag-late">Halo says not submitted</span>}
           {showStart && sched && !done && <span>start by {shortDate(sched.startBy)}</span>}
         </span>
       </button>

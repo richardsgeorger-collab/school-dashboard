@@ -26,6 +26,7 @@ import { Library } from './views/Library';
 import { Settings } from './views/Settings';
 import { Quiz } from './views/Quiz';
 import { ClassPage } from './views/ClassPage';
+import { OkayCard, okayPress } from './views/Okay';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
 function HaloHandoff() {
@@ -163,6 +164,12 @@ function CheckHaloPress({ press }: { press: (mode?: 'all') => void }) {
   return null;
 }
 
+function OkayHost() {
+  const [open, setOpen] = useState(false);
+  okayPress.current = () => setOpen(true);
+  return open ? <OkayCard onClose={() => setOpen(false)} /> : null;
+}
+
 function SyncBootstrap() {
   useSupabaseSession();
   return null;
@@ -217,6 +224,7 @@ export default function App() {
       <SyncBootstrap />
       <HaloHandoff />
       <CheckHaloHost open={checkOpen} onOpen={() => setCheckOpen(true)} onClose={() => setCheckOpen(false)} />
+      <OkayHost />
       <SyncHost
         open={syncOpen}
         file={syncFile}
