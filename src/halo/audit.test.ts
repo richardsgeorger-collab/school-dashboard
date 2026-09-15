@@ -149,7 +149,8 @@ describe('reading an all-classes audit', () => {
     expect(auditOutcomes(r, [chm])[0].outcome).toMatchObject({ clean: true, partial: false, reason: 'All 3 pages visited.' });
     const bare = auditOutcomes(parseAuditResults('ALL MATCH', courses, today, [chm]), [chm]);
     expect(bare[0]).toMatchObject({ reached: false, outcome: null });
-    expect(classifyClass({ courseId: 'chm', plan: 6, planPages: [], visited: [], coverage: { visited: 4, planned: 4 }, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, reached: true }, 0, true)).toMatchObject({ clean: false, partial: true, reason: 'Visited 4 of 4 pages (planned 6).' });
+    // The class's own line is authoritative: 4 of 4 is complete even when the plan counted 6.
+    expect(classifyClass({ courseId: 'chm', plan: 6, planPages: [], visited: [], coverage: { visited: 4, planned: 4 }, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, coverageFrom: 'class', reached: true }, 0, true)).toMatchObject({ clean: true, partial: false, reason: 'All 4 pages visited.' });
   });
   it('reads pipe rows only: section suffixes resolve, an unreadable class column defaults to the current section, prose is kept as notes', () => {
     const r = parseAuditResults('=== CLASS: CHM-113 ===\n?? | Mystery worksheet | new | 2026-10-01 23:59 | 10 pts\nOLD-SECTION ESG-162 | Homework 2 | changed | 2026-09-22 08:00 | old section\nthis line means nothing\nESG-162-101 | Exam 1 | same\nchem topic 3 quiz moved to sep 27\nESG-162 (Engineering Math) | Homework 3 | rubric | | in Lab3_handout.pdf', courses, today, courses);

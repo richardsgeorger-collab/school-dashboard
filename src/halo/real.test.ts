@@ -131,8 +131,8 @@ describe('the same audit as the model should read it', () => {
     const p = parseFromTool(
       {
         classes: [
-          { code: 'ESG-162', planned_pages: 22, visited_pages: 15, coverage_visited: 15, coverage_planned: 22, skipped: ['Mission Statement', 'Doctrinal Statement', 'Library', 'Student Success Center', 'Student AI Resources', 'Learning Support', 'Classroom Policies'], stopped_at: null, reported_findings: 3, notes: 'report section missing from the paste; findings taken from the closing summary' },
-          { code: 'UNV-106', planned_pages: 22, visited_pages: 15, coverage_visited: 15, coverage_planned: 22, skipped: ['the 7 generic Institution Resources pages'], stopped_at: null, reported_findings: 3, notes: '' },
+          { code: 'ESG-162', planned_pages: 22, visited_pages: 15, coverage_visited: 15, coverage_planned: 22, own_coverage_line: false, skipped: ['Mission Statement', 'Doctrinal Statement', 'Library', 'Student Success Center', 'Student AI Resources', 'Learning Support', 'Classroom Policies'], stopped_at: null, reported_findings: 3, notes: 'report section missing from the paste; findings taken from the closing summary' },
+          { code: 'UNV-106', planned_pages: 22, visited_pages: 15, coverage_visited: 15, coverage_planned: 22, own_coverage_line: false, skipped: ['the 7 generic Institution Resources pages'], stopped_at: null, reported_findings: 3, notes: '' },
         ],
         findings: [
           { class_code: 'ESG-162', title: 'Topic 1 Review', status: 'grade', due: null, points: 25, score: 13.67, note: '13.67/25 (54.68%)', confidence: 'high', quote: "ESG-162 (lecture) — you're sitting at an F. Topic 1 Review scored 13.67/25 (54.68%)", gates: [] },

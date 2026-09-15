@@ -15,6 +15,8 @@ export interface Judged {
   lane: Lane;
   /** Why it needs a person, in a word, for grouping. */
   why: 'gating' | 'late' | 'overdue' | 'removal' | 'started' | 'schedule' | 'low' | 'coverage' | null;
+  /** Part of a whole-class import: never a row of its own. */
+  bulk: boolean;
 }
 
 const UNAMBIGUOUS = 0.8;
@@ -24,7 +26,7 @@ const UNAMBIGUOUS = 0.8;
  * unambiguous match the student has not started. Everything that could cost a grade waits for a person.
  */
 export function judge(m: Mention, course: Course, proposal: Proposal, match: Item | null, outcome: ClassOutcome | undefined, bulkIds: Set<string>): Judged {
-  const base = { m, course, proposal, match };
+  const base = { m, course, proposal, match, bulk: bulkIds.has(m.id) };
   const classIncomplete = !outcome || !outcome.reached || !outcome.outcome || !outcome.outcome.coverageComplete || outcome.outcome.missingRows;
   if (m.audit?.status === 'note') return { ...base, lane: 'info', why: null };
   if (m.audit?.status === 'schedule') return { ...base, lane: 'needs', why: 'schedule' };
@@ -63,6 +65,24 @@ export function needLines(judged: Judged[], items: Item[], tz: string): NeedLine
   const out: NeedLine[] = [];
   const used = new Set<string>();
   const label = (j: Judged) => j.match?.label ?? j.m.title;
+  // A whole-class import that could not apply on its own is still one line and one button.
+  const bulkByClass = new Map<string, Judged[]>();
+  for (const j of needs) if (j.bulk && j.proposal.kind === 'add') bulkByClass.set(j.course.id, [...(bulkByClass.get(j.course.id) ?? []), j]);
+  for (const group of bulkByClass.values()) {
+    const c = group[0].course;
+    const held = group.some((j) => j.why === 'coverage');
+    out.push({ id: `n${out.length + 1}`, ids: group.map((j) => j.m.id), action: 'add', text: `${c.code} isn't in your planner yet — ${group.length} item${group.length === 1 ? '' : 's'} to add${held ? ' (held back because its coverage came back short)' : ''}.` });
+    for (const j of group) used.add(j.m.id);
+  }
+  // Other changes held back by a short class group per class too.
+  const heldByClass = new Map<string, Judged[]>();
+  for (const j of needs) if (!used.has(j.m.id) && j.why === 'coverage' && (j.proposal.kind === 'update' || j.proposal.kind === 'add' || j.proposal.kind === 'score')) heldByClass.set(j.course.id, [...(heldByClass.get(j.course.id) ?? []), j]);
+  for (const group of heldByClass.values()) {
+    if (group.length < 2) continue;
+    const c = group[0].course;
+    out.push({ id: `n${out.length + 1}`, ids: group.map((j) => j.m.id), action: 'add', text: `${c.code}: ${group.length} changes held back because its coverage came back short — apply them anyway?` });
+    for (const j of group) used.add(j.m.id);
+  }
   // Late flags and overdue rows group per class.
   for (const why of ['late', 'overdue'] as const) {
     const byClass = new Map<string, Judged[]>();

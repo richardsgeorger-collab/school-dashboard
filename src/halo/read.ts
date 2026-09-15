@@ -26,13 +26,14 @@ export const READ_TOOL = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['code', 'planned_pages', 'visited_pages', 'coverage_visited', 'coverage_planned', 'skipped', 'generic_pages_planned', 'stopped_at', 'reported_findings', 'notes'],
+          required: ['code', 'planned_pages', 'visited_pages', 'coverage_visited', 'coverage_planned', 'own_coverage_line', 'skipped', 'generic_pages_planned', 'stopped_at', 'reported_findings', 'notes'],
           properties: {
             code: { type: 'string', description: 'The planner class code exactly as listed, e.g. "ENG-105", never a section like "ENG-105-ONL4".' },
             planned_pages: { type: ['integer', 'null'], description: 'From the COVERAGE PLAN line, if any.' },
             visited_pages: { type: ['integer', 'null'], description: 'How many VISITED lines (or visited pages) the audit showed for this class.' },
             coverage_visited: { type: ['integer', 'null'], description: 'x from "COVERAGE — visited x of n pages" for this class, if stated.' },
             coverage_planned: { type: ['integer', 'null'], description: 'n from that line, if stated.' },
+            own_coverage_line: { type: 'boolean', description: 'True when the numbers come from the class\'s own COVERAGE line inside its section; false when they come only from a FINAL COVERAGE summary or a guess.' },
             skipped: { type: 'array', items: { type: 'string' }, description: 'Pages the audit said it skipped, failed to load, or could not reach, with the reason. Include the generic GCU pages (Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies) when the audit named them as skipped; they are set aside later.' },
             generic_pages_planned: { type: ['integer', 'null'], description: 'How many of those seven generic GCU pages the class plan or the coverage count included (0-7), so they can be set aside before visited-of-planned is judged. Null if unknown.' },
             stopped_at: { type: ['string', 'null'], description: 'The page where the audit said it ran out of room in this class, if it did.' },
@@ -111,7 +112,7 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: o.all_match === true, reported: null, classes: {}, order: [], stopped: null, source: 'claude', genericSkipNote: false };
   const section = (id: string): ClassCoverage => {
-    if (!out.classes[id]) out.classes[id] = { courseId: id, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, reached: true };
+    if (!out.classes[id]) out.classes[id] = { courseId: id, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, coverageFrom: null, reached: true };
     if (!out.order.includes(id)) out.order.push(id);
     return out.classes[id];
   };
@@ -125,7 +126,10 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
     if (visited !== null && cc.visited.length === 0) cc.visited = Array.from({ length: visited }, (_, i) => ({ page: `page ${i + 1}`, items: null }));
     const cv = int(e.coverage_visited);
     const cp = int(e.coverage_planned);
-    if (cv !== null && cp !== null) cc.coverage = { visited: cv, planned: cp };
+    if (cv !== null && cp !== null) {
+      cc.coverage = { visited: cv, planned: cp };
+      cc.coverageFrom = e.own_coverage_line === false ? 'final' : 'class';
+    }
     cc.skipped.push(...strs(e.skipped));
     const generic = int(e.generic_pages_planned);
     if (generic !== null) cc.genericPlanned = Math.max(cc.genericPlanned, Math.min(7, Math.max(0, generic)));

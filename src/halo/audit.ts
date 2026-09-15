@@ -230,6 +230,8 @@ export interface ClassCoverage {
   reportedFindings: number | null;
   /** How many of the seven whitelisted GCU pages the plan listed. */
   genericPlanned: number;
+  /** Where the coverage numbers came from: the class's own COVERAGE line (authoritative) or only the FINAL block. */
+  coverageFrom: 'class' | 'final' | null;
   /** Any header, plan, visit, coverage, or finding was seen for this class. */
   reached: boolean;
 }
@@ -313,7 +315,7 @@ const codeIn = (s: string, courses: Course[]): Course | null => {
   return m ? courseByCode(m[1], courses) : null;
 };
 
-const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, reached: false });
+const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, coverageFrom: null, reached: false });
 
 /** How many of the seven whitelisted pages a list of page names carries. */
 export function countGenericPages(pages: string[]): number {
@@ -401,6 +403,7 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
       if (named && named.id !== current) enter(named);
       const cc = section(current);
       cc.coverage = { visited: Number(cov[2]), planned: Number(cov[3]) };
+      cc.coverageFrom = 'class';
       phase = 'after';
       continue;
     }
@@ -420,7 +423,10 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
         const c = courseByCode(fc[1], courses);
         if (c) {
           const cc = section(c.id);
-          cc.coverage = cc.coverage ?? { visited: Number(fc[2]), planned: Number(fc[3]) };
+          if (!cc.coverage) {
+            cc.coverage = { visited: Number(fc[2]), planned: Number(fc[3]) };
+            cc.coverageFrom = 'final';
+          }
           cc.verdict = fc[4].trim() || null;
           cc.reportedFindings = readVerdictCount(cc.verdict);
         }
@@ -534,7 +540,10 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
     cc.plan = cc.plan ?? orphan.plan;
     cc.planPages.push(...orphan.planPages);
     cc.visited.push(...orphan.visited);
-    cc.coverage = cc.coverage ?? orphan.coverage;
+    if (!cc.coverage && orphan.coverage) {
+      cc.coverage = orphan.coverage;
+      cc.coverageFrom = orphan.coverageFrom;
+    }
     cc.skipped.push(...orphan.skipped);
     cc.failed.push(...orphan.failed);
     cc.stoppedAt = cc.stoppedAt ?? orphan.stoppedAt;
@@ -566,19 +575,24 @@ export function classifyClass(cc: ClassCoverage, findings: number, allMatch: boo
   const skipped = named.filter((s) => !isGenericPage(s));
   // The whitelisted pages are set aside BEFORE the visited-of-planned comparison: they were never owed.
   const gap = raw ? Math.max(0, raw.planned - raw.visited) : 0;
-  const allowance = Math.max(genericAllowance(named.filter(isGenericPage)), cc.genericPlanned, genericNote && gap <= GENERIC_PAGES.length ? gap : 0);
+  // A line whose planned count is smaller than the plan already left the generic pages out; nothing more to set aside.
+  const lineCountsGeneric = cc.plan === null || raw === null || raw.planned >= cc.plan;
+  const allowance = lineCountsGeneric ? Math.max(genericAllowance(named.filter(isGenericPage)), cc.genericPlanned, genericNote && gap <= GENERIC_PAGES.length ? gap : 0) : 0;
   const setAside = Math.min(allowance, gap);
   const cov = raw ? { visited: raw.visited, planned: raw.planned - setAside } : null;
-  const short = cov ? cov.visited < cov.planned || (cc.plan !== null && cc.plan - allowance > cov.planned) : true;
-  const missingRows = cc.reportedFindings !== null && findings < cc.reportedFindings;
-  const coverageComplete = !!cov && !short && skipped.length === 0 && cc.stoppedAt === null;
+  // The class's own COVERAGE line decides: x of x is complete, whatever the plan counted and whether or not a FINAL block
+  // ever printed. Only a class with no line at all, or fewer visited than planned, is short.
+  const own = cc.coverageFrom === 'class';
+  const short = cov ? cov.visited < cov.planned : true;
+  const missingRows = !own && cc.reportedFindings !== null && findings < cc.reportedFindings;
+  const coverageComplete = !!cov && !short && skipped.length === 0 && (own || cc.stoppedAt === null);
   const partial = !coverageComplete || missingRows;
   const clean = (allMatch || findings === 0) && findings === 0 && !partial;
   let reason: string;
-  if (cc.stoppedAt) reason = `Stopped early at ${cc.stoppedAt}.`;
+  if (cc.stoppedAt && !(own && cov && !short)) reason = `Stopped early at ${cc.stoppedAt}.`;
   else if (missingRows) reason = `The final summary counts ${cc.reportedFindings} finding${cc.reportedFindings === 1 ? '' : 's'} for this class, but only ${findings} ${findings === 1 ? 'was' : 'were'} read. Its report section may be missing from the paste.`;
   else if (!cov) reason = 'No coverage count, so this cannot count as a full check.';
-  else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages${cc.plan !== null && cc.plan - allowance > cov.planned ? ` (planned ${cc.plan - allowance})` : ''}.`;
+  else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages.`;
   else if (skipped.length) reason = `All ${cov.planned} pages counted, but ${skipped.length} named as skipped or failed.`;
   else reason = `All ${cov.planned} pages visited.`;
   return { clean, coverageComplete, missingRows, partial, findings, coverage: cov, skipped, reason };

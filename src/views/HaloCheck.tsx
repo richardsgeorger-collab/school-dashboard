@@ -182,7 +182,7 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
     for (const id of line.ids) {
       const j = judged.find((x) => x.m.id === id);
       if (!j) continue;
-      if (line.action === 'note' && j.proposal.kind !== 'flag') continue;
+      if (line.action === 'note' && j.proposal.kind !== 'flag' && j.proposal.kind !== 'score') continue;
       if (j.proposal.kind === 'add' || j.proposal.kind === 'update' || j.proposal.kind === 'remove' || j.proposal.kind === 'flag' || j.proposal.kind === 'score') applyProposal(j.proposal, j.m, actions, tz, today, false, {}, items);
     }
     setDecided((d) => ({ ...d, [line.id]: 'done' }));
@@ -304,7 +304,7 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
             {polishing && <p className="hint mono">Wording these more plainly…</p>}
             {(incomplete.length > 0 || unreached.length > 0) && (
               <p className="halo-partial">
-                {incomplete.length > 0 ? `Nothing applied for ${incomplete.map((o) => o.course.code).join(', ')}: ${incomplete.length === 1 ? 'its' : 'their'} coverage came back short. ` : ''}
+                {incomplete.map((o) => `Nothing applied for ${o.course.code}: ${o.outcome!.reason.charAt(0).toLowerCase()}${o.outcome!.reason.slice(1)}`).join(' ')}{incomplete.length ? ' ' : ''}
                 {unreached.length > 0 ? `${unreached.map((o) => o.course.code).join(', ')} ${unreached.length === 1 ? "wasn't" : "weren't"} reached.` : ''}
               </p>
             )}
