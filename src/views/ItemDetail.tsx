@@ -358,6 +358,32 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             </p>
           </div>
         )}
+        {item.haloLate && (
+          <p className="hint late-note">
+            <b>Halo says late:</b> {item.haloLate}{' '}
+            <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => actions.upsertItem({ ...item, haloLate: null })}>
+              checked, clear this
+            </button>
+          </p>
+        )}
+        {!isNew && (
+          <details className="unlocks">
+            <summary className="hint">Unlocks {item.blocks?.length ? `${item.blocks.length} item${item.blocks.length === 1 ? '' : 's'}` : 'nothing'} — a small task that gates bigger work carries its urgency</summary>
+            <ul className="unlocks-list">
+              {data.items
+                .filter((o) => o.id !== item.id && o.courseId === item.courseId && o.status !== 'done')
+                .sort((a, b) => a.dueAt.localeCompare(b.dueAt))
+                .slice(0, 25)
+                .map((o) => (
+                  <li key={o.id}>
+                    <label>
+                      <input type="checkbox" checked={item.blocks?.includes(o.id) ?? false} onChange={(e) => actions.upsertItem({ ...item, blocks: e.target.checked ? [...(item.blocks ?? []), o.id] : (item.blocks ?? []).filter((id) => id !== o.id) })} /> {o.label} <span className="muted mono">· {fmtDate(dateOf(o.dueAt, tz), 'short')}</span>
+                    </label>
+                  </li>
+                ))}
+            </ul>
+          </details>
+        )}
         {item.url && (
           <p className="hint">
             <a href={item.url} target="_blank" rel="noreferrer">

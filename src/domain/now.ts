@@ -1,5 +1,6 @@
 import { addDays, dateOf, diffDays, fmtMinutes, weekdayOf } from './dates';
 import type { Schedule } from './schedule';
+import { effectivePoints, gatingLine } from './gating';
 import type { DerivedDeadline } from './deadlines';
 import { startPhrase as sp } from './nextClass';
 import type { DateStr, Item, Settings } from './types';
@@ -20,6 +21,7 @@ export function rankItems(items: Item[], schedule: Schedule, now: string, tz: st
   const nowMs = ms(now);
   const today = dateOf(now, tz);
   const dl = (i: Item) => schedule.byItem[i.id]?.deadlineDay ?? i.dueAt.slice(0, 10);
+  const pts = (i: Item) => effectivePoints(i, items);
   return items
     .filter((i) => i.status !== 'done')
     .sort((a, b) => {
@@ -33,7 +35,7 @@ export function rankItems(items: Item[], schedule: Schedule, now: string, tz: st
       const d = dl(a).localeCompare(dl(b));
       if (d !== 0) return d;
       if (a.estimatedMinutes !== b.estimatedMinutes) return b.estimatedMinutes - a.estimatedMinutes;
-      if (a.points !== b.points) return b.points - a.points;
+      if (pts(a) !== pts(b)) return pts(b) - pts(a);
       return a.dueAt.localeCompare(b.dueAt);
     });
 }
@@ -78,6 +80,8 @@ export function todayLine(items: Item[], schedule: Schedule, today: DateStr, now
 
 /** One line under the hero saying why it is the hero. */
 export function pickReason(item: Item, items: Item[], schedule: Schedule, today: DateStr, now: string, tz: string, derived: Record<string, DerivedDeadline>): string {
+  const gate = gatingLine(item, items, tz);
+  if (gate) return `Picked because it's small and it gates bigger work. ${gate}`;
   if (ms(item.dueAt) < ms(now)) return `Picked because it was due ${WEEKDAY_LONG[weekdayOf(dateOf(item.dueAt, tz))]} and is still open.`;
   const due = dateOf(item.dueAt, tz);
   if (due === today) return "Picked because it's due today.";
@@ -134,7 +138,7 @@ export function heroFraming(item: Item, schedule: Schedule, today: DateStr, now:
 
 const BIG_POINTS = 100;
 const BIG_MINUTES = 120;
-export const isBigWork = (i: Item) => i.points >= BIG_POINTS || i.estimatedMinutes >= BIG_MINUTES;
+export const isBigWork = (i: Item, items: Item[] = []) => effectivePoints(i, items) >= BIG_POINTS || i.estimatedMinutes >= BIG_MINUTES;
 
 /**
  * One sentence, only when it is actionable: a big item whose start-by window is open and
@@ -145,7 +149,7 @@ export function pressureLine(items: Item[], schedule: Schedule, settings: Settin
   const open = items.filter((i) => i.status !== 'done' && i.type !== 'participation');
 
   const bigOpen = open
-    .filter((i) => i.status === 'todo' && isBigWork(i) && (schedule.byItem[i.id]?.startBy ?? '9999') <= today)
+    .filter((i) => i.status === 'todo' && isBigWork(i, items) && (schedule.byItem[i.id]?.startBy ?? '9999') <= today)
     .sort((a, b) => (schedule.byItem[a.id]?.deadlineDay ?? '').localeCompare(schedule.byItem[b.id]?.deadlineDay ?? ''));
   if (bigOpen.length > 0) {
     const i = bigOpen[0];

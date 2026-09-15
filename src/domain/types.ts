@@ -95,6 +95,10 @@ export interface Item {
   award: Award | null;
   /** "Not this one": kept out of the top of Now until this date. */
   snoozedUntil?: DateStr | null;
+  /** Items this one gates: a small task that carries the urgency of what it unlocks. */
+  blocks?: string[];
+  /** Halo flags this late or missing even though it looks done here; a note to check, never auto-resolved. */
+  haloLate?: string | null;
   updatedAt: string;
 }
 

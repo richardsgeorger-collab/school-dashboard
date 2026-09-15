@@ -23,6 +23,10 @@ export interface Mention {
   score?: number | null;
   /** Where a Halo check line came from, so the review can group by it. */
   audit?: { status: string; prefix: 'ENG105-PENDING' | 'OLD-SECTION' | null };
+  /** The audit's short note: the old date, which file, why. */
+  note?: string;
+  /** Titles of items this one must be done before, when the audit said so. */
+  gates?: string[];
 }
 
 export interface LectureNotes {

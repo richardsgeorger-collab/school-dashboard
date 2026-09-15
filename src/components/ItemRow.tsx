@@ -52,6 +52,8 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
           {item.points > 0 && <span>{item.points} pts</span>}
           {item.flags.inClass && <span className="flag">in class</span>}
           {item.flags.group && <span className="flag">group</span>}
+          {(item.blocks?.length ?? 0) > 0 && <span className="flag">unlocks {item.blocks!.length}</span>}
+          {item.haloLate && <span className="flag flag-late">Halo says late</span>}
           {showStart && sched && !done && <span>start by {shortDate(sched.startBy)}</span>}
         </span>
       </button>

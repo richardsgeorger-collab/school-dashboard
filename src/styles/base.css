@@ -4140,3 +4140,47 @@ button {
   align-items: center;
   flex-wrap: wrap;
 }
+
+/* Gating, late flags, unreadable results */
+.flag-late {
+  color: var(--risk);
+  border-color: var(--risk);
+}
+.late-note {
+  color: var(--risk);
+}
+.unlocks summary {
+  cursor: pointer;
+}
+.unlocks-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.halo-raw {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  font: 11px/1.45 var(--font-mono);
+  white-space: pre-wrap;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--surface-2);
+}
+.halo-raw [data-kind='unknown'] {
+  color: var(--risk);
+}
+.halo-raw [data-kind='noise'],
+.halo-raw [data-kind='header'] {
+  color: var(--ink-3);
+}
+.halo-raw [data-kind='finding'] {
+  color: var(--ok);
+}
+.halo-unreadable {
+  border-color: var(--risk);
+}

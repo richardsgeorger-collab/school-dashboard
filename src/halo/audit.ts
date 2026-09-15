@@ -1,8 +1,7 @@
-import { guessCourse, parseCapture } from '../capture/parse';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { AppData, Course, DateStr, Item } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
-import { normCode } from './normalize';
+import { normCode, resolveCourse } from './normalize';
 
 export const HALO_URL = 'https://halo.gcu.edu/';
 
@@ -86,6 +85,16 @@ file it came from.
 
 Use the class code from my planner. Skip participation and attendance
 items — those are just showing up to class.
+
+Prose between sections is fine, but every finding must be one
+pipe-delimited row in the format above, and every class must end with
+its COVERAGE line.
+
+You may skip these seven generic GCU pages by name, and skipping them
+does NOT count against coverage (they are identical in every class and
+hold no dates): Mission Statement, Doctrinal Statement, Library,
+Student Success Center, Student AI Resources, Learning Support,
+Classroom Policies.
 
 === PHASE 4: PROVE COVERAGE ===
 End the class with:
@@ -219,6 +228,8 @@ export interface AuditParse {
   order: string[];
   /** Where Claude said it ran out of room, when it did. */
   stopped: { courseId: string | null; page: string } | null;
+  /** Who read the paste: the model, or the pipe-row fallback. */
+  source: 'claude' | 'pipes';
 }
 
 const STATUS: Record<string, AuditStatus> = {
@@ -250,6 +261,8 @@ const STATUS: Record<string, AuditStatus> = {
   match: 'same',
 };
 const KIND: Record<AuditStatus, MentionKind> = { new: 'new', changed: 'date_change', announce: 'date_change', missing: 'cancel', grade: 'grade', overdue: 'info', schedule: 'info', rubric: 'info', same: 'info', note: 'info' };
+/** The review kind a status maps to; a rubric finding with a date is a date change. */
+export const auditStatusKind = (status: AuditStatus, date: string | null): MentionKind => (status === 'rubric' ? (date ? 'date_change' : 'info') : KIND[status]);
 const PREFIX = /^(ENG105-PENDING|OLD-SECTION)\b\s*[|:\-–]?\s*/i;
 const PREFIX_COURSE: Record<AuditPrefix, string> = { 'ENG105-PENDING': 'ENG-105', 'OLD-SECTION': 'ESG-162' };
 const CODE = /\b([A-Z]{2,4}-?\d{3}[A-Z]?)\b/i;
@@ -271,10 +284,7 @@ function readDue(s: string): { date: string | null; time: string | null } {
   return { date, time: `${String(hh).padStart(2, '0')}:${m[5]}` };
 }
 
-const courseByCode = (code: string, courses: Course[]): Course | null => {
-  const n = normCode(code);
-  return n ? (courses.find((c) => normCode(c.code) === n) ?? null) : null;
-};
+const courseByCode = (code: string, courses: Course[]): Course | null => (normCode(code) ? resolveCourse(code, courses) : null);
 const codeIn = (s: string, courses: Course[]): Course | null => {
   const m = CODE.exec(s);
   return m ? courseByCode(m[1], courses) : null;
@@ -287,8 +297,8 @@ const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, plan
  * headers, plan, VISITED, COVERAGE, STOPPED, and FINAL COVERAGE lines are read as such; anything else becomes a note
  * rather than being dropped.
  */
-export function parseAuditResults(text: string, courses: Course[], today: DateStr, audited: Course[] = []): AuditParse {
-  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: false, reported: null, classes: {}, order: [], stopped: null };
+export function parseAuditResults(text: string, courses: Course[], _today: DateStr, audited: Course[] = []): AuditParse {
+  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: false, reported: null, classes: {}, order: [], stopped: null, source: 'pipes' };
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.replace(/^[\s\-*•]+|^\d+[.)]\s+/g, '').trim())
@@ -409,13 +419,13 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
         out.same++;
         continue;
       }
-      // The CLASS column is a code. A code not in the planner stays unmatched; a class named in words gets guessed; otherwise the class whose section this is.
-      const course = courseByCode(cls, courses) ?? (/[A-Z]{2,4}-?\d{3}/i.test(cls) ? null : guessCourse(cls, courses)) ?? (prefix ? courseByCode(PREFIX_COURSE[prefix], courses) : null) ?? courses.find((c) => c.id === current) ?? audited[0] ?? null;
+      // The CLASS column is a code or a name, section suffixes ignored; otherwise the class whose section this is.
+      const course = resolveCourse(cls, courses) ?? (prefix ? courseByCode(PREFIX_COURSE[prefix], courses) : null) ?? courses.find((c) => c.id === current) ?? audited[0] ?? null;
       if (course) section(course.id);
       const { date, time } = readDue(due);
       const frac = /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(noteText) ?? /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(due);
       const pts = /(\d+(?:\.\d+)?)\s*pts?\b/i.exec(noteText) ?? /(\d+(?:\.\d+)?)\s*pts?\b/i.exec(due);
-      const kind: MentionKind = status === 'rubric' ? (date ? 'date_change' : 'info') : KIND[status];
+      const kind: MentionKind = auditStatusKind(status, date);
       out.mentions.push({
         id: `a${++n}`,
         quote: raw,
@@ -429,6 +439,7 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
         itemId: null,
         courseId: course?.id ?? null,
         audit: { status, prefix },
+        note: noteText || undefined,
       });
       if (phase !== 'after') phase = 'visit';
       continue;
@@ -458,12 +469,8 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
       section(current, false).planPages.push(line);
       continue;
     }
-    const cap = parseCapture(line, courses, today);
-    if (!cap.mention.date && cap.mention.kind !== 'cancel') {
-      note(raw);
-      continue;
-    }
-    out.mentions.push({ ...cap.mention, id: `a${++n}`, courseId: cap.courseId ?? current ?? audited[0]?.id ?? null, audit: { status: cap.mention.kind === 'cancel' ? 'missing' : cap.mention.kind === 'date_change' ? 'changed' : 'new', prefix } });
+    // The fallback reads pipe rows only; anything else in prose is kept as a note for the model or the student.
+    note(raw);
   }
   for (const cc of Object.values(out.classes)) if (cc.plan === null && cc.planPages.length > 0 && cc.visited.length > 0) cc.plan = cc.planPages.length;
   // Anything that named no class belongs to the only class audited.
@@ -542,4 +549,21 @@ export function remainingCourses(parse: AuditParse, audited: Course[]): Course[]
   const stopIdx = parse.stopped?.courseId ? audited.findIndex((c) => c.id === parse.stopped!.courseId) : -1;
   if (stopIdx >= 0) return audited.slice(stopIdx);
   return audited.filter((c) => !done(c));
+}
+
+export interface BulkImport {
+  course: Course;
+  /** Mention ids of the new items. */
+  ids: string[];
+}
+
+/** A class the audit lists many new items for while the planner holds almost nothing: one import, not many problems. */
+export function bulkImports(parse: AuditParse, courses: Course[], openByCourse: (courseId: string) => number, min = 5): BulkImport[] {
+  const out: BulkImport[] = [];
+  for (const c of courses) {
+    const mine = parse.mentions.filter((m) => m.courseId === c.id && m.audit?.status !== 'note');
+    const fresh = mine.filter((m) => m.audit?.status === 'new' && m.date);
+    if (fresh.length >= min && fresh.length >= mine.length * 0.8 && openByCourse(c.id) < fresh.length / 2) out.push({ course: c, ids: fresh.map((m) => m.id) });
+  }
+  return out;
 }

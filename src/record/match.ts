@@ -30,7 +30,9 @@ export function titleSimilarity(a: string, b: string): number {
 
 /** The planner item a mention is about: the model's pick if it exists, else the closest open title in that class. */
 export function matchMention(m: Mention, items: Item[], courseId: string): Item | null {
-  const pool = items.filter((i) => i.courseId === courseId && i.status !== 'done');
+  // A posted score or a late flag is about work already handed in, so done items count for those.
+  const includeDone = m.kind === 'grade' || m.audit?.status === 'overdue';
+  const pool = items.filter((i) => i.courseId === courseId && (includeDone || i.status !== 'done'));
   if (m.itemId) {
     const hit = pool.find((i) => i.id === m.itemId);
     if (hit) return hit;
@@ -70,6 +72,7 @@ export type Proposal =
   | { kind: 'add'; item: Item }
   | { kind: 'remove'; item: Item }
   | { kind: 'score'; item: Item; score: number }
+  | { kind: 'flag'; item: Item; text: string }
   | { kind: 'confirm'; item: Item | null; text: string }
   | { kind: 'none'; text: string };
 
@@ -133,7 +136,7 @@ export function proposalFor(m: Mention, match: Item | null, course: Course, tz: 
       return { kind: 'none', text: match ? 'No score could be read from this line.' : 'Nothing in the planner matches this, so there is nowhere to put the score.' };
     case 'info':
     default:
-      if (m.audit?.status === 'overdue') return { kind: 'confirm', item: match, text: match ? `Halo flags ${match.label} as overdue.` : 'Halo flags this as overdue; nothing here matches it.' };
+      if (m.audit?.status === 'overdue') return match ? { kind: 'flag', item: match, text: `Halo says ${match.label} is late${match.status === 'done' ? ' even though it is marked done here' : ''} — check this.` } : { kind: 'none', text: 'Halo flags this as late; nothing in the planner matches it.' };
       if (m.audit?.status === 'schedule') return { kind: 'none', text: 'Meeting days or times differ in Halo. Edit the class in Settings if Halo is right.' };
       if (m.audit?.status === 'note') return { kind: 'none', text: 'Could not read this line. Left here so it is not lost.' };
       if (match && dueAt && !sameDay) return { kind: 'update', item: match, dueAt };

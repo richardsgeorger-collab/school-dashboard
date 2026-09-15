@@ -32,6 +32,18 @@ describe('the plain-language overview', () => {
     expect(s.decisions).toEqual({ a1: 'apply', a2: 'apply', a3: 'ask' });
     expect(s.source).toBe('local');
   });
+  it('folds a whole-class import into one line and one plan step', () => {
+    const eng = Array.from({ length: 28 }, (_, i) => ({ id: `e${i}`, classCode: 'ENG-105', classWord: 'English', status: 'new', title: `Item ${i}`, quote: `row ${i}`, proposal: `Add Item ${i} to the planner, due Oct ${i + 1}`, kind: 'add' as const, confidence: 'high', date: `2026-10-${String(i + 1).padStart(2, '0')}` }));
+    const s = localSummary({ ...input, findings: [...input.findings, ...eng], bulk: [{ code: 'ENG-105', word: 'English', ids: eng.map((f) => f.id) }] });
+    expect(s.verdict).toBe('Mostly clean — 3 real problems, 2 of them in Chem.');
+    expect(s.matters[0]).toBe("ENG-105 isn't in your planner yet — 28 items to add.");
+    expect(s.plan.startsWith("I'll add all 28 ENG-105 items, move Chem Quiz 3")).toBe(true);
+    expect(s.decisions.e3).toBe('apply');
+    const only = localSummary({ ...input, findings: eng, bulk: [{ code: 'ENG-105', word: 'English', ids: eng.map((f) => f.id) }] });
+    expect(only.verdict).toBe("ENG-105 isn't in your planner yet — 28 items to add. Otherwise nothing to fix.");
+    const p = buildSummaryPrompt({ ...input, findings: eng, bulk: [{ code: 'ENG-105', word: 'English', ids: eng.map((f) => f.id) }] });
+    expect(p.user).toContain('Whole-class imports');
+  });
   it('says so plainly when only judgment calls remain, or nothing at all', () => {
     const asks = localSummary({ ...input, findings: input.findings.filter((f) => f.id === 'a3') });
     expect(asks.verdict).toBe('Nothing changes on its own — 1 thing needs your eye.');

@@ -42,11 +42,20 @@ export interface SummaryClass {
   skipped: string[];
 }
 
+export interface SummaryBulk {
+  code: string;
+  word: string;
+  /** Finding ids of the new items. */
+  ids: string[];
+}
+
 export interface SummaryInput {
   findings: SummaryFinding[];
   classes: SummaryClass[];
   /** Open items of the audited classes, one line each. */
   planner: string;
+  /** Classes the planner has nothing for that the audit lists wholesale: one import each, not many problems. */
+  bulk?: SummaryBulk[];
 }
 
 const APPLY: Proposal['kind'][] = ['update', 'add', 'score'];
@@ -55,7 +64,8 @@ const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 /** The overview without a model: counts and the proposals themselves, in plain words. Always available. */
 export function localSummary(input: SummaryInput): AuditSummary {
-  const real = input.findings.filter((f) => f.status !== 'note');
+  const bulkIds = new Set((input.bulk ?? []).flatMap((b) => b.ids));
+  const real = input.findings.filter((f) => f.status !== 'note' && !bulkIds.has(f.id));
   const applies = real.filter((f) => APPLY.includes(f.kind));
   const asks = real.filter((f) => !APPLY.includes(f.kind));
   const decisions: Record<string, PlanDecision> = {};
@@ -65,16 +75,23 @@ export function localSummary(input: SummaryInput): AuditSummary {
   for (const f of real) byClass.set(f.classWord, (byClass.get(f.classWord) ?? 0) + 1);
   const top = [...byClass.entries()].sort((a, b) => b[1] - a[1])[0];
   const where = top && byClass.size > 1 && top[1] > 1 ? `, ${top[1]} of them in ${top[0]}` : top && byClass.size === 1 && real.length > 1 ? `, all in ${top[0]}` : '';
+  const bulkLines = (input.bulk ?? []).map((b) => `${b.code} isn't in your planner yet — ${b.ids.length} item${b.ids.length === 1 ? '' : 's'} to add.`);
   let verdict: string;
-  if (real.length === 0) verdict = 'Nothing to fix — your planner matches Halo.';
+  if (real.length === 0 && bulkLines.length) verdict = bulkLines.length === 1 ? `${bulkLines[0]} Otherwise nothing to fix.` : `${(input.bulk ?? []).map((b) => b.code).join(' and ')} aren't in your planner yet. Otherwise nothing to fix.`;
+  else if (real.length === 0) verdict = 'Nothing to fix — your planner matches Halo.';
   else if (applies.length === 0) verdict = `Nothing changes on its own — ${real.length} thing${real.length === 1 ? '' : 's'} need${real.length === 1 ? 's' : ''} your eye${where}.`;
   else verdict = `${real.length <= 3 ? 'Mostly clean' : real.length <= 6 ? 'A few things to fix' : 'Quite a bit changed'} — ${real.length} real problem${real.length === 1 ? '' : 's'}${where}.`;
-  const matters = real
-    .slice()
-    .sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'))
-    .slice(0, 4)
-    .map((f) => f.headline ?? f.proposal);
-  const plan = applies.length ? `I'll ${list(applies.map((f) => lower(f.proposal)))}.` : 'Nothing will change on its own.';
+  const matters = [
+    ...bulkLines,
+    ...real
+      .slice()
+      .sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'))
+      .map((f) => f.headline ?? f.proposal),
+  ].slice(0, 4);
+  for (const id of bulkIds) decisions[id] = 'apply';
+  const bulkPlan = (input.bulk ?? []).map((b) => `add all ${b.ids.length} ${b.code} items`);
+  const planParts = [...bulkPlan, ...applies.map((f) => lower(f.proposal))];
+  const plan = planParts.length ? `I'll ${list(planParts)}.` : 'Nothing will change on its own.';
   const needsYou = asks.map((f) => f.proposal);
   const partial = input.classes.filter((c) => c.outcome === 'partial').map((c) => `${c.word} wasn't fully checked: ${lower(c.reason)}${c.skipped.length ? ` Not checked: ${c.skipped.join('; ')}.` : ''} Don't trust its result yet.`);
   const unreached = input.classes.filter((c) => c.outcome === 'not reached').map((c) => c.word);
@@ -121,7 +138,8 @@ export function buildSummaryPrompt(input: SummaryInput): { system: string; user:
     ? input.findings.map((f) => `${f.id} · ${f.classCode} (${f.classWord}) · ${f.status} · "${f.title}"${f.date ? ` · ${f.date}` : ''} · ${f.confidence} confidence\n   Halo said: ${f.quote}\n   Proposal (${f.kind}): ${f.proposal}`).join('\n')
     : '(none)';
   const classes = input.classes.map((c) => `${c.code} (${c.word}): ${c.outcome} — ${c.reason}${c.skipped.length ? ` Skipped: ${c.skipped.join('; ')}` : ''}`).join('\n');
-  return { system: SYSTEM, user: `Findings (id · class · status · title · date · confidence):\n${findings}\n\nClass coverage:\n${classes}\n\nPlanner, open items of the audited classes:\n${input.planner || '(none)'}` };
+  const bulk = (input.bulk ?? []).length ? `\n\nWhole-class imports (say "X isn't in your planner yet — N items to add", count them as one thing, not N problems; their ids apply):\n${(input.bulk ?? []).map((b) => `${b.code}: ${b.ids.length} items, ids ${b.ids.join(' ')}`).join('\n')}` : '';
+  return { system: SYSTEM, user: `Findings (id · class · status · title · date · confidence):\n${findings}\n\nClass coverage:\n${classes}${bulk}\n\nPlanner, open items of the audited classes:\n${input.planner || '(none)'}` };
 }
 
 const str = (v: unknown, max = 400) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -137,8 +155,9 @@ export function summaryFromTool(raw: unknown, input: SummaryInput): AuditSummary
     const e = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
     if (typeof e.id === 'string' && ids.has(e.id) && (e.action === 'apply' || e.action === 'ask')) decisions[e.id] = e.action;
   }
-  // Removals and unmatched rows never apply on their own, whatever the model said.
+  // Removals and unmatched rows never apply on their own, whatever the model said; whole-class imports always may.
   for (const f of input.findings) if (!APPLY.includes(f.kind) && decisions[f.id] === 'apply') decisions[f.id] = 'ask';
+  for (const id of (input.bulk ?? []).flatMap((b) => b.ids)) if (input.findings.some((f) => f.id === id && APPLY.includes(f.kind))) decisions[id] = 'apply';
   return {
     verdict: str(o.verdict) || base.verdict,
     matters: strs(o.matters, 4).length ? strs(o.matters, 4) : base.matters,

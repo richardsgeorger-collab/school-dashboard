@@ -44,6 +44,24 @@ export const hasZone = (s: string | null | undefined): boolean => !!s && ZONED.t
 /** "CHM-113L" and "chm 113l" are the same class. */
 export const normCode = (code: string): string => (code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
+/** The class part of a code, section dropped: "ENG-105-ONL4" and "ENG 105 (TR101)" both key to ENG105. */
+export function courseKey(code: string): string {
+  const m = /([A-Z]{2,4})\s*-?\s*(\d{3}[A-Z]?)/i.exec(code ?? '');
+  return m ? `${m[1]}${m[2]}`.toUpperCase() : normCode(code);
+}
+
+/** The planner class a code or name refers to, section suffixes ignored, name as a last resort. */
+export function resolveCourse<T extends { id: string; code: string; name: string }>(text: string, courses: T[]): T | null {
+  const key = courseKey(text);
+  if (key) {
+    const hit = courses.find((c) => courseKey(c.code) === key);
+    if (hit) return hit;
+  }
+  const t = (text ?? '').trim().toLowerCase();
+  if (t.length < 4) return null;
+  return courses.find((c) => c.name.toLowerCase() === t) ?? courses.find((c) => t.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(t)) ?? null;
+}
+
 export const normTitle = (t: string): string =>
   decodeEntities(t ?? '')
     .toLowerCase()

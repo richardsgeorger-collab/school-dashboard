@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { CourseChip } from '../components/CourseChip';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate, fmtTime, makeIso, zonedParts } from '../domain/dates';
-import type { Course, DateStr } from '../domain/types';
+import type { Course, DateStr, Item } from '../domain/types';
 import { matchMention, proposalFor, type Proposal } from '../record/match';
 import type { LectureNotes, Mention } from '../record/notes';
 import { useStore } from '../storage/store';
@@ -24,23 +24,45 @@ export function describeProposal(p: Proposal, tz: string, dueAt?: string): strin
       return `Remove ${p.item.label} from the planner (Halo no longer lists it)`;
     case 'score':
       return `Record ${p.item.label} as graded at ${p.score} of ${p.item.points}`;
+    case 'flag':
+      return `${p.text} Nothing changes here on its own.`;
     default:
       return p.text;
   }
 }
 
+/** The planner items a finding says this one gates, matched by title within the class. */
+function gatedIds(m: Mention, courseId: string, items: Item[]): string[] {
+  const out: string[] = [];
+  for (const title of m.gates ?? []) {
+    const hit = matchMention({ ...m, title, kind: 'info', itemId: null, gates: [] }, items, courseId);
+    if (hit && !out.includes(hit.id)) out.push(hit.id);
+  }
+  return out;
+}
+
 /** Apply one proposal to the planner and say what happened. Dry runs only describe. */
-export function applyProposal(p: Proposal, m: Mention, actions: Actions, tz: string, lectureDate: DateStr, dryRun: boolean, edits: { dueAt?: string; title?: string; points?: number } = {}): string {
+export function applyProposal(p: Proposal, m: Mention, actions: Actions, tz: string, lectureDate: DateStr, dryRun: boolean, edits: { dueAt?: string; title?: string; points?: number } = {}, items: Item[] = []): string {
   const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
+  const gates = (courseId: string, prev: string[] = []) => {
+    const ids = gatedIds(m, courseId, items);
+    return ids.length ? [...new Set([...prev, ...ids])] : prev;
+  };
   if (p.kind === 'update') {
     const dueAt = edits.dueAt ?? p.dueAt;
-    if (!dryRun) actions.upsertItem({ ...p.item, dueAt, notes: `${p.item.notes ? `${p.item.notes}\n` : ''}Moved per the ${lectureDate} lecture: "${m.quote}"` });
-    return `${p.item.label} now due ${when(dueAt)}`;
+    const blocks = gates(p.item.courseId, p.item.blocks ?? []);
+    if (!dryRun) actions.upsertItem({ ...p.item, dueAt, blocks: blocks.length ? blocks : p.item.blocks, notes: `${p.item.notes ? `${p.item.notes}\n` : ''}Moved per the ${lectureDate} lecture: "${m.quote}"` });
+    return `${p.item.label} now due ${when(dueAt)}${blocks.length ? `, gating ${blocks.length} item${blocks.length === 1 ? '' : 's'}` : ''}`;
   }
   if (p.kind === 'add') {
-    const item = { ...p.item, title: (edits.title ?? p.item.title).trim() || p.item.title, points: edits.points ?? p.item.points, dueAt: edits.dueAt ?? p.item.dueAt };
+    const blocks = gates(p.item.courseId);
+    const item = { ...p.item, title: (edits.title ?? p.item.title).trim() || p.item.title, points: edits.points ?? p.item.points, dueAt: edits.dueAt ?? p.item.dueAt, ...(blocks.length ? { blocks } : {}) };
     if (!dryRun) actions.upsertItem(item);
-    return `Added ${item.title}, due ${when(item.dueAt)}`;
+    return `Added ${item.title}, due ${when(item.dueAt)}${blocks.length ? `, gating ${blocks.length} item${blocks.length === 1 ? '' : 's'}` : ''}`;
+  }
+  if (p.kind === 'flag') {
+    if (!dryRun) actions.upsertItem({ ...p.item, haloLate: m.note || m.quote });
+    return `Noted: Halo says ${p.item.label} is late. Check it in Halo.`;
   }
   if (p.kind === 'remove') {
     if (!dryRun) actions.deleteItem(p.item.id);
@@ -109,7 +131,7 @@ function MentionRow({
   const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
   const dueAt = makeIso(date, time || '23:59', tz);
 
-  const approve = () => onDecide(m.id, 'approved', applyProposal(base, m, actions, tz, lectureDate, dryRun, { dueAt, title, points }));
+  const approve = () => onDecide(m.id, 'approved', applyProposal(base, m, actions, tz, lectureDate, dryRun, { dueAt, title, points }, data.items));
 
   const proposalLine = (p: Proposal) => {
     switch (p.kind) {
@@ -135,6 +157,17 @@ function MentionRow({
         return (
           <>
             <b>{p.item.label}</b>: score <span className="old">{p.item.score ?? '—'}</span> → <mark>{p.score}</mark> / {p.item.points}
+          </>
+        );
+      case 'flag':
+        return (
+          <>
+            <mark>Halo says late</mark> — {p.text.replace(/^Halo says /, '')}{' '}
+            {p.item.url && (
+              <a href={p.item.url} target="_blank" rel="noreferrer" className="diff-toggle">
+                Open in Halo
+              </a>
+            )}
           </>
         );
       default:
@@ -191,7 +224,7 @@ function MentionRow({
           ) : (
             <>
               <button type="button" className={`btn small ${base.kind === 'remove' ? 'danger' : 'primary'}`} onClick={approve}>
-                {base.kind === 'update' ? 'Approve move' : base.kind === 'add' ? 'Add it' : base.kind === 'score' ? 'Record score' : 'Remove it'}
+                {base.kind === 'update' ? 'Approve move' : base.kind === 'add' ? 'Add it' : base.kind === 'score' ? 'Record score' : base.kind === 'flag' ? 'Note it on the item' : 'Remove it'}
               </button>
               <button type="button" className="btn small" onClick={() => onDecide(m.id, 'dismissed', '')}>
                 Dismiss
@@ -245,7 +278,7 @@ export function LectureReview({
       const c = (m.courseId && courseById.get(m.courseId)) || course;
       const match = matchMention(m, data.items, c.id);
       const p = proposalFor(m, match, c, tz, lectureDate, now);
-      if (p.kind === 'update' || p.kind === 'add' || p.kind === 'score') onDecide(m.id, 'approved', applyProposal(p, m, actions, tz, lectureDate, dryRun));
+      if (p.kind === 'update' || p.kind === 'add' || p.kind === 'score') onDecide(m.id, 'approved', applyProposal(p, m, actions, tz, lectureDate, dryRun, {}, data.items));
     }
   };
   return (
