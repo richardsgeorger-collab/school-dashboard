@@ -5,9 +5,11 @@ import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloImport } from './views/HaloImport';
 import { buildAuditPrompt, HALO_URL } from './halo/audit';
-import { pendingCheck, setPendingCheck } from './halo/checkState';
+import { clearPendingCheck, pendingCheck, setPendingCheck } from './halo/checkState';
 import { useStore } from './storage/store';
 import { HaloCheck } from './views/HaloCheck';
+import { HaloClassPicker } from './views/HaloClassPicker';
+import type { Course } from './domain/types';
 import { QuickCapture } from './views/QuickCapture';
 import { SyncAssignments } from './views/SyncAssignments';
 import { useRoute } from './router';
@@ -101,22 +103,28 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
 function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () => void; onClose: () => void }) {
   const { data, today } = useStore();
   const [hint, setHint] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
   useEffect(() => {
     if (!hint) return;
     const t = setTimeout(() => setHint(null), 9000);
     return () => clearTimeout(t);
   }, [hint]);
+  // First press: pick the class. Second press within a day: the paste box for that class.
   const press = useCallback(() => {
     if (pendingCheck()) {
       onOpen();
       return;
     }
-    const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, data.settings.timezone, today);
+    setPicking(true);
+  }, [onOpen]);
+  const pick = (course: Course) => {
+    const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, data.settings.timezone, today, course);
     void navigator.clipboard?.writeText(prompt).catch(() => undefined);
     window.open(HALO_URL, '_blank', 'noopener');
-    setPendingCheck();
-    setHint('Copied. Paste this into Claude in Chrome on the Halo tab, then come back and press Check Halo.');
-  }, [data, today, onOpen]);
+    setPendingCheck(course.id);
+    setPicking(false);
+    setHint(`Copied the ${course.code} audit. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.`);
+  };
   return (
     <>
       <CheckHaloPress press={press} />
@@ -125,7 +133,18 @@ function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () =>
           {hint}
         </div>
       )}
-      {open && <HaloCheck onClose={onClose} onHint={setHint} />}
+      {picking && <HaloClassPicker onPick={pick} onClose={() => setPicking(false)} />}
+      {open && (
+        <HaloCheck
+          onClose={onClose}
+          onHint={setHint}
+          onSwitchClass={() => {
+            clearPendingCheck();
+            onClose();
+            setPicking(true);
+          }}
+        />
+      )}
     </>
   );
 }

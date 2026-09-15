@@ -120,6 +120,12 @@ export interface HaloCheckRecord {
   at: string;
   clean: boolean;
   findings: number;
+  /** The class audited. Absent on checks recorded before audits ran one class at a time. */
+  courseId?: string | null;
+  /** Coverage fell short: no coverage count, pages skipped, or the run stopped early. */
+  partial?: boolean;
+  coverage?: { visited: number; planned: number } | null;
+  skipped?: string[];
 }
 
 export interface QuizStat {

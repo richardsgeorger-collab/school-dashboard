@@ -489,7 +489,7 @@ export function Now() {
       </div>
 
       {(() => {
-        const v = verificationLine(data.settings.haloChecks, today, tz);
+        const v = verificationLine(data.settings.haloChecks, data.courses, data.items, today, tz);
         return (
           <p className="verify mono" data-level={v.level}>
             {v.text}

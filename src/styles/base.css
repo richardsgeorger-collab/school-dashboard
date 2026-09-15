@@ -3989,3 +3989,77 @@ button {
   border-left: 2px solid var(--line);
   font-style: normal;
 }
+
+/* Check Halo: class picker, coverage, per-class history */
+.halo-pick {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.halo-pick-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.halo-pick-row[data-state='never'] .halo-pick-status,
+.halo-pick-row[data-state='partial'] .halo-pick-status {
+  color: var(--risk);
+}
+.halo-pick-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.halo-pick-name > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.halo-pick-status {
+  font-size: 11px;
+  color: var(--ink-3);
+  flex: 0 0 auto;
+  text-align: right;
+}
+.halo-coverage[data-partial='true'] {
+  color: var(--risk);
+}
+.halo-skipped {
+  font-size: 12px;
+}
+.verify-table {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.verify-table li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.verify-table li[data-state='never'] .verify-last,
+.verify-table li[data-state='partial'] .verify-last {
+  color: var(--risk);
+}
+.verify-history {
+  grid-column: 2;
+  color: var(--ink-3);
+  font-size: 11px;
+}

@@ -1,26 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { TZ } from './fixtures';
-import { cleanStreak, MAX_CHECKS, recordCheck, verificationLine } from './verification';
+import type { HaloCheckRecord } from '../domain/types';
+import { mkCourse, mkItem, TZ } from './fixtures';
+import { classVerifications, cleanStreak, MAX_CHECKS, recordCheck, verificationLine } from './verification';
 
-const rec = (at: string, clean: boolean, findings = 0) => ({ at, clean, findings });
+const chm = mkCourse({ id: 'c1', code: 'CHM-113' });
+const eng = mkCourse({ id: 'c2', code: 'ENG-105' });
+const items = [mkItem({ id: 'a', courseId: 'c1', title: 'Quiz 1', label: 'Chem Quiz 1' }), mkItem({ id: 'b', courseId: 'c2', title: 'Essay 1', label: 'English Essay 1' })];
+const today = '2026-09-14';
+const at = (daysAgo: number) => `2026-09-${String(14 - daysAgo).padStart(2, '0')}T20:00:00-07:00`;
+const rec = (courseId: string, daysAgo: number, o: Partial<HaloCheckRecord> = {}): HaloCheckRecord => ({ at: at(daysAgo), clean: true, findings: 0, courseId, partial: false, coverage: { visited: 5, planned: 5 }, skipped: [], ...o });
+const line = (list: HaloCheckRecord[] | undefined) => verificationLine(list, [chm, eng], items, today, TZ);
 
-describe('verification receipt', () => {
-  it('says when Halo was last checked and how it went, amber past ten days or never', () => {
-    expect(verificationLine(undefined, '2026-09-14', TZ)).toEqual({ text: 'Not yet verified against Halo.', level: 'amber' });
-    expect(verificationLine([rec('2026-09-12T20:00:00-07:00', true)], '2026-09-14', TZ)).toEqual({ text: 'Verified against Halo 2 days ago — clean.', level: 'quiet' });
-    expect(verificationLine([rec('2026-09-14T08:00:00-07:00', false, 3)], '2026-09-14', TZ)).toEqual({ text: 'Verified against Halo today — 3 findings, reviewed.', level: 'quiet' });
-    expect(verificationLine([rec('2026-09-13T08:00:00-07:00', false, 1)], '2026-09-14', TZ).text).toBe('Verified against Halo yesterday — 1 finding, reviewed.');
-    expect(verificationLine([rec('2026-09-03T08:00:00-07:00', true)], '2026-09-14', TZ).level).toBe('amber');
-    expect(verificationLine([rec('2026-09-04T08:00:00-07:00', true)], '2026-09-14', TZ).level).toBe('quiet');
+describe('per-class verification receipt', () => {
+  it('names the most recent check and the weakest class, never an average', () => {
+    expect(line(undefined)).toEqual({ text: 'No class verified against Halo yet.', level: 'amber' });
+    expect(line([rec('c1', 2)])).toEqual({ text: 'Chem verified 2 days ago · English never checked', level: 'amber' });
+    expect(line([rec('c1', 0), rec('c2', 4, { partial: true, clean: false, skipped: ['Announcements', 'Syllabus'] })])).toEqual({ text: 'Chem verified today · English partial 4 days ago, 2 pages skipped', level: 'amber' });
+    expect(line([rec('c1', 0, { clean: false, findings: 3 }), rec('c2', 12)])).toEqual({ text: 'Chem verified today (3 findings, reviewed) · English verified 12 days ago', level: 'amber' });
+    expect(line([rec('c2', 1, { partial: true, clean: false, coverage: { visited: 3, planned: 5 } })])).toEqual({ text: 'English partial yesterday, 3 of 5 pages · Chem never checked', level: 'amber' });
   });
-  it('counts the trailing clean streak and caps the history', () => {
-    const list = [rec('a', false, 2), rec('b', true), rec('c', true), rec('d', true)];
-    expect(cleanStreak(list)).toBe(3);
-    expect(cleanStreak([rec('a', true), rec('b', false, 1)])).toBe(0);
-    expect(cleanStreak(undefined)).toBe(0);
-    let h: ReturnType<typeof recordCheck> = [];
-    for (let i = 0; i < MAX_CHECKS + 5; i++) h = recordCheck(h, rec(String(i), true));
+  it('goes quiet only when every class is recent and complete', () => {
+    expect(line([rec('c1', 3), rec('c2', 1)])).toEqual({ text: 'All 2 classes verified within 3 days.', level: 'quiet' });
+    expect(line([rec('c1', 0), rec('c2', 0, { clean: false, findings: 1 })])).toEqual({ text: 'All 2 classes verified today.', level: 'quiet' });
+    expect(verificationLine([rec('c1', 0)], [chm], items, today, TZ)).toEqual({ text: 'Chem verified today — clean.', level: 'quiet' });
+  });
+  it('orders classes weakest first and counts clean streaks per class', () => {
+    const list = [rec('c1', 5, { clean: false, findings: 2 }), rec('c1', 3), rec('c1', 1), rec('c2', 2, { partial: true, clean: false })];
+    const vs = classVerifications(list, [chm, eng], items, today, TZ);
+    expect(vs.map((v) => [v.word, v.state, v.days, v.streak])).toEqual([
+      ['English', 'partial', 2, 0],
+      ['Chem', 'clean', 1, 2],
+    ]);
+    expect(cleanStreak(list, 'c1')).toBe(2);
+    expect(cleanStreak(list)).toBe(0);
+    let h: HaloCheckRecord[] = [];
+    for (let i = 0; i < MAX_CHECKS + 5; i++) h = recordCheck(h, rec('c1', 0));
     expect(h.length).toBe(MAX_CHECKS);
-    expect(h[0].at).toBe('5');
   });
 });
