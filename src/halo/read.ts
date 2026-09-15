@@ -1,7 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Course, DateStr } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
-import { auditStatusKind, type AuditParse, type AuditStatus, type ClassCoverage } from './audit';
+import { auditStatusKind, isGenericPage, type AuditParse, type AuditStatus, type ClassCoverage } from './audit';
 import { resolveCourse } from './normalize';
 
 /** Same model as the coach and the lecture pass. */
@@ -123,7 +123,7 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
     const cv = int(e.coverage_visited);
     const cp = int(e.coverage_planned);
     if (cv !== null && cp !== null) cc.coverage = { visited: cv, planned: cp };
-    cc.skipped.push(...strs(e.skipped));
+    cc.skipped.push(...strs(e.skipped).filter((s) => !isGenericPage(s)));
     const stoppedAt = str(e.stopped_at);
     if (stoppedAt) cc.stoppedAt = stoppedAt;
     const notes = str(e.notes);
@@ -132,7 +132,8 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
   let n = 0;
   for (const f of Array.isArray(o.findings) ? o.findings : []) {
     const e = (f && typeof f === 'object' ? f : {}) as Record<string, unknown>;
-    const title = str(e.title, 200);
+    const quoteRaw = str(e.quote, 600);
+    const title = str(e.title, 200) || quoteRaw.slice(0, 80);
     if (!title) continue;
     const statusWord = str(e.status);
     const status: AuditStatus = (STATUSES as readonly string[]).includes(statusWord) ? (statusWord === 'other' ? 'note' : (statusWord as AuditStatus)) : 'note';
@@ -141,7 +142,7 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
     const { date, time } = readDue(str(e.due));
     const kind: MentionKind = auditStatusKind(status, date);
     const confidence = (['high', 'medium', 'low'] as const).find((x) => x === e.confidence) ?? 'medium';
-    const quote = str(e.quote, 600) || `${str(e.class_code)} | ${title} | ${statusWord}${e.due ? ` | ${str(e.due)}` : ''}${str(e.note) ? ` | ${str(e.note)}` : ''}`;
+    const quote = quoteRaw || `${str(e.class_code)} | ${title} | ${statusWord}${e.due ? ` | ${str(e.due)}` : ''}${str(e.note) ? ` | ${str(e.note)}` : ''}`;
     const mention: Mention = { id: `a${++n}`, quote, kind, title, date, time, points: num(e.points), score: status === 'grade' ? num(e.score) : null, confidence, itemId: null, courseId: course?.id ?? null, audit: { status, prefix: null }, note: str(e.note, 300) || undefined, gates: strs(e.gates, 6) };
     out.mentions.push(mention);
   }
@@ -178,20 +179,45 @@ export async function readAudit(args: ReadArgs & { apiKey: string; audited?: Cou
 
 export type LineKind = 'finding' | 'coverage' | 'header' | 'noise' | 'unknown';
 
+const NARRATION = /^(used claude in chrome|clicked|navigated|scrolled|reading|opening|opened|checking|checked|looking|let me|i'll|i will|i'm|i am|i (have|audited|opened|read|checked|visited|went|found|listed|expanded|scrolled|see)|now (i|let|checking|moving|on)|next,?|moving on|starting|done with|finished|here (is|are)|this class|okay|ok,|good[,.]|great[,.]|all (of the|the) (pages|topics)|nothing (new|else|different) (here|on this page|in this)|no (new|other) (items|findings|differences)|that('s| is) (all|it|everything)|continuing|proceeding|the (page|class) (loaded|shows)|expanding|visiting|going to|summary:?$)/i;
+const PAGE_NAME = /^[-•*]?\s*(topic|module|week|unit|gradebook|grades?|announcements?|syllabus|course (materials|resources|home)|class (home|calendar|policies)|resources|home(page)?|calendar|library|mission statement|doctrinal statement|student (success center|ai resources)|learning support|discussion forums?|assignments?|quizzes|files|people|attendance)\b/i;
+
 /** Each line of the paste labeled by whether the reader used it, for the "what was and wasn't recognized" view. */
 export function markLines(text: string, parse: AuditParse): { line: string; kind: LineKind }[] {
   const quotes = parse.mentions.filter((m) => m.audit?.status !== 'note').map((m) => m.quote.toLowerCase().replace(/\s+/g, ' ').trim());
+  const unread = parse.unread.map((u) => u.toLowerCase().replace(/\s+/g, ' ').trim());
+  let inPlan = false;
   return text
     .split(/\r?\n/)
     .map((raw) => {
       const line = raw.trim();
       const norm = line.toLowerCase().replace(/\s+/g, ' ');
-      if (!line) return { line: raw, kind: 'noise' as LineKind };
-      if (/^(used claude in chrome|clicked|navigated|scrolled|reading|opening|let me|i'll|i will|now (i|let)|next,)/i.test(line) || /\(\d+ actions?\)/i.test(line)) return { line: raw, kind: 'noise' };
-      if (/^(=+\s*)?(class\s*:|phase \d|=== )/i.test(line) || /^#+\s/.test(line)) return { line: raw, kind: 'header' };
-      if (/^(coverage|visited|stopped|final coverage|all match|end of findings|skipped)\b/i.test(line)) return { line: raw, kind: 'coverage' };
-      if (quotes.some((q) => q.length > 12 && (norm.includes(q) || q.includes(norm)))) return { line: raw, kind: 'finding' };
+      if (!line || /^[-=_*#~.\s]+$/.test(line)) return { line: raw, kind: 'noise' as LineKind };
+      if (/\(\d+ actions?\)/i.test(line)) return { line: raw, kind: 'noise' };
+      if (/^(=+\s*)?(class\s*:|phase \d|=== |rules)/i.test(line) || /^#+\s/.test(line) || /^[A-Z]{2,4}-?\d{3}[A-Z]?(-[A-Z0-9]+)?\s*[:—–-]?\s*[A-Za-z ]*$/.test(line)) {
+        inPlan = false;
+        return { line: raw, kind: 'header' };
+      }
+      if (/^(coverage plan|plan:)/i.test(line)) {
+        inPlan = true;
+        return { line: raw, kind: 'coverage' };
+      }
+      if (/^(coverage|visited|stopped|final coverage|all match|end of findings|skipped|not visited)\b/i.test(line)) {
+        inPlan = false;
+        return { line: raw, kind: 'coverage' };
+      }
+      if (quotes.some((q) => q.length > 12 && (norm.includes(q) || q.includes(norm)))) {
+        inPlan = false;
+        return { line: raw, kind: 'finding' };
+      }
       if ((line.match(/\|/g) ?? []).length >= 2) return { line: raw, kind: 'finding' };
+      if (unread.some((u) => u.length > 8 && (norm.includes(u) || u.includes(norm)))) return { line: raw, kind: 'unknown' };
+      if (inPlan && PAGE_NAME.test(line) && line.length < 80) return { line: raw, kind: 'coverage' };
+      if (PAGE_NAME.test(line) && line.length < 40 && !/\d{1,2}\/\d{1,2}|\d{4}-\d{2}|due|pts|points|late|missing|new/i.test(line)) return { line: raw, kind: 'coverage' };
+      if (NARRATION.test(line) && !/\d{1,2}\/\d{1,2}|\d{4}-\d{2}-\d{2}|\b(due|pts|points|late|missing|overdue|changed|graded?|score)\b/i.test(line)) return { line: raw, kind: 'noise' };
       return { line: raw, kind: 'unknown' };
     });
 }
+
+/** The lines that might be content the reader missed, in order. */
+export const unknownLines = (marked: { line: string; kind: LineKind }[]): string[] => marked.filter((l) => l.kind === 'unknown').map((l) => l.line.trim());

@@ -4,11 +4,11 @@ import { describeError } from '../chat/client';
 import { CourseChip } from '../components/CourseChip';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
-import { classWords } from '../domain/pace';
 import type { Course, HaloCheckRecord } from '../domain/types';
 import { auditOutcomes, buildAuditPrompt, bulkImports, HALO_URL, openItemsFor, parseAuditResults, remainingCourses, type AuditParse, type BulkImport, type ClassOutcome } from '../halo/audit';
 import { clearPendingCheck, pendingCheck, setPendingCheck } from '../halo/checkState';
-import { markLines, readAudit } from '../halo/read';
+import { markLines, readAudit, unknownLines } from '../halo/read';
+import { isGating } from '../record/match';
 import { localSummary, summarizeAudit, type AuditSummary, type SummaryInput } from '../halo/summary';
 import { matchMention, proposalFor, type Proposal } from '../record/match';
 import type { Mention } from '../record/notes';
@@ -22,7 +22,7 @@ function headlineFor(p: Proposal, m: Mention, tz: string): string {
     case 'update':
       return `${p.item.label} moved: ${day(p.item.dueAt)} → ${day(p.dueAt)}${fmtTime(p.dueAt, tz) !== fmtTime(p.item.dueAt, tz) ? ` ${fmtTime(p.dueAt, tz)}` : ''}.`;
     case 'add':
-      return `Halo has ${p.item.title} (due ${day(p.item.dueAt)}${p.item.points ? `, ${p.item.points} pts` : ''}) that your planner doesn't.`;
+      return isGating(m) ? `${p.item.title} is due ${day(p.item.dueAt)} and gates ${(m.gates ?? []).join(' and ') || 'later work'}.` : `Halo has ${p.item.title} (due ${day(p.item.dueAt)}${p.item.points ? `, ${p.item.points} pts` : ''}) that your planner doesn't.`;
     case 'score':
       return `${p.item.label} is graded: ${p.score} of ${p.item.points}.`;
     case 'remove':
@@ -84,11 +84,23 @@ function RawView({ text, parse }: { text: string; parse: AuditParse | null }) {
   const lines = useMemo(() => (parse ? markLines(text, parse) : text.split(/\r?\n/).map((line) => ({ line, kind: 'unknown' as const }))), [text, parse]);
   const counts: Record<string, number> = {};
   for (const l of lines) counts[l.kind] = (counts[l.kind] ?? 0) + 1;
+  const unknown = unknownLines(lines);
   return (
-    <details className="halo-rawwrap">
+    <details className="halo-rawwrap" open={unknown.length > 0}>
       <summary className="hint">
-        What was and wasn&apos;t recognized: {counts.finding ?? 0} finding line{counts.finding === 1 ? '' : 's'}, {counts.coverage ?? 0} coverage line{counts.coverage === 1 ? '' : 's'}, {counts.unknown ?? 0} not recognized
+        What was and wasn&apos;t recognized: {counts.finding ?? 0} finding line{counts.finding === 1 ? '' : 's'}, {counts.coverage ?? 0} coverage line{counts.coverage === 1 ? '' : 's'}, {counts.noise ?? 0} noise, {unknown.length} not recognized
       </summary>
+      {unknown.length > 0 && (
+        <div className="halo-unknown">
+          <p className="hint">Not recognized — might be content I missed:</p>
+          <ul>
+            {unknown.slice(0, 20).map((l, i) => (
+              <li key={i}>{l}</li>
+            ))}
+            {unknown.length > 20 && <li className="hint">+ {unknown.length - 20} more below</li>}
+          </ul>
+        </div>
+      )}
       <pre className="halo-raw">
         {lines.map((l, i) => (
           <span key={i} data-kind={l.kind}>
@@ -117,7 +129,6 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
   const [pending] = useState(() => pendingCheck());
   const [attempt, setAttempt] = useState(0);
   const now = useMemo(() => new Date().toISOString(), []);
-  const words = useMemo(() => classWords(data.courses, data.items), [data.courses, data.items]);
   const hasKey = loadApiKey() !== '';
 
   const audited: Course[] = useMemo(() => {
@@ -191,7 +202,7 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const bulk = useMemo(() => (parsed ? bulkImports(parsed, audited, (id) => openItemsFor(dataRef.current, tz, today, id).length) : []), [parsed, audited, tz, today]);
   const bulkIds = useMemo(() => new Set(bulk.flatMap((b) => b.ids)), [bulk]);
-  const classesForSummary = useMemo(() => outcomes.map((o) => ({ code: o.course.code, word: words.get(o.course.id) ?? o.course.code, outcome: outcomeWord(o), reason: o.outcome?.reason ?? 'Not reached.', skipped: o.outcome?.skipped ?? [] })), [outcomes, words]);
+  const classesForSummary = useMemo(() => outcomes.map((o) => ({ code: o.course.code, word: o.course.code, outcome: outcomeWord(o), reason: o.outcome?.reason ?? 'Not reached.', skipped: o.outcome?.skipped ?? [] })), [outcomes]);
   const partialLines = localSummary({ findings: [], planner: '', classes: classesForSummary }).partial;
 
   // The overview: local at once, Claude's wording when a key is here.
@@ -200,13 +211,13 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
     return {
       findings: findings.map((m) => {
         const p = proposals.get(m.id);
-        return { id: m.id, classCode: p?.course.code ?? '?', classWord: p ? (words.get(p.course.id) ?? p.course.code) : '?', status: m.audit?.status ?? m.kind, title: m.title, quote: m.quote, proposal: p ? describeProposal(p.proposal, tz) : m.title, headline: p ? headlineFor(p.proposal, m, tz) : undefined, kind: p?.proposal.kind ?? 'none', confidence: m.confidence, date: m.date };
+        return { id: m.id, classCode: p?.course.code ?? '?', classWord: p?.course.code ?? '?', status: m.audit?.status ?? m.kind, title: m.title, quote: m.quote, proposal: p ? describeProposal(p.proposal, tz, undefined, isGating(m) ? (m.gates ?? []) : []) : m.title, headline: p ? headlineFor(p.proposal, m, tz) : undefined, kind: p?.proposal.kind ?? 'none', confidence: m.confidence, date: m.date, gating: isGating(m) };
       }),
       classes: classesForSummary,
       planner: plannerLines,
-      bulk: bulk.map((b) => ({ code: b.course.code, word: words.get(b.course.id) ?? b.course.code, ids: b.ids })),
+      bulk: bulk.map((b) => ({ code: b.course.code, word: b.course.code, ids: b.ids })),
     };
-  }, [parsed, nothingFound, unreadable, findings, proposals, classesForSummary, words, tz, plannerLines, bulk]);
+  }, [parsed, nothingFound, unreadable, findings, proposals, classesForSummary, tz, plannerLines, bulk]);
   const inputRef = useRef(input);
   inputRef.current = input;
   const [summary, setSummary] = useState<AuditSummary | null>(null);

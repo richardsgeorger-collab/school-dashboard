@@ -4184,3 +4184,16 @@ button {
 .halo-unreadable {
   border-color: var(--risk);
 }
+.halo-unknown {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--risk);
+  border-radius: 8px;
+}
+.halo-unknown ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font: 12px/1.45 var(--font-mono);
+  display: grid;
+  gap: 3px;
+}

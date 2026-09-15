@@ -28,11 +28,21 @@ export function titleSimilarity(a: string, b: string): number {
   return inter / (A.size + B.size - inter);
 }
 
+/** A finding that gates other work: it names what it unlocks, or its note calls it a prerequisite. */
+export const isGating = (m: Mention): boolean => (m.gates?.length ?? 0) > 0 || /\b(gates?|gating|prerequisite|required before|must be (done|claimed|completed|submitted) before|before (you|the student) can)\b/i.test(m.note ?? '');
+
 /** The planner item a mention is about: the model's pick if it exists, else the closest open title in that class. */
 export function matchMention(m: Mention, items: Item[], courseId: string): Item | null {
   // A posted score or a late flag is about work already handed in, so done items count for those.
   const includeDone = m.kind === 'grade' || m.audit?.status === 'overdue';
-  const pool = items.filter((i) => i.courseId === courseId && (includeDone || i.status !== 'done'));
+  const gating = isGating(m);
+  // A gating finding is its own item: never the thing it unlocks, and only an item with (nearly) the same title.
+  const pool = items.filter((i) => i.courseId === courseId && (includeDone || i.status !== 'done') && !(gating && (m.gates ?? []).some((g) => titleSimilarity(g, i.title) >= 0.5 || titleSimilarity(g, i.label) >= 0.5)));
+  if (gating) {
+    const q = words(m.title).join(' ');
+    const self = pool.find((i) => titleSimilarity(q, words(i.title).join(' ')) >= 0.8 || normTitle(i.title) === normTitle(m.title));
+    return self ?? null;
+  }
   if (m.itemId) {
     const hit = pool.find((i) => i.id === m.itemId);
     if (hit) return hit;
@@ -124,23 +134,23 @@ export function proposalFor(m: Mention, match: Item | null, course: Course, tz: 
     case 'date_change':
       if (match && dueAt) return sameDay ? { kind: 'confirm', item: match, text: `${match.label} is already due that day.` } : { kind: 'update', item: match, dueAt };
       if (!match && dueAt) return { kind: 'add', item: newItemFrom(m, course, dueAt, lectureDate, now) };
-      return { kind: 'none', text: 'No date could be read from this. Nothing to change.' };
+      return { kind: 'none', text: `"${m.title}": no date could be read from this. Nothing to change.` };
     case 'new':
       if (match) return dueAt && !sameDay ? { kind: 'update', item: match, dueAt } : { kind: 'confirm', item: match, text: `Already in the planner as ${match.label}.` };
       if (dueAt) return { kind: 'add', item: newItemFrom(m, course, dueAt, lectureDate, now) };
-      return { kind: 'none', text: 'No date given. Add it by hand if it matters.' };
+      return { kind: 'none', text: `"${m.title}": no date given. Add it by hand if it matters.` };
     case 'cancel':
-      return match ? { kind: 'remove', item: match } : { kind: 'none', text: 'Nothing in the planner matches this.' };
+      return match ? { kind: 'remove', item: match } : { kind: 'none', text: `"${m.title}": nothing in the planner matches it.` };
     case 'grade':
       if (match && m.score != null) return match.score === m.score ? { kind: 'confirm', item: match, text: `${match.label} already has ${m.score}.` } : { kind: 'score', item: match, score: m.score };
-      return { kind: 'none', text: match ? 'No score could be read from this line.' : 'Nothing in the planner matches this, so there is nowhere to put the score.' };
+      return { kind: 'none', text: match ? `No score could be read for ${match.label}.` : `"${m.title}"${m.score != null ? ` scored ${m.score}` : ''}: nothing in the planner matches it, so there is nowhere to put the score.` };
     case 'info':
     default:
-      if (m.audit?.status === 'overdue') return match ? { kind: 'flag', item: match, text: `Halo says ${match.label} is late${match.status === 'done' ? ' even though it is marked done here' : ''} — check this.` } : { kind: 'none', text: 'Halo flags this as late; nothing in the planner matches it.' };
-      if (m.audit?.status === 'schedule') return { kind: 'none', text: 'Meeting days or times differ in Halo. Edit the class in Settings if Halo is right.' };
-      if (m.audit?.status === 'note') return { kind: 'none', text: 'Could not read this line. Left here so it is not lost.' };
+      if (m.audit?.status === 'overdue') return match ? { kind: 'flag', item: match, text: `Halo says ${match.label} is late${match.status === 'done' ? ' even though it is marked done here' : ''} — check this.` } : { kind: 'none', text: `Halo says "${m.title}" is late; nothing in the planner matches it. Check it in Halo.` };
+      if (m.audit?.status === 'schedule') return { kind: 'none', text: `"${m.title}": meeting days or times differ in Halo. Edit the class in Settings if Halo is right.` };
+      if (m.audit?.status === 'note') return { kind: 'none', text: `Could not read: "${m.quote}". Left here so it is not lost.` };
       if (match && dueAt && !sameDay) return { kind: 'update', item: match, dueAt };
-      return { kind: 'confirm', item: match, text: match ? `Matches ${match.label}. Nothing to change.` : 'Nothing to change.' };
+      return { kind: 'confirm', item: match, text: match ? `"${m.title}" matches ${match.label}. Nothing to change.` : `"${m.title}": nothing to change.` };
   }
 }
 

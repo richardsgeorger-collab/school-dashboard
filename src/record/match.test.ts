@@ -35,7 +35,7 @@ describe('proposals', () => {
     expect(matchMention(mention({ kind: 'info', title: 'Quiz 1' }), items, 'c1')).toBeNull();
     const flag = proposalFor(mention({ kind: 'info', title: 'Quiz 1', audit: { status: 'overdue', prefix: null } }), items[3], chm, TZ, '2026-09-14', NOW);
     expect(flag).toEqual({ kind: 'flag', item: items[3], text: 'Halo says Chem Quiz 1 is late even though it is marked done here — check this.' });
-    expect(proposalFor(mention({ kind: 'info', title: 'Nothing', audit: { status: 'overdue', prefix: null } }), null, chm, TZ, '2026-09-14', NOW).kind).toBe('none');
+    expect(proposalFor(mention({ kind: 'info', title: 'Nothing', audit: { status: 'overdue', prefix: null } }), null, chm, TZ, '2026-09-14', NOW)).toEqual({ kind: 'none', text: 'Halo says "Nothing" is late; nothing in the planner matches it. Check it in Halo.' });
   });
   it('records a posted score, confirms a known one, and sits out the prefixed and schedule lines', () => {
     const score = proposalFor(mention({ kind: 'grade', title: 'Quiz 2', score: 8, points: 10, audit: { status: 'grade', prefix: null } }), items[0], chm, TZ, '2026-09-14', NOW);

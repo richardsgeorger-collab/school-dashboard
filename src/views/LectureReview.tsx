@@ -2,78 +2,15 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { CourseChip } from '../components/CourseChip';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate, fmtTime, makeIso, zonedParts } from '../domain/dates';
-import type { Course, DateStr, Item } from '../domain/types';
+import type { Course, DateStr } from '../domain/types';
 import { matchMention, proposalFor, type Proposal } from '../record/match';
+import { applyProposal, describeProposal } from '../record/apply';
+export { applyProposal, describeProposal };
 import type { LectureNotes, Mention } from '../record/notes';
 import { useStore } from '../storage/store';
 
 export type Decision = 'approved' | 'dismissed';
 export type PlanDecision = 'apply' | 'ask';
-
-type Actions = ReturnType<typeof useStore>['actions'];
-
-/** What approving a proposal does, in words. */
-export function describeProposal(p: Proposal, tz: string, dueAt?: string): string {
-  const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
-  switch (p.kind) {
-    case 'update':
-      return `Move ${p.item.label} from ${when(p.item.dueAt)} to ${when(dueAt ?? p.dueAt)}`;
-    case 'add':
-      return `Add ${p.item.title} to the planner, due ${when(dueAt ?? p.item.dueAt)}`;
-    case 'remove':
-      return `Remove ${p.item.label} from the planner (Halo no longer lists it)`;
-    case 'score':
-      return `Record ${p.item.label} as graded at ${p.score} of ${p.item.points}`;
-    case 'flag':
-      return `${p.text} Nothing changes here on its own.`;
-    default:
-      return p.text;
-  }
-}
-
-/** The planner items a finding says this one gates, matched by title within the class. */
-function gatedIds(m: Mention, courseId: string, items: Item[]): string[] {
-  const out: string[] = [];
-  for (const title of m.gates ?? []) {
-    const hit = matchMention({ ...m, title, kind: 'info', itemId: null, gates: [] }, items, courseId);
-    if (hit && !out.includes(hit.id)) out.push(hit.id);
-  }
-  return out;
-}
-
-/** Apply one proposal to the planner and say what happened. Dry runs only describe. */
-export function applyProposal(p: Proposal, m: Mention, actions: Actions, tz: string, lectureDate: DateStr, dryRun: boolean, edits: { dueAt?: string; title?: string; points?: number } = {}, items: Item[] = []): string {
-  const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
-  const gates = (courseId: string, prev: string[] = []) => {
-    const ids = gatedIds(m, courseId, items);
-    return ids.length ? [...new Set([...prev, ...ids])] : prev;
-  };
-  if (p.kind === 'update') {
-    const dueAt = edits.dueAt ?? p.dueAt;
-    const blocks = gates(p.item.courseId, p.item.blocks ?? []);
-    if (!dryRun) actions.upsertItem({ ...p.item, dueAt, blocks: blocks.length ? blocks : p.item.blocks, notes: `${p.item.notes ? `${p.item.notes}\n` : ''}Moved per the ${lectureDate} lecture: "${m.quote}"` });
-    return `${p.item.label} now due ${when(dueAt)}${blocks.length ? `, gating ${blocks.length} item${blocks.length === 1 ? '' : 's'}` : ''}`;
-  }
-  if (p.kind === 'add') {
-    const blocks = gates(p.item.courseId);
-    const item = { ...p.item, title: (edits.title ?? p.item.title).trim() || p.item.title, points: edits.points ?? p.item.points, dueAt: edits.dueAt ?? p.item.dueAt, ...(blocks.length ? { blocks } : {}) };
-    if (!dryRun) actions.upsertItem(item);
-    return `Added ${item.title}, due ${when(item.dueAt)}${blocks.length ? `, gating ${blocks.length} item${blocks.length === 1 ? '' : 's'}` : ''}`;
-  }
-  if (p.kind === 'flag') {
-    if (!dryRun) actions.upsertItem({ ...p.item, haloLate: m.note || m.quote });
-    return `Noted: Halo says ${p.item.label} is late. Check it in Halo.`;
-  }
-  if (p.kind === 'remove') {
-    if (!dryRun) actions.deleteItem(p.item.id);
-    return `Removed ${p.item.label}`;
-  }
-  if (p.kind === 'score') {
-    if (!dryRun) actions.applyScore(p.item.id, p.score, 'halo');
-    return `${p.item.label}: ${p.score} of ${p.item.points}`;
-  }
-  return 'Noted';
-}
 
 const KIND_LABEL: Record<Mention['kind'], string> = { new: 'New', date_change: 'Date change', cancel: 'Cancelled', info: 'Info', grade: 'Grade' };
 const GROUPS: { key: string; label: string }[] = [

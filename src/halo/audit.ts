@@ -194,6 +194,14 @@ export function buildAuditPrompt(template: string | null | undefined, data: AppD
   return `${filled}\n\nCLASSES TO AUDIT, in this order:\n${list}\n${resume}\nMY PLANNER (as of ${date}), open items by class:\n${dump}\n`;
 }
 
+/** The seven generic GCU pages every class carries; skipping them never counts against coverage and they are never shown. */
+export const GENERIC_PAGES = ['Mission Statement', 'Doctrinal Statement', 'Library', 'Student Success Center', 'Student AI Resources', 'Learning Support', 'Classroom Policies'];
+const GENERIC_KEYS = GENERIC_PAGES.map((p) => p.toLowerCase());
+export const isGenericPage = (name: string): boolean => {
+  const n = name.toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+  return GENERIC_KEYS.some((k) => n === k || n.startsWith(`${k} `) || n.startsWith(`${k}:`) || (k !== 'library' && n.includes(k)) || (k === 'library' && /^library\b/.test(n)));
+};
+
 export type AuditStatus = 'new' | 'changed' | 'missing' | 'grade' | 'overdue' | 'announce' | 'schedule' | 'rubric' | 'same' | 'note';
 export type AuditPrefix = 'ENG105-PENDING' | 'OLD-SECTION';
 
@@ -504,8 +512,12 @@ export interface CheckOutcome {
 /** What one class's section is worth: clean only with proof of full coverage; otherwise partial, with the gaps named. */
 export function classifyClass(cc: ClassCoverage, findings: number, allMatch: boolean): CheckOutcome {
   const cov = cc.coverage;
-  const short = cov ? cov.visited < cov.planned || (cc.plan !== null && cov.planned < cc.plan) : true;
-  const skipped = [...cc.skipped, ...cc.failed.filter((f) => !cc.skipped.includes(f))];
+  const named = [...cc.skipped, ...cc.failed.filter((f) => !cc.skipped.includes(f))];
+  const generic = named.filter(isGenericPage).length;
+  const skipped = named.filter((s) => !isGenericPage(s));
+  // Pages on the whitelist may be the whole gap between visited and planned; that gap is not a gap.
+  const gap = cov ? cov.planned - cov.visited : 0;
+  const short = cov ? gap > generic || (cc.plan !== null && cov.planned < cc.plan - generic) : true;
   const partial = short || skipped.length > 0 || cc.stoppedAt !== null;
   const clean = (allMatch || findings === 0) && findings === 0 && !partial;
   let reason: string;
@@ -513,7 +525,7 @@ export function classifyClass(cc: ClassCoverage, findings: number, allMatch: boo
   else if (!cov) reason = 'No coverage count, so this cannot count as a full check.';
   else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages${cc.plan !== null && cov.planned < cc.plan ? ` (planned ${cc.plan})` : ''}.`;
   else if (skipped.length) reason = `All ${cov.planned} pages counted, but ${skipped.length} named as skipped or failed.`;
-  else reason = `Every one of ${cov.planned} planned pages visited.`;
+  else reason = `Every one of ${Math.max(cov.visited, cov.planned - generic)} planned pages visited.`;
   return { clean, partial, findings, coverage: cov, skipped, reason };
 }
 

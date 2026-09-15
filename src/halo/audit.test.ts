@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mkCourse, mkData, mkItem, TZ } from './fixtures';
-import { auditOutcomes, buildAuditPrompt, classifyClass, DEFAULT_AUDIT_PROMPT, parseAuditResults, plannerByClass, plannerListing, remainingCourses } from './audit';
+import { auditOutcomes, buildAuditPrompt, classifyClass, DEFAULT_AUDIT_PROMPT, isGenericPage, parseAuditResults, plannerByClass, plannerListing, remainingCourses } from './audit';
 
 const chm = mkCourse({ id: 'chm', code: 'CHM-113', name: 'General Chemistry I-Lecture' });
 const esg = mkCourse({ id: 'esg', code: 'ESG-162', name: 'Engineering Math' });
@@ -123,6 +123,22 @@ describe('reading an all-classes audit', () => {
     const never = auditOutcomes(r, courses);
     expect(never[2]).toMatchObject({ reached: false, outcome: null });
     expect(remainingCourses(r, courses).map((c) => c.code)).toEqual(['UNV-106']);
+  });
+  it('lets the seven generic GCU pages be skipped without counting against coverage, and never names them', () => {
+    const text = ['=== CLASS: CHM-113 ===', 'COVERAGE PLAN — CHM-113 — 16 pages', 'VISITED — Topic 1 — 2 items found', 'COVERAGE — CHM-113 — visited 9 of 16 pages', 'Skipped: Mission Statement — generic', 'Skipped: Doctrinal Statement — generic', 'Skipped: Library', 'Skipped: Student Success Center', 'Skipped: Student AI Resources', 'Skipped: Learning Support', 'Skipped: Classroom Policies', 'ALL MATCH'].join('\n');
+    const r = parseAuditResults(text, courses, today, [chm]);
+    const o = auditOutcomes(r, [chm])[0].outcome!;
+    expect(o.clean).toBe(true);
+    expect(o.partial).toBe(false);
+    expect(o.skipped).toEqual([]);
+    expect(o.reason).toBe('Every one of 9 planned pages visited.');
+    const real = parseAuditResults(text.replace('Skipped: Library', 'Skipped: Announcements — would not load'), courses, today, [chm]);
+    const ro = auditOutcomes(real, [chm])[0].outcome!;
+    expect(ro.partial).toBe(true);
+    expect(ro.skipped).toEqual(['Announcements — would not load']);
+    expect(isGenericPage('Student AI Resources page')).toBe(true);
+    expect(isGenericPage('Library — no dates')).toBe(true);
+    expect(isGenericPage('Topic 3 Library assignment')).toBe(false);
   });
   it('reads a single-class run with no headers as that class', () => {
     const r = parseAuditResults('COVERAGE PLAN — 3 pages\nVISITED — Topic 1 — 0 items found\nVISITED — Gradebook — 1 items found\nVISITED — Syllabus — 0 items found\nCOVERAGE — visited 3 of 3 pages\nALL MATCH', courses, today, [chm]);

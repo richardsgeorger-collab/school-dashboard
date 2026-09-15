@@ -25,7 +25,7 @@ describe('class names with sections', () => {
 const toolOut = {
   classes: [
     { code: 'CHM-113', planned_pages: 11, visited_pages: 11, coverage_visited: 11, coverage_planned: 11, skipped: [], stopped_at: null, notes: '' },
-    { code: 'ENG-105-ONL4', planned_pages: 9, visited_pages: 8, coverage_visited: 8, coverage_planned: 9, skipped: ['Course materials — link timed out'], stopped_at: null, notes: '' },
+    { code: 'ENG-105-ONL4', planned_pages: 9, visited_pages: 8, coverage_visited: 8, coverage_planned: 9, skipped: ['Course materials — link timed out', 'Mission Statement', 'Classroom Policies'], stopped_at: null, notes: '' },
     { code: 'ESG-162L', planned_pages: 6, visited_pages: 2, coverage_visited: null, coverage_planned: null, skipped: [], stopped_at: 'Topic 3', notes: 'ran out of room' },
   ],
   findings: [
@@ -35,6 +35,7 @@ const toolOut = {
     { class_code: 'ESG-162L', title: 'Lab 1 Report', status: 'overdue', due: null, points: null, score: null, note: 'Halo shows Late despite submission', confidence: 'high', quote: 'ESG-162L | Lab 1 Report | overdue | | Halo shows Late despite submission', gates: [] },
     { class_code: 'MAT-261', title: 'Not my class', status: 'new', due: '2026-10-01 23:59', points: 10, score: null, note: '', confidence: 'low', quote: 'MAT-261 | Not my class | new | 2026-10-01 23:59', gates: [] },
     { class_code: 'CHM-113', title: '', status: 'new', due: null, points: null, score: null, note: '', confidence: 'high', quote: '', gates: [] },
+    { class_code: 'ESG-162L', title: '', status: 'overdue', due: null, points: null, score: null, note: '', confidence: 'low', quote: 'ESG-162L | | overdue | | Halo shows Late on something in Topic 2', gates: [] },
   ],
   all_match: false,
   stopped: { class_code: 'ESG-162L', page: 'Topic 3' },
@@ -61,6 +62,7 @@ describe('the model’s reading, shaped into a parse', () => {
       ['eng', 'Topic 1 DQ 1', 'new', 'new', '2026-09-17', '23:59', 5, null, 'high'],
       ['esgl', 'Lab 1 Report', 'overdue', 'info', null, null, null, null, 'high'],
       [null, 'Not my class', 'new', 'new', '2026-10-01', '23:59', 10, null, 'low'],
+      ['esgl', 'ESG-162L | | overdue | | Halo shows Late on something in Topic 2', 'overdue', 'info', null, null, null, null, 'low'],
     ]);
     expect(p.mentions[1].gates).toEqual(['Chemistry Connections Presentation', 'Chemistry Connections Essay']);
     expect(p.mentions[1].note).toBe('announcement; gates the presentation and essay');
@@ -72,7 +74,7 @@ describe('the model’s reading, shaped into a parse', () => {
     expect(o.map((x) => [x.course.code, x.reached, x.findings, x.outcome?.partial, x.outcome?.reason])).toEqual([
       ['CHM-113', true, 2, false, 'Every one of 11 planned pages visited.'],
       ['ENG-105', true, 1, true, 'Visited 8 of 9 pages.'],
-      ['ESG-162L', true, 1, true, 'Stopped early at Topic 3.'],
+      ['ESG-162L', true, 2, true, 'Stopped early at Topic 3.'],
     ]);
   });
   it('handles an empty or malformed answer without inventing anything', () => {
@@ -103,8 +105,8 @@ describe('the reading prompt and the recognized-lines view', () => {
     expect(r.system).toContain('"ENG-105-ONL4", "ENG 105", and "English Composition" are all ENG-105');
   });
   it('labels each pasted line as finding, coverage, header, noise, or not recognized', () => {
-    const text = ['=== CLASS: CHM-113 ===', 'Used Claude in Chrome (41 actions)', 'CHM-113 | Topic 3 Quiz | changed | 2026-09-27 23:59 | was 2026-09-25', 'COVERAGE — CHM-113 — visited 11 of 11 pages', 'The Sept 12 announcement says topics must be claimed by 9/20 before the 9/27 presentation and 10/9 essay.', 'a line nobody understood', ''];
+    const text = ['=== CLASS: CHM-113 ===', 'Used Claude in Chrome (41 actions)', "Let me start with Topic 1.", 'Coverage plan: 11 pages', '- Topic 1', '- Gradebook', 'Now checking the gradebook.', 'CHM-113 | Topic 3 Quiz | changed | 2026-09-27 23:59 | was 2026-09-25', 'COVERAGE — CHM-113 — visited 11 of 11 pages', 'The Sept 12 announcement says topics must be claimed by 9/20 before the 9/27 presentation and 10/9 essay.', 'Nothing new on this page.', 'The lab handout mentions a 10/3 checkpoint I could not place.', 'a line nobody understood', '---', ''];
     const p = parseFromTool({ classes: [], findings: [{ class_code: 'CHM-113', title: 'Claim topic', status: 'announce', due: '2026-09-20 23:59', points: null, score: null, note: '', confidence: 'medium', quote: 'The Sept 12 announcement says topics must be claimed by 9/20 before the 9/27 presentation and 10/9 essay.', gates: [] }], all_match: false, stopped: null, unread: [] }, courses, courses);
-    expect(markLines(text.join('\n'), p).map((l) => l.kind)).toEqual(['header', 'noise', 'finding', 'coverage', 'finding', 'unknown', 'noise']);
+    expect(markLines(text.join('\n'), p).map((l) => l.kind)).toEqual(['header', 'noise', 'noise', 'coverage', 'coverage', 'coverage', 'noise', 'finding', 'coverage', 'finding', 'noise', 'unknown', 'unknown', 'noise', 'noise']);
   });
 });
