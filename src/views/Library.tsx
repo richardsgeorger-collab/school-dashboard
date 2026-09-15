@@ -10,6 +10,7 @@ import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { Record } from './Record';
 import { SearchView } from './SearchView';
+import { QuizLink } from './Quiz';
 import { SlidesView } from './SlidesView';
 import { SyllabusPanel } from './SyllabusPanel';
 
@@ -230,6 +231,7 @@ function ClassLibrary({ courseId }: { courseId: string }) {
             {course && <CourseChip course={course} />} <span>{title}</span>
           </h1>
         </div>
+        {course && <QuizLink courseId={course.id} />}
       </div>
       {course && <DropZone onFile={(f) => void run(f, course)} busy={busy} label={`Drop into ${course.code}`} hint="Audio becomes a recording, a PDF or PPTX becomes slides, a file named syllabus becomes the syllabus. No questions asked." />}
       {courseId === 'none' && <p className="hint">These belong to classes that were removed. Use “Move to” on each one to file it, or delete it.</p>}

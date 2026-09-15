@@ -22,6 +22,7 @@ import { Grades } from './views/Grades';
 import { Heatmap } from './views/Heatmap';
 import { Library } from './views/Library';
 import { Settings } from './views/Settings';
+import { Quiz } from './views/Quiz';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
 function HaloHandoff() {
@@ -154,6 +155,8 @@ function Screen() {
       return <Grades />;
     case 'settings':
       return <Settings />;
+    case 'quiz':
+      return <Quiz />;
     default:
       return <Now />;
   }

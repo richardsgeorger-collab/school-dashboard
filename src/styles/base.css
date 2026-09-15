@@ -1463,8 +1463,12 @@ button {
 /* ---- grades --------------------------------------------------------- */
 .grade-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-3);
   margin-top: var(--s-4);
+}
+.grade-card {
+  min-width: 0;
 }
 @media (min-width: 720px) {
   .grade-grid {
@@ -3792,4 +3796,196 @@ button {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
+}
+
+/* Practice */
+.lib-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.quiz-setup,
+.quiz-q,
+.quiz-done {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+.quiz-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quiz-chip {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font: 500 12px/1.4 var(--font-mono);
+  cursor: pointer;
+}
+.quiz-chip.on {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+.quiz-field {
+  display: grid;
+  gap: 4px;
+}
+.quiz-field span {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.quiz-field input,
+.quiz-answer input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 14px/1.4 var(--font-sans);
+}
+.quiz-meta {
+  margin: 0;
+}
+.quiz-prompt {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.quiz-choices {
+  display: grid;
+  gap: 6px;
+}
+.quiz-choice {
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  gap: 8px;
+}
+.quiz-choice .mono {
+  color: var(--ink-3);
+}
+.quiz-answer {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.quiz-answer input {
+  flex: 1 1 160px;
+}
+.quiz-result {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.quiz-verdict {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.quiz-q[data-verdict='right'] .quiz-verdict {
+  color: var(--ok);
+}
+.quiz-q[data-verdict='wrong'] .quiz-verdict {
+  color: var(--risk);
+}
+.quiz-settle {
+  display: inline-flex;
+  gap: 6px;
+}
+.quiz-answer-line,
+.quiz-why {
+  margin: 0;
+}
+.quiz-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+/* Pace line, welcome back, Sunday review, study block */
+.pace {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.welcome-list {
+  margin: 8px 0 0;
+}
+.welcome-first {
+  margin: 8px 0 0;
+  font-size: 15px;
+}
+.welcome-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong, var(--line));
+  cursor: pointer;
+}
+.sunday {
+  display: grid;
+  gap: 12px;
+}
+.sunday-sentence {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.sunday-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  display: grid;
+  gap: 3px;
+}
+.sunday-row {
+  display: grid;
+  gap: 6px;
+}
+.sunday-actions {
+  display: flex;
+  gap: 6px;
+  padding-left: 4px;
+}
+.sunday-settings {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.grade-weak {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.study {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+}
+.study-syllabus {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+  font-style: normal;
 }

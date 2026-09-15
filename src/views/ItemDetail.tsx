@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
+import { terms } from '../library/search';
+import { recordingsDb, type Recording } from '../record/db';
+import { syllabiDb } from '../syllabus/db';
+import { QuizLink } from './Quiz';
+import { addDays } from '../domain/dates';
 import { Modal } from '../components/Modal';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { dateOf, fmtDate, fmtMinutes, makeIso, zonedParts } from '../domain/dates';
@@ -61,12 +66,31 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
 export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew?: boolean; onClose: () => void }) {
   const { data, courseById, schedule, actions, today, derived } = useStore();
   const [decks, setDecks] = useState<Deck[]>([]);
+  const [recs, setRecs] = useState<Recording[]>([]);
+  const [sylLine, setSylLine] = useState<string | null>(null);
   useEffect(() => {
     libraryDb
       .listDecks()
       .then((all) => setDecks(decksForItem(item, all)))
       .catch(() => setDecks([]));
-  }, [item]);
+    const tzNow = data.settings.timezone;
+    const due = dateOf(item.dueAt, tzNow);
+    const from = addDays(due, -7);
+    recordingsDb
+      .list()
+      .then((all) => setRecs(all.filter((r) => r.courseId === item.courseId && r.status !== 'recording' && dateOf(r.startedAt, tzNow) >= from && dateOf(r.startedAt, tzNow) <= due).slice(0, 3)))
+      .catch(() => setRecs([]));
+    syllabiDb
+      .get(item.courseId)
+      .then((doc) => {
+        if (!doc) return setSylLine(null);
+        const words = terms(item.title);
+        const paras = doc.text.split(/\n{2,}|\r?\n(?=[A-Z])/).map((p) => p.trim()).filter((p) => p.length >= 30);
+        const best = paras.map((p) => ({ p, n: words.filter((w) => p.toLowerCase().includes(w)).length })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n)[0];
+        setSylLine(best ? (best.p.length > 260 ? `${best.p.slice(0, 260)}…` : best.p) : null);
+      })
+      .catch(() => setSylLine(null));
+  }, [item, data.settings.timezone]);
   const inference = derived[item.id];
   const tz = data.settings.timezone;
   const [draft, setDraft] = useState<Draft>(() => {
@@ -303,15 +327,36 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
           </p>
         )}
-        {decks.length > 0 && (
-          <p className="hint">
-            Slides:{' '}
-            {decks.map((d) => (
-              <a key={d.id} className="diff-toggle" href={`#/library?v=slides&deck=${d.id}`} style={{ marginRight: 8 }} onClick={onClose}>
-                {d.title} ({fmtDate(d.date, 'short')})
-              </a>
-            ))}
-          </p>
+        {!isNew && (decks.length > 0 || recs.length > 0 || sylLine) && (
+          <div className="study">
+            <p className="hint">
+              <b>Study with</b>
+            </p>
+            {decks.length > 0 && (
+              <p className="hint">
+                Slides:{' '}
+                {decks.map((d) => (
+                  <a key={d.id} className="diff-toggle" href={`#/library?v=slides&deck=${d.id}`} style={{ marginRight: 8 }} onClick={onClose}>
+                    {d.title} ({fmtDate(d.date, 'short')})
+                  </a>
+                ))}
+              </p>
+            )}
+            {recs.length > 0 && (
+              <p className="hint">
+                Lectures that week:{' '}
+                {recs.map((r) => (
+                  <a key={r.id} className="diff-toggle" href={`#/library?c=${item.courseId}`} style={{ marginRight: 8 }} onClick={onClose}>
+                    {r.title} ({fmtDate(dateOf(r.startedAt, tz), 'short')})
+                  </a>
+                ))}
+              </p>
+            )}
+            {sylLine && <blockquote className="study-syllabus hint">{sylLine}</blockquote>}
+            <p className="hint">
+              <QuizLink courseId={item.courseId} topic={item.title} label="Quiz me on this" />
+            </p>
+          </div>
         )}
         {item.url && (
           <p className="hint">

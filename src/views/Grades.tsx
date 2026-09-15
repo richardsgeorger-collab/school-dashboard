@@ -5,6 +5,8 @@ import { courseGrade } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { WhatIf } from './WhatIf';
+import { weakLine, weakTopicFor } from '../domain/weak';
+import { QuizLink } from './Quiz';
 
 function ScoreInput({ item }: { item: Item }) {
   const { actions } = useStore();
@@ -34,8 +36,9 @@ function ScoreInput({ item }: { item: Item }) {
 }
 
 function CourseCard({ course }: { course: Course }) {
-  const { data } = useStore();
+  const { data, today } = useStore();
   const color = useCourseColor(course);
+  const weak = weakLine(course, data.items, data.settings.quizStats, today, data.settings.timezone);
   const g = courseGrade(course.id, data.items);
   const [expanded, setExpanded] = useState(false);
   const [whatIf, setWhatIf] = useState(false);
@@ -82,6 +85,11 @@ function CourseCard({ course }: { course: Course }) {
             <dd>{g.projected === null ? '—' : `${g.projected}%`}</dd>
           </div>
         </dl>
+      )}
+      {weak && (
+        <p className="hint grade-weak">
+          {weak} <QuizLink courseId={course.id} topic={weakTopicFor(course, data.items, data.settings.quizStats) ?? undefined} />
+        </p>
       )}
       <div className="settings-actions">
         <button type="button" className="btn small" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}>

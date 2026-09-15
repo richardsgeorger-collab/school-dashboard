@@ -11,6 +11,7 @@ import { applyHaloPlan, type HaloPlan } from '../halo/apply';
 import { actualStats, calibrate as calibrateItem, withCalibration, type Calibrated } from '../domain/calibration';
 import { applyOnline, bankedAsItems, ledgerWith, logTiming, resetCourseItems } from '../domain/classAdmin';
 import { recordCheck } from '../halo/verification';
+import { recordAnswer } from '../quiz/stats';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type HaloCheckRecord, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
@@ -45,6 +46,8 @@ export interface StoreActions {
   applyScore(id: string, score: number, source: 'halo' | 'manual'): void;
   /** Append a Check Halo result. */
   recordHaloCheck(rec: HaloCheckRecord): void;
+  /** One practice answer, right or missed, against its class and topic. */
+  recordQuizAnswer(courseId: string, topic: string, missed: boolean): void;
   /** Record how long an item really took, on the item and in the ledger. */
   logActual(id: string, minutes: number | null): void;
   /** Delete every item of one class, keeping its earned awards and logged minutes. Returns how many went. */
@@ -393,6 +396,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }),
         }));
         mirror({ kind: 'items', ids: [id] });
+      },
+      recordQuizAnswer(courseId, topic, missed) {
+        update((d) => ({ ...d, settings: { ...d.settings, quizStats: recordAnswer(d.settings.quizStats, courseId, topic, missed, nowIso()), updatedAt: nowIso() } }));
+        mirror({ kind: 'settings' });
       },
       recordHaloCheck(rec) {
         update((d) => ({ ...d, settings: { ...d.settings, haloChecks: recordCheck(d.settings.haloChecks, rec), updatedAt: nowIso() } }));

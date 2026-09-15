@@ -8,6 +8,8 @@ import type { Course } from '../domain/types';
 import { useStore } from '../storage/store';
 import { CourseEditor } from './CourseEditor';
 import { HaloCheckPanel } from './HaloCheckPanel';
+import { SundayReview } from './SundayReview';
+import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import { HaloImport } from './HaloImport';
 import { HaloPanel } from './HaloPanel';
 import { ImportSyllabus } from './ImportSyllabus';
@@ -34,6 +36,7 @@ export function Settings() {
   const [editing, setEditing] = useState<Course | null>(null);
   const [importing, setImporting] = useState(false);
   const [halo, setHalo] = useState(false);
+  const [review, setReview] = useState(false);
   const [adding, setAdding] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -67,6 +70,7 @@ export function Settings() {
         <SyncPanel />
         <HaloCheckPanel />
         <HaloPanel onPaste={() => setHalo(true)} />
+        {review && <SundayReview onClose={() => setReview(false)} onDone={() => { actions.updateSettings({ sundayReview: sundayFinished(data.settings.sundayReview, today) }); setReview(false); }} />}
 
         <section className="card settings-card">
           <h2 className="section-title">Study time and display</h2>
@@ -97,6 +101,18 @@ export function Settings() {
             </label>
           </div>
           <p className="hint">Hours per day of focused schoolwork outside class. Start-by dates and the workload view are computed from these.</p>
+          <div className="settings-actions sunday-settings" style={{ marginTop: 12 }}>
+            <span className="hint mono">
+              Sunday review: {data.settings.sundayReview?.off ? 'off' : 'offered on Sundays'}
+              {data.settings.sundayReview?.lastDone ? ` · last done ${data.settings.sundayReview.lastDone}` : ''}
+            </span>
+            <button type="button" className="btn small" onClick={() => actions.updateSettings({ sundayReview: data.settings.sundayReview?.off ? switchedOn(data.settings.sundayReview) : { ...(data.settings.sundayReview ?? { skips: 0, lastOffered: null, lastDone: null }), off: true } })}>
+              {data.settings.sundayReview?.off ? 'Turn on' : 'Turn off'}
+            </button>
+            <button type="button" className="btn small" onClick={() => setReview(true)}>
+              Review the week now
+            </button>
+          </div>
           <div className="field-row" style={{ marginTop: 12 }}>
             <div className="field">
               <span>Week starts on</span>

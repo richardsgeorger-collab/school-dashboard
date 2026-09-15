@@ -18,7 +18,7 @@ function Links({ current, mobile = false }: { current: Route; mobile?: boolean }
   return (
     <>
       {LINKS.filter((l) => !mobile || l.mobile).map(({ route, label, icon: Icon }) => (
-        <a key={route} className="nav-link" href={`#/${route}`} aria-current={current === route ? 'page' : undefined}>
+        <a key={route} className="nav-link" href={`#/${route}`} aria-current={current === route || (current === 'quiz' && route === 'library') ? 'page' : undefined}>
           <Icon />
           <span>{label}</span>
         </a>

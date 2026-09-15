@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChatCard } from '../chat/ChatCard';
 import { ItemRow } from '../components/ItemRow';
 import { Modal } from '../components/Modal';
@@ -9,7 +9,12 @@ import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime, weekdayOf } fr
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { verificationLine } from '../halo/verification';
-import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine } from '../domain/now';
+import { paceLine } from '../domain/pace';
+import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '../domain/away';
+import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
+import { SundayReview } from './SundayReview';
+import { WelcomeBack } from './WelcomeBack';
+import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, rankItems, startPhrase, termProgress, todayLine } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
@@ -326,7 +331,25 @@ export function Now() {
   const groups = useMemo(() => groupByDeadline(top.slice(1, 4), schedule), [top, schedule]);
   const counts = useMemo(() => openCountByDay(work, schedule), [work, schedule]);
   const mode = useMemo(() => nowMode(work, schedule, data.settings, today, now, finished !== null), [work, schedule, data.settings, today, minuteKey, finished]);
-  const line = useMemo(() => pressureLine(work, schedule, data.settings, today, now), [work, schedule, data.settings, today, minuteKey]);
+  // Pace, not hours: one line per class, in place of any pressure.
+  const paceText = useMemo(() => paceLine(data.courses, work, schedule, today), [data.courses, work, schedule, today]);
+  // Back after days away: one card that says what changed, then the normal screen behind one button.
+  const [lastSeen] = useState(() => readLastSeen());
+  const [welcomed, setWelcomed] = useState(false);
+  const showWelcome = !welcomed && lastSeen !== null && awayDays(lastSeen, today) >= AWAY_DAYS;
+  useEffect(() => {
+    if (!showWelcome) stampLastSeen(today);
+  }, [showWelcome, today]);
+  const back = useMemo(() => (showWelcome && lastSeen ? welcomeBack(work, schedule, lastSeen, today) : null), [showWelcome, lastSeen, work, schedule, today]);
+  // Sunday review: offered once a Sunday, waved off twice means off.
+  const [sunday, setSunday] = useState(false);
+  useEffect(() => {
+    if (shouldOfferSunday(data.settings.sundayReview, today)) {
+      actions.updateSettings({ sundayReview: sundayOffered(data.settings.sundayReview, today) });
+      setSunday(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today]);
   const status = todayLine(work, schedule, today, now, tz);
   // An exam within a week reshapes the screen: exam hero, study sessions as the then-lines, one pressure line.
   const exam = useMemo(() => examMode(work, schedule, data.settings, today, (i) => calibrate(i).minutes), [work, schedule, data.settings, today, calibrate]);
@@ -349,7 +372,7 @@ export function Now() {
   };
   const heroDay = hero ? (schedule.byItem[hero.id]?.deadlineDay ?? dateOf(hero.dueAt, tz)) : null;
 
-  const showQueue = !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
+  const showQueue = !back && !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
 
   return (
     <div className="now">
@@ -358,10 +381,12 @@ export function Now() {
         <span>{status}</span>
       </p>
 
-      <NextClassCard heroId={exam?.exam.id ?? hero?.id} onOpen={setOpen} />
+      {back && <WelcomeBack summary={back} first={hero ?? null} onOpen={setOpen} onShowAll={() => setWelcomed(true)} />}
 
-      {exam && <ExamHero plan={exam} onOpen={setOpen} onDone={finish} onLog={logStudy} />}
-      {exam && (
+      {!back && <NextClassCard heroId={exam?.exam.id ?? hero?.id} onOpen={setOpen} />}
+
+      {!back && exam && <ExamHero plan={exam} onOpen={setOpen} onDone={finish} onLog={logStudy} />}
+      {!back && exam && (
         <section className="then" aria-label="Study plan">
           <h2 className="section-title">study plan</h2>
           {exam.sessions.length === 0 ? (
@@ -383,7 +408,7 @@ export function Now() {
           )}
         </section>
       )}
-      {exam && examPressure(exam) && (
+      {!back && exam && examPressure(exam) && (
         <p className="pressure">
           {exam.mustDoBefore.length > 0 ? (
             <button type="button" className="pressure-link" onClick={() => setExamSheet(true)}>
@@ -395,9 +420,9 @@ export function Now() {
         </p>
       )}
 
-      {!exam && mode.mode === 'empty' && <EmptyState>Nothing open. Import a syllabus from Settings, or enjoy the quiet.</EmptyState>}
+      {!back && !exam && mode.mode === 'empty' && <EmptyState>Nothing open. Import a syllabus from Settings, or enjoy the quiet.</EmptyState>}
 
-      {!exam && mode.mode === 'enough' && !showAnyway && (
+      {!back && !exam && mode.mode === 'enough' && !showAnyway && (
         <section className="calm" data-tone="enough" aria-label="Done for today">
           <h1 className="calm-title">That's enough for today.</h1>
           <p className="calm-text">
@@ -411,7 +436,7 @@ export function Now() {
         </section>
       )}
 
-      {!exam && mode.mode === 'fine' && hero && (
+      {!back && !exam && mode.mode === 'fine' && hero && (
         <section className="calm" data-tone="fine" aria-label="You're good">
           <h1 className="calm-title">You're good.</h1>
           <p className="calm-text">
@@ -450,7 +475,7 @@ export function Now() {
         </section>
       )}
 
-      {!exam && line && mode.mode !== 'enough' && <p className="pressure">{line}</p>}
+      {!back && !exam && paceText && <p className="pace mono">{paceText}</p>}
 
       <div className="term-progress" role="img" aria-label={`${pace.pct}% of the term's points banked, ${pace.elapsedPct}% of the term elapsed`}>
         <span className="term-progress-track">
@@ -473,6 +498,22 @@ export function Now() {
       })()}
 
       <ChatCard />
+      {sunday && (
+        <SundayReview
+          onOpen={(i) => {
+            setSunday(false);
+            setOpen(i);
+          }}
+          onClose={() => {
+            actions.updateSettings({ sundayReview: sundaySkipped(data.settings.sundayReview, today) });
+            setSunday(false);
+          }}
+          onDone={() => {
+            actions.updateSettings({ sundayReview: sundayFinished(data.settings.sundayReview, today) });
+            setSunday(false);
+          }}
+        />
+      )}
       {examSheet && exam && <ExamSheet plan={exam} onClose={() => setExamSheet(false)} onOpen={(i) => { setExamSheet(false); setOpen(i); }} />}
       {sheetDay && <DaySheet date={sheetDay} items={work} onClose={() => setSheetDay(null)} onOpen={(i) => { setSheetDay(null); setOpen(i); }} />}
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
