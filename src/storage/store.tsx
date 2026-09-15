@@ -12,6 +12,7 @@ import { actualStats, calibrate as calibrateItem, withCalibration, type Calibrat
 import { applyOnline, bankedAsItems, ledgerWith, logTiming, resetCourseItems } from '../domain/classAdmin';
 import { recordCheck } from '../halo/verification';
 import { recordAnswer } from '../quiz/stats';
+import { diffBatch, loadUndo, revert, saveUndo, type UndoBatch } from './undo';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type HaloCheckRecord, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
@@ -48,6 +49,12 @@ export interface StoreActions {
   recordHaloCheck(rec: HaloCheckRecord): void;
   /** Append several at once (one per audited class). */
   recordHaloChecks(recs: HaloCheckRecord[]): void;
+  /** Remember one sync's changes so the whole batch can be put back until the next sync. */
+  setUndo(batch: UndoBatch | null): void;
+  /** Put the last sync's batch back. */
+  undoLast(): void;
+  /** Items right now, for building a batch. */
+  snapshotItems(): Item[];
   /** One practice answer, right or missed, against its class and topic. */
   recordQuizAnswer(courseId: string, topic: string, missed: boolean): void;
   /** Record how long an item really took, on the item and in the ledger. */
@@ -70,6 +77,8 @@ export interface Store {
   calibrate(item: Item): Calibrated;
   /** The item just marked done, so the app can ask how long it took. */
   justDone: { id: string; at: string } | null;
+  /** The last sync's batch, until the next sync. */
+  undo: UndoBatch | null;
   today: DateStr;
   term: { start: DateStr; end: DateStr };
   courseById: Map<string, Course>;
@@ -149,6 +158,7 @@ function termOf(courses: Course[], today: DateStr): { start: DateStr; end: DateS
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(initialData);
   const [today, setToday] = useState<DateStr>(() => todayStr(data.settings.timezone));
+  const [undo, setUndoState] = useState<UndoBatch | null>(() => loadUndo());
   const [sync, setSync] = useState<SyncState>({ status: 'off', lastSync: null, error: null, email: null, pending: localCache.loadPending().length });
   const [isDark, setIsDark] = useState(false);
   const [justDone, setJustDone] = useState<{ id: string; at: string } | null>(null);
@@ -313,12 +323,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [syncNow]);
 
   // ---- actions ----------------------------------------------------------
+  // Computed against the ref, not React's queued state, so several actions in one tick each see the last one's result
+  // and a snapshot taken right after an action is exact.
   const update = useCallback((fn: (d: AppData) => AppData) => {
-    setData((d) => {
-      const next = fn(d);
-      dataRef.current = next;
-      return next;
-    });
+    const next = fn(dataRef.current);
+    dataRef.current = next;
+    setData(next);
   }, []);
 
   const actions = useMemo<StoreActions>(
@@ -402,6 +412,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       recordQuizAnswer(courseId, topic, missed) {
         update((d) => ({ ...d, settings: { ...d.settings, quizStats: recordAnswer(d.settings.quizStats, courseId, topic, missed, nowIso()), updatedAt: nowIso() } }));
         mirror({ kind: 'settings' });
+      },
+      snapshotItems() {
+        return dataRef.current.items;
+      },
+      setUndo(batch) {
+        saveUndo(batch);
+        setUndoState(batch);
+      },
+      undoLast() {
+        const batch = loadUndo();
+        if (!batch) return;
+        const before = dataRef.current.items;
+        update((d) => ({ ...d, items: revert(d.items, batch) }));
+        const after = revert(before, batch);
+        const afterIds = new Set(after.map((i) => i.id));
+        for (const id of batch.added) if (!afterIds.has(id)) mirror({ kind: 'deleteItem', id, deletedAt: nowIso() });
+        const touched = batch.before.map((i) => i.id).filter((id) => afterIds.has(id));
+        if (touched.length) mirror({ kind: 'items', ids: touched });
+        saveUndo(null);
+        setUndoState(null);
       },
       recordHaloChecks(recs) {
         if (recs.length === 0) return;
@@ -503,9 +533,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       applyHaloSync(plan) {
         const now = nowIso();
         const tz = dataRef.current.settings.timezone;
+        const before = dataRef.current.items;
         const r = applyHaloPlan(dataRef.current, plan, (id) => scheduleRef.current.byItem[id]?.startBy, now, tz);
         update(() => r.data);
         for (const op of r.ops) mirror(op);
+        const batch = diffBatch('Sync', before, r.data.items, now);
+        if (batch.count) {
+          saveUndo(batch);
+          setUndoState(batch);
+        }
       },
       dismissTimeAsk() {
         setJustDone(null);
@@ -517,8 +553,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<Store>(
-    () => ({ data, schedule, derived, nudges, progress, previewAward: previewFor, calibrate, justDone, today, term, courseById, isDark, sync, actions }),
-    [data, schedule, derived, nudges, progress, previewFor, calibrate, justDone, today, term, courseById, isDark, sync, actions],
+    () => ({ data, schedule, derived, nudges, progress, previewAward: previewFor, calibrate, justDone, undo, today, term, courseById, isDark, sync, actions }),
+    [data, schedule, derived, nudges, progress, previewFor, calibrate, justDone, undo, today, term, courseById, isDark, sync, actions],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

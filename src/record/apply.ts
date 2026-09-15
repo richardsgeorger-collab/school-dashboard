@@ -55,7 +55,8 @@ export function applyProposal(p: Proposal, m: Mention, actions: ApplyActions, tz
   }
   if (p.kind === 'add') {
     const blocks = gates(p.item.courseId);
-    const item = { ...p.item, title: (edits.title ?? p.item.title).trim() || p.item.title, points: edits.points ?? p.item.points, dueAt: edits.dueAt ?? p.item.dueAt, ...(blocks.length ? { blocks } : {}) };
+    // A gating task is small by nature (claim a topic, sign a form); it carries the weight of what it unlocks, not its own hours.
+    const item = { ...p.item, title: (edits.title ?? p.item.title).trim() || p.item.title, points: edits.points ?? p.item.points, dueAt: edits.dueAt ?? p.item.dueAt, ...(blocks.length ? { blocks, estimatedMinutes: Math.min(p.item.estimatedMinutes, 15), estimateOverridden: true } : {}) };
     if (!dryRun) actions.upsertItem(item);
     return `Added ${item.title}, due ${when(item.dueAt)}${blocks.length ? `, gating ${blocks.length} item${blocks.length === 1 ? '' : 's'}` : ''}`;
   }

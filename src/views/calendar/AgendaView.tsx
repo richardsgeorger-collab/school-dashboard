@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { EmptyState } from '../../components/EmptyState';
 import { ItemRow } from '../../components/ItemRow';
 import { addDays, dateOf, fmtDate, fmtMinutes } from '../../domain/dates';
@@ -6,11 +6,14 @@ import type { DateStr, Item } from '../../domain/types';
 import { useStore } from '../../storage/store';
 
 const DAYS_AHEAD = 60;
+const WEEK = 7;
 
+/** Seven days first: the middle ground between today and the whole month. The rest opens on request. */
 export function AgendaView({ from, items, onOpen }: { from: DateStr; items: Item[]; onOpen: (i: Item) => void }) {
   const { data, schedule, today } = useStore();
   const tz = data.settings.timezone;
-  const end = addDays(from, DAYS_AHEAD);
+  const [wide, setWide] = useState(false);
+  const end = addDays(from, wide ? DAYS_AHEAD : WEEK - 1);
 
   const overdue = useMemo(
     () => (from === today ? items.filter((i) => i.status !== 'done' && schedule.byItem[i.id]?.risk === 'overdue').sort((a, b) => a.dueAt.localeCompare(b.dueAt)) : []),
@@ -57,6 +60,11 @@ export function AgendaView({ from, items, onOpen }: { from: DateStr; items: Item
           </ul>
         </section>
       ))}
+      <p className="hint" style={{ marginTop: 10 }}>
+        <button type="button" className="diff-toggle" onClick={() => setWide((w) => !w)}>
+          {wide ? 'Just the next seven days' : `Show the next ${DAYS_AHEAD} days`}
+        </button>
+      </p>
     </div>
   );
 }

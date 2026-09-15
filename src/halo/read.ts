@@ -1,8 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Course, DateStr } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
-import { auditStatusKind, type AuditParse, type AuditStatus, type ClassCoverage } from './audit';
-import { isCoverageLine, isNoiseLine, isPageNameLine } from './noise';
+import { auditStatusKind, isGenericPage, type AuditParse, type AuditStatus, type ClassCoverage } from './audit';
+import { CONTENT, isCoverageLine, isNoiseLine, isPageNameLine } from './noise';
 import { resolveCourse } from './normalize';
 
 /** Same model as the coach and the lecture pass. */
@@ -26,14 +26,15 @@ export const READ_TOOL = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['code', 'planned_pages', 'visited_pages', 'coverage_visited', 'coverage_planned', 'skipped', 'stopped_at', 'reported_findings', 'notes'],
+          required: ['code', 'planned_pages', 'visited_pages', 'coverage_visited', 'coverage_planned', 'skipped', 'generic_pages_planned', 'stopped_at', 'reported_findings', 'notes'],
           properties: {
             code: { type: 'string', description: 'The planner class code exactly as listed, e.g. "ENG-105", never a section like "ENG-105-ONL4".' },
             planned_pages: { type: ['integer', 'null'], description: 'From the COVERAGE PLAN line, if any.' },
             visited_pages: { type: ['integer', 'null'], description: 'How many VISITED lines (or visited pages) the audit showed for this class.' },
             coverage_visited: { type: ['integer', 'null'], description: 'x from "COVERAGE — visited x of n pages" for this class, if stated.' },
             coverage_planned: { type: ['integer', 'null'], description: 'n from that line, if stated.' },
-            skipped: { type: 'array', items: { type: 'string' }, description: 'Pages the audit said it skipped, failed to load, or could not reach, with the reason. Not the generic GCU pages it was told it may skip.' },
+            skipped: { type: 'array', items: { type: 'string' }, description: 'Pages the audit said it skipped, failed to load, or could not reach, with the reason. Include the generic GCU pages (Mission Statement, Doctrinal Statement, Library, Student Success Center, Student AI Resources, Learning Support, Classroom Policies) when the audit named them as skipped; they are set aside later.' },
+            generic_pages_planned: { type: ['integer', 'null'], description: 'How many of those seven generic GCU pages the class plan or the coverage count included (0-7), so they can be set aside before visited-of-planned is judged. Null if unknown.' },
             stopped_at: { type: ['string', 'null'], description: 'The page where the audit said it ran out of room in this class, if it did.' },
             reported_findings: { type: ['integer', 'null'], description: 'The finding count the audit itself stated for this class (a FINAL COVERAGE line like "ESG-162 — 3 findings"), so a missing report section can be caught. Null when it never said.' },
             notes: { type: 'string', description: 'Anything else worth knowing about this class’s coverage, one short line, or empty.' },
@@ -108,9 +109,9 @@ function readDue(s: string): { date: string | null; time: string | null } {
 /** Whatever the model sent, shaped into the same parse the review and the receipts already read. Unknown classes are kept, unmatched. */
 export function parseFromTool(raw: unknown, courses: Course[], audited: Course[] = []): AuditParse {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: o.all_match === true, reported: null, classes: {}, order: [], stopped: null, source: 'claude' };
+  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: o.all_match === true, reported: null, classes: {}, order: [], stopped: null, source: 'claude', genericSkipNote: false };
   const section = (id: string): ClassCoverage => {
-    if (!out.classes[id]) out.classes[id] = { courseId: id, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, reached: true };
+    if (!out.classes[id]) out.classes[id] = { courseId: id, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, reached: true };
     if (!out.order.includes(id)) out.order.push(id);
     return out.classes[id];
   };
@@ -126,6 +127,9 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
     const cp = int(e.coverage_planned);
     if (cv !== null && cp !== null) cc.coverage = { visited: cv, planned: cp };
     cc.skipped.push(...strs(e.skipped));
+    const generic = int(e.generic_pages_planned);
+    if (generic !== null) cc.genericPlanned = Math.max(cc.genericPlanned, Math.min(7, Math.max(0, generic)));
+    if (cc.skipped.some(isGenericPage)) out.genericSkipNote = true;
     const stoppedAt = str(e.stopped_at);
     if (stoppedAt) cc.stoppedAt = stoppedAt;
     const reported = int(e.reported_findings);
@@ -181,7 +185,7 @@ export async function readAudit(args: ReadArgs & { apiKey: string; audited?: Cou
   return parseFromTool(use.input, args.courses, args.audited ?? []);
 }
 
-export type LineKind = 'finding' | 'coverage' | 'header' | 'noise' | 'unknown';
+export type LineKind = 'finding' | 'coverage' | 'header' | 'noise' | 'prose' | 'unknown';
 
 /** Each line of the paste labeled by whether the reader used it, for the "what was and wasn't recognized" view. */
 export function markLines(text: string, parse: AuditParse): { line: string; kind: LineKind }[] {
@@ -216,7 +220,8 @@ export function markLines(text: string, parse: AuditParse): { line: string; kind
       if (inPlan && isPageNameLine(line) && line.length < 80) return { line: raw, kind: 'coverage' };
       if (isPageNameLine(line) && line.length < 40 && !/\d{1,2}\/\d{1,2}|\d{4}-\d{2}|due|pts|points|late|missing|new/i.test(line)) return { line: raw, kind: 'coverage' };
       if (isNoiseLine(line)) return { line: raw, kind: 'noise' };
-      return { line: raw, kind: 'unknown' };
+      // Prose with no date, points, or score in it is narration too; only lines that carry one might be missed content.
+      return { line: raw, kind: CONTENT.test(line) ? 'unknown' : 'prose' };
     });
 }
 

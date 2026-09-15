@@ -31,6 +31,18 @@ export function titleSimilarity(a: string, b: string): number {
 /** A finding that gates other work: it names what it unlocks, or its note calls it a prerequisite. */
 export const isGating = (m: Mention): boolean => (m.gates?.length ?? 0) > 0 || /\b(gates?|gating|prerequisite|required before|must be (done|claimed|completed|submitted) before|before (you|the student) can)\b/i.test(m.note ?? '');
 
+/** How alike a mention and an item are, by title or label; 1 is the same words. */
+export function matchScore(m: Mention, item: Item): number {
+  const q = words(m.title).join(' ');
+  if (!q) return 0;
+  const t = words(item.title).join(' ');
+  const l = words(item.label).join(' ');
+  if (normTitle(item.title) === normTitle(m.title)) return 1;
+  let s = Math.max(titleSimilarity(q, t), titleSimilarity(q, l));
+  if (` ${t} `.includes(` ${q} `) || ` ${l} `.includes(` ${q} `)) s = Math.max(s, 0.9);
+  return s;
+}
+
 /** The planner item a mention is about: the model's pick if it exists, else the closest open title in that class. */
 export function matchMention(m: Mention, items: Item[], courseId: string): Item | null {
   // A posted score or a late flag is about work already handed in, so done items count for those.

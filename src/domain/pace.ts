@@ -1,4 +1,5 @@
 import { diffDays } from './dates';
+import { effectivePoints } from './gating';
 import type { Schedule } from './schedule';
 import type { Course, DateStr, Item } from './types';
 
@@ -30,6 +31,17 @@ export function paceFor(course: Course, items: Item[], schedule: Schedule, today
   const starts = open.map((i) => schedule.byItem[i.id]?.startBy ?? today).sort();
   const free = diffDays(today, starts[0]);
   return free >= AHEAD_DAYS ? { kind: 'ahead', days: free } : { kind: 'on' };
+}
+
+/** "200 pts due in 3 days, not started." for a big item inside its start window and untouched; rare. */
+export function riskLine(items: Item[], schedule: Schedule, today: DateStr): string | null {
+  const big = items
+    .filter((i) => i.status === 'todo' && i.type !== 'participation' && effectivePoints(i, items) >= 100 && (schedule.byItem[i.id]?.startBy ?? '9999') <= today && (schedule.byItem[i.id]?.deadlineDay ?? today) >= today)
+    .sort((a, b) => (schedule.byItem[a.id]?.deadlineDay ?? '').localeCompare(schedule.byItem[b.id]?.deadlineDay ?? '') || effectivePoints(b, items) - effectivePoints(a, items));
+  const i = big[0];
+  if (!i) return null;
+  const days = diffDays(today, schedule.byItem[i.id]?.deadlineDay ?? today);
+  return `${effectivePoints(i, items)} pts due ${days <= 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}, not started.`;
 }
 
 const list = (words: string[]) => (words.length <= 2 ? words.join(' and ') : `${words.slice(0, -1).join(', ')}, and ${words.at(-1)}`);

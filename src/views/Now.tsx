@@ -8,8 +8,9 @@ import { IconCheck } from '../components/Icons';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime, weekdayOf } from '../domain/dates';
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
-import { verificationLine } from '../halo/verification';
-import { paceLine } from '../domain/pace';
+import { checkDue, verificationLine } from '../halo/verification';
+import { checkHaloPress } from '../halo/checkState';
+import { paceLine, riskLine } from '../domain/pace';
 import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '../domain/away';
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
@@ -332,7 +333,11 @@ export function Now() {
   const counts = useMemo(() => openCountByDay(work, schedule), [work, schedule]);
   const mode = useMemo(() => nowMode(work, schedule, data.settings, today, now, finished !== null), [work, schedule, data.settings, today, minuteKey, finished]);
   // Pace, not hours: one line per class, in place of any pressure.
-  const paceText = useMemo(() => paceLine(data.courses, work, schedule, today), [data.courses, work, schedule, today]);
+  const paceText = useMemo(() => {
+    const pace = paceLine(data.courses, work, schedule, today);
+    const risk = riskLine(work, schedule, today);
+    return [pace, risk].filter(Boolean).join(' · ') || null;
+  }, [data.courses, work, schedule, today]);
   // Back after days away: one card that says what changed, then the normal screen behind one button.
   const [lastSeen] = useState(() => readLastSeen());
   const [welcomed, setWelcomed] = useState(false);
@@ -490,7 +495,15 @@ export function Now() {
 
       {(() => {
         const v = verificationLine(data.settings.haloChecks, data.courses, data.items, today, tz);
-        return (
+        const due = checkDue(data.settings.haloChecks, today, tz);
+        return due ? (
+          <p className="verify mono" data-level="amber">
+            <button type="button" className="verify-nudge" onClick={() => checkHaloPress.current?.('all')}>
+              Time to check Halo.
+            </button>{' '}
+            <span className="muted">{v.text}</span>
+          </p>
+        ) : (
           <p className="verify mono" data-level={v.level}>
             {v.text}
           </p>

@@ -5,6 +5,7 @@ import { terms } from '../library/search';
 import { recordingsDb, type Recording } from '../record/db';
 import { syllabiDb } from '../syllabus/db';
 import { QuizLink } from './Quiz';
+import { gatedBy } from '../domain/gating';
 import { addDays } from '../domain/dates';
 import { Modal } from '../components/Modal';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -364,6 +365,16 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => actions.upsertItem({ ...item, haloLate: null })}>
               checked, clear this
             </button>
+          </p>
+        )}
+        {!isNew && gatedBy(item, data.items).length > 0 && (
+          <p className="hint">
+            Needs first:{' '}
+            {gatedBy(item, data.items).map((g) => (
+              <span key={g.id} className="mono" style={{ marginRight: 8 }}>
+                {g.label} ({fmtDate(dateOf(g.dueAt, tz), 'short')})
+              </span>
+            ))}
           </p>
         )}
         {!isNew && (

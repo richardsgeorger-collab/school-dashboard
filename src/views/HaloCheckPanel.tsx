@@ -10,7 +10,7 @@ const label = (c: HaloCheckRecord) => (c.partial ? `partial${c.skipped?.length ?
 
 /** Per-class verification history, and the Check Halo prompt, editable as classes change. */
 export function HaloCheckPanel() {
-  const { data, actions, today } = useStore();
+  const { data, actions, today, undo } = useStore();
   const tz = data.settings.timezone;
   const value = data.settings.haloAuditPrompt ?? DEFAULT_AUDIT_PROMPT;
   const [note, setNote] = useState<string | null>(null);
@@ -30,6 +30,14 @@ export function HaloCheckPanel() {
   return (
     <section className="card settings-card">
       <h2 className="section-title">Check Halo</h2>
+      {undo && undo.count > 0 && (
+        <p className="hint">
+          Last sync ({undo.label}, {fmtDate(dateOf(undo.at, tz), 'short')}) changed {undo.count} item{undo.count === 1 ? '' : 's'}.{' '}
+          <button type="button" className="btn small" onClick={() => actions.undoLast()}>
+            Undo this sync
+          </button>
+        </p>
+      )}
       <p className="hint">Every class, one at a time, each to full depth. Clean means Claude reported every planned page visited and nothing different; partial means coverage fell short.</p>
       <ul className="verify-table">
         {vs.map((v) => {

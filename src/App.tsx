@@ -5,7 +5,7 @@ import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloImport } from './views/HaloImport';
 import { buildAuditPrompt, HALO_URL } from './halo/audit';
-import { clearPendingCheck, pendingCheck, setPendingCheck } from './halo/checkState';
+import { checkHaloPress, clearPendingCheck, pendingCheck, setPendingCheck } from './halo/checkState';
 import { useStore } from './storage/store';
 import { HaloCheck } from './views/HaloCheck';
 import { HaloClassPicker } from './views/HaloClassPicker';
@@ -25,6 +25,7 @@ import { Heatmap } from './views/Heatmap';
 import { Library } from './views/Library';
 import { Settings } from './views/Settings';
 import { Quiz } from './views/Quiz';
+import { ClassPage } from './views/ClassPage';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
 function HaloHandoff() {
@@ -110,13 +111,6 @@ function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () =>
     return () => clearTimeout(t);
   }, [hint]);
   // First press: pick the class. Second press within a day: the paste box for that class.
-  const press = useCallback(() => {
-    if (pendingCheck()) {
-      onOpen();
-      return;
-    }
-    setPicking(true);
-  }, [onOpen]);
   const pick = (course: Course | null) => {
     const list = course ? [course] : data.courses;
     const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, data.settings.timezone, today, list);
@@ -126,6 +120,21 @@ function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () =>
     setPicking(false);
     setHint(course ? `Copied the ${course.code} audit. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.` : `Copied the audit for all ${list.length} classes, one at a time. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.`);
   };
+  const press = useCallback(
+    (mode?: 'all') => {
+      if (mode === 'all') {
+        pick(null);
+        return;
+      }
+      if (pendingCheck()) {
+        onOpen();
+        return;
+      }
+      setPicking(true);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onOpen, data, today],
+  );
   return (
     <>
       <CheckHaloPress press={press} />
@@ -149,8 +158,7 @@ function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () =>
     </>
   );
 }
-const checkHaloPress: { current: (() => void) | null } = { current: null };
-function CheckHaloPress({ press }: { press: () => void }) {
+function CheckHaloPress({ press }: { press: (mode?: 'all') => void }) {
   checkHaloPress.current = press;
   return null;
 }
@@ -177,6 +185,8 @@ function Screen() {
       return <Settings />;
     case 'quiz':
       return <Quiz />;
+    case 'class':
+      return <ClassPage />;
     default:
       return <Now />;
   }

@@ -49,8 +49,12 @@ function CourseCard({ course }: { course: Course }) {
     <section className="card grade-card" style={{ '--course': color } as React.CSSProperties}>
       <header className="grade-head">
         <div>
-          <CourseChip course={course} />
-          <h2 className="grade-name">{course.name}</h2>
+          <CourseChip course={course} link />
+          <h2 className="grade-name">
+            <a href={`#/class?c=${course.id}`} className="plain-link">
+              {course.name}
+            </a>
+          </h2>
         </div>
         <div className="grade-pct mono">{g.pct === null ? '—' : `${g.pct}%`}</div>
       </header>

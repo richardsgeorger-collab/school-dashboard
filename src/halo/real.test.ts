@@ -46,7 +46,7 @@ describe('the real audit through the pipe-row fallback', () => {
     expect(r.reported).toBe(40);
     expect(r.source).toBe('pipes');
   });
-  it('keeps every class’s coverage apart, resolves the ENG-105-ONL4 section suffix, and counts the seven generic pages as covered', () => {
+  it('keeps every class’s coverage apart, resolves the ENG-105-ONL4 section suffix, and sets the seven generic pages aside before judging coverage', () => {
     expect(r.order).toEqual(['chm', 'chml', 'esgl', 'eng', 'unv', 'esg']);
     expect(r.classes.chm.plan).toBe(22);
     expect(r.classes.chm.planPages.length).toBe(22);
@@ -59,18 +59,31 @@ describe('the real audit through the pipe-row fallback', () => {
     expect(r.classes.eng.reportedFindings).toBe(29);
     expect(r.classes.esg.reportedFindings).toBe(3);
     expect(r.stopped).toBeNull();
+    expect(r.genericSkipNote).toBe(true);
+    expect(r.classes.chm.genericPlanned).toBe(7);
+    expect(r.classes.chml.genericPlanned).toBe(7);
     const o = auditOutcomes(r, courses);
-    expect(o.map((x) => [x.course.code, x.findings, x.outcome?.partial, x.outcome?.skipped.length])).toEqual([
-      ['CHM-113', 1, false, 0],
-      ['CHM-113L', 1, false, 0],
-      ['ENG-105', 29, false, 0],
-      ['ESG-162', 0, true, 0],
-      ['ESG-162L', 3, false, 0],
-      ['UNV-106', 0, true, 0],
+    // All six classes are complete on coverage: 15 of 22 with the 7 whitelisted pages set aside reads 15 of 15.
+    expect(o.map((x) => [x.course.code, x.outcome?.coverageComplete, x.outcome?.coverage, x.outcome?.skipped.length])).toEqual([
+      ['CHM-113', true, { visited: 15, planned: 15 }, 0],
+      ['CHM-113L', true, { visited: 15, planned: 15 }, 0],
+      ['ENG-105', true, { visited: 15, planned: 15 }, 0],
+      ['ESG-162', true, { visited: 15, planned: 15 }, 0],
+      ['ESG-162L', true, { visited: 13, planned: 13 }, 0],
+      ['UNV-106', true, { visited: 15, planned: 15 }, 0],
     ]);
-    expect(o.find((x) => x.course.code === 'CHM-113')?.outcome?.reason).toBe('Every one of 15 planned pages visited.');
+    expect(o.map((x) => [x.course.code, x.findings, x.outcome?.partial, x.outcome?.missingRows])).toEqual([
+      ['CHM-113', 1, false, false],
+      ['CHM-113L', 1, false, false],
+      ['ENG-105', 29, false, false],
+      ['ESG-162', 0, true, true],
+      ['ESG-162L', 3, false, false],
+      ['UNV-106', 0, true, true],
+    ]);
+    expect(o.find((x) => x.course.code === 'CHM-113')?.outcome?.reason).toBe('All 15 pages visited.');
     expect(o.find((x) => x.course.code === 'ESG-162')?.outcome?.reason).toBe('The final summary counts 3 findings for this class, but only 0 were read. Its report section may be missing from the paste.');
     expect(o.every((x) => !x.outcome?.clean)).toBe(true);
+    expect(o.filter((x) => x.outcome?.reason.includes('not checked') || x.outcome?.reason.includes('generic'))).toEqual([]);
     expect(remainingCourses(r, courses)).toEqual([]);
   });
   it('sees ENG-105 as one import, and never turns the topic-claim deadline into a move of the presentation', () => {
@@ -101,9 +114,15 @@ describe('the real audit through the pipe-row fallback', () => {
     expect(unknown.some((l) => l.startsWith('No other differences'))).toBe(false);
     expect(unknown.some((l) => l.startsWith('Starting Phase 2'))).toBe(false);
     expect(unknown.some((l) => l.startsWith('Skipped, and why'))).toBe(false);
+    expect(unknown.some((l) => l.startsWith('Full class calendar'))).toBe(false);
+    expect(unknown.some((l) => l.startsWith('Class Questions'))).toBe(false);
+    expect(unknown.some((l) => l.startsWith('9-15. Topic'))).toBe(false);
+    expect(unknown.some((l) => l.startsWith('The two that actually matter'))).toBe(false);
     expect(unknown.some((l) => l.startsWith('ESG-162 (lecture)'))).toBe(true);
     expect(unknown.some((l) => l.startsWith('UNV-106: Clean'))).toBe(true);
-    expect(unknown.length).toBeLessThanOrEqual(14);
+    expect(unknown.some((l) => l.startsWith('CHM-113L (lab)'))).toBe(true);
+    expect(unknown.length).toBeLessThanOrEqual(8);
+    expect(counts.prose ?? 0).toBeLessThanOrEqual(6);
   });
 });
 
@@ -139,7 +158,7 @@ describe('the same audit as the model should read it', () => {
     const o = auditOutcomes(p, [esg, unv]);
     expect(o.map((x) => [x.course.code, x.findings, x.outcome?.partial, x.outcome?.reason])).toEqual([
       ['ESG-162', 2, true, 'The final summary counts 3 findings for this class, but only 2 were read. Its report section may be missing from the paste.'],
-      ['UNV-106', 3, false, 'Every one of 15 planned pages visited.'],
+      ['UNV-106', 3, false, 'All 15 pages visited.'],
     ]);
   });
 });

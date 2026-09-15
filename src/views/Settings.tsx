@@ -8,6 +8,7 @@ import type { Course } from '../domain/types';
 import { useStore } from '../storage/store';
 import { CourseEditor } from './CourseEditor';
 import { HaloCheckPanel } from './HaloCheckPanel';
+import { DuplicatesPanel } from './DuplicatesPanel';
 import { SundayReview } from './SundayReview';
 import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import { HaloImport } from './HaloImport';
@@ -68,6 +69,7 @@ export function Settings() {
       <h1 className="page-title">Settings</h1>
       <div className="settings-grid">
         <SyncPanel />
+        <DuplicatesPanel />
         <HaloCheckPanel />
         <HaloPanel onPaste={() => setHalo(true)} />
         {review && <SundayReview onClose={() => setReview(false)} onDone={() => { actions.updateSettings({ sundayReview: sundayFinished(data.settings.sundayReview, today) }); setReview(false); }} />}
@@ -180,7 +182,7 @@ export function Settings() {
             {data.courses.map((c) => (
               <li key={c.id}>
                 <button type="button" className="course-row" onClick={() => setEditing(c)}>
-                  <CourseChip course={c} />
+                  <CourseChip course={c} link />
                   <span className="course-row-name">{c.name}</span>
                   <span className="hint">{meetingSummary(c)}</span>
                 </button>

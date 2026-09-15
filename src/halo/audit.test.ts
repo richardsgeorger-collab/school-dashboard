@@ -131,7 +131,9 @@ describe('reading an all-classes audit', () => {
     expect(o.clean).toBe(true);
     expect(o.partial).toBe(false);
     expect(o.skipped).toEqual([]);
-    expect(o.reason).toBe('Every one of 9 planned pages visited.');
+    expect(o.reason).toBe('All 9 pages visited.');
+    expect(o.coverage).toEqual({ visited: 9, planned: 9 });
+    expect(o.coverageComplete).toBe(true);
     const real = parseAuditResults(text.replace('Skipped: Library', 'Skipped: Announcements — would not load'), courses, today, [chm]);
     const ro = auditOutcomes(real, [chm])[0].outcome!;
     expect(ro.partial).toBe(true);
@@ -144,10 +146,10 @@ describe('reading an all-classes audit', () => {
     const r = parseAuditResults('COVERAGE PLAN — 3 pages\nVISITED — Topic 1 — 0 items found\nVISITED — Gradebook — 1 items found\nVISITED — Syllabus — 0 items found\nCOVERAGE — visited 3 of 3 pages\nALL MATCH', courses, today, [chm]);
     expect(r.classes.chm.coverage).toEqual({ visited: 3, planned: 3 });
     expect(r.classes['']).toBeUndefined();
-    expect(auditOutcomes(r, [chm])[0].outcome).toMatchObject({ clean: true, partial: false, reason: 'Every one of 3 planned pages visited.' });
+    expect(auditOutcomes(r, [chm])[0].outcome).toMatchObject({ clean: true, partial: false, reason: 'All 3 pages visited.' });
     const bare = auditOutcomes(parseAuditResults('ALL MATCH', courses, today, [chm]), [chm]);
     expect(bare[0]).toMatchObject({ reached: false, outcome: null });
-    expect(classifyClass({ courseId: 'chm', plan: 6, planPages: [], visited: [], coverage: { visited: 4, planned: 4 }, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, reached: true }, 0, true)).toMatchObject({ clean: false, partial: true, reason: 'Visited 4 of 4 pages (planned 6).' });
+    expect(classifyClass({ courseId: 'chm', plan: 6, planPages: [], visited: [], coverage: { visited: 4, planned: 4 }, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, reached: true }, 0, true)).toMatchObject({ clean: false, partial: true, reason: 'Visited 4 of 4 pages (planned 6).' });
   });
   it('reads pipe rows only: section suffixes resolve, an unreadable class column defaults to the current section, prose is kept as notes', () => {
     const r = parseAuditResults('=== CLASS: CHM-113 ===\n?? | Mystery worksheet | new | 2026-10-01 23:59 | 10 pts\nOLD-SECTION ESG-162 | Homework 2 | changed | 2026-09-22 08:00 | old section\nthis line means nothing\nESG-162-101 | Exam 1 | same\nchem topic 3 quiz moved to sep 27\nESG-162 (Engineering Math) | Homework 3 | rubric | | in Lab3_handout.pdf', courses, today, courses);

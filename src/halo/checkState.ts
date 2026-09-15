@@ -1,3 +1,6 @@
+/** The top-bar button's handler, reachable from Now's nudge: press() opens the picker, press('all') copies every class at once. */
+export const checkHaloPress: { current: ((mode?: 'all') => void) | null } = { current: null };
+
 /** Whether the student has copied an audit prompt and gone to Halo; the button's next press opens the paste box for those classes. */
 const KEY = 'school-dashboard:halo-check';
 const WINDOW_MS = 24 * 60 * 60 * 1000;

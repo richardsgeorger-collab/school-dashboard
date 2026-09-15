@@ -3,93 +3,29 @@ import { loadApiKey } from '../chat/key';
 import { describeError } from '../chat/client';
 import { CourseChip } from '../components/CourseChip';
 import { Modal } from '../components/Modal';
-import { dateOf, fmtDate, fmtTime } from '../domain/dates';
-import type { Course, HaloCheckRecord } from '../domain/types';
-import { auditOutcomes, buildAuditPrompt, bulkImports, HALO_URL, openItemsFor, parseAuditResults, remainingCourses, type AuditParse, type BulkImport, type ClassOutcome } from '../halo/audit';
+import { dateOf } from '../domain/dates';
+import type { Course, HaloCheckRecord, Item } from '../domain/types';
+import { auditOutcomes, buildAuditPrompt, bulkImports, HALO_URL, openItemsFor, parseAuditResults, remainingCourses, type AuditParse, type ClassOutcome } from '../halo/audit';
 import { clearPendingCheck, pendingCheck, setPendingCheck } from '../halo/checkState';
+import { judge, needLines, type Judged, type NeedLine } from '../halo/needs';
 import { markLines, readAudit, unknownLines } from '../halo/read';
-import { isGating } from '../record/match';
-import { localSummary, summarizeAudit, type AuditSummary, type SummaryInput } from '../halo/summary';
-import { matchMention, proposalFor, type Proposal } from '../record/match';
-import type { Mention } from '../record/notes';
+import { polishNeeds } from '../halo/summary';
+import { applyProposal, describeProposal } from '../record/apply';
+import { matchMention, proposalFor } from '../record/match';
 import { useStore } from '../storage/store';
-import { applyProposal, describeProposal, LectureReview, type Decision } from './LectureReview';
+import { diffBatch } from '../storage/undo';
+import { LectureReview, type Decision } from './LectureReview';
 
-/** The fact from the student's side, for the overview's bullets. */
-function headlineFor(p: Proposal, m: Mention, tz: string): string {
-  const day = (iso: string) => fmtDate(dateOf(iso, tz), 'short');
-  switch (p.kind) {
-    case 'update':
-      return `${p.item.label} moved: ${day(p.item.dueAt)} → ${day(p.dueAt)}${fmtTime(p.dueAt, tz) !== fmtTime(p.item.dueAt, tz) ? ` ${fmtTime(p.dueAt, tz)}` : ''}.`;
-    case 'add':
-      return isGating(m) ? `${p.item.title} is due ${day(p.item.dueAt)} and gates ${(m.gates ?? []).join(' and ') || 'later work'}.` : `Halo has ${p.item.title} (due ${day(p.item.dueAt)}${p.item.points ? `, ${p.item.points} pts` : ''}) that your planner doesn't.`;
-    case 'score':
-      return `${p.item.label} is graded: ${p.score} of ${p.item.points}.`;
-    case 'remove':
-      return `${p.item.label} is no longer in Halo.`;
-    case 'flag':
-      return p.text;
-    case 'confirm':
-      return p.text;
-    default:
-      return m.audit?.status === 'schedule' ? 'Halo lists different meeting days or times for this class.' : m.audit?.status === 'rubric' ? `An attached file for ${m.title} carries a date or requirement${m.note ? `: ${m.note}` : ''}.` : p.text;
-  }
-}
-
-function SummaryBlock({ summary, reading, lowConfidence, bulk, onBulk, added }: { summary: AuditSummary; reading: boolean; lowConfidence: boolean; bulk: BulkImport[]; onBulk: (b: BulkImport) => void; added: Record<string, number> }) {
-  return (
-    <section className="halo-summary" data-source={summary.source} aria-label="What the audit found">
-      <p className="halo-verdict">{summary.verdict}</p>
-      {lowConfidence && <p className="halo-partial">I&apos;m not confident I read this right. Check each row before approving; nothing is recorded as clean from this.</p>}
-      {summary.matters.length > 0 && (
-        <ul className="halo-matters">
-          {summary.matters.map((m, i) => (
-            <li key={i}>{m}</li>
-          ))}
-        </ul>
-      )}
-      {bulk.map((b) => (
-        <p key={b.course.id} className="halo-bulk">
-          {added[b.course.id] !== undefined ? (
-            <span className="hint">Added {added[b.course.id]} {b.course.code} item{added[b.course.id] === 1 ? '' : 's'}.</span>
-          ) : (
-            <button type="button" className="btn small primary" onClick={() => onBulk(b)}>
-              Add all {b.ids.length} {b.course.code} items
-            </button>
-          )}
-        </p>
-      ))}
-      <p className="halo-plan">{summary.plan}</p>
-      {summary.needsYou.length > 0 && (
-        <div className="halo-needs">
-          <p className="hint">Needs your eye:</p>
-          <ul>
-            {summary.needsYou.map((m, i) => (
-              <li key={i}>{m}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {summary.partial.map((p, i) => (
-        <p key={i} className="halo-partial">
-          {p}
-        </p>
-      ))}
-      {reading && <p className="hint mono">Reading it more carefully…</p>}
-    </section>
-  );
-}
-
-function RawView({ text, parse }: { text: string; parse: AuditParse | null }) {
-  const lines = useMemo(() => (parse ? markLines(text, parse) : text.split(/\r?\n/).map((line) => ({ line, kind: 'unknown' as const }))), [text, parse]);
+function RawView({ text, parse }: { text: string; parse: AuditParse }) {
+  const lines = useMemo(() => markLines(text, parse), [text, parse]);
   const counts: Record<string, number> = {};
   for (const l of lines) counts[l.kind] = (counts[l.kind] ?? 0) + 1;
   const unknown = unknownLines(lines);
   return (
-    <details className="halo-rawwrap" open={unknown.length > 0}>
-      <summary className="hint">
-        What was and wasn&apos;t recognized: {counts.finding ?? 0} finding line{counts.finding === 1 ? '' : 's'}, {counts.coverage ?? 0} coverage line{counts.coverage === 1 ? '' : 's'}, {counts.noise ?? 0} noise, {unknown.length} not recognized
-      </summary>
+    <div className="halo-rawwrap">
+      <p className="hint">
+        {counts.finding ?? 0} finding line{counts.finding === 1 ? '' : 's'}, {counts.coverage ?? 0} coverage line{counts.coverage === 1 ? '' : 's'}, {(counts.noise ?? 0) + (counts.prose ?? 0)} narration, {unknown.length} not recognized
+      </p>
       {unknown.length > 0 && (
         <div className="halo-unknown">
           <p className="hint">Not recognized — might be content I missed:</p>
@@ -109,23 +45,21 @@ function RawView({ text, parse }: { text: string; parse: AuditParse | null }) {
           </span>
         ))}
       </pre>
-    </details>
+    </div>
   );
 }
 
-const outcomeWord = (o: ClassOutcome): SummaryInput['classes'][number]['outcome'] => (!o.reached || !o.outcome ? 'not reached' : o.outcome.partial ? 'partial' : o.outcome.clean ? 'clean' : 'findings');
-
 type ReadState = { status: 'idle' | 'reading' | 'ok' | 'failed'; parse: AuditParse | null; error: string | null };
 
-/** Where an audit lands: paste, read by Claude, an overview in plain words, then the rows. Never clean without proof. */
+/**
+ * Where an audit lands. Safe changes apply on their own; the screen says how many and lists the few things that need
+ * a person. Everything else waits behind "see details". Nothing applies when the paste could not be read or a class's
+ * coverage came back short.
+ */
 export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => void; onHint: (text: string) => void; onSwitchClass: () => void }) {
-  const { data, today, actions, courseById } = useStore();
+  const { data, today, actions, courseById, undo } = useStore();
   const tz = data.settings.timezone;
   const [text, setText] = useState('');
-  const [reviewing, setReviewing] = useState(false);
-  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
-  const [applied, setApplied] = useState<Record<string, string>>({});
-  const [added, setAdded] = useState<Record<string, number>>({});
   const [pending] = useState(() => pendingCheck());
   const [attempt, setAttempt] = useState(0);
   const now = useMemo(() => new Date().toISOString(), []);
@@ -175,95 +109,94 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
 
   const parsed = read.parse;
   const outcomes = useMemo(() => (parsed ? auditOutcomes(parsed, audited) : []), [parsed, audited]);
-  const proposals = useMemo(() => {
-    const map = new Map<string, { course: Course; proposal: Proposal }>();
-    if (!parsed) return map;
-    for (const m of parsed.mentions) {
-      const course = (m.courseId && courseById.get(m.courseId)) || audited[0] || data.courses[0];
-      if (!course) continue;
-      const match = matchMention(m, data.items, course.id);
-      map.set(m.id, { course, proposal: proposalFor(m, match, course, tz, today, now) });
-    }
-    return map;
-  }, [parsed, courseById, audited, data.courses, data.items, tz, today, now]);
-
   const findings = useMemo(() => parsed?.mentions.filter((m) => m.audit?.status !== 'note') ?? [], [parsed]);
   const structure = !!parsed && (parsed.order.length > 0 || Object.values(parsed.classes).some((cc) => cc.coverage !== null || cc.visited.length > 0 || cc.plan !== null));
   const unreadable = !!parsed && findings.length === 0 && !structure;
-  const lowConfidence = findings.length > 0 && findings.every((m) => m.confidence === 'low');
-  const nothingFound = !!parsed && !unreadable && findings.length === 0;
-  const allClean = nothingFound && parsed!.unread.length === 0 && outcomes.length > 0 && outcomes.every((o) => o.outcome?.clean);
   const stopped = parsed?.stopped ?? null;
   const remaining = useMemo(() => (parsed ? remainingCourses(parsed, audited) : []), [parsed, audited]);
   const stoppedLabel = stopped ? `${stopped.courseId ? (courseById.get(stopped.courseId)?.code ?? '') + ' — ' : ''}${stopped.page}` : null;
-  // Decided once per paste, before anything is added, so the one-press import stays on screen after it runs.
-  const dataRef = useRef(data);
-  dataRef.current = data;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const bulk = useMemo(() => (parsed ? bulkImports(parsed, audited, (id) => openItemsFor(dataRef.current, tz, today, id).length) : []), [parsed, audited, tz, today]);
-  const bulkIds = useMemo(() => new Set(bulk.flatMap((b) => b.ids)), [bulk]);
-  const classesForSummary = useMemo(() => outcomes.map((o) => ({ code: o.course.code, word: o.course.code, outcome: outcomeWord(o), reason: o.outcome?.reason ?? 'Not reached.', skipped: o.outcome?.skipped ?? [] })), [outcomes]);
-  const partialLines = localSummary({ findings: [], planner: '', classes: classesForSummary }).partial;
 
-  // The overview: local at once, Claude's wording when a key is here.
-  const input: SummaryInput | null = useMemo(() => {
-    if (!parsed || nothingFound || unreadable) return null;
-    return {
-      findings: findings.map((m) => {
-        const p = proposals.get(m.id);
-        return { id: m.id, classCode: p?.course.code ?? '?', classWord: p?.course.code ?? '?', status: m.audit?.status ?? m.kind, title: m.title, quote: m.quote, proposal: p ? describeProposal(p.proposal, tz, undefined, isGating(m) ? (m.gates ?? []) : []) : m.title, headline: p ? headlineFor(p.proposal, m, tz) : undefined, kind: p?.proposal.kind ?? 'none', confidence: m.confidence, date: m.date, gating: isGating(m) };
-      }),
-      classes: classesForSummary,
-      planner: plannerLines,
-      bulk: bulk.map((b) => ({ code: b.course.code, word: b.course.code, ids: b.ids })),
-    };
-  }, [parsed, nothingFound, unreadable, findings, proposals, classesForSummary, tz, plannerLines, bulk]);
-  const inputRef = useRef(input);
-  inputRef.current = input;
-  const [summary, setSummary] = useState<AuditSummary | null>(null);
-  const [reading, setReading] = useState(false);
+  // Judged once per paste, against the planner as it was before anything applied.
+  const itemsAtRead = useRef<Item[]>(data.items);
+  const judged = useMemo<Judged[]>(() => {
+    if (!parsed || unreadable) return [];
+    itemsAtRead.current = actions.snapshotItems();
+    const items = itemsAtRead.current;
+    const bulk = new Set(bulkImports(parsed, audited, (id) => items.filter((i) => i.courseId === id && i.status !== 'done' && dateOf(i.dueAt, tz) >= today).length).flatMap((b) => b.ids));
+    const byCourse = new Map(outcomes.map((o) => [o.course.id, o]));
+    return parsed.mentions
+      .filter((m) => m.audit?.status !== 'note')
+      .map((m) => {
+        const course = (m.courseId && courseById.get(m.courseId)) || audited[0] || data.courses[0];
+        const match = matchMention(m, items, course.id);
+        const proposal = proposalFor(m, match, course, tz, today, now);
+        return judge(m, course, proposal, match, byCourse.get(course.id), bulk);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed, unreadable, outcomes, audited, courseById, tz, today, now]);
+
+  // Auto-apply, once per paste, then record the checks and remember the batch for undo.
+  const [applied, setApplied] = useState<{ count: number; lines: string[]; key: AuditParse | null }>({ count: 0, lines: [], key: null });
+  const [needs, setNeeds] = useState<NeedLine[]>([]);
+  const [polishing, setPolishing] = useState(false);
+  const [decided, setDecided] = useState<Record<string, 'done' | 'skipped'>>({});
+  const beforeRef = useRef<Item[] | null>(null);
   useEffect(() => {
-    const cur = inputRef.current;
-    if (!cur) {
-      setSummary(null);
-      setReading(false);
-      return;
+    if (!parsed || unreadable || applied.key === parsed) return;
+    const before = actions.snapshotItems();
+    beforeRef.current = before;
+    const lines: string[] = [];
+    for (const j of judged) {
+      if (j.lane !== 'auto') continue;
+      lines.push(applyProposal(j.proposal, j.m, actions, tz, today, false, {}, before));
     }
-    setSummary(localSummary(cur));
-    const key = loadApiKey();
-    if (!key) return;
-    let live = true;
-    setReading(true);
-    const t = setTimeout(() => {
-      summarizeAudit({ ...cur, apiKey: key })
-        .then((s) => live && setSummary(s))
-        .catch(() => undefined)
-        .finally(() => live && setReading(false));
-    }, 300);
-    return () => {
-      live = false;
-      clearTimeout(t);
-      setReading(false);
-    };
-  }, [parsed]);
-
-  const records = (): HaloCheckRecord[] =>
-    outcomes
+    const after = actions.snapshotItems();
+    const batch = diffBatch('Halo check', before, after);
+    // A check that changed nothing leaves the previous batch in place, so the last real sync can still be undone.
+    if (batch.count) actions.setUndo(batch);
+    const skipRows = new Set(judged.flatMap((j) => (j.lane === 'auto' ? [] : [j.m.id])));
+    const recs: HaloCheckRecord[] = outcomes
       .filter((o) => o.reached && o.outcome)
-      .map((o) => ({
-        at: new Date().toISOString(),
-        courseId: o.course.id,
-        clean: o.outcome!.clean && !lowConfidence && (parsed?.unread.length ?? 0) === 0,
-        partial: o.outcome!.partial || lowConfidence || (parsed?.unread.length ?? 0) > 0,
-        findings: parsed ? parsed.mentions.filter((m) => m.courseId === o.course.id && m.audit?.status !== 'note' && !bulkIds.has(m.id)).length : o.findings,
-        coverage: o.outcome!.coverage,
-        skipped: o.outcome!.skipped,
-      }));
-  const finish = () => {
-    actions.recordHaloChecks(records());
+      .map((o) => ({ at: new Date().toISOString(), courseId: o.course.id, clean: o.outcome!.clean && (parsed.unread.length ?? 0) === 0, partial: o.outcome!.partial || parsed.unread.length > 0, findings: parsed.mentions.filter((m) => m.courseId === o.course.id && m.audit?.status !== 'note' && skipRows.has(m.id)).length, coverage: o.outcome!.coverage, skipped: o.outcome!.skipped }));
+    actions.recordHaloChecks(recs);
     if (stopped && remaining.length > 0 && stoppedLabel) setPendingCheck(remaining.map((c) => c.id), { courseIds: remaining.map((c) => c.id), stoppedAt: stoppedLabel });
     else clearPendingCheck();
+    setApplied({ count: lines.length, lines, key: parsed });
+    const local = needLines(judged, before, tz);
+    setNeeds(local);
+    setDecided({});
+    const key = loadApiKey();
+    if (key && local.length) {
+      setPolishing(true);
+      const facts = judged.filter((j) => j.lane === 'needs').map((j) => ({ id: j.m.id, classCode: j.course.code, status: j.m.audit?.status ?? j.m.kind, title: j.m.title, note: j.m.note ?? '', quote: j.m.quote, proposal: describeProposal(j.proposal, tz) }));
+      polishNeeds({ apiKey: key, lines: local, facts })
+        .then((polished) => setNeeds(polished))
+        .catch(() => undefined)
+        .finally(() => setPolishing(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed, judged]);
+
+  const doLine = (line: NeedLine) => {
+    const items = actions.snapshotItems();
+    for (const id of line.ids) {
+      const j = judged.find((x) => x.m.id === id);
+      if (!j) continue;
+      if (line.action === 'note' && j.proposal.kind !== 'flag') continue;
+      if (j.proposal.kind === 'add' || j.proposal.kind === 'update' || j.proposal.kind === 'remove' || j.proposal.kind === 'flag' || j.proposal.kind === 'score') applyProposal(j.proposal, j.m, actions, tz, today, false, {}, items);
+    }
+    setDecided((d) => ({ ...d, [line.id]: 'done' }));
+    // Approvals from these lines belong to the same batch as the automatic changes.
+    if (beforeRef.current) {
+      const batch = diffBatch('Halo check', beforeRef.current, actions.snapshotItems());
+      if (batch.count) actions.setUndo(batch);
+    }
   };
+  const skipLine = (line: NeedLine) => setDecided((d) => ({ ...d, [line.id]: 'skipped' }));
+
+  const [details, setDetails] = useState(false);
+  const [rows, setRows] = useState(false);
+  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const copyFor = (list: Course[], resumeFrom: string | null) => {
     const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, tz, today, list, { resumeFrom });
     void navigator.clipboard?.writeText(prompt).catch(() => undefined);
@@ -271,7 +204,6 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
     setPendingCheck(list.map((c) => c.id), resumeFrom ? { courseIds: list.map((c) => c.id), stoppedAt: resumeFrom } : null);
   };
   const resume = (list: Course[], from: string) => {
-    if (parsed) actions.recordHaloChecks(records());
     copyFor(list, from);
     onHint(`Copied the audit for the ${list.length} remaining class${list.length === 1 ? '' : 'es'}, picking up at ${from}. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.`);
     onClose();
@@ -281,27 +213,16 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
     onHint(`Copied the ${audited.length === 1 ? audited[0].code : 'all-classes'} audit. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.`);
     onClose();
   };
-  const decide = (id: string, d: Decision, text?: string) => {
-    setDecisions((s) => ({ ...s, [id]: d }));
-    if (text) setApplied((s) => ({ ...s, [id]: text }));
-  };
-  const addAll = (b: BulkImport) => {
-    if (!parsed) return;
-    let n = 0;
-    for (const m of parsed.mentions) {
-      if (!b.ids.includes(m.id) || decisions[m.id]) continue;
-      const p = proposals.get(m.id);
-      if (!p || p.proposal.kind !== 'add') continue;
-      decide(m.id, 'approved', applyProposal(p.proposal, m, actions, tz, today, false, {}, data.items));
-      n++;
-    }
-    setAdded((s) => ({ ...s, [b.course.id]: n }));
-  };
 
   const title = `Check Halo · ${audited.length === 1 ? audited[0].code : audited.length === data.courses.length ? 'all classes' : `${audited.length} classes`}`;
-  const summaryNode = summary ? <SummaryBlock summary={summary} reading={reading} lowConfidence={lowConfidence} bulk={bulk} onBulk={addAll} added={added} /> : null;
+  const pendingResume = pending?.resume ?? null;
+  const resumeList = pendingResume ? pendingResume.courseIds.map((id) => courseById.get(id)).filter((c): c is Course => !!c) : [];
+  const incomplete = outcomes.filter((o) => o.reached && o.outcome && (!o.outcome.coverageComplete || o.outcome.missingRows));
+  const unreached = outcomes.filter((o) => !o.reached);
+  const open = needs.filter((l) => !decided[l.id]);
+  const readerNote = read.status === 'failed' ? `Claude couldn't read this (${read.error ?? 'no answer'}), so only pipe-delimited rows were used.` : parsed?.source === 'pipes' && !hasKey ? 'No key on this device, so only pipe-delimited rows were read. Connect the key on Now to have Claude read the whole paste.' : null;
 
-  if (reviewing && parsed && audited[0] && summary) {
+  if (rows && parsed && audited[0]) {
     return (
       <LectureReview
         title={title}
@@ -311,36 +232,28 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
         lectureDate={today}
         dryRun={false}
         decisions={decisions}
-        onDecide={decide}
-        applied={applied}
-        summary={summaryNode}
-        plan={summary.decisions}
-        onClose={() => {
-          finish();
-          onClose();
-        }}
+        onDecide={(id, d) => setDecisions((s) => ({ ...s, [id]: d }))}
+        onClose={() => setRows(false)}
       />
     );
   }
 
-  const pendingResume = pending?.resume ?? null;
-  const resumeList = pendingResume ? pendingResume.courseIds.map((id) => courseById.get(id)).filter((c): c is Course => !!c) : [];
-  const readerNote = read.status === 'failed' ? `Claude couldn't read this (${read.error ?? 'no answer'}), so only pipe-delimited rows were used.` : parsed?.source === 'pipes' && !hasKey ? 'No key on this device, so only pipe-delimited rows were read. Connect the key on Now to have Claude read the whole paste.' : null;
-
   return (
     <Modal title={title} onClose={onClose}>
       <div className="modal-body">
-        <p className="hint">
-          {audited.length === 1 && (
-            <>
-              <CourseChip course={audited[0]} /> {audited[0].name}.{' '}
-            </>
-          )}
-          Paste what Claude found on the Halo tab. You get the short version first, then each change to approve or adjust.{' '}
-          <button type="button" className="diff-toggle" onClick={onSwitchClass}>
-            Different class
-          </button>
-        </p>
+        {!parsed && (
+          <p className="hint">
+            {audited.length === 1 && (
+              <>
+                <CourseChip course={audited[0]} /> {audited[0].name}.{' '}
+              </>
+            )}
+            Paste what Claude found on the Halo tab. Safe changes go in on their own; you only see what needs you.{' '}
+            <button type="button" className="diff-toggle" onClick={onSwitchClass}>
+              Different class
+            </button>
+          </p>
+        )}
         {!text.trim() && pendingResume && resumeList.length > 0 && (
           <p className="halo-resume hint">
             The last run stopped at {pendingResume.stoppedAt}. {resumeList.length} class{resumeList.length === 1 ? '' : 'es'} still to check.{' '}
@@ -349,35 +262,91 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
             </button>
           </p>
         )}
-        <textarea className="halo-paste" value={text} onChange={(e) => setText(e.target.value)} rows={8} spellCheck={false} placeholder={'Paste the whole audit, headings, narration and all.\nClaude reads it; rows like\nCHM-113 | Topic 3 Quiz | changed | 2026-09-27 23:59 | was 2026-09-25\nare read even without a key.'} aria-label="What Claude found" />
-
+        {(!parsed || read.status === 'reading') && <textarea className="halo-paste" value={text} onChange={(e) => setText(e.target.value)} rows={8} spellCheck={false} placeholder={'Paste the whole audit, headings, narration and all.'} aria-label="What Claude found" />}
         {read.status === 'reading' && <p className="hint mono halo-reading">Reading the paste…</p>}
-        {readerNote && parsed && !unreadable && <p className="hint mono">{readerNote}</p>}
 
         {parsed && unreadable && (
           <section className="halo-summary halo-unreadable" aria-label="Could not read">
             <p className="halo-verdict">Couldn&apos;t read these results.</p>
             <p className="halo-partial">
-              Nothing in the paste was recognized as a finding or a coverage line, so nothing is recorded. This is not a clean check.
+              Nothing in the paste was recognized as a finding or a coverage line, so nothing was applied and nothing is recorded.
               {read.status === 'failed' ? ` Claude's reading failed: ${read.error}.` : !hasKey ? ' Without a key only pipe-delimited rows can be read; connect the key on Now and paste again.' : ''}
             </p>
             <RawView text={text} parse={parsed} />
           </section>
         )}
-        {parsed && nothingFound && (
-          <section className="halo-summary" data-source={parsed.source} aria-label="What the audit found">
-            <p className="halo-verdict">{allClean ? 'Nothing to fix — your planner matches Halo.' : parsed.unread.length ? "Nothing different was read, but some of the paste couldn't be understood, so this is not a clean check." : partialLines.length ? 'Nothing different was found, but the check is not complete.' : 'Nothing different was found.'}</p>
-            {parsed.unread.length > 0 && <p className="halo-partial">{parsed.unread.length} line{parsed.unread.length === 1 ? '' : 's'} couldn&apos;t be read. Look at them below before trusting this.</p>}
-            {partialLines.map((p, i) => (
-              <p key={i} className="halo-partial">
-                {p}
+
+        {parsed && !unreadable && applied.key === parsed && (
+          <section className="halo-summary" data-source={parsed.source} aria-label="What happened">
+            <p className="halo-verdict">
+              {applied.count === 0 ? 'Nothing applied.' : `Applied ${applied.count} change${applied.count === 1 ? '' : 's'}.`}{' '}
+              {open.length === 0 ? (needs.length ? 'All handled.' : 'Nothing needs you.') : `${open.length} thing${open.length === 1 ? '' : 's'} need${open.length === 1 ? 's' : ''} you:`}
+            </p>
+            {open.length > 0 && (
+              <ul className="halo-needs-list">
+                {open.map((l) => (
+                  <li key={l.id}>
+                    <span>{l.text}</span>
+                    <span className="halo-need-actions">
+                      {l.action !== 'none' && (
+                        <button type="button" className={`btn small ${l.action === 'remove' ? 'danger' : 'primary'}`} onClick={() => doLine(l)}>
+                          {l.action === 'add' ? 'Add it' : l.action === 'move' ? 'Move it' : l.action === 'remove' ? 'Remove it' : 'Note it'}
+                        </button>
+                      )}
+                      <button type="button" className="btn small" onClick={() => skipLine(l)}>
+                        {l.action === 'none' ? 'OK' : 'Skip'}
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {polishing && <p className="hint mono">Wording these more plainly…</p>}
+            {(incomplete.length > 0 || unreached.length > 0) && (
+              <p className="halo-partial">
+                {incomplete.length > 0 ? `Nothing applied for ${incomplete.map((o) => o.course.code).join(', ')}: ${incomplete.length === 1 ? 'its' : 'their'} coverage came back short. ` : ''}
+                {unreached.length > 0 ? `${unreached.map((o) => o.course.code).join(', ')} ${unreached.length === 1 ? "wasn't" : "weren't"} reached.` : ''}
               </p>
-            ))}
-            <RawView text={text} parse={parsed} />
+            )}
+            {readerNote && <p className="hint mono">{readerNote}</p>}
+            <p>
+              <button type="button" className="diff-toggle" onClick={() => setDetails((d) => !d)}>
+                {details ? 'Hide details' : 'See details'}
+              </button>
+            </p>
+            {details && (
+              <div className="halo-details">
+                <h4 className="rev-group-title">Applied</h4>
+                {applied.lines.length ? (
+                  <ul className="diff-list">
+                    {applied.lines.map((l, i) => (
+                      <li key={i}>{l}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="hint">Nothing.</p>
+                )}
+                <h4 className="rev-group-title">Coverage by class</h4>
+                <ul className="diff-list">
+                  {outcomes.map((o: ClassOutcome) => (
+                    <li key={o.course.id}>
+                      {o.course.code}: {!o.reached || !o.outcome ? 'not reached' : `${o.outcome.coverageComplete ? 'complete' : 'incomplete'}${o.outcome.coverage ? ` (${o.outcome.coverage.visited} of ${o.outcome.coverage.planned} pages)` : ''} — ${o.outcome.reason}`}
+                    </li>
+                  ))}
+                </ul>
+                <h4 className="rev-group-title">Every finding</h4>
+                <p className="hint">
+                  {findings.length} finding{findings.length === 1 ? '' : 's'} read.{' '}
+                  <button type="button" className="diff-toggle" onClick={() => setRows(true)}>
+                    Open the full list
+                  </button>
+                </p>
+                <h4 className="rev-group-title">The paste</h4>
+                <RawView text={text} parse={parsed} />
+              </div>
+            )}
           </section>
         )}
-        {parsed && !nothingFound && !unreadable && summaryNode}
-        {parsed && !nothingFound && !unreadable && <RawView text={text} parse={parsed} />}
 
         <div className="modal-actions">
           <button type="button" className="diff-toggle" onClick={again}>
@@ -394,31 +363,33 @@ export function HaloCheck({ onClose, onHint, onSwitchClass }: { onClose: () => v
               Read again
             </button>
           )}
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              clearPendingCheck();
-              onClose();
-            }}
-          >
-            Not now
-          </button>
-          {parsed && nothingFound ? (
+          {parsed && applied.key === parsed && undo && undo.count > 0 && (
             <button
               type="button"
-              className="btn primary"
+              className="btn"
               onClick={() => {
-                finish();
-                onHint(allClean ? 'Verified against Halo. Nothing to fix.' : 'Recorded what was checked. Not a clean check yet.');
+                actions.undoLast();
+                onHint(`Put back ${undo.count} change${undo.count === 1 ? '' : 's'} from this check.`);
                 onClose();
               }}
             >
-              {allClean ? 'Record it' : 'Record what was checked'}
+              Undo this sync
+            </button>
+          )}
+          {!parsed ? (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                clearPendingCheck();
+                onClose();
+              }}
+            >
+              Not now
             </button>
           ) : (
-            <button type="button" className="btn primary" disabled={!parsed || unreadable || !summary || read.status === 'reading'} onClick={() => setReviewing(true)}>
-              Review {findings.length ? `${findings.length} finding${findings.length === 1 ? '' : 's'}` : ''}
+            <button type="button" className="btn primary" onClick={onClose}>
+              Done
             </button>
           )}
         </div>

@@ -4,6 +4,14 @@ import type { Course, DateStr, HaloCheckRecord, Item } from '../domain/types';
 
 export const MAX_CHECKS = 120;
 export const STALE_DAYS = 10;
+/** A week without any check anywhere, and the line on Now turns into the nudge. */
+export const NUDGE_DAYS = 7;
+
+export function checkDue(list: HaloCheckRecord[] | undefined, today: DateStr, tz: string): boolean {
+  const last = [...(list ?? [])].sort((a, b) => a.at.localeCompare(b.at)).at(-1);
+  if (!last) return true;
+  return diffDays(dateOf(last.at, tz), today) >= NUDGE_DAYS;
+}
 
 export function recordCheck(list: HaloCheckRecord[] | undefined, rec: HaloCheckRecord): HaloCheckRecord[] {
   return [...(list ?? []), rec].slice(-MAX_CHECKS);

@@ -72,8 +72,8 @@ describe('the model’s reading, shaped into a parse', () => {
   it('gives one verdict per class: full, short, stopped', () => {
     const o = auditOutcomes(p, courses);
     expect(o.map((x) => [x.course.code, x.reached, x.findings, x.outcome?.partial, x.outcome?.reason])).toEqual([
-      ['CHM-113', true, 2, false, 'Every one of 11 planned pages visited.'],
-      ['ENG-105', true, 1, true, 'All 9 pages counted, but 1 named as skipped or failed.'],
+      ['CHM-113', true, 2, false, 'All 11 pages visited.'],
+      ['ENG-105', true, 1, true, 'All 8 pages counted, but 1 named as skipped or failed.'],
       ['ESG-162L', true, 2, true, 'Stopped early at Topic 3.'],
     ]);
   });
@@ -107,6 +107,6 @@ describe('the reading prompt and the recognized-lines view', () => {
   it('labels each pasted line as finding, coverage, header, noise, or not recognized', () => {
     const text = ['=== CLASS: CHM-113 ===', 'Used Claude in Chrome (41 actions)', "Let me start with Topic 1.", 'Coverage plan: 11 pages', '- Topic 1', '- Gradebook', 'Now checking the gradebook.', 'CHM-113 | Topic 3 Quiz | changed | 2026-09-27 23:59 | was 2026-09-25', 'COVERAGE — CHM-113 — visited 11 of 11 pages', 'The Sept 12 announcement says topics must be claimed by 9/20 before the 9/27 presentation and 10/9 essay.', 'Nothing new on this page.', 'The lab handout mentions a 10/3 checkpoint I could not place.', 'a line nobody understood', '---', ''];
     const p = parseFromTool({ classes: [], findings: [{ class_code: 'CHM-113', title: 'Claim topic', status: 'announce', due: '2026-09-20 23:59', points: null, score: null, note: '', confidence: 'medium', quote: 'The Sept 12 announcement says topics must be claimed by 9/20 before the 9/27 presentation and 10/9 essay.', gates: [] }], all_match: false, stopped: null, unread: [] }, courses, courses);
-    expect(markLines(text.join('\n'), p).map((l) => l.kind)).toEqual(['header', 'noise', 'noise', 'coverage', 'coverage', 'coverage', 'noise', 'finding', 'coverage', 'finding', 'noise', 'unknown', 'unknown', 'noise', 'noise']);
+    expect(markLines(text.join('\n'), p).map((l) => l.kind)).toEqual(['header', 'noise', 'noise', 'coverage', 'coverage', 'coverage', 'noise', 'finding', 'coverage', 'finding', 'noise', 'unknown', 'prose', 'noise', 'noise']);
   });
 });

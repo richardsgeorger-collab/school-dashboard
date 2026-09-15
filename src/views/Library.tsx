@@ -228,7 +228,7 @@ function ClassLibrary({ courseId }: { courseId: string }) {
             ← All classes
           </a>
           <h1 className="page-title lib-class-title">
-            {course && <CourseChip course={course} />} <span>{title}</span>
+            {course && <CourseChip course={course} link />} <span>{title}</span>
           </h1>
         </div>
         {course && <QuizLink courseId={course.id} />}

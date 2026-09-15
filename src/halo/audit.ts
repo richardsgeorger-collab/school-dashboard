@@ -228,6 +228,8 @@ export interface ClassCoverage {
   verdict: string | null;
   /** The finding count that line gave, when it gave one ("clean" is 0). */
   reportedFindings: number | null;
+  /** How many of the seven whitelisted GCU pages the plan listed. */
+  genericPlanned: number;
   /** Any header, plan, visit, coverage, or finding was seen for this class. */
   reached: boolean;
 }
@@ -249,6 +251,8 @@ export interface AuditParse {
   stopped: { courseId: string | null; page: string } | null;
   /** Who read the paste: the model, or the pipe-row fallback. */
   source: 'claude' | 'pipes';
+  /** The transcript said, somewhere, that the generic GCU pages were the ones skipped. */
+  genericSkipNote: boolean;
 }
 
 const STATUS: Record<string, AuditStatus> = {
@@ -309,7 +313,13 @@ const codeIn = (s: string, courses: Course[]): Course | null => {
   return m ? courseByCode(m[1], courses) : null;
 };
 
-const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, reached: false });
+const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reportedFindings: null, genericPlanned: 0, reached: false });
+
+/** How many of the seven whitelisted pages a list of page names carries. */
+export function countGenericPages(pages: string[]): number {
+  const text = pages.join(' \n ').toLowerCase();
+  return GENERIC_KEYS.filter((k) => text.includes(k)).length;
+}
 
 /** "3 findings" → 3, "clean" → 0, anything else → null. */
 export function readVerdictCount(verdict: string | null): number | null {
@@ -326,7 +336,7 @@ export function readVerdictCount(verdict: string | null): number | null {
  * rather than being dropped.
  */
 export function parseAuditResults(text: string, courses: Course[], _today: DateStr, audited: Course[] = []): AuditParse {
-  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: false, reported: null, classes: {}, order: [], stopped: null, source: 'pipes' };
+  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: false, reported: null, classes: {}, order: [], stopped: null, source: 'pipes', genericSkipNote: false };
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.replace(/^[\s\-*•]+|^\d+[.)]\s+/g, '').trim())
@@ -417,6 +427,7 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
         continue;
       }
     }
+    if (/\bskipp?(ed|ing)?\b/i.test(raw) && /\b(generic|institution resources|university-wide|gcu-wide)\b/i.test(raw)) out.genericSkipNote = true;
     if (isNoiseLine(raw)) continue;
     const vis = /^visited\b/i.exec(raw);
     if (vis) {
@@ -512,7 +523,10 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
     // The fallback reads pipe rows only; anything else in prose is kept as a note for the model or the student.
     note(raw);
   }
-  for (const cc of Object.values(out.classes)) if (cc.plan === null && cc.planPages.length > 0 && cc.visited.length > 0) cc.plan = cc.planPages.length;
+  for (const cc of Object.values(out.classes)) {
+    if (cc.plan === null && cc.planPages.length > 0 && cc.visited.length > 0) cc.plan = cc.planPages.length;
+    cc.genericPlanned = countGenericPages(cc.planPages);
+  }
   // Anything that named no class belongs to the only class audited.
   if (out.classes[''] && audited.length === 1) {
     const orphan = out.classes[''];
@@ -532,6 +546,10 @@ export function parseAuditResults(text: string, courses: Course[], _today: DateS
 export interface CheckOutcome {
   /** ALL MATCH with every planned page visited. */
   clean: boolean;
+  /** Every real page visited once the whitelisted ones are set aside, nothing skipped, not stopped. */
+  coverageComplete: boolean;
+  /** The audit's own count for this class is higher than the rows read: a report section is probably missing. */
+  missingRows: boolean;
   /** Coverage fell short: no coverage count, fewer pages than planned, pages skipped, or the run stopped early. */
   partial: boolean;
   findings: number;
@@ -542,25 +560,28 @@ export interface CheckOutcome {
 }
 
 /** What one class's section is worth: clean only with proof of full coverage; otherwise partial, with the gaps named. */
-export function classifyClass(cc: ClassCoverage, findings: number, allMatch: boolean): CheckOutcome {
-  const cov = cc.coverage;
+export function classifyClass(cc: ClassCoverage, findings: number, allMatch: boolean, genericNote = false): CheckOutcome {
+  const raw = cc.coverage;
   const named = [...cc.skipped, ...cc.failed.filter((f) => !cc.skipped.includes(f))];
-  const generic = genericAllowance(named.filter(isGenericPage));
   const skipped = named.filter((s) => !isGenericPage(s));
-  // Pages on the whitelist may be the whole gap between visited and planned; that gap is not a gap.
-  const gap = cov ? cov.planned - cov.visited : 0;
-  const short = cov ? gap > generic || (cc.plan !== null && cov.planned < cc.plan - generic) : true;
+  // The whitelisted pages are set aside BEFORE the visited-of-planned comparison: they were never owed.
+  const gap = raw ? Math.max(0, raw.planned - raw.visited) : 0;
+  const allowance = Math.max(genericAllowance(named.filter(isGenericPage)), cc.genericPlanned, genericNote && gap <= GENERIC_PAGES.length ? gap : 0);
+  const setAside = Math.min(allowance, gap);
+  const cov = raw ? { visited: raw.visited, planned: raw.planned - setAside } : null;
+  const short = cov ? cov.visited < cov.planned || (cc.plan !== null && cc.plan - allowance > cov.planned) : true;
   const missingRows = cc.reportedFindings !== null && findings < cc.reportedFindings;
-  const partial = short || skipped.length > 0 || cc.stoppedAt !== null || missingRows;
+  const coverageComplete = !!cov && !short && skipped.length === 0 && cc.stoppedAt === null;
+  const partial = !coverageComplete || missingRows;
   const clean = (allMatch || findings === 0) && findings === 0 && !partial;
   let reason: string;
   if (cc.stoppedAt) reason = `Stopped early at ${cc.stoppedAt}.`;
   else if (missingRows) reason = `The final summary counts ${cc.reportedFindings} finding${cc.reportedFindings === 1 ? '' : 's'} for this class, but only ${findings} ${findings === 1 ? 'was' : 'were'} read. Its report section may be missing from the paste.`;
   else if (!cov) reason = 'No coverage count, so this cannot count as a full check.';
-  else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages${cc.plan !== null && cov.planned < cc.plan ? ` (planned ${cc.plan})` : ''}.`;
+  else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages${cc.plan !== null && cc.plan - allowance > cov.planned ? ` (planned ${cc.plan - allowance})` : ''}.`;
   else if (skipped.length) reason = `All ${cov.planned} pages counted, but ${skipped.length} named as skipped or failed.`;
-  else reason = `Every one of ${Math.max(cov.visited, cov.planned - generic)} planned pages visited.`;
-  return { clean, partial, findings, coverage: cov, skipped, reason };
+  else reason = `All ${cov.planned} pages visited.`;
+  return { clean, coverageComplete, missingRows, partial, findings, coverage: cov, skipped, reason };
 }
 
 export interface ClassOutcome {
@@ -582,7 +603,7 @@ export function auditOutcomes(parse: AuditParse, audited: Course[]): ClassOutcom
       const cc = parse.classes[course.id];
       const findings = count(course.id);
       const reached = !!cc && (cc.reached || cc.coverage !== null) ? true : findings > 0;
-      return { course, reached, findings, outcome: reached ? classifyClass(cc ?? blank(course.id), findings, parse.allMatch) : null };
+      return { course, reached, findings, outcome: reached ? classifyClass(cc ?? blank(course.id), findings, parse.allMatch, parse.genericSkipNote) : null };
     });
 }
 

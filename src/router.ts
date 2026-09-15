@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Route = 'now' | 'calendar' | 'plan' | 'load' | 'library' | 'grades' | 'settings' | 'quiz';
-const ROUTES: Route[] = ['now', 'calendar', 'plan', 'load', 'library', 'grades', 'settings', 'quiz'];
+export type Route = 'now' | 'calendar' | 'plan' | 'load' | 'library' | 'grades' | 'settings' | 'quiz' | 'class';
+const ROUTES: Route[] = ['now', 'calendar', 'plan', 'load', 'library', 'grades', 'settings', 'quiz', 'class'];
 const ALIASES: Record<string, Route> = { home: 'now', '': 'now', record: 'library' };
 
 export interface RouteState {

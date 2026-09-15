@@ -4197,3 +4197,81 @@ button {
   display: grid;
   gap: 3px;
 }
+.halo-needs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.halo-needs-list li {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.halo-need-actions {
+  display: flex;
+  gap: 6px;
+}
+.halo-details {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.verify-nudge {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--risk);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Class page, duplicates */
+.class-next {
+  margin-top: 12px;
+  border-top: 4px solid var(--course);
+  display: grid;
+  gap: 6px;
+}
+.class-next-title {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: 700 22px/1.2 var(--font-display, var(--font-sans));
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.class-stats {
+  margin-top: 8px;
+}
+.chip-link {
+  text-decoration: none;
+  cursor: pointer;
+}
+.chip-link:hover {
+  filter: brightness(1.15);
+}
+.plain-link {
+  color: inherit;
+  text-decoration: none;
+}
+.dup-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.dup-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 13px;
+}
