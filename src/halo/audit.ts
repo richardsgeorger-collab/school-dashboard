@@ -6,9 +6,14 @@ import { normCode } from './normalize';
 
 export const HALO_URL = 'https://halo.gcu.edu/';
 
-/** The audit prompt, verbatim as given. [CLASS], [DATE], and [PLANNER DUMP FOR THAT CLASS] are filled in when it is copied. */
-export const DEFAULT_AUDIT_PROMPT = `Audit ONE class in my GCU Halo account. Exhaustively. Every nook and
-cranny. Do not touch my other classes.
+/**
+ * The audit prompt: every class, one at a time, each to full depth. [CLASS LIST], [RESUME], [DATE], and
+ * [PLANNER DUMP BY CLASS] are filled in when it is copied. A single-class audit is the same prompt with one class listed.
+ */
+export const DEFAULT_AUDIT_PROMPT = `Audit my GCU Halo account, one class at a time. Exhaustively. Every nook
+and cranny of each class. Finish one class completely — plan, visit,
+report, prove coverage — before you start the next. Never batch classes
+into one pass; that is exactly what produces a shallow audit.
 
 I am doing this because I don't fully trust my planner yet and I keep
 re-checking Halo by hand. A shallow pass is worse than useless — it
@@ -18,6 +23,13 @@ everything, say so rather than telling me it's fine.
 READ ONLY. Do not submit anything, start a quiz or exam, post a
 discussion, or click any button that changes state. Navigate and read
 only.
+
+CLASSES TO AUDIT, in this order:
+[CLASS LIST]
+[RESUME]
+FOR EACH CLASS, in that order, print a header line first:
+=== CLASS: [class code] ===
+then do all four phases for that class before touching the next one.
 
 === PHASE 1: ENUMERATE BEFORE YOU READ ===
 Before reporting a single finding, list every page in this class you
@@ -34,7 +46,7 @@ intend to visit:
 - Every other tab, drawer, link, or section in the class navigation,
   including any you don't recognize
 
-Print this first as: COVERAGE PLAN — n pages
+Print this first as: COVERAGE PLAN — [class code] — n pages
 
 === PHASE 2: VISIT EVERY ONE ===
 Work the list in order. On each page:
@@ -76,9 +88,15 @@ Use the class code from my planner. Skip participation and attendance
 items — those are just showing up to class.
 
 === PHASE 4: PROVE COVERAGE ===
-End with:
-COVERAGE — visited x of n pages
+End the class with:
+COVERAGE — [class code] — visited x of n pages
 Name every page you skipped and why. Never silently skip one.
+Then move to the next class and start its Phase 1.
+
+=== AFTER THE LAST CLASS ===
+FINAL COVERAGE
+One line per class: [class code] — visited x of n pages — clean or
+n findings
 Then one of:
   ALL MATCH
   END OF FINDINGS — n items
@@ -89,13 +107,13 @@ Then one of:
 - If you are unsure whether something is a difference, REPORT IT. False
   positives cost me ten seconds. A miss costs me a grade.
 - If a page fails to load, say so on its own line and keep going.
-- If you run out of room before finishing, stop and say exactly where
-  you stopped so I can resume there. Do not skip ahead to a summary.
+- If you run out of room before finishing, stop and print exactly where
+  you stopped, as one line:
+  STOPPED — [class code] — [page name]
+  Do not skip ahead to a summary or to the next class.
 
-CLASS TO AUDIT: [CLASS]
-
-MY PLANNER for that class (as of [DATE]):
-[PLANNER DUMP FOR THAT CLASS]`;
+MY PLANNER (as of [DATE]), open items by class:
+[PLANNER DUMP BY CLASS]`;
 
 function fmtTime24(iso: string, tz: string): string {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(iso));
@@ -108,12 +126,13 @@ function fmtTime24(iso: string, tz: string): string {
 export const openItemsFor = (data: AppData, tz: string, today: DateStr, courseId?: string | null): Item[] =>
   data.items.filter((i) => i.status !== 'done' && i.type !== 'participation' && dateOf(i.dueAt, tz) >= today && (!courseId || i.courseId === courseId));
 
+const itemLine = (i: Item, code: string, tz: string) => `${code} | ${i.title} | ${dateOf(i.dueAt, tz)} ${fmtTime24(i.dueAt, tz)} | ${i.points} pts`;
+
 /** Open items as plain lines Claude can compare against: one class flat, or every class grouped. */
 export function plannerListing(data: AppData, tz: string, today: DateStr, courseId?: string | null): string {
   const byCourse = new Map(data.courses.map((c) => [c.id, c]));
   const open = openItemsFor(data, tz, today, courseId).sort((a, b) => (byCourse.get(a.courseId)?.code ?? '').localeCompare(byCourse.get(b.courseId)?.code ?? '') || a.dueAt.localeCompare(b.dueAt));
-  const line = (i: Item) => `${byCourse.get(i.courseId)?.code ?? '?'} | ${i.title} | ${dateOf(i.dueAt, tz)} ${fmtTime24(i.dueAt, tz)} | ${i.points} pts`;
-  if (courseId) return open.length ? open.map(line).join('\n') : '(no open items in my planner for this class)';
+  if (courseId) return open.length ? open.map((i) => itemLine(i, byCourse.get(i.courseId)?.code ?? '?', tz)).join('\n') : '(no open items in my planner for this class)';
   const lines: string[] = [];
   let last = '';
   for (const i of open) {
@@ -123,24 +142,67 @@ export function plannerListing(data: AppData, tz: string, today: DateStr, course
       lines.push(`\n${code} ${c?.name ?? ''}`.trimEnd());
       last = code;
     }
-    lines.push(line(i));
+    lines.push(itemLine(i, code, tz));
   }
   return lines.join('\n').trim();
 }
 
-/** The full text that goes on the clipboard for one class: the template with its three slots filled in. */
-export function buildAuditPrompt(template: string | null | undefined, data: AppData, tz: string, today: DateStr, course?: Course | null): string {
+/** The planner dump for a set of classes, each under its own heading, in the audit order. */
+export function plannerByClass(data: AppData, tz: string, today: DateStr, courses: Course[]): string {
+  return courses.map((c) => `${c.code} ${c.name}`.trim() + '\n' + plannerListing(data, tz, today, c.id)).join('\n\n');
+}
+
+export interface PromptOptions {
+  /** Where an earlier run stopped, when this prompt picks up from there. */
+  resumeFrom?: string | null;
+}
+
+/** The full text that goes on the clipboard: the template with the class list, date, and per-class planner filled in. */
+export function buildAuditPrompt(template: string | null | undefined, data: AppData, tz: string, today: DateStr, courses: Course[], opts: PromptOptions = {}): string {
   const t = (template ?? '').trim() || DEFAULT_AUDIT_PROMPT;
   const date = `${fmtDate(today, 'long')}, ${today.slice(0, 4)}`;
-  const cls = course ? `${course.code} ${course.name}`.trim() : 'all classes';
-  const dump = plannerListing(data, tz, today, course?.id);
-  const filled = t.split('[CLASS]').join(cls).split('[DATE]').join(date).split('[PLANNER DUMP FOR THAT CLASS]').join(dump).split('[PLANNER DUMP]').join(dump);
-  if (t.includes('[PLANNER DUMP FOR THAT CLASS]') || t.includes('[PLANNER DUMP]')) return `${filled}\n`;
-  return course ? `${filled}\n\nCLASS TO AUDIT: ${cls}\n\nMY PLANNER for that class (as of ${date}):\n${dump}\n` : `${filled}\n\nMY PLANNER (as of ${date}, open items only):\n${dump}\n`;
+  const list = courses.length ? courses.map((c, i) => `${i + 1}. ${c.code} ${c.name}`.trim()).join('\n') : '(no classes)';
+  const resume = opts.resumeFrom ? `RESUMING: an earlier run stopped at ${opts.resumeFrom}. Start again from the first class above, from its Phase 1; anything printed for it before is discarded.\n` : '';
+  const dump = plannerByClass(data, tz, today, courses);
+  const filled = t
+    .split('[CLASS LIST]')
+    .join(list)
+    .split('[RESUME]\n')
+    .join(resume)
+    .split('[RESUME]')
+    .join(resume.trimEnd())
+    .split('[CLASS]')
+    .join(courses.map((c) => `${c.code} ${c.name}`.trim()).join(', ') || '(no classes)')
+    .split('[DATE]')
+    .join(date)
+    .split('[PLANNER DUMP BY CLASS]')
+    .join(dump)
+    .split('[PLANNER DUMP FOR THAT CLASS]')
+    .join(dump)
+    .split('[PLANNER DUMP]')
+    .join(dump);
+  if (/\[PLANNER DUMP( BY CLASS| FOR THAT CLASS)?\]/.test(t)) return `${filled}\n`;
+  return `${filled}\n\nCLASSES TO AUDIT, in this order:\n${list}\n${resume}\nMY PLANNER (as of ${date}), open items by class:\n${dump}\n`;
 }
 
 export type AuditStatus = 'new' | 'changed' | 'missing' | 'grade' | 'overdue' | 'announce' | 'schedule' | 'rubric' | 'same' | 'note';
 export type AuditPrefix = 'ENG105-PENDING' | 'OLD-SECTION';
+
+/** What one class's section of the transcript proved. */
+export interface ClassCoverage {
+  courseId: string;
+  plan: number | null;
+  planPages: string[];
+  visited: { page: string; items: number | null }[];
+  coverage: { visited: number; planned: number } | null;
+  skipped: string[];
+  failed: string[];
+  stoppedAt: string | null;
+  /** What the FINAL COVERAGE line said for this class, when there was one. */
+  verdict: string | null;
+  /** Any header, plan, visit, coverage, or finding was seen for this class. */
+  reached: boolean;
+}
 
 export interface AuditParse {
   mentions: Mention[];
@@ -151,20 +213,12 @@ export interface AuditParse {
   allMatch: boolean;
   /** The count Claude reported after END OF FINDINGS, when it did. */
   reported: number | null;
-  /** COVERAGE PLAN — n pages. */
-  plan: number | null;
-  /** Pages named in the plan before any page was visited. */
-  planPages: string[];
-  /** VISITED — page — n items found, in order. */
-  visited: { page: string; items: number | null }[];
-  /** COVERAGE — visited x of n pages. */
-  coverage: { visited: number; planned: number } | null;
-  /** Pages Claude said it skipped, with its reason. */
-  skipped: string[];
-  /** Pages that failed to load. */
-  failed: string[];
+  /** Coverage per class, keyed by course id; '' holds anything that named no class. */
+  classes: Record<string, ClassCoverage>;
+  /** Classes in the order the transcript reached them. */
+  order: string[];
   /** Where Claude said it ran out of room, when it did. */
-  stoppedAt: string | null;
+  stopped: { courseId: string | null; page: string } | null;
 }
 
 const STATUS: Record<string, AuditStatus> = {
@@ -198,10 +252,12 @@ const STATUS: Record<string, AuditStatus> = {
 const KIND: Record<AuditStatus, MentionKind> = { new: 'new', changed: 'date_change', announce: 'date_change', missing: 'cancel', grade: 'grade', overdue: 'info', schedule: 'info', rubric: 'info', same: 'info', note: 'info' };
 const PREFIX = /^(ENG105-PENDING|OLD-SECTION)\b\s*[|:\-–]?\s*/i;
 const PREFIX_COURSE: Record<AuditPrefix, string> = { 'ENG105-PENDING': 'ENG-105', 'OLD-SECTION': 'ESG-162' };
+const CODE = /\b([A-Z]{2,4}-?\d{3}[A-Z]?)\b/i;
 const DASH = /\s*[—–\-:]+\s*/;
 const FAILED = /\b(fail|failed|couldn.t|can.t reach|unable|didn.t load|not load|error 4\d\d|error)\b/i;
-const STOPPED = /\b(ran out of room|out of room|stopped at|stopping here|resume (from|at|here)|stopped before)\b/i;
+const STOPPED_LOOSE = /\b(ran out of room|out of room|stopped at|stopping here|resume (from|at|here)|stopped before)\b/i;
 const SKIPPED = /^(skipped|not visited|did not visit|could not visit|unvisited)\b/i;
+const HEADER = /^(?:=+\s*)?(?:class\s*:\s*|#+\s*)?([A-Z]{2,4}-?\d{3}[A-Z]?)\b\s*([^=|]*?)\s*(?:=+)?\s*$/i;
 
 function readDue(s: string): { date: string | null; time: string | null } {
   const m = /(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?:\s*(am|pm))?)?/i.exec(s);
@@ -219,22 +275,44 @@ const courseByCode = (code: string, courses: Course[]): Course | null => {
   const n = normCode(code);
   return n ? (courses.find((c) => normCode(c.code) === n) ?? null) : null;
 };
+const codeIn = (s: string, courses: Course[]): Course | null => {
+  const m = CODE.exec(s);
+  return m ? courseByCode(m[1], courses) : null;
+};
+
+const blank = (courseId: string): ClassCoverage => ({ courseId, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null, verdict: null, reached: false });
 
 /**
- * Claude's answer → findings for the review screen plus the coverage proof. Pipe lines are read exactly; the plan,
- * VISITED, and COVERAGE lines are read as such; anything else becomes a note rather than being dropped.
+ * Claude's answer → findings for the review screen plus per-class coverage proof. Pipe lines are read exactly; class
+ * headers, plan, VISITED, COVERAGE, STOPPED, and FINAL COVERAGE lines are read as such; anything else becomes a note
+ * rather than being dropped.
  */
-export function parseAuditResults(text: string, courses: Course[], today: DateStr, audited?: Course | null): AuditParse {
-  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: false, reported: null, plan: null, planPages: [], visited: [], coverage: null, skipped: [], failed: [], stoppedAt: null };
+export function parseAuditResults(text: string, courses: Course[], today: DateStr, audited: Course[] = []): AuditParse {
+  const out: AuditParse = { mentions: [], same: 0, unread: [], allMatch: false, reported: null, classes: {}, order: [], stopped: null };
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.replace(/^[\s\-*•]+|^\d+[.)]\s+/g, '').trim())
     .filter(Boolean);
   let n = 0;
-  let phase: 'plan' | 'visit' | 'after' = 'plan';
+  let phase: 'plan' | 'visit' | 'after' | 'final' = 'plan';
+  let current: string = audited.length === 1 ? audited[0].id : '';
+  const section = (id: string, touch = true): ClassCoverage => {
+    const key = id || '';
+    if (!out.classes[key]) out.classes[key] = blank(key);
+    if (touch && key) {
+      out.classes[key].reached = true;
+      if (!out.order.includes(key)) out.order.push(key);
+    }
+    return out.classes[key];
+  };
+  const enter = (c: Course) => {
+    current = c.id;
+    section(c.id);
+    phase = 'plan';
+  };
   const note = (line: string) => {
     out.unread.push(line);
-    out.mentions.push({ id: `a${++n}`, quote: line, kind: 'info', title: line.slice(0, 80), date: null, time: null, points: null, score: null, confidence: 'low', itemId: null, courseId: audited?.id ?? null, audit: { status: 'note', prefix: null } });
+    out.mentions.push({ id: `a${++n}`, quote: line, kind: 'info', title: line.slice(0, 80), date: null, time: null, points: null, score: null, confidence: 'low', itemId: null, courseId: current || audited[0]?.id || null, audit: { status: 'note', prefix: null } });
   };
   for (const raw of lines) {
     if (/^all match\b/i.test(raw)) {
@@ -248,16 +326,49 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
       phase = 'after';
       continue;
     }
-    const plan = /^coverage plan\b[^\d]*(\d+)/i.exec(raw);
-    if (plan) {
-      out.plan = Number(plan[1]);
+    if (/^final coverage\b/i.test(raw)) {
+      phase = 'final';
       continue;
     }
-    const cov = /^coverage\b[^\d]*(\d+)\s*(?:of|\/)\s*(\d+)/i.exec(raw);
+    const plan = /^coverage plan\b(.*?)(\d+)\s*pages?/i.exec(raw) ?? /^coverage plan\b[^\d]*(\d+)()/i.exec(raw);
+    if (plan) {
+      const named = codeIn(plan[1] ?? '', courses);
+      if (named) enter(named);
+      const cc = section(current);
+      cc.plan = Number(plan[2] || plan[1]);
+      phase = 'plan';
+      continue;
+    }
+    const cov = /^coverage\b(?!\s*plan)(.*?)(\d+)\s*(?:of|\/)\s*(\d+)/i.exec(raw);
     if (cov) {
-      out.coverage = { visited: Number(cov[1]), planned: Number(cov[2]) };
+      const named = codeIn(cov[1], courses);
+      if (named && named.id !== current) enter(named);
+      const cc = section(current);
+      cc.coverage = { visited: Number(cov[2]), planned: Number(cov[3]) };
       phase = 'after';
       continue;
+    }
+    const stop = /^stopped\b\s*[—–\-:]*\s*(.*)$/i.exec(raw);
+    if (stop) {
+      const named = codeIn(stop[1], courses);
+      const page = stop[1].replace(CODE, '').replace(/^\s*[—–\-:]+\s*/, '').trim() || stop[1].trim();
+      if (named && named.id !== current) enter(named);
+      const id = named?.id ?? current;
+      if (id) section(id).stoppedAt = page;
+      out.stopped = out.stopped ?? { courseId: id || null, page };
+      continue;
+    }
+    if (phase === 'final') {
+      const fc = /([A-Z]{2,4}-?\d{3}[A-Z]?)\b.*?(\d+)\s*(?:of|\/)\s*(\d+)\s*(?:pages?)?\s*[—–\-:]*\s*(.*)$/i.exec(raw);
+      if (fc) {
+        const c = courseByCode(fc[1], courses);
+        if (c) {
+          const cc = section(c.id);
+          cc.coverage = cc.coverage ?? { visited: Number(fc[2]), planned: Number(fc[3]) };
+          cc.verdict = fc[4].trim() || null;
+        }
+        continue;
+      }
     }
     const vis = /^visited\b/i.exec(raw);
     if (vis) {
@@ -265,12 +376,20 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
       const parts = rest.split(DASH).map((p) => p.trim()).filter(Boolean);
       const count = /(\d+)\s*items?/i.exec(rest);
       const page = (count ? parts.filter((p) => !/^\d+\s*items?/i.test(p)).join(' — ') : rest).replace(/^\[|\]$/g, '').trim();
-      out.visited.push({ page: page || rest, items: count ? Number(count[1]) : null });
+      section(current).visited.push({ page: page || rest, items: count ? Number(count[1]) : null });
       phase = 'visit';
       continue;
     }
+    if (!raw.includes('|')) {
+      const head = HEADER.exec(raw);
+      const named = head ? courseByCode(head[1], courses) : null;
+      if (named && (/^(=|#|class\s*:)/i.test(raw) || !head![2] || normCode(head![2]) === normCode(named.name) || named.name.toLowerCase().startsWith(head![2].toLowerCase()))) {
+        enter(named);
+        continue;
+      }
+    }
     if (/^class\s*\|\s*title/i.test(raw)) continue;
-    if (/^(=== )?phase \d/i.test(raw) || /^(=== )?rules/i.test(raw)) continue;
+    if (/^(=== )?phase \d/i.test(raw) || /^(=== )?(rules|after the last class)/i.test(raw)) continue;
     let line = raw;
     let prefix: AuditPrefix | null = null;
     const pm = PREFIX.exec(line);
@@ -290,8 +409,9 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
         out.same++;
         continue;
       }
-      // The CLASS column is a code. A code not in the planner stays unmatched; a class named in words gets guessed; one-class audits default to that class.
-      const course = courseByCode(cls, courses) ?? (/[A-Z]{2,4}-?\d{3}/i.test(cls) ? null : guessCourse(cls, courses)) ?? (prefix ? courseByCode(PREFIX_COURSE[prefix], courses) : null) ?? audited ?? null;
+      // The CLASS column is a code. A code not in the planner stays unmatched; a class named in words gets guessed; otherwise the class whose section this is.
+      const course = courseByCode(cls, courses) ?? (/[A-Z]{2,4}-?\d{3}/i.test(cls) ? null : guessCourse(cls, courses)) ?? (prefix ? courseByCode(PREFIX_COURSE[prefix], courses) : null) ?? courses.find((c) => c.id === current) ?? audited[0] ?? null;
+      if (course) section(course.id);
       const { date, time } = readDue(due);
       const frac = /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(noteText) ?? /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(due);
       const pts = /(\d+(?:\.\d+)?)\s*pts?\b/i.exec(noteText) ?? /(\d+(?:\.\d+)?)\s*pts?\b/i.exec(due);
@@ -310,30 +430,32 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
         courseId: course?.id ?? null,
         audit: { status, prefix },
       });
-      phase = 'visit';
+      if (phase !== 'after') phase = 'visit';
       continue;
     }
-    if (STOPPED.test(line)) {
-      out.stoppedAt = out.stoppedAt ?? line;
+    if (STOPPED_LOOSE.test(line)) {
+      const cc = section(current, false);
+      cc.stoppedAt = cc.stoppedAt ?? line;
+      out.stopped = out.stopped ?? { courseId: current || null, page: line };
       note(raw);
       continue;
     }
     if (SKIPPED.test(line)) {
-      out.skipped.push(line.replace(SKIPPED, '').replace(/^\s*[—–\-:]+\s*/, '').trim() || line);
+      section(current, false).skipped.push(line.replace(SKIPPED, '').replace(/^\s*[—–\-:]+\s*/, '').trim() || line);
       continue;
     }
-    // A two-part line is a page plus a remark ("CHM-113L | page failed to load"), never a finding.
+    // A two-part line is a page plus a remark ("Syllabus | page failed to load"), never a finding.
     if (parts.length === 2 || FAILED.test(line)) {
-      out.failed.push(line);
+      section(current, false).failed.push(line);
       note(raw);
       continue;
     }
     if (phase === 'after') {
-      out.skipped.push(line);
+      section(current, false).skipped.push(line);
       continue;
     }
     if (phase === 'plan') {
-      out.planPages.push(line);
+      section(current, false).planPages.push(line);
       continue;
     }
     const cap = parseCapture(line, courses, today);
@@ -341,9 +463,22 @@ export function parseAuditResults(text: string, courses: Course[], today: DateSt
       note(raw);
       continue;
     }
-    out.mentions.push({ ...cap.mention, id: `a${++n}`, courseId: cap.courseId ?? audited?.id ?? null, audit: { status: cap.mention.kind === 'cancel' ? 'missing' : cap.mention.kind === 'date_change' ? 'changed' : 'new', prefix } });
+    out.mentions.push({ ...cap.mention, id: `a${++n}`, courseId: cap.courseId ?? current ?? audited[0]?.id ?? null, audit: { status: cap.mention.kind === 'cancel' ? 'missing' : cap.mention.kind === 'date_change' ? 'changed' : 'new', prefix } });
   }
-  if (out.plan === null && out.planPages.length > 0 && out.visited.length > 0) out.plan = out.planPages.length;
+  for (const cc of Object.values(out.classes)) if (cc.plan === null && cc.planPages.length > 0 && cc.visited.length > 0) cc.plan = cc.planPages.length;
+  // Anything that named no class belongs to the only class audited.
+  if (out.classes[''] && audited.length === 1) {
+    const orphan = out.classes[''];
+    const cc = section(audited[0].id);
+    cc.plan = cc.plan ?? orphan.plan;
+    cc.planPages.push(...orphan.planPages);
+    cc.visited.push(...orphan.visited);
+    cc.coverage = cc.coverage ?? orphan.coverage;
+    cc.skipped.push(...orphan.skipped);
+    cc.failed.push(...orphan.failed);
+    cc.stoppedAt = cc.stoppedAt ?? orphan.stoppedAt;
+    delete out.classes[''];
+  }
   return out;
 }
 
@@ -359,19 +494,52 @@ export interface CheckOutcome {
   reason: string;
 }
 
-/** What a pasted result is worth: clean only with proof of full coverage; otherwise partial, with the gaps named. */
-export function classifyCheck(p: AuditParse): CheckOutcome {
-  const findings = p.mentions.filter((m) => m.audit?.status !== 'note').length;
-  const cov = p.coverage;
-  const short = cov ? cov.visited < cov.planned || (p.plan !== null && cov.planned < p.plan) : true;
-  const skipped = [...p.skipped, ...p.failed.filter((f) => !p.skipped.includes(f))];
-  const partial = short || skipped.length > 0 || p.stoppedAt !== null;
-  const clean = p.allMatch && findings === 0 && !partial;
+/** What one class's section is worth: clean only with proof of full coverage; otherwise partial, with the gaps named. */
+export function classifyClass(cc: ClassCoverage, findings: number, allMatch: boolean): CheckOutcome {
+  const cov = cc.coverage;
+  const short = cov ? cov.visited < cov.planned || (cc.plan !== null && cov.planned < cc.plan) : true;
+  const skipped = [...cc.skipped, ...cc.failed.filter((f) => !cc.skipped.includes(f))];
+  const partial = short || skipped.length > 0 || cc.stoppedAt !== null;
+  const clean = (allMatch || findings === 0) && findings === 0 && !partial;
   let reason: string;
-  if (!cov) reason = p.stoppedAt ? `Stopped early: ${p.stoppedAt}` : 'No coverage count, so this cannot count as a full check.';
-  else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages${p.plan !== null && cov.planned < p.plan ? ` (planned ${p.plan})` : ''}.`;
+  if (cc.stoppedAt) reason = `Stopped early at ${cc.stoppedAt}.`;
+  else if (!cov) reason = 'No coverage count, so this cannot count as a full check.';
+  else if (short) reason = `Visited ${cov.visited} of ${cov.planned} pages${cc.plan !== null && cov.planned < cc.plan ? ` (planned ${cc.plan})` : ''}.`;
   else if (skipped.length) reason = `All ${cov.planned} pages counted, but ${skipped.length} named as skipped or failed.`;
-  else if (p.stoppedAt) reason = `Stopped early: ${p.stoppedAt}`;
   else reason = `Every one of ${cov.planned} planned pages visited.`;
   return { clean, partial, findings, coverage: cov, skipped, reason };
+}
+
+export interface ClassOutcome {
+  course: Course;
+  reached: boolean;
+  outcome: CheckOutcome | null;
+  findings: number;
+}
+
+/** One verdict per audited class, in the audit order. Classes the run never reached carry no outcome. */
+export function auditOutcomes(parse: AuditParse, audited: Course[]): ClassOutcome[] {
+  const count = (id: string) => parse.mentions.filter((m) => m.courseId === id && m.audit?.status !== 'note').length;
+  const seen = new Set<string>();
+  const list: Course[] = [...audited];
+  for (const id of parse.order) if (!list.some((c) => c.id === id)) list.push({ id } as Course);
+  return list
+    .filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)))
+    .map((course) => {
+      const cc = parse.classes[course.id];
+      const findings = count(course.id);
+      const reached = !!cc && (cc.reached || cc.coverage !== null) ? true : findings > 0;
+      return { course, reached, findings, outcome: reached ? classifyClass(cc ?? blank(course.id), findings, parse.allMatch) : null };
+    });
+}
+
+/** The classes a resumed run still owes: from the one it stopped in (or the first unfinished one) to the end. */
+export function remainingCourses(parse: AuditParse, audited: Course[]): Course[] {
+  const done = (c: Course) => {
+    const cc = parse.classes[c.id];
+    return !!cc && cc.coverage !== null && cc.stoppedAt === null;
+  };
+  const stopIdx = parse.stopped?.courseId ? audited.findIndex((c) => c.id === parse.stopped!.courseId) : -1;
+  if (stopIdx >= 0) return audited.slice(stopIdx);
+  return audited.filter((c) => !done(c));
 }

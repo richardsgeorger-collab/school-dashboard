@@ -13,15 +13,25 @@ function status(v: ClassVerification, tz: string): string {
   return `${v.last.findings} finding${v.last.findings === 1 ? '' : 's'} · ${day}`;
 }
 
-/** One class per audit. Weakest first, so the next thing to check is on top. */
-export function HaloClassPicker({ onPick, onClose }: { onPick: (course: Course) => void; onClose: () => void }) {
+/** Every class, one at a time, or a single class to re-check. Weakest first, so the next thing to check is on top. */
+export function HaloClassPicker({ onPick, onClose }: { onPick: (course: Course | null) => void; onClose: () => void }) {
   const { data, today } = useStore();
   const tz = data.settings.timezone;
   const vs = classVerifications(data.settings.haloChecks, data.courses, data.items, today, tz);
+  const never = vs.filter((v) => v.state === 'never').length;
   return (
     <Modal title="Check Halo" onClose={onClose}>
       <div className="modal-body">
-        <p className="hint">One class per audit, so nothing gets skimmed. Pick a class: its prompt goes on the clipboard with that class&apos;s open items, and Halo opens.</p>
+        <p className="hint">The prompt goes on the clipboard and Halo opens. Claude works one class at a time to full depth, whichever you pick.</p>
+        <button type="button" className="halo-pick-row halo-pick-all" onClick={() => onPick(null)}>
+          <span className="halo-pick-name">
+            <b>All classes, one at a time</b>
+          </span>
+          <span className="halo-pick-status mono">{never ? `${never} never checked` : `${vs.length} classes`}</span>
+        </button>
+        <p className="hint" style={{ marginTop: 6 }}>
+          Or re-check just one:
+        </p>
         <ul className="halo-pick">
           {vs.map((v) => (
             <li key={v.course.id}>

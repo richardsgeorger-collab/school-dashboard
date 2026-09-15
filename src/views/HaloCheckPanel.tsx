@@ -14,14 +14,15 @@ export function HaloCheckPanel() {
   const tz = data.settings.timezone;
   const value = data.settings.haloAuditPrompt ?? DEFAULT_AUDIT_PROMPT;
   const [note, setNote] = useState<string | null>(null);
-  const [courseId, setCourseId] = useState(() => data.courses[0]?.id ?? '');
-  const course = data.courses.find((c) => c.id === courseId) ?? data.courses[0] ?? null;
-  const open = course ? openItemsFor(data, tz, today, course.id).length : 0;
+  const [courseId, setCourseId] = useState('all');
+  const course = data.courses.find((c) => c.id === courseId) ?? null;
+  const list = course ? [course] : data.courses;
+  const open = list.reduce((n, c) => n + openItemsFor(data, tz, today, c.id).length, 0);
   const vs = classVerifications(data.settings.haloChecks, data.courses, data.items, today, tz);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(buildAuditPrompt(value, data, tz, today, course));
-      setNote(course ? `Copied the ${course.code} prompt with its ${open} open item${open === 1 ? '' : 's'}.` : 'Copied.');
+      await navigator.clipboard.writeText(buildAuditPrompt(value, data, tz, today, list));
+      setNote(course ? `Copied the ${course.code} prompt with its ${open} open item${open === 1 ? '' : 's'}.` : `Copied the all-classes prompt with ${open} open item${open === 1 ? '' : 's'} across ${list.length} classes.`);
     } catch {
       setNote('Could not copy. Select the text and copy it by hand.');
     }
@@ -29,7 +30,7 @@ export function HaloCheckPanel() {
   return (
     <section className="card settings-card">
       <h2 className="section-title">Check Halo</h2>
-      <p className="hint">One class per audit. Clean means Claude reported every planned page visited and nothing different; partial means coverage fell short.</p>
+      <p className="hint">Every class, one at a time, each to full depth. Clean means Claude reported every planned page visited and nothing different; partial means coverage fell short.</p>
       <ul className="verify-table">
         {vs.map((v) => {
           const history = checksFor(data.settings.haloChecks, v.course.id).slice(-5).reverse();
@@ -49,10 +50,11 @@ export function HaloCheckPanel() {
       <h3 className="section-title" style={{ marginTop: 10 }}>
         Prompt
       </h3>
-      <p className="hint">What the Check Halo button copies for Claude in Chrome, one class at a time. Edit it when things change. The class name, today&apos;s date, and that class&apos;s open items fill the three slots every time.</p>
+      <p className="hint">What the Check Halo button copies for Claude in Chrome. Edit it when things change. The class list, today&apos;s date, and each class&apos;s open items fill the slots every time; a resume note fills [RESUME] only when a run is picked up where it stopped.</p>
       <textarea className="halo-prompt" rows={10} value={value} onChange={(e) => actions.updateSettings({ haloAuditPrompt: e.target.value })} aria-label="Check Halo prompt" />
       <div className="settings-actions">
         <select value={courseId} onChange={(e) => setCourseId(e.target.value)} aria-label="Class for the copied prompt">
+          <option value="all">All classes</option>
           {data.courses.map((c) => (
             <option key={c.id} value={c.id}>
               {c.code}

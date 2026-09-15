@@ -46,6 +46,8 @@ export interface StoreActions {
   applyScore(id: string, score: number, source: 'halo' | 'manual'): void;
   /** Append a Check Halo result. */
   recordHaloCheck(rec: HaloCheckRecord): void;
+  /** Append several at once (one per audited class). */
+  recordHaloChecks(recs: HaloCheckRecord[]): void;
   /** One practice answer, right or missed, against its class and topic. */
   recordQuizAnswer(courseId: string, topic: string, missed: boolean): void;
   /** Record how long an item really took, on the item and in the ledger. */
@@ -399,6 +401,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       recordQuizAnswer(courseId, topic, missed) {
         update((d) => ({ ...d, settings: { ...d.settings, quizStats: recordAnswer(d.settings.quizStats, courseId, topic, missed, nowIso()), updatedAt: nowIso() } }));
+        mirror({ kind: 'settings' });
+      },
+      recordHaloChecks(recs) {
+        if (recs.length === 0) return;
+        update((d) => ({ ...d, settings: { ...d.settings, haloChecks: recs.reduce((list, r) => recordCheck(list, r), d.settings.haloChecks ?? []), updatedAt: nowIso() } }));
         mirror({ kind: 'settings' });
       },
       recordHaloCheck(rec) {

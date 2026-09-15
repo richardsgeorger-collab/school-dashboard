@@ -4063,3 +4063,80 @@ button {
   color: var(--ink-3);
   font-size: 11px;
 }
+
+/* Check Halo: the overview above the rows */
+.halo-summary {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.halo-verdict {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.halo-matters,
+.halo-needs ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.halo-plan {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.halo-needs {
+  display: grid;
+  gap: 4px;
+}
+.halo-needs .hint {
+  margin: 0;
+}
+.halo-partial {
+  margin: 0;
+  font-size: 13px;
+  color: var(--risk);
+  line-height: 1.45;
+}
+.halo-resume {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.halo-pick-all {
+  margin-bottom: 4px;
+}
+.rev-plan {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+}
+.rev-plan[data-plan='apply'] {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.rev-plan[data-plan='ask'] {
+  color: var(--risk);
+  border-color: var(--risk);
+}
+.rev-apply-all {
+  margin: 0 0 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}

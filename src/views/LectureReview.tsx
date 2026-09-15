@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { CourseChip } from '../components/CourseChip';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate, fmtTime, makeIso, zonedParts } from '../domain/dates';
@@ -8,6 +8,50 @@ import type { LectureNotes, Mention } from '../record/notes';
 import { useStore } from '../storage/store';
 
 export type Decision = 'approved' | 'dismissed';
+export type PlanDecision = 'apply' | 'ask';
+
+type Actions = ReturnType<typeof useStore>['actions'];
+
+/** What approving a proposal does, in words. */
+export function describeProposal(p: Proposal, tz: string, dueAt?: string): string {
+  const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
+  switch (p.kind) {
+    case 'update':
+      return `Move ${p.item.label} from ${when(p.item.dueAt)} to ${when(dueAt ?? p.dueAt)}`;
+    case 'add':
+      return `Add ${p.item.title} to the planner, due ${when(dueAt ?? p.item.dueAt)}`;
+    case 'remove':
+      return `Remove ${p.item.label} from the planner (Halo no longer lists it)`;
+    case 'score':
+      return `Record ${p.item.label} as graded at ${p.score} of ${p.item.points}`;
+    default:
+      return p.text;
+  }
+}
+
+/** Apply one proposal to the planner and say what happened. Dry runs only describe. */
+export function applyProposal(p: Proposal, m: Mention, actions: Actions, tz: string, lectureDate: DateStr, dryRun: boolean, edits: { dueAt?: string; title?: string; points?: number } = {}): string {
+  const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
+  if (p.kind === 'update') {
+    const dueAt = edits.dueAt ?? p.dueAt;
+    if (!dryRun) actions.upsertItem({ ...p.item, dueAt, notes: `${p.item.notes ? `${p.item.notes}\n` : ''}Moved per the ${lectureDate} lecture: "${m.quote}"` });
+    return `${p.item.label} now due ${when(dueAt)}`;
+  }
+  if (p.kind === 'add') {
+    const item = { ...p.item, title: (edits.title ?? p.item.title).trim() || p.item.title, points: edits.points ?? p.item.points, dueAt: edits.dueAt ?? p.item.dueAt };
+    if (!dryRun) actions.upsertItem(item);
+    return `Added ${item.title}, due ${when(item.dueAt)}`;
+  }
+  if (p.kind === 'remove') {
+    if (!dryRun) actions.deleteItem(p.item.id);
+    return `Removed ${p.item.label}`;
+  }
+  if (p.kind === 'score') {
+    if (!dryRun) actions.applyScore(p.item.id, p.score, 'halo');
+    return `${p.item.label}: ${p.score} of ${p.item.points}`;
+  }
+  return 'Noted';
+}
 
 const KIND_LABEL: Record<Mention['kind'], string> = { new: 'New', date_change: 'Date change', cancel: 'Cancelled', info: 'Info', grade: 'Grade' };
 const GROUPS: { key: string; label: string }[] = [
@@ -18,6 +62,7 @@ const GROUPS: { key: string; label: string }[] = [
   { key: 'grade', label: 'Grades posted' },
   { key: 'overdue', label: 'Flagged overdue' },
   { key: 'schedule', label: 'Schedule differs' },
+  { key: 'rubric', label: 'Found in attached files' },
   { key: 'ENG105-PENDING', label: 'ENG-105, waiting on the section switch' },
   { key: 'OLD-SECTION', label: 'Old Engineering Math section' },
   { key: 'note', label: 'Could not read' },
@@ -32,6 +77,8 @@ function MentionRow({
   decision,
   dryRun,
   onDecide,
+  plan,
+  appliedText,
 }: {
   m: Mention;
   course: Course;
@@ -39,6 +86,8 @@ function MentionRow({
   decision: Decision | undefined;
   dryRun: boolean;
   onDecide: (id: string, d: Decision, applied: string) => void;
+  plan?: PlanDecision;
+  appliedText?: string;
 }) {
   const { data, actions, courseById } = useStore();
   const tz = data.settings.timezone;
@@ -60,26 +109,7 @@ function MentionRow({
   const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
   const dueAt = makeIso(date, time || '23:59', tz);
 
-  const approve = () => {
-    let applied = '';
-    if (base.kind === 'update') {
-      applied = `${base.item.label} now due ${when(dueAt)}`;
-      if (!dryRun) actions.upsertItem({ ...base.item, dueAt, notes: `${base.item.notes ? `${base.item.notes}\n` : ''}Moved per the ${lectureDate} lecture: "${m.quote}"` });
-    } else if (base.kind === 'add') {
-      const item = { ...base.item, title: title.trim() || base.item.title, points, dueAt };
-      applied = `Added ${item.title}, due ${when(dueAt)}`;
-      if (!dryRun) actions.upsertItem(item);
-    } else if (base.kind === 'remove') {
-      applied = `Removed ${base.item.label}`;
-      if (!dryRun) actions.deleteItem(base.item.id);
-    } else if (base.kind === 'score') {
-      applied = `${base.item.label}: ${base.score} of ${base.item.points}`;
-      if (!dryRun) actions.applyScore(base.item.id, base.score, 'halo');
-    } else {
-      applied = 'Noted';
-    }
-    onDecide(m.id, 'approved', applied);
-  };
+  const approve = () => onDecide(m.id, 'approved', applyProposal(base, m, actions, tz, lectureDate, dryRun, { dueAt, title, points }));
 
   const proposalLine = (p: Proposal) => {
     switch (p.kind) {
@@ -113,14 +143,16 @@ function MentionRow({
   };
 
   return (
-    <li className="rev-mention" data-decided={decision ?? 'pending'}>
+    <li className="rev-mention" data-decided={decision ?? 'pending'} data-plan={plan ?? 'none'}>
       <div className="rev-kind">
         <span className={`rev-badge kind-${m.kind}`}>{KIND_LABEL[m.kind]}</span>
         <span className="hint">{m.confidence} confidence</span>
         <CourseChip course={course} />
+        {plan === 'apply' && !decision && <span className="rev-plan" data-plan="apply">planned</span>}
+        {plan === 'ask' && !decision && <span className="rev-plan" data-plan="ask">needs you</span>}
       </div>
       <blockquote className="rev-quote">“{m.quote}”</blockquote>
-      <div className="rev-proposal">{proposalLine(base)}</div>
+      {!(decision === 'approved' && appliedText) && <div className="rev-proposal">{proposalLine(base)}</div>}
       {!decision && (base.kind === 'update' || base.kind === 'add') && (
         <div className="rev-edit">
           {base.kind === 'add' && (
@@ -147,7 +179,7 @@ function MentionRow({
       )}
       {decision ? (
         <p className="rev-decided">
-          {decision === 'approved' ? 'Approved' : 'Dismissed'}
+          {decision === 'approved' ? (appliedText ? `Done · ${appliedText}` : 'Approved') : 'Dismissed'}
           {dryRun && decision === 'approved' && ' (preview, nothing saved)'}
         </p>
       ) : (
@@ -182,6 +214,9 @@ export function LectureReview({
   decisions,
   onDecide,
   onClose,
+  summary,
+  plan,
+  applied,
 }: {
   title: string;
   notes: LectureNotes;
@@ -192,12 +227,31 @@ export function LectureReview({
   decisions: Record<string, Decision>;
   onDecide: (id: string, d: Decision, applied: string) => void;
   onClose: () => void;
+  /** The plain-language overview shown above the rows (Halo checks). */
+  summary?: ReactNode;
+  /** What the overview said it would do per row; planned rows can be applied in one press. */
+  plan?: Record<string, PlanDecision>;
+  /** What each approval did, shown on the row in place of the proposal. */
+  applied?: Record<string, string>;
 }) {
+  const { data, actions, courseById } = useStore();
+  const tz = data.settings.timezone;
   const [showTranscript, setShowTranscript] = useState(false);
   const pending = notes.mentions.filter((m) => !decisions[m.id]).length;
+  const planned = plan ? notes.mentions.filter((m) => plan[m.id] === 'apply' && !decisions[m.id]) : [];
+  const applyPlanned = () => {
+    const now = new Date().toISOString();
+    for (const m of planned) {
+      const c = (m.courseId && courseById.get(m.courseId)) || course;
+      const match = matchMention(m, data.items, c.id);
+      const p = proposalFor(m, match, c, tz, lectureDate, now);
+      if (p.kind === 'update' || p.kind === 'add' || p.kind === 'score') onDecide(m.id, 'approved', applyProposal(p, m, actions, tz, lectureDate, dryRun));
+    }
+  };
   return (
-    <Modal title={dryRun ? 'Sample lecture review' : 'Lecture notes'} onClose={onClose}>
+    <Modal title={notes.model === 'capture' ? title : dryRun ? 'Sample lecture review' : 'Lecture notes'} onClose={onClose}>
       <div className="modal-body rev">
+        {summary}
         <p className="hint mono">
           {title} · {fmtDate(lectureDate, 'long')} · {notes.model === 'sample' ? 'sample, not a real recording' : notes.model === 'capture' ? 'typed by you' : `by ${notes.model}`}
         </p>
@@ -228,6 +282,14 @@ export function LectureReview({
           <h3>
             {notes.model === 'capture' && notes.mentions.some((m) => m.audit) ? 'Findings' : 'Dates and deadlines mentioned'} <span className="count">{pending ? `${pending} to review` : 'all reviewed'}</span>
           </h3>
+          {planned.length > 0 && (
+            <p className="rev-apply-all">
+              <button type="button" className="btn primary small" onClick={applyPlanned}>
+                Apply {planned.length} planned change{planned.length === 1 ? '' : 's'}
+              </button>{' '}
+              <span className="hint">Each row below can still be changed or dismissed first.</span>
+            </p>
+          )}
           {notes.mentions.length === 0 ? (
             <p className="hint">Nothing about dates or assignments came up.</p>
           ) : notes.mentions.some((m) => m.audit) ? (
@@ -240,7 +302,7 @@ export function LectureReview({
                     {notes.mentions
                       .filter((m) => groupKey(m) === g.key)
                       .map((m) => (
-                        <MentionRow key={m.id} m={m} course={course} lectureDate={lectureDate} decision={decisions[m.id]} dryRun={dryRun} onDecide={onDecide} />
+                        <MentionRow key={m.id} m={m} course={course} lectureDate={lectureDate} decision={decisions[m.id]} dryRun={dryRun} onDecide={onDecide} plan={plan?.[m.id]} appliedText={applied?.[m.id]} />
                       ))}
                   </ul>
                 </div>
@@ -248,7 +310,7 @@ export function LectureReview({
             ) : (
             <ul className="rev-mentions">
               {notes.mentions.map((m) => (
-                <MentionRow key={m.id} m={m} course={course} lectureDate={lectureDate} decision={decisions[m.id]} dryRun={dryRun} onDecide={onDecide} />
+                <MentionRow key={m.id} m={m} course={course} lectureDate={lectureDate} decision={decisions[m.id]} dryRun={dryRun} onDecide={onDecide} plan={plan?.[m.id]} appliedText={applied?.[m.id]} />
               ))}
             </ul>
           )}

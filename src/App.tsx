@@ -117,13 +117,14 @@ function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () =>
     }
     setPicking(true);
   }, [onOpen]);
-  const pick = (course: Course) => {
-    const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, data.settings.timezone, today, course);
+  const pick = (course: Course | null) => {
+    const list = course ? [course] : data.courses;
+    const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, data.settings.timezone, today, list);
     void navigator.clipboard?.writeText(prompt).catch(() => undefined);
     window.open(HALO_URL, '_blank', 'noopener');
-    setPendingCheck(course.id);
+    setPendingCheck(list.map((c) => c.id));
     setPicking(false);
-    setHint(`Copied the ${course.code} audit. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.`);
+    setHint(course ? `Copied the ${course.code} audit. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.` : `Copied the audit for all ${list.length} classes, one at a time. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.`);
   };
   return (
     <>
