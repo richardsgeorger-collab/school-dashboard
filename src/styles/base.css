@@ -4681,3 +4681,134 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
+
+/* ---- Tutor ---- */
+.tutor {
+  display: grid;
+  gap: 12px;
+}
+.tutor-topic {
+  display: grid;
+  gap: 8px;
+}
+.tutor-thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  max-height: 60vh;
+  overflow: auto;
+}
+.tutor-msg {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  max-width: 92%;
+}
+.tutor-msg[data-role='user'] {
+  justify-self: end;
+  background: var(--surface-2);
+}
+.tutor-msg[data-role='assistant'] {
+  justify-self: start;
+}
+.tutor-text {
+  white-space: pre-wrap;
+}
+.tutor-cites {
+  margin-top: 6px;
+}
+.tutor-ask {
+  display: grid;
+  gap: 8px;
+}
+/* ---- Study kits ---- */
+.kit-setup {
+  display: grid;
+  gap: 10px;
+}
+.kit {
+  display: grid;
+  gap: 10px;
+}
+.kit-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.kit-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.kit-name {
+  font-weight: 600;
+  width: 28%;
+}
+.kit-formula {
+  width: 32%;
+}
+.kit-cite {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: 4px;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.kit-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.kit-card {
+  width: 100%;
+  min-height: 120px;
+  display: grid;
+  align-content: space-between;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.kit-card[data-flipped='true'] {
+  background: var(--bg);
+}
+.kit-card-foot {
+  font-size: 10px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.kit-section h3 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.kit-section ul {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+.work-method {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.work-method li[data-setup='off'] {
+  border-left: 3px solid var(--overdue);
+  padding-left: 8px;
+}
+.work-method li[data-setup='right'] {
+  border-left: 3px solid var(--line);
+  padding-left: 8px;
+}
+@media print {
+  .nav-top, .nav-bottom, .topbar, .kit-setup, .lib-head a, .kit-sources { display: none !important; }
+  .kit { border: 0; box-shadow: none; }
+}

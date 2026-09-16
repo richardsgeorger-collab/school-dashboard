@@ -10,6 +10,7 @@ import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { checkDue, verificationLine } from '../halo/verification';
 import { checkHaloPress } from '../halo/checkState';
+import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
 import { submissionCheck } from '../domain/confirm';
@@ -17,6 +18,7 @@ import { okayPress } from './Okay';
 import { nextStep, stepProgress, isMilestoneWork } from '../work/steps';
 import { sessionTopics, topicBlocks, type SessionTopic } from '../domain/examTopics';
 import { libraryDb } from '../library/db';
+import { recordingsDb } from '../record/db';
 import { weakSpots } from '../domain/weak';
 import { QuizLink } from './Quiz';
 import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '../domain/away';
@@ -339,10 +341,12 @@ function useExamTopics(plan: ExamPlan | null, stats: Record<string, import('../d
       return;
     }
     let live = true;
-    Promise.all([libraryDb.listDecks(), libraryDb.allPages()])
-      .then(([decks, pages]) => {
+    Promise.all([libraryDb.listDecks(), libraryDb.allPages(), recordingsDb.list().catch(() => [])])
+      .then(([decks, pages, recordings]) => {
         if (!live) return;
-        const weak = weakSpots(plan.exam.courseId, items).map((w) => w.item.title);
+        // Weak ground first, then whatever the professor called exam material out loud.
+        const flagged = recordings.filter((r) => r.courseId === plan.exam.courseId).flatMap((r) => r.notes?.knowledge?.examFlags.map((f) => f.point) ?? []);
+        const weak = [...weakSpots(plan.exam.courseId, items).map((w) => w.item.title), ...flagged];
         setTopics(sessionTopics(plan.sessions.length, topicBlocks(plan.exam.courseId, decks, pages, stats, weak)));
       })
       .catch(() => live && setTopics([]));
@@ -378,8 +382,9 @@ export function Now() {
     const pace = paceLine(data.courses, work, schedule, today);
     const risk = riskLine(work, schedule, today);
     const pile = pileupAhead(work, schedule, today);
-    // One line: the pileup two weeks out beats the pace sentence; a big untouched item beats both.
-    return [risk ?? pile?.line ?? pace].filter(Boolean).join(' ') || null;
+    const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz));
+    // One line: a big untouched item first; then a weak concept that near material assumes; then the pileup; then pace.
+    return [risk ?? concept ?? pile?.line ?? pace].filter(Boolean).join(' ') || null;
   }, [data.courses, work, schedule, today]);
   const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
   // Back after days away: one card that says what changed, then the normal screen behind one button.

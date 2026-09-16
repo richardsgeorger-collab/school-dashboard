@@ -1,3 +1,4 @@
+import { recordUsage } from '../ai/usage';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Course, DateStr } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
@@ -184,6 +185,7 @@ export async function readAudit(args: ReadArgs & { apiKey: string; audited?: Cou
     tool_choice: { type: 'tool', name: READ_TOOL.name },
     messages: [{ role: 'user', content: user }],
   });
+  recordUsage('audit', READ_MODEL, response.usage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
   if (!use) throw new Error('The model did not return findings.');
   return parseFromTool(use.input, args.courses, args.audited ?? []);

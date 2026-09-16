@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { recordUsage } from '../ai/usage';
 import type { Course } from '../domain/types';
 import { sourcesBlock, type QuizSource } from './sources';
 
@@ -154,6 +155,7 @@ export async function generateSet(args: QuizArgs & { apiKey: string; fetch?: typ
     tool_choice: { type: 'tool', name: QUIZ_TOOL.name },
     messages: [{ role: 'user', content: user }],
   });
+  recordUsage('quiz', QUIZ_MODEL, response.usage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
   if (!use) throw new Error('The model did not return questions.');
   const set = setFromTool(use.input, args, QUIZ_MODEL);

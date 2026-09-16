@@ -1,5 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
+import { recordUsage } from '../ai/usage';
 import type { Course, DateStr, Item } from '../domain/types';
 import type { Confidence, LectureKnowledge, LectureNotes, Mention, MentionKind } from './notes';
 
@@ -185,6 +186,7 @@ export async function summarizeLecture(args: NotesArgs & { apiKey: string }): Pr
     tool_choice: { type: 'tool', name: NOTES_TOOL.name },
     messages: [{ role: 'user', content: user }],
   });
+  recordUsage('lecture', NOTES_MODEL, response.usage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
   if (!use) throw new Error('The model did not return notes.');
   return notesFromTool(use.input, NOTES_MODEL, new Date().toISOString(), args.deckOutline?.deckId ?? null);

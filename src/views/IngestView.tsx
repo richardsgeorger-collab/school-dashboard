@@ -8,6 +8,7 @@ import type { DateStr, Item } from '../domain/types';
 import { applyPlan, countSelected, type PlanSelection } from '../ingest/apply';
 import { approxTokens, gatherClassContext, type ClassContext } from '../ingest/context';
 import { diffPlan, diffSummary, proposedStart } from '../ingest/diff';
+import { canLink, findLinks } from '../ingest/links';
 import { browserCache, browserLoaders } from '../ingest/loaders';
 import type { ClassPlan } from '../ingest/plan';
 import { loadPlan, loadTerm, planState, runClassPass, runTermPass } from '../ingest/run';
@@ -85,7 +86,14 @@ export function IngestView() {
     const before = actions.snapshotItems();
     const out = applyPlan(before, course, plan, diff, sel, { now, tz });
     actions.applyIngest(out.items, out.touched, `AI plan ${course.code}`);
-    actions.upsertCourse({ ...course, ingest: 'ai', topics: plan.topics });
+    const updated = { ...course, ingest: 'ai' as const, topics: plan.topics };
+    actions.upsertCourse(updated);
+    const courses = data.courses.map((c) => (c.id === course.id ? updated : c));
+    if (canLink(courses)) {
+      findLinks({ apiKey: loadApiKey(), courses })
+        .then((links) => actions.updateSettings({ topicLinks: links }))
+        .catch(() => undefined);
+    }
     setReview(false);
     const n = countSelected(sel);
     setNote(`Applied ${n} change${n === 1 ? '' : 's'}${out.added.length ? `, added ${out.added.length}` : ''}. ${course.code} now runs on the AI version; the parser stays as fallback.`);

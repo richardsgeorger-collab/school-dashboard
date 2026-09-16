@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { recordUsage } from '../ai/usage';
 import type { Brief, Course, Item } from '../domain/types';
 
 /** Same model as the coach and the lecture pass. */
@@ -72,6 +73,7 @@ export async function briefItem(args: BriefArgs & { apiKey: string; fetch?: type
   const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
   const { system, user } = buildBriefPrompt(args);
   const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [BRIEF_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: BRIEF_TOOL.name }, messages: [{ role: 'user', content: user }] });
+  recordUsage('brief', BRIEF_MODEL, response.usage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
   if (!use) throw new Error('The model did not answer.');
   return briefFromTool(use.input);
@@ -127,7 +129,74 @@ export async function checkDraft(args: BriefArgs & { brief: Brief; draft: string
   const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
   const { system, user } = buildDraftPrompt(args);
   const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [DRAFT_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: DRAFT_TOOL.name }, messages: [{ role: 'user', content: user }] });
+  recordUsage('draft', BRIEF_MODEL, response.usage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
   if (!use) throw new Error('The model did not answer.');
   return draftFromTool(use.input);
+}
+
+// ---- Method check --------------------------------------------------------------
+
+export interface MethodCheck {
+  problems: { label: string; setup: 'right' | 'off' | 'unclear'; note: string; step: string | null }[];
+  /** The one thing to do next, one sentence. */
+  next: string;
+}
+
+export const METHOD_TOOL = {
+  name: 'method_check',
+  description: "A student's work on a problem set held against the method the class teaches: is each setup right, what is off, which step to look at again. Never the answer.",
+  strict: true,
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['problems', 'next'],
+    properties: {
+      problems: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['label', 'setup', 'note', 'step'],
+          properties: {
+            label: { type: 'string', description: 'Which problem, as the student named it.' },
+            setup: { type: 'string', enum: ['right', 'off', 'unclear'] },
+            note: { type: 'string', description: 'What is right or off about the setup: the equation chosen, units, given values, the ratio. One line. Never the final number.' },
+            step: { type: ['string', 'null'], description: 'The one step to look at again, named, not worked. Null when the setup is right.' },
+          },
+        },
+      },
+      next: { type: 'string' },
+    },
+  },
+} as const;
+
+const METHOD_SYSTEM = `You check a student's method on a problem set, never the answer. For each problem they show: is the setup right — the equation or law chosen, the units, the given values, the ratio, the sign — and if not, what is off and which one step to look at again. Use the class material given for the professor's method and notation, and cite it as [S#] when it settles something. Never state the final number, never work a problem through, never rewrite their work. Plain words, one line each, then the single most useful next step. Answer only through the method_check tool.`;
+
+export function buildMethodPrompt(args: { item: Item; course: Course; description: string; material: string; work: string }): { system: string; user: string } {
+  return { system: METHOD_SYSTEM, user: `Class: ${args.course.code}\nAssignment: ${args.item.title}\n\nWhat it asks for:\n${args.description.slice(0, 6000) || '(no description on file)'}\n\nClass material (cite as [S#]):\n${args.material.slice(0, 30_000) || '(none on file)'}\n\nThe student's work:\n${args.work.slice(0, 40_000)}` };
+}
+
+export function methodFromTool(raw: unknown): MethodCheck {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const problems = (Array.isArray(o.problems) ? o.problems : [])
+    .map((r) => {
+      const e = (r && typeof r === 'object' ? r : {}) as Record<string, unknown>;
+      const setup: 'right' | 'off' | 'unclear' = e.setup === 'right' || e.setup === 'off' || e.setup === 'unclear' ? e.setup : 'unclear';
+      return { label: str(e.label, 80), setup, note: str(e.note, 300), step: typeof e.step === 'string' && e.step.trim() ? str(e.step, 200) : null };
+    })
+    .filter((p) => p.label || p.note)
+    .slice(0, 20);
+  return { problems, next: str(o.next, 300) };
+}
+
+export async function checkMethod(args: { item: Item; course: Course; description: string; material: string; work: string; apiKey: string; fetch?: typeof globalThis.fetch }): Promise<MethodCheck> {
+  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
+  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+  const { system, user } = buildMethodPrompt(args);
+  const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [METHOD_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: METHOD_TOOL.name }, messages: [{ role: 'user', content: user }] });
+  recordUsage('method', BRIEF_MODEL, response.usage);
+  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+  if (!use) throw new Error('The model did not answer.');
+  return methodFromTool(use.input);
 }

@@ -27,6 +27,8 @@ import { Settings } from './views/Settings';
 import { Quiz } from './views/Quiz';
 import { ClassPage } from './views/ClassPage';
 import { IngestView } from './views/IngestView';
+import { StudyKit } from './views/StudyKit';
+import { Tutor } from './views/Tutor';
 import { useAutoRerun } from './ingest/auto';
 import { OkayCard, okayPress } from './views/Okay';
 
@@ -204,6 +206,10 @@ function Screen() {
       return <ClassPage />;
     case 'ingest':
       return <IngestView />;
+    case 'tutor':
+      return <Tutor />;
+    case 'study':
+      return <StudyKit />;
     default:
       return <Now />;
   }

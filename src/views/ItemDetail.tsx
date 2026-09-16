@@ -6,6 +6,7 @@ import { recordingsDb, type Recording } from '../record/db';
 import { syllabiDb } from '../syllabus/db';
 import { QuizLink } from './Quiz';
 import { gatedBy } from '../domain/gating';
+import { linksFor } from '../ingest/links';
 import { Sure } from './PlanReview';
 import { WorkPanel } from './WorkPanel';
 import { addDays } from '../domain/dates';
@@ -377,7 +378,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           </div>
         )}
         {!isNew && course && <WorkPanel item={item} course={course} />}
-        {!isNew && (decks.length > 0 || recs.length > 0 || sylLine) && (
+        {!isNew && (
           <div className="study">
             <p className="hint">
               <b>Study with</b>
@@ -402,12 +403,30 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
                 ))}
               </p>
             )}
+            {recs.some((r) => r.notes?.knowledge?.examFlags.length) && (
+              <p className="hint">
+                <b>The professor flagged:</b>{' '}
+                {recs
+                  .flatMap((r) => (r.notes?.knowledge?.examFlags ?? []).map((f) => `“${f.point}” (${r.title}, ${fmtDate(dateOf(r.startedAt, tz), 'short')}${f.at ? ` at ${f.at}` : ''})`))
+                  .slice(0, 3)
+                  .join(' · ')}
+              </p>
+            )}
             {sylLine && <blockquote className="study-syllabus hint">{sylLine}</blockquote>}
             <p className="hint">
-              <QuizLink courseId={item.courseId} topic={item.title} label="Quiz me on this" />
+              <QuizLink courseId={item.courseId} topic={item.title} label="Quiz me on this" />{' '}
+              <a className="btn small" href={`#/tutor?c=${item.courseId}&t=${encodeURIComponent(item.topic ?? item.title)}&i=${item.id}`} onClick={onClose}>
+                Explain this like I’m behind
+              </a>
             </p>
           </div>
         )}
+        {!isNew &&
+          linksFor(item, data.settings.topicLinks ?? [], data.courses).map((l) => (
+            <p key={`${l.other.id}-${l.topic}`} className="hint">
+              <b>Connects to</b> {l.other.code} {l.topic}: {l.note}
+            </p>
+          ))}
         {item.haloLate && (
           <p className="hint late-note">
             <b>Halo says late:</b> {item.haloLate}{' '}

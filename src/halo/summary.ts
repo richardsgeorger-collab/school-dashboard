@@ -1,3 +1,4 @@
+import { recordUsage } from '../ai/usage';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { NeedLine } from './needs';
 
@@ -82,6 +83,7 @@ export async function polishNeeds(args: PolishInput & { apiKey: string; fetch?: 
     tool_choice: { type: 'tool', name: POLISH_TOOL.name },
     messages: [{ role: 'user', content: user }],
   });
+  recordUsage('needs', SUMMARY_MODEL, response.usage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
   if (!use) throw new Error('The model did not answer.');
   return polishedLines(use.input, args.lines);

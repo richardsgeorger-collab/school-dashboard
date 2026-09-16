@@ -5,6 +5,7 @@ import { courseGrade } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { WhatIf } from './WhatIf';
+import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { weakLine, weakTopicFor } from '../domain/weak';
 import { gradeFloor } from '../domain/floor';
 import { QuizLink } from './Quiz';
@@ -39,7 +40,8 @@ function ScoreInput({ item }: { item: Item }) {
 function CourseCard({ course }: { course: Course }) {
   const { data, today } = useStore();
   const color = useCourseColor(course);
-  const weak = weakLine(course, data.items, data.settings.quizStats, today, data.settings.timezone);
+  const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, data.settings.timezone).filter((w) => w.courseId === course.id), 6);
+  const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, data.settings.timezone);
   const floor = gradeFloor(course.id, data.items);
   const g = courseGrade(course.id, data.items);
   const [expanded, setExpanded] = useState(false);

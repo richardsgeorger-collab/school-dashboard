@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { recordUsage } from '../ai/usage';
 import { CHAT_TOOLS, dispatchTool, SYSTEM_PROMPT, type ToolApi } from './context';
 
 /** The SDK is only pulled in when the coach is actually used. */
@@ -53,6 +54,7 @@ export async function sendChat({ apiKey, history, userText, context, syllabi, ma
       messages,
     });
 
+    recordUsage('coach', CHAT_MODEL, response.usage);
     const text = response.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map((b) => b.text)

@@ -219,6 +219,14 @@ export interface TopicNode {
   buildsOn: string[];
 }
 
+/** One idea that appears in two classes under two names: the math topic the chemistry work leans on. */
+export interface TopicLink {
+  a: { courseId: string; topic: string };
+  b: { courseId: string; topic: string };
+  /** What carries over, one sentence. */
+  note: string;
+}
+
 export type PlanField = 'startBy' | 'minutes' | 'steps';
 
 export interface TermWeekPlan {
@@ -300,6 +308,8 @@ export interface Settings {
   eveningQuiet?: boolean;
   /** The AI's read of the term across all classes, from the last term pass. */
   termPlan?: TermPlan | null;
+  /** Topics that overlap across classes, from the links pass. */
+  topicLinks?: TopicLink[];
   updatedAt: string;
 }
 

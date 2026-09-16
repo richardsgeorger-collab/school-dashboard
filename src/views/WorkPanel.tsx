@@ -5,7 +5,9 @@ import type { Brief, Course, Item, Step } from '../domain/types';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
 import { useStore } from '../storage/store';
-import { briefItem, checkDraft, localBrief, type DraftCheck } from '../work/brief';
+import { loadPool } from '../quiz/pool';
+import { gatherSources, sourcesBlock } from '../quiz/sources';
+import { briefItem, checkDraft, checkMethod, localBrief, type DraftCheck, type MethodCheck } from '../work/brief';
 import { isMilestoneWork, makeSteps, stepProgress, stepsFor } from '../work/steps';
 
 const RUBRIC_WORDS = /rubric|guidelines?|instructions?|handout|assignment sheet|prompt/i;
@@ -35,6 +37,26 @@ export function WorkPanel({ item: given, course }: { item: Item; course: Course 
   const [drafting, setDrafting] = useState(false);
   const [check, setCheck] = useState<DraftCheck | null>(null);
   const [showDraft, setShowDraft] = useState(false);
+  const [work, setWork] = useState('');
+  const [showWork, setShowWork] = useState(false);
+  const [checkingWork, setCheckingWork] = useState(false);
+  const [method, setMethod] = useState<MethodCheck | null>(null);
+  const tz = data.settings.timezone;
+  const problemSet = item.type === 'homework' || item.type === 'lab' || item.type === 'quiz' || item.type === 'exam';
+  const runMethod = async () => {
+    if (!work.trim()) return;
+    setCheckingWork(true);
+    setNote(null);
+    try {
+      const pool = await loadPool(course.id).catch(() => null);
+      const material = pool ? sourcesBlock(gatherSources(course, item.topic ?? item.title, pool, tz)) : '';
+      setMethod(await checkMethod({ apiKey: loadApiKey(), item, course, description, material, work }));
+    } catch (e) {
+      setNote(await describeError(e));
+    } finally {
+      setCheckingWork(false);
+    }
+  };
   const description = item.notes?.trim() ?? '';
   const big = isMilestoneWork(item);
 
@@ -184,6 +206,40 @@ export function WorkPanel({ item: given, course }: { item: Item; course: Course 
                     </ul>
                   )}
                   {check.next && <p className="work-next">Next: {check.next}</p>}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {hasKey && problemSet && (
+        <div className="work-draft">
+          {!showWork ? (
+            <button type="button" className="btn small" onClick={() => setShowWork(true)}>
+              Check my method
+            </button>
+          ) : (
+            <>
+              <textarea className="halo-paste" rows={6} value={work} onChange={(e) => setWork(e.target.value)} placeholder="Paste your work: the setup, the steps, what you got. You get a check on the method against how the class teaches it. Never the answer." aria-label="Your work" />
+              <div className="settings-actions">
+                <button type="button" className="btn small primary" disabled={checkingWork || !work.trim()} onClick={() => void runMethod()}>
+                  {checkingWork ? 'Checking…' : 'Check it'}
+                </button>
+                <button type="button" className="btn small" onClick={() => setShowWork(false)}>
+                  Close
+                </button>
+              </div>
+              {method && (
+                <div className="work-check">
+                  <ul className="work-method">
+                    {method.problems.map((p, i) => (
+                      <li key={i} data-setup={p.setup}>
+                        <b>{p.label || `Problem ${i + 1}`}</b> <span className="mono muted">· setup {p.setup}</span> — {p.note}
+                        {p.step && <span className="hint"> Look again at: {p.step}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                  {method.next && <p className="work-next">Next: {method.next}</p>}
                 </div>
               )}
             </>

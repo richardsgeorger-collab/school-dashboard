@@ -5,6 +5,7 @@ import { addDays, dateOf, diffDays, fmtDate, fmtMinutes } from '../domain/dates'
 import { courseGrade } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
+import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { weakLine } from '../domain/weak';
 import { lastCheckFor } from '../halo/verification';
 import { usePlanStatus } from '../ingest/usePlan';
@@ -56,7 +57,8 @@ export function ClassPage() {
   const overdue = openItems.filter((i) => (schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz)) < today);
   const week = openItems.filter((i) => dateOf(i.dueAt, tz) >= today && dateOf(i.dueAt, tz) <= addDays(today, 6));
   const grade = courseGrade(course.id, data.items);
-  const weak = weakLine(course, data.items, data.settings.quizStats, today, tz);
+  const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz).filter((w) => w.courseId === course.id), 6);
+  const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, tz);
   const pace = paceFor(course, data.items, schedule, today);
   const check = lastCheckFor(data.settings.haloChecks, course.id);
   const meetings = course.online ? 'Online' : course.meetings.map((m) => `${DAYS[m.day]} ${m.start}–${m.end}`).join(', ') || 'No meetings set';
@@ -77,7 +79,12 @@ export function ClassPage() {
             {course.instructors.length ? ` · ${course.instructors.map((p) => p.name).join(', ')}` : ''}
           </p>
         </div>
-        <QuizLink courseId={course.id} />
+        <span className="settings-actions">
+          <a className="btn small" href={`#/tutor?c=${course.id}`}>
+            Tutor
+          </a>
+          <QuizLink courseId={course.id} />
+        </span>
       </div>
 
       <section className="card class-next" style={{ '--course': color } as React.CSSProperties}>
@@ -164,6 +171,9 @@ export function ClassPage() {
           </a>{' '}
           <a className="btn small" href="#/grades">
             Grades
+          </a>{' '}
+          <a className="btn small" href={`#/study?c=${course.id}`}>
+            Study kit
           </a>{' '}
           <a className="btn small" href={`#/ingest?c=${course.id}`}>
             {course.ingest === 'ai' ? (planStatus && planStatus.pending > 0 ? `AI plan · ${planStatus.pending} to review` : planStatus?.state === 'stale' ? 'AI plan · changed since' : 'AI plan') : 'AI plan (compare)'}
