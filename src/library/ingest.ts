@@ -75,9 +75,9 @@ export async function ingestFile(file: File, course: Course, tz: string, today: 
     const raw = /\.txt$/i.test(file.name) ? await file.text() : (await extractLines(await file.arrayBuffer())).join('\n');
     const text = tidySyllabusText(raw);
     if (text.length < 200) throw new Error(`Very little text came out of ${file.name}. If the PDF is a scan, it has no text layer to read.`);
-    await syllabiDb.put({ courseId: course.id, name: file.name, text, chars: text.length, addedAt: new Date().toISOString() });
+    await syllabiDb.put({ courseId: course.id, name: file.name, text, chars: text.length, rawChars: raw.length, addedAt: new Date().toISOString() });
     notifyLibraryChanged();
-    return { kind, title: file.name, detail: `Syllabus saved, ${Math.round(text.length / 1000)}k characters. The coach can quote it.`, warnings: [] };
+    return { kind, title: file.name, detail: `Syllabus saved whole: ${text.length.toLocaleString()} characters, every topic.`, warnings: [] };
   }
   if (kind === 'deck') {
     const r = await extractDeck(file);

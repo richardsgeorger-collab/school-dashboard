@@ -16,6 +16,7 @@ import type { TermResult } from '../ingest/term';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { ItemDetail } from './ItemDetail';
+import { DateAudit } from './DateAudit';
 import { PlanReview, Sure } from './PlanReview';
 
 /**
@@ -139,8 +140,17 @@ export function IngestView() {
         </div>
       </div>
 
+      <DateAudit course={course} />
+
       <section className="card ingest-status">
         {!hasKey && <p className="hint">Connect the Anthropic key on Now to run the AI pass. Until then this class runs on the parser.</p>}
+        {ctx?.syllabusInfo && (
+          <p className="hint mono" data-full={ctx.syllabusInfo.dropped.length === 0 && !ctx.syllabusInfo.storedTruncated}>
+            Syllabus: {ctx.syllabusInfo.sent.toLocaleString()} of {ctx.syllabusInfo.stored.toLocaleString()} stored characters go to the model
+            {ctx.syllabusInfo.dropped.length > 0 ? `, leaving out ${ctx.syllabusInfo.dropped.join(', ')}` : ', all of it'}.
+            {ctx.syllabusInfo.storedTruncated && ' The stored copy itself was cut at 30,000 characters when it was added, so its last topics are gone. Drop the file into the class library again to store all of it.'}
+          </p>
+        )}
         {hasKey && ctx && (
           <p className="hint">
             It reads {ctx.assessments.length} item{ctx.assessments.length === 1 ? '' : 's'} with their descriptions, {ctx.syllabus ? 'the syllabus' : 'no syllabus'}, {ctx.rubrics.length} rubric file{ctx.rubrics.length === 1 ? '' : 's'}, {ctx.decks.length} deck{ctx.decks.length === 1 ? '' : 's'}, and {ctx.lectures.length} lecture{ctx.lectures.length === 1 ? '' : 's'} in three passes over one cached copy of it: about {Math.round(tokens / 1000)}k tokens the first time, roughly {fmtDollars(est)} at current prices. Then a cheap pass over every class sets start dates against everything else due.

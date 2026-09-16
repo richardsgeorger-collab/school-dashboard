@@ -11,6 +11,7 @@ import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { checkDue, verificationLine } from '../halo/verification';
 import { checkHaloPress } from '../halo/checkState';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
+import { gatedBy } from '../domain/gating';
 import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
 import { submissionCheck } from '../domain/confirm';
@@ -152,6 +153,11 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
   // Only flag an inferred deadline while it is still the binding one.
   const inferredDeadline = !!derived[item.id] && dateOf(derived[item.id].deadlineAt, data.settings.timezone) >= today;
 
+  // What it asks for beats a subtitle that only repeats the label: "Topic 1 DQ 1" under "UNV DQ 1.1" says nothing.
+  const asks = item.plan?.asks?.trim() ?? '';
+  const heroSub = asks ? (asks.split(/(?<=[.!?])\s+/)[0] ?? asks).slice(0, 130) : item.title !== item.label ? item.title : '';
+  // Something open has to happen first: that, not why this was ranked first, is what to do about it.
+  const blockers: Item[] = done ? [] : gatedBy(item, data.items);
   return (
     <section key={item.id} className="hero" data-state={framing} style={{ '--course': color } as React.CSSProperties} aria-label="Next up">
       <div className="hero-eyebrow">
@@ -159,7 +165,7 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
         <CourseChip course={course} />
       </div>
       <h1 className="hero-title">{item.label}</h1>
-      {item.title !== item.label && <p className="hero-sub">{item.title}</p>}
+      {heroSub && <p className="hero-sub">{heroSub}</p>}
       <p className="hero-meta mono">
         <span>{cal.basis === 'actual' ? `${fmtMinutes(cal.minutes)} · ${cal.label}` : approx(cal.minutes)}</span>
         {item.points > 0 && <span>{item.points} pts</span>}
@@ -171,7 +177,7 @@ function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional
         )}
         {item.status === 'in_progress' && <span className="flag">in progress</span>}
       </p>
-      {!done && <p className="hero-why">{reason}</p>}
+      {!done && (blockers.length > 0 ? <p className="hero-why hero-gate">First: {blockers.map((b: Item) => b.label).join(' and ')}, which this one needs.</p> : <p className="hero-why">{reason}</p>)}
       {!done && isMilestoneWork(item) && item.steps && item.steps.length > 0 && (
         <p className="hero-steps mono">
           <span className="work-steps-bar" aria-hidden>
@@ -384,6 +390,9 @@ export function Now() {
     const pile = pileupAhead(work, schedule, today);
     const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz));
     // One line: a big untouched item first; then a weak concept that near material assumes; then the pileup; then pace.
+    // With several things already past their date, a sentence about October is noise: the status line has said enough.
+    const overdue = work.filter((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now()).length;
+    if (overdue >= 3) return risk;
     return [risk ?? concept ?? pile?.line ?? pace].filter(Boolean).join(' ') || null;
   }, [data.courses, work, schedule, today]);
   const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
@@ -413,7 +422,6 @@ export function Now() {
     actions.upsertItem({ ...exam.exam, estimatedMinutes: Math.max(0, exam.exam.estimatedMinutes - minutes), estimateOverridden: true, status: 'in_progress' });
   };
   const pace = termProgress(data.items, term, today);
-  const updatedAt = data.courses.map((c) => c.updatedAt).sort().at(-1);
   const syncedAt = data.settings.syncedAt ?? null;
   const syncAge = syncedAt ? Math.floor((Date.now() - new Date(syncedAt).getTime()) / 86_400_000) : null;
   const nextDeadline = Object.keys(counts).filter((d) => d >= today).sort()[0];
@@ -523,10 +531,10 @@ export function Now() {
             return (
               <div key={g.day} className="then-group">
                 <h3 className="then-day mono">
-                  {dayHeading(today, g.day)} <span className="muted">· {total} thing{total === 1 ? '' : 's'}</span>
+                  {dayHeading(today, g.day)} <span className="muted">· {total > visible ? `${visible} of ${total}` : `${total} thing${total === 1 ? '' : 's'}`}</span>
                   {total > visible && (
                     <button type="button" className="then-all" onClick={() => setSheetDay(g.day)}>
-                      all
+                      see all {total}
                     </button>
                   )}
                 </h3>
@@ -550,7 +558,7 @@ export function Now() {
         </span>
         <span className="mono muted">
           {pace.pct}% banked · {pace.elapsedPct}% of the term elapsed
-          {syncedAt && syncAge !== null ? (syncAge > 10 ? ` · Assignments last synced ${syncAge} days ago.` : ` · synced ${fmtDate(dateOf(syncedAt, tz), 'short')}`) : updatedAt ? ` · syllabi updated ${fmtDate(dateOf(updatedAt, tz), 'short')}` : ''}
+          {syncedAt && syncAge !== null && syncAge > 10 ? ` · assignments last synced ${syncAge} days ago` : ''}
         </span>
       </div>
 

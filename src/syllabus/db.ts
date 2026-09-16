@@ -4,6 +4,8 @@ export interface SyllabusDoc {
   name: string;
   text: string;
   chars: number;
+  /** Characters the file itself yielded, before anything was stored. Same as chars unless something was cut. */
+  rawChars?: number;
   addedAt: string;
 }
 

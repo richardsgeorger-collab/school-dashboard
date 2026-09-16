@@ -39,9 +39,9 @@ export function SyllabusPanel({ courseId: onlyCourse }: { courseId?: string } = 
       const raw = /\.txt$/i.test(file.name) ? await file.text() : (await extractLines(await file.arrayBuffer())).join('\n');
       const text = tidySyllabusText(raw);
       if (text.length < 200) throw new Error('Very little text came out of that file. If the PDF is a scan, it has no text layer to read.');
-      await syllabiDb.put({ courseId: course.id, name: file.name, text, chars: text.length, addedAt: new Date().toISOString() });
+      await syllabiDb.put({ courseId: course.id, name: file.name, text, chars: text.length, rawChars: raw.length, addedAt: new Date().toISOString() });
       await refresh();
-      setNote(`${course.code}: ${file.name} saved, ${fmtChars(text.length)}. The coach can quote it now.`);
+      setNote(`${course.code}: ${file.name} saved whole, ${text.length.toLocaleString()} characters.`);
     } catch (e) {
       setNote(e instanceof Error ? e.message : String(e));
     } finally {

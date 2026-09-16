@@ -3,6 +3,7 @@ import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import type { AppData, Course, DateStr, Item, ItemFlags, ItemStatus, ItemType } from '../domain/types';
 import type { Deck, DeckPage } from '../library/db';
 import type { Recording } from '../record/db';
+import { syllabusForPrompt, type SyllabusForPrompt } from '../syllabus/context';
 import type { SyllabusDoc } from '../syllabus/db';
 
 /**
@@ -72,6 +73,8 @@ export interface ClassContext {
   decks: CtxDeck[];
   rubrics: CtxRubric[];
   lectures: CtxLecture[];
+  /** How much of the syllabus is on file and how much of it reached the prompt. Null when there is none. */
+  syllabusInfo: SyllabusForPrompt | null;
   otherClasses: { code: string; name: string }[];
   /** Hash of everything above that the model reads, so an unchanged class is never re-reasoned. */
   inputHash: string;
@@ -86,7 +89,6 @@ export interface ContextLoaders {
 
 export const RUBRIC_WORDS = /rubric|guidelines?|instructions?|handout|assignment sheet|template|checklist/i;
 const DESC_CHARS = 3500;
-const SYLLABUS_CHARS = 30_000;
 const RUBRIC_CHARS = 12_000;
 const MAX_RUBRICS = 4;
 const OUTLINE_LINES = 40;
@@ -141,6 +143,9 @@ export async function gatherClassContext(course: Course, data: AppData, today: D
     decks.push({ id: d.id, title: d.title, tag: d.tag, date: d.date, pages: d.pages, outline: pages.slice(0, OUTLINE_LINES).map((p) => `${p.n}. ${firstLine(p.text).slice(0, OUTLINE_CHARS)}`) });
   }
 
+  // The whole syllabus, or, when it cannot fit, its topics with whatever was left out named in the text itself.
+  const syllabus = syllabusDoc?.text.trim() ? syllabusForPrompt(syllabusDoc.text.trim()) : null;
+
   const lectures: CtxLecture[] = recordings
     .filter((r) => r.courseId === course.id && r.notes)
     .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
@@ -164,10 +169,11 @@ export async function gatherClassContext(course: Course, data: AppData, today: D
     termEnd: course.termEnd,
     capacity: { weekday: data.settings.weekdayMinutes, weekend: data.settings.weekendMinutes },
     assessments,
-    syllabus: syllabusDoc?.text.trim().slice(0, SYLLABUS_CHARS) || null,
+    syllabus: syllabus?.text || null,
     decks,
     rubrics,
     lectures,
+    syllabusInfo: syllabus,
     otherClasses: data.courses.filter((c) => c.id !== course.id).map((c) => ({ code: c.code, name: c.name })),
     inputHash: '',
   };

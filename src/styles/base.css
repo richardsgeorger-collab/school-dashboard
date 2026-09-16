@@ -4812,3 +4812,28 @@ button {
   .nav-top, .nav-bottom, .topbar, .kit-setup, .lib-head a, .kit-sources { display: none !important; }
   .kit { border: 0; box-shadow: none; }
 }
+
+/* ---- Dates against the syllabus ---- */
+.date-audit {
+  display: grid;
+  gap: 10px;
+  border-left: 3px solid var(--line);
+}
+.date-audit[data-state='mismatch'] {
+  border-left-color: var(--overdue);
+}
+.date-audit-head {
+  font-size: 16px;
+  font-weight: 600;
+}
+.date-audit-list li {
+  display: grid;
+  gap: 6px;
+}
+.date-audit-list .was {
+  text-decoration: line-through;
+  color: var(--ink-3);
+}
+.date-audit-list .now {
+  font-weight: 600;
+}
