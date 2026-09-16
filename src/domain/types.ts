@@ -42,6 +42,10 @@ export interface Course {
   haloClassId?: string | null;
   termStart: DateStr;
   termEnd: DateStr;
+  /** Where this class's items come from: the parser (default) or the AI pass, once it proved better. */
+  ingest?: 'parser' | 'ai';
+  /** The class's topics in syllabus order and what each builds on, from the AI pass. */
+  topics?: TopicNode[];
   updatedAt: string;
 }
 
@@ -105,6 +109,12 @@ export interface Item {
   steps?: Step[];
   /** What the assignment asks for, read from its description and rubric. */
   brief?: Brief | null;
+  /** The AI pass's read of this item, once applied. Raw Halo data never lives here. */
+  plan?: ItemPlan | null;
+  /** Start-by the AI reasoned and the user accepted. A user's startByOverride still wins. */
+  startByPlan?: DateStr | null;
+  /** AI suggestions the user turned down; never suggested again. */
+  planDeclined?: PlanField[];
   updatedAt: string;
 }
 
@@ -148,7 +158,89 @@ export interface Brief {
   /** The milestones the rubric implies. */
   steps: string[];
   at: string;
-  source: 'claude' | 'local';
+  source: 'claude' | 'local' | 'plan';
+}
+
+export type Confidence = 'high' | 'medium' | 'low';
+
+/** A value the AI reasoned out, with its reason and how sure it was. */
+export interface Reasoned<T> {
+  value: T;
+  why: string;
+  confidence: Confidence;
+}
+
+export interface PlanSource {
+  kind: 'slide' | 'recording' | 'syllabus' | 'halo' | 'rubric';
+  /** "Stoichiometry.pptx, slides 4–9" or "Lecture Sep 12, 14:32". */
+  label: string;
+  href: string | null;
+}
+
+export interface PlanPrerequisite {
+  /** "Claim a topic in the Chemistry Connections forum." */
+  text: string;
+  /** Where it was said: "announcement Sep 5", "syllabus", "Halo description". */
+  source: string;
+  /** The planner item that is the prerequisite, when it is one. */
+  itemId: string | null;
+}
+
+/** What the AI pass understood about one assignment. Every field says where it came from; none of it is Halo's raw data. */
+export interface ItemPlan {
+  /** What it actually asks for, one to three plain lines. */
+  asks: string;
+  startBy: Reasoned<DateStr> | null;
+  minutes: Reasoned<number> | null;
+  /** Milestones the rubric implies, in order. */
+  milestones: string[];
+  prerequisites: PlanPrerequisite[];
+  flags: { lopesWrite: boolean; timed: boolean; group: boolean; inPerson: boolean };
+  /** Concepts this work is about, a few words each. */
+  topics: string[];
+  /** The later item this one feeds (a draft's final), by item id. */
+  feeds: string | null;
+  /** Slides, readings, recordings that cover it. */
+  sources: PlanSource[];
+  /** Where the reasoning came from, one line each. */
+  citations: string[];
+  model: string;
+  at: string;
+  /** Hash of the inputs it was reasoned from. */
+  inputHash: string;
+  /** The pass found this item outside Halo (syllabus, announcement, lecture); it is not one of Halo's rows. */
+  found?: boolean;
+}
+
+export interface TopicNode {
+  name: string;
+  week: number | null;
+  /** Earlier topics this one assumes, by name. */
+  buildsOn: string[];
+}
+
+export type PlanField = 'startBy' | 'minutes' | 'steps';
+
+export interface TermWeekPlan {
+  start: DateStr;
+  load: 'brutal' | 'heavy' | 'normal' | 'light';
+  why: string;
+}
+
+export interface TermChain {
+  /** Item ids: from feeds into to. */
+  from: string;
+  to: string;
+  why: string;
+}
+
+/** The AI's read of the whole term across every class. */
+export interface TermPlan {
+  weeks: TermWeekPlan[];
+  chains: TermChain[];
+  model: string;
+  at: string;
+  inputHash: string;
 }
 
 export interface HaloCheckRecord {
@@ -206,6 +298,8 @@ export interface Settings {
   sundayReview?: SundayReviewState;
   /** Off by default: after 9 PM, Now stops nudging unless something is overdue. */
   eveningQuiet?: boolean;
+  /** The AI's read of the term across all classes, from the last term pass. */
+  termPlan?: TermPlan | null;
   updatedAt: string;
 }
 

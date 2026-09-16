@@ -61,6 +61,8 @@ export interface StoreActions {
   logActual(id: string, minutes: number | null): void;
   /** Delete every item of one class, keeping its earned awards and logged minutes. Returns how many went. */
   resetCourseItems(courseId: string): number;
+  /** Write an approved AI plan: the whole item list it produced, the ids it touched, one undo batch. */
+  applyIngest(items: Item[], touched: string[], label: string): void;
 }
 
 export interface Store {
@@ -530,6 +532,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         mirror({ kind: 'items', ids: items.map((i) => i.id) });
         return { courses: courses.length, items: items.length };
       },
+      applyIngest(items, touched, label) {
+        const now = nowIso();
+        const before = dataRef.current.items;
+        update((d) => ({ ...d, items }));
+        if (touched.length) mirror({ kind: 'items', ids: touched });
+        const batch = diffBatch(label, before, items, now);
+        if (batch.count) {
+          saveUndo(batch);
+          setUndoState(batch);
+        }
+      },
       applyHaloSync(plan) {
         const now = nowIso();
         const tz = dataRef.current.settings.timezone;
@@ -542,6 +555,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           saveUndo(batch);
           setUndoState(batch);
         }
+        // The AI layer listens for this (ingest/auto.ts) and re-reads classes that run on it.
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('sync-applied'));
       },
       dismissTimeAsk() {
         setJustDone(null);

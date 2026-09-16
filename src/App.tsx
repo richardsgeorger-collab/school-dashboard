@@ -26,6 +26,8 @@ import { Library } from './views/Library';
 import { Settings } from './views/Settings';
 import { Quiz } from './views/Quiz';
 import { ClassPage } from './views/ClassPage';
+import { IngestView } from './views/IngestView';
+import { useAutoRerun } from './ingest/auto';
 import { OkayCard, okayPress } from './views/Okay';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
@@ -170,6 +172,12 @@ function OkayHost() {
   return open ? <OkayCard onClose={() => setOpen(false)} /> : null;
 }
 
+/** Re-reads classes on the AI version after a sync or a new file, quietly. */
+function AutoRerun() {
+  useAutoRerun();
+  return null;
+}
+
 function SyncBootstrap() {
   useSupabaseSession();
   return null;
@@ -194,6 +202,8 @@ function Screen() {
       return <Quiz />;
     case 'class':
       return <ClassPage />;
+    case 'ingest':
+      return <IngestView />;
     default:
       return <Now />;
   }
@@ -222,6 +232,7 @@ export default function App() {
   return (
     <StoreProvider>
       <SyncBootstrap />
+      <AutoRerun />
       <HaloHandoff />
       <CheckHaloHost open={checkOpen} onOpen={() => setCheckOpen(true)} onClose={() => setCheckOpen(false)} />
       <OkayHost />

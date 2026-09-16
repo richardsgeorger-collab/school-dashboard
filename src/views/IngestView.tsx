@@ -1,0 +1,222 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { describeAiError } from '../ai/client';
+import { costOf, fmtDollars, loadPrices } from '../ai/usage';
+import { loadApiKey } from '../chat/key';
+import { CourseChip } from '../components/CourseChip';
+import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
+import type { DateStr, Item } from '../domain/types';
+import { applyPlan, countSelected, type PlanSelection } from '../ingest/apply';
+import { approxTokens, gatherClassContext, type ClassContext } from '../ingest/context';
+import { diffPlan, diffSummary, proposedStart } from '../ingest/diff';
+import { browserCache, browserLoaders } from '../ingest/loaders';
+import type { ClassPlan } from '../ingest/plan';
+import { loadPlan, loadTerm, planState, runClassPass, runTermPass } from '../ingest/run';
+import type { TermResult } from '../ingest/term';
+import { useRoute } from '../router';
+import { useStore } from '../storage/store';
+import { ItemDetail } from './ItemDetail';
+import { PlanReview, Sure } from './PlanReview';
+
+/**
+ * The compare screen for one class: what the rule-based parser says next to what the AI pass reasoned, one row per
+ * item, and the switch that makes the AI version this class's default once it has proved better.
+ */
+export function IngestView() {
+  const { data, schedule, today, actions } = useStore();
+  const { params } = useRoute();
+  const tz = data.settings.timezone;
+  const course = data.courses.find((c) => c.id === params.get('c')) ?? null;
+  const hasKey = loadApiKey() !== '';
+  const [plan, setPlan] = useState<ClassPlan | null>(null);
+  const [term, setTerm] = useState<TermResult | null>(null);
+  const [ctx, setCtx] = useState<ClassContext | null>(null);
+  const [busy, setBusy] = useState<'class' | 'term' | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [review, setReview] = useState(false);
+  const [open, setOpen] = useState<Item | null>(null);
+  const startByOf = useCallback((id: string): DateStr | undefined => schedule.byItem[id]?.startBy, [schedule]);
+  const items = useMemo(() => (course ? data.items.filter((i) => i.courseId === course.id).sort((a, b) => (a.status === 'done' ? 1 : 0) - (b.status === 'done' ? 1 : 0) || a.dueAt.localeCompare(b.dueAt)) : []), [course, data.items]);
+
+  useEffect(() => {
+    if (!course) return;
+    let live = true;
+    (async () => {
+      const [p, t, c] = await Promise.all([loadPlan(browserCache, course.id).catch(() => null), loadTerm(browserCache).catch(() => null), gatherClassContext(course, data, today, startByOf, browserLoaders).catch(() => null)]);
+      if (!live) return;
+      setPlan(p);
+      setTerm(t);
+      setCtx(c);
+    })();
+    return () => {
+      live = false;
+    };
+    // The context only needs to follow the items of this class and what is on file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course?.id, items]);
+
+  const run = async (force: boolean) => {
+    if (!course || !hasKey) return;
+    setNote(null);
+    setBusy('class');
+    const deps = { apiKey: loadApiKey(), loaders: browserLoaders, cache: browserCache };
+    try {
+      const r = await runClassPass(course, data, today, startByOf, deps, { force });
+      setPlan(r.plan);
+      setCtx(r.ctx);
+      setBusy('term');
+      const plans: Record<string, ClassPlan | null> = {};
+      for (const c of data.courses) plans[c.id] = c.id === course.id ? r.plan : await loadPlan(browserCache, c.id).catch(() => null);
+      const t = await runTermPass(data, plans, today, startByOf, deps, { force });
+      setTerm(t.term);
+      actions.updateSettings({ termPlan: { weeks: t.term.weeks, chains: t.term.chains, model: t.term.model, at: t.term.at, inputHash: t.term.inputHash } });
+      setNote(r.cached && t.cached ? 'Nothing on file changed since the last pass; showing it again.' : null);
+    } catch (e) {
+      setNote(await describeAiError(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const diff = useMemo(() => (course && plan ? diffPlan(course, items, plan, term, startByOf) : null), [course, items, plan, term, startByOf]);
+
+  const apply = (sel: PlanSelection) => {
+    if (!course || !plan || !diff) return;
+    const now = new Date().toISOString();
+    const before = actions.snapshotItems();
+    const out = applyPlan(before, course, plan, diff, sel, { now, tz });
+    actions.applyIngest(out.items, out.touched, `AI plan ${course.code}`);
+    actions.upsertCourse({ ...course, ingest: 'ai', topics: plan.topics });
+    setReview(false);
+    const n = countSelected(sel);
+    setNote(`Applied ${n} change${n === 1 ? '' : 's'}${out.added.length ? `, added ${out.added.length}` : ''}. ${course.code} now runs on the AI version; the parser stays as fallback.`);
+  };
+
+  if (!course) {
+    return (
+      <>
+        <h1 className="page-title">AI plan</h1>
+        <p className="hint">
+          Pick a class from <a href="#/settings">Settings</a> or a class page.
+        </p>
+      </>
+    );
+  }
+
+  const state = ctx ? planState(plan, ctx) : 'none';
+  const tokens = ctx ? approxTokens(ctx) : 0;
+  const prices = loadPrices();
+  const est = ctx ? costOf({ calls: 1, input: tokens, output: 350 * Math.max(1, ctx.assessments.length), cacheRead: 0, cacheWrite: 0 }, prices) : 0;
+  const read = plan ? Object.keys(plan.items).length : 0;
+  const brutal = (term?.weeks ?? []).filter((w) => w.load === 'brutal' && w.start >= today).slice(0, 3);
+
+  return (
+    <>
+      <div className="lib-head">
+        <div>
+          <a className="diff-toggle" href={`#/class?c=${course.id}`}>
+            ← {course.code}
+          </a>
+          <h1 className="page-title lib-class-title">
+            <CourseChip course={course} /> <span>AI plan</span>
+          </h1>
+          <p className="hint mono">
+            {course.ingest === 'ai' ? 'Running on the AI version · parser is the fallback' : 'Running on the parser'}
+            {plan ? ` · last pass ${fmtDate(dateOf(plan.at, tz), 'short')}${state === 'stale' ? ' · changed since (new file or sync)' : ''}` : ' · never run'}
+          </p>
+        </div>
+      </div>
+
+      <section className="card ingest-status">
+        {!hasKey && <p className="hint">Connect the Anthropic key on Now to run the AI pass. Until then this class runs on the parser.</p>}
+        {hasKey && ctx && (
+          <p className="hint">
+            One pass reads {ctx.assessments.length} item{ctx.assessments.length === 1 ? '' : 's'} with their descriptions, {ctx.syllabus ? 'the syllabus' : 'no syllabus'}, {ctx.rubrics.length} rubric file{ctx.rubrics.length === 1 ? '' : 's'}, {ctx.decks.length} deck{ctx.decks.length === 1 ? '' : 's'}, and {ctx.lectures.length} lecture{ctx.lectures.length === 1 ? '' : 's'}: about {Math.round(tokens / 1000)}k tokens, roughly {fmtDollars(est)} at current prices. Then a cheap pass over every class sets start dates against everything else due.
+          </p>
+        )}
+        <div className="settings-actions">
+          {hasKey && (
+            <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void run(state === 'fresh')}>
+              {busy === 'class' ? 'Reading the class…' : busy === 'term' ? 'Reasoning across all classes…' : plan ? (state === 'fresh' ? 'Re-run anyway' : 'Re-run the AI pass') : 'Run the AI pass'}
+            </button>
+          )}
+          {diff && diff.total > 0 && (
+            <button type="button" className="btn" onClick={() => setReview(true)}>
+              Review {diff.total} change{diff.total === 1 ? '' : 's'}
+            </button>
+          )}
+          {course.ingest === 'ai' && (
+            <button type="button" className="btn small" onClick={() => actions.upsertCourse({ ...course, ingest: 'parser' })}>
+              Back to the parser
+            </button>
+          )}
+        </div>
+        {note && <p className="hint">{note}</p>}
+        {diff && <p className="ingest-summary">{diffSummary(diff, course, read)}</p>}
+        {plan?.notes && <p className="hint">{plan.notes}</p>}
+        {brutal.length > 0 && (
+          <p className="hint">
+            Heaviest weeks ahead: {brutal.map((w) => `${fmtDate(w.start, 'short')}${w.why ? ` (${w.why})` : ''}`).join('; ')}.
+          </p>
+        )}
+      </section>
+
+      {plan && (
+        <section className="section">
+          <h2 className="section-title">
+            parser vs AI <span className="count">{items.length}</span>
+          </h2>
+          <ul className="ingest-table">
+            <li className="ingest-head mono" aria-hidden>
+              <span>item</span>
+              <span>parser</span>
+              <span>AI</span>
+            </li>
+            {items.map((i) => {
+              const p = plan.items[i.id];
+              const start = p ? proposedStart(p, term) : null;
+              const ruleStart = startByOf(i.id);
+              return (
+                <li key={i.id} className="ingest-row" data-done={i.status === 'done'}>
+                  <span className="ingest-item">
+                    <button type="button" className="ingest-title" onClick={() => setOpen(i)}>
+                      {i.label}
+                    </button>
+                    <span className="hint mono">
+                      due {fmtDate(dateOf(i.dueAt, tz), 'short')} · {i.points} pts{i.status === 'done' ? ' · done' : ''}
+                    </span>
+                  </span>
+                  <span className="ingest-parser mono">
+                    start {ruleStart ? fmtDate(ruleStart, 'short') : '—'} · {fmtMinutes(i.estimatedMinutes)}
+                    {i.startByOverride && <span className="hint"> (start set by you)</span>}
+                    {i.estimateOverridden && <span className="hint"> (estimate set by you)</span>}
+                  </span>
+                  <span className="ingest-ai">
+                    {!p ? (
+                      <span className="hint">not read</span>
+                    ) : (
+                      <>
+                        <span className="mono">
+                          start {start ? fmtDate(start.value, 'short') : '—'}
+                          {start && <Sure c={start.confidence} />} · {p.minutes ? fmtMinutes(p.minutes.value) : '—'}
+                          {p.minutes && <Sure c={p.minutes.confidence} />}
+                        </span>
+                        {start?.why && <span className="hint plan-why">{start.why}</span>}
+                        {p.minutes?.why && p.minutes.why !== start?.why && <span className="hint plan-why">{p.minutes.why}</span>}
+                        {p.asks && <span className="ingest-asks">{p.asks}</span>}
+                        <span className="hint mono">
+                          {[p.milestones.length ? `${p.milestones.length} milestones` : null, p.prerequisites.length ? `${p.prerequisites.length} prerequisite${p.prerequisites.length === 1 ? '' : 's'}` : null, [p.flags.lopesWrite && 'LopesWrite', p.flags.timed && 'timed', p.flags.group && 'group', p.flags.inPerson && 'in person'].filter(Boolean).join(', ') || null, p.sources.length ? `${p.sources.length} source${p.sources.length === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ')}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+      {review && diff && <PlanReview course={course} diff={diff} onApply={apply} onClose={() => setReview(false)} />}
+      {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
+    </>
+  );
+}

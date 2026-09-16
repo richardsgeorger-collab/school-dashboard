@@ -12,6 +12,7 @@ import { DuplicatesPanel } from './DuplicatesPanel';
 import { SundayReview } from './SundayReview';
 import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import { HaloImport } from './HaloImport';
+import { AiPanel } from './AiPanel';
 import { HaloPanel } from './HaloPanel';
 import { ImportSyllabus } from './ImportSyllabus';
 import { blankItem, ItemDetail } from './ItemDetail';
@@ -72,6 +73,7 @@ export function Settings() {
         <DuplicatesPanel />
         <HaloCheckPanel />
         <HaloPanel onPaste={() => setHalo(true)} />
+        <AiPanel />
         {review && <SundayReview onClose={() => setReview(false)} onDone={() => { actions.updateSettings({ sundayReview: sundayFinished(data.settings.sundayReview, today) }); setReview(false); }} />}
 
         <section className="card settings-card">

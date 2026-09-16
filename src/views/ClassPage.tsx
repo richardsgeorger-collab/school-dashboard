@@ -7,6 +7,7 @@ import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
 import { weakLine } from '../domain/weak';
 import { lastCheckFor } from '../halo/verification';
+import { usePlanStatus } from '../ingest/usePlan';
 import { materialsFor } from '../library/ingest';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
@@ -25,6 +26,7 @@ export function ClassPage() {
   const [open, setOpen] = useState<Item | null>(null);
   const [materials, setMaterials] = useState<{ recordings: number; decks: number; syllabus: boolean } | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const planStatus = usePlanStatus(course);
   useEffect(() => {
     if (!course) return;
     let live = true;
@@ -162,6 +164,9 @@ export function ClassPage() {
           </a>{' '}
           <a className="btn small" href="#/grades">
             Grades
+          </a>{' '}
+          <a className="btn small" href={`#/ingest?c=${course.id}`}>
+            {course.ingest === 'ai' ? (planStatus && planStatus.pending > 0 ? `AI plan · ${planStatus.pending} to review` : planStatus?.state === 'stale' ? 'AI plan · changed since' : 'AI plan') : 'AI plan (compare)'}
           </a>{' '}
           <a className="btn small" href="#/settings">
             Edit class

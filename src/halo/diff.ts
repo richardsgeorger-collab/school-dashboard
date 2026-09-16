@@ -156,7 +156,8 @@ export function mergeItem(existing: Item, next: Item, course: Course, now: strin
     source: existing.source === 'manual' ? 'manual' : source,
     updatedAt: now,
   };
-  if (!existing.estimateOverridden) {
+  // The rule table fills the estimate unless the student set one or the AI pass reasoned one for a class that runs on it.
+  if (!existing.estimateOverridden && !(course.ingest === 'ai' && existing.plan?.minutes)) {
     merged.estimatedMinutes = estimateMinutes({ title: merged.title, type: merged.type, points: merged.points, courseCode: course.code });
   }
   return merged;

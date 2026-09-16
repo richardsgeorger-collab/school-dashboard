@@ -216,7 +216,14 @@ export function Record({ embedded = false, courseId: onlyCourse, collapseOver }:
     try {
       const transcript = await loadTranscript(r.id, true);
       if (wordCount(transcript) < 20) throw new Error('The transcript is too short to work with. Paste the one from Voice Memos first.');
-      const notes = await summarizeLecture({ apiKey, transcript, course: c, lectureDate: dateOf(r.startedAt, tz), items: data.items, tz });
+      // Timed stretches let the pass point at a moment; the day's deck lets it say which slides got the time.
+      const segs = await recordingsDb.segments(r.id);
+      const mmss = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
+      const timed = segs.some((sg) => sg.at > 0) ? segs.map((sg) => `[${mmss(sg.at)}] ${sg.text}`).join('\n') : transcript;
+      const day = dateOf(r.startedAt, tz);
+      const deck = decks.find((d) => d.courseId === r.courseId && d.date === day) ?? null;
+      const deckOutline = deck ? { deckId: deck.id, title: deck.title, lines: (await libraryDb.pages(deck.id).catch(() => [])).slice(0, 80).map((p) => `${p.n}. ${(p.text.split(/\n+/).find((l) => l.trim().length > 2) ?? '').trim().slice(0, 90)}`) } : null;
+      const notes = await summarizeLecture({ apiKey, transcript: timed, course: c, lectureDate: day, items: data.items, tz, deckOutline });
       const updated = { ...r, notes, processedAt: new Date().toISOString() };
       await recordingsDb.put(updated);
       await refresh();

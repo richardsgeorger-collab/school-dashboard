@@ -248,6 +248,45 @@ export function LectureReview({
             </div>
           </section>
         )}
+        {notes.knowledge && (notes.knowledge.examFlags.length > 0 || notes.knowledge.emphasized.length > 0 || notes.knowledge.dwelt.length > 0 || notes.knowledge.skipped.length > 0 || notes.knowledge.terms.length > 0) && (
+          <section className="rev-knowledge">
+            {notes.knowledge.examFlags.length > 0 && (
+              <>
+                <h3>Called exam material</h3>
+                <ul className="rev-summary">
+                  {notes.knowledge.examFlags.map((p, i) => (
+                    <li key={i}>
+                      <b>{p.point}</b> <span className="hint">“{p.quote}”{p.at ? ` · ${p.at}` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {notes.knowledge.emphasized.length > 0 && (
+              <>
+                <h3>Stressed</h3>
+                <ul className="rev-summary">
+                  {notes.knowledge.emphasized.map((p, i) => (
+                    <li key={i}>
+                      <b>{p.point}</b> <span className="hint">“{p.quote}”{p.at ? ` · ${p.at}` : ''}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {(notes.knowledge.dwelt.length > 0 || notes.knowledge.skipped.length > 0) && (
+              <p className="hint">
+                {notes.knowledge.dwelt.length > 0 && `Spent time on: ${notes.knowledge.dwelt.map((d) => (d.slide ? `slide ${d.slide} (${d.title})` : d.title)).join(', ')}.`}
+                {notes.knowledge.skipped.length > 0 && ` Skipped: ${notes.knowledge.skipped.map((d) => (d.slide ? `slide ${d.slide} (${d.title})` : d.title)).join(', ')}.`}
+              </p>
+            )}
+            {notes.knowledge.terms.length > 0 && (
+              <p className="hint">
+                <b>Terms:</b> {notes.knowledge.terms.map((t) => `${t.term} — ${t.meaning}`).join('; ')}
+              </p>
+            )}
+          </section>
+        )}
         <section>
           <h3>
             {notes.model === 'capture' && notes.mentions.some((m) => m.audit) ? 'Findings' : 'Dates and deadlines mentioned'} <span className="count">{pending ? `${pending} to review` : 'all reviewed'}</span>

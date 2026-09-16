@@ -38,6 +38,16 @@ export function TermView({ items, onOpen }: { items: Item[]; onOpen: (i: Item) =
         {Math.round(shape.elapsed * 100)}% of the term gone{today < shape.midpoint ? `, midpoint ${fmtDate(shape.midpoint, 'short')}` : ', past the midpoint'}.{' '}
         {brutal.length ? `Heaviest: week${brutal.length === 1 ? '' : 's'} ${brutal.map((w) => w.index).join(', ')}.` : 'No week stands out yet.'}
       </p>
+      {(data.settings.termPlan?.weeks ?? []).some((w) => w.start >= today && (w.load === 'brutal' || w.load === 'heavy') && w.why) && (
+        <p className="hint">
+          <span className="ai-from">AI</span>{' '}
+          {(data.settings.termPlan?.weeks ?? [])
+            .filter((w) => w.start >= today && (w.load === 'brutal' || w.load === 'heavy') && w.why)
+            .slice(0, 4)
+            .map((w) => `${fmtDate(w.start, 'short')}: ${w.why}${w.load === 'brutal' ? ' (brutal)' : ''}`)
+            .join(' · ')}
+        </p>
+      )}
       <ol className="term-weeks" aria-label="Points due by week">
         {shape.weeks.map((w: TermWeek) => (
           <li key={w.start} className="term-week" data-current={w.current} data-brutal={w.brutal} data-past={w.end < today} title={`Week ${w.index}, ${fmtDate(w.start, 'short')}: ${w.points} pts, ${w.items} items`}>

@@ -6,6 +6,7 @@ import { recordingsDb, type Recording } from '../record/db';
 import { syllabiDb } from '../syllabus/db';
 import { QuizLink } from './Quiz';
 import { gatedBy } from '../domain/gating';
+import { Sure } from './PlanReview';
 import { WorkPanel } from './WorkPanel';
 import { addDays } from '../domain/dates';
 import { Modal } from '../components/Modal';
@@ -252,6 +253,12 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
               }}
             />
             <span className="hint">
+              {item.plan?.minutes && !draft.estimateOverridden && Number(draft.estimatedMinutes) === item.plan.minutes.value ? (
+                <>
+                  <span className="ai-from">AI</span> {item.plan.minutes.why} <Sure c={item.plan.minutes.confidence} />
+                  {' · '}
+                </>
+              ) : null}
               Suggested {fmtMinutes(suggested)}
               {Number(draft.estimatedMinutes) !== suggested && (
                 <>
@@ -266,7 +273,18 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           <label className="field">
             <span>Start by (override)</span>
             <input type="date" value={draft.startByOverride} onChange={(e) => set('startByOverride', e.target.value)} />
-            {sched && <span className="hint">Computed {fmtDate(sched.startBy, 'long')}</span>}
+            {sched && (
+              <span className="hint">
+                {item.startByPlan && !draft.startByOverride && item.plan?.startBy ? (
+                  <>
+                    <span className="ai-from">AI</span> {fmtDate(item.startByPlan, 'long')} <Sure c={item.plan.startBy.confidence} />
+                    <span className="plan-why">{item.plan.startBy.why}</span>
+                  </>
+                ) : (
+                  <>Computed {fmtDate(sched.startBy, 'long')}</>
+                )}
+              </span>
+            )}
           </label>
         </div>
         <div className="field">
@@ -328,6 +346,35 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             />{' '}
             minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
           </p>
+        )}
+        {!isNew && item.plan && (item.plan.asks || item.plan.prerequisites.some((p) => !p.itemId) || item.plan.sources.length > 0) && (
+          <div className="plan-block">
+            {item.plan.asks && !item.brief && (
+              <p className="hint">
+                <b>What it asks for</b> <span className="ai-from">AI</span>
+                <span className="plan-why">{item.plan.asks}</span>
+              </p>
+            )}
+            {item.plan.prerequisites.some((p) => !p.itemId) && (
+              <p className="hint">
+                <b>First:</b> {item.plan.prerequisites.filter((p) => !p.itemId).map((p) => `${p.text} (${p.source})`).join(' ')}
+              </p>
+            )}
+            {item.plan.sources.length > 0 && (
+              <p className="hint">
+                <b>Covered by:</b>{' '}
+                {item.plan.sources.map((s, i) =>
+                  s.href ? (
+                    <a key={i} className="diff-toggle" href={s.href} style={{ marginRight: 8 }} onClick={onClose}>
+                      {s.label}
+                    </a>
+                  ) : (
+                    <span key={i} style={{ marginRight: 8 }}>{s.label}</span>
+                  ),
+                )}
+              </p>
+            )}
+          </div>
         )}
         {!isNew && course && <WorkPanel item={item} course={course} />}
         {!isNew && (decks.length > 0 || recs.length > 0 || sylLine) && (

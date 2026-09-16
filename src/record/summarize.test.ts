@@ -40,3 +40,24 @@ describe('lecture notes prompt and parsing', () => {
     expect(notesFromTool(null, 'm').mentions).toEqual([]);
   });
 });
+
+describe('what the lecture said that a file cannot', () => {
+  it('reads what was stressed, what was called exam material, which slides got the time, and the terms, and shapes bad fields', () => {
+    const notes = notesFromTool(
+      { summary: ['x'], concepts: [], mentions: [], emphasized: [{ point: 'Logos carries an op-ed', quote: 'logos carries it', at: '12:30' }, { point: '', quote: 'nothing', at: '' }], exam_flags: [{ point: 'Know the three appeals', quote: 'this is on the test', at: 'noon' }], dwelt: [{ slide: 3, title: 'Op-ed structure', why: 'ten minutes' }, { slide: 0, title: '', why: '' }], skipped: [{ slide: null, title: 'Ethos', why: 'ran out of time' }], terms: [{ term: 'kairos', meaning: 'the right moment for an argument' }, { term: '', meaning: 'x' }] },
+      'm',
+      '2026-09-15T00:00:00.000Z',
+      'd1',
+    );
+    expect(notes.knowledge).toEqual({
+      emphasized: [{ point: 'Logos carries an op-ed', quote: 'logos carries it', at: '12:30' }],
+      examFlags: [{ point: 'Know the three appeals', quote: 'this is on the test', at: '' }],
+      dwelt: [{ slide: 3, title: 'Op-ed structure', why: 'ten minutes' }],
+      skipped: [{ slide: null, title: 'Ethos', why: 'ran out of time' }],
+      terms: [{ term: 'kairos', meaning: 'the right moment for an argument' }],
+      deckId: 'd1',
+    });
+    // An older answer without the fields carries no knowledge block.
+    expect(notesFromTool({ summary: [], concepts: [], mentions: [] }, 'm').knowledge).toBeUndefined();
+  });
+});

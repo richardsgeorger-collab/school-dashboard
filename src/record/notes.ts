@@ -29,10 +29,42 @@ export interface Mention {
   gates?: string[];
 }
 
+/** A point the professor made, with the words and the moment, so it can be checked. */
+export interface SaidPoint {
+  point: string;
+  quote: string;
+  /** mm:ss into the recording. */
+  at: string;
+}
+
+export interface SlideNote {
+  /** Slide number in the same-day deck, when one was on file. */
+  slide: number | null;
+  title: string;
+  why: string;
+}
+
+export interface Term {
+  term: string;
+  meaning: string;
+}
+
+/** What a lecture said that a file cannot: what was stressed, what was called exam material, which slides got the time. */
+export interface LectureKnowledge {
+  emphasized: SaidPoint[];
+  examFlags: SaidPoint[];
+  dwelt: SlideNote[];
+  skipped: SlideNote[];
+  terms: Term[];
+  /** The deck the recording was read against, when one was on file. */
+  deckId: string | null;
+}
+
 export interface LectureNotes {
   summary: string[];
   concepts: string[];
   mentions: Mention[];
   model: string;
   createdAt: string;
+  knowledge?: LectureKnowledge | null;
 }

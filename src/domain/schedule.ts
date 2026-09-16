@@ -138,6 +138,8 @@ export function computeSchedule(
 
     let startBy = item.estimatedMinutes > TINY_MINUTES ? latestStart : addDays(dd, -1);
     if (opensDay && startBy < opensDay) startBy = opensDay;
+    // The AI pass's start-by, once accepted, replaces the rule; the student's own override replaces both.
+    if (item.startByPlan) startBy = item.startByPlan;
     if (item.startByOverride) startBy = item.startByOverride;
 
     const dueMs = new Date(item.dueAt).getTime();

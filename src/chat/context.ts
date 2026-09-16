@@ -66,6 +66,8 @@ export function buildContext(input: ContextInput): string {
         points: i.points,
         status: i.status,
         ...(i.flags.inClass ? { inClass: true } : {}),
+        ...(i.halo?.status ? { halo: i.halo.status } : {}),
+        ...(i.plan?.asks ? { asks: i.plan.asks.slice(0, 120) } : {}),
         ...(i.snoozedUntil && i.snoozedUntil > today ? { snoozedUntil: i.snoozedUntil } : {}),
         deadlineKey: s?.deadlineDay ?? due,
       };
