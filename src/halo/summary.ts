@@ -22,7 +22,7 @@ export const POLISH_TOOL = {
       lines: {
         type: 'array',
         description: 'One entry per line given, same ids, in the same order. Reword only; never add, drop, or merge lines.',
-        items: { type: 'object', additionalProperties: false, required: ['id', 'text'], properties: { id: { type: 'string' }, text: { type: 'string', description: 'One short plain sentence, under 120 characters, full course code first, the date and what it gates or costs when known.' } } },
+        items: { type: 'object', additionalProperties: false, required: ['id', 'text'], properties: { id: { type: 'string' }, text: { type: 'string', description: 'One complete plain sentence, 40 to 120 characters: the full course code, the item name(s) as given, the date, and what it gates or costs when known. Never only a course code.' } } },
       },
     },
   },
@@ -33,6 +33,7 @@ Rules:
 - One sentence per line, plain words, under 120 characters. Start with the full course code (ESG-162L, ENG-105, CHM-113).
 - Say what it is and why it matters: the date, what it gates, what it costs. Never say "finding", "status", or "row".
 - Keep every id, keep the order, keep the count. Do not merge, split, add, or drop lines. Do not invent facts beyond the ones given.
+- Every text is a complete sentence that names the item(s) from the line given. Never return only a course code.
 Answer only through the needs_you tool.`;
 
 export function buildPolishPrompt(input: PolishInput): { system: string; user: string } {
@@ -43,7 +44,15 @@ export function buildPolishPrompt(input: PolishInput): { system: string; user: s
 
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
-/** The model's wording laid over the local lines; anything missing or off keeps the local text. */
+const CODE = /\b[A-Z]{2,4}-\d{3}[A-Z]?\b/g;
+/** A rewording is used only when it still says something: a sentence of four or more words that names the same class as the local line. */
+const saysSomething = (text: string, local: string): boolean => {
+  if (text.length < 20 || text.split(/\s+/).length < 4) return false;
+  const codes = local.match(CODE) ?? [];
+  return codes.length === 0 || codes.some((c) => text.includes(c));
+};
+
+/** The model's wording laid over the local lines; anything missing, thin, or about another class keeps the local text. */
 export function polishedLines(raw: unknown, lines: NeedLine[]): NeedLine[] {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const byId = new Map<string, string>();
@@ -53,7 +62,10 @@ export function polishedLines(raw: unknown, lines: NeedLine[]): NeedLine[] {
     const text = str(x.text);
     if (id && text) byId.set(id, text);
   }
-  return lines.map((l) => ({ ...l, text: byId.get(l.id) ?? l.text }));
+  return lines.map((l) => {
+    const t = byId.get(l.id);
+    return { ...l, text: t && saysSomething(t, l.text) ? t : l.text };
+  });
 }
 
 /** One call, the key from this browser, answered through the forced tool. */

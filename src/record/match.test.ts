@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mkCourse, mkItem, NOW, TZ } from '../halo/fixtures';
-import { matchMention, nextWeekday, proposalFor, titleSimilarity } from './match';
+import { matchMention, matchScore, nextWeekday, numbersAgree, proposalFor, titleSimilarity } from './match';
 import type { Mention } from './notes';
 import { sampleNotes } from './sample';
 
@@ -24,6 +24,23 @@ describe('matching a mention to the planner', () => {
     expect(matchMention(mention({ title: 'Chapter 4 reading check' }), items, 'c1')).toBeNull();
     expect(matchMention(mention({ title: 'anything', itemId: 'ex1' }), items, 'c1')?.id).toBe('ex1');
     expect(titleSimilarity('Quiz 2', 'Topic 2 Quiz')).toBeGreaterThan(0.5);
+  });
+  it('reads numbers in order: "Topic 2 DQ 1" is not "DQ 1.2", so it is added rather than moving the wrong post', () => {
+    const eng = mkCourse({ id: 'e1', code: 'ENG-105' });
+    const dq12 = mkItem({ id: 'dq12', courseId: 'e1', title: 'DQ 1.2', label: 'ENG-105-ONL4 DQ 1.2', type: 'discussion', dueAt: '2026-09-18T23:59:00-07:00' });
+    const dq21 = mkItem({ id: 'dq21', courseId: 'e1', title: 'DQ 2.1', label: 'ENG-105-ONL4 DQ 2.1', type: 'discussion', dueAt: '2026-09-23T23:59:00-07:00' });
+    const t2dq1 = mention({ title: 'Topic 2 DQ 1', kind: 'new', date: '2026-09-23', time: '23:59' });
+    expect(matchMention(t2dq1, [dq12, dq21], 'e1')?.id).toBe('dq21');
+    expect(matchMention(t2dq1, [dq12], 'e1')).toBeNull();
+    expect(matchMention(mention({ title: 'Topic 1 DQ 2' }), [dq12, dq21], 'e1')?.id).toBe('dq12');
+    expect(matchScore(t2dq1, dq12)).toBeLessThan(0.5);
+    expect(matchScore(mention({ title: 'Topic 1 DQ 2' }), dq12)).toBeGreaterThanOrEqual(0.8);
+    // With only the Sep 18 post in the planner, the Sep 23 one is added; nothing moves.
+    expect(proposalFor(t2dq1, matchMention(t2dq1, [dq12], 'e1'), eng, TZ, '2026-09-15', NOW)).toMatchObject({ kind: 'add', item: { title: 'Topic 2 DQ 1' } });
+    // Numbers that only extend the other title still agree.
+    expect(numbersAgree('Quiz 3', 'Topic 3 Quiz 3')).toBe(true);
+    expect(numbersAgree('Exam 2', 'Exam 1 Review')).toBe(false);
+    expect(numbersAgree('Chemistry Connections Essay', 'Essay 2')).toBe(true);
   });
 });
 

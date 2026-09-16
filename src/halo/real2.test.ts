@@ -73,6 +73,20 @@ describe('the second real audit: six own coverage lines and no FINAL block', () 
     expect(unknown.length).toBeLessThanOrEqual(6);
     expect(r.unread.length).toBeLessThanOrEqual(6);
   });
+  it('never moves a discussion post whose numbers match in a different order: "Topic 2 DQ 1" is not "DQ 1.2"', () => {
+    // The planner shaped by the Halo calendar feed: posts titled "DQ 1.2" with the section code in the label.
+    const dq = (n: string, d: string) => mkItem({ id: `dq${n}`, courseId: 'eng', title: `DQ ${n}`, label: `ENG-105-ONL4 DQ ${n}`, type: 'discussion', points: 5, dueAt: at(d) });
+    const items = [dq('1.1', '2026-09-16'), dq('1.2', '2026-09-18'), dq('2.1', '2026-09-23'), dq('2.2', '2026-09-25')];
+    const proposals = byClass('eng').map((m) => [m.title, proposalFor(m, matchMention(m, items, 'eng'), eng, TZ, today, NOW)] as const);
+    expect(proposals.filter(([, p]) => p.kind === 'update')).toEqual([]);
+    const byTitle = (t: string) => proposals.find(([title]) => title === t)![1];
+    expect(byTitle('Topic 1 DQ 2')).toMatchObject({ kind: 'confirm', item: { id: 'dq1.2' } });
+    expect(byTitle('Topic 2 DQ 1')).toMatchObject({ kind: 'confirm', item: { id: 'dq2.1' } });
+    expect(byTitle('Topic 2 DQ 2')).toMatchObject({ kind: 'confirm', item: { id: 'dq2.2' } });
+    expect(byTitle('Topic 3 DQ 1')).toMatchObject({ kind: 'add' });
+    // With only the Sep 18 post present, the Sep 23 one is added rather than moving it.
+    expect(proposalFor(byClass('eng').find((m) => m.title === 'Topic 2 DQ 1')!, matchMention(byClass('eng').find((m) => m.title === 'Topic 2 DQ 1')!, [items[1]], 'eng'), eng, TZ, today, NOW)).toMatchObject({ kind: 'add', item: { title: 'Topic 2 DQ 1' } });
+  });
   it('applies what is safe and leaves four things for a person, with ENG-105 as one import', () => {
     const items: Item[] = [
       mkItem({ id: 'prereq', courseId: 'chm', title: 'CHM113 Prerequisite Concept Assignment', label: 'Chem Prereq Concepts', points: 20, status: 'done', completedAt: at('2026-09-13'), dueAt: at('2026-09-13') }),

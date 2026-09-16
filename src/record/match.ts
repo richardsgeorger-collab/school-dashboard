@@ -38,16 +38,36 @@ export const isGating = (m: Mention): boolean =>
   /\b(gates?|gating|prerequisite|required before|must be (done|claimed|completed|submitted) before|before (you|the student) can)\b/i.test(m.note ?? '') ||
   /\b(name-claiming|claim(ing)? (your|a|the) [^.]{0,30}topic|pick your [^.]{0,40}topic)\b/i.test(`${m.title} ${m.note ?? ''}`);
 
-/** How alike a mention and an item are, by title or label; 1 is the same words. */
-export function matchScore(m: Mention, item: Item): number {
-  const q = words(m.title).join(' ');
-  if (!q) return 0;
+/** The numbers in a title, in the order written: "Topic 2 DQ 1" is [2, 1] and "DQ 1.2" is [1, 2]. */
+const numbersOf = (s: string): string[] => words(s).filter((w) => /^\d+$/.test(w));
+const inOrder = (a: string[], b: string[]): boolean => {
+  let i = 0;
+  for (const x of b) if (i < a.length && a[i] === x) i++;
+  return i === a.length;
+};
+/** Titles whose numbers come in a different order name different things: "Topic 2 DQ 1" is not "DQ 1.2". One title's numbers may extend the other's. */
+export const numbersAgree = (a: string, b: string): boolean => {
+  const A = numbersOf(a);
+  const B = numbersOf(b);
+  return !A.length || !B.length || inOrder(A, B) || inOrder(B, A);
+};
+/** The most a title can score when its numbers disagree with the item's: below the match line. */
+const DISAGREE = 0.4;
+
+function likeness(q: string, m: Mention, item: Item): number {
+  if (normTitle(item.title) === normTitle(m.title)) return 1;
   const t = words(item.title).join(' ');
   const l = words(item.label).join(' ');
-  if (normTitle(item.title) === normTitle(m.title)) return 1;
   let s = Math.max(titleSimilarity(q, t), titleSimilarity(q, l));
   if (` ${t} `.includes(` ${q} `) || ` ${l} `.includes(` ${q} `)) s = Math.max(s, 0.9);
+  if (!numbersAgree(m.title, item.title) && !numbersAgree(m.title, item.label)) s = Math.min(s, DISAGREE);
   return s;
+}
+
+/** How alike a mention and an item are, by title or label; 1 is the same words, and numbers must come in the same order. */
+export function matchScore(m: Mention, item: Item): number {
+  const q = words(m.title).join(' ');
+  return q ? likeness(q, m, item) : 0;
 }
 
 /** The planner item a mention is about: the model's pick if it exists, else the closest open title in that class. */
@@ -69,13 +89,7 @@ export function matchMention(m: Mention, items: Item[], courseId: string): Item 
   const q = words(m.title).join(' ');
   if (!q) return null;
   const scores = new Map<string, number>();
-  for (const i of pool) {
-    const t = words(i.title).join(' ');
-    const l = words(i.label).join(' ');
-    let s = Math.max(titleSimilarity(q, t), titleSimilarity(q, l));
-    if (` ${t} `.includes(` ${q} `) || ` ${l} `.includes(` ${q} `)) s = Math.max(s, 0.9);
-    scores.set(i.id, s);
-  }
+  for (const i of pool) scores.set(i.id, likeness(q, m, i));
   // A distinctive word (ALEKS, LopesWrite) that appears in exactly one open item is a match on its own,
   // unless the mention names a number that item does not carry ("Quiz 1" is not "Quiz 2").
   const isNum = (w: string) => /^\d+$/.test(w);
@@ -159,7 +173,7 @@ export function proposalFor(m: Mention, match: Item | null, course: Course, tz: 
       const handedIn = saysSubmitted(m);
       if (handedIn && (m.points ?? 0) === 0) return { kind: 'confirm', item: null, text: `"${m.title}" is a 0-point item already submitted in Halo. Nothing to track.` };
       // A 0-point item whose date has passed without Halo flagging it late would only sit on Now as a stale row.
-      if ((m.points ?? 0) === 0 && m.date && m.date < lectureDate) return { kind: 'confirm', item: null, text: `"${m.title}" is a 0-point item already past its date, and Halo does not flag it late. Nothing to track.` };
+      if (m.points === 0 && m.date && m.date < lectureDate) return { kind: 'confirm', item: null, text: `"${m.title}" is a 0-point item already past its date, and Halo does not flag it late. Nothing to track.` };
       if (dueAt) {
         const fresh = newItemFrom(m, course, dueAt, lectureDate, now);
         return { kind: 'add', item: handedIn ? { ...fresh, status: 'done', completedAt: dueAt } : fresh };

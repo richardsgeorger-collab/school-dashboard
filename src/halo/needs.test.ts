@@ -64,5 +64,8 @@ describe('what applies on its own and what waits for a person', () => {
     const polished = polishedLines({ lines: [{ id: 'n3', text: 'CHM-113L topic claim due Sep 20 — gates your Sep 27 presentation.' }, { id: 'zz', text: 'ignored' }] }, lines);
     expect(polished[2].text).toBe('CHM-113L topic claim due Sep 20 — gates your Sep 27 presentation.');
     expect(polished[0].text).toBe(lines[0].text);
+    // A rewording that says nothing — a bare course code, a fragment, or the wrong class — keeps the local words.
+    const thin = polishedLines({ lines: [{ id: 'n1', text: 'ESG-162L' }, { id: 'n2', text: 'Check Halo.' }, { id: 'n3', text: 'ENG-105 topic claim due Sep 20 — gates your Sep 27 presentation.' }] }, lines);
+    expect(thin.map((l) => l.text)).toEqual(lines.map((l) => l.text));
   });
 });
