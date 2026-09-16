@@ -14,7 +14,7 @@ describe('lecture notes prompt and parsing', () => {
     expect(p.user).not.toContain('Other class');
     expect(p.system).toMatch(/lecture_notes/);
     expect(NOTES_MODEL).toBe('claude-sonnet-4-6');
-    expect(NOTES_TOOL.strict).toBe(true);
+    expect('strict' in NOTES_TOOL).toBe(false);
   });
   it('shapes model output defensively', () => {
     const notes = notesFromTool(

@@ -65,8 +65,33 @@ export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
   });
   recordUsage(args.kind, model, response.usage as ApiUsage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not answer through the tool.');
-  return { input: use.input, usage: response.usage as ApiUsage, model };
+  if (use) return { input: use.input, usage: response.usage as ApiUsage, model };
+  // The tool is forced, so this is rare. When it happens the answer is usually the same object written as text, and
+  // every reader validates what it gets, so parsing it is no less safe than trusting the tool block.
+  const text = response.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+  const loose = jsonFromText(text);
+  if (loose) return { input: loose, usage: response.usage as ApiUsage, model };
+  throw new Error('The model did not answer through the tool.');
+}
+
+/** The first JSON object in a piece of text, fenced or not. Null when there is none to read. */
+export function jsonFromText(text: string): unknown | null {
+  const body = text.replace(/^[\s\S]*?```(?:json)?\n/, '').replace(/```[\s\S]*$/, '');
+  for (const candidate of [body, text]) {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start < 0 || end <= start) continue;
+    try {
+      const parsed: unknown = JSON.parse(candidate.slice(start, end + 1));
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch {
+      // Not JSON after all; fall through to the next shape.
+    }
+  }
+  return null;
 }
 
 export interface Turn {
@@ -100,13 +125,31 @@ export async function callText(args: TextCallArgs): Promise<{ text: string; usag
   return { text, usage: response.usage as ApiUsage, model };
 }
 
-/** A short, plain sentence for any API failure. */
+/** What a failure means, in words a person can act on. The raw text goes to the console, never the screen. */
+export function plainApiError(status: number | undefined, message: string): string {
+  const m = message.toLowerCase();
+  if (/compiled grammar|tool schemas|too large/.test(m)) return 'the request was shaped in a way Anthropic could not accept';
+  if (/credit|billing|quota|insufficient/.test(m)) return 'this key is out of credit';
+  if (/overloaded/.test(m) || status === 529) return 'Anthropic is overloaded right now';
+  if (/prompt is too long|max_tokens|context window|too many tokens/.test(m)) return 'there was more material than fits in one pass';
+  if (status === 401 || status === 403) return 'that API key was rejected';
+  if (status === 429) return 'this key is being rate limited';
+  if (status === 400) return 'Anthropic turned the request down as malformed';
+  if (status && status >= 500) return 'Anthropic had a server error';
+  return 'the request to Anthropic failed';
+}
+
+/** One plain sentence for any failure of an AI pass. */
 export async function describeAiError(e: unknown): Promise<string> {
   const SdkCtor = await sdk();
   if (e instanceof SdkCtor.AuthenticationError) return 'That API key was rejected. Check it in Settings.';
-  if (e instanceof SdkCtor.RateLimitError) return 'Rate limited. Give it a minute.';
+  if (e instanceof SdkCtor.RateLimitError) return 'This key is being rate limited. Give it a minute and try again.';
   if (e instanceof SdkCtor.APIConnectionError) return 'Could not reach Anthropic. Check your connection.';
-  if (e instanceof SdkCtor.APIError) return `Anthropic returned ${e.status}: ${e.message}`;
+  if (e instanceof SdkCtor.APIError) {
+    // eslint-disable-next-line no-console
+    console.warn('Anthropic error', e.status, e.message);
+    return `It failed because ${plainApiError(e.status, String(e.message ?? ''))}.`;
+  }
   return e instanceof Error ? e.message : String(e);
 }
 

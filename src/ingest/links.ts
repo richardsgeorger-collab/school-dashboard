@@ -9,7 +9,6 @@ import { itemTopics, topicKey } from '../domain/concepts';
 export const LINKS_TOOL: ToolSpec = {
   name: 'topic_links',
   description: 'Topics that overlap across a student’s classes, each with one sentence on what carries over.',
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,

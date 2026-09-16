@@ -23,29 +23,47 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
 const reply = (name, input) => JSON.stringify({ id: 'msg_e2e', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu_1', name, input }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 41000, output_tokens: 3800, cache_creation_input_tokens: 30000, cache_read_input_tokens: 0 } });
 const calls = [];
 // The canned passes read the refs out of the prompt, so they fit whatever the seed holds.
-function classPlan(user) {
-  const items = [];
+/** The assignments the prompt listed, read back out of it. */
+function refsIn(text) {
+  const out = [];
   const re = /\[(A\d+)\] "([^"]+)" · (\w+) · due (\d{4}-\d{2}-\d{2})[^\n]*?· (\d+) pts/g;
   let m;
-  while ((m = re.exec(user))) {
+  while ((m = re.exec(text))) {
     const [, ref, title, type, due, pts] = m;
-    const big = Number(pts) >= 100 || type === 'paper' || type === 'project';
-    const post = type === 'discussion';
-    items.push({
-      ref,
-      asks: big ? `A ${title.toLowerCase().includes('draft') ? 'draft' : 'finished piece'} with sources in APA, run through LopesWrite.` : post ? 'One post answering the prompt and two replies.' : `Do ${title} as described.`,
-      start_by: { date: shift(due, big ? -10 : post ? -1 : -3), why: big ? 'Reading, two sources, a draft, and a day for LopesWrite need ten days.' : post ? 'A post; the day before is enough.' : 'Three evenings covers it.', confidence: big ? 'medium' : 'high' },
-      minutes: { value: big ? 240 : post ? 30 : 60, why: big ? 'Four hours for the words and the sources.' : 'Short.', confidence: 'medium' },
-      milestones: big ? ['Pick the issue', 'Find two sources', 'Outline', 'Draft', 'Run LopesWrite'] : [],
-      prerequisites: [],
-      flags: { lopes_write: big, timed: false, group: false, in_person: false },
-      topics: big ? ['argument', 'rhetorical appeals'] : ['course basics'],
-      feeds: null,
-      sources: big ? [{ kind: 'syllabus', label: 'ENG-105 syllabus' }] : [],
-      citations: ['Halo description'],
-    });
+    out.push({ ref, title, type, due, points: Number(pts), big: Number(pts) >= 100 || type === 'paper' || type === 'project', post: type === 'discussion' });
   }
-  return { items, discovered: [{ title: 'Peer review day', due: null, due_time: null, points: null, type: 'other', quote: 'Peer review happens in class.', source: 'syllabus', confidence: 'medium', why: 'In-class work.' }, { title: 'Reading response 1', due: shift(items[0]?.start_by.date ?? '2026-09-20', 20), due_time: null, points: 10, type: 'homework', quote: 'Reading response 1 is due in week five.', source: 'syllabus', confidence: 'high', why: 'Not in Halo.' }], topics: [{ name: 'rhetorical appeals', week: 2, builds_on: [] }, { name: 'argument', week: 5, builds_on: ['rhetorical appeals'] }], notes: 'Every paper leans on the appeals deck.' };
+  return out;
+}
+function classCore(user) {
+  return {
+    items: refsIn(user).map((a) => ({
+      ref: a.ref,
+      asks: a.big ? `A ${a.title.toLowerCase().includes('draft') ? 'draft' : 'finished piece'} with sources in APA, run through LopesWrite.` : a.post ? 'One post answering the prompt and two replies.' : `Do ${a.title} as described.`,
+      start_by: shift(a.due, a.big ? -10 : a.post ? -1 : -3),
+      start_why: a.big ? 'Reading, two sources, a draft, and a day for LopesWrite need ten days.' : a.post ? 'A post; the day before is enough.' : 'Three evenings covers it.',
+      minutes: a.big ? 240 : a.post ? 30 : 60,
+      minutes_why: a.big ? 'Four hours for the words and the sources.' : 'Short.',
+      confidence: a.big ? 'medium' : 'high',
+      unsure: a.big ? ['start_by'] : [],
+      flags: a.big ? ['lopes_write'] : [],
+      topics: a.big ? ['argument', 'rhetorical appeals'] : ['course basics'],
+    })),
+  };
+}
+function classDetail(user) {
+  const asked = (user.match(/Break these down: ([^.]*)/)?.[1] ?? '').split(/,\s*/).filter(Boolean);
+  const byRef = new Map(refsIn(user).map((a) => [a.ref, a]));
+  return {
+    items: asked.map((ref) => ({ ref, milestones: ['Pick the issue', 'Find two sources', 'Outline', 'Draft', 'Run LopesWrite'], prerequisites: byRef.get(ref)?.big ? ['Claim a topic in the forum first.'] : [], prerequisite_sources: byRef.get(ref)?.big ? ['syllabus'] : [], prerequisite_refs: [''], feeds: '' })),
+    discovered: [
+      { title: 'Peer review day', due: '', points: 0, type: 'other', quote: 'Peer review happens in class.', source: 'syllabus', confidence: 'medium', why: 'In-class work.' },
+      { title: 'Reading response 1', due: shift([...byRef.values()][0]?.due ?? '2026-09-20', 5), points: 10, type: 'homework', quote: 'Reading response 1 is due in week 5.', source: 'syllabus', confidence: 'high', why: 'Not in Halo.' },
+    ],
+    topics: [{ name: 'rhetorical appeals', week: 2, builds_on: [] }, { name: 'argument', week: 5, builds_on: ['rhetorical appeals'] }],
+  };
+}
+function classMaterial(user) {
+  return { items: refsIn(user).filter((a) => a.big).map((a) => ({ ref: a.ref, sources: ['ENG-105 syllabus'], citations: ['Halo description'] })) };
 }
 function termPlan(user) {
   const starts = [];
@@ -70,8 +88,10 @@ page.on('request', (req) => {
   const body = JSON.parse(req.postData() ?? '{}');
   const tool = body.tool_choice?.name;
   const user = typeof body.messages?.[0]?.content === 'string' ? body.messages[0].content : '';
-  calls.push({ tool: tool ?? 'text', chars: user.length, system: Array.isArray(body.system) ? body.system.map((b) => [b.text.length, !!b.cache_control]) : [[String(body.system ?? '').length, false]] });
-  const input = tool === 'class_plan' ? classPlan(user) : tool === 'term_plan' ? termPlan(user) : null;
+  const sys = Array.isArray(body.system) ? body.system.map((b) => b.text).join('\n') : String(body.system ?? '');
+  calls.push({ tool: tool ?? 'text', strict: (body.tools ?? []).some((t) => t.strict), cached: Array.isArray(body.system) ? body.system.filter((b) => b.cache_control).length : 0, prefix: Array.isArray(body.system) ? body.system.slice(0, 2).map((b) => b.text.length).join('/') : '' });
+  const ofTool = { class_core: classCore, class_detail: classDetail, class_material: classMaterial, term_plan: termPlan }[tool];
+  const input = ofTool ? ofTool(sys + '\n' + user) : null;
   if (!input) return req.respond({ status: 500, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ type: 'error', error: { type: 'api_error', message: 'unexpected tool' } }) });
   return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: reply(tool, input) });
 });
@@ -97,6 +117,8 @@ await page.click('.ingest-status .btn.primary');
 await page.waitForSelector('.ingest-summary', { timeout: 15000 });
 console.log('summary:', await t('.ingest-summary'));
 console.log('calls:', JSON.stringify(calls));
+console.log('one shared cached prefix:', new Set(calls.filter((c) => c.tool.startsWith('class_')).map((c) => c.prefix)).size === 1, '| any strict tool:', calls.some((c) => c.strict));
+console.log('run cost line:', (await all('.ingest-status .hint')).find((x) => x.startsWith('That run')));
 console.log('rows:', await page.$$eval('.ingest-row', (els) => els.length), '| first AI cell:', (await all('.ingest-row .ingest-ai'))[0]?.slice(0, 160));
 console.log('brutal:', (await all('.ingest-status .hint')).find((x) => x.startsWith('Heaviest')));
 await page.screenshot({ path: `${out}-compare.png`, fullPage: false });

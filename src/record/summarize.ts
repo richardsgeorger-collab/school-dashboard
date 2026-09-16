@@ -8,10 +8,14 @@ import type { Confidence, LectureKnowledge, LectureNotes, Mention, MentionKind }
 export const NOTES_MODEL = 'claude-sonnet-4-6';
 const MAX_TRANSCRIPT_CHARS = 80_000;
 
+/**
+ * Not strict. This schema grew when the lecture pass started capturing what was stressed and what was called exam
+ * material, and a strict schema is compiled into a decoding grammar with a size ceiling. notesFromTool validates every
+ * field anyway, so the grammar bought nothing and could only fail.
+ */
 export const NOTES_TOOL = {
   name: 'lecture_notes',
   description: 'From a lecture transcript: a short summary, the concepts covered, every mention of a date or assignment, what the professor stressed, what was called exam material, which slides got the time, and the terms introduced.',
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -28,12 +32,12 @@ export const NOTES_TOOL = {
           required: ['quote', 'kind', 'title', 'date', 'time', 'points', 'confidence', 'itemId'],
           properties: {
             quote: { type: 'string', description: 'The transcript words, verbatim.' },
-            kind: { type: 'string', enum: ['new', 'date_change', 'cancel', 'info'] },
+            kind: { type: 'string', description: 'new, date_change, cancel, or info.' },
             title: { type: 'string', description: 'What it is about, e.g. "Quiz 2" or "Chapter 4 reading check".' },
             date: { type: ['string', 'null'], description: 'Absolute date YYYY-MM-DD resolved from the lecture date, or null.' },
             time: { type: ['string', 'null'], description: 'HH:mm in 24-hour time when said or implied, or null.' },
             points: { type: ['number', 'null'] },
-            confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+            confidence: { type: 'string', description: 'high, medium, or low.' },
             itemId: { type: ['string', 'null'], description: 'The id of the planner item this refers to, from the list given, or null.' },
           },
         },

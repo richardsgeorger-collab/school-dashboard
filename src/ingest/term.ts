@@ -82,10 +82,10 @@ export function buildTermInput(data: AppData, plans: Record<string, ClassPlan | 
   return input;
 }
 
+/** Not strict: the reader below validates every field, and a compiled grammar is one more thing that can fail. */
 export const TERM_PLAN_TOOL: ToolSpec = {
   name: 'term_plan',
   description: 'Start-by dates for every open assignment across all classes, the load of each week, and which assignments feed later ones.',
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -94,12 +94,12 @@ export const TERM_PLAN_TOOL: ToolSpec = {
       starts: {
         type: 'array',
         description: 'One entry per item that is not fixed. Skip fixed items.',
-        items: { type: 'object', additionalProperties: false, required: ['ref', 'start_by', 'why', 'confidence'], properties: { ref: { type: 'string' }, start_by: { type: 'string', description: 'YYYY-MM-DD, never after the due date.' }, why: { type: 'string', description: 'One sentence naming what else lands near it, or "as the class pass said" when nothing changes it.' }, confidence: { type: 'string', enum: ['high', 'medium', 'low'] } } },
+        items: { type: 'object', additionalProperties: false, required: ['ref', 'start_by', 'why', 'confidence'], properties: { ref: { type: 'string' }, start_by: { type: 'string', description: 'YYYY-MM-DD, never after the due date.' }, why: { type: 'string', description: 'One sentence naming what else lands near it, or "as the class pass said" when nothing changes it.' }, confidence: { type: 'string', description: 'high, medium, or low.' } } },
       },
       weeks: {
         type: 'array',
         description: 'One entry per week from the term start to its end.',
-        items: { type: 'object', additionalProperties: false, required: ['week_start', 'load', 'why'], properties: { week_start: { type: 'string', description: 'YYYY-MM-DD of the week’s first day.' }, load: { type: 'string', enum: ['brutal', 'heavy', 'normal', 'light'] }, why: { type: 'string', description: 'What lands there, in a few words. Empty for normal and light weeks.' } } },
+        items: { type: 'object', additionalProperties: false, required: ['week_start', 'load', 'why'], properties: { week_start: { type: 'string', description: 'YYYY-MM-DD of the week’s first day.' }, load: { type: 'string', description: 'brutal, heavy, normal, or light.' }, why: { type: 'string', description: 'What lands there, in a few words. Empty for normal and light weeks.' } } },
       },
       chains: {
         type: 'array',

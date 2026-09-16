@@ -42,10 +42,10 @@ export interface StudyKit {
   sourcesHash: string;
 }
 
+/** Not strict: kitFromTool validates every field, and three nested arrays are exactly what blows a compiled grammar. */
 export const KIT_TOOL: ToolSpec = {
   name: 'study_kit',
   description: 'Study material built only from the sources given: a formula sheet, flashcards, or a one-page summary, each line citing its source.',
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,

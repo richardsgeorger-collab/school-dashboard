@@ -1,128 +1,155 @@
-import { arr, confidence, isoDate, num, obj, str, strs, type ToolSpec } from '../ai/client';
+import { arr, confidence, isoDate, num, obj, str, strs, type SystemBlock, type ToolSpec } from '../ai/client';
 import { addDays } from '../domain/dates';
 import type { Confidence, DateStr, ItemPlan, ItemType, PlanPrerequisite, PlanSource, TopicNode } from '../domain/types';
 import { normTitle } from '../halo/normalize';
 import type { ClassContext } from './context';
 
 /**
- * The class pass: one call per class that reads everything on file and returns, per assignment, what it asks for, a
- * reasoned start-by, a real effort estimate, milestones, prerequisites, flags, topics, and the material that covers it.
- * Due dates come from Halo and are never asked for.
+ * The class pass, in three small calls over one cached context.
+ *
+ * None of these tools is `strict`. Strict mode compiles the schema into a decoding grammar, and a schema with nested
+ * objects, enums, and a confidence block per field grew past what the API will compile ("the compiled grammar is too
+ * large"). Nothing here relied on that guarantee: every field below is read defensively and dropped when it is wrong,
+ * which is the real guarantee. So the schemas stay flat — scalars and string arrays, one level of nesting at most, and
+ * plain strings where an enum is not load-bearing — and the readers do the validating.
+ *
+ * A: what every item asks for, its start-by, its effort, its flags.
+ * B: milestones and prerequisites for work with parts, plus what the syllabus carries that Halo does not.
+ * C: which material on file covers which item.
+ *
+ * A must succeed. B and C degrade: a failure there leaves the rest of the plan standing and says so.
  */
-export const CLASS_PLAN_TOOL: ToolSpec = {
-  name: 'class_plan',
-  description: 'The plan for one class: every assignment understood from its description, rubric, syllabus, slides, and lectures.',
-  strict: true,
+
+const CORE_ITEM = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['ref', 'asks', 'start_by', 'start_why', 'minutes', 'minutes_why', 'confidence', 'unsure', 'flags', 'topics'],
+  properties: {
+    ref: { type: 'string', description: 'The [A#] ref of the assignment.' },
+    asks: { type: 'string', description: 'What it actually asks for, one to three plain lines: what to hand in, how long, what it must do.' },
+    start_by: { type: 'string', description: 'YYYY-MM-DD, the last day to start and still do it well. Empty string when the item is done or you cannot say.' },
+    start_why: { type: 'string', description: 'One sentence: the shape of the work and what else in this class is near it.' },
+    minutes: { type: 'integer', description: 'Realistic out-of-class minutes for a first-semester student. 0 when you cannot say.' },
+    minutes_why: { type: 'string', description: 'One sentence from the actual asks: words, sources, problems, reading.' },
+    confidence: { type: 'string', description: 'high, medium, or low: how sure you are about this item overall.' },
+    unsure: { type: 'array', items: { type: 'string' }, description: 'Field names you are least sure of: any of start_by, minutes. Empty when both are solid.' },
+    flags: { type: 'array', items: { type: 'string' }, description: 'Any of lopes_write, timed, group, in_person that the description or tags carry. Empty otherwise.' },
+    topics: { type: 'array', items: { type: 'string' }, description: 'The concepts the work is about, two to four words each, in the professor’s terms.' },
+  },
+} as const;
+
+export const CORE_TOOL: ToolSpec = {
+  name: 'class_core',
+  description: 'For every assignment in one class: what it asks for, when to start it, how long it really takes, and its flags.',
+  input_schema: { type: 'object', additionalProperties: false, required: ['items'], properties: { items: { type: 'array', description: 'One entry per assignment given, by its ref. Every ref exactly once.', items: CORE_ITEM } } },
+};
+
+export const DETAIL_TOOL: ToolSpec = {
+  name: 'class_detail',
+  description: 'Milestones and prerequisites for the work that has parts, the work the syllabus carries that Halo does not, and the class’s topic order.',
   input_schema: {
     type: 'object',
     additionalProperties: false,
-    required: ['items', 'discovered', 'topics', 'notes'],
+    required: ['items', 'discovered', 'topics'],
     properties: {
       items: {
         type: 'array',
-        description: 'One entry per assignment given, by its ref. Every ref exactly once.',
+        description: 'One entry per ref asked about. Skip a ref rather than invent milestones for it.',
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['ref', 'asks', 'start_by', 'minutes', 'milestones', 'prerequisites', 'flags', 'topics', 'feeds', 'sources', 'citations'],
+          required: ['ref', 'milestones', 'prerequisites', 'prerequisite_sources', 'prerequisite_refs', 'feeds'],
           properties: {
-            ref: { type: 'string', description: 'The [A#] ref of the assignment.' },
-            asks: { type: 'string', description: 'What it actually asks for, one to three plain lines: what to hand in, how long, what it must do.' },
-            start_by: {
-              type: 'object',
-              additionalProperties: false,
-              required: ['date', 'why', 'confidence'],
-              properties: {
-                date: { type: ['string', 'null'], description: 'YYYY-MM-DD, the last day to start and still do it well. Null when the item is done or the student set their own.' },
-                why: { type: 'string', description: 'One sentence: the shape of the work and what else is near it.' },
-                confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-              },
-            },
-            minutes: {
-              type: 'object',
-              additionalProperties: false,
-              required: ['value', 'why', 'confidence'],
-              properties: {
-                value: { type: ['integer', 'null'], description: 'Realistic out-of-class minutes for a first-semester student. Null when unknown.' },
-                why: { type: 'string', description: 'One sentence from the actual asks: words, sources, problems, reading.' },
-                confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-              },
-            },
-            milestones: { type: 'array', items: { type: 'string' }, description: 'For work with parts: three to seven short verb phrases in rubric order. Empty for small items.' },
-            prerequisites: {
-              type: 'array',
-              description: 'What must happen first, including things said only in the syllabus or an announcement.',
-              items: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['text', 'source', 'ref'],
-                properties: { text: { type: 'string' }, source: { type: 'string', description: 'Where it was said: "syllabus", "Halo description", "announcement Sep 5", "rubric".' }, ref: { type: ['string', 'null'], description: 'The [A#] ref when the prerequisite is another assignment in the list.' } },
-              },
-            },
-            flags: {
-              type: 'object',
-              additionalProperties: false,
-              required: ['lopes_write', 'timed', 'group', 'in_person'],
-              properties: { lopes_write: { type: 'boolean' }, timed: { type: 'boolean' }, group: { type: 'boolean' }, in_person: { type: 'boolean' } },
-            },
-            topics: { type: 'array', items: { type: 'string' }, description: 'The concepts the work is about, two to four words each, in the professor’s terms.' },
-            feeds: { type: ['string', 'null'], description: 'The [A#] ref of the later assignment this one feeds (a first draft’s final), else null.' },
-            sources: {
-              type: 'array',
-              description: 'Slides, readings, recordings on file that cover this work, with slide numbers when the outline shows them. Empty when nothing on file does.',
-              items: { type: 'object', additionalProperties: false, required: ['kind', 'label'], properties: { kind: { type: 'string', enum: ['slide', 'recording', 'syllabus', 'rubric', 'halo'] }, label: { type: 'string', description: '"Rhetorical Appeals deck, slides 4–11" or "Lecture Sep 12".' } } },
-            },
-            citations: { type: 'array', items: { type: 'string' }, description: 'Where the judgments came from, one line each: "syllabus: ‘Late work…’", "Halo description", "rubric: Op-Ed Rubric".' },
+            ref: { type: 'string' },
+            milestones: { type: 'array', items: { type: 'string' }, description: 'Three to seven short verb phrases in rubric order. Empty when the work has no parts.' },
+            prerequisites: { type: 'array', items: { type: 'string' }, description: 'What must happen first, one short line each: a topic to claim, a reading, a group to join, a draft.' },
+            prerequisite_sources: { type: 'array', items: { type: 'string' }, description: 'Where each prerequisite above was said, in the same order: syllabus, Halo description, announcement Sep 5, rubric.' },
+            prerequisite_refs: { type: 'array', items: { type: 'string' }, description: 'For each prerequisite above, in the same order, the [A#] ref when it is another assignment in the list, else an empty string.' },
+            feeds: { type: 'string', description: 'The [A#] ref of the later assignment this one feeds (a first draft’s final). Empty string otherwise.' },
           },
         },
       },
       discovered: {
         type: 'array',
-        description: 'Work the syllabus, announcements, or lectures mention that is not in the Halo list. Quote the words. Never invent a date: null when none is written.',
+        description: 'Work the syllabus, an announcement, or a lecture mentions that is not in the Halo list. Quote the words. Never invent a date.',
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['title', 'due', 'due_time', 'points', 'type', 'quote', 'source', 'confidence', 'why'],
+          required: ['title', 'due', 'points', 'type', 'quote', 'source', 'confidence', 'why'],
           properties: {
             title: { type: 'string' },
-            due: { type: ['string', 'null'], description: 'YYYY-MM-DD only when the source writes a date.' },
-            due_time: { type: ['string', 'null'], description: 'HH:mm when written, else null.' },
-            points: { type: ['number', 'null'] },
-            type: { type: 'string', enum: ['exam', 'quiz', 'homework', 'lab', 'paper', 'project', 'discussion', 'participation', 'other'] },
+            due: { type: 'string', description: 'YYYY-MM-DD only when the source writes a date. Empty string otherwise.' },
+            points: { type: 'integer', description: '0 when none is written.' },
+            type: { type: 'string', description: 'One of exam, quiz, homework, lab, paper, project, discussion, participation, other.' },
             quote: { type: 'string', description: 'The exact words that mention it.' },
-            source: { type: 'string', description: '"syllabus", "lecture Sep 12", "announcement".' },
-            confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-            why: { type: 'string', description: 'Why it looks like real work and not a restatement of something in Halo.' },
+            source: { type: 'string', description: 'syllabus, lecture Sep 12, announcement.' },
+            confidence: { type: 'string', description: 'high, medium, or low.' },
+            why: { type: 'string', description: 'Why it is real work and not a restatement of something already in Halo.' },
           },
         },
       },
       topics: {
         type: 'array',
-        description: 'The class’s topics in syllabus order and what each builds on, so later weakness can be traced.',
-        items: { type: 'object', additionalProperties: false, required: ['name', 'week', 'builds_on'], properties: { name: { type: 'string' }, week: { type: ['integer', 'null'], description: 'Term week number when the syllabus says.' }, builds_on: { type: 'array', items: { type: 'string' }, description: 'Names of earlier topics this one assumes.' } } },
+        description: 'The class’s topics in syllabus order and what each assumes, so later weakness can be traced.',
+        items: { type: 'object', additionalProperties: false, required: ['name', 'week', 'builds_on'], properties: { name: { type: 'string' }, week: { type: 'integer', description: 'Term week number, 0 when the syllabus does not say.' }, builds_on: { type: 'array', items: { type: 'string' }, description: 'Names of earlier topics in this list that it assumes.' } } },
       },
-      notes: { type: 'string', description: 'Anything the student should know that fits nowhere above, two lines at most. Empty is fine.' },
     },
   },
 };
 
-export const CLASS_PLAN_SYSTEM = `You are the planning pass inside a college freshman's planner. You read everything the student has for one class — the syllabus, every Halo assignment with its description, rubric files, slide outlines, lecture notes — and return, per assignment, what it actually asks for, a real start-by date, a realistic effort estimate, the milestones the rubric implies, prerequisites, flags, topics, and the material on file that covers it.
+export const MATERIAL_TOOL: ToolSpec = {
+  name: 'class_material',
+  description: 'Which slides, readings, and recordings on file cover which assignment.',
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['items'],
+    properties: {
+      items: {
+        type: 'array',
+        description: 'Only the assignments something on file actually covers. Skip the rest.',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['ref', 'sources', 'citations'],
+          properties: {
+            ref: { type: 'string' },
+            sources: { type: 'array', items: { type: 'string' }, description: 'Each named as it is listed above, with slide numbers when the outline shows them: "Rhetorical Appeals deck, slides 4–11", "Lecture Sep 12", "Op-Ed Rubric", "syllabus".' },
+            citations: { type: 'array', items: { type: 'string' }, description: 'Where the judgments about this item came from, one line each.' },
+          },
+        },
+      },
+    },
+  },
+};
+
+const LINE = 'Never write any part of what the student would submit: no draft sentences, no discussion answers, no solved problems. Describe the work; do not do it.';
+
+export const CORE_SYSTEM = `You are the planning pass inside a college freshman's planner. You have everything the student has for one class — the syllabus, every Halo assignment with its description, rubric files, slide outlines, lecture notes. For every assignment, say what it actually asks for, when to start it, how long it really takes, and what it is about.
 
 Rules:
-- Due dates are Halo's and are given. Never restate, change, or invent one. For anything found only in the syllabus, an announcement, or a lecture, quote the exact words, and leave due null unless a date is written there. Missing is better than invented.
-- start_by is the last day to start and still do the work well. Reason from the shape of the work: a 175-point paper with a draft deadline is not a 5-point discussion post. Count reading, drafting, revising, and the buffer a first-semester student needs; look at what else in this class lands near it. One plain sentence of reason. Never later than the due date. For a short post or quiz, the day before is fine — say so.
-- minutes is realistic out-of-class time for a freshman, a whole number, reasoned from the actual asks (word count, sources, problems, reading), not from points alone. Where the rule-based number given already looks right, keep it and say so.
-- milestones only for work with parts (papers, projects, labs, exams): three to seven short verb phrases in rubric order. Empty for small items.
-- prerequisites: anything that must happen first — a topic to claim, a draft that feeds a final, a reading, a group to join — including things said only in the syllabus or an announcement. Name the source. When the prerequisite is another assignment in the list, give its ref.
-- feeds: the ref of the later assignment this one feeds (a first draft's final). Null otherwise.
-- flags from the description and tags: LopesWrite, timed, group, in person.
-- topics: the concepts the work is about, two to four words each, in the professor's own terms.
-- sources: which slides, readings, and recordings on file cover it, with slide numbers when the outline shows them. Empty when nothing on file does. Never name material that is not listed.
-- citations: where each judgment came from.
-- confidence: high when the text says it, medium when inferred from clear signals, low when guessed. Low is fine; pretending is not.
-- Never write any part of what the student would submit: no draft sentences, no discussion answers, no solved problems. Describe the work; do not do it.
-- Plain words, short lines. Every assignment given appears exactly once in items, by its ref.
-Answer only through the class_plan tool.`;
+- Due dates are Halo's and are given. Never restate, change, or invent one.
+- start_by is the last day to start and still do the work well. Reason from the shape of the work: a 175-point paper with a draft deadline is not a 5-point discussion post. Count reading, drafting, revising, and the buffer a first-semester student needs, and look at what else in this class lands near it. Never later than the due date. For a short post or quiz the day before is fine — say so. Empty string for anything already done.
+- minutes is realistic out-of-class time for a freshman, reasoned from the actual asks — word count, sources, problems, reading — not from points alone. Where the rule-based number given already looks right, keep it and say so.
+- confidence is how sure you are about the item overall: high when the text says it, medium when you inferred it from clear signals, low when you guessed. List start_by or minutes under unsure when that one is the shaky part. Low is fine; pretending is not.
+- flags only when the description or tags carry them.
+- topics: the concepts the work is about, in the professor's own terms.
+- ${LINE}
+- Plain words, short lines. Every assignment given appears exactly once, by its ref.
+Answer only through the class_core tool.`;
+
+export const DETAIL_SYSTEM = `You are the planning pass inside a college freshman's planner, reading one class. You are asked about the work that has parts: break it into milestones, name what has to happen first, and say what the syllabus carries that Halo's assignment list does not.
+
+Rules:
+- milestones: three to seven short verb phrases in rubric order, the ones the rubric or description actually implies. Empty when the work has no parts.
+- prerequisites: anything that must happen first — a topic to claim, a draft that feeds a final, a reading, a group to join — including things said only in the syllabus or an announcement. Give the source of each in the same order, and its [A#] ref when it is another assignment in the list.
+- feeds: the ref of the later assignment this one feeds. Empty otherwise.
+- discovered: work the syllabus, an announcement, or a lecture mentions that is not in the Halo list. Quote the exact words. Leave due empty unless a date is written in that source. Missing is better than invented. Nothing that restates something already in the Halo list.
+- topics: the class's topics in syllabus order, each with the earlier topics it assumes.
+- ${LINE}
+Answer only through the class_detail tool.`;
+
+export const MATERIAL_SYSTEM = `You match a college class's assignments to the material the student has on file: slide decks (listed with the first line of each slide), rubric files, the syllabus, and lecture notes. For each assignment something on file actually covers, name that material the way it is listed, with slide numbers when the outline shows them, and say where your reading of that assignment came from. Never name material that is not listed. Skip any assignment nothing on file covers — an empty answer is right when nothing matches. Answer only through the class_material tool.`;
 
 export interface DiscoveredItem {
   title: string;
@@ -151,21 +178,53 @@ export interface ClassPlan {
   model: string;
   at: string;
   inputHash: string;
-  /** Refs the model left out, so the compare screen can say which items it never read. */
+  /** Refs the core pass left out, so the compare screen can say which items were never read. */
   missing: string[];
+  /** Passes that did not come back, in plain words, so the screen can say what is thinner than usual. */
+  incomplete: string[];
 }
 
-export function buildClassPrompt(ctx: ClassContext, blocks: { stable: string; volatile: string }): { system: { text: string; cache?: boolean }[]; user: string } {
-  return {
-    system: [{ text: CLASS_PLAN_SYSTEM, cache: true }, { text: `# On file for ${ctx.course.code}\n\n${blocks.stable}`, cache: true }],
-    user: blocks.volatile,
-  };
+const emptyPlan = (ctx: ClassContext, model: string, at: string): ClassPlan => ({ courseId: ctx.course.id, items: {}, discovered: [], topics: [], notes: '', model, at, inputHash: ctx.inputHash, missing: [], incomplete: [] });
+
+const onFile = (ctx: ClassContext) => `# On file for ${ctx.course.code}\n\n`;
+
+/**
+ * The three passes share one prefix so the big context is written to the cache once and read back at a tenth of the
+ * price: what is on file, then the class as it stands, then the rules for this pass. The rules come last because the
+ * cache matches on a prefix — a per-pass block in front of the context would miss it every time.
+ */
+const shared = (ctx: ClassContext, blocks: { stable: string; volatile: string }, rules: string): SystemBlock[] => [
+  { text: onFile(ctx) + blocks.stable },
+  { text: blocks.volatile, cache: true },
+  { text: rules },
+];
+
+export function buildCorePrompt(ctx: ClassContext, blocks: { stable: string; volatile: string }): { system: SystemBlock[]; user: string } {
+  return { system: shared(ctx, blocks, CORE_SYSTEM), user: 'Read every assignment listed above and answer for all of them, by ref.' };
+}
+
+export function buildDetailPrompt(ctx: ClassContext, blocks: { stable: string; volatile: string }, refs: string[]): { system: SystemBlock[]; user: string } {
+  return { system: shared(ctx, blocks, DETAIL_SYSTEM), user: `Break these down: ${refs.join(', ') || '(none)'}. Then the work the syllabus carries that the Halo list does not, and the class's topic order.` };
+}
+
+export function buildMaterialPrompt(ctx: ClassContext, blocks: { stable: string; volatile: string }): { system: SystemBlock[]; user: string } {
+  return { system: shared(ctx, blocks, MATERIAL_SYSTEM), user: 'Match the material on file to the assignments listed above. Skip any assignment nothing on file covers.' };
 }
 
 const TYPES: ItemType[] = ['exam', 'quiz', 'homework', 'lab', 'paper', 'project', 'discussion', 'participation', 'other'];
-const time = (v: unknown): string | null => (typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : null);
+const FLAGS = { lopes_write: 'lopesWrite', timed: 'timed', group: 'group', in_person: 'inPerson' } as const;
 
-/** A deck label the model wrote back to the deck it names, so a source can be opened. */
+/** Which kind of material a label names, from the words it uses and what is on file. */
+function sourceKind(label: string, ctx: ClassContext): PlanSource['kind'] {
+  const l = label.toLowerCase();
+  if (ctx.rubrics.some((r) => l.includes(r.title.toLowerCase())) || /rubric|handout|guideline|instruction|template|checklist/.test(l)) return 'rubric';
+  if (/syllabus/.test(l)) return 'syllabus';
+  if (/lecture|recording|transcript|class on /.test(l)) return 'recording';
+  if (ctx.decks.some((d) => l.includes(d.title.toLowerCase())) || /slide|deck/.test(l)) return 'slide';
+  return 'halo';
+}
+
+/** A material label written back to the thing it names, so a source can be opened. */
 function sourceHref(kind: PlanSource['kind'], label: string, ctx: ClassContext): string | null {
   const l = label.toLowerCase();
   if (kind === 'slide') {
@@ -182,7 +241,7 @@ function sourceHref(kind: PlanSource['kind'], label: string, ctx: ClassContext):
 
 const FILLER = new Set(['assignment', 'online', 'the', 'of', 'an', 'a', 'and', 'for', 'to', 'in']);
 const words = (s: string) => new Set(normTitle(s).split(' ').filter((w) => w.length >= 2 && !FILLER.has(w)));
-/** "Op-Ed Final Draft" is "Final Draft of an Op-Ed Assignment (Online)": same words once the filler is gone, or a close match due the same day. */
+/** "Op-Ed Final Draft" is "Final Draft of an Op-Ed Assignment (Online)": the same words once the filler is gone. */
 const similar = (a: string, b: string, sameDay = false): boolean => {
   const A = words(a);
   const B = words(b);
@@ -193,79 +252,107 @@ const similar = (a: string, b: string, sameDay = false): boolean => {
   return score >= 0.6 || (sameDay && score >= 0.4);
 };
 
-/** Whatever the model sent, shaped into a plan with every bad field dropped rather than trusted. */
-export function planFromTool(raw: unknown, ctx: ClassContext, model: string, at = new Date().toISOString()): ClassPlan {
-  const o = obj(raw);
+/** Pass A, read into a plan. Anything the model got wrong is dropped here rather than trusted. */
+export function planFromCore(raw: unknown, ctx: ClassContext, model: string, at = new Date().toISOString()): ClassPlan {
+  const plan = emptyPlan(ctx, model, at);
   const byRef = new Map(ctx.assessments.map((a) => [a.ref, a]));
-  const items: Record<string, PlannedItem> = {};
-  for (const e of arr(o.items)) {
+  for (const e of arr(obj(raw).items)) {
     const x = obj(e);
     const a = byRef.get(str(x.ref, 10));
-    if (!a || items[a.itemId]) continue;
-    const sb = obj(x.start_by);
-    let startDate = isoDate(sb.date);
-    let startConf = confidence(sb.confidence);
-    let startWhy = str(sb.why, 300);
+    if (!a || plan.items[a.itemId]) continue;
+    const overall = confidence(x.confidence);
+    const unsure = new Set(strs(x.unsure, 4, 20).map((s) => s.toLowerCase()));
+    const sure = (field: string): Confidence => (unsure.has(field) ? 'low' : overall);
+
+    let startDate = isoDate(str(x.start_by, 12));
+    let startWhy = str(x.start_why, 300);
+    let startConf = sure('start_by');
     if (startDate && startDate > a.due) {
       startDate = addDays(a.due, -1);
       startConf = 'low';
       startWhy = `${startWhy} (was after the due date; moved to the day before)`.trim();
     }
     if (startDate && startDate < addDays(ctx.today, -120)) startDate = null;
-    const mn = obj(x.minutes);
-    const minutesValue = num(mn.value);
-    const minutes = minutesValue !== null && minutesValue >= 5 && minutesValue <= 2400 ? Math.round(minutesValue) : null;
-    const prerequisites: PlanPrerequisite[] = arr(x.prerequisites)
-      .map((p) => {
-        const q = obj(p);
-        const ref = str(q.ref, 10);
-        const target = ref ? byRef.get(ref) : undefined;
-        return { text: str(q.text, 200), source: str(q.source, 80), itemId: target && target.itemId !== a.itemId ? target.itemId : null };
-      })
-      .filter((p) => p.text)
-      .slice(0, 6);
-    const fl = obj(x.flags);
-    const feedsRef = str(x.feeds, 10);
-    const feeds = feedsRef ? (byRef.get(feedsRef)?.itemId ?? null) : null;
-    const sources: PlanSource[] = arr(x.sources)
-      .map((s) => {
-        const q = obj(s);
-        const kind = str(q.kind, 12) as PlanSource['kind'];
-        const label = str(q.label, 140);
-        if (!label || !['slide', 'recording', 'syllabus', 'rubric', 'halo'].includes(kind)) return null;
-        return { kind, label, href: sourceHref(kind, label, ctx) };
-      })
-      .filter((s): s is PlanSource => !!s)
-      .slice(0, 8);
-    items[a.itemId] = {
+
+    const asked = num(x.minutes);
+    const minutes = asked !== null && asked >= 5 && asked <= 2400 ? Math.round(asked) : null;
+
+    const flags = { lopesWrite: false, timed: false, group: false, inPerson: false };
+    for (const f of strs(x.flags, 6, 20)) {
+      const key = FLAGS[f.toLowerCase().replace(/[^a-z_]/g, '') as keyof typeof FLAGS];
+      if (key) flags[key] = true;
+    }
+
+    plan.items[a.itemId] = {
       itemId: a.itemId,
       asks: str(x.asks, 600),
       startBy: startDate ? { value: startDate, why: startWhy, confidence: startConf } : null,
-      minutes: minutes !== null ? { value: minutes, why: str(mn.why, 300), confidence: confidence(mn.confidence) } : null,
-      milestones: strs(x.milestones, 8, 80),
-      prerequisites,
-      flags: { lopesWrite: fl.lopes_write === true, timed: fl.timed === true, group: fl.group === true, inPerson: fl.in_person === true },
+      minutes: minutes !== null ? { value: minutes, why: str(x.minutes_why, 300), confidence: sure('minutes') } : null,
+      milestones: [],
+      prerequisites: [],
+      flags,
       topics: strs(x.topics, 6, 40),
-      feeds: feeds === a.itemId ? null : feeds,
-      sources,
-      citations: strs(x.citations, 8, 200),
+      feeds: null,
+      sources: [],
+      citations: [],
       model,
       at,
       inputHash: ctx.inputHash,
     };
   }
+  plan.missing = ctx.assessments.filter((a) => !plan.items[a.itemId]).map((a) => a.ref);
+  return plan;
+}
+
+/** The items worth a second pass: work with parts. Never everything, so the call stays small. */
+export function detailRefs(plan: ClassPlan, ctx: ClassContext, max = 15): string[] {
+  return ctx.assessments
+    .filter((a) => a.status !== 'done')
+    .map((a) => {
+      const minutes = plan.items[a.itemId]?.minutes?.value ?? a.minutesNow;
+      return { ref: a.ref, big: a.points >= 60 || minutes >= 120 || ['paper', 'project', 'lab', 'exam'].includes(a.type), weight: a.points * 10 + minutes };
+    })
+    .filter((s) => s.big)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, max)
+    .map((s) => s.ref);
+}
+
+/** Pass B, merged in. Milestones and prerequisites land on items that already exist; nothing new is created here. */
+export function mergeDetail(plan: ClassPlan, raw: unknown, ctx: ClassContext): ClassPlan {
+  const o = obj(raw);
+  const byRef = new Map(ctx.assessments.map((a) => [a.ref, a]));
+  const items = { ...plan.items };
+  for (const e of arr(o.items)) {
+    const x = obj(e);
+    const a = byRef.get(str(x.ref, 10));
+    const current = a ? items[a.itemId] : undefined;
+    if (!a || !current) continue;
+    const texts = strs(x.prerequisites, 6, 200);
+    const sources = strs(x.prerequisite_sources, 6, 80);
+    const refs = strs(x.prerequisite_refs, 6, 10);
+    const prerequisites: PlanPrerequisite[] = texts.map((text, i) => {
+      const target = refs[i] ? byRef.get(refs[i]) : undefined;
+      return { text, source: sources[i] ?? '', itemId: target && target.itemId !== a.itemId ? target.itemId : null };
+    });
+    const feedsRef = str(x.feeds, 10);
+    const feeds = feedsRef ? (byRef.get(feedsRef)?.itemId ?? null) : null;
+    items[a.itemId] = { ...current, milestones: strs(x.milestones, 8, 80), prerequisites, feeds: feeds === a.itemId ? null : feeds };
+  }
   const discovered: DiscoveredItem[] = arr(o.discovered)
-    .map((d) => {
+    .map((d): DiscoveredItem | null => {
       const q = obj(d);
       const title = str(q.title, 140);
       const quote = str(q.quote, 400);
       if (!title || quote.length < 8) return null;
-      const type = TYPES.includes(str(q.type, 20) as ItemType) ? (str(q.type, 20) as ItemType) : 'other';
-      const due = isoDate(q.due);
+      const t = str(q.type, 20).toLowerCase();
+      const type = (TYPES.includes(t as ItemType) ? t : 'other') as ItemType;
+      const due = isoDate(str(q.due, 12));
       if (ctx.assessments.some((a) => similar(a.title, title, !!due && a.due === due))) return null;
-      // A date the quote does not carry a number for is a guess, whatever the model called it.
+      const points = num(q.points);
+      // A date the quote carries no number for is a guess, whatever the model called it.
       const conf = due && !/\d/.test(quote) ? 'low' : confidence(q.confidence);
-      return { title, due, dueTime: time(q.due_time), points: num(q.points), type, quote, source: str(q.source, 80), confidence: conf, why: str(q.why, 300) };
+      return { title, due, dueTime: null, points: points !== null && points > 0 ? points : null, type, quote, source: str(q.source, 80), confidence: conf, why: str(q.why, 300) };
     })
     .filter((d): d is DiscoveredItem => !!d)
     .slice(0, 12);
@@ -277,6 +364,23 @@ export function planFromTool(raw: unknown, ctx: ClassContext, model: string, at 
     })
     .filter((t) => t.name)
     .slice(0, 30);
-  const missing = ctx.assessments.filter((a) => !items[a.itemId]).map((a) => a.ref);
-  return { courseId: ctx.course.id, items, discovered, topics, notes: str(o.notes, 400), model, at, inputHash: ctx.inputHash, missing };
+  return { ...plan, items, discovered, topics };
+}
+
+/** Pass C, merged in: the material that covers each item, written back to something openable. */
+export function mergeMaterial(plan: ClassPlan, raw: unknown, ctx: ClassContext): ClassPlan {
+  const byRef = new Map(ctx.assessments.map((a) => [a.ref, a]));
+  const items = { ...plan.items };
+  for (const e of arr(obj(raw).items)) {
+    const x = obj(e);
+    const a = byRef.get(str(x.ref, 10));
+    const current = a ? items[a.itemId] : undefined;
+    if (!a || !current) continue;
+    const sources: PlanSource[] = strs(x.sources, 8, 140).map((label) => {
+      const kind = sourceKind(label, ctx);
+      return { kind, label, href: sourceHref(kind, label, ctx) };
+    });
+    items[a.itemId] = { ...current, sources, citations: strs(x.citations, 8, 200) };
+  }
+  return { ...plan, items };
 }

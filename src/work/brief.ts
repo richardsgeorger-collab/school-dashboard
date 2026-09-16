@@ -143,10 +143,10 @@ export interface MethodCheck {
   next: string;
 }
 
+/** Not strict: methodFromTool validates every field. */
 export const METHOD_TOOL = {
   name: 'method_check',
   description: "A student's work on a problem set held against the method the class teaches: is each setup right, what is off, which step to look at again. Never the answer.",
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -160,7 +160,7 @@ export const METHOD_TOOL = {
           required: ['label', 'setup', 'note', 'step'],
           properties: {
             label: { type: 'string', description: 'Which problem, as the student named it.' },
-            setup: { type: 'string', enum: ['right', 'off', 'unclear'] },
+            setup: { type: 'string', description: 'right, off, or unclear.' },
             note: { type: 'string', description: 'What is right or off about the setup: the equation chosen, units, given values, the ratio. One line. Never the final number.' },
             step: { type: ['string', 'null'], description: 'The one step to look at again, named, not worked. Null when the setup is right.' },
           },

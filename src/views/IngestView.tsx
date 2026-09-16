@@ -11,7 +11,7 @@ import { diffPlan, diffSummary, proposedStart } from '../ingest/diff';
 import { canLink, findLinks } from '../ingest/links';
 import { browserCache, browserLoaders } from '../ingest/loaders';
 import type { ClassPlan } from '../ingest/plan';
-import { loadPlan, loadTerm, planState, runClassPass, runTermPass } from '../ingest/run';
+import { loadPlan, loadTerm, NO_COST, planState, runClassPass, runTermPass, STEP_WORDS, type RunCost, type Step } from '../ingest/run';
 import type { TermResult } from '../ingest/term';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
@@ -31,8 +31,9 @@ export function IngestView() {
   const [plan, setPlan] = useState<ClassPlan | null>(null);
   const [term, setTerm] = useState<TermResult | null>(null);
   const [ctx, setCtx] = useState<ClassContext | null>(null);
-  const [busy, setBusy] = useState<'class' | 'term' | null>(null);
+  const [step, setStep] = useState<Step | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [spent, setSpent] = useState<RunCost | null>(null);
   const [review, setReview] = useState(false);
   const [open, setOpen] = useState<Item | null>(null);
   const startByOf = useCallback((id: string): DateStr | undefined => schedule.byItem[id]?.startBy, [schedule]);
@@ -58,23 +59,26 @@ export function IngestView() {
   const run = async (force: boolean) => {
     if (!course || !hasKey) return;
     setNote(null);
-    setBusy('class');
+    setSpent(null);
     const deps = { apiKey: loadApiKey(), loaders: browserLoaders, cache: browserCache };
+    const onStep = (s: Step) => setStep(s);
     try {
-      const r = await runClassPass(course, data, today, startByOf, deps, { force });
+      const r = await runClassPass(course, data, today, startByOf, deps, { force, onStep });
       setPlan(r.plan);
       setCtx(r.ctx);
-      setBusy('term');
       const plans: Record<string, ClassPlan | null> = {};
       for (const c of data.courses) plans[c.id] = c.id === course.id ? r.plan : await loadPlan(browserCache, c.id).catch(() => null);
-      const t = await runTermPass(data, plans, today, startByOf, deps, { force });
+      const t = await runTermPass(data, plans, today, startByOf, deps, { force, onStep });
       setTerm(t.term);
       actions.updateSettings({ termPlan: { weeks: t.term.weeks, chains: t.term.chains, model: t.term.model, at: t.term.at, inputHash: t.term.inputHash } });
-      setNote(r.cached && t.cached ? 'Nothing on file changed since the last pass; showing it again.' : null);
+      const cost = [r.cost, t.cost].reduce((acc, c) => ({ calls: acc.calls + c.calls, input: acc.input + c.input, output: acc.output + c.output, cacheRead: acc.cacheRead + c.cacheRead, cacheWrite: acc.cacheWrite + c.cacheWrite }), NO_COST);
+      setSpent(cost.calls ? cost : null);
+      setNote(r.cached && t.cached ? 'Nothing on file changed since the last pass, so it cost nothing: this is the same read.' : r.plan.incomplete.length ? `Read, except for ${r.plan.incomplete.join(' and ')}. Run it again to try that part.` : null);
     } catch (e) {
-      setNote(await describeAiError(e));
+      // Nothing is written until the review is applied, so a failed pass leaves the planner exactly as it was.
+      setNote(`${await describeAiError(e)} Nothing was changed.`);
     } finally {
-      setBusy(null);
+      setStep(null);
     }
   };
 
@@ -113,7 +117,8 @@ export function IngestView() {
   const state = ctx ? planState(plan, ctx) : 'none';
   const tokens = ctx ? approxTokens(ctx) : 0;
   const prices = loadPrices();
-  const est = ctx ? costOf({ calls: 1, input: tokens, output: 350 * Math.max(1, ctx.assessments.length), cacheRead: 0, cacheWrite: 0 }, prices) : 0;
+  // Pass A writes the context to the cache; B and C read it back at a tenth of the price.
+  const est = ctx ? costOf({ calls: 3, input: Math.round(tokens * 0.2), output: 220 * Math.max(1, ctx.assessments.length), cacheRead: tokens * 2, cacheWrite: tokens }, prices) : 0;
   const read = plan ? Object.keys(plan.items).length : 0;
   const brutal = (term?.weeks ?? []).filter((w) => w.load === 'brutal' && w.start >= today).slice(0, 3);
 
@@ -138,13 +143,13 @@ export function IngestView() {
         {!hasKey && <p className="hint">Connect the Anthropic key on Now to run the AI pass. Until then this class runs on the parser.</p>}
         {hasKey && ctx && (
           <p className="hint">
-            One pass reads {ctx.assessments.length} item{ctx.assessments.length === 1 ? '' : 's'} with their descriptions, {ctx.syllabus ? 'the syllabus' : 'no syllabus'}, {ctx.rubrics.length} rubric file{ctx.rubrics.length === 1 ? '' : 's'}, {ctx.decks.length} deck{ctx.decks.length === 1 ? '' : 's'}, and {ctx.lectures.length} lecture{ctx.lectures.length === 1 ? '' : 's'}: about {Math.round(tokens / 1000)}k tokens, roughly {fmtDollars(est)} at current prices. Then a cheap pass over every class sets start dates against everything else due.
+            It reads {ctx.assessments.length} item{ctx.assessments.length === 1 ? '' : 's'} with their descriptions, {ctx.syllabus ? 'the syllabus' : 'no syllabus'}, {ctx.rubrics.length} rubric file{ctx.rubrics.length === 1 ? '' : 's'}, {ctx.decks.length} deck{ctx.decks.length === 1 ? '' : 's'}, and {ctx.lectures.length} lecture{ctx.lectures.length === 1 ? '' : 's'} in three passes over one cached copy of it: about {Math.round(tokens / 1000)}k tokens the first time, roughly {fmtDollars(est)} at current prices. Then a cheap pass over every class sets start dates against everything else due.
           </p>
         )}
         <div className="settings-actions">
           {hasKey && (
-            <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void run(state === 'fresh')}>
-              {busy === 'class' ? 'Reading the class…' : busy === 'term' ? 'Reasoning across all classes…' : plan ? (state === 'fresh' ? 'Re-run anyway' : 'Re-run the AI pass') : 'Run the AI pass'}
+            <button type="button" className="btn primary" disabled={step !== null} onClick={() => void run(state === 'fresh')}>
+              {step ? `${STEP_WORDS[step]}…` : plan ? (state === 'fresh' ? 'Re-run anyway' : 'Re-run the AI pass') : 'Run the AI pass'}
             </button>
           )}
           {diff && diff.total > 0 && (
@@ -158,8 +163,14 @@ export function IngestView() {
             </button>
           )}
         </div>
-        {note && <p className="hint">{note}</p>}
+        {note && <p className="hint ingest-note">{note}</p>}
+        {spent && (
+          <p className="hint mono">
+            That run: {spent.calls} call{spent.calls === 1 ? '' : 's'}, {Math.round((spent.input + spent.cacheRead + spent.cacheWrite) / 1000)}k tokens in, {Math.round(spent.output / 1000) || '<1'}k out, {fmtDollars(costOf(spent, prices))}.
+          </p>
+        )}
         {diff && <p className="ingest-summary">{diffSummary(diff, course, read)}</p>}
+        {plan && plan.incomplete.length > 0 && <p className="hint">Thinner than usual: {plan.incomplete.join(' and ')} did not come back on the last run.</p>}
         {plan?.notes && <p className="hint">{plan.notes}</p>}
         {brutal.length > 0 && (
           <p className="hint">

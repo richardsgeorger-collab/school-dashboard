@@ -5,10 +5,11 @@ import { DEFAULT_SETTINGS, type AppData, type Item } from '../domain/types';
 import { mergeItem } from '../halo/diff';
 import type { Deck, DeckPage } from '../library/db';
 import type { Recording } from '../record/db';
+import { jsonFromText } from '../ai/client';
 import { applyPlan, defaultPlanSelection, gateKey } from './apply';
 import { approxTokens, contextBlocks, gatherClassContext, type ContextLoaders } from './context';
 import { diffPlan, diffSummary } from './diff';
-import { planFromTool, type ClassPlan } from './plan';
+import { detailRefs, mergeDetail, mergeMaterial, planFromCore, type ClassPlan } from './plan';
 import { runClassPass, runTermPass, type Cache } from './run';
 import { buildTermInput, buildTermPrompt, termFromTool } from './term';
 
@@ -50,26 +51,44 @@ const loaders: ContextLoaders = {
 };
 const startByOf = (id: string) => ({ draft: '2026-10-14', final: '2026-10-27', dq: '2026-09-29', set: '2026-09-23', exam: '2026-10-10' })[id];
 
-const rawPlan = {
+const rawCore = {
   items: [
-    { ref: 'A1', asks: 'A 0-point intro post.', start_by: { date: null, why: 'done', confidence: 'high' }, minutes: { value: null, why: '', confidence: 'low' }, milestones: [], prerequisites: [], flags: { lopes_write: false, timed: false, group: false, in_person: false }, topics: [], feeds: null, sources: [], citations: [] },
-    { ref: 'A2', asks: 'A 20-question quiz on the appeals.', start_by: { date: '2026-09-22', why: 'Two evenings of review.', confidence: 'medium' }, minutes: { value: 60, why: 'Twenty questions plus a read of the deck.', confidence: 'medium' }, milestones: [], prerequisites: [], flags: { lopes_write: false, timed: true, group: false, in_person: false }, topics: ['rhetorical appeals'], feeds: null, sources: [{ kind: 'slide', label: 'Rhetorical Appeals deck, slides 1–3' }], citations: ['Halo description'] },
-    { ref: 'A3', asks: 'One post answering the prompt, 150 words, and two replies.', start_by: { date: '2026-09-29', why: 'A post; the day before is enough.', confidence: 'high' }, minutes: { value: 30, why: 'Short post and two replies.', confidence: 'high' }, milestones: [], prerequisites: [], flags: { lopes_write: false, timed: false, group: false, in_person: false }, topics: ['argument'], feeds: null, sources: [], citations: [] },
-    { ref: 'A4', asks: 'A 750-word first draft of your op-ed with two APA sources, through LopesWrite.', start_by: { date: '2026-10-08', why: 'Ten days: pick the issue, find two sources, draft 750 words, leave a day for LopesWrite.', confidence: 'medium' }, minutes: { value: 240, why: '750 words with two sources is four hours for a first draft.', confidence: 'medium' }, milestones: ['Pick the issue', 'Find two sources', 'Outline', 'Draft 750 words', 'Check APA', 'Run LopesWrite'], prerequisites: [{ text: 'Peer review of the draft happens in class in week 8.', source: 'syllabus', ref: null }], flags: { lopes_write: true, timed: false, group: false, in_person: false }, topics: ['op-ed', 'rhetorical appeals'], feeds: 'A5', sources: [{ kind: 'slide', label: 'Rhetorical Appeals deck, slide 3' }, { kind: 'rubric', label: 'Op-Ed Rubric' }], citations: ['Halo description', 'rubric: Op-Ed Rubric'] },
-    { ref: 'A5', asks: 'Revise the draft to 1,000 words with three sources.', start_by: { date: '2026-11-05', why: 'Revision of an existing draft.', confidence: 'medium' }, minutes: { value: 210, why: 'Revision plus one more source.', confidence: 'medium' }, milestones: ['Read the draft feedback', 'Add a source', 'Revise', 'Proofread'], prerequisites: [{ text: 'The first draft has to be done first.', source: 'Halo description', ref: 'A4' }], flags: { lopes_write: true, timed: false, group: false, in_person: false }, topics: ['op-ed'], feeds: null, sources: [], citations: [] },
-    { ref: 'A9', asks: 'ghost', start_by: { date: null, why: '', confidence: 'low' }, minutes: { value: null, why: '', confidence: 'low' }, milestones: [], prerequisites: [], flags: { lopes_write: false, timed: false, group: false, in_person: false }, topics: [], feeds: null, sources: [], citations: [] },
+    { ref: 'A1', asks: 'A 0-point intro post.', start_by: '', start_why: 'Already handed in.', minutes: 0, minutes_why: '', confidence: 'high', unsure: [], flags: [], topics: [] },
+    { ref: 'A2', asks: 'A 20-question quiz on the appeals.', start_by: '2026-09-22', start_why: 'Two evenings of review.', minutes: 60, minutes_why: 'Twenty questions plus a read of the deck.', confidence: 'medium', unsure: [], flags: ['timed'], topics: ['rhetorical appeals'] },
+    { ref: 'A3', asks: 'One post answering the prompt, 150 words, and two replies.', start_by: '2026-09-29', start_why: 'A post; the day before is enough.', minutes: 30, minutes_why: 'Short post and two replies.', confidence: 'high', unsure: [], flags: [], topics: ['argument'] },
+    { ref: 'A4', asks: 'A 750-word first draft of your op-ed with two APA sources, through LopesWrite.', start_by: '2026-10-08', start_why: 'Ten days: pick the issue, find two sources, draft 750 words, leave a day for LopesWrite.', minutes: 240, minutes_why: '750 words with two sources is four hours for a first draft.', confidence: 'medium', unsure: [], flags: ['lopes_write'], topics: ['op-ed', 'rhetorical appeals'] },
+    { ref: 'A5', asks: 'Revise the draft to 1,000 words with three sources.', start_by: '2026-11-05', start_why: 'Revision of an existing draft.', minutes: 210, minutes_why: 'Revision plus one more source.', confidence: 'medium', unsure: ['minutes'], flags: ['lopes_write', 'nonsense'], topics: ['op-ed'] },
+    { ref: 'A9', asks: 'ghost', start_by: '', start_why: '', minutes: 0, minutes_why: '', confidence: 'low', unsure: [], flags: [], topics: [] },
+  ],
+};
+
+const rawDetail = {
+  items: [
+    { ref: 'A4', milestones: ['Pick the issue', 'Find two sources', 'Outline', 'Draft 750 words', 'Check APA', 'Run LopesWrite'], prerequisites: ['Peer review of the draft happens in class in week 8.'], prerequisite_sources: ['syllabus'], prerequisite_refs: [''], feeds: 'A5' },
+    { ref: 'A5', milestones: ['Read the draft feedback', 'Add a source', 'Revise', 'Proofread'], prerequisites: ['The first draft has to be done first.'], prerequisite_sources: ['Halo description'], prerequisite_refs: ['A4'], feeds: '' },
+    { ref: 'A9', milestones: ['ghost'], prerequisites: [], prerequisite_sources: [], prerequisite_refs: [], feeds: '' },
   ],
   discovered: [
-    { title: 'Peer review of the op-ed draft', due: null, due_time: null, points: null, type: 'other', quote: 'Week 8: peer review of the op-ed draft in class.', source: 'syllabus', confidence: 'medium', why: 'In-class work not in Halo.' },
-    { title: 'Reading response 1', due: '2026-09-28', due_time: null, points: 10, type: 'homework', quote: 'A reading response is due the Monday of week five.', source: 'syllabus', confidence: 'high', why: 'Not in the Halo list.' },
-    { title: 'Op-Ed Final Draft', due: '2026-11-01', due_time: null, points: 200, type: 'paper', quote: 'final draft due Nov 1', source: 'syllabus', confidence: 'high', why: 'dup' },
+    { title: 'Peer review of the op-ed draft', due: '', points: 0, type: 'other', quote: 'Week 8: peer review of the op-ed draft in class.', source: 'syllabus', confidence: 'medium', why: 'In-class work not in Halo.' },
+    { title: 'Reading response 1', due: '2026-09-28', points: 10, type: 'homework', quote: 'A reading response is due the Monday of week five.', source: 'syllabus', confidence: 'high', why: 'Not in the Halo list.' },
+    { title: 'Op-Ed Final Draft', due: '2026-11-01', points: 200, type: 'paper', quote: 'final draft due Nov 1', source: 'syllabus', confidence: 'high', why: 'dup' },
   ],
   topics: [
     { name: 'rhetorical appeals', week: 2, builds_on: [] },
     { name: 'op-ed', week: 6, builds_on: ['rhetorical appeals', 'argument'] },
   ],
-  notes: 'The class leans on the appeals deck for every paper.',
 };
+
+const rawMaterial = {
+  items: [
+    { ref: 'A2', sources: ['Rhetorical Appeals deck, slides 1–3'], citations: ['Halo description'] },
+    { ref: 'A4', sources: ['Rhetorical Appeals deck, slide 3', 'Op-Ed Rubric'], citations: ['Halo description', 'rubric: Op-Ed Rubric'] },
+    { ref: 'A9', sources: ['ghost deck'], citations: [] },
+  ],
+};
+
+/** The three passes read in order, the way a real run does. */
+const readAll = (ctx: Parameters<typeof planFromCore>[1]) => mergeMaterial(mergeDetail(planFromCore(rawCore, ctx, 'test-model', '2026-09-15T10:00:00.000Z'), rawDetail, ctx), rawMaterial, ctx);
 
 describe('gathering what the app has for one class', () => {
   it('numbers the items, keeps descriptions, splits rubric files from slide outlines, and reads what the lecture stressed', async () => {
@@ -105,37 +124,61 @@ describe('gathering what the app has for one class', () => {
   });
 });
 
-describe('reading the class pass', () => {
-  it('maps refs to items, clamps a start after the due date, drops unknown refs, dedupes found items against Halo, and lists what was never read', async () => {
+describe('reading the three passes', () => {
+  it('pass A maps refs, collapses one confidence per item, reads flags from plain words, and clamps a start after the due date', async () => {
     const ctx = await gatherClassContext(eng, data, today, startByOf, loaders);
-    const plan = planFromTool(rawPlan, ctx, 'test-model', '2026-09-15T10:00:00.000Z');
+    const plan = planFromCore(rawCore, ctx, 'test-model', '2026-09-15T10:00:00.000Z');
     expect(Object.keys(plan.items).sort()).toEqual(['done', 'dq', 'draft', 'final', 'set']);
-    expect(plan.items.draft).toMatchObject({ startBy: { value: '2026-10-08', confidence: 'medium' }, minutes: { value: 240 }, feeds: 'final', flags: { lopesWrite: true }, topics: ['op-ed', 'rhetorical appeals'] });
-    expect(plan.items.draft.sources).toEqual([
-      { kind: 'slide', label: 'Rhetorical Appeals deck, slide 3', href: '#/library?v=slides&deck=d1' },
-      { kind: 'rubric', label: 'Op-Ed Rubric', href: '#/library?v=slides&deck=d2' },
-    ]);
-    expect(plan.items.final.prerequisites).toEqual([{ text: 'The first draft has to be done first.', source: 'Halo description', itemId: 'draft' }]);
+    expect(plan.items.draft).toMatchObject({ startBy: { value: '2026-10-08', confidence: 'medium' }, minutes: { value: 240, confidence: 'medium' }, flags: { lopesWrite: true, timed: false }, topics: ['op-ed', 'rhetorical appeals'] });
+    expect(plan.items.set.flags).toEqual({ lopesWrite: false, timed: true, group: false, inPerson: false });
+    // One confidence per item, lowered for the field the model named as the shaky one.
+    expect(plan.items.final.minutes).toMatchObject({ value: 210, confidence: 'low' });
     expect(plan.items.final.startBy).toMatchObject({ value: '2026-10-31', confidence: 'low' });
     expect(plan.items.final.startBy?.why).toContain('moved to the day before');
+    // An empty start and a zero estimate mean "cannot say", not a date of nothing.
     expect(plan.items.done.startBy).toBeNull();
+    expect(plan.items.done.minutes).toBeNull();
+    expect(plan.missing).toEqual([]);
+    expect(plan.inputHash).toBe(ctx.inputHash);
+    expect(planFromCore({ items: rawCore.items.slice(0, 2) }, ctx, 'm').missing).toEqual(['A3', 'A4', 'A5']);
+    // Nothing from B or C is invented by A.
+    expect(plan.items.draft.milestones).toEqual([]);
+    expect(plan.items.draft.sources).toEqual([]);
+  });
+  it('pass B asks only about work with parts, and lands milestones, prerequisites, found work, and the topic map', async () => {
+    const ctx = await gatherClassContext(eng, data, today, startByOf, loaders);
+    const core = planFromCore(rawCore, ctx, 'm');
+    // The two papers, heaviest first. The quiz, the post, and the done intro are not worth a second call.
+    expect(detailRefs(core, ctx)).toEqual(['A5', 'A4']);
+    const plan = mergeDetail(core, rawDetail, ctx);
+    expect(plan.items.draft.milestones.length).toBe(6);
+    expect(plan.items.draft.feeds).toBe('final');
+    expect(plan.items.final.prerequisites).toEqual([{ text: 'The first draft has to be done first.', source: 'Halo description', itemId: 'draft' }]);
+    expect(plan.items.draft.prerequisites).toEqual([{ text: 'Peer review of the draft happens in class in week 8.', source: 'syllabus', itemId: null }]);
+    // The final draft the syllabus repeats is already in Halo; the reading response is not. A quote with no number is a guess.
     expect(plan.discovered.map((d) => [d.title, d.due, d.confidence])).toEqual([
       ['Peer review of the op-ed draft', null, 'medium'],
       ['Reading response 1', '2026-09-28', 'low'],
     ]);
     expect(plan.topics[1]).toEqual({ name: 'op-ed', week: 6, buildsOn: ['rhetorical appeals', 'argument'] });
-    expect(plan.missing).toEqual([]);
-    expect(plan.inputHash).toBe(ctx.inputHash);
-    const partial = planFromTool({ items: rawPlan.items.slice(0, 2) }, ctx, 'm');
-    expect(partial.missing).toEqual(['A3', 'A4', 'A5']);
+  });
+  it('pass C works out what each named source is and where it opens, and skips names that are not on file', async () => {
+    const ctx = await gatherClassContext(eng, data, today, startByOf, loaders);
+    const plan = readAll(ctx);
+    expect(plan.items.draft.sources).toEqual([
+      { kind: 'slide', label: 'Rhetorical Appeals deck, slide 3', href: '#/library?v=slides&deck=d1' },
+      { kind: 'rubric', label: 'Op-Ed Rubric', href: '#/library?v=slides&deck=d2' },
+    ]);
+    expect(plan.items.draft.citations).toEqual(['Halo description', 'rubric: Op-Ed Rubric']);
+    expect(plan.items.set.sources[0]).toMatchObject({ kind: 'slide', href: '#/library?v=slides&deck=d1' });
+    expect(plan.items.dq.sources).toEqual([]);
   });
 });
 
 describe('the diff and what applying it writes', () => {
   const setup = async () => {
     const ctx = await gatherClassContext(eng, data, today, startByOf, loaders);
-    const plan = planFromTool(rawPlan, ctx, 'test-model', '2026-09-15T10:00:00.000Z');
-    return { ctx, plan };
+    return { ctx, plan: readAll(ctx) };
   };
   it('proposes starts, minutes, steps, gates, and flags; leaves overrides, done items, and declined fields alone', async () => {
     const { plan } = await setup();
@@ -200,7 +243,7 @@ describe('the diff and what applying it writes', () => {
     expect(twice.items.filter((i) => i.title === 'Reading response 1').length).toBe(1);
   });
   it('the scheduler shows an accepted AI start-by, and a sync keeps an AI estimate only for a class that runs on it', () => {
-    const planned = items.map((i) => (i.id === 'draft' ? { ...i, startByPlan: '2026-10-08', plan: { ...(rawPlan as unknown as { items: never[] }), asks: '', startBy: null, minutes: { value: 240, why: '', confidence: 'medium' as const }, milestones: [], prerequisites: [], flags: { lopesWrite: false, timed: false, group: false, inPerson: false }, topics: [], feeds: null, sources: [], citations: [], model: 'm', at: '', inputHash: 'h' }, estimatedMinutes: 240 } : i));
+    const planned = items.map((i) => (i.id === 'draft' ? { ...i, startByPlan: '2026-10-08', plan: { asks: '', startBy: null, minutes: { value: 240, why: '', confidence: 'medium' as const }, milestones: [], prerequisites: [], flags: { lopesWrite: false, timed: false, group: false, inPerson: false }, topics: [], feeds: null, sources: [], citations: [], model: 'm', at: '', inputHash: 'h' }, estimatedMinutes: 240 } : i));
     const sched = computeSchedule(planned, data.settings, today, { start: '2026-08-31', end: '2026-12-13' }, '2026-09-15T16:00:00.000Z');
     expect(sched.byItem.draft.startBy).toBe('2026-10-08');
     expect(sched.byItem.set.startBy).toBe('2026-09-23');
@@ -216,30 +259,77 @@ describe('running the passes', () => {
     const cache: Cache = { get: async <T,>(k: string) => (m.get(k) as T) ?? null, put: async (k, v) => void m.set(k, v) };
     return { cache, m };
   };
-  const answer = (name: string, input: unknown) => async () => new Response(JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'test-model', content: [{ type: 'tool_use', id: 'tu', name, input }], stop_reason: 'tool_use', usage: { input_tokens: 1200, output_tokens: 300 } }), { status: 200, headers: { 'content-type': 'application/json' } });
-  it('calls once, caches on the input hash, and only re-reasons when forced or when the class changed', async () => {
-    const { cache } = cacheStore();
-    let calls = 0;
-    const fetch = (async () => {
-      calls++;
-      return answer('class_plan', rawPlan)();
+  const reply = (name: string, input: unknown) => new Response(JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'test-model', content: [{ type: 'tool_use', id: 'tu', name, input }], stop_reason: 'tool_use', usage: { input_tokens: 1200, output_tokens: 300, cache_read_input_tokens: 800 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+  const answer = (input: unknown) => ({ class_core: rawCore, class_detail: rawDetail, class_material: rawMaterial })[String((input as { tool_choice?: { name?: string } }).tool_choice?.name ?? '')];
+  /** A fetch that answers whichever tool was asked for, and remembers the requests. */
+  const fakeApi = (fail?: string) => {
+    const sent: { tool: string; system: { text: string; cached: boolean }[]; user: string }[] = [];
+    const fetch = (async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { tool_choice?: { name?: string }; system: { text: string; cache_control?: unknown }[]; messages: { content: string }[] };
+      const tool = String(body.tool_choice?.name ?? '');
+      sent.push({ tool, system: body.system.map((b) => ({ text: b.text, cached: !!b.cache_control })), user: String(body.messages[0].content) });
+      if (tool === fail) return new Response(JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'The compiled grammar is too large' } }), { status: 400, headers: { 'content-type': 'application/json' } });
+      return reply(tool, answer(body));
     }) as unknown as typeof globalThis.fetch;
+    return { fetch, sent };
+  };
+  it('runs three passes over one cached prefix, caches the plan, and only re-reasons when forced or when the class changed', async () => {
+    const { cache } = cacheStore();
+    const { fetch, sent } = fakeApi();
+    const steps: string[] = [];
     const deps = { apiKey: 'k', fetch, loaders, cache };
-    const first = await runClassPass(eng, data, today, startByOf, deps);
+    const first = await runClassPass(eng, data, today, startByOf, deps, { onStep: (s) => steps.push(s) });
     expect(first.cached).toBe(false);
+    expect(steps).toEqual(['core', 'detail', 'material']);
+    expect(sent.map((r) => r.tool)).toEqual(['class_core', 'class_detail', 'class_material']);
+    // The rules change per pass, so they come last: what is cached is the same prefix every time.
+    expect(sent.map((r) => r.system.map((b) => b.cached))).toEqual([[false, true, false], [false, true, false], [false, true, false]]);
+    expect(new Set(sent.map((r) => r.system.slice(0, 2).map((b) => b.text).join('|'))).size).toBe(1);
+    expect(sent[1].user).toContain('Break these down: A5, A4');
     expect(first.plan.model).toBe('claude-sonnet-4-6');
     expect(Object.keys(first.plan.items).length).toBe(5);
+    expect(first.plan.items.draft.milestones.length).toBe(6);
+    expect(first.plan.items.draft.sources.length).toBe(2);
+    expect(first.plan.incomplete).toEqual([]);
+    expect(first.cost).toMatchObject({ calls: 3, input: 3600, output: 900, cacheRead: 2400 });
     const second = await runClassPass(eng, data, today, startByOf, deps);
     expect(second.cached).toBe(true);
-    expect(calls).toBe(1);
+    expect(second.cost.calls).toBe(0);
+    expect(sent.length).toBe(3);
     await runClassPass(eng, data, today, startByOf, deps, { force: true });
-    expect(calls).toBe(2);
+    expect(sent.length).toBe(6);
     await runClassPass(eng, { ...data, items: items.map((i) => (i.id === 'dq' ? { ...i, points: 10 } : i)) }, today, startByOf, deps);
-    expect(calls).toBe(3);
+    expect(sent.length).toBe(9);
+  });
+  it('reads the answer out of plain text when a forced tool call comes back as text', async () => {
+    const { cache } = cacheStore();
+    const fetch = (async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { tool_choice?: { name?: string } };
+      const input = ({ class_core: rawCore, class_detail: rawDetail, class_material: rawMaterial } as Record<string, unknown>)[String(body.tool_choice?.name ?? '')];
+      return new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'test-model', content: [{ type: 'text', text: `Here you go:\n\n\`\`\`json\n${JSON.stringify(input)}\n\`\`\`` }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as unknown as typeof globalThis.fetch;
+    const run = await runClassPass(eng, data, today, startByOf, { apiKey: 'k', fetch, loaders, cache });
+    expect(Object.keys(run.plan.items).length).toBe(5);
+    expect(run.plan.items.draft.milestones.length).toBe(6);
+    expect(jsonFromText('no json here')).toBeNull();
+    expect(jsonFromText('{"a":1}')).toEqual({ a: 1 });
+  });
+  it('keeps what pass A read when a later pass fails, and says in plain words what is thinner', async () => {
+    const { cache } = cacheStore();
+    const { fetch } = fakeApi('class_detail');
+    const run = await runClassPass(eng, data, today, startByOf, { apiKey: 'k', fetch, loaders, cache });
+    expect(Object.keys(run.plan.items).length).toBe(5);
+    expect(run.plan.items.draft.minutes?.value).toBe(240);
+    expect(run.plan.items.draft.milestones).toEqual([]);
+    expect(run.plan.items.draft.sources.length).toBe(2);
+    expect(run.plan.incomplete).toEqual(['milestones and prerequisites']);
+    // A first-pass failure is the whole pass failing: nothing is cached and nothing is half-written.
+    const { fetch: f2 } = fakeApi('class_core');
+    await expect(runClassPass(eng, data, today, startByOf, { apiKey: 'k', fetch: f2, loaders, cache: cacheStore().cache })).rejects.toThrow();
   });
   it('the term pass sees every class, skips fixed items, clamps starts, and orders weeks', async () => {
     const { cache } = cacheStore();
-    const plans: Record<string, ClassPlan | null> = { eng: planFromTool(rawPlan, await gatherClassContext(eng, data, today, startByOf, loaders), 'm'), chm: null };
+    const plans: Record<string, ClassPlan | null> = { eng: readAll(await gatherClassContext(eng, data, today, startByOf, loaders)), chm: null };
     const input = buildTermInput(data, plans, today, startByOf);
     expect(input.items.map((i) => [i.ref, i.code, i.minutes, i.fixed, i.feeds])).toEqual([
       ['T1', 'ENG-105', 60, true, null],
@@ -251,7 +341,7 @@ describe('running the passes', () => {
     const prompt = buildTermPrompt(input);
     expect(prompt.user).toContain('[T4] ENG-105 · "First Draft of an Op-Ed Assignment" · paper · due 2026-10-18 · 100 pts · 240 min · not started · planner start now 2026-10-14 · class pass: start 2026-10-08');
     const raw = { starts: [{ ref: 'T4', start_by: '2026-10-05', why: 'CHM-113 Exam 1 the same week.', confidence: 'medium' }, { ref: 'T1', start_by: '2026-09-20', why: 'fixed anyway', confidence: 'high' }, { ref: 'T3', start_by: '2026-10-20', why: 'after due', confidence: 'high' }], weeks: [{ week_start: '2026-10-14', load: 'brutal', why: 'Exam 1 and the op-ed draft' }, { week_start: '2026-09-01', load: 'light', why: '' }, { week_start: '2026-10-13', load: 'heavy', why: 'dup' }], chains: [{ from: 'T4', to: 'T5', why: 'draft feeds final' }, { from: 'T9', to: 'T5', why: 'ghost' }] };
-    const fetch = answer('term_plan', raw) as unknown as typeof globalThis.fetch;
+    const fetch = (async () => reply('term_plan', raw)) as unknown as typeof globalThis.fetch;
     const run = await runTermPass(data, plans, today, startByOf, { apiKey: 'k', fetch, loaders, cache });
     expect(run.cached).toBe(false);
     expect(run.term.starts).toEqual({ draft: { value: '2026-10-05', why: 'CHM-113 Exam 1 the same week.', confidence: 'medium' }, exam: { value: '2026-10-15', why: 'after due', confidence: 'low' } });
@@ -265,7 +355,7 @@ describe('running the passes', () => {
     expect(termFromTool({}, input, 'm').starts).toEqual({});
   });
   it('a gate never becomes a date change on the item it gates', async () => {
-    const { plan } = { plan: planFromTool(rawPlan, await gatherClassContext(eng, data, today, startByOf, loaders), 'm') };
+    const plan = readAll(await gatherClassContext(eng, data, today, startByOf, loaders));
     const diff = diffPlan(eng, items, plan, null, startByOf);
     const sel = defaultPlanSelection(diff);
     expect(sel.gates.has(gateKey('draft', 'final'))).toBe(true);
