@@ -120,16 +120,17 @@ describe('milestones inside a big item', () => {
     const paper = mkItem({ id: 'p', courseId: 'c2', title: 'Rhetorical Analysis', type: 'paper', points: 175, dueAt: at('2026-10-07') });
     expect(isMilestoneWork(paper)).toBe(true);
     expect(isMilestoneWork(mkItem({ id: 'q', courseId: 'c1', title: 'q', points: 10, estimatedMinutes: 60 }))).toBe(false);
-    expect(defaultSteps(paper)).toEqual(['Outline', 'Draft', 'Revise', 'Cite sources', 'Proofread']);
+    // Steps name the moves this kind of work takes, in order, so the first one can be started now.
+    expect(defaultSteps(paper)).toEqual(['Decide what you are arguing', 'Find the evidence for it', 'Outline paragraph by paragraph', 'Write the messy first draft', 'Cut and tighten it', 'Fix the citations and the formatting']);
     const briefed = { ...paper, brief: { asks: [], rubric: [], steps: ['Pick the artifact', 'Outline the appeals', 'Draft', 'Cite in APA', 'Proofread'], at: 'x', source: 'local' as const } };
     expect(defaultSteps(briefed)[0]).toBe('Pick the artifact');
     const steps = stepsFor(paper);
-    expect(steps.length).toBe(5);
+    expect(steps.length).toBe(6);
     expect(stepProgress(steps)).toBe(0);
-    expect(nextStep(steps)?.label).toBe('Outline');
-    const two = steps.map((s, i) => (i < 2 ? { ...s, done: true } : s));
-    expect(stepProgress(two)).toBe(0.4);
-    expect(nextStep(two)?.label).toBe('Revise');
-    expect(stepsFor({ ...paper, steps: two })).toBe(two);
+    expect(nextStep(steps)?.label).toBe('Decide what you are arguing');
+    const three = steps.map((s, i) => (i < 3 ? { ...s, done: true } : s));
+    expect(stepProgress(three)).toBe(0.5);
+    expect(nextStep(three)?.label).toBe('Write the messy first draft');
+    expect(stepsFor({ ...paper, steps: three })).toBe(three);
   });
 });

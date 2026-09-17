@@ -5072,3 +5072,109 @@ a.hero-chip:hover {
 .flag-wait {
   border-color: var(--line-strong);
 }
+
+/* ---- The prompt panel: one prompt, one copy ---- */
+.panel-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.45);
+  border: 0;
+  padding: 0;
+}
+.panel {
+  position: fixed;
+  z-index: 61;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(560px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -18px 0 40px rgba(0, 0, 0, 0.25);
+  animation: panel-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes panel-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.panel-title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+.panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 18px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.panel-prompt {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.hero-quiet {
+  font-size: 12px;
+  color: var(--ink-3);
+  padding: 0 2px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .panel {
+    top: auto;
+    height: 88vh;
+    width: 100vw;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 16px 16px 0 0;
+  }
+  @keyframes panel-in {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+  }
+}
+
+/* The panel sits over the screen, so it paints its own solid ground rather than borrowing the page's. */
+.panel {
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--surface), var(--surface));
+}
+.panel-head,
+.panel-foot {
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--surface), var(--surface));
+}

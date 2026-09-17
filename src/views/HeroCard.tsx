@@ -13,6 +13,7 @@ import { decksForItem } from '../library/links';
 import { recordingsDb, type Recording } from '../record/db';
 import { useStore } from '../storage/store';
 import { starterPrompt } from '../work/starter';
+import { PromptPanel } from './PromptPanel';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
 
 /**
@@ -126,6 +127,7 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
   const [choosing, setChoosing] = useState<'block' | 'snooze' | null>(null);
   const [copied, setCopied] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
+  const [panel, setPanel] = useState(false);
 
   const asks = item.plan?.asks?.trim() || item.brief?.asks.join(' ') || (item.title !== item.label ? item.title : '');
   const facts = heroFacts(item, data.items, cal.minutes, tz, today);
@@ -144,7 +146,9 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
   const pastDate = new Date(item.dueAt).getTime() < Date.now();
   const deadlineDay = schedule.byItem[item.id]?.deadlineDay ?? dateOf(item.dueAt, tz);
   const deckShown = (d: Deck) => !sources.some((s) => s.label.toLowerCase().includes(d.title.toLowerCase()));
-  const covered = sources.length + material.decks.filter(deckShown).length + material.recs.length;
+  // Slides, readings, and lecture stretches are places to go. "the syllabus" on its own is not, so it never shows alone.
+  const realSources = sources.filter((s) => s.kind !== 'syllabus');
+  const covered = realSources.length + material.decks.filter(deckShown).length + material.recs.length;
 
   const start = () => actions.upsertItem({ ...item, status: 'in_progress', startedAt: now });
   const finish = () => {
@@ -271,7 +275,7 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
       {covered > 0 && (
         <p className="hero-covers">
           <b>Covered by</b>
-          {sources.map((s, i) =>
+          {realSources.map((s, i) =>
             s.href ? (
               <a key={`s${i}`} className="hero-chip" href={s.href}>
                 {s.label}
@@ -317,11 +321,14 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
 
       {!done && course && (
         <p className="hero-starter">
-          <button type="button" className="btn small" onClick={() => void copy()}>
-            {copied ? 'Copied' : 'Copy a prompt'}
+          <button type="button" className="btn small" onClick={() => setPanel(true)}>
+            Prompt for this
           </button>
           <button type="button" className="btn small" onClick={openTutor}>
             Ask the tutor
+          </button>
+          <button type="button" className="hero-quiet" onClick={() => void copy()}>
+            {copied ? 'Copied' : 'copy a short one'}
           </button>
         </p>
       )}
@@ -367,6 +374,7 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
           )}
         </div>
       )}
+      {panel && course && <PromptPanel item={item} course={course} onClose={() => setPanel(false)} />}
     </section>
   );
 }

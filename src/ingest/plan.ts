@@ -1,6 +1,6 @@
 import { arr, confidence, isoDate, num, obj, str, strs, type SystemBlock, type ToolSpec } from '../ai/client';
 import { addDays } from '../domain/dates';
-import type { Confidence, DateStr, ItemPlan, ItemType, PlanPrerequisite, PlanSource, TopicNode } from '../domain/types';
+import type { Confidence, DateStr, Handoff, ItemPlan, ItemType, PlanPrerequisite, PlanSource, TopicNode } from '../domain/types';
 import { normTitle } from '../halo/normalize';
 import type { ClassContext } from './context';
 
@@ -61,11 +61,14 @@ export const DETAIL_TOOL: ToolSpec = {
           required: ['ref', 'milestones', 'prerequisites', 'prerequisite_sources', 'prerequisite_refs', 'feeds'],
           properties: {
             ref: { type: 'string' },
-            milestones: { type: 'array', items: { type: 'string' }, description: 'Three to seven short verb phrases in rubric order. Empty when the work has no parts.' },
+            milestones: { type: 'array', items: { type: 'string' }, description: 'Three to seven steps in the order they happen, each naming something from THIS assignment: "Pick an artifact from the topic list", "Mark where ethos appears", "Run it through LopesWrite". Never a bare verb like "Outline" or "Draft" that would fit any assignment. Empty when the work has no parts.' },
             prerequisites: { type: 'array', items: { type: 'string' }, description: 'What must happen first, one short line each: a topic to claim, a reading, a group to join, a draft.' },
             prerequisite_sources: { type: 'array', items: { type: 'string' }, description: 'Where each prerequisite above was said, in the same order: syllabus, Halo description, announcement Sep 5, rubric.' },
             prerequisite_refs: { type: 'array', items: { type: 'string' }, description: 'For each prerequisite above, in the same order, the [A#] ref when it is another assignment in the list, else an empty string.' },
             feeds: { type: 'string', description: 'The [A#] ref of the later assignment this one feeds (a first draft’s final). Empty string otherwise.' },
+            what_it_is: { type: 'string', description: 'What kind of work this is, in its own terms, to finish the sentence "It is ___": "a 1,200-word argument graded on the reasoning", "a scheduling worksheet I fill with my own week", "a problem set on mole ratios".' },
+            build: { type: 'array', items: { type: 'string' }, description: 'Three to five instructions for an AI the student will paste this into, naming the setup work worth asking for on THIS assignment: the outline shape, the table columns, the document skeleton, the study plan. Concrete to this task, never generic advice. Each one an imperative sentence addressed to the AI.' },
+            withhold: { type: 'array', items: { type: 'string' }, description: 'One or two sentences naming exactly what that AI must not produce for THIS assignment, in its own words: the thesis and the analysis for an essay, the post for a discussion, final answers for a problem set, the student’s own data for a worksheet. Name the thing, never "the work".' },
           },
         },
       },
@@ -130,6 +133,7 @@ export const CORE_SYSTEM = `You are the planning pass inside a college freshman'
 Rules:
 - Due dates are Halo's and are given. Never restate, change, or invent one.
 - start_by is the last day to start and still do the work well. Reason from the shape of the work: a 175-point paper with a draft deadline is not a 5-point discussion post. Count reading, drafting, revising, and the buffer a first-semester student needs, and look at what else in this class lands near it. Never later than the due date. For a short post or quiz the day before is fine — say so. Empty string for anything already done.
+- start_why and minutes_why name the work, never its size. "1,200 words with two sources, plus a day for LopesWrite" and "12 problems at about 8 minutes each" are reasons; "it is a big assignment", "to leave enough time", "this will take a while" are not, and neither is anything that would read the same on another assignment. If you cannot name the work, say what is missing: "the description does not say how long it runs".
 - minutes is realistic out-of-class time for a freshman, reasoned from the actual asks — word count, sources, problems, reading — not from points alone. Where the rule-based number given already looks right, keep it and say so.
 - confidence is how sure you are about the item overall: high when the text says it, medium when you inferred it from clear signals, low when you guessed. List start_by or minutes under unsure when that one is the shaky part. Low is fine; pretending is not.
 - flags only when the description or tags carry them.
@@ -141,11 +145,12 @@ Answer only through the class_core tool.`;
 export const DETAIL_SYSTEM = `You are the planning pass inside a college freshman's planner, reading one class. You are asked about the work that has parts: break it into milestones, name what has to happen first, and say what the syllabus carries that Halo's assignment list does not.
 
 Rules:
-- milestones: three to seven short verb phrases in rubric order, the ones the rubric or description actually implies. Empty when the work has no parts.
+- milestones: three to seven steps in the order they happen. Each one names something only this assignment has — its artifact, its sections, its equation, its word count, its submission step. "Pick an artifact from the topic list" and "Mark where ethos appears in it", not "Outline" and "Draft"; a step that would fit any assignment in any class is a wasted step. Empty when the work has no parts.
 - prerequisites: anything that must happen first — a topic to claim, a draft that feeds a final, a reading, a group to join — including things said only in the syllabus or an announcement. Give the source of each in the same order, and its [A#] ref when it is another assignment in the list.
 - feeds: the ref of the later assignment this one feeds. Empty otherwise.
 - discovered: work the syllabus, an announcement, or a lecture mentions that is not in the Halo list. Quote the exact words. Leave due empty unless a date is written in that source. Missing is better than invented. Nothing that restates something already in the Halo list.
 - topics: the class's topics in syllabus order, each with the earlier topics it assumes.
+- what_it_is, build, withhold: the student pastes a prompt about this assignment into a separate AI chat. what_it_is names the kind of work. build is what that AI should set up for them — the outline shape, the table columns, the document skeleton, the study plan — written as instructions to that AI and specific enough that a scheduling worksheet and an argumentative essay read nothing alike. withhold names what it must not produce, in this assignment's own words: not "the work", but "the thesis and the body paragraphs", "the post", "the final answers", "my own schedule data". Everything graded on the student's judgment is withheld; everything that is structure, method, or formatting is fair to build.
 - ${LINE}
 Answer only through the class_detail tool.`;
 
@@ -172,6 +177,8 @@ export type { TopicNode };
 export interface ClassPlan {
   courseId: string;
   items: Record<string, PlannedItem>;
+  /** The tailored half of the paste-into-Claude prompt, per item id. */
+  handoffs: Record<string, Handoff>;
   discovered: DiscoveredItem[];
   topics: TopicNode[];
   notes: string;
@@ -184,7 +191,7 @@ export interface ClassPlan {
   incomplete: string[];
 }
 
-const emptyPlan = (ctx: ClassContext, model: string, at: string): ClassPlan => ({ courseId: ctx.course.id, items: {}, discovered: [], topics: [], notes: '', model, at, inputHash: ctx.inputHash, missing: [], incomplete: [] });
+const emptyPlan = (ctx: ClassContext, model: string, at: string): ClassPlan => ({ courseId: ctx.course.id, items: {}, handoffs: {}, discovered: [], topics: [], notes: '', model, at, inputHash: ctx.inputHash, missing: [], incomplete: [] });
 
 const onFile = (ctx: ClassContext) => `# On file for ${ctx.course.code}\n\n`;
 
@@ -304,15 +311,19 @@ export function planFromCore(raw: unknown, ctx: ClassContext, model: string, at 
   return plan;
 }
 
-/** The items worth a second pass: work with parts. Never everything, so the call stays small. */
-export function detailRefs(plan: ClassPlan, ctx: ClassContext, max = 15): string[] {
+/**
+ * The items worth a second pass: work with parts, and anything whose description carries enough to tailor a handoff
+ * prompt from. Never everything, so the call stays small; what is left keeps the local handoff for its kind of work.
+ */
+export function detailRefs(plan: ClassPlan, ctx: ClassContext, max = 20): string[] {
   return ctx.assessments
     .filter((a) => a.status !== 'done')
     .map((a) => {
       const minutes = plan.items[a.itemId]?.minutes?.value ?? a.minutesNow;
-      return { ref: a.ref, big: a.points >= 60 || minutes >= 120 || ['paper', 'project', 'lab', 'exam'].includes(a.type), weight: a.points * 10 + minutes };
+      const big = a.points >= 60 || minutes >= 120 || ['paper', 'project', 'lab', 'exam'].includes(a.type);
+      return { ref: a.ref, worth: big || a.description.length >= 200, weight: a.points * 10 + minutes };
     })
-    .filter((s) => s.big)
+    .filter((s) => s.worth)
     .sort((a, b) => b.weight - a.weight)
     .slice(0, max)
     .map((s) => s.ref);
@@ -323,6 +334,7 @@ export function mergeDetail(plan: ClassPlan, raw: unknown, ctx: ClassContext): C
   const o = obj(raw);
   const byRef = new Map(ctx.assessments.map((a) => [a.ref, a]));
   const items = { ...plan.items };
+  const handoffs = { ...plan.handoffs };
   for (const e of arr(o.items)) {
     const x = obj(e);
     const a = byRef.get(str(x.ref, 10));
@@ -338,6 +350,11 @@ export function mergeDetail(plan: ClassPlan, raw: unknown, ctx: ClassContext): C
     const feedsRef = str(x.feeds, 10);
     const feeds = feedsRef ? (byRef.get(feedsRef)?.itemId ?? null) : null;
     items[a.itemId] = { ...current, milestones: strs(x.milestones, 8, 80), prerequisites, feeds: feeds === a.itemId ? null : feeds };
+    const kind = str(x.what_it_is, 160);
+    const build = strs(x.build, 6, 300);
+    const withhold = strs(x.withhold, 4, 300);
+    // Half a handoff is worse than none: the local one is complete and already fits the kind of work.
+    if (kind && build.length >= 2 && withhold.length >= 1) handoffs[a.itemId] = { kind, build, withhold, format: [], model: plan.model, at: plan.at };
   }
   const discovered: DiscoveredItem[] = arr(o.discovered)
     .map((d): DiscoveredItem | null => {
@@ -364,7 +381,7 @@ export function mergeDetail(plan: ClassPlan, raw: unknown, ctx: ClassContext): C
     })
     .filter((t) => t.name)
     .slice(0, 30);
-  return { ...plan, items, discovered, topics };
+  return { ...plan, items, handoffs, discovered, topics };
 }
 
 /** Pass C, merged in: the material that covers each item, written back to something openable. */

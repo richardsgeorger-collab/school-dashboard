@@ -61,12 +61,14 @@ export function classWords(courses: Course[], items: Item[]): Map<string, string
   return words;
 }
 
-/** One line for Now: "3 days ahead in Chem, on pace in Math and Eng, behind in English (1)." Null when nothing is open anywhere. */
+/**
+ * One line for Now, in facts rather than labels: what is past its start day, what starts today, what is clear and for
+ * how long. "On pace in Math" told the student nothing they could act on; "Math starts today" does.
+ */
 export function paceLine(courses: Course[], items: Item[], schedule: Schedule, today: DateStr): string | null {
-  const parts: string[] = [];
   const on: string[] = [];
   const ahead = new Map<number, string[]>();
-  const behind: string[] = [];
+  const behind: { word: string; n: number }[] = [];
   const words = classWords(courses, items);
   for (const c of courses) {
     const p = paceFor(c, items, schedule, today);
@@ -74,12 +76,15 @@ export function paceLine(courses: Course[], items: Item[], schedule: Schedule, t
     if (p.kind === 'clear') continue;
     if (p.kind === 'on') on.push(w);
     else if (p.kind === 'ahead') ahead.set(p.days, [...(ahead.get(p.days) ?? []), w]);
-    else behind.push(`${w} (${p.n})`);
+    else behind.push({ word: w, n: p.n });
   }
-  for (const [days, ws] of [...ahead.entries()].sort((a, b) => b[0] - a[0])) parts.push(`${days} days ahead in ${list(ws)}`);
-  if (on.length) parts.push(`on pace in ${list(on)}`);
-  if (behind.length) parts.push(`behind in ${list(behind)}`);
+  const parts: string[] = [];
+  // What is already past its start day comes first: it is the only part that asks for something today.
+  if (behind.length === 1) parts.push(`${behind[0].word} has ${behind[0].n} thing${behind[0].n === 1 ? '' : 's'} past ${behind[0].n === 1 ? 'its' : 'their'} start day`);
+  else if (behind.length > 1) parts.push(`${list(behind.map((b) => `${b.word} (${b.n})`))} are past their start days`);
+  if (on.length) parts.push(`${list(on)} start${on.length === 1 ? 's' : ''} today`);
+  for (const [days, ws] of [...ahead.entries()].sort((a, b) => b[0] - a[0])) parts.push(`${list(ws)} ${ws.length === 1 ? 'is' : 'are'} clear for ${days} day${days === 1 ? '' : 's'}`);
   if (parts.length === 0) return null;
-  const s = parts.join(', ');
+  const s = parts.join('; ');
   return `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;
 }

@@ -36,14 +36,14 @@ describe('pace, not hours', () => {
     expect(paceFor(esg, items, s, today)).toEqual({ kind: 'on' });
     expect(paceFor(eng, items, s, today)).toEqual({ kind: 'behind', n: 1 });
     expect(paceFor(eng, items.filter((i) => i.id !== 'd'), s, today)).toEqual({ kind: 'clear' });
-    expect(paceLine([chm, esg, eng], items, s, today)).toBe('3 days ahead in Chem, on pace in Math, behind in English (1).');
+    expect(paceLine([chm, esg, eng], items, s, today)).toBe('English has 1 thing past its start day; Math starts today; Chem is clear for 3 days.');
     const lab = mkCourse({ id: 'c4', code: 'CHM-113L' });
     const withLab = [...items, mkItem({ id: 'l1', courseId: 'c4', label: 'Chem Lab 1', dueAt: at('2026-09-11') })];
-    expect(paceLine([chm, lab, eng], withLab, { byItem: { ...s.byItem, l1: { startBy: '2026-09-10', deadlineDay: '2026-09-11' } } } as unknown as Schedule, today)).toBe('3 days ahead in Chem, behind in Chem Lab (1) and English (1).');
+    expect(paceLine([chm, lab, eng], withLab, { byItem: { ...s.byItem, l1: { startBy: '2026-09-10', deadlineDay: '2026-09-11' } } } as unknown as Schedule, today)).toBe('Chem Lab (1) and English (1) are past their start days; Chem is clear for 3 days.');
   });
   it('groups classes in the same state and drops clear ones', () => {
     const s = sched({ a: '2026-09-14', b: '2026-09-20', c: '2026-09-15' });
-    expect(paceLine([chm, esg, eng], items.filter((i) => i.id !== 'd'), s, today)).toBe('On pace in Chem and Math.');
+    expect(paceLine([chm, esg, eng], items.filter((i) => i.id !== 'd'), s, today)).toBe('Chem and Math start today.');
     expect(paceLine([chm], [], s, today)).toBeNull();
   });
 });
