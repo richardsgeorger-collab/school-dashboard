@@ -1,3 +1,4 @@
+import { isBlocked } from '../domain/blocked';
 import { useEffect, useState } from 'react';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -56,6 +57,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
           <span>due {dueLabel(item, data.settings.timezone, today)}</span>
           <span>{hours(item.estimatedMinutes)}</span>
           {item.points > 0 && <span>{item.points} pts</span>}
+          {isBlocked(item, today) && <span className="flag flag-wait">waiting</span>}
           {item.flags.inClass && <span className="flag">in class</span>}
           {item.flags.group && <span className="flag">group</span>}
           {(item.blocks?.length ?? 0) > 0 && <span className="flag">unlocks {item.blocks!.length}</span>}

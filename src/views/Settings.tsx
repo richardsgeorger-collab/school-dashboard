@@ -109,6 +109,10 @@ export function Settings() {
             <input type="checkbox" checked={!!data.settings.eveningQuiet} onChange={(e) => actions.updateSettings({ eveningQuiet: e.target.checked })} />
             <span>Evening quiet: after 9 PM, Now stops nudging about pace and pileups unless something is overdue.</span>
           </label>
+          <label className="field" style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input type="checkbox" checked={!!data.settings.dailyQuestion} onChange={(e) => actions.updateSettings({ dailyQuestion: e.target.checked })} />
+            <span>One flashcard from your own study kit on a quiet day, on Now. Off unless you want it.</span>
+          </label>
           <div className="settings-actions sunday-settings" style={{ marginTop: 12 }}>
             <span className="hint mono">
               Sunday review: {data.settings.sundayReview?.off ? 'off' : 'offered on Sundays'}

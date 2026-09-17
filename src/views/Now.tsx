@@ -2,21 +2,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChatCard } from '../chat/ChatCard';
 import { ItemRow } from '../components/ItemRow';
 import { Modal } from '../components/Modal';
-import { CourseChip, useCourseColor } from '../components/CourseChip';
+import { CourseChip } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { IconCheck } from '../components/Icons';
-import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime, weekdayOf } from '../domain/dates';
+import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { checkDue, verificationLine } from '../halo/verification';
 import { checkHaloPress } from '../halo/checkState';
+import { blockedLine, blockPhrase } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
-import { gatedBy } from '../domain/gating';
 import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
 import { submissionCheck } from '../domain/confirm';
 import { okayPress } from './Okay';
-import { nextStep, stepProgress, isMilestoneWork } from '../work/steps';
 import { sessionTopics, topicBlocks, type SessionTopic } from '../domain/examTopics';
 import { libraryDb } from '../library/db';
 import { recordingsDb } from '../record/db';
@@ -26,31 +25,16 @@ import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '.
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
 import { WelcomeBack } from './WelcomeBack';
-import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, rankItems, startPhrase, termProgress, todayLine } from '../domain/now';
+import { isBlocked, nowMode, openCountByDay, rankItems, termProgress, todayLine } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
-import { DaySheet } from './calendar/DaySheet';
+import { DailyQuestion } from './DailyQuestion';
+import { HeroCard } from './HeroCard';
 import { ItemDetail } from './ItemDetail';
 
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const approx = (min: number) => `~${fmtMinutes(min)}`;
-
-function dayHeading(today: DateStr, d: DateStr): string {
-  const k = diffDays(today, d);
-  if (k === 0) return 'Today';
-  if (k === 1) return 'Tomorrow';
-  if (k < 0) return `${fmtDate(d, 'long')} · past due`;
-  return `${WEEKDAY_LONG[new Date(d + 'T12:00:00Z').getUTCDay()]} · ${fmtDate(d, 'short')}`;
-}
-
-function dueLine(item: Item, tz: string, today: DateStr, startBy: string | undefined): string {
-  const d = dateOf(item.dueAt, tz);
-  const time = fmtTime(item.dueAt, tz);
-  const due = `Due ${d === today ? 'today' : fmtDate(d, 'long')}${time !== '11:59 PM' ? ` ${time}` : ''}`;
-  if (!startBy || startBy >= d || d === today) return due;
-  return `${due} · ${startPhrase(startBy, today)}`;
-}
 
 function sourceTag(item: Item, course: Course | undefined): string {
   if (item.source === 'ics') return 'from ICS export';
@@ -58,7 +42,8 @@ function sourceTag(item: Item, course: Course | undefined): string {
   return item.source === 'parsed' ? `from ${course?.code ?? 'the'} syllabus` : 'added by me';
 }
 
-function NextClassCard({ heroId, onOpen }: { heroId: string | undefined; onOpen: (i: Item) => void }) {
+/** One line: the next class and whether anything needs doing before it. Not a card; the hero is the card. */
+function NextClassLine({ heroId, onOpen }: { heroId: string | undefined; onOpen: (i: Item) => void }) {
   const { data, schedule, nudges, today, courseById } = useStore();
   const tz = data.settings.timezone;
   const now = new Date().toISOString();
@@ -69,193 +54,23 @@ function NextClassCard({ heroId, onOpen }: { heroId: string | undefined; onOpen:
   const k = diffDays(today, meeting.day);
   const when = `${k === 0 ? 'today' : k === 1 ? 'tomorrow' : fmtDate(meeting.day, 'long').split(',')[0]} ${fmtTime(meeting.startAt, tz)}`;
   return (
-    <section className="nextclass" aria-label="Next class">
-      <div className="nextclass-eyebrow mono">
-        <span>Next class</span>
-        <CourseChip course={course} />
-        <span>{when}</span>
-      </div>
-      <p className="nextclass-text" data-quiet={!prep.item && !prep.nudge}>
-        {prep.item ? (
-          <button type="button" className="nextclass-link" onClick={() => onOpen(prep.item!)}>
-            {prep.text}
-          </button>
-        ) : (
-          prep.text
-        )}
-        {prep.inferred && (
-          <span className="tag-inferred" title="Inferred by the app, not on the syllabus">
-            inferred
-          </span>
-        )}
-      </p>
-    </section>
-  );
-}
-
-
-/** "Not this one" → pick when instead. The choice sets both the snooze and the start-by day, so the plan moves with it. */
-function SnoozeChooser({ item, today, deadlineDay, onPick }: { item: Item; today: DateStr; deadlineDay: DateStr; onPick: (day: DateStr) => void }) {
-  const [open, setOpen] = useState(false);
-  const [custom, setCustom] = useState('');
-  const options: { day: DateStr; label: string }[] = [];
-  const tomorrow = addDays(today, 1);
-  options.push({ day: tomorrow, label: 'Tomorrow' });
-  for (let k = 2; k <= 7; k++) {
-    const d = addDays(today, k);
-    const wd = weekdayOf(d);
-    if (wd === 6 || wd === 0) options.push({ day: d, label: wd === 6 ? 'Saturday' : 'Sunday' });
-    if (options.length >= 3) break;
-  }
-  const usable = options.filter((o) => o.day < deadlineDay);
-  if (!open) {
-    return (
-      <button type="button" className="hero-skip" onClick={() => setOpen(true)} title="Push this down and plan it for another day">
-        Not this one
-      </button>
-    );
-  }
-  return (
-    <div className="hero-snooze" role="group" aria-label={`When instead for ${item.label}`}>
-      <span className="hint">Do it</span>
-      {usable.map((o) => (
-        <button key={o.day} type="button" className="btn small" onClick={() => onPick(o.day)}>
-          {o.label}
+    <p className="nextclass-line mono" aria-label="Next class">
+      <span className="muted">Next class</span>
+      <CourseChip course={course} />
+      <span>{when}</span>
+      <span className="muted">·</span>
+      {prep.item ? (
+        <button type="button" className="nextclass-link" onClick={() => onOpen(prep.item!)}>
+          {prep.text}
         </button>
-      ))}
-      {usable.length > 0 ? (
-        <input type="date" className="hero-snooze-date" value={custom} min={tomorrow} max={addDays(deadlineDay, -1)} aria-label="Pick a day" onChange={(e) => { setCustom(e.target.value); if (e.target.value && e.target.value < deadlineDay) onPick(e.target.value); }} />
       ) : (
-        <span className="hint">It is due too soon to push.</span>
+        <span className="muted">{prep.text}</span>
       )}
-      <button type="button" className="hero-skip" style={{ flexBasis: 'auto', padding: 0 }} onClick={() => setOpen(false)}>
-        never mind
-      </button>
-    </div>
+    </p>
   );
 }
 
-function Hero({ item, optional, onOpen, onSkip, onDone }: { item: Item; optional: boolean; onOpen: (i: Item) => void; onSkip: (i: Item, day: DateStr) => void; onDone: (i: Item) => void }) {
-  const { courseById, schedule, data, today, derived, actions , calibrate } = useStore();
-  const cal = calibrate(item);
-  const course = courseById.get(item.courseId);
-  const color = useCourseColor(course);
-  const sched = schedule.byItem[item.id];
-  const now = new Date().toISOString();
-  const done = item.status === 'done';
-  const framing = done ? 'done' : optional ? 'ahead' : heroFraming(item, schedule, today, now);
-  const eyebrow = { overdue: 'Overdue', now: 'Do this next', ahead: optional ? 'Get ahead · optional' : 'Get ahead on this', done: 'Done' }[framing];
-  const reason = useMemo(
-    () => pickReason(item, data.items.filter((i) => i.type !== 'participation'), schedule, today, now, data.settings.timezone, derived),
-    [item, data.items, schedule, today, now.slice(0, 16), data.settings.timezone, derived],
-  );
-  const chunk = done ? null : chunkSuggestion(item, schedule, today);
-  // Only flag an inferred deadline while it is still the binding one.
-  const inferredDeadline = !!derived[item.id] && dateOf(derived[item.id].deadlineAt, data.settings.timezone) >= today;
-
-  // What it asks for beats a subtitle that only repeats the label: "Topic 1 DQ 1" under "UNV DQ 1.1" says nothing.
-  const asks = item.plan?.asks?.trim() ?? '';
-  const heroSub = asks ? (asks.split(/(?<=[.!?])\s+/)[0] ?? asks).slice(0, 130) : item.title !== item.label ? item.title : '';
-  // Something open has to happen first: that, not why this was ranked first, is what to do about it.
-  const blockers: Item[] = done ? [] : gatedBy(item, data.items);
-  return (
-    <section key={item.id} className="hero" data-state={framing} style={{ '--course': color } as React.CSSProperties} aria-label="Next up">
-      <div className="hero-eyebrow">
-        <span>{eyebrow}</span>
-        <CourseChip course={course} />
-      </div>
-      <h1 className="hero-title">{item.label}</h1>
-      {heroSub && <p className="hero-sub">{heroSub}</p>}
-      <p className="hero-meta mono">
-        <span>{cal.basis === 'actual' ? `${fmtMinutes(cal.minutes)} · ${cal.label}` : approx(cal.minutes)}</span>
-        {item.points > 0 && <span>{item.points} pts</span>}
-        <span data-overdue={framing === 'overdue'}>{dueLine(item, data.settings.timezone, today, sched?.startBy)}</span>
-        {inferredDeadline && (
-          <span className="tag-inferred" title={derived[item.id].reasons.join('; ')}>
-            deadline inferred
-          </span>
-        )}
-        {item.status === 'in_progress' && <span className="flag">in progress</span>}
-      </p>
-      {!done && (blockers.length > 0 ? <p className="hero-why hero-gate">First: {blockers.map((b: Item) => b.label).join(' and ')}, which this one needs.</p> : <p className="hero-why">{reason}</p>)}
-      {!done && isMilestoneWork(item) && item.steps && item.steps.length > 0 && (
-        <p className="hero-steps mono">
-          <span className="work-steps-bar" aria-hidden>
-            <span style={{ width: `${(stepProgress(item.steps) ?? 0) * 100}%` }} />
-          </span>
-          {nextStep(item.steps) ? `Next: ${nextStep(item.steps)!.label}` : 'All steps done'}
-        </p>
-      )}
-      {chunk && (
-        <p className="hero-chunk">
-          <span>{chunk.text}</span>
-          <button
-            type="button"
-            className="btn small"
-            onClick={() => actions.upsertItem({ ...item, estimatedMinutes: Math.max(15, item.estimatedMinutes - chunk.chunk), estimateOverridden: true, status: 'in_progress' })}
-          >
-            Log {chunk.chunk} min
-          </button>
-        </p>
-      )}
-      {!done && (
-        <div className="hero-actions">
-          <button type="button" className="btn primary hero-btn" onClick={() => onDone(item)}>
-            <IconCheck /> Done
-          </button>
-          <button type="button" className="btn hero-btn" onClick={() => onOpen(item)}>
-            Open
-          </button>
-          <SnoozeChooser item={item} today={today} deadlineDay={sched?.deadlineDay ?? dateOf(item.dueAt, data.settings.timezone)} onPick={(day) => onSkip(item, day)} />
-        </div>
-      )}
-      <p className="hero-source">
-        <span className="tag-source">{sourceTag(item, course)}</span>
-      </p>
-    </section>
-  );
-}
-
-function ThenRow({ item, onOpen }: { item: Item; onOpen: (i: Item) => void }) {
-  const { courseById, schedule, data, today, derived } = useStore();
-  const course = courseById.get(item.courseId);
-  const color = useCourseColor(course);
-  const sched = schedule.byItem[item.id];
-  const [open, setOpen] = useState(false);
-  return (
-    <li className="then-row" data-open={open} style={{ '--course': color } as React.CSSProperties}>
-      <button type="button" className="then-main" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className="then-dot" aria-hidden />
-        <span className="then-label">{item.label}</span>
-        <span className="then-meta mono">
-          {approx(item.estimatedMinutes)} · {item.points} pts
-        </span>
-      </button>
-      {open && (
-        <div className="then-detail">
-          <p className="hint">
-            {item.title !== item.label ? `${item.title} · ` : ''}
-            {dueLine(item, data.settings.timezone, today, sched?.startBy)}
-          </p>
-          <p className="hint" style={{ display: 'flex', gap: 6 }}>
-            <span className="tag-source">{sourceTag(item, course)}</span>
-            {derived[item.id] && dateOf(derived[item.id].deadlineAt, data.settings.timezone) >= today && (
-              <span className="tag-inferred" title={derived[item.id].reasons.join('; ')}>
-                deadline inferred
-              </span>
-            )}
-          </p>
-          <button type="button" className="btn small" onClick={() => onOpen(item)}>
-            Open
-          </button>
-        </div>
-      )}
-    </li>
-  );
-}
-
-
-/** Exam mode hero: the exam, a countdown, and how much study is left. Replaces the normal hero; nothing stacks. */
+/** Exam mode hero: the exam, the days left, and how much study is left. Replaces the normal hero; nothing stacks. */
 function ExamHero({ plan, onOpen, onDone, onLog }: { plan: ExamPlan; onOpen: (i: Item) => void; onDone: (i: Item) => void; onLog: (minutes: number) => void }) {
   const { data, courseById } = useStore();
   const [logging, setLogging] = useState(false);
@@ -282,6 +97,14 @@ function ExamHero({ plan, onOpen, onDone, onLog }: { plan: ExamPlan; onOpen: (i:
         Exam mode. Study is spread over the days left, inside your hours.
         {plan.suppressed.length > 0 ? ` ${plan.suppressed.length} smaller thing${plan.suppressed.length === 1 ? '' : 's'} due in the two weeks after wait.` : ''}
       </p>
+      <p className="hero-starter">
+        <a className="btn small" href={`#/study?c=${plan.exam.courseId}`}>
+          Study kit
+        </a>
+        <a className="btn small" href={`#/tutor?c=${plan.exam.courseId}&i=${plan.exam.id}`}>
+          Tutor
+        </a>
+      </p>
       <div className="hero-actions">
         <button type="button" className="btn primary hero-btn" onClick={() => onDone(plan.exam)}>
           <IconCheck /> Done
@@ -295,7 +118,7 @@ function ExamHero({ plan, onOpen, onDone, onLog }: { plan: ExamPlan; onOpen: (i:
           </button>
         )}
         {logging && (
-          <div className="hero-snooze" role="group" aria-label="Log study time">
+          <div className="hero-chooser" role="group" aria-label="Log study time">
             <span className="hint">Studied</span>
             {[30, 60, 90, 120].map((m) => (
               <button
@@ -337,7 +160,7 @@ function ExamSheet({ plan, onClose, onOpen }: { plan: ExamPlan; onClose: () => v
   );
 }
 
-/** Which slides each study session should open: weak ground first, the rest in order, practice on every one. */
+/** Which slides each study session should open: weak ground first, then what the professor flagged, then the rest. */
 function useExamTopics(plan: ExamPlan | null, stats: Record<string, import('../domain/types').QuizStat> | undefined, items: Item[]): SessionTopic[] {
   const [topics, setTopics] = useState<SessionTopic[]>([]);
   const key = plan ? `${plan.exam.id}:${plan.sessions.length}` : '';
@@ -350,7 +173,6 @@ function useExamTopics(plan: ExamPlan | null, stats: Record<string, import('../d
     Promise.all([libraryDb.listDecks(), libraryDb.allPages(), recordingsDb.list().catch(() => [])])
       .then(([decks, pages, recordings]) => {
         if (!live) return;
-        // Weak ground first, then whatever the professor called exam material out loud.
         const flagged = recordings.filter((r) => r.courseId === plan.exam.courseId).flatMap((r) => r.notes?.knowledge?.examFlags.map((f) => f.point) ?? []);
         const weak = [...weakSpots(plan.exam.courseId, items).map((w) => w.item.title), ...flagged];
         setTopics(sessionTopics(plan.sessions.length, topicBlocks(plan.exam.courseId, decks, pages, stats, weak)));
@@ -364,12 +186,15 @@ function useExamTopics(plan: ExamPlan | null, stats: Record<string, import('../d
   return topics;
 }
 
+/**
+ * Now: one status line, one piece of work with everything needed to start it, one pace line, and the trust lines.
+ * Never a list. What is next lives in the calendar; what is blocked waits off-screen until it plausibly clears.
+ */
 export function Now() {
   const { data, schedule, today, term, actions, progress, previewAward, calibrate } = useStore();
   const tz = data.settings.timezone;
   const [open, setOpen] = useState<Item | null>(null);
   const [examSheet, setExamSheet] = useState(false);
-  const [sheetDay, setSheetDay] = useState<DateStr | null>(null);
   const [finished, setFinished] = useState<{ xp: number; label: string } | null>(null);
   const [showAnyway, setShowAnyway] = useState(false);
   const now = new Date().toISOString();
@@ -378,24 +203,26 @@ export function Now() {
   // Participation is attendance, not work: it stays in the calendar and grades, never here.
   const work = useMemo(() => data.items.filter((i) => i.type !== 'participation'), [data.items]);
   const ranked = useMemo(() => rankItems(work, schedule, now, tz), [work, schedule, tz, minuteKey]);
-  const top = useLinger(ranked.slice(0, 4), work);
+  const top = useLinger(ranked.slice(0, 2), work);
   const hero = top[0];
-  const groups = useMemo(() => groupByDeadline(top.slice(1, 4), schedule), [top, schedule]);
-  const counts = useMemo(() => openCountByDay(work, schedule), [work, schedule]);
+  const counts = useMemo(() => openCountByDay(work, schedule, today), [work, schedule, today]);
   const mode = useMemo(() => nowMode(work, schedule, data.settings, today, now, finished !== null), [work, schedule, data.settings, today, minuteKey, finished]);
-  // Pace, not hours: one line per class, in place of any pressure.
+  // Pace, not hours: one line, in place of any pressure.
   const paceText = useMemo(() => {
     const pace = paceLine(data.courses, work, schedule, today);
     const risk = riskLine(work, schedule, today);
     const pile = pileupAhead(work, schedule, today);
     const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz));
-    // One line: a big untouched item first; then a weak concept that near material assumes; then the pileup; then pace.
-    // With several things already past their date, a sentence about October is noise: the status line has said enough.
-    const overdue = work.filter((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now()).length;
-    if (overdue >= 3) return risk;
+    // A big untouched item first; then a weak concept that material a few weeks out assumes; then the pileup; then pace.
+    // With several things already past their date, a sentence about next month is noise and the status line has said
+    // enough — but a concept the next quiz leans on is not noise, so it still gets through.
+    const overdue = work.filter((i) => i.status !== 'done' && !isBlocked(i, today) && new Date(i.dueAt).getTime() < Date.now()).length;
+    if (overdue >= 3) return risk ?? concept;
     return [risk ?? concept ?? pile?.line ?? pace].filter(Boolean).join(' ') || null;
   }, [data.courses, work, schedule, today]);
   const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
+  const chase = useMemo(() => blockedLine(work, data.courses, schedule, today, tz), [work, data.courses, schedule, today, tz]);
+  const waiting = useMemo(() => work.filter((i) => i.status !== 'done' && isBlocked(i, today)), [work, today]);
   // Back after days away: one card that says what changed, then the normal screen behind one button.
   const [lastSeen] = useState(() => readLastSeen());
   const [welcomed, setWelcomed] = useState(false);
@@ -414,7 +241,7 @@ export function Now() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today]);
   const status = todayLine(work, schedule, today, now, tz);
-  // An exam within a week reshapes the screen: exam hero, study sessions as the then-lines, one pressure line.
+  // An exam within a week reshapes the screen: exam hero, study sessions, one pressure line.
   const exam = useMemo(() => examMode(work, schedule, data.settings, today, (i) => calibrate(i).minutes), [work, schedule, data.settings, today, calibrate]);
   const examTopics = useExamTopics(exam, data.settings.quizStats, data.items);
   const logStudy = (minutes: number) => {
@@ -426,16 +253,17 @@ export function Now() {
   const syncAge = syncedAt ? Math.floor((Date.now() - new Date(syncedAt).getTime()) / 86_400_000) : null;
   const nextDeadline = Object.keys(counts).filter((d) => d >= today).sort()[0];
 
-  // "Not this one" records a day, not just a skip: the item is pushed down until then and planned to start then.
+  // "Not today" records a day, not just a skip: the item is pushed down until then and planned to start then.
   const skip = (i: Item, day: DateStr) => actions.upsertItem({ ...i, snoozedUntil: day, startByOverride: day });
   const finish = (i: Item) => {
     setFinished({ xp: previewAward(i), label: i.label });
     setShowAnyway(false);
     actions.setStatus(i.id, 'done');
   };
-  const heroDay = hero ? (schedule.byItem[hero.id]?.deadlineDay ?? dateOf(hero.dueAt, tz)) : null;
+  const unblock = (i: Item) => actions.upsertItem({ ...i, blocked: null });
 
   const showQueue = !back && !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
+  const quiet = !back && !exam && (mode.mode === 'fine' || mode.mode === 'enough' || mode.mode === 'empty');
 
   return (
     <div className="now">
@@ -446,9 +274,20 @@ export function Now() {
         </button>
       </p>
 
+      {chase && (
+        <p className="now-chase">
+          <button type="button" className="now-chase-text" onClick={() => setOpen(chase.item)}>
+            {chase.text}
+          </button>{' '}
+          <button type="button" className="hero-inline" onClick={() => unblock(chase.item)}>
+            it's unblocked now
+          </button>
+        </p>
+      )}
+
       {back && <WelcomeBack summary={back} first={hero ?? null} onOpen={setOpen} onShowAll={() => setWelcomed(true)} />}
 
-      {!back && <NextClassCard heroId={exam?.exam.id ?? hero?.id} onOpen={setOpen} />}
+      {!back && <NextClassLine heroId={exam?.exam.id ?? hero?.id} onOpen={setOpen} />}
 
       {!back && exam && <ExamHero plan={exam} onOpen={setOpen} onDone={finish} onLog={logStudy} />}
       {!back && exam && (
@@ -520,34 +359,9 @@ export function Now() {
         </section>
       )}
 
-      {showQueue && hero && <Hero item={hero} optional={mode.mode !== 'urgent'} onOpen={setOpen} onSkip={skip} onDone={finish} />}
+      {showQueue && hero && <HeroCard item={hero} optional={mode.mode !== 'urgent'} onOpen={setOpen} onSkip={skip} onDone={finish} />}
 
-      {showQueue && groups.length > 0 && (
-        <section className="then" aria-label="Then">
-          <h2 className="section-title">then</h2>
-          {groups.map((g) => {
-            const total = counts[g.day] ?? g.items.length;
-            const visible = g.items.length + (heroDay === g.day && hero?.status !== 'done' ? 1 : 0);
-            return (
-              <div key={g.day} className="then-group">
-                <h3 className="then-day mono">
-                  {dayHeading(today, g.day)} <span className="muted">· {total > visible ? `${visible} of ${total}` : `${total} thing${total === 1 ? '' : 's'}`}</span>
-                  {total > visible && (
-                    <button type="button" className="then-all" onClick={() => setSheetDay(g.day)}>
-                      see all {total}
-                    </button>
-                  )}
-                </h3>
-                <ul className="then-list">
-                  {g.items.map((i) => (
-                    <ThenRow key={i.id} item={i} onOpen={setOpen} />
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </section>
-      )}
+      {quiet && <DailyQuestion />}
 
       {!back && !exam && paceText && !(data.settings.eveningQuiet && Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date())) >= 21 && !work.some((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now())) && <p className="pace mono">{paceText}</p>}
 
@@ -561,6 +375,15 @@ export function Now() {
           {syncedAt && syncAge !== null && syncAge > 10 ? ` · assignments last synced ${syncAge} days ago` : ''}
         </span>
       </div>
+
+      {waiting.length > 0 && !chase && (
+        <p className="now-waiting mono muted">
+          {waiting.length === 1 ? `${waiting[0].label} is ${blockPhrase(waiting[0], tz)}; back ${fmtDate(waiting[0].blocked!.until, 'short')}.` : `${waiting.length} things are waiting on someone else; the first is back ${fmtDate([...waiting].sort((a, b) => a.blocked!.until.localeCompare(b.blocked!.until))[0].blocked!.until, 'short')}.`}{' '}
+          <button type="button" className="hero-inline" onClick={() => setOpen(waiting[0])}>
+            open
+          </button>
+        </p>
+      )}
 
       {(() => {
         const v = verificationLine(data.settings.haloChecks, data.courses, data.items, today, tz);
@@ -604,7 +427,6 @@ export function Now() {
         />
       )}
       {examSheet && exam && <ExamSheet plan={exam} onClose={() => setExamSheet(false)} onOpen={(i) => { setExamSheet(false); setOpen(i); }} />}
-      {sheetDay && <DaySheet date={sheetDay} items={work} onClose={() => setSheetDay(null)} onOpen={(i) => { setSheetDay(null); setOpen(i); }} />}
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
     </div>
   );

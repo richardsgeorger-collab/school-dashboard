@@ -8,6 +8,8 @@ import { gatherSources, type SourcePool } from '../quiz/sources';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { askTutor, BEHIND, citedSources, STUCK, tutorSituation } from '../tutor/tutor';
+import { starterAsk } from '../work/starter';
+import { STARTER_SLOT } from './HeroCard';
 
 interface Msg extends Turn {
   at: string;
@@ -79,6 +81,22 @@ export function Tutor() {
       setBusy(false);
     }
   };
+
+  // Handed over from Now with a starter prompt: send it once, as the first turn, and get out of the way.
+  const starter = params.get('starter');
+  const [handed, setHanded] = useState(false);
+  useEffect(() => {
+    if (!starter || handed || !course || !item || !pool || !situation || !hasKey || busy) return;
+    let text = '';
+    try {
+      text = sessionStorage.getItem(STARTER_SLOT(item.id)) ?? '';
+    } catch {
+      // No session storage: the short opening line does.
+    }
+    setHanded(true);
+    void send(text || starterAsk(item));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [starter, handed, course, item, pool, situation, hasKey]);
 
   if (!course) {
     return (

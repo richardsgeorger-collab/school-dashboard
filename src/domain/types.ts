@@ -115,6 +115,10 @@ export interface Item {
   startByPlan?: DateStr | null;
   /** AI suggestions the user turned down; never suggested again. */
   planDeclined?: PlanField[];
+  /** Waiting on someone or something else. Leaves Now until `until`; never counts as late while it stands. */
+  blocked?: Block | null;
+  /** When Start was pressed on Now, so Done can log the real time without asking. */
+  startedAt?: string | null;
   updatedAt: string;
 }
 
@@ -227,6 +231,17 @@ export interface TopicLink {
   note: string;
 }
 
+export type BlockReason = 'partner' | 'feedback' | 'materials' | 'instructor' | 'other';
+
+/** Cannot be done yet, for a reason outside the student: not a snooze, not a skip. It leaves Now until the blocker plausibly clears. */
+export interface Block {
+  reason: BlockReason;
+  note: string;
+  since: string;
+  /** The day it comes back to Now on its own. */
+  until: DateStr;
+}
+
 export type PlanField = 'startBy' | 'minutes' | 'steps';
 
 export interface TermWeekPlan {
@@ -310,6 +325,8 @@ export interface Settings {
   termPlan?: TermPlan | null;
   /** Topics that overlap across classes, from the links pass. */
   topicLinks?: TopicLink[];
+  /** Off by default: one flashcard from the student's own study kit on a quiet day. */
+  dailyQuestion?: boolean;
   updatedAt: string;
 }
 

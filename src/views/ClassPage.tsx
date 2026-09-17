@@ -13,6 +13,7 @@ import { materialsFor } from '../library/ingest';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { ItemDetail } from './ItemDetail';
+import { PasteTranscript } from './PasteTranscript';
 import { QuizLink } from './Quiz';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -27,6 +28,7 @@ export function ClassPage() {
   const [open, setOpen] = useState<Item | null>(null);
   const [materials, setMaterials] = useState<{ recordings: number; decks: number; syllabus: boolean } | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [paste, setPaste] = useState(false);
   const planStatus = usePlanStatus(course);
   useEffect(() => {
     if (!course) return;
@@ -80,6 +82,9 @@ export function ClassPage() {
           </p>
         </div>
         <span className="settings-actions">
+          <button type="button" className="btn small primary" onClick={() => setPaste(true)}>
+            Paste a lecture transcript
+          </button>
           <a className="btn small" href={`#/tutor?c=${course.id}`}>
             Tutor
           </a>
@@ -203,6 +208,7 @@ export function ClassPage() {
       </section>
 
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
+      {paste && <PasteTranscript course={course} onClose={() => setPaste(false)} />}
     </>
   );
 }

@@ -17,8 +17,10 @@ const BY_TYPE: Record<string, string[]> = {
   other: ['Read what it asks', 'Do the work', 'Check it over'],
 };
 
-/** Steps from the brief when there is one, else the usual shape for this kind of work. */
+/** Steps from the AI plan's milestones, else the brief, else the usual shape for this kind of work. */
 export function defaultSteps(item: Item): string[] {
+  const fromPlan = item.plan?.milestones?.filter(Boolean) ?? [];
+  if (fromPlan.length >= 2) return fromPlan.slice(0, 7);
   const fromBrief = item.brief?.steps?.filter(Boolean) ?? [];
   if (fromBrief.length >= 2) return fromBrief.slice(0, 7);
   return BY_TYPE[item.type] ?? BY_TYPE.other;

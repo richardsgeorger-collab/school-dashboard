@@ -7,6 +7,8 @@ import { syllabiDb } from '../syllabus/db';
 import { QuizLink } from './Quiz';
 import { gatedBy } from '../domain/gating';
 import { linksFor } from '../ingest/links';
+import { BLOCK_REASONS, BLOCK_WORDS, blockPhrase, isBlocked, makeBlock } from '../domain/blocked';
+import type { BlockReason } from '../domain/types';
 import { Sure } from './PlanReview';
 import { WorkPanel } from './WorkPanel';
 import { addDays } from '../domain/dates';
@@ -301,6 +303,35 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             onChange={(v) => set('status', v)}
           />
         </div>
+        {!isNew && (
+          <div className="field">
+            <span>Waiting on</span>
+            {item.blocked && isBlocked(item, today) ? (
+              <p className="hint">
+                {blockPhrase(item, tz)} · back on Now {fmtDate(item.blocked.until, 'short')}.{' '}
+                <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => actions.upsertItem({ ...item, blocked: null })}>
+                  it's unblocked
+                </button>
+              </p>
+            ) : (
+              <select
+                value=""
+                aria-label="Waiting on"
+                onChange={(e) => {
+                  const r = e.target.value as BlockReason | '';
+                  if (r) actions.upsertItem({ ...item, blocked: makeBlock(r, item, course, today, tz), startedAt: null });
+                }}
+              >
+                <option value="">Nothing — it can be done</option>
+                {BLOCK_REASONS.map((r) => (
+                  <option key={r} value={r}>
+                    {BLOCK_WORDS[r].label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
         <div className="field-row">
           <label className="field">
             <span>Score (points earned)</span>

@@ -5,6 +5,8 @@ import { unlocks } from './gating';
 import { pileupAhead } from './pileup';
 import type { Schedule } from './schedule';
 import type { AppData, DateStr, Item } from './types';
+import { blockedLine } from './blocked';
+import { isBlocked } from './now';
 import { weakSpots } from './weak';
 
 export interface Okay {
@@ -24,7 +26,8 @@ const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : xs.length === 2 ?
  */
 export function amIOkay(data: AppData, schedule: Schedule, today: DateStr, now: string, tz: string): Okay {
   const items = data.items.filter((i) => i.type !== 'participation');
-  const open = items.filter((i) => i.status !== 'done');
+  const waiting = items.filter((i) => i.status !== 'done' && isBlocked(i, today));
+  const open = items.filter((i) => i.status !== 'done' && !isBlocked(i, today));
   const nowMs = new Date(now).getTime();
   const overdue = open.filter((i) => new Date(i.dueAt).getTime() < nowMs).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const sub = submissionCheck(items, today, tz);
@@ -65,6 +68,12 @@ export function amIOkay(data: AppData, schedule: Schedule, today: DateStr, now: 
     handle = handle ?? `Do ${g.label} first; it's small and it holds up bigger work.`;
     first = first ?? g;
   }
+  const chase = blockedLine(items, data.courses, schedule, today, tz);
+  if (chase) {
+    parts.push(chase.text);
+    handle = handle ?? chase.action;
+    first = first ?? chase.item;
+  } else if (waiting.length) parts.push(`${waiting.length === 1 ? `${waiting[0].label} is` : `${waiting.length} things are`} waiting on someone else, and that is not on you.`);
   if (dueToday.length) parts.push(`${dueToday.length === 1 ? `${dueToday[0].label} is` : `${dueToday.length} things are`} due today.`);
   else if (week.length) parts.push(`Nothing else is due today; ${week.length} thing${week.length === 1 ? '' : 's'} land${week.length === 1 ? 's' : ''} this week.`);
   else if (!overdue.length) parts.push('Nothing is due today or this week.');

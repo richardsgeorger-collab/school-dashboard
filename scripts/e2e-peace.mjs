@@ -94,7 +94,7 @@ await page.reload({ waitUntil: 'networkidle0' });
 console.log('pace/pileup line:', await t('.pace'));
 await page.goto(`${BASE}#/plan`, { waitUntil: 'networkidle0' });
 await page.goto(`${BASE}#/class?c=${eng.id}`, { waitUntil: 'networkidle0' });
-await page.evaluate(() => { const row = [...document.querySelectorAll('.item-row')].find((r) => /Rhetorical Analysis/.test(r.textContent)); row?.querySelector('.item-main').click(); });
+await page.evaluate(() => { const row = [...document.querySelectorAll('.item-row')].find((r) => r.textContent.includes('Eng Rhetorical Analysis')); if (!row) throw new Error('Eng Rhetorical Analysis row not found'); row.querySelector('.item-main').click(); });
 await page.waitForSelector('.modal .work', { timeout: 5000 });
 await sleep(500);
 console.log('work panel:', (await t('.modal .work')).slice(0, 160));

@@ -12,6 +12,8 @@ const HEAVY_COUNT = 4;
 const ms = (iso: string) => new Date(iso).getTime();
 
 const isSnoozed = (i: Item, today: DateStr) => !!i.snoozedUntil && i.snoozedUntil > today;
+/** Waiting on someone else, and the wait has not run out: it is not on Now and it is not late. */
+export const isBlocked = (i: Item, today: DateStr) => !!i.blocked && i.blocked.until > today;
 
 /**
  * What to do next: overdue first (by the real due date), then the derived deadline,
@@ -20,15 +22,20 @@ const isSnoozed = (i: Item, today: DateStr) => !!i.snoozedUntil && i.snoozedUnti
 export function rankItems(items: Item[], schedule: Schedule, now: string, tz: string): Item[] {
   const nowMs = ms(now);
   const today = dateOf(now, tz);
-  const dl = (i: Item) => schedule.byItem[i.id]?.deadlineDay ?? i.dueAt.slice(0, 10);
+  // A derived deadline can cascade into the past (a Sunday post pulled to Saturday, then a day earlier for a crowded
+  // day, then two days for "post, then reply"). That says "today", not "before today": clamped, so a 5-point post
+  // never outranks a 175-point paper due tomorrow by being further past a date nobody set.
+  const clamp = (d: DateStr) => (d < today ? today : d);
+  const dl = (i: Item) => clamp(schedule.byItem[i.id]?.deadlineDay ?? i.dueAt.slice(0, 10));
   const pts = (i: Item) => effectivePoints(i, items);
-  // The day a thing needs attention: its deadline, or today once its start window has opened and it is big and untouched.
+  // The day a thing needs attention: its deadline, or today once its start window has opened and it is big. Started
+  // counts as much as untouched: pressing Start must never make the thing leave the screen.
   const attention = (i: Item) => {
     const sb = schedule.byItem[i.id]?.startBy;
-    return i.status === 'todo' && sb && sb <= today && (pts(i) >= 100 || i.estimatedMinutes >= 180) ? today : dl(i);
+    return sb && sb <= today && (pts(i) >= 100 || i.estimatedMinutes >= 180) ? today : dl(i);
   };
   return items
-    .filter((i) => i.status !== 'done')
+    .filter((i) => i.status !== 'done' && !isBlocked(i, today))
     .sort((a, b) => {
       const as = isSnoozed(a, today) ? 1 : 0;
       const bs = isSnoozed(b, today) ? 1 : 0;
@@ -39,10 +46,14 @@ export function rankItems(items: Item[], schedule: Schedule, now: string, tz: st
       if (ao === 0 && a.dueAt !== b.dueAt) return a.dueAt.localeCompare(b.dueAt);
       const att = attention(a).localeCompare(attention(b));
       if (att !== 0) return att;
-      const d = dl(a).localeCompare(dl(b));
-      if (d !== 0) return d;
+      // Both need attention the same day: the real due date decides, then the bigger thing. A derived deadline gets
+      // something onto today's list; it does not get a 5-point post ahead of a 175-point paper due tomorrow.
+      const due = clamp(dateOf(a.dueAt, tz)).localeCompare(clamp(dateOf(b.dueAt, tz)));
+      if (due !== 0) return due;
       if (a.estimatedMinutes !== b.estimatedMinutes) return b.estimatedMinutes - a.estimatedMinutes;
       if (pts(a) !== pts(b)) return pts(b) - pts(a);
+      const d = dl(a).localeCompare(dl(b));
+      if (d !== 0) return d;
       return a.dueAt.localeCompare(b.dueAt);
     });
 }
@@ -55,10 +66,10 @@ function dayName(today: DateStr, d: DateStr): string {
 const deadlineOf = (i: Item, schedule: Schedule) => schedule.byItem[i.id]?.deadlineDay ?? i.dueAt.slice(0, 10);
 
 /** Open work per deadline day. The single source every count on Now reads from. */
-export function openCountByDay(items: Item[], schedule: Schedule): Record<DateStr, number> {
+export function openCountByDay(items: Item[], schedule: Schedule, today?: DateStr): Record<DateStr, number> {
   const out: Record<DateStr, number> = {};
   for (const i of items) {
-    if (i.status === 'done') continue;
+    if (i.status === 'done' || (today && isBlocked(i, today))) continue;
     const d = deadlineOf(i, schedule);
     out[d] = (out[d] ?? 0) + 1;
   }
@@ -67,7 +78,7 @@ export function openCountByDay(items: Item[], schedule: Schedule): Record<DateSt
 
 /** The plain sentence at the top: what today actually holds. */
 export function todayLine(items: Item[], schedule: Schedule, today: DateStr, now: string, tz: string): string {
-  const open = items.filter((i) => i.status !== 'done');
+  const open = items.filter((i) => i.status !== 'done' && !isBlocked(i, today));
   if (open.length === 0) return 'Nothing open.';
   const nowMs = ms(now);
   const overdue = open.filter((i) => ms(i.dueAt) < nowMs).length;
@@ -109,7 +120,7 @@ export type NowMode = { mode: 'urgent' } | { mode: 'fine'; daysUntilNext: number
  * pressure), "enough for today" (just finished, and today asks nothing more), or empty.
  */
 export function nowMode(items: Item[], schedule: Schedule, settings: Settings, today: DateStr, now: string, justFinished = false): NowMode {
-  const open = items.filter((i) => i.status !== 'done' && i.type !== 'participation');
+  const open = items.filter((i) => i.status !== 'done' && i.type !== 'participation' && !isBlocked(i, today));
   if (open.length === 0) return { mode: 'empty' };
   const nowMs = ms(now);
   const overdue = open.some((i) => ms(i.dueAt) < nowMs);

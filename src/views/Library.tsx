@@ -9,6 +9,7 @@ import { recordingsDb } from '../record/db';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { Record } from './Record';
+import { PasteTranscript } from './PasteTranscript';
 import { SearchView } from './SearchView';
 import { QuizLink } from './Quiz';
 import { SlidesView } from './SlidesView';
@@ -217,6 +218,7 @@ function LibraryHome() {
 /** One class: drop zone, search, and its recordings, slides, and syllabus, newest first. */
 function ClassLibrary({ courseId }: { courseId: string }) {
   const { courseById } = useStore();
+  const [paste, setPaste] = useState(false);
   const course = courseId === 'none' ? null : courseById.get(courseId);
   const { run, busy, notes, tick } = useIngest();
   const title = course ? course.name : courseId === 'none' ? 'Unassigned' : 'Unknown class';
@@ -231,8 +233,16 @@ function ClassLibrary({ courseId }: { courseId: string }) {
             {course && <CourseChip course={course} link />} <span>{title}</span>
           </h1>
         </div>
-        {course && <QuizLink courseId={course.id} />}
+        {course && (
+          <span className="settings-actions">
+            <button type="button" className="btn small primary" onClick={() => setPaste(true)}>
+              Paste a lecture transcript
+            </button>
+            <QuizLink courseId={course.id} />
+          </span>
+        )}
       </div>
+      {course && paste && <PasteTranscript course={course} onClose={() => { setPaste(false); }} />}
       {course && <DropZone onFile={(f) => void run(f, course)} busy={busy} label={`Drop into ${course.code}`} hint="Audio becomes a recording, a PDF or PPTX becomes slides, a file named syllabus becomes the syllabus. No questions asked." />}
       {courseId === 'none' && <p className="hint">These belong to classes that were removed. Use “Move to” on each one to file it, or delete it.</p>}
       {notes.length > 0 && (
