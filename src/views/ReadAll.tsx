@@ -5,7 +5,7 @@ import { dateOf, fmtDate } from '../domain/dates';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
 import type { Item } from '../domain/types';
 import { announceDb, type StoredAnnouncement } from '../halo/announce';
-import { readAllAnnouncements, readAllLine, stampRead, unread, type ReadAllResult, type ReadProgress } from '../halo/readAll';
+import { errorGroups, genuinelyNothing, readAllAnnouncements, readAllLine, stampRead, unread, type ReadAllResult, type ReadProgress } from '../halo/readAll';
 import { useStore } from '../storage/store';
 
 /**
@@ -19,6 +19,7 @@ export function ReadAll({ list, onClose, onDone }: { list: StoredAnnouncement[];
   const [result, setResult] = useState<ReadAllResult | null>(null);
   const [counts, setCounts] = useState<{ attached: number; noted: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const stop = useRef({ stopped: false });
   const hasKey = loadApiKey() !== '';
 
@@ -59,6 +60,8 @@ export function ReadAll({ list, onClose, onDone }: { list: StoredAnnouncement[];
       setProgress(null);
     }
   };
+
+  const failures = useMemo(() => (result ? errorGroups(result.results) : []), [result]);
 
   const byCourse = useMemo(() => {
     if (!result) return [];
@@ -120,12 +123,43 @@ export function ReadAll({ list, onClose, onDone }: { list: StoredAnnouncement[];
             <p>
               <b>{readAllLine(result, counts.attached, counts.noted)}</b>
             </p>
+            {result.failed > 0 && result.read > 0 && (
+              <p className="hint">What follows is only from the {result.read} that were read.</p>
+            )}
             {result.changes.length > 0 && (
               <p className="hint">
                 {result.changes.length} of them would add or move something on your calendar. Those wait for you: they are on the next sync&apos;s review screen.
               </p>
             )}
-            {byCourse.length === 0 && <p className="hint">Nothing in them asks anything of you.</p>}
+            {failures.length > 0 && (
+              <div className="diff-gap">
+                <p className="hint" style={{ margin: 0 }}>
+                  <b>Why they could not be read.</b> {failures.length === 1 ? 'Every failure had the same cause.' : `${failures.length} different causes.`}
+                </p>
+                <ul className="gap-list">
+                  {failures.map((f, i) => (
+                    <li key={i}>
+                      <span className="hint mono">
+                        {f.count} announcement{f.count === 1 ? '' : 's'}
+                        {f.status !== null ? ` · HTTP ${f.status}` : ''}
+                      </span>
+                      <code className="gap-err">{f.message}</code>
+                      <span className="hint">{f.plain}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="hint">
+                  <button type="button" className="btn small" onClick={() => void navigator.clipboard.writeText(JSON.stringify(failures, null, 1)).then(() => setCopied(true))}>
+                    {copied ? 'Copied' : 'Copy this for Claude'}
+                  </button>{' '}
+                  <button type="button" className="btn small" onClick={() => void run(result.results.filter((x) => x.error).map((x) => x.announcement))}>
+                    Try those again
+                  </button>
+                </p>
+              </div>
+            )}
+            {/* The all-clear is the one sentence that has to be backed by a complete pass. */}
+            {genuinelyNothing(result, counts.attached, counts.noted) && <p className="hint">Every one was read, and none of them asks anything of you.</p>}
             {byCourse.map((c) => (
               <section key={c.code} className="readall-class">
                 <h3 className="section-title">

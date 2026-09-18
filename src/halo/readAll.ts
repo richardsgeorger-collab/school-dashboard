@@ -22,7 +22,32 @@ export interface AnnouncementResult {
   course: Course;
   summary: string;
   actions: Action[];
+  /** The plain sentence for the reader. */
   error: string | null;
+  /** What actually came back: the status and the API's own message. "Could not be read" diagnoses nothing. */
+  raw: { status: number | null; message: string } | null;
+}
+
+/** The status and message out of an SDK error, without importing the SDK to find out. */
+export function rawError(e: unknown): { status: number | null; message: string } {
+  const o = (e ?? {}) as Record<string, unknown>;
+  const nested = ((o.error as Record<string, unknown>)?.error ?? {}) as Record<string, unknown>;
+  const message = String(nested.message ?? o.message ?? e ?? 'unknown').slice(0, 600);
+  const status = typeof o.status === 'number' ? o.status : null;
+  return { status, message };
+}
+
+/** One failure per distinct cause, with how many announcements hit it. 47 of 47 is one problem, not 47. */
+export function errorGroups(results: AnnouncementResult[]): { status: number | null; message: string; plain: string; count: number }[] {
+  const m = new Map<string, { status: number | null; message: string; plain: string; count: number }>();
+  for (const r of results) {
+    if (!r.error) continue;
+    const key = `${r.raw?.status ?? ''} ${r.raw?.message ?? r.error}`;
+    const row = m.get(key) ?? { status: r.raw?.status ?? null, message: r.raw?.message ?? r.error, plain: r.error, count: 0 };
+    row.count += 1;
+    m.set(key, row);
+  }
+  return [...m.values()].sort((a, b) => b.count - a.count);
 }
 
 export interface ReadAllResult {
@@ -35,6 +60,28 @@ export interface ReadAllResult {
   changes: { action: Action; courseId: string; announcement: StoredAnnouncement }[];
   read: number;
   failed: number;
+}
+
+const nap = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Forty-seven calls in a row will meet a rate limit sooner or later, and one 429 should not cost an announcement.
+ * Retries only what is worth retrying: a rate limit or a server-side wobble, never a rejected key or a bad request.
+ */
+export async function withRetry<T>(fn: () => Promise<T>, sleep: (ms: number) => Promise<void> = nap, attempts = 3): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      const status = rawError(e).status;
+      const worthRetrying = status === 429 || status === 408 || (status !== null && status >= 500);
+      if (!worthRetrying || i === attempts - 1) throw e;
+      await sleep(400 * 2 ** i);
+    }
+  }
+  throw last;
 }
 
 /** Announcements that have not been read yet, oldest first so the term reads in order. */
@@ -56,6 +103,8 @@ export async function readAllAnnouncements(args: {
   at: string;
   onProgress?: (p: ReadProgress) => void;
   signal?: { stopped: boolean };
+  /** Injected so the tests do not actually wait. */
+  sleep?: (ms: number) => Promise<void>;
 }): Promise<ReadAllResult> {
   const byCourse = new Map(args.courses.map((c) => [c.id, c]));
   const out: ReadAllResult = { results: [], requirements: new Map(), notes: new Map(), changes: [], read: 0, failed: 0 };
@@ -67,8 +116,8 @@ export async function readAllAnnouncements(args: {
     n += 1;
     args.onProgress?.({ done: n, total: todo.length, title: a.title || '(untitled)', course: course.code });
     try {
-      const r = await readActions({ apiKey: args.apiKey, fetch: args.fetch, announcement: a, course, items: args.items, tz: args.tz });
-      out.results.push({ announcement: a, course, summary: r.summary, actions: r.actions, error: null });
+      const r = await withRetry(() => readActions({ apiKey: args.apiKey, fetch: args.fetch, announcement: a, course, items: args.items, tz: args.tz }), args.sleep);
+      out.results.push({ announcement: a, course, summary: r.summary, actions: r.actions, error: null, raw: null });
       out.read += 1;
       const routed = routeActions(r.actions, course.id, args.at);
       for (const { itemId, req } of routed.requirements) out.requirements.set(itemId, [...(out.requirements.get(itemId) ?? []), req]);
@@ -76,7 +125,7 @@ export async function readAllAnnouncements(args: {
       for (const action of routed.changes) out.changes.push({ action, courseId: course.id, announcement: a });
     } catch (e) {
       out.failed += 1;
-      out.results.push({ announcement: a, course, summary: '', actions: [], error: await describeAiError(e) });
+      out.results.push({ announcement: a, course, summary: '', actions: [], error: await describeAiError(e), raw: rawError(e) });
     }
   }
   return out;
@@ -113,11 +162,23 @@ export async function stampRead(results: AnnouncementResult[], at: string): Prom
 
 const n = (v: number, one: string, many: string) => `${v} ${v === 1 ? one : many}`;
 
-/** What the whole pass found, in one sentence. */
+/**
+ * What the pass found. A failed read means the contents are unknown, so nothing here may describe them: reporting
+ * "nothing asks anything of you" over 47 failures is the same mistake as calling a Halo check clean on a parse error.
+ */
 export function readAllLine(r: ReadAllResult, attached: number, noted: number): string {
+  if (r.failed > 0 && r.read === 0) return `${n(r.failed, 'announcement', 'announcements')} could not be read. I do not know what they ask.`;
   const parts = [n(attached, 'requirement', 'requirements') + ' attached to work you already have'];
   if (r.changes.length) parts.push(`${n(r.changes.length, 'change', 'changes')} to approve`);
   if (noted) parts.push(n(noted, 'class note', 'class notes'));
-  const tail = r.failed ? ` ${n(r.failed, 'announcement', 'announcements')} could not be read.` : '';
-  return `Read ${n(r.read, 'announcement', 'announcements')}: ${parts.join(', ')}.${tail}`;
+  const head = `Read ${n(r.read, 'announcement', 'announcements')}: ${parts.join(', ')}.`;
+  if (r.failed === 0) return head;
+  return `${head} ${n(r.failed, 'announcement', 'announcements')} could not be read, so I do not know what those ask.`;
 }
+
+/**
+ * True only when every announcement was read and none of them asked anything. The all-clear is the one sentence
+ * that must be backed by a complete pass.
+ */
+export const genuinelyNothing = (r: ReadAllResult, attached: number, noted: number): boolean =>
+  r.failed === 0 && r.read > 0 && attached === 0 && noted === 0 && r.changes.length === 0;
