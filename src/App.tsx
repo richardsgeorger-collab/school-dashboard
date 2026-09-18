@@ -27,6 +27,7 @@ import { Settings } from './views/Settings';
 import { Quiz } from './views/Quiz';
 import { ClassPage } from './views/ClassPage';
 import { IngestView } from './views/IngestView';
+import { News } from './views/News';
 import { StudyKit } from './views/StudyKit';
 import { Tutor } from './views/Tutor';
 import { useAutoRerun } from './ingest/auto';
@@ -210,6 +211,8 @@ function Screen() {
       return <Tutor />;
     case 'study':
       return <StudyKit />;
+    case 'news':
+      return <News />;
     default:
       return <Now />;
   }

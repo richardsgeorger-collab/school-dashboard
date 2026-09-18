@@ -10,6 +10,9 @@ import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { checkDue, verificationLine } from '../halo/verification';
 import { checkHaloPress } from '../halo/checkState';
+import { announceDb, unreadLine, type StoredAnnouncement } from '../halo/announce';
+import { SYNC_EVENT } from '../ingest/auto';
+import { staleness, stalenessLine } from '../halo/freshness';
 import { blockedLine, blockPhrase } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { paceLine, riskLine } from '../domain/pace';
@@ -221,6 +224,28 @@ export function Now() {
     return [risk ?? concept ?? pile?.line ?? pace].filter(Boolean).join(' ') || null;
   }, [data.courses, work, schedule, today]);
   const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
+  // Announcements carry the week's real instructions at GCU, so an unread one gets one quiet line and nothing more.
+  const [news, setNews] = useState<StoredAnnouncement[]>([]);
+  const [newsTick, setNewsTick] = useState(0);
+  useEffect(() => {
+    // A sync writes announcements straight to their own store, which no React state watches: without this the line
+    // would not appear until the next reload.
+    const again = () => setNewsTick((n) => n + 1);
+    window.addEventListener(SYNC_EVENT, again);
+    return () => window.removeEventListener(SYNC_EVENT, again);
+  }, []);
+  useEffect(() => {
+    let live = true;
+    announceDb
+      .list()
+      .then((l) => live && setNews(l.filter((a) => data.courses.some((c) => c.id === a.courseId))))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [data.courses, today, newsTick]);
+  const unread = useMemo(() => unreadLine(news, data.courses, tz), [news, data.courses, tz]);
+  const stale = useMemo(() => stalenessLine(staleness(data.courses, data.settings, today), data.courses.length), [data.courses, data.settings, today]);
   const chase = useMemo(() => blockedLine(work, data.courses, schedule, today, tz), [work, data.courses, schedule, today, tz]);
   const waiting = useMemo(() => work.filter((i) => i.status !== 'done' && isBlocked(i, today)), [work, today]);
   // Back after days away: one card that says what changed, then the normal screen behind one button.
@@ -385,9 +410,24 @@ export function Now() {
         </p>
       )}
 
+      {unread && (
+        <p className="now-news mono">
+          <a className="now-news-link" href={`#/news?a=${unread.first.id}`}>
+            {unread.text}
+          </a>
+        </p>
+      )}
+
       {(() => {
         const v = verificationLine(data.settings.haloChecks, data.courses, data.items, today, tz);
         const due = checkDue(data.settings.haloChecks, today, tz);
+        if (stale) {
+          return (
+            <p className="verify mono" data-level="amber">
+              {stale} <span className="muted">{v.text}</span>
+            </p>
+          );
+        }
         if (sub.line && !due) {
           return (
             <p className="verify mono" data-level={sub.level === 'alarm' ? 'alarm' : sub.level}>

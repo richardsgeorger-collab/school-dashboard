@@ -3,6 +3,7 @@ import { describeAiError, type Turn } from '../ai/client';
 import { loadApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { weakConcepts } from '../domain/concepts';
+import { announceContext, announceDb, type StoredAnnouncement } from '../halo/announce';
 import { EMPTY_POOL, loadPool } from '../quiz/pool';
 import { gatherSources, type SourcePool } from '../quiz/sources';
 import { useRoute } from '../router';
@@ -43,6 +44,14 @@ export function Tutor() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const [news, setNews] = useState<StoredAnnouncement[]>([]);
+  useEffect(() => {
+    let live = true;
+    announceDb.list().then((l) => live && setNews(l)).catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!course) return;
@@ -62,7 +71,12 @@ export function Tutor() {
 
   const sources = useMemo(() => (course && pool ? gatherSources(course, topic, pool, tz) : []), [course, pool, topic, tz]);
   const weak = useMemo(() => (course ? weakConcepts(course.id, data.items, data.settings.quizStats).map((w) => w.topic) : []), [course, data.items, data.settings.quizStats]);
-  const situation = useMemo(() => (course && pool ? tutorSituation(course, data.items, pool.recordings, weak, data.settings.topicLinks ?? [], data.courses, today, tz, topic, item) : null), [course, pool, data.items, weak, data.settings.topicLinks, data.courses, today, tz, topic, item]);
+  const situation = useMemo(() => {
+    if (!course || !pool) return null;
+    const s = tutorSituation(course, data.items, pool.recordings, weak, data.settings.topicLinks ?? [], data.courses, today, tz, topic, item);
+    const ann = announceContext(news, course.id, tz);
+    return ann ? { ...s, announcements: ann } : s;
+  }, [course, pool, data.items, weak, data.settings.topicLinks, data.courses, today, tz, topic, item, news]);
 
   const send = async (userText: string) => {
     if (!course || !situation || !userText.trim() || busy) return;

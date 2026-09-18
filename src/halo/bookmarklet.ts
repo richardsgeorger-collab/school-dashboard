@@ -19,6 +19,13 @@ const Q_CLASSES =
 /** Instructor names, asked for separately so an unknown field can never break the export. Best guess at the shape; skipped on any error. */
 const Q_INSTRUCTORS =
   'query getCourseClassesForUser($pgNum: Int, $pgSize: Int) { getCourseClassesForUser(pgNum: $pgNum, pgSize: $pgSize) { courseClasses { id instructors { user { firstName lastName preferredFirstName } } } } }';
+/**
+ * Announcements, from Halo's own GetAnnouncementsStudent with its fragments inlined. At GCU the week's real work is
+ * often posted here rather than in the assignment list. Asked for in its own call: if the shape ever changes, the
+ * catch around it drops announcements for that class and the assignments and grades still come through.
+ */
+const Q_ANNOUNCEMENTS =
+  'query GetAnnouncementsStudent($courseClassId: String!) { announcements(courseClassId: $courseClassId) { forumId courseClassId title startDate endDate posts { id forumId title content publishDate modifiedDate startDate expiryDate postStatus isAcknowledge postFlagAcknowledgements { acknowledge acknowledgedTimestamp userId } createdBy { id user { firstName lastName preferredFirstName } } resources { id name kind type } } } }';
 const Q_GRADES =
   'query AllAssessmentGrades($courseClassSlugId: String!, $courseUnitId: String) { assessmentGrades: getAllClassGrades(courseClassSlugId: $courseClassSlugId, courseUnitId: $courseUnitId) { grades { id status dueDate accommodatedDueDate assessment { id } assignmentSubmission { submissionDate } history { status points } } } }';
 
@@ -58,12 +65,21 @@ return j.data;};
 var Q1=${JSON.stringify(Q_CLASSES)};
 var Q2=${JSON.stringify(Q_GRADES)};
 var Q3=${JSON.stringify(Q_INSTRUCTORS)};
+var Q4=${JSON.stringify(Q_ANNOUNCEMENTS)};
 var cls=((await gql('getCourseClassesForUser',Q1,{pgNum:1,pgSize:50})).getCourseClassesForUser||{}).courseClasses||[];
 var names={};try{var ic=((await gql('getCourseClassesForUser',Q3,{pgNum:1,pgSize:50})).getCourseClassesForUser||{}).courseClasses||[];for(var ii=0;ii<ic.length;ii++){names[ic[ii].id]=ic[ii].instructors||[];}}catch(e){}
 var classes=[];
 for(var i=0;i<cls.length;i++){var c=cls[i];
 say('Reading '+(c.courseCode||c.classCode)+' ('+(i+1)+' of '+cls.length+')\\u2026');
 var grades=[];try{var g=await gql('AllAssessmentGrades',Q2,{courseClassSlugId:c.slugId,courseUnitId:null});grades=(g.assessmentGrades&&g.assessmentGrades[0]&&g.assessmentGrades[0].grades)||[];}catch(e){}
+var anns=[];try{var af=(await gql('GetAnnouncementsStudent',Q4,{courseClassId:c.id})).announcements||[];
+for(var fi=0;fi<af.length;fi++){var fm=af[fi];var ps=(fm&&fm.posts)||[];
+for(var pi=0;pi<ps.length;pi++){var po=ps[pi];if(!po)continue;if(po.postStatus&&String(po.postStatus).toUpperCase().indexOf('DELET')>=0)continue;
+var au=po.createdBy&&po.createdBy.user;var who=au?((au.preferredFirstName||au.firstName||'')+' '+(au.lastName||'')).trim():'';
+var acks=po.postFlagAcknowledgements||[];var didAck=false;for(var ai=0;ai<acks.length;ai++){if(acks[ai]&&acks[ai].acknowledge){didAck=true;}}
+var res=[];var rr=po.resources||[];for(var ri=0;ri<rr.length;ri++){if(rr[ri]){res.push({id:rr[ri].id,name:rr[ri].name||'',kind:rr[ri].kind||null,type:rr[ri].type||null});}}
+anns.push({id:po.id,forumId:po.forumId||fm.forumId||null,title:po.title||fm.title||'',content:po.content||'',publishedAt:po.publishDate||po.startDate||null,modifiedAt:po.modifiedDate||null,author:who||null,mustAcknowledge:!!po.isAcknowledge,acknowledged:didAck,resources:res});}}
+anns.sort(function(a,b){return String(b.publishedAt||'').localeCompare(String(a.publishedAt||''));});}catch(e){anns=[];}
 var byId={};for(var k=0;k<grades.length;k++){var gr=grades[k];if(gr&&gr.assessment&&gr.assessment.id){byId[gr.assessment.id]=gr;}}
 var out=[];var units=c.units||[];
 for(var u=0;u<units.length;u++){var un=units[u];var as=un.assessments||[];
@@ -72,7 +88,7 @@ var hist=((gg&&gg.history)||[]).filter(function(h){return h&&h.points!=null;});
 var personal=gg&&(gg.accommodatedDueDate||gg.dueDate);
 out.push({id:t.id,title:t.title,description:t.description||null,unit:un.title||null,unitSequence:un.sequence==null?null:un.sequence,sequence:t.sequence==null?null:t.sequence,startDate:t.startDate||null,dueDate:personal||t.dueDate||null,classDueDate:t.dueDate||null,points:t.points==null?null:t.points,type:t.type||'ASSIGNMENT',tags:t.tags||[],inPerson:!!t.inPerson,isGroupEnabled:!!t.isGroupEnabled,requiresLopesWrite:!!t.requiresLopesWrite,status:(gg&&gg.status)||null,submittedAt:(gg&&gg.assignmentSubmission&&gg.assignmentSubmission.submissionDate)||null,score:hist.length?hist[hist.length-1].points:null});}}
 var who=(names[c.id]||[]).map(function(x){var u=x&&x.user;return u?((u.preferredFirstName||u.firstName||'')+' '+(u.lastName||'')).trim():'';}).filter(Boolean);
-classes.push({id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',instructors:who,startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out});}
+classes.push({id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',instructors:who,startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out,announcements:anns});}
 var payload={kind:'halo-export',version:1,exportedAt:new Date().toISOString(),source:'bookmarklet',classes:classes};
 var n=0;for(var q=0;q<classes.length;q++){n+=classes[q].assessments.length;}
 say('Read '+n+' assignments in '+classes.length+' classes. Sending to the dashboard\\u2026');

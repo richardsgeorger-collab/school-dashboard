@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { saveAnnouncements } from '../halo/announce';
+import { pullsFrom } from '../halo/freshness';
+import { SYNC_EVENT } from '../ingest/auto';
+import { normCode } from '../halo/normalize';
 import { CourseChip } from '../components/CourseChip';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
@@ -116,14 +120,29 @@ export function DiffReview({
     });
   const setAll = (group: Group, keys: string[]) => setSel((s) => (s ? { ...s, [group]: new Set(keys) } : s));
   const flip = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+  const [stored, setStored] = useState<{ saved: number; fresh: number } | null>(null);
 
-  const apply = () => {
+  const apply = async () => {
     if (!sel) return;
     const plan = planFromDiff(diff, sel);
     actions.applyHaloSync(plan);
     const summary = { added: sel.added.size, changed: sel.changed.size, removed: sel.missing.size, completed: plan.complete.length, scored: plan.scores.length, linked: diff.unchanged.length };
+    // Announcements are not planner rows, so they are stored rather than approved; what they change is approved later,
+    // one finding at a time. The same pass records what this pull actually carried, per class. Awaited, so the screen
+    // never says it is done while the write is still in flight and a navigation could cut it off.
+    const now = new Date().toISOString();
+    const courseIdOf = (classId: string, code: string) => data.courses.find((c) => c.haloClassId === classId)?.id ?? data.courses.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
+    try {
+      const r = await saveAnnouncements(payload, courseIdOf, now);
+      if (r.saved > 0) setStored(r);
+    } catch {
+      // The planner is already written; announcements can come again on the next run.
+    }
+    actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, now) });
     setApplied(summary);
     onApplied?.(summary);
+    // Announcements live in their own store, which no React state watches; this is what tells Now to look again.
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
   };
 
   const ChangeLine = ({ c }: { c: FieldChange }) => {
@@ -149,6 +168,14 @@ export function DiffReview({
           {source === 'halo' && <li>{applied.scored} scores from the gradebook</li>}
           <li>{applied.removed} removed</li>
           <li>{applied.linked} linked with nothing else touched</li>
+          {stored && stored.saved > 0 && (
+            <li>
+              {stored.saved} announcement{stored.saved === 1 ? '' : 's'} stored{stored.fresh > 0 ? `, ${stored.fresh} new` : ''} ·{' '}
+              <a className="diff-toggle" href="#/news">
+                read them
+              </a>
+            </li>
+          )}
         </ul>
         <div className="modal-actions">
           <span className="spacer" />

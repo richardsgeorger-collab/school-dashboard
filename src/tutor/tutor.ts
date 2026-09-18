@@ -36,6 +36,8 @@ export interface ExamFlag {
 
 export interface TutorSituation {
   course: Course;
+  /** Recent announcements for the class, newest first, as text. */
+  announcements?: string;
   topic: string;
   today: DateStr;
   upcoming: Upcoming[];
@@ -75,6 +77,7 @@ export function situationText(s: TutorSituation): string {
   if (s.examFlags.length) lines.push(`The professor called exam material: ${s.examFlags.map((f) => `"${f.point}" (${f.lecture}${f.at ? ` at ${f.at}` : ''})`).join('; ')}`);
   if (s.weak.length) lines.push(`Where the student has been weak: ${s.weak.join(', ')}`);
   if (s.links.length) lines.push(`Cross-class links: ${s.links.map((l) => `${l.other} ${l.topic} — ${l.note}`).join('; ')}`);
+  if (s.announcements) lines.push(`Recent announcements in this class (the professor's own words):\n${s.announcements}`);
   return lines.join('\n');
 }
 

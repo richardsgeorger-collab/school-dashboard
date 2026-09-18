@@ -2,7 +2,7 @@
  * What the AI features cost, measured, not guessed: every call records the tokens the API reported, by month and kind.
  * Kept in this browser only. Prices are editable so the number stays honest when Anthropic's list changes.
  */
-export type UsageKind = 'class_plan' | 'term_plan' | 'lecture' | 'tutor' | 'brief' | 'draft' | 'method' | 'links' | 'study' | 'quiz' | 'coach' | 'audit' | 'needs' | 'other';
+export type UsageKind = 'class_plan' | 'term_plan' | 'lecture' | 'announcement' | 'tutor' | 'brief' | 'draft' | 'method' | 'links' | 'study' | 'quiz' | 'coach' | 'audit' | 'needs' | 'other';
 
 export interface UsageRow {
   month: string;

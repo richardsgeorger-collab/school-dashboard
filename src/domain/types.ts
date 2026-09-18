@@ -282,6 +282,13 @@ export interface TermPlan {
   inputHash: string;
 }
 
+/** What the last bookmark run actually brought back for one class. */
+export interface HaloPull {
+  assessments?: string | null;
+  grades?: string | null;
+  announcements?: string | null;
+}
+
 export interface HaloCheckRecord {
   at: string;
   clean: boolean;
@@ -343,6 +350,11 @@ export interface Settings {
   topicLinks?: TopicLink[];
   /** Off by default: one flashcard from the student's own study kit on a quiet day. */
   dailyQuestion?: boolean;
+  /**
+   * When each kind of Halo data was last pulled, per class. A clean screen has to be backed by a pull; a class with
+   * nothing here has not been synced, which is not the same as having nothing due.
+   */
+  haloPulls?: Record<string, HaloPull>;
   updatedAt: string;
 }
 

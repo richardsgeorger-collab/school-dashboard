@@ -1,0 +1,152 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { describeAiError } from '../ai/client';
+import { loadApiKey } from '../chat/key';
+import { CourseChip } from '../components/CourseChip';
+import { dateOf, fmtDate } from '../domain/dates';
+import type { Course } from '../domain/types';
+import { announceDb, readAnnouncement, type StoredAnnouncement } from '../halo/announce';
+import { useRoute } from '../router';
+import { useStore } from '../storage/store';
+import { LectureReview, type Decision } from './LectureReview';
+
+/**
+ * Announcements, newest first. At GCU the week's real instructions often live here, so this is where they are read,
+ * and where what they change goes through the same approval flow as everything else.
+ */
+export function News() {
+  const { data, today, courseById } = useStore();
+  const { params } = useRoute();
+  const tz = data.settings.timezone;
+  const only = params.get('c');
+  const [list, setList] = useState<StoredAnnouncement[] | null>(null);
+  const [open, setOpen] = useState<string | null>(params.get('a'));
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [review, setReview] = useState<StoredAnnouncement | null>(null);
+  const hasKey = loadApiKey() !== '';
+
+  const refresh = useCallback(async () => {
+    setList(await announceDb.list().catch(() => []));
+  }, []);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const shown = useMemo(() => (list ?? []).filter((a) => (only ? a.courseId === only : true) && courseById.has(a.courseId)), [list, only, courseById]);
+
+  const markRead = async (a: StoredAnnouncement) => {
+    if (a.readAt) return;
+    await announceDb.put({ ...a, readAt: new Date().toISOString() });
+    await refresh();
+  };
+  const toggle = async (a: StoredAnnouncement) => {
+    const next = open === a.id ? null : a.id;
+    setOpen(next);
+    if (next) await markRead(a);
+  };
+  const read = async (a: StoredAnnouncement) => {
+    const course = courseById.get(a.courseId);
+    if (!course || !hasKey) return;
+    setBusy(a.id);
+    setNote(null);
+    try {
+      const r = await readAnnouncement({ apiKey: loadApiKey(), announcement: a, course, items: data.items, tz });
+      const updated: StoredAnnouncement = { ...a, processedAt: new Date().toISOString(), findings: r.findings, readAt: a.readAt ?? new Date().toISOString(), text: a.text };
+      await announceDb.put(updated);
+      await refresh();
+      if (r.findings.length === 0) setNote(`${course.code}: nothing in "${a.title}" changes your planner. ${r.summary}`);
+      else setReview(updated);
+    } catch (e) {
+      setNote(await describeAiError(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+  const decide = async (id: string, d: Decision, applied: string) => {
+    if (!review) return;
+    if (applied) setNote(applied);
+    const updated = { ...review, review: { ...review.review, [id]: d } };
+    await announceDb.put(updated);
+    setReview(updated);
+    await refresh();
+  };
+
+  const unread = shown.filter((a) => !a.readAt).length;
+  const course: Course | undefined = only ? courseById.get(only) : undefined;
+
+  return (
+    <>
+      <div className="lib-head">
+        <div>
+          {course && (
+            <a className="diff-toggle" href={`#/class?c=${course.id}`}>
+              ← {course.code}
+            </a>
+          )}
+          <h1 className="page-title lib-class-title">
+            {course && <CourseChip course={course} />} <span>Announcements</span>
+          </h1>
+          <p className="hint mono">
+            {list === null ? 'Reading…' : shown.length === 0 ? 'None pulled yet. Run the Halo bookmark and they arrive with your assignments.' : `${shown.length} on file${unread ? `, ${unread} unread` : ''}`}
+          </p>
+        </div>
+      </div>
+      {note && <p className="hint news-note">{note}</p>}
+      <ul className="news-list">
+        {shown.map((a) => {
+          const c = courseById.get(a.courseId);
+          const isOpen = open === a.id;
+          return (
+            <li key={a.id} className="news-item" data-unread={!a.readAt} data-open={isOpen}>
+              <button type="button" className="news-head" onClick={() => void toggle(a)} aria-expanded={isOpen}>
+                <span className="news-title">{a.title || '(untitled)'}</span>
+                <span className="news-meta mono">
+                  {c && <CourseChip course={c} />} {a.publishedAt ? fmtDate(dateOf(a.publishedAt, tz), 'short') : ''}
+                  {a.author ? ` · ${a.author}` : ''}
+                  {!a.readAt && <span className="news-dot" aria-label="unread" />}
+                </span>
+              </button>
+              {isOpen && (
+                <div className="news-body">
+                  <p className="news-text">{a.text}</p>
+                  {a.resources.length > 0 && (
+                    <p className="hint">
+                      Attached in Halo: {a.resources.map((r) => r.name).join(', ')}
+                    </p>
+                  )}
+                  <div className="settings-actions">
+                    {a.findings === null ? (
+                      <button type="button" className="btn small primary" disabled={!hasKey || busy === a.id} onClick={() => void read(a)}>
+                        {busy === a.id ? 'Reading…' : 'What does this change?'}
+                      </button>
+                    ) : a.findings.length === 0 ? (
+                      <span className="hint">Read on {a.processedAt ? fmtDate(dateOf(a.processedAt, tz), 'short') : ''}: nothing here changes your planner.</span>
+                    ) : (
+                      <button type="button" className="btn small" onClick={() => setReview(a)}>
+                        {a.findings.length} thing{a.findings.length === 1 ? '' : 's'} it changes
+                      </button>
+                    )}
+                    {!hasKey && a.findings === null && <span className="hint">Connect the Anthropic key on Now to have it read.</span>}
+                  </div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {review && courseById.get(review.courseId) && (
+        <LectureReview
+          title={review.title}
+          notes={{ summary: [], concepts: [], mentions: review.findings ?? [], model: 'capture', createdAt: review.processedAt ?? '' }}
+          transcript={review.text}
+          course={courseById.get(review.courseId)!}
+          lectureDate={review.publishedAt ? dateOf(review.publishedAt, tz) : today}
+          dryRun={false}
+          decisions={review.review}
+          onDecide={(id, d, applied) => void decide(id, d, applied)}
+          onClose={() => setReview(null)}
+        />
+      )}
+    </>
+  );
+}
