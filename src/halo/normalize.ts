@@ -199,7 +199,18 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
   if (existing) {
     if (!stamp) return existing;
     const instructors = existing.instructors.length === 0 && names.length ? names.map((name) => ({ name, email: '' })) : existing.instructors;
-    return { ...existing, haloSlugId: c.slugId, haloClassId: c.id, instructors, updatedAt: opts.now };
+    // Class-level facts from Halo. A run where that call failed carries nothing rather than an empty list, so what is
+    // already known survives instead of being wiped.
+    return {
+      ...existing,
+      haloSlugId: c.slugId,
+      haloClassId: c.id,
+      instructors,
+      ...(c.gradeScale?.length ? { gradeScale: c.gradeScale } : {}),
+      ...(c.holidays?.length ? { holidays: c.holidays } : {}),
+      ...(c.participation ? { participation: c.participation } : {}),
+      updatedAt: opts.now,
+    };
   }
   const code = c.courseCode?.trim() || c.classCode?.trim() || 'CLASS';
   const d = COURSE_DEFAULTS[code.toUpperCase()] ?? {};
@@ -217,6 +228,9 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     online: d.online ?? (c.modality === 'ONLINE' || c.modality === 'TRADONLINE'),
     haloSlugId: stamp ? c.slugId : null,
     haloClassId: stamp ? c.id : null,
+    ...(c.gradeScale?.length ? { gradeScale: c.gradeScale } : {}),
+    ...(c.holidays?.length ? { holidays: c.holidays } : {}),
+    ...(c.participation ? { participation: c.participation } : {}),
     termStart,
     termEnd,
     updatedAt: opts.now,

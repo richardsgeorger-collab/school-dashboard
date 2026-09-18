@@ -70,7 +70,7 @@ describe('never a clean state you cannot back up', () => {
     const now = '2026-09-17T12:00:00.000Z';
     // Announcements asked for and none there is still a pull; assessments absent is not.
     const p1 = pullsFrom(payload({ announcements: [] }), idOf, undefined, now);
-    expect(p1.eng).toEqual({ assessments: null, grades: null, announcements: now });
+    expect(p1.eng).toEqual({ assessments: null, grades: null, announcements: now, rubrics: null, feedback: null, resources: null });
     // The bookmark did not ask: the previous stamp stands rather than being refreshed.
     const p2 = pullsFrom(payload({ assessments: [{ id: 'a', title: 't', description: null, unit: null, unitSequence: null, sequence: null, startDate: null, dueDate: '2026-09-20', points: 10, type: 'ASSIGNMENT', tags: [], inPerson: false, isGroupEnabled: false, requiresLopesWrite: false, status: null, submittedAt: null, score: null }] }), idOf, p1, '2026-09-18T12:00:00.000Z');
     expect(p2.eng.announcements).toBe(now);
@@ -79,11 +79,11 @@ describe('never a clean state you cannot back up', () => {
   it('names what is stale and never lets an unsynced class look empty', () => {
     const settings = { ...DEFAULT_SETTINGS, timezone: TZ };
     expect(stalenessLine(staleness([eng, chm], settings, today), 2)).toBe('No class has been synced from Halo yet, so this is only what was imported.');
-    const one = { ...settings, haloPulls: { eng: { assessments: '2026-09-17T19:00:00.000Z', grades: null, announcements: '2026-09-17T19:00:00.000Z' } } };
+    const one = { ...settings, haloPulls: { eng: { assessments: '2026-09-17T19:00:00.000Z', grades: null, announcements: '2026-09-17T19:00:00.000Z', rubrics: null, feedback: null, resources: null } } };
     expect(stalenessLine(staleness([eng, chm], one, today), 2)).toBe('CHM-113 has never been synced from Halo, so nothing here is the whole picture for it.');
-    const old = { ...settings, haloPulls: { eng: { assessments: '2026-09-10T19:00:00.000Z', grades: '2026-09-17T19:00:00.000Z', announcements: '2026-09-17T19:00:00.000Z' } } };
-    expect(stalenessLine(staleness([eng], old, today), 1)).toBe('Assignments for ENG-105 are 7 days old.');
-    const fresh = { ...settings, haloPulls: { eng: { assessments: '2026-09-16T19:00:00.000Z', grades: '2026-09-16T19:00:00.000Z', announcements: '2026-09-16T19:00:00.000Z' } } };
+    const old = { ...settings, haloPulls: { eng: { assessments: '2026-09-10T19:00:00.000Z', grades: '2026-09-17T19:00:00.000Z', announcements: '2026-09-17T19:00:00.000Z', rubrics: null, feedback: null, resources: null } } };
+    expect(stalenessLine(staleness([eng], old, today), 1)).toBe('Assignments for ENG-105 are 7 days old, and 3 other kinds of data too.');
+    const fresh = { ...settings, haloPulls: { eng: { assessments: '2026-09-16T19:00:00.000Z', grades: '2026-09-16T19:00:00.000Z', announcements: '2026-09-16T19:00:00.000Z', rubrics: '2026-09-16T19:00:00.000Z', feedback: '2026-09-16T19:00:00.000Z', resources: '2026-09-16T19:00:00.000Z' } } };
     expect(stalenessLine(staleness([eng], fresh, today), 1)).toBeNull();
   });
 });

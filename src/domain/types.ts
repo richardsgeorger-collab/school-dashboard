@@ -40,6 +40,12 @@ export interface Course {
   /** Set when the class is linked to Halo. */
   haloSlugId?: string | null;
   haloClassId?: string | null;
+  /** The letter scale this class is graded on, from Halo. */
+  gradeScale?: { label: string; minPercent: number | null; maxPercent: number | null }[];
+  /** Days the class does not meet, from Halo. */
+  holidays?: { title: string; description: string | null; startDate: string | null; duration: number | null }[];
+  /** What participation asks for, from Halo. */
+  participation?: { description: string | null; days: number | null; posts: number | null } | null;
   termStart: DateStr;
   termEnd: DateStr;
   /** Where this class's items come from: the parser (default) or the AI pass, once it proved better. */
@@ -105,6 +111,12 @@ export interface Item {
   haloLate?: string | null;
   /** What Halo last said about this item: its submission state, straight from the gradebook. Written on every sync, never approved, never changes the planner. */
   halo?: HaloFact | null;
+  /** The rubric Halo grades this against, criterion by criterion. Facts from the sync, never inferred. */
+  rubric?: ItemRubric | null;
+  /** What the instructor wrote about the submitted work, and which rubric level they picked. */
+  feedback?: ItemFeedback | null;
+  /** A quiz attempt: the score, and the questions as they were asked. */
+  quiz?: ItemQuiz | null;
   /** The steps inside a big assignment. One item everywhere; this is just its inside. */
   steps?: Step[];
   /** What the assignment asks for, read from its description and rubric. */
@@ -148,6 +160,38 @@ export interface HaloFact {
   submittedAt: string | null;
   /** When the sync that carried this ran. */
   checkedAt: string;
+}
+
+/** Halo's own rubric for one assessment. */
+export interface ItemRubric {
+  id: string;
+  name: string | null;
+  criteria: { id: string; name: string; description: string | null; points: number | null; levels: { cellId: string; name: string | null; description: string | null; points: number | null }[] }[];
+  at: string;
+}
+
+export interface ItemFeedback {
+  comment: string | null;
+  gradedAt: string | null;
+  /** Per criterion: the level the instructor chose and anything they wrote. */
+  criteria: { criteriaId: string; cellId: string | null; comment: string | null }[];
+  files: { id: string; name: string }[];
+  /** The student's own discussion post, when this assessment is one. */
+  post?: { publishedAt: string; words: number | null } | null;
+  at: string;
+  /** Seen in this app, so a new comment can be quiet after the first read. */
+  seenAt?: string | null;
+}
+
+export interface ItemQuiz {
+  userQuizId: string;
+  finalScore: number | null;
+  answered: number | null;
+  correct: number | null;
+  incorrect: number | null;
+  submittedAt: string | null;
+  questions: { id: string; type: string | null; content: string; chosen: string[] }[];
+  at: string;
 }
 
 export interface Step {
@@ -287,6 +331,9 @@ export interface HaloPull {
   assessments?: string | null;
   grades?: string | null;
   announcements?: string | null;
+  rubrics?: string | null;
+  feedback?: string | null;
+  resources?: string | null;
 }
 
 export interface HaloCheckRecord {

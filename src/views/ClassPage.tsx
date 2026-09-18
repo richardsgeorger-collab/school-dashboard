@@ -8,6 +8,7 @@ import type { Item } from '../domain/types';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { weakLine } from '../domain/weak';
 import { lastCheckFor } from '../halo/verification';
+import { announceStores, type StoredResource } from '../halo/announce';
 import { usePlanStatus } from '../ingest/usePlan';
 import { materialsFor } from '../library/ingest';
 import { useRoute } from '../router';
@@ -29,6 +30,18 @@ export function ClassPage() {
   const [materials, setMaterials] = useState<{ recordings: number; decks: number; syllabus: boolean } | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [paste, setPaste] = useState(false);
+  const [resources, setResources] = useState<StoredResource[]>([]);
+  useEffect(() => {
+    if (!course) return;
+    let live = true;
+    announceStores
+      .resources()
+      .then((r) => live && setResources(r.filter((x) => x.courseId === course.id)))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [course?.id]);
   const planStatus = usePlanStatus(course);
   useEffect(() => {
     if (!course) return;
@@ -170,6 +183,19 @@ export function ClassPage() {
             </span>
           )}
         </h2>
+        {resources.length > 0 && (
+          <ul className="diff-list class-resources">
+            {resources.slice(0, 12).map((r) => (
+              <li key={r.id}>
+                <b>{r.title}</b>
+                {r.unit ? <span className="muted mono"> · {r.unit}</span> : null}
+                {r.instructorAdded ? <span className="flag">added by your instructor</span> : null}
+                {r.files.length > 0 && <span className="hint"> {r.files.map((f) => f.name).join(', ')}</span>}
+              </li>
+            ))}
+            {resources.length > 12 && <li className="muted">and {resources.length - 12} more in Halo</li>}
+          </ul>
+        )}
         <p className="hint">
           <a className="btn small" href={`#/library?c=${course.id}`}>
             Open the class library

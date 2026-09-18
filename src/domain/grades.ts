@@ -31,3 +31,10 @@ export function courseGrade(courseId: string, items: Item[]): GradeSummary {
     pct !== null && totalPossible > 0 ? round1(((earned + (remaining * pct) / 100) / totalPossible) * 100) : null;
   return { earned, possibleGraded, pct, remaining, totalPossible, projected };
 }
+
+/** The letter for a percentage on one class's own scale, when Halo gave us one. */
+export function letterFor(pct: number | null, scale: { label: string; minPercent: number | null; maxPercent: number | null }[] | undefined): string | null {
+  if (pct === null || !scale?.length) return null;
+  const hit = scale.find((e) => (e.minPercent === null || pct >= e.minPercent) && (e.maxPercent === null || pct <= e.maxPercent));
+  return hit?.label ?? null;
+}

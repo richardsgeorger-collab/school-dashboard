@@ -45,12 +45,28 @@ const shift = (d, n) => { const x = new Date(`${d}T12:00:00-07:00`); x.setDate(x
 // One assessment per class so the sync has something to apply; the announcements ride along with it.
 const payload = { kind: 'halo-export', version: 1, exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: s.courses.map((c) => ({
   id: `h-${c.id}`, slugId: `s-${c.id}`, classCode: `${c.code}-101`, courseCode: c.code, name: c.name, stage: 'CURRENT', modality: 'ONGROUND', credits: 4, startDate: null, endDate: null,
-  assessments: [{ id: `a-${c.id}`, title: `${c.code} Topic 4 Check`, description: 'A short check on Topic 4.', unit: 'Topic 4', unitSequence: 4, sequence: 1, startDate: null, dueDate: new Date(`${shift(today, 5)}T23:59:00-07:00`).toISOString(), points: 20, type: 'ASSIGNMENT', tags: [], inPerson: false, isGroupEnabled: false, requiresLopesWrite: false, status: 'ACTIVE', submittedAt: null, score: null }],
+  assessments: [{ id: `a-${c.id}`, title: `${c.code} Topic 4 Check`, description: 'A short check on Topic 4.', unit: 'Topic 4', unitSequence: 4, sequence: 1, startDate: null, dueDate: new Date(`${shift(today, 5)}T23:59:00-07:00`).toISOString(), points: 20, type: 'ASSIGNMENT', tags: [], inPerson: false, isGroupEnabled: false, requiresLopesWrite: false, status: 'ACTIVE', submittedAt: null, score: null,
+    rubric: c.code !== 'CHM-113' ? null : { id: 'rb1', name: 'Topic 4 Check Rubric', criteria: [
+      { id: 'c1', name: 'Correct setup', description: 'The equation chosen and the units are right.', points: 12, levels: [{ cellId: 'l1', name: 'Exemplary', description: 'Equation, units, and given values all correct.', points: 12 }, { cellId: 'l2', name: 'Developing', description: 'Right equation, units slipped.', points: 8 }] },
+      { id: 'c2', name: 'Shown work', description: 'Each step is visible.', points: 8, levels: [{ cellId: 'l3', name: 'Exemplary', description: 'Every step shown.', points: 8 }] },
+    ] },
+    feedback: c.code !== 'CHM-113' ? null : { comment: 'Good setup. Watch your significant figures in step 3 — you lost a digit converting grams to moles.', gradedAt: iso(today), criteria: [{ criteriaId: 'c1', cellId: 'l2', comment: 'Units slipped on the conversion.' }], files: [{ id: 'f9', name: 'marked-up.pdf' }], post: null },
+    quiz: c.code !== 'CHM-113' ? null : { userQuizId: 'uq1', finalScore: 14, answered: 10, correct: 7, incorrect: 3, submittedAt: iso(today), questions: [{ id: 'q1', type: 'MULTIPLE_CHOICE', content: 'Which reactant limits the product?', chosen: ['The one with the larger mass'] }] },
+    attachments: c.code !== 'CHM-113' ? [] : [{ id: 'at1', resourceId: 'res1', title: 'Topic4_Rubric.pdf', downloadUrl: 'https://example.invalid/presigned' }] }],
+  gradeScale: [{ label: 'A', minPercent: 90, maxPercent: 100 }, { label: 'B', minPercent: 80, maxPercent: 89.99 }, { label: 'C', minPercent: 70, maxPercent: 79.99 }],
+  holidays: [{ title: 'Fall break', description: 'No classes', startDate: iso(shift(today, 30)), duration: 2, active: true }],
+  participation: { description: 'Post on three separate days each week.', days: 3, posts: 1 },
+  resources: c.code !== 'CHM-113' ? [] : [
+    { id: 'cr1', title: 'Lab safety contract', description: 'Sign before the first lab.', instructorAdded: false, unit: null, files: [{ id: 'rf1', name: 'safety.pdf', kind: 'FILE', type: 'application/pdf' }] },
+    { id: 'cr2', title: 'Extra worked examples', description: 'Posted after Tuesday.', instructorAdded: true, unit: 'Topic 4', files: [] },
+  ],
+  discussions: c.code !== 'CHM-113' ? [] : [{ forumId: 'dq1', title: 'Topic 4 DQ 1', description: null, startDate: null, dueDate: iso(shift(today, 2)), totalPosts: 18 }],
+  messages: c.code !== 'CHM-113' ? [] : [{ id: 'msg1', forumId: 'if1', content: '<p>Saw your draft — the setup is fine, focus on the conclusion.</p>', publishedAt: iso(today), author: 'Dr. Awad', fromInstructor: true }],
   announcements: c.code !== 'CHM-113' ? [] : [
     { id: 'ann-1', forumId: 'f1', title: 'Week 4: goggles and a date change', content: '<p>Everyone, <b>bring your lab goggles on Thursday</b> — we are doing the flame test. Also the Topic 3 quiz moves to Friday the 25th.</p>', publishedAt: iso(today), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: true, acknowledged: false, resources: [{ id: 'r1', name: 'FlameTest_Prelab.pdf', kind: 'FILE', type: 'application/pdf' }] },
     { id: 'ann-2', forumId: 'f1', title: 'Office hours moved', content: '<p>Office hours are in 214 this week.</p>', publishedAt: iso('2026-09-14'), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] },
   ],
-})) };
+})), alerts: [{ id: 'al1', classId: `h-${s.courses[0].id}`, type: 'ANNOUNCEMENT', at: iso(today), read: false, title: 'Week 4: goggles and a date change', assessmentId: null, sender: 'Dr. Awad' }] };
 await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
 await page.waitForSelector('.modal .diff-section, .modal .modal-actions', { timeout: 8000 });
 await page.$$eval('.modal .modal-actions .btn.primary', (els) => els[0].click());
@@ -69,11 +85,11 @@ console.log('verify now:', await t('.verify'));
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 await page.goto(`${BASE}#/news`, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.news-item', { timeout: 8000 });
-console.log('list:', (await all('.news-title')).join(' | '), '| unread marks:', await page.$$eval('.news-dot', (e) => e.length));
-await page.$$eval('.news-head', (els) => els[0].click());
+console.log('list:', (await all('.news-announcements .news-title')).join(' | '), '| unread marks:', await page.$$eval('.news-announcements .news-dot', (e) => e.length));
+await page.$$eval('.news-announcements .news-head', (els) => els[0].click());
 await sleep(400);
-console.log('body:', (await t('.news-text'))?.slice(0, 80), '| attached:', (await all('.news-body .hint')).find((x) => /Attached/.test(x)));
-await clickText('.news-body .btn', /What does this change/);
+console.log('body:', (await t('.news-announcements .news-text'))?.slice(0, 80), '| attached:', (await all('.news-announcements .news-body .hint')).find((x) => /Attached/.test(x)));
+await clickText('.news-announcements .news-body .btn', /What does this change/);
 await page.waitForSelector('.modal .rev-mentions', { timeout: 10000 });
 console.log('call:', JSON.stringify(calls[0]));
 console.log('findings:', (await all('.modal .rev-mentions li')).map((x) => x.slice(0, 70)).join(' || '));
@@ -91,9 +107,31 @@ await sleep(400);
 // Read once: it stays read, and the finding count shows instead of the button.
 await page.reload({ waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.news-item', { timeout: 8000 });
-console.log('unread marks after reading:', await page.$$eval('.news-dot', (e) => e.length));
-await page.$$eval('.news-head', (els) => els[0].click());
+console.log('unread marks after reading:', await page.$$eval('.news-announcements .news-dot', (e) => e.length));
+await page.$$eval('.news-announcements .news-head', (els) => els[0].click());
 await sleep(300);
-console.log('already read:', (await all('.news-body .btn')).join(' | '));
+console.log('already read:', (await all('.news-announcements .news-body .btn')).join(' | '));
 console.log('second call made:', calls.length);
+
+// 8. Everything else the one click carried: the rubric, the instructor's words, class resources, the grade scale.
+console.log('messages section:', await t('.news-messages .news-text'));
+const st2 = await state();
+const chmItem = st2.items.find((i) => i.title === 'CHM-113 Topic 4 Check');
+console.log('rubric on the item:', chmItem?.rubric?.criteria?.length, 'criteria |', chmItem?.rubric?.criteria?.[0]?.name);
+console.log('feedback:', chmItem?.feedback?.comment?.slice(0, 60), '| criterion level:', chmItem?.feedback?.criteria?.[0]?.cellId);
+console.log('quiz:', chmItem?.quiz?.correct, 'of', (chmItem?.quiz?.correct ?? 0) + (chmItem?.quiz?.incorrect ?? 0), '| questions:', chmItem?.quiz?.questions?.length);
+const chmCourse = st2.courses.find((c) => c.code === 'CHM-113');
+console.log('class facts:', JSON.stringify({ scale: chmCourse?.gradeScale?.length, holidays: chmCourse?.holidays?.length, participation: chmCourse?.participation?.days }));
+await page.goto(`${BASE}#/class?c=${chm.id}`, { waitUntil: 'networkidle0' });
+await sleep(700);
+console.log('class resources:', (await all('.class-resources li')).join(' | ').slice(0, 140));
+await page.evaluate((label) => { const row = [...document.querySelectorAll('.item-row')].find((r) => r.textContent.includes(label)); row?.querySelector('.item-main').click(); }, chmItem.label);
+await page.waitForSelector('.modal', { timeout: 6000 });
+await sleep(500);
+console.log('feedback shown:', (await t('.modal .feedback-comment'))?.slice(0, 60), '| rubric block:', !!(await page.$('.modal .rubric-block')));
+await page.screenshot({ path: (process.argv[2] ?? 'news.png').replace(/\.png$/, '-item.png'), fullPage: false });
+await page.$$eval('.modal .modal-actions .btn, .modal-close', (els) => (els.find((e) => /Cancel|Close/.test(e.textContent)) ?? els[0]).click());
+await page.goto(`${BASE}#/grades`, { waitUntil: 'networkidle0' });
+await sleep(600);
+console.log('letter grades:', (await all('.grade-pct')).slice(0, 3).join(' | '));
 await browser.close();

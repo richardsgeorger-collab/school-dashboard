@@ -9,6 +9,7 @@ import { gatedBy } from '../domain/gating';
 import { linksFor } from '../ingest/links';
 import { BLOCK_REASONS, BLOCK_WORDS, blockPhrase, isBlocked, makeBlock } from '../domain/blocked';
 import type { BlockReason } from '../domain/types';
+import { Feedback, RubricBlock } from './Feedback';
 import { Sure } from './PlanReview';
 import { WorkPanel } from './WorkPanel';
 import { addDays } from '../domain/dates';
@@ -408,6 +409,8 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             )}
           </div>
         )}
+        {!isNew && <Feedback item={item} />}
+        {!isNew && <RubricBlock item={item} />}
         {!isNew && course && <WorkPanel item={item} course={course} />}
         {!isNew && (
           <div className="study">

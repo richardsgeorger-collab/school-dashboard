@@ -33,6 +33,16 @@ const matches = (a: string, b: string): boolean => {
 };
 
 /** Points earned and possible per topic in a class, with what practice keeps missing folded in. */
+/**
+ * A Halo quiz attempt as a score for the topics its item carries. Halo does not tell a student which questions were
+ * right, only the totals, so this is the attempt's own percentage rather than a per-question result.
+ */
+export function quizShare(item: Item): number | null {
+  const q = item.quiz;
+  if (!q || q.correct === null || (q.correct ?? 0) + (q.incorrect ?? 0) === 0) return null;
+  return q.correct! / ((q.correct ?? 0) + (q.incorrect ?? 0));
+}
+
 export function topicScores(courseId: string, items: Item[], stats: Record<string, QuizStat> | undefined): TopicScore[] {
   const out = new Map<string, TopicScore>();
   const row = (topic: string) => {
@@ -45,11 +55,23 @@ export function topicScores(courseId: string, items: Item[], stats: Record<strin
     return r;
   };
   for (const i of items) {
-    if (i.courseId !== courseId || i.score === null || i.points <= 0) continue;
+    if (i.courseId !== courseId) continue;
+    if (i.score !== null && i.points > 0) {
+      for (const t of itemTopics(i)) {
+        const r = row(t);
+        r.earned += i.score;
+        r.possible += i.points;
+        r.graded += 1;
+      }
+      continue;
+    }
+    // A quiz attempt with no posted score still says how it went.
+    const share = quizShare(i);
+    if (share === null) continue;
     for (const t of itemTopics(i)) {
       const r = row(t);
-      r.earned += i.score;
-      r.possible += i.points;
+      r.earned += share * 100;
+      r.possible += 100;
       r.graded += 1;
     }
   }

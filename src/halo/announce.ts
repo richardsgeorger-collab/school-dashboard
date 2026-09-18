@@ -3,7 +3,7 @@ import { dateOf, fmtDate } from '../domain/dates';
 import type { Course, DateStr, Item } from '../domain/types';
 import type { Confidence, Mention, MentionKind } from '../record/notes';
 import { stripHtml } from './normalize';
-import type { HaloAnnouncement, HaloExport } from './types';
+import type { HaloAlert, HaloAnnouncement, HaloExport, HaloMessage, HaloResource } from './types';
 
 /**
  * Announcements, kept because at GCU the week's real work is often posted here and never reaches the gradebook.
@@ -25,14 +25,30 @@ export interface StoredAnnouncement extends HaloAnnouncement {
   review: Record<string, 'approved' | 'dismissed'>;
 }
 
+/** A direct message from the instructor, stored the same way an announcement is: it is as load-bearing. */
+export interface StoredMessage extends HaloMessage {
+  courseId: string;
+  text: string;
+  readAt: string | null;
+}
+
+export interface StoredResource extends HaloResource {
+  courseId: string;
+  pulledAt: string;
+}
+
 const DB_NAME = 'school-dashboard-announcements';
 let opening: Promise<IDBDatabase> | null = null;
 function open(): Promise<IDBDatabase> {
   if (opening) return opening;
   opening = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(DB_NAME, 2);
     req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains('posts')) req.result.createObjectStore('posts', { keyPath: 'id' }).createIndex('byCourse', 'courseId');
+      const db = req.result;
+      if (!db.objectStoreNames.contains('posts')) db.createObjectStore('posts', { keyPath: 'id' }).createIndex('byCourse', 'courseId');
+      if (!db.objectStoreNames.contains('messages')) db.createObjectStore('messages', { keyPath: 'id' }).createIndex('byCourse', 'courseId');
+      if (!db.objectStoreNames.contains('resources')) db.createObjectStore('resources', { keyPath: 'id' }).createIndex('byCourse', 'courseId');
+      if (!db.objectStoreNames.contains('alerts')) db.createObjectStore('alerts', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => {
@@ -97,6 +113,29 @@ export function mergeAnnouncement(incoming: HaloAnnouncement, courseId: string, 
   };
 }
 
+/** Messages, resources, and Halo's own alert feed, stored the same way announcements are. */
+export async function saveExtras(payload: HaloExport, courseIdOf: (classId: string, courseCode: string) => string | null, now = new Date().toISOString()): Promise<{ messages: number; resources: number; alerts: number }> {
+  let messages = 0;
+  let resources = 0;
+  for (const c of payload.classes) {
+    const courseId = courseIdOf(c.id, c.courseCode);
+    if (!courseId) continue;
+    for (const m of c.messages ?? []) {
+      const text = stripHtml(m.content, 8000);
+      if (!text.trim()) continue;
+      await announceStores.putMessage({ ...m, courseId, text, readAt: m.fromInstructor ? null : now });
+      messages++;
+    }
+    // Resources are a snapshot of what the class publishes, so they are replaced rather than merged.
+    if (c.resources) {
+      await announceStores.replaceResources(courseId, c.resources.map((r) => ({ ...r, courseId, pulledAt: now })));
+      resources += c.resources.length;
+    }
+  }
+  if (payload.alerts?.length) await announceStores.putAlerts(payload.alerts);
+  return { messages, resources, alerts: payload.alerts?.length ?? 0 };
+}
+
 /** Everything the export carried, stored per class. Returns how many are new to this device. */
 export async function saveAnnouncements(payload: HaloExport, courseIdOf: (classId: string, courseCode: string) => string | null, now = new Date().toISOString()): Promise<{ saved: number; fresh: number }> {
   let saved = 0;
@@ -114,6 +153,43 @@ export async function saveAnnouncements(payload: HaloExport, courseIdOf: (classI
   }
   return { saved, fresh };
 }
+
+export const announceStores = {
+  async messages(): Promise<StoredMessage[]> {
+    const db = await open();
+    const all = await wait(db.transaction('messages').objectStore('messages').getAll() as IDBRequest<StoredMessage[]>);
+    return all.sort((a, b) => String(b.publishedAt ?? '').localeCompare(String(a.publishedAt ?? '')));
+  },
+  async resources(): Promise<StoredResource[]> {
+    const db = await open();
+    return wait(db.transaction('resources').objectStore('resources').getAll() as IDBRequest<StoredResource[]>);
+  },
+  async alerts(): Promise<HaloAlert[]> {
+    const db = await open();
+    const all = await wait(db.transaction('alerts').objectStore('alerts').getAll() as IDBRequest<HaloAlert[]>);
+    return all.sort((a, b) => String(b.at ?? '').localeCompare(String(a.at ?? '')));
+  },
+  async putMessage(m: StoredMessage): Promise<void> {
+    const db = await open();
+    const t = db.transaction('messages', 'readwrite');
+    t.objectStore('messages').put(m);
+    await finished(t);
+  },
+  async replaceResources(courseId: string, list: StoredResource[]): Promise<void> {
+    const db = await open();
+    const t = db.transaction('resources', 'readwrite');
+    const store = t.objectStore('resources');
+    for (const k of await wait(store.index('byCourse').getAllKeys(courseId))) store.delete(k);
+    for (const r of list) store.put(r);
+    await finished(t);
+  },
+  async putAlerts(list: HaloAlert[]): Promise<void> {
+    const db = await open();
+    const t = db.transaction('alerts', 'readwrite');
+    for (const a of list) t.objectStore('alerts').put(a);
+    await finished(t);
+  },
+};
 
 export const isUnread = (a: StoredAnnouncement): boolean => a.readAt === null;
 

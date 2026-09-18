@@ -147,7 +147,8 @@ export function handoffPrompt(item: Item, course: Course, ctx: HandoffContext, t
   const due = dateOf(item.dueAt, tz);
   const time = fmtTime(item.dueAt, tz);
   const asks = item.plan?.asks?.trim() || item.brief?.asks.join(' ').trim() || '';
-  const rubric = item.brief?.rubric ?? [];
+  // Halo's own rubric when the sync brought one; the inferred one only when it did not.
+  const rubric = item.rubric?.criteria.length ? item.rubric.criteria.map((c) => ({ criterion: c.name, points: c.points, how: c.description ?? c.levels[0]?.description ?? '' })) : (item.brief?.rubric ?? []);
   const description = (item.notes ?? '').trim();
   const out: string[] = [];
 
@@ -156,7 +157,7 @@ export function handoffPrompt(item: Item, course: Course, ctx: HandoffContext, t
   if (h.format.length) out.push(`\nFormat it has to meet:\n${bullet(h.format)}`);
   if (description) out.push(`\nThe assignment says, in full:\n"""\n${description.slice(0, 6000)}\n"""`);
   if (asks) out.push(`\nWhat it asks for, as I understand it: ${asks}`);
-  if (rubric.length) out.push(`\n## What earns points\n${bullet(rubric.map((r) => `${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}${r.how ? `: ${r.how}` : ''}`))}`);
+  if (rubric.length) out.push(`\n## What earns points${item.rubric ? ' (the rubric it is graded against, from Halo)' : ''}\n${bullet(rubric.map((r) => `${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}${r.how ? `: ${r.how}` : ''}`))}`);
   if (ctx.sources.length) out.push(`\n## My own class material that covers it\n${bullet(ctx.sources)}\nUse these where they help. I can open any of them; you cannot, so ask me to read something out rather than guessing at what it says.`);
   if (ctx.flagged.length) out.push(`\n## What my professor said about this\n${bullet(ctx.flagged)}`);
   out.push(`\n## Where I am\n${progressLine(item, tz)}${ctx.gradeNote ? ` ${ctx.gradeNote}` : ''}`);

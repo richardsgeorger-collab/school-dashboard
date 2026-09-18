@@ -4,7 +4,7 @@ import { loadApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course } from '../domain/types';
-import { announceDb, readAnnouncement, type StoredAnnouncement } from '../halo/announce';
+import { announceDb, announceStores, readAnnouncement, type StoredAnnouncement, type StoredMessage } from '../halo/announce';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
@@ -19,6 +19,7 @@ export function News() {
   const tz = data.settings.timezone;
   const only = params.get('c');
   const [list, setList] = useState<StoredAnnouncement[] | null>(null);
+  const [messages, setMessages] = useState<StoredMessage[]>([]);
   const [open, setOpen] = useState<string | null>(params.get('a'));
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function News() {
 
   const refresh = useCallback(async () => {
     setList(await announceDb.list().catch(() => []));
+    setMessages(await announceStores.messages().catch(() => []));
   }, []);
   useEffect(() => {
     void refresh();
@@ -92,7 +94,32 @@ export function News() {
         </div>
       </div>
       {note && <p className="hint news-note">{note}</p>}
-      <ul className="news-list">
+      {messages.filter((m) => (only ? m.courseId === only : true) && courseById.has(m.courseId)).length > 0 && (
+        <section className="news-messages">
+          <h2 className="section-title">messages from your instructor</h2>
+          <ul className="news-list">
+            {messages
+              .filter((m) => (only ? m.courseId === only : true) && courseById.has(m.courseId))
+              .slice(0, 8)
+              .map((m) => {
+                const mc = courseById.get(m.courseId);
+                return (
+                  <li key={m.id} className="news-item" data-unread={m.fromInstructor && !m.readAt}>
+                    <div className="news-head" style={{ cursor: 'default' }}>
+                      <span className="news-meta mono">
+                        {mc && <CourseChip course={mc} />} {m.publishedAt ? fmtDate(dateOf(m.publishedAt, tz), 'short') : ''}
+                        {m.author ? ` · ${m.author}` : ''}
+                        {!m.fromInstructor && <span className="muted"> · you</span>}
+                      </span>
+                      <span className="news-text">{m.text}</span>
+                    </div>
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
+      )}
+      <ul className="news-list news-announcements">
         {shown.map((a) => {
           const c = courseById.get(a.courseId);
           const isOpen = open === a.id;

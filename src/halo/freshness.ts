@@ -9,7 +9,7 @@ import type { HaloExport } from './types';
 export const STALE_DAYS = 2;
 
 export type PullKind = keyof HaloPull;
-export const PULL_WORDS: Record<PullKind, string> = { assessments: 'assignments', grades: 'grades', announcements: 'announcements' };
+export const PULL_WORDS: Record<PullKind, string> = { assessments: 'assignments', grades: 'grades', announcements: 'announcements', rubrics: 'rubrics', feedback: 'instructor feedback', resources: 'class resources' };
 
 /** What the export carried, per class, recorded as of `now`. Only what actually arrived is stamped. */
 export function pullsFrom(payload: HaloExport, courseIdOf: (classId: string, courseCode: string) => string | null, previous: Record<string, HaloPull> | undefined, now: string): Record<string, HaloPull> {
@@ -24,6 +24,9 @@ export function pullsFrom(payload: HaloExport, courseIdOf: (classId: string, cou
       grades: c.assessments.some((a) => a.score !== null || a.status !== null) ? now : (prev.grades ?? null),
       // Undefined means the bookmark did not ask; an empty array means it asked and there were none.
       announcements: c.announcements !== undefined ? now : (prev.announcements ?? null),
+      rubrics: c.assessments.some((a) => a.rubric !== undefined) ? now : (prev.rubrics ?? null),
+      feedback: c.assessments.some((a) => a.feedback !== undefined) ? now : (prev.feedback ?? null),
+      resources: c.resources !== undefined ? now : (prev.resources ?? null),
     };
   }
   return out;
@@ -46,7 +49,7 @@ export function staleness(courses: Course[], settings: Pick<Settings, 'haloPulls
       never.push(c);
       continue;
     }
-    for (const kind of ['assessments', 'grades', 'announcements'] as PullKind[]) {
+    for (const kind of ['assessments', 'grades', 'announcements', 'rubrics', 'feedback', 'resources'] as PullKind[]) {
       const at = p[kind];
       const days = at ? diffDays(dateOf(at, settings.timezone), today) : Infinity;
       if (days <= bar) continue;

@@ -6,8 +6,10 @@ const IN = new Set(['SUBMITTED', 'LATE', 'PUBLISHED', 'REASSIGNED']);
 /** Halo states that mean it did not. */
 const NOT_IN = new Set(['UPCOMING', 'ACTIVE', 'IN_PROGRESS', 'OVERDUE']);
 
-export const haloSaysIn = (i: Item): boolean => !!i.halo && (IN.has(i.halo.status ?? '') || !!i.halo.submittedAt);
-export const haloSaysNotIn = (i: Item): boolean => !!i.halo && !i.halo.submittedAt && NOT_IN.has(i.halo.status ?? '');
+/** A discussion is in when Halo has the student's own post, whatever the gradebook status says. */
+export const postedIn = (i: Item): boolean => !!i.feedback?.post?.publishedAt;
+export const haloSaysIn = (i: Item): boolean => postedIn(i) || (!!i.halo && (IN.has(i.halo.status ?? '') || !!i.halo.submittedAt));
+export const haloSaysNotIn = (i: Item): boolean => !postedIn(i) && !!i.halo && !i.halo.submittedAt && NOT_IN.has(i.halo.status ?? '');
 
 export interface SubmissionCheck {
   /** Marked done here, but Halo, checked after the due date, shows it never went in. */

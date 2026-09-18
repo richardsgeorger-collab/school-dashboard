@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { dateOf, fmtDate } from '../domain/dates';
-import { courseGrade } from '../domain/grades';
+import { courseGrade, letterFor } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { WhatIf } from './WhatIf';
@@ -60,7 +60,7 @@ function CourseCard({ course }: { course: Course }) {
             </a>
           </h2>
         </div>
-        <div className="grade-pct mono">{g.pct === null ? '—' : `${g.pct}%`}</div>
+        <div className="grade-pct mono">{g.pct === null ? '—' : `${g.pct}%`}{letterFor(g.pct, course.gradeScale) ? <span className="grade-letter"> {letterFor(g.pct, course.gradeScale)}</span> : null}</div>
       </header>
       <div className="grade-bar" aria-hidden>
         <span className="earned" style={{ width: `${g.totalPossible ? (g.earned / g.totalPossible) * 100 : 0}%` }} />

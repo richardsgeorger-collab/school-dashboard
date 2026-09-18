@@ -2,7 +2,7 @@ import { dateOf } from '../domain/dates';
 import { completeItem, withScore } from '../domain/points';
 import type { AppData, Course, DateStr, Item } from '../domain/types';
 import type { PendingOp } from '../storage/localRepo';
-import type { HaloDiff } from './diff';
+import type { HaloDiff, HaloItemFact } from './diff';
 
 export interface HaloPlan {
   courses: Course[];
@@ -11,8 +11,8 @@ export interface HaloPlan {
   complete: { id: string; at: string; score: number | null }[];
   /** Posted scores to write, marking the item done if it is not yet. */
   scores: { id: string; score: number; at: string }[];
-  /** Halo's own submission state per item; metadata, never a planner change. */
-  facts: { id: string; status: string | null; submittedAt: string | null }[];
+  /** Halo's own account per item: submission state, rubric, feedback, quiz. Metadata, never a planner change. */
+  facts: HaloItemFact[];
 }
 
 export interface Selection {
@@ -88,7 +88,17 @@ export function applyHaloPlan(
   for (const f of plan.facts ?? []) {
     const item = byId.get(f.id);
     if (!item) continue;
-    byId.set(f.id, { ...item, halo: { status: f.status, submittedAt: f.submittedAt, checkedAt: now }, updatedAt: now });
+    // A rubric, a comment, or a quiz attempt that came back is kept; one that did not come back this run is left
+    // alone rather than erased, because a failed sub-query is not the same as the instructor deleting the rubric.
+    const seenAt = f.feedback && item.feedback?.comment === f.feedback.comment ? (item.feedback.seenAt ?? null) : null;
+    byId.set(f.id, {
+      ...item,
+      halo: { status: f.status, submittedAt: f.submittedAt, checkedAt: now },
+      ...(f.rubric ? { rubric: { ...f.rubric, at: now } } : {}),
+      ...(f.feedback ? { feedback: { ...f.feedback, at: now, seenAt } } : {}),
+      ...(f.quiz ? { quiz: { ...f.quiz, at: now } } : {}),
+      updatedAt: now,
+    });
   }
   const touched = new Set([...plan.upserts.map((u) => u.id), ...plan.complete.map((c) => c.id), ...(plan.scores ?? []).map((s) => s.id), ...(plan.facts ?? []).map((f) => f.id)].filter((id) => byId.has(id)));
   if (touched.size) ops.push({ kind: 'items', ids: [...touched] });

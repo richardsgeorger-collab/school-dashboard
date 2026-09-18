@@ -39,7 +39,8 @@ export function theLine(type: Item['type']): string {
 export function starterPrompt(input: StarterInput): string {
   const { item, course } = input;
   const asks = item.plan?.asks?.trim() || item.brief?.asks.join(' ') || '';
-  const rubric = item.brief?.rubric.slice(0, 5).map((r) => `- ${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}${r.how ? `: ${r.how}` : ''}`) ?? [];
+  const real = item.rubric?.criteria.slice(0, 5).map((c) => `- ${c.name}${c.points !== null ? ` (${c.points} pts)` : ''}${c.description ? `: ${c.description}` : ''}`) ?? [];
+  const rubric = real.length ? real : (item.brief?.rubric.slice(0, 5).map((r) => `- ${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}${r.how ? `: ${r.how}` : ''}`) ?? []);
   const sources = (input.sources?.length ? input.sources : item.plan?.sources.map((s) => s.label) ?? []).slice(0, 6);
   const lines: string[] = [];
   lines.push(`Help me ${KIND_WORDS[item.type]}: "${item.title}" for ${course.code} ${course.name}.`);

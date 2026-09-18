@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { saveAnnouncements } from '../halo/announce';
+import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { pullsFrom } from '../halo/freshness';
 import { SYNC_EVENT } from '../ingest/auto';
 import { normCode } from '../halo/normalize';
@@ -120,7 +120,7 @@ export function DiffReview({
     });
   const setAll = (group: Group, keys: string[]) => setSel((s) => (s ? { ...s, [group]: new Set(keys) } : s));
   const flip = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
-  const [stored, setStored] = useState<{ saved: number; fresh: number } | null>(null);
+  const [stored, setStored] = useState<{ saved: number; fresh: number; messages?: number; resources?: number; alerts?: number } | null>(null);
 
   const apply = async () => {
     if (!sel) return;
@@ -134,9 +134,10 @@ export function DiffReview({
     const courseIdOf = (classId: string, code: string) => data.courses.find((c) => c.haloClassId === classId)?.id ?? data.courses.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
     try {
       const r = await saveAnnouncements(payload, courseIdOf, now);
-      if (r.saved > 0) setStored(r);
+      const x = await saveExtras(payload, courseIdOf, now).catch(() => ({ messages: 0, resources: 0, alerts: 0 }));
+      if (r.saved > 0 || x.messages > 0 || x.resources > 0) setStored({ ...r, ...x });
     } catch {
-      // The planner is already written; announcements can come again on the next run.
+      // The planner is already written; all of this can come again on the next run.
     }
     actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, now) });
     setApplied(summary);
@@ -168,14 +169,16 @@ export function DiffReview({
           {source === 'halo' && <li>{applied.scored} scores from the gradebook</li>}
           <li>{applied.removed} removed</li>
           <li>{applied.linked} linked with nothing else touched</li>
-          {stored && stored.saved > 0 && (
+          {stored && (stored.saved > 0 || (stored.messages ?? 0) > 0) && (
             <li>
-              {stored.saved} announcement{stored.saved === 1 ? '' : 's'} stored{stored.fresh > 0 ? `, ${stored.fresh} new` : ''} ·{' '}
+              {stored.saved} announcement{stored.saved === 1 ? '' : 's'}
+              {(stored.messages ?? 0) > 0 ? ` and ${stored.messages} message${stored.messages === 1 ? '' : 's'}` : ''} stored{stored.fresh > 0 ? `, ${stored.fresh} new` : ''} ·{' '}
               <a className="diff-toggle" href="#/news">
                 read them
               </a>
             </li>
           )}
+          {stored && (stored.resources ?? 0) > 0 && <li>{stored.resources} class resource{stored.resources === 1 ? '' : 's'} listed</li>}
         </ul>
         <div className="modal-actions">
           <span className="spacer" />

@@ -140,7 +140,7 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
   const weak = useMemo(() => weakConcepts(item.courseId, data.items, data.settings.quizStats), [item.courseId, data.items, data.settings.quizStats]);
   const shaky = weak.find((w) => itemTopics(item).some((t) => topicKey(t) === w.key || topicKey(t).includes(w.key) || w.key.includes(topicKey(t)))) ?? null;
   const link = linksFor(item, data.settings.topicLinks ?? [], data.courses)[0] ?? null;
-  const rubric = item.brief?.rubric.slice(0, 2) ?? [];
+  const rubric = item.rubric?.criteria.length ? item.rubric.criteria.slice(0, 2).map((c) => ({ criterion: c.name, points: c.points })) : (item.brief?.rubric.slice(0, 2) ?? []);
   const ranOut = blockRanOut(item, today);
   const elapsed = elapsedLine(item.startedAt, now);
   const pastDate = new Date(item.dueAt).getTime() < Date.now();

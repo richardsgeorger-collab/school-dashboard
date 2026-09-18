@@ -5244,3 +5244,70 @@ a.hero-chip:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ---- Instructor feedback and Halo's rubric ---- */
+.feedback {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 10px;
+}
+.feedback[data-fresh='true'] {
+  border-left-color: var(--hi);
+}
+.feedback-new {
+  margin-left: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--hi);
+  color: var(--hi-ink);
+}
+.feedback-comment {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.feedback-criteria,
+.rubric-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.feedback-criteria li,
+.rubric-list li {
+  display: grid;
+  gap: 2px;
+}
+.feedback-crit,
+.rubric-name {
+  font-weight: 600;
+}
+.feedback-note {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.rubric-block {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.rubric-levels {
+  font-size: 12px;
+}
+.grade-letter {
+  color: var(--ink-3);
+}
+.class-resources {
+  margin-bottom: 8px;
+}
