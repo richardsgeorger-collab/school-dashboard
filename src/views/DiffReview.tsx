@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
-import { problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
+import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
 import { normCode } from '../halo/normalize';
@@ -124,6 +124,8 @@ export function DiffReview({
   const [stored, setStored] = useState<{ saved: number; fresh: number; messages?: number; resources?: number; alerts?: number } | null>(null);
   const gaps = useMemo(() => problemLine(payload), [payload]);
   const stale = useMemo(() => (source === 'halo' ? staleBookmarkLine(payload, BOOKMARKLET_BUILD) : null), [payload, source]);
+  const groups = useMemo(() => problemGroups(payload), [payload]);
+  const [copied, setCopied] = useState(false);
 
   const apply = async () => {
     if (!sel) return;
@@ -211,9 +213,40 @@ export function DiffReview({
         </p>
       )}
       {gaps && (
-        <p className="hint diff-gap" role="status">
-          {gaps}
-        </p>
+        <div className="diff-gap">
+          <p className="hint" role="status" style={{ margin: 0 }}>
+            {gaps}
+          </p>
+          <details className="gap-detail" open>
+            <summary className="hint">What Halo actually said</summary>
+            <p className="hint">
+              <button
+                type="button"
+                className="btn small"
+                onClick={() => void navigator.clipboard.writeText(JSON.stringify({ problems: payload.problems ?? [], schema: payload.schema ?? null }, null, 1)).then(() => setCopied(true))}
+              >
+                {copied ? 'Copied' : 'Copy this for Claude'}
+              </button>
+            </p>
+            <ul className="gap-list">
+              {groups.map((g, i) => (
+                <li key={i}>
+                  <span className="hint mono">
+                    {g.op ?? g.kind}
+                    {g.status !== null ? ` HTTP ${g.status}` : ''}
+                    {g.courses.length > 0 ? ` \u00b7 ${g.courses.join(', ')}` : ''}
+                  </span>
+                  {g.errors.map((e, j) => (
+                    <code key={j} className="gap-err">
+                      {e}
+                    </code>
+                  ))}
+                  {g.sent ? <span className="hint mono">sent {g.sent}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
       )}
       {sample && (
         <div className="diff-zone" data-warn={diff.zoneWarning ? 'true' : 'false'} role={diff.zoneWarning ? 'alert' : undefined}>

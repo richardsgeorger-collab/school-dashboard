@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bookmarkletSource } from './bookmarklet';
+import { problemGroups } from './freshness';
 import { runBookmarklet, type Halo, type Reply } from './bookmarkletHarness';
 
 /** The assessment id shape that crashed the real sync: a bare UUID used as a lookup key. */
@@ -202,7 +203,7 @@ describe('the guards themselves', () => {
 
   it('every query result is parsed inside the guard that caught its request', () => {
     // One try per gql call site, plus the per-class guard, plus the incidental ones.
-    expect((src.match(/await gql\(/g) ?? []).length).toBe(14);
+    expect((src.match(/await gql\(/g) ?? []).length).toBe(16);
     for (const m of src.matchAll(/await gql\(/g)) {
       const before = src.slice(0, m.index);
       const opens = (before.match(/try\s*\{/g) ?? []).length;
@@ -212,7 +213,8 @@ describe('the guards themselves', () => {
   });
 
   it('nothing fails silently except the three that have nothing to lose', () => {
-    const silent = bodies.filter((b) => !b.includes('prob(') && !b.includes('Halo sync failed'));
+    // A catch that writes the reason into the payload has reported it; `prob(` is not the only way.
+    const silent = bodies.filter((b) => !b.includes('prob(') && !b.includes('Halo sync failed') && !b.includes('schema'));
     // The gql body's own json parse (it rethrows on the next line), the clipboard fallback, and the postMessage
     // inside the delivery loop, which is retried every tick until it lands. Opening the tab keeps its own error so
     // the failure message can tell a blocked pop-up from a tab that never answered.
@@ -222,5 +224,103 @@ describe('the guards themselves', () => {
   it('the per-class body is wrapped, so one bad class cannot end the run', () => {
     expect(src).toContain("}catch(e){prob(code,'this class',e);}");
     expect(src.indexOf('for(var i=0;i<cls.length;i++)')).toBeLessThan(src.indexOf("prob(code,'this class',e)"));
+  });
+});
+
+
+/**
+ * "Would not give up announcements" is not a diagnosis. A wrong field and a wrong argument need different fixes, and
+ * only Halo's own errors[] says which, so every one of them has to survive into the payload.
+ */
+describe('what Halo actually said', () => {
+  const FIELD = 'Cannot query field "announcements" on type "Query".';
+  const ARG = 'Variable "$classId" of required type "String!" was not provided.';
+
+  it('keeps every error message, the status, the operation, and the variables sent', async () => {
+    const r = await runBookmarklet((op, v, q) => {
+      if (op === 'GetForumNotifications') return { errors: [{ message: FIELD }, { message: ARG }] };
+      return good(op, v, q);
+    }, { download: () => ({ downloadUrl: 'https://x/y' }) });
+    const p = r.payload.problems.find((x: any) => x.op === 'GetForumNotifications');
+    expect(p).toBeTruthy();
+    expect(p.errors).toEqual([FIELD, ARG]);
+    expect(p.status).toBe(200);
+    expect(p.kind).toBe('announcements');
+    expect(p.klass).toBe('CHM-113');
+    expect(JSON.parse(p.sent)).toEqual({ classId: 'C1', filters: null });
+  });
+
+  it('marks a call that answered cleanly but without the field, which is a different bug', async () => {
+    const r = await runBookmarklet((op, v, q) => (op === 'courseClassResources' ? { data: {} } : good(op, v, q)), { download: () => ({ downloadUrl: 'https://x/y' }) });
+    const p = r.payload.problems.find((x: any) => x.kind === 'class resources');
+    expect(p.missingField).toBe('courseClassResources');
+    expect(p.op).toBe('courseClassResources');
+    expect(p.status).toBeNull();
+  });
+
+  it('collapses one failure across six classes into one group, keeping the class list', () => {
+    const six = ['CHM-113', 'CHM-113L', 'ENG-105', 'ESG-162', 'ESG-162L', 'UNV-106'];
+    const groups = problemGroups({
+      problems: [
+        ...six.map((klass) => ({ klass, kind: 'announcements', message: FIELD, op: 'GetForumNotifications', status: 200, errors: [FIELD], sent: '{}' })),
+        { klass: null, kind: 'alerts', message: ARG, op: 'GetUserAlerts', status: 400, errors: [ARG], sent: '{}' },
+      ],
+    });
+    expect(groups).toHaveLength(2);
+    expect(groups[0].courses).toEqual(six);
+    expect(groups[0].errors).toEqual([FIELD]);
+    expect(groups[1].courses).toEqual([]);
+    expect(groups[1].status).toBe(400);
+  });
+
+  it('a non-200 from the gateway is recorded as the status, not swallowed as a shape problem', async () => {
+    const r = await runBookmarklet((op, v, q) => (op === 'GetUserAlerts' ? { errors: [{ message: 'Unauthorized' }] } : good(op, v, q)), { download: () => ({ downloadUrl: 'https://x/y' }) });
+    const p = r.payload.problems.find((x: any) => x.kind === 'alerts');
+    expect(p.errors).toEqual(['Unauthorized']);
+    expect(p.op).toBe('GetUserAlerts');
+  });
+});
+
+
+describe('the schema probe', () => {
+  const SCHEMA = {
+    __schema: { queryType: { fields: [
+      { name: 'getCourseClassesForUser', args: [{ name: 'pgNum', type: { kind: 'SCALAR', name: 'Int', ofType: null } }] },
+      { name: 'getForumNotifications', args: [{ name: 'classId', type: { kind: 'NON_NULL', name: null, ofType: { kind: 'SCALAR', name: 'String', ofType: null } } }] },
+      { name: 'zzzSomethingElse', args: [] },
+    ] } },
+  };
+  const withSchema: Halo = (op, v, q) => {
+    if (op === 'HaloSchemaProbe') return { data: SCHEMA };
+    if (op === 'HaloTypeProbe') return { data: { __type: { name: String(v.name), kind: 'OBJECT', fields: [{ name: 'id', type: { kind: 'SCALAR', name: 'ID', ofType: null } }], inputFields: null } } };
+    return good(op, v, q);
+  };
+
+  it('stays quiet when nothing failed', async () => {
+    const r = await runBookmarklet(withSchema, { download: () => ({ downloadUrl: 'https://x/y' }) });
+    expect(r.payload.problems).toEqual([]);
+    expect(r.payload.schema).toBeNull();
+    expect(r.asked).not.toContain('HaloSchemaProbe');
+  });
+
+  it('asks Halo what it allows as soon as anything failed, and reports the arguments it really takes', async () => {
+    const r = await runBookmarklet((op, v, q) => (op === 'GetUserAlerts' ? { errors: [{ message: 'nope' }] } : withSchema(op, v, q)), { download: () => ({ downloadUrl: 'https://x/y' }) });
+    expect(r.asked).toContain('HaloSchemaProbe');
+    expect(r.payload.schema.queryFields).toContain('getForumNotifications');
+    expect(r.payload.schema.ours.getForumNotifications).toEqual(['classId: String']);
+    expect(r.payload.schema.types.CourseClass).toEqual(['id']);
+    // The import is untouched by any of this.
+    expect(r.payload.classes[0].assessments).toHaveLength(3);
+  });
+
+  it('records a refusal rather than dying, when introspection is switched off', async () => {
+    const r = await runBookmarklet((op, v, q) => {
+      if (op === 'HaloSchemaProbe') return { errors: [{ message: 'GraphQL introspection is not allowed' }] };
+      if (op === 'GetUserAlerts') return { errors: [{ message: 'nope' }] };
+      return good(op, v, q);
+    }, { download: () => ({ downloadUrl: 'https://x/y' }) });
+    expect(r.payload.schema.introspection).toBe('refused');
+    expect(r.payload.schema.why).toContain('introspection is not allowed');
+    expect(r.payload.classes[0].assessments).toHaveLength(3);
   });
 });

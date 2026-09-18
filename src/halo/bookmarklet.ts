@@ -62,7 +62,17 @@ const Q_GRADES =
  * deploying new code does not update it. Stamping the payload is the only way the app can tell the user their
  * bookmark is old rather than quietly showing them three queries' worth of data and calling it eleven.
  */
-export const BOOKMARKLET_BUILD = '2026-09-18';
+export const BOOKMARKLET_BUILD = '2026-09-18b';
+
+/**
+ * Asked only when something already failed. If the gateway allows introspection this settles every remaining
+ * question at once: whether a field exists, and what arguments it really takes. If it does not, that is recorded
+ * too, and we are no worse off. Nothing here changes what is imported.
+ */
+const Q_SCHEMA =
+  'query HaloSchemaProbe { __schema { queryType { fields { name args { name type { kind name ofType { kind name ofType { kind name } } } } } } } }';
+const Q_TYPE =
+  'query HaloTypeProbe($name: String!) { __type(name: $name) { name kind fields { name type { kind name ofType { kind name } } } inputFields { name type { kind name ofType { kind name } } } } }';
 
 /** Caps that keep one click bounded: rubrics and quiz attempts are per-assessment calls. */
 const MAX_RUBRICS = 12;
@@ -91,7 +101,9 @@ x.style.cssText='position:absolute;top:4px;right:8px;background:none;border:0;co
 x.onclick=function(){box.remove();};box.appendChild(x);document.body.appendChild(box);
 var say=function(t){msg.textContent=t;};
 var problems=[];
-var prob=function(where,kind,e){var m=(e&&e.message)?String(e.message):String(e);problems.push({klass:where||null,kind:kind,message:m.slice(0,300)});};
+var prob=function(where,kind,e){var m=(e&&e.message)?String(e.message):String(e);
+var list=(e&&e.errors&&e.errors.length)?e.errors.map(function(x){return String(x).slice(0,400);}):[m.slice(0,400)];
+problems.push({klass:where||null,kind:kind,message:m.slice(0,400),op:(e&&e.op)||null,status:(e&&e.status)==null?null:e.status,errors:list,sent:(e&&e.vars)?JSON.stringify(e.vars).slice(0,200):null,missingField:(e&&e.missingField)||null});};
 var win=null,openErr=null;try{win=window.open(P,'school-dashboard');}catch(e){openErr=e;}
 if(!win){openErr=openErr||new Error('blocked');}
 var fallback=function(json,why){
@@ -110,9 +122,12 @@ if(!s||!s.authToken||!s.contextToken){throw new Error('No Halo session found. Lo
 var gql=async function(op,q,v){
 var r=await fetch(${JSON.stringify(GATEWAY)},{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.authToken,'ContextToken':'Bearer '+s.contextToken,'transaction-id':(crypto.randomUUID?crypto.randomUUID():String(Date.now()))},body:JSON.stringify({operationName:op,variables:v,query:q})});
 var j=null;try{j=await r.json();}catch(e){}
-if(!j||j.errors){throw new Error((j&&j.errors&&j.errors[0]&&j.errors[0].message)||('Halo answered '+r.status));}
-if(!j.data){throw new Error('Halo returned no data for '+op);}
+var fail=function(m,list){var E=new Error(m);E.op=op;E.status=r.status;E.vars=v;E.errors=list||[m];return E;};
+if(!j||j.errors){var ms=[];var el=(j&&j.errors)||[];for(var ei=0;ei<el.length;ei++){if(el[ei]&&el[ei].message){ms.push(String(el[ei].message));}}
+throw fail(ms[0]||('Halo answered '+r.status),ms);}
+if(!j.data){throw fail('Halo returned no data for '+op);}
 return j.data;};
+var noField=function(op,field){var E=new Error('Halo returned no '+field+' field');E.op=op;E.missingField=field;return E;};
 var Q1=${JSON.stringify(Q_CLASSES)};
 var Q2=${JSON.stringify(Q_GRADES)};
 var Q3=${JSON.stringify(Q_INSTRUCTORS)};
@@ -127,13 +142,15 @@ var Q9=${JSON.stringify(Q_RUBRIC)};
 var Q10=${JSON.stringify(Q_QUIZ)};
 var Q11=${JSON.stringify(Q_ALERTS)};
 var Q12=${JSON.stringify(Q_INBOX)};
+var QS=${JSON.stringify(Q_SCHEMA)};
+var QT=${JSON.stringify(Q_TYPE)};
 var alerts;
-try{var AD0=await gql('GetUserAlerts',Q11,{userAlerts:{pgSize:50}});if(!AD0||AD0.getUserAlerts===undefined){throw new Error('Halo returned no getUserAlerts field');}var AL=AD0.getUserAlerts||{};var al2=AL.alerts||[];var aout=[];
+try{var AD0=await gql('GetUserAlerts',Q11,{userAlerts:{pgSize:50}});if(!AD0||AD0.getUserAlerts===undefined){throw noField('GetUserAlerts','getUserAlerts');}var AL=AD0.getUserAlerts||{};var al2=AL.alerts||[];var aout=[];
 for(var ali=0;ali<al2.length;ali++){var AA=al2[ali];if(!AA)continue;var AD=AA.data||{};
 aout.push({id:AA.id,classId:AA.classId||null,type:AA.type||null,at:AA.timestamp||null,read:!!AA.isRead,title:AD.announcementTitle||AD.assignmentTitle||null,assessmentId:AD.assessmentId||null,sender:AD.senderName||null});}
 alerts=aout;}catch(e){alerts=undefined;prob(null,'alerts',e);}
 var msgs={};
-try{var ID0=await gql('GetInboxLeftPanel',Q12,{});if(!ID0||ID0.getInboxLeftPanel===undefined){throw new Error('Halo returned no getInboxLeftPanel field');}var IB=ID0.getInboxLeftPanel||[];
+try{var ID0=await gql('GetInboxLeftPanel',Q12,{});if(!ID0||ID0.getInboxLeftPanel===undefined){throw noField('GetInboxLeftPanel','getInboxLeftPanel');}var IB=ID0.getInboxLeftPanel||[];
 for(var ib=0;ib<IB.length;ib++){var IC=IB[ib];if(!IC||!IC.courseClassId)continue;var mine=[];var ifs=IC.forums||[];
 for(var ifi=0;ifi<ifs.length;ifi++){var IF=ifs[ifi];if(!IF)continue;var IP=IF.posts||[];
 for(var ipi=0;ipi<IP.length;ipi++){var P2=IP[ipi];if(!P2)continue;var CB=P2.createdBy||{};var U2=CB.user||{};
@@ -144,7 +161,7 @@ var CD=await gql('getCourseClassesForUser',Q1,{pgNum:1,pgSize:50});
 var cls=((CD&&CD.getCourseClassesForUser)||{}).courseClasses||[];
 if(!cls.length){throw new Error('Halo returned no classes. Open a class in Halo, then click the bookmark again.');}
 var names={};
-try{var ND0=await gql('getCourseClassesForUser',Q3,{pgNum:1,pgSize:50});if(!ND0||!ND0.getCourseClassesForUser){throw new Error('Halo returned no getCourseClassesForUser field');}var ic=ND0.getCourseClassesForUser.courseClasses||[];
+try{var ND0=await gql('getCourseClassesForUser',Q3,{pgNum:1,pgSize:50});if(!ND0||!ND0.getCourseClassesForUser){throw noField('getCourseClassesForUser','getCourseClassesForUser');}var ic=ND0.getCourseClassesForUser.courseClasses||[];
 for(var ii=0;ii<ic.length;ii++){if(ic[ii]&&ic[ii].id){names[ic[ii].id]=ic[ii].instructors||[];}}}catch(e){names={};prob(null,'instructor names',e);}
 var classes=[];
 for(var i=0;i<cls.length;i++){var c=cls[i];
@@ -153,21 +170,21 @@ var code=c.courseCode||c.classCode||'a class';
 say('Reading '+code+' ('+(i+1)+' of '+cls.length+')\\u2026');
 var grades=[],cur=null,fb={},res,dqs,anns,rubricOf={},attachOf={},rubrics={},quizzes={},out=[],okRub=false,okFb=false,okQz=false;
 try{
-try{var g=await gql('AllAssessmentGrades',Q2,{courseClassSlugId:c.slugId,courseUnitId:null});if(!g||g.assessmentGrades===undefined){throw new Error('Halo returned no assessmentGrades field');}
+try{var g=await gql('AllAssessmentGrades',Q2,{courseClassSlugId:c.slugId,courseUnitId:null});if(!g||g.assessmentGrades===undefined){throw noField('AllAssessmentGrades','assessmentGrades');}
 grades=((g.assessmentGrades&&g.assessmentGrades[0]&&g.assessmentGrades[0].grades)||[]);}catch(e){grades=[];prob(code,'grades',e);}
-try{var CC=await gql('CurrentClass',Q5,{slugId:c.slugId,isStudent:true});if(!CC||CC.currentClass===undefined){throw new Error('Halo returned no currentClass field');}cur=CC.currentClass||null;}catch(e){cur=null;prob(code,'class facts',e);}
-try{var fg=await gql('AssessmentFeedback',Q6,{courseClassSlugId:c.slugId,courseUnitId:null});if(!fg||fg.assessmentGrades===undefined){throw new Error('Halo returned no assessmentGrades field');}
+try{var CC=await gql('CurrentClass',Q5,{slugId:c.slugId,isStudent:true});if(!CC||CC.currentClass===undefined){throw noField('CurrentClass','currentClass');}cur=CC.currentClass||null;}catch(e){cur=null;prob(code,'class facts',e);}
+try{var fg=await gql('AssessmentFeedback',Q6,{courseClassSlugId:c.slugId,courseUnitId:null});if(!fg||fg.assessmentGrades===undefined){throw noField('AssessmentFeedback','assessmentGrades');}
 var fr=((fg.assessmentGrades&&fg.assessmentGrades[0]&&fg.assessmentGrades[0].grades)||[]);
 for(var fi2=0;fi2<fr.length;fi2++){var fgr=fr[fi2];if(fgr&&fgr.assessment&&fgr.assessment.id){fb[fgr.assessment.id]=fgr;}}
 okFb=true;}catch(e){fb={};okFb=false;prob(code,'instructor feedback',e);}
-try{var RD=await gql('courseClassResources',Q7,{slugId:c.slugId});if(!RD||RD.courseClassResources===undefined){throw new Error('Halo returned no courseClassResources field');}var rc=RD.courseClassResources||{};var rout=[];
+try{var RD=await gql('courseClassResources',Q7,{slugId:c.slugId});if(!RD||RD.courseClassResources===undefined){throw noField('courseClassResources','courseClassResources');}var rc=RD.courseClassResources||{};var rout=[];
 var pushRes=function(list,unitTitle){var L2=list||[];for(var qi=0;qi<L2.length;qi++){var R=L2[qi];if(!R||R.instructorOnly)continue;
 var files=[];var inner=R.resources||[];for(var i3=0;i3<inner.length;i3++){var rr2=inner[i3]&&inner[i3].resource;if(rr2){files.push({id:rr2.id,name:rr2.name||'',kind:rr2.kind||null,type:rr2.type||null});}}
 rout.push({id:R.id,title:R.title||'',description:R.description||null,instructorAdded:!!R.instructorAdded,unit:unitTitle,files:files});}};
 pushRes(rc.resources,null);var ru=rc.units||[];
 for(var ui=0;ui<ru.length;ui++){if(ru[ui]){pushRes(ru[ui].resources,ru[ui].title||null);}}
 res=rout;}catch(e){res=undefined;prob(code,'class resources',e);}
-try{var DD=await gql('AllDQForCourseClass',Q8,{courseClassId:c.id,sortBy:null,pgNum:1,pgSize:50});if(!DD||DD.allDQForCourseClass===undefined){throw new Error('Halo returned no allDQForCourseClass field');}var dl=DD.allDQForCourseClass||[];var dout=[];
+try{var DD=await gql('AllDQForCourseClass',Q8,{courseClassId:c.id,sortBy:null,pgNum:1,pgSize:50});if(!DD||DD.allDQForCourseClass===undefined){throw noField('AllDQForCourseClass','allDQForCourseClass');}var dl=DD.allDQForCourseClass||[];var dout=[];
 for(var di=0;di<dl.length;di++){var DQ=dl[di];if(!DQ)continue;
 dout.push({forumId:DQ.forumId,title:DQ.title||'',description:DQ.description||null,startDate:DQ.startDate||null,dueDate:DQ.dueDate||null,totalPosts:DQ.totalPosts==null?null:DQ.totalPosts});}
 dqs=dout;}catch(e){dqs=undefined;prob(code,'discussions',e);}
@@ -178,9 +195,9 @@ for(var z1=0;z1<ft.length;z1++){var zf=(ft[z1]&&ft[z1].forums)||[];for(var z2=0;
 if(!fids.length){throw new Error('No announcement forum for this class');}
 var pooled=[];
 for(var z3=0;z3<fids.length&&z3<3;z3++){var PP=await gql('getDiscussionForumPosts',Q4c,{forumId:fids[z3],postId:null,depthStart:0,depthEnd:1});
-if(!PP||PP.Posts===undefined){throw new Error('Halo returned no Posts field');}var pl=PP.Posts||[];for(var z4=0;z4<pl.length;z4++){if(pl[z4]){pooled.push(pl[z4]);}}}
+if(!PP||PP.Posts===undefined){throw noField('getDiscussionForumPosts','Posts');}var pl=PP.Posts||[];for(var z4=0;z4<pl.length;z4++){if(pl[z4]){pooled.push(pl[z4]);}}}
 af=[{forumId:fids[0],posts:pooled}];}catch(e){af=null;prob(code,'announcements',e);}
-try{if(af===null){var AN=await gql('GetAnnouncementsStudent',Q4,{courseClassId:c.id});if(!AN||AN.announcements===undefined){throw new Error('Halo returned no announcements field');}af=AN.announcements||[];}var nout=[];
+try{if(af===null){var AN=await gql('GetAnnouncementsStudent',Q4,{courseClassId:c.id});if(!AN||AN.announcements===undefined){throw noField('GetAnnouncementsStudent','announcements');}af=AN.announcements||[];}var nout=[];
 for(var fi=0;fi<af.length;fi++){var fm=af[fi];if(!fm)continue;var ps=fm.posts||[];
 for(var pi=0;pi<ps.length;pi++){var po=ps[pi];if(!po)continue;
 if(po.postStatus&&String(po.postStatus).toUpperCase().indexOf('DELET')>=0)continue;
@@ -204,7 +221,7 @@ okRub=true;}}catch(e){rubricOf={};attachOf={};okRub=false;prob(code,'rubric list
 var rubricIds=[];for(var rk in rubricOf){if(Object.prototype.hasOwnProperty.call(rubricOf,rk)){rubricIds.push(rk);}}
 rubricIds=rubricIds.slice(0,${MAX_RUBRICS});
 for(var rq=0;rq<rubricIds.length;rq++){try{say('Reading '+code+' rubrics ('+(rq+1)+' of '+rubricIds.length+')\\u2026');
-var RB0=await gql('AssessmentRubric',Q9,{assessmentId:rubricIds[rq]});if(!RB0||RB0.assessmentRubric===undefined){throw new Error('Halo returned no assessmentRubric field');}var RB=RB0.assessmentRubric;var RR=RB&&RB.rubric;
+var RB0=await gql('AssessmentRubric',Q9,{assessmentId:rubricIds[rq]});if(!RB0||RB0.assessmentRubric===undefined){throw noField('AssessmentRubric','assessmentRubric');}var RB=RB0.assessmentRubric;var RR=RB&&RB.rubric;
 if(RR){var crit=[];var cl=RR.criteria||[];
 for(var ci=0;ci<cl.length;ci++){var C2=cl[ci];if(!C2)continue;var lv=[];var al=C2.achievementLevels||[];
 for(var li=0;li<al.length;li++){var L=al[li];if(L){lv.push({cellId:L.cellId,name:L.name||null,description:L.description||null,points:L.points==null?null:L.points});}}
@@ -214,7 +231,7 @@ var quizIds=[];
 for(var qk in fb){if(Object.prototype.hasOwnProperty.call(fb,qk)&&fb[qk]&&fb[qk].userQuizAssessment&&fb[qk].userQuizAssessment.userQuizId){quizIds.push([qk,fb[qk].userQuizAssessment.userQuizId]);}}
 quizIds=quizIds.slice(0,${MAX_QUIZZES});
 okQz=okFb;
-for(var qz=0;qz<quizIds.length;qz++){try{var QD=await gql('GetQuizResult',Q10,{userQuizId:quizIds[qz][1]});if(!QD||QD.userQuiz===undefined){throw new Error('Halo returned no userQuiz field');}
+for(var qz=0;qz<quizIds.length;qz++){try{var QD=await gql('GetQuizResult',Q10,{userQuizId:quizIds[qz][1]});if(!QD||QD.userQuiz===undefined){throw noField('GetQuizResult','userQuiz');}
 var UQ=QD.userQuiz||{};var QR=QD.userQuizResults||{};var qs=[];var uqs=UQ.userQuestions||[];
 for(var qi2=0;qi2<uqs.length;qi2++){var UQu=uqs[qi2];if(!UQu||!UQu.question)continue;var chosen=[];var opts=UQu.userQuestionOptions||[];
 for(var oi=0;oi<opts.length;oi++){var OP=opts[oi];if(!OP)continue;
@@ -257,7 +274,22 @@ for(var wi=0;wi<want.length;wi++){try{say('Getting rubric files ('+(wi+1)+' of '
 var DR=await fetch(orch+'downloadUrl/'+want[wi].resourceId,{method:'GET',headers:{'Authorization':'Bearer '+s.authToken,'ContextToken':'Bearer '+s.contextToken}});
 var DJ=await DR.json();var du=(DJ&&(DJ.downloadUrl||(DJ.result&&DJ.result.downloadUrl)))||'';
 if(du){want[wi].downloadUrl=du;}}catch(e){prob(null,'rubric file',e);}}}catch(e){prob(null,'rubric files',e);}}
-var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:'bookmarklet',classes:classes,alerts:alerts,problems:problems,pulls:['assessments','grades','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
+var schema=null;
+if(problems.length){say('Asking Halo what its schema actually allows\\u2026');
+try{var SR=await gql('HaloSchemaProbe',QS,{});
+var qf=((((SR||{}).__schema||{}).queryType||{}).fields)||[];
+var nameOf=function(t){var n='',d=0;while(t&&d<4){if(t.name){n=t.name;}t=t.ofType;d++;}return n;};
+var want={getUserAlerts:1,getForumNotifications:1,posts:1,announcements:1,getCourseClassBySlugId:1,getInboxLeftPanel:1,getAllClassGrades:1,getGradeForUserCourseClassAssessment:1,getApplicableHolidaysForCourseClass:1,getCourseClassAssessmentById:1,getAllDQForCourseClass:1,userQuiz:1,userQuizResult:1,getForumId:1};
+var names=[],detail={};
+for(var si=0;si<qf.length;si++){var F=qf[si];if(!F||!F.name)continue;names.push(F.name);
+if(want[F.name]){var ar=[];var al2=F.args||[];for(var ai3=0;ai3<al2.length;ai3++){if(al2[ai3]){ar.push(al2[ai3].name+': '+nameOf(al2[ai3].type));}}detail[F.name]=ar;}}
+names.sort();
+schema={queryFields:names,ours:detail,types:{}};
+var probeTypes=['CourseClass','UserAlertsInputGQL','FilterInputGQL','Post'];
+for(var ti=0;ti<probeTypes.length;ti++){try{var TR=await gql('HaloTypeProbe',QT,{name:probeTypes[ti]});var T=(TR||{}).__type;
+if(T){var fl=[];var ff2=T.fields||T.inputFields||[];for(var fi3=0;fi3<ff2.length;fi3++){if(ff2[fi3]){fl.push(ff2[fi3].name);}}schema.types[probeTypes[ti]]=fl.sort();}}catch(e){schema.types[probeTypes[ti]]='could not read: '+((e&&e.message)||e);}}
+}catch(e){schema={introspection:'refused',why:(e&&e.message)?String(e.message).slice(0,300):String(e)};prob(null,'schema probe',e);}}
+var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:'bookmarklet',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
 var n=0;for(var q=0;q<classes.length;q++){n+=(classes[q].assessments||[]).length;}
 say('Read '+n+' assignment'+(n===1?'':'s')+' in '+classes.length+' class'+(classes.length===1?'':'es')+(problems.length?', '+problems.length+' thing'+(problems.length===1?'':'s')+' Halo would not give up':'')+'. Sending to the dashboard\\u2026');
 var got=false,ticks=0;var onMsg=function(e){if(e.origin===D&&e.data&&e.data.kind==='halo-received'){got=true;}};

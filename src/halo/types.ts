@@ -13,6 +13,8 @@ export interface HaloExport {
   build?: string;
   /** The kinds of data this build even tries to pull, so a missing kind can be told from an unasked one. */
   pulls?: string[];
+  /** Asked only when something failed: what the gateway says its schema actually allows. */
+  schema?: unknown;
 }
 
 /** One thing the sync could not read. `klass` is the course code, or null when the call was not per class. */
@@ -20,7 +22,18 @@ export interface HaloProblem {
   klass: string | null;
   /** Plain words for what was lost: 'announcements', 'instructor feedback', 'rubric'. */
   kind: string;
+  /** The first thing Halo said, kept for the one-line summary. */
   message: string;
+  /** The GraphQL operation that failed. */
+  op?: string | null;
+  /** The HTTP status the gateway answered with. Null when the call never reached it. */
+  status?: number | null;
+  /** Every message in Halo's `errors[]`, which is what says whether a field or an argument is wrong. */
+  errors?: string[];
+  /** The variables that were sent, so a bad argument is visible next to the complaint about it. */
+  sent?: string | null;
+  /** Set when the call succeeded but the field we asked for was absent from `data`. */
+  missingField?: string | null;
 }
 
 export interface HaloClass {

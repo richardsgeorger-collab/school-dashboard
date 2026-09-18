@@ -103,3 +103,32 @@ export function staleBookmarkLine(payload: Pick<HaloExport, 'build' | 'pulls'>, 
   const had = payload.build ? `built ${payload.build}` : 'saved before builds were stamped';
   return `This came from an older copy of the Halo bookmark, ${had}. It pulled ${known > 0 ? `only ${known} kinds of data` : 'assignments and grades only'}. Open Settings, Halo and drag the bookmark to your bar again to replace it, then sync once more.`;
 }
+
+
+export interface ProblemGroup {
+  /** The distinct failure: one operation, one status, one set of messages. */
+  op: string | null;
+  status: number | null;
+  kind: string;
+  errors: string[];
+  sent: string | null;
+  missingField: string | null;
+  /** Course codes that hit it. Empty when the call was not per class. */
+  courses: string[];
+}
+
+/**
+ * The same failure across six classes is one problem, not six. Grouped by what Halo actually said, because
+ * "Cannot query field X" and "Variable $Y of required type" need different fixes and the summary line hides which.
+ */
+export function problemGroups(payload: Pick<HaloExport, 'problems'>): ProblemGroup[] {
+  const out = new Map<string, ProblemGroup>();
+  for (const p of payload.problems ?? []) {
+    const errors = p.errors?.length ? p.errors : [p.message];
+    const key = [p.op ?? '', p.status ?? '', p.kind, errors.join('|'), p.missingField ?? ''].join(' ');
+    const row = out.get(key) ?? { op: p.op ?? null, status: p.status ?? null, kind: p.kind, errors, sent: p.sent ?? null, missingField: p.missingField ?? null, courses: [] };
+    if (p.klass && !row.courses.includes(p.klass)) row.courses.push(p.klass);
+    out.set(key, row);
+  }
+  return [...out.values()].map((r) => ({ ...r, courses: r.courses.sort() }));
+}
