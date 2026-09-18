@@ -37,7 +37,7 @@ const Q_FORUM_POSTS =
  */
 /** CurrentClass: the grade scale, holidays, the participation policy, and which assessments carry a rubric. */
 const Q_CURRENT =
-  'query CurrentClass($slugId: String!, $isStudent: Boolean!) { currentClass: getCourseClassBySlugId(slugId: $slugId) { id gradeScale { entries { label minPercent maxPercent } } holidays { title description startDate duration active } participationPolicy { description numDays numPosts } units { id title assessments { id rubric { id name } attachments { id resourceId title } } } } }';
+  'query ClassFacts($slugId: String!) { currentClass: getCourseClassBySlugId(slugId: $slugId) { id gradeScale { entries { label minPercent maxPercent } } holidays { title description startDate duration active } participationPolicy { description numDays numPosts } units { id title assessments { id rubric { id name } attachments { id resourceId title } } } } }';
 /** The same grade rows the export already reads, asked again for the instructor's words. Separate, so grades survive it. */
 const Q_FEEDBACK =
   'query AssessmentFeedback($courseClassSlugId: String!, $courseUnitId: String) { assessmentGrades: getAllClassGrades(courseClassSlugId: $courseClassSlugId, courseUnitId: $courseUnitId) { grades { id gradedDate assessment { id } finalComment { comment commentResources { resource { id name } } } rubricScores { comment criteriaId rubricCellId } userQuizAssessment { userQuizId submissionDate } post { id publishDate wordCount postStatus } } } }';
@@ -51,7 +51,7 @@ const Q_DQ =
 const Q_QUIZ =
   'query GetQuizResult($userQuizId: String!) { userQuiz: userQuiz(id: $userQuizId) { id submitTime quizStatus userQuestions { id sortOrder question { id questionType content } userQuestionOptions { id isSelected response option { id content } } } } userQuizResults: userQuizResult(id: $userQuizId) { finalScore questionsAnswered totalCorrect totalIncorrect } }';
 const Q_ALERTS =
-  'query GetUserAlerts($userAlerts: UserAlertsInputGQL) { getUserAlerts: getUserAlerts(userAlerts: $userAlerts) { nextToken alerts { id classId isRead timestamp type data { announcementTitle assignmentTitle assessmentId senderName } } } }';
+  'query GetUserAlerts($userAlerts: UserAlertsInputGQL) { getUserAlerts: getUserAlerts(userAlerts: $userAlerts) { nextToken alerts { id classId isRead timestamp type data { announcementTitle assignmentTitle assessmentId senderName forumId forumType postId } } } }';
 const Q_INBOX =
   'query GetInboxLeftPanel { getInboxLeftPanel: getInboxLeftPanel { courseClassId forums { forumId posts { id content publishDate postStatus createdBy { baseRoleName user { firstName lastName preferredFirstName } } } } } }';
 const Q_GRADES =
@@ -62,7 +62,7 @@ const Q_GRADES =
  * deploying new code does not update it. Stamping the payload is the only way the app can tell the user their
  * bookmark is old rather than quietly showing them three queries' worth of data and calling it eleven.
  */
-export const BOOKMARKLET_BUILD = '2026-09-18b';
+export const BOOKMARKLET_BUILD = '2026-09-18c';
 
 /**
  * Asked only when something already failed. If the gateway allows introspection this settles every remaining
@@ -103,7 +103,7 @@ var say=function(t){msg.textContent=t;};
 var problems=[];
 var prob=function(where,kind,e){var m=(e&&e.message)?String(e.message):String(e);
 var list=(e&&e.errors&&e.errors.length)?e.errors.map(function(x){return String(x).slice(0,400);}):[m.slice(0,400)];
-problems.push({klass:where||null,kind:kind,message:m.slice(0,400),op:(e&&e.op)||null,status:(e&&e.status)==null?null:e.status,errors:list,sent:(e&&e.vars)?JSON.stringify(e.vars).slice(0,200):null,missingField:(e&&e.missingField)||null});};
+problems.push({klass:where||null,kind:kind,message:m.slice(0,400),op:(e&&e.op)||null,status:(e&&e.status)==null?null:e.status,errors:list,sent:(e&&e.vars)?JSON.stringify(e.vars).slice(0,200):null,missingField:(e&&e.missingField)||null,got:(e&&e.shape)||null});};
 var win=null,openErr=null;try{win=window.open(P,'school-dashboard');}catch(e){openErr=e;}
 if(!win){openErr=openErr||new Error('blocked');}
 var fallback=function(json,why){
@@ -145,10 +145,16 @@ var Q12=${JSON.stringify(Q_INBOX)};
 var QS=${JSON.stringify(Q_SCHEMA)};
 var QT=${JSON.stringify(Q_TYPE)};
 var alerts;
-try{var AD0=await gql('GetUserAlerts',Q11,{userAlerts:{pgSize:50}});if(!AD0||AD0.getUserAlerts===undefined){throw noField('GetUserAlerts','getUserAlerts');}var AL=AD0.getUserAlerts||{};var al2=AL.alerts||[];var aout=[];
+try{var AD0=await gql('GetUserAlerts',Q11,{userAlerts:{pageSize:'200'}});if(!AD0||AD0.getUserAlerts===undefined){throw noField('GetUserAlerts','getUserAlerts');}var AL=AD0.getUserAlerts||{};var al2=AL.alerts||[];var aout=[];
 for(var ali=0;ali<al2.length;ali++){var AA=al2[ali];if(!AA)continue;var AD=AA.data||{};
-aout.push({id:AA.id,classId:AA.classId||null,type:AA.type||null,at:AA.timestamp||null,read:!!AA.isRead,title:AD.announcementTitle||AD.assignmentTitle||null,assessmentId:AD.assessmentId||null,sender:AD.senderName||null});}
+aout.push({id:AA.id,classId:AA.classId||null,type:AA.type||null,at:AA.timestamp||null,read:!!AA.isRead,title:AD.announcementTitle||AD.assignmentTitle||null,assessmentId:AD.assessmentId||null,sender:AD.senderName||null,forumId:AD.forumId||null,forumType:AD.forumType||null,announcementTitle:AD.announcementTitle||null,postId:AD.postId||null});}
 alerts=aout;}catch(e){alerts=undefined;prob(null,'alerts',e);}
+var alertForums={};
+for(var afi=0;alerts&&afi<alerts.length;afi++){var AF=alerts[afi];
+if(!AF||!AF.classId||!AF.forumId)continue;
+if(!AF.announcementTitle&&String(AF.forumType||'').toUpperCase().indexOf('ANNOUNCE')<0)continue;
+if(!alertForums[AF.classId]){alertForums[AF.classId]=[];}
+if(alertForums[AF.classId].indexOf(AF.forumId)<0){alertForums[AF.classId].push(AF.forumId);}}
 var msgs={};
 try{var ID0=await gql('GetInboxLeftPanel',Q12,{});if(!ID0||ID0.getInboxLeftPanel===undefined){throw noField('GetInboxLeftPanel','getInboxLeftPanel');}var IB=ID0.getInboxLeftPanel||[];
 for(var ib=0;ib<IB.length;ib++){var IC=IB[ib];if(!IC||!IC.courseClassId)continue;var mine=[];var ifs=IC.forums||[];
@@ -172,7 +178,7 @@ var grades=[],cur=null,fb={},res,dqs,anns,rubricOf={},attachOf={},rubrics={},qui
 try{
 try{var g=await gql('AllAssessmentGrades',Q2,{courseClassSlugId:c.slugId,courseUnitId:null});if(!g||g.assessmentGrades===undefined){throw noField('AllAssessmentGrades','assessmentGrades');}
 grades=((g.assessmentGrades&&g.assessmentGrades[0]&&g.assessmentGrades[0].grades)||[]);}catch(e){grades=[];prob(code,'grades',e);}
-try{var CC=await gql('CurrentClass',Q5,{slugId:c.slugId,isStudent:true});if(!CC||CC.currentClass===undefined){throw noField('CurrentClass','currentClass');}cur=CC.currentClass||null;}catch(e){cur=null;prob(code,'class facts',e);}
+try{var CC=await gql('ClassFacts',Q5,{slugId:c.slugId});if(!CC||CC.currentClass===undefined){throw noField('ClassFacts','currentClass');}cur=CC.currentClass||null;}catch(e){cur=null;prob(code,'class facts',e);}
 try{var fg=await gql('AssessmentFeedback',Q6,{courseClassSlugId:c.slugId,courseUnitId:null});if(!fg||fg.assessmentGrades===undefined){throw noField('AssessmentFeedback','assessmentGrades');}
 var fr=((fg.assessmentGrades&&fg.assessmentGrades[0]&&fg.assessmentGrades[0].grades)||[]);
 for(var fi2=0;fi2<fr.length;fi2++){var fgr=fr[fi2];if(fgr&&fgr.assessment&&fgr.assessment.id){fb[fgr.assessment.id]=fgr;}}
@@ -190,9 +196,16 @@ dout.push({forumId:DQ.forumId,title:DQ.title||'',description:DQ.description||nul
 dqs=dout;}catch(e){dqs=undefined;prob(code,'discussions',e);}
 var af=null;
 try{var FN=await gql('GetForumNotifications',Q4b,{classId:c.id,filters:null});
-var ft=((((FN||{}).classes||{}).forumTypes||{}).ANNOUNCEMENTS||{}).classes||[];var fids=[];
-for(var z1=0;z1<ft.length;z1++){var zf=(ft[z1]&&ft[z1].forums)||[];for(var z2=0;z2<zf.length;z2++){if(zf[z2]&&zf[z2].forumId){fids.push(zf[z2].forumId);}}}
-if(!fids.length){throw new Error('No announcement forum for this class');}
+var fids=[];
+var reap=function(node){if(!node)return;
+var an=((node.forumTypes||{}).ANNOUNCEMENTS)||null;if(!an)return;
+var acs=an.classes||(Array.isArray(an)?an:[]);
+for(var z1=0;z1<acs.length;z1++){var zf=(acs[z1]&&acs[z1].forums)||[];
+for(var z2=0;z2<zf.length;z2++){if(zf[z2]&&zf[z2].forumId&&fids.indexOf(zf[z2].forumId)<0){fids.push(zf[z2].forumId);}}}};
+var top=(FN||{}).classes;
+if(Array.isArray(top)){for(var z0=0;z0<top.length;z0++){reap(top[z0]);}}else{reap(top);}
+if(!fids.length&&alertForums[c.id]){for(var z5=0;z5<alertForums[c.id].length;z5++){if(fids.indexOf(alertForums[c.id][z5])<0){fids.push(alertForums[c.id][z5]);}}}
+if(!fids.length){var E2=new Error('getForumNotifications answered but named no announcement forum');E2.op='GetForumNotifications';E2.shape=JSON.stringify(FN||null).slice(0,600);throw E2;}
 var pooled=[];
 for(var z3=0;z3<fids.length&&z3<3;z3++){var PP=await gql('getDiscussionForumPosts',Q4c,{forumId:fids[z3],postId:null,depthStart:0,depthEnd:1});
 if(!PP||PP.Posts===undefined){throw noField('getDiscussionForumPosts','Posts');}var pl=PP.Posts||[];for(var z4=0;z4<pl.length;z4++){if(pl[z4]){pooled.push(pl[z4]);}}}

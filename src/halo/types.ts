@@ -34,6 +34,8 @@ export interface HaloProblem {
   sent?: string | null;
   /** Set when the call succeeded but the field we asked for was absent from `data`. */
   missingField?: string | null;
+  /** What the call actually returned, when it answered without complaint but carried nothing usable. */
+  got?: string | null;
 }
 
 export interface HaloClass {

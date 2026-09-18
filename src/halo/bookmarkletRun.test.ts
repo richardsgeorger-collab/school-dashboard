@@ -35,7 +35,7 @@ const OK: Record<string, unknown> = {
     { id: 'g1', status: 'SUBMITTED', dueDate: '2026-09-19 06:59:00', accommodatedDueDate: null, assessment: { id: A1 }, assignmentSubmission: { submissionDate: '2026-09-18T20:00:00Z' }, history: [{ status: 'PUBLISHED', points: 7 }] },
     { id: 'g2', status: 'ACTIVE', dueDate: '2026-09-18 06:59:00', accommodatedDueDate: null, assessment: { id: A2 }, assignmentSubmission: null, history: [] },
   ] }] },
-  CurrentClass: { currentClass: {
+  ClassFacts: { currentClass: {
     id: 'C1',
     gradeScale: { entries: [{ label: 'A', minPercent: 90, maxPercent: 100 }, { label: 'B', minPercent: 80, maxPercent: 89.99 }] },
     holidays: [{ title: 'Fall break', description: null, startDate: '2026-10-12', duration: 2, active: true }],
@@ -86,7 +86,7 @@ const MODES: Record<string, (op: string) => Reply> = {
   },
 };
 
-const BREAKABLE = ['GetUserAlerts', 'GetInboxLeftPanel', 'AllAssessmentGrades', 'CurrentClass', 'AssessmentFeedback', 'courseClassResources', 'AllDQForCourseClass', 'GetForumNotifications', 'getDiscussionForumPosts', 'AssessmentRubric', 'GetQuizResult'];
+const BREAKABLE = ['GetUserAlerts', 'GetInboxLeftPanel', 'AllAssessmentGrades', 'ClassFacts', 'AssessmentFeedback', 'courseClassResources', 'AllDQForCourseClass', 'GetForumNotifications', 'getDiscussionForumPosts', 'AssessmentRubric', 'GetQuizResult'];
 
 /** `good`, except one operation answers badly. Instructor names share an operation name, so break by query text. */
 const breaking = (op: string, mode: keyof typeof MODES): Halo => (o, v, q) => {
@@ -322,5 +322,74 @@ describe('the schema probe', () => {
     expect(r.payload.schema.introspection).toBe('refused');
     expect(r.payload.schema.why).toContain('introspection is not allowed');
     expect(r.payload.classes[0].assessments).toHaveLength(3);
+  });
+});
+
+
+/** The three failures Halo named, each with the check that would have caught it before it shipped. */
+describe('fixed from what Halo said', () => {
+  const src = bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/settings?halo=1' });
+
+  it('declares no variable it does not use, which is what killed class facts', () => {
+    // 'Variable "$isStudent" is never used.' is a validation error: the whole query is rejected before a single
+    // field is looked at. Every operation string in the file is checked, not just the one that broke.
+    const queries = [...src.matchAll(/"(query [A-Za-z][^"]*)"/g)].map((m) => m[1].replace(/\\n/g, ' '));
+    expect(queries.length).toBeGreaterThan(10);
+    for (const q of queries) {
+      const head = q.slice(0, q.indexOf('{'));
+      const body = q.slice(q.indexOf('{'));
+      for (const d of head.matchAll(/\$([A-Za-z][A-Za-z0-9_]*)\s*:/g)) {
+        expect(`${q.slice(0, 40)} uses $${d[1]}`).toBe(body.includes('$' + d[1]) ? `${q.slice(0, 40)} uses $${d[1]}` : 'unused');
+      }
+    }
+  });
+
+  it('asks the alert feed for pageSize, a string, and never the pgSize it invented', () => {
+    expect(src).toContain("{userAlerts:{pageSize:'200'}}");
+    // pgSize is a real variable on the classes and discussion queries; it was only ever wrong as a field inside
+    // UserAlertsInputGQL, which is the one place it must not appear.
+    expect(src).not.toMatch(/userAlerts:\{[^}]*pgSize/);
+    expect(typeof JSON.parse('{"pageSize":"200"}').pageSize).toBe('string');
+  });
+
+  it('reads the announcement forum whether the notifications come back as an object or a list', async () => {
+    const forum = { forumTypes: { ANNOUNCEMENTS: { classes: [{ classId: 'C1', count: 1, forums: [{ count: 1, forumId: 'AF1', posts: 1 }] }] } } };
+    const posts = { Posts: [{ id: 'po1', forumId: 'AF1', content: '<p>Bring goggles Thursday.</p>', postStatus: 'ACTIVE', publishDate: '2026-09-17T14:00:00Z', modifiedDate: null, isAcknowledge: false, countOfAcknowledgements: 0, createdBy: { id: 'u', baseRoleName: 'INSTRUCTOR', user: { firstName: 'Ana', lastName: 'Reyes' } }, resources: [] }] };
+    for (const top of [forum, [forum]]) {
+      const r = await runBookmarklet((op, v, q) => {
+        if (op === 'GetForumNotifications') return { data: { classes: top } };
+        if (op === 'getDiscussionForumPosts') return { data: posts };
+        return good(op, v, q);
+      }, { download: () => ({ downloadUrl: 'https://x/y' }) });
+      expect(r.payload.classes[0].announcements).toHaveLength(1);
+      expect(r.payload.classes[0].announcements[0].title).toBe('Bring goggles Thursday.');
+    }
+  });
+
+  it('falls back to the forum id Halo names in its own alert feed', async () => {
+    const r = await runBookmarklet((op, v, q) => {
+      if (op === 'GetUserAlerts') return { data: { getUserAlerts: { nextToken: null, alerts: [
+        { id: 'al1', classId: 'C1', isRead: false, timestamp: '2026-09-17T15:00:00Z', type: 'ANNOUNCEMENT', data: { announcementTitle: 'Week 4', forumId: 'AF9', forumType: 'ANNOUNCEMENTS', assessmentId: null, assignmentTitle: null, senderName: 'Ana', postId: 'po1' } },
+      ] } } };
+      // The notifications call answers, but names no forum: exactly what happened on the real run.
+      if (op === 'GetForumNotifications') return { data: { classes: { forumTypes: {} } } };
+      if (op === 'getDiscussionForumPosts') {
+        expect(v.forumId).toBe('AF9');
+        return { data: { Posts: [{ id: 'po1', forumId: 'AF9', content: 'Goggles Thursday.', postStatus: 'ACTIVE', publishDate: '2026-09-17T14:00:00Z', createdBy: null, resources: [] }] } };
+      }
+      return good(op, v, q);
+    }, { download: () => ({ downloadUrl: 'https://x/y' }) });
+    expect(r.payload.classes[0].announcements).toHaveLength(1);
+    expect(r.payload.problems.some((p: any) => p.kind === 'announcements')).toBe(false);
+  });
+
+  it('records what the notifications call actually returned when no route finds a forum', async () => {
+    const r = await runBookmarklet((op, v, q) => {
+      if (op === 'GetForumNotifications') return { data: { classes: { forumTypes: { DQ: {} } } } };
+      return good(op, v, q);
+    }, { download: () => ({ downloadUrl: 'https://x/y' }) });
+    const p = r.payload.problems.find((x: any) => x.kind === 'announcements' && x.op === 'GetForumNotifications');
+    expect(p.message).toContain('named no announcement forum');
+    expect(p.got).toContain('DQ');
   });
 });
