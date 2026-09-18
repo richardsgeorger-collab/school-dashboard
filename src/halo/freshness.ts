@@ -8,6 +8,8 @@ import type { HaloExport } from './types';
  */
 export const STALE_DAYS = 2;
 
+const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : xs.length === 2 ? `${xs[0]} and ${xs[1]}` : `${xs.slice(0, -1).join(', ')}, and ${xs.at(-1)}`);
+
 export type PullKind = keyof HaloPull;
 export const PULL_WORDS: Record<PullKind, string> = { assessments: 'assignments', grades: 'grades', announcements: 'announcements', rubrics: 'rubrics', feedback: 'instructor feedback', resources: 'class resources' };
 
@@ -62,7 +64,6 @@ export function staleness(courses: Course[], settings: Pick<Settings, 'haloPulls
   return { never, stale: [...byKind.entries()].map(([kind, v]) => ({ kind, ...v })) };
 }
 
-const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : xs.length === 2 ? `${xs[0]} and ${xs[1]}` : `${xs.slice(0, -1).join(', ')}, and ${xs.at(-1)}`);
 
 /** One quiet line naming what is out of date, or null when everything was pulled recently. */
 export function stalenessLine(s: Staleness, total: number): string | null {
@@ -72,4 +73,33 @@ export function stalenessLine(s: Staleness, total: number): string | null {
   const worst = [...s.stale].sort((a, b) => b.days - a.days)[0];
   const others = s.stale.length - 1;
   return `${PULL_WORDS[worst.kind].charAt(0).toUpperCase()}${PULL_WORDS[worst.kind].slice(1)} for ${list(worst.courses.map((c) => c.code))} are ${worst.days} days old${others > 0 ? `, and ${others} other kind${others === 1 ? '' : 's'} of data too` : ''}.`;
+}
+
+/**
+ * What this pull could not read, in one sentence. The sync succeeding is not the same as the sync being complete,
+ * and a class whose announcements call failed must not be presented as a class with no announcements.
+ */
+export function problemLine(payload: Pick<HaloExport, 'problems'>): string | null {
+  const ps = payload.problems ?? [];
+  if (ps.length === 0) return null;
+  const byKind = new Map<string, Set<string>>();
+  for (const p of ps) {
+    const set = byKind.get(p.kind) ?? new Set<string>();
+    if (p.klass) set.add(p.klass);
+    byKind.set(p.kind, set);
+  }
+  const parts = [...byKind.entries()].map(([kind, courses]) => (courses.size === 0 ? kind : `${kind} for ${list([...courses].sort())}`));
+  return `Halo would not give up ${list(parts)}. Everything else came through, and this is still missing rather than empty.`;
+}
+
+/**
+ * A bookmarklet is a URL frozen in the bookmarks bar the moment it was saved. Deploying new code does not update it,
+ * so an old bookmark quietly pulls the three queries it knew about and the payload simply has no room for the rest.
+ * That is indistinguishable from eleven failures unless the build is stamped, which is why it is.
+ */
+export function staleBookmarkLine(payload: Pick<HaloExport, 'build' | 'pulls'>, current: string): string | null {
+  if (payload.build === current) return null;
+  const known = payload.pulls?.length ?? 0;
+  const had = payload.build ? `built ${payload.build}` : 'saved before builds were stamped';
+  return `This came from an older copy of the Halo bookmark, ${had}. It pulled ${known > 0 ? `only ${known} kinds of data` : 'assignments and grades only'}. Open Settings, Halo and drag the bookmark to your bar again to replace it, then sync once more.`;
 }

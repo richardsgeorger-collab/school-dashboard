@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { mkCourse, mkItem, TZ } from './fixtures';
+import { mkClass, mkCourse, mkExport, mkItem, TZ } from './fixtures';
+import { problemLine, pullsFrom, staleBookmarkLine, staleness } from './freshness';
 import { haloSaysIn, haloSaysNotIn, postedIn } from '../domain/confirm';
 import { letterFor } from '../domain/grades';
 import { quizShare, topicScores } from '../domain/concepts';
@@ -58,5 +59,52 @@ describe('what the wider pull adds', () => {
     const out = toCourse({ id: 'h1', slugId: 's', classCode: 'CHM-113-101', courseCode: 'CHM-113', name: 'Chem', startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 4, assessments: [], holidays: [{ title: 'Fall break', description: null, startDate: '2026-10-12', duration: 2 }] }, existing, { tz: TZ, now: 'now', index: 0 });
     expect(out.color).toBe('#abc');
     expect(out.holidays?.[0].title).toBe('Fall break');
+  });
+});
+
+describe('a half-working sync says so', () => {
+  it('names what Halo would not give up, grouped by kind', () => {
+    expect(problemLine({ problems: [] })).toBeNull();
+    expect(problemLine({})).toBeNull();
+    expect(problemLine({ problems: [{ klass: 'ENG-105', kind: 'announcements', message: 'boom' }] })).toBe(
+      'Halo would not give up announcements for ENG-105. Everything else came through, and this is still missing rather than empty.',
+    );
+    expect(
+      problemLine({
+        problems: [
+          { klass: 'ENG-105', kind: 'announcements', message: 'boom' },
+          { klass: 'CHM-113', kind: 'announcements', message: 'boom' },
+          { klass: null, kind: 'inbox', message: 'boom' },
+        ],
+      }),
+    ).toBe('Halo would not give up announcements for CHM-113 and ENG-105 and inbox. Everything else came through, and this is still missing rather than empty.');
+  });
+
+  it('never stamps a kind the pull failed to read, so nothing looks freshly checked that was not', () => {
+    const base = mkExport([mkClass({ id: 'h1', courseCode: 'CHM-113', announcements: [], resources: [] })]);
+    const idOf = () => 'c1';
+    const full = pullsFrom(base, idOf, undefined, '2026-09-17T12:00:00.000Z');
+    expect(full.c1.announcements).toBe('2026-09-17T12:00:00.000Z');
+    expect(full.c1.resources).toBe('2026-09-17T12:00:00.000Z');
+    // The announcements call broke, so the bookmark leaves the key off entirely.
+    const broken = mkExport([mkClass({ id: 'h1', courseCode: 'CHM-113', announcements: undefined, resources: [] })]);
+    const after = pullsFrom(broken, idOf, full, '2026-09-19T12:00:00.000Z');
+    expect(after.c1.announcements).toBe('2026-09-17T12:00:00.000Z');
+    expect(after.c1.resources).toBe('2026-09-19T12:00:00.000Z');
+    // Which means the staleness line can still call it out two days later.
+    const courses = [mkCourse({ id: 'c1', code: 'CHM-113' })];
+    const s = staleness(courses, { haloPulls: after, timezone: TZ }, '2026-09-20');
+    expect(s.stale.find((x) => x.kind === 'announcements')?.courses.map((c) => c.code)).toEqual(['CHM-113']);
+    expect(s.stale.find((x) => x.kind === 'resources')).toBeUndefined();
+  });
+});
+
+describe('a bookmark saved before today', () => {
+  it('names the stale bookmark rather than blaming the queries', () => {
+    expect(staleBookmarkLine({ build: '2026-09-18', pulls: ['a'] }, '2026-09-18')).toBeNull();
+    expect(staleBookmarkLine({}, '2026-09-18')).toBe(
+      'This came from an older copy of the Halo bookmark, saved before builds were stamped. It pulled assignments and grades only. Open Settings, Halo and drag the bookmark to your bar again to replace it, then sync once more.',
+    );
+    expect(staleBookmarkLine({ build: '2026-09-01', pulls: ['assessments', 'grades', 'instructors'] }, '2026-09-18')).toContain('built 2026-09-01. It pulled only 3 kinds of data');
   });
 });

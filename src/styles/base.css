@@ -5311,3 +5311,10 @@ a.hero-chip:hover {
 .class-resources {
   margin-bottom: 8px;
 }
+
+/* A sync that half worked says so, in the same quiet register as everything else. */
+.diff-gap {
+  border-left: 2px solid var(--warn, #c8a23a);
+  padding-left: 10px;
+  color: var(--text-2, #aeb7c2);
+}

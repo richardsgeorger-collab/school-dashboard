@@ -7,6 +7,20 @@ export interface HaloExport {
   classes: HaloClass[];
   /** Halo's own alert feed, account-wide rather than per class. */
   alerts?: HaloAlert[];
+  /** What the bookmark asked for and did not get. An empty list and a failed call must never read the same. */
+  problems?: HaloProblem[];
+  /** Which build of the bookmarklet produced this. Absent means a bookmark saved before builds were stamped. */
+  build?: string;
+  /** The kinds of data this build even tries to pull, so a missing kind can be told from an unasked one. */
+  pulls?: string[];
+}
+
+/** One thing the sync could not read. `klass` is the course code, or null when the call was not per class. */
+export interface HaloProblem {
+  klass: string | null;
+  /** Plain words for what was lost: 'announcements', 'instructor feedback', 'rubric'. */
+  kind: string;
+  message: string;
 }
 
 export interface HaloClass {

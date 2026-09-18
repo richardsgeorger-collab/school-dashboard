@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
-import { pullsFrom } from '../halo/freshness';
+import { problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
+import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
 import { normCode } from '../halo/normalize';
 import { CourseChip } from '../components/CourseChip';
@@ -121,6 +122,8 @@ export function DiffReview({
   const setAll = (group: Group, keys: string[]) => setSel((s) => (s ? { ...s, [group]: new Set(keys) } : s));
   const flip = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const [stored, setStored] = useState<{ saved: number; fresh: number; messages?: number; resources?: number; alerts?: number } | null>(null);
+  const gaps = useMemo(() => problemLine(payload), [payload]);
+  const stale = useMemo(() => (source === 'halo' ? staleBookmarkLine(payload, BOOKMARKLET_BUILD) : null), [payload, source]);
 
   const apply = async () => {
     if (!sel) return;
@@ -169,6 +172,8 @@ export function DiffReview({
           {source === 'halo' && <li>{applied.scored} scores from the gradebook</li>}
           <li>{applied.removed} removed</li>
           <li>{applied.linked} linked with nothing else touched</li>
+          {stale && <li className="diff-gap">{stale}</li>}
+          {gaps && <li className="diff-gap">{gaps}</li>}
           {stored && (stored.saved > 0 || (stored.messages ?? 0) > 0) && (
             <li>
               {stored.saved} announcement{stored.saved === 1 ? '' : 's'}
@@ -200,6 +205,16 @@ export function DiffReview({
         {payload.classes.length} classes · {source === 'ics' ? 'exported' : 'read'} {when(payload.exportedAt)}
         {diff.courses.created.length > 0 && ` · new classes: ${diff.courses.created.map((c) => c.code).join(', ')}`}
       </p>
+      {stale && (
+        <p className="hint diff-gap" role="alert">
+          {stale}
+        </p>
+      )}
+      {gaps && (
+        <p className="hint diff-gap" role="status">
+          {gaps}
+        </p>
+      )}
       {sample && (
         <div className="diff-zone" data-warn={diff.zoneWarning ? 'true' : 'false'} role={diff.zoneWarning ? 'alert' : undefined}>
           <div className="diff-zone-grid">
