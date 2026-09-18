@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
+import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
 import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
@@ -111,6 +112,33 @@ export function DiffReview({
     setConfirmZone(false);
   }, [diff]);
 
+  // Everything Halo asserts about work already in the planner is written now, not on the apply button. A sync
+  // whose assignment list happens to be unchanged must not be able to discard 47 announcements on Cancel.
+  const savedFor = useRef<HaloExport | null>(null);
+  useEffect(() => {
+    if (source !== 'halo' || savedFor.current === payload) return;
+    savedFor.current = payload;
+    void (async () => {
+      const at = new Date().toISOString();
+      const courseIdOf = (classId: string, code: string) => data.courses.find((c) => c.haloClassId === classId)?.id ?? data.courses.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
+      const plan = referencePlan(diff, data);
+      if (plan.facts.length > 0 || plan.courses.length > 0) actions.applyHaloSync(plan);
+      let ann = { saved: 0, fresh: 0 };
+      let extra = { messages: 0, resources: 0, alerts: 0 };
+      try {
+        ann = await saveAnnouncements(payload, courseIdOf, at);
+        extra = await saveExtras(payload, courseIdOf, at).catch(() => extra);
+      } catch {
+        // The planner keeps what it got; the next sync brings these again.
+      }
+      actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, at), lastPull: { at, build: payload.build ?? null, counts: { ...pullCounts(payload) } } });
+      setKept({ facts: plan.facts.length, classes: plan.courses.length, announcements: ann.saved, fresh: ann.fresh, messages: extra.messages, resources: extra.resources, alerts: extra.alerts });
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
+    })();
+    // The diff is derived from the payload, and the payload is what this is keyed on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload, source]);
+
   const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
   const toggle = (group: Group, key: string) =>
     setSel((s) => {
@@ -122,12 +150,12 @@ export function DiffReview({
     });
   const setAll = (group: Group, keys: string[]) => setSel((s) => (s ? { ...s, [group]: new Set(keys) } : s));
   const flip = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
-  const [stored, setStored] = useState<{ saved: number; fresh: number; messages?: number; resources?: number; alerts?: number } | null>(null);
   const gaps = useMemo(() => problemLine(payload), [payload]);
   const stale = useMemo(() => (source === 'halo' ? staleBookmarkLine(payload, BOOKMARKLET_BUILD) : null), [payload, source]);
   const groups = useMemo(() => problemGroups(payload), [payload]);
   const counts = useMemo(() => pullCounts(payload), [payload]);
   const [copied, setCopied] = useState(false);
+  const [kept, setKept] = useState<ReferenceCounts | null>(null);
 
   const apply = async () => {
     if (!sel) return;
@@ -137,16 +165,6 @@ export function DiffReview({
     // Announcements are not planner rows, so they are stored rather than approved; what they change is approved later,
     // one finding at a time. The same pass records what this pull actually carried, per class. Awaited, so the screen
     // never says it is done while the write is still in flight and a navigation could cut it off.
-    const now = new Date().toISOString();
-    const courseIdOf = (classId: string, code: string) => data.courses.find((c) => c.haloClassId === classId)?.id ?? data.courses.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
-    try {
-      const r = await saveAnnouncements(payload, courseIdOf, now);
-      const x = await saveExtras(payload, courseIdOf, now).catch(() => ({ messages: 0, resources: 0, alerts: 0 }));
-      if (r.saved > 0 || x.messages > 0 || x.resources > 0) setStored({ ...r, ...x });
-    } catch {
-      // The planner is already written; all of this can come again on the next run.
-    }
-    actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, now), ...(source === 'halo' ? { lastPull: { at: now, build: payload.build ?? null, counts: { ...counts } } } : {}) });
     setApplied(summary);
     onApplied?.(summary);
     // Announcements live in their own store, which no React state watches; this is what tells Now to look again.
@@ -179,16 +197,14 @@ export function DiffReview({
           {source === 'halo' && <li className="pull-tally">Pulled: {countsLine(counts)}</li>}
           {stale && <li className="diff-gap">{stale}</li>}
           {gaps && <li className="diff-gap">{gaps}</li>}
-          {stored && (stored.saved > 0 || (stored.messages ?? 0) > 0) && (
+          {kept && referenceLine(kept) && (
             <li>
-              {stored.saved} announcement{stored.saved === 1 ? '' : 's'}
-              {(stored.messages ?? 0) > 0 ? ` and ${stored.messages} message${stored.messages === 1 ? '' : 's'}` : ''} stored{stored.fresh > 0 ? `, ${stored.fresh} new` : ''} ·{' '}
+              {referenceLine(kept)}{' '}
               <a className="diff-toggle" href="#/news">
                 read them
               </a>
             </li>
           )}
-          {stored && (stored.resources ?? 0) > 0 && <li>{stored.resources} class resource{stored.resources === 1 ? '' : 's'} listed</li>}
         </ul>
         <div className="modal-actions">
           <span className="spacer" />
@@ -218,6 +234,12 @@ export function DiffReview({
       {source === 'halo' && (
         <p className="hint pull-tally">
           <b>This sync pulled:</b> {countsLine(counts)}
+          {kept && referenceLine(kept) ? (
+            <>
+              <br />
+              {referenceLine(kept)} <a href="#/news">See announcements</a>
+            </>
+          ) : null}
         </p>
       )}
       {gaps && (
@@ -423,7 +445,7 @@ export function DiffReview({
 
       <div className="modal-actions">
         <button type="button" className="btn" onClick={onClose}>
-          Cancel
+          {kept && referenceTotal(kept) > 0 && n === 0 ? 'Close' : 'Cancel'}
         </button>
         <span className="spacer" />
         <button
@@ -438,7 +460,7 @@ export function DiffReview({
           }}
           disabled={n === 0 && diff.unchanged.length === 0 && diff.courses.created.length === 0}
         >
-          {confirmZone ? 'Apply anyway, dates may be wrong' : n > 0 ? `Apply ${n} change${n === 1 ? '' : 's'}` : diff.unchanged.length > 0 ? 'Link items, nothing else changes' : 'Nothing to apply'}
+          {confirmZone ? 'Apply anyway, dates may be wrong' : n > 0 ? `Apply ${n} change${n === 1 ? '' : 's'}` : diff.unchanged.length > 0 ? 'Link items, nothing else changes' : kept && referenceTotal(kept) > 0 ? 'Done, nothing needs approving' : 'Nothing to apply'}
         </button>
       </div>
     </>

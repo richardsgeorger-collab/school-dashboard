@@ -160,4 +160,42 @@ await page2.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
 const tally = (await all2('.pull-tally')).find((x) => /assignment/.test(x));
 console.log('persistent tally in Settings:', tally ? tally.slice(0, 200) : '(none)');
 
+// 10. Cancel must not discard what nothing asked about. This is the bug that lost 47 announcements: the assignment
+// diff was empty, so the button read "Nothing to apply" and Cancel threw the reference data away with it.
+await page2.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+const s2 = await page2.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
+const chm2 = s2.courses.find((c) => c.code === 'CHM-113');
+const quiet = {
+  kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet',
+  classes: [{
+    id: `h-${chm2.id}`, slugId: `${chm2.code}-X`, classCode: `${chm2.code}-X`, courseCode: chm2.code, name: chm2.name,
+    instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3,
+    // The class exactly as the planner already has it, so the assignment diff has nothing to offer.
+    assessments: s2.items.filter((i) => i.courseId === chm2.id && i.haloId).map((i) => ({
+      id: i.haloId, title: i.title, description: null, unit: null, unitSequence: null, sequence: null,
+      startDate: null, dueDate: i.dueAt, classDueDate: i.dueAt, points: i.points, type: 'ASSIGNMENT', tags: [],
+      inPerson: false, isGroupEnabled: false, requiresLopesWrite: false, status: null, submittedAt: null, score: null,
+    })),
+    gradeScale: [{ label: 'A', minPercent: 90, maxPercent: 100 }],
+    announcements: [{ id: 'ann-cancel', forumId: 'f1', title: 'Lab moved to 214', content: '<p>Thursday only.</p>', publishedAt: new Date().toISOString(), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] }],
+    resources: [], discussions: [], messages: [],
+  }],
+  alerts: [], problems: [],
+};
+await page2.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), quiet);
+await page2.waitForSelector('.modal .modal-actions', { timeout: 8000 });
+await sleep(900);
+const keptLine = (await all2('.modal .pull-tally')).find((x) => /Saved already/.test(x));
+console.log('kept line:', keptLine ? keptLine.slice(keptLine.indexOf('Saved already')) : '(none)');
+console.log('primary button:', await page2.$eval('.modal .modal-actions .btn.primary', (e) => e.textContent.trim()));
+console.log('secondary button:', (await all2('.modal .modal-actions .btn')).join(' | '));
+// Press the one that throws everything away.
+await page2.$$eval('.modal .modal-actions .btn', (els) => (els.find((e) => /Cancel|Close/.test(e.textContent)) ?? els[0]).click());
+await sleep(600);
+await page2.goto(`${BASE}#/news`, { waitUntil: 'networkidle0' });
+await sleep(500);
+const kept2 = await all2('.news-announcements .news-title');
+console.log('after Cancel, announcements on News:', kept2.join(' | ') || '(none)');
+console.log('the cancelled one survived:', kept2.some((x) => /Lab moved to 214/.test(x)));
+
 await browser.close();
