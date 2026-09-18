@@ -4,7 +4,7 @@ import { mkAssessment, mkClass, mkCourse, mkData, mkExport, mkItem, TZ } from '.
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from './reference';
 
 const NOW = '2026-09-18T12:00:00.000Z';
-const opts = { tz: TZ, now: NOW, bareAs: '23:59', includeZeroPoint: false, source: 'halo' as const, resolveCourse: undefined };
+const opts = { tz: TZ, now: NOW, bareAs: 'utc' as const, includeZeroPoint: false, source: 'halo' as const, resolveCourse: undefined };
 
 const rubric = { id: 'R', name: 'Lab Rubric', criteria: [] };
 const feedback = { comment: 'Watch your sig figs.', gradedAt: null, criteria: [], files: [], post: null };
