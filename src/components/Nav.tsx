@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { fmtDate } from '../domain/dates';
 import { useRoute, type Route } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconGrades, IconHome, IconLoad, IconNow, IconCheckHalo, IconLibrary, IconOkay, IconPlus, IconSettings, IconSync } from './Icons';
+import { IconCalendar, IconGrades, IconHome, IconLoad, IconNews, IconNow, IconCheckHalo, IconLibrary, IconOkay, IconPlus, IconSettings, IconSync } from './Icons';
 import { okayPress } from '../views/Okay';
 
 const LINKS: { route: Route; label: string; icon: () => ReactElement; mobile: boolean }[] = [
@@ -10,6 +10,7 @@ const LINKS: { route: Route; label: string; icon: () => ReactElement; mobile: bo
   { route: 'calendar', label: 'Calendar', icon: IconCalendar, mobile: true },
   { route: 'plan', label: 'Plan', icon: IconHome, mobile: true },
   { route: 'load', label: 'Load', icon: IconLoad, mobile: true },
+  { route: 'news', label: 'News', icon: IconNews, mobile: true },
   { route: 'library', label: 'Library', icon: IconLibrary, mobile: true },
   { route: 'grades', label: 'Grades', icon: IconGrades, mobile: true },
   { route: 'settings', label: 'Settings', icon: IconSettings, mobile: false },

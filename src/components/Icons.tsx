@@ -32,6 +32,14 @@ export const IconGrades = () => (
     <path d="M6 10.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-5.5" />
   </svg>
 );
+export const IconNews = () => (
+  <svg {...base}>
+    <path d="M4 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2Z" />
+    <path d="M16 8h3a1 1 0 0 1 1 1v8a2 2 0 0 1-2 2" />
+    <path d="M7 8.5h5M7 12h5M7 15.5h3" />
+  </svg>
+);
+
 export const IconSettings = () => (
   <svg {...base}>
     <circle cx="12" cy="12" r="3" />

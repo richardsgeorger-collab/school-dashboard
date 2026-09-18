@@ -402,6 +402,8 @@ export interface Settings {
    * nothing here has not been synced, which is not the same as having nothing due.
    */
   haloPulls?: Record<string, HaloPull>;
+  /** What the last Halo sync actually brought back, kept so the answer outlives the review screen. */
+  lastPull?: { at: string; build: string | null; counts: Record<string, number> };
   updatedAt: string;
 }
 

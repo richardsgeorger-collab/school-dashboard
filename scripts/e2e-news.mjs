@@ -134,4 +134,30 @@ await page.$$eval('.modal .modal-actions .btn, .modal-close', (els) => (els.find
 await page.goto(`${BASE}#/grades`, { waitUntil: 'networkidle0' });
 await sleep(600);
 console.log('letter grades:', (await all('.grade-pct')).slice(0, 3).join(' | '));
+// 8. The screen has to be findable. A News tab that only a synced payload links to is a screen that does not exist.
+// A fresh tab, because the approval flow above leaves this one mid-navigation.
+const page2 = await browser.newPage();
+await page2.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+const t2 = (sel) => page2.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
+const all2 = (sel) => page2.$$eval(sel, (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
+await page2.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+const navLabels = await all2('.nav-bottom .nav-link span');
+console.log('bottom nav:', navLabels.join(' | '));
+const clicked = await page2.$$eval('.nav-bottom .nav-link', (els) => {
+  const a = els.find((e) => /News/.test(e.textContent));
+  if (!a) return false;
+  a.click();
+  return true;
+});
+await sleep(500);
+console.log('News reachable from the nav:', clicked, '| landed on:', await page2.evaluate(() => location.hash));
+console.log('News heading:', await t2('.page-title'));
+console.log('announcements on the screen:', (await all2('.news-announcements .news-title')).join(' | ') || '(none)');
+console.log('what it says when empty:', (await t2('.lib-head .hint')) ?? '(no hint)');
+
+// 9. The tally: a sync that got everything and a sync that got nothing must not read the same.
+await page2.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+const tally = (await all2('.pull-tally')).find((x) => /assignment/.test(x));
+console.log('persistent tally in Settings:', tally ? tally.slice(0, 200) : '(none)');
+
 await browser.close();

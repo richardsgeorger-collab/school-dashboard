@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { bookmarkletHref } from '../halo/bookmarklet';
+import { COUNT_WORDS, countsLine, type PullCounts } from '../halo/counts';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
 
@@ -15,6 +16,7 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
     link.current?.setAttribute('href', href);
   }, [href]);
   const last = loadLastSync();
+  const pull = data.settings.lastPull;
 
   const copy = async () => {
     try {
@@ -28,6 +30,21 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
   return (
     <section className="card settings-card">
       <h2 className="section-title">Halo bookmark, fallback</h2>
+      {pull && (
+        <p className="hint pull-tally">
+          <b>Last sync</b> <span className="mono">{fmtDate(dateOf(pull.at, tz), 'short')} {fmtTime(pull.at, tz)}</span>
+          {pull.build ? <span className="mono muted"> · bookmark {pull.build}</span> : null}
+          <br />
+          {countsLine(pull.counts as unknown as PullCounts)}
+          {COUNT_WORDS.some((w) => (pull.counts[w.key] ?? 0) === 0) ? (
+            <>
+              {' '}
+              A zero means that query answered with nothing, which is different from failing. Anything that failed is
+              named on the review screen when you sync.
+            </>
+          ) : null}
+        </p>
+      )}
       <p className="hint">
         The normal way to sync is the Sync button in the top bar with Better Halo&apos;s .ics export. Keep this bookmark for when that export is not available: it runs on
         Halo&apos;s own page, reads your session there, and sends only assignment data here. You approve every change before it applies.

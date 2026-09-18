@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
+import { countsLine, pullCounts } from '../halo/counts';
 import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
@@ -125,6 +126,7 @@ export function DiffReview({
   const gaps = useMemo(() => problemLine(payload), [payload]);
   const stale = useMemo(() => (source === 'halo' ? staleBookmarkLine(payload, BOOKMARKLET_BUILD) : null), [payload, source]);
   const groups = useMemo(() => problemGroups(payload), [payload]);
+  const counts = useMemo(() => pullCounts(payload), [payload]);
   const [copied, setCopied] = useState(false);
 
   const apply = async () => {
@@ -144,7 +146,7 @@ export function DiffReview({
     } catch {
       // The planner is already written; all of this can come again on the next run.
     }
-    actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, now) });
+    actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, now), ...(source === 'halo' ? { lastPull: { at: now, build: payload.build ?? null, counts: { ...counts } } } : {}) });
     setApplied(summary);
     onApplied?.(summary);
     // Announcements live in their own store, which no React state watches; this is what tells Now to look again.
@@ -174,6 +176,7 @@ export function DiffReview({
           {source === 'halo' && <li>{applied.scored} scores from the gradebook</li>}
           <li>{applied.removed} removed</li>
           <li>{applied.linked} linked with nothing else touched</li>
+          {source === 'halo' && <li className="pull-tally">Pulled: {countsLine(counts)}</li>}
           {stale && <li className="diff-gap">{stale}</li>}
           {gaps && <li className="diff-gap">{gaps}</li>}
           {stored && (stored.saved > 0 || (stored.messages ?? 0) > 0) && (
@@ -210,6 +213,11 @@ export function DiffReview({
       {stale && (
         <p className="hint diff-gap" role="alert">
           {stale}
+        </p>
+      )}
+      {source === 'halo' && (
+        <p className="hint pull-tally">
+          <b>This sync pulled:</b> {countsLine(counts)}
         </p>
       )}
       {gaps && (

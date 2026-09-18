@@ -5323,3 +5323,5 @@ a.hero-chip:hover {
 .gap-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 10px; }
 .gap-list li { display: grid; gap: 3px; }
 .gap-err { display: block; white-space: pre-wrap; word-break: break-word; font-size: 12px; }
+
+.pull-tally { border-left: 2px solid var(--line, #2a3038); padding-left: 10px; line-height: 1.5; }
