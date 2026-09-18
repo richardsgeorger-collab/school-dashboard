@@ -1,4 +1,5 @@
 import { diffDays } from './dates';
+import { isNoise } from './requirements';
 import { effectivePoints } from './gating';
 import type { Schedule } from './schedule';
 import type { Course, DateStr, Item } from './types';
@@ -24,7 +25,7 @@ const AHEAD_DAYS = 3;
  * free days before anything needs starting (three or more); otherwise on pace. Clear when nothing is open.
  */
 export function paceFor(course: Course, items: Item[], schedule: Schedule, today: DateStr): Pace {
-  const open = items.filter((i) => i.courseId === course.id && i.status !== 'done' && i.type !== 'participation');
+  const open = items.filter((i) => i.courseId === course.id && i.status !== 'done' && !isNoise(i));
   if (open.length === 0) return { kind: 'clear' };
   const behind = open.filter((i) => (schedule.byItem[i.id]?.deadlineDay ?? '9999') < today).length;
   if (behind > 0) return { kind: 'behind', n: behind };
@@ -36,7 +37,7 @@ export function paceFor(course: Course, items: Item[], schedule: Schedule, today
 /** "200 pts due in 3 days, not started." for a big item inside its start window and untouched; rare. */
 export function riskLine(items: Item[], schedule: Schedule, today: DateStr): string | null {
   const big = items
-    .filter((i) => i.status === 'todo' && i.type !== 'participation' && effectivePoints(i, items) >= 100 && (schedule.byItem[i.id]?.startBy ?? '9999') <= today && (schedule.byItem[i.id]?.deadlineDay ?? today) >= today)
+    .filter((i) => i.status === 'todo' && !isNoise(i) && effectivePoints(i, items) >= 100 && (schedule.byItem[i.id]?.startBy ?? '9999') <= today && (schedule.byItem[i.id]?.deadlineDay ?? today) >= today)
     .sort((a, b) => (schedule.byItem[a.id]?.deadlineDay ?? '').localeCompare(schedule.byItem[b.id]?.deadlineDay ?? '') || effectivePoints(b, items) - effectivePoints(a, items));
   const i = big[0];
   if (!i) return null;

@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, fmtMinutes, weekdayOf } from './dates';
+import { isNoise } from './requirements';
 import type { Schedule } from './schedule';
 import { effectivePoints, gatingLine } from './gating';
 import type { DerivedDeadline } from './deadlines';
@@ -120,7 +121,7 @@ export type NowMode = { mode: 'urgent' } | { mode: 'fine'; daysUntilNext: number
  * pressure), "enough for today" (just finished, and today asks nothing more), or empty.
  */
 export function nowMode(items: Item[], schedule: Schedule, settings: Settings, today: DateStr, now: string, justFinished = false): NowMode {
-  const open = items.filter((i) => i.status !== 'done' && i.type !== 'participation' && !isBlocked(i, today));
+  const open = items.filter((i) => i.status !== 'done' && !isNoise(i) && !isBlocked(i, today));
   if (open.length === 0) return { mode: 'empty' };
   const nowMs = ms(now);
   const overdue = open.some((i) => ms(i.dueAt) < nowMs);
@@ -164,7 +165,7 @@ export const isBigWork = (i: Item, items: Item[] = []) => effectivePoints(i, ite
  */
 export function pressureLine(items: Item[], schedule: Schedule, settings: Settings, today: DateStr, _now: string): string | null {
   const tz = settings.timezone;
-  const open = items.filter((i) => i.status !== 'done' && i.type !== 'participation');
+  const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
 
   const bigOpen = open
     .filter((i) => i.status === 'todo' && isBigWork(i, items) && (schedule.byItem[i.id]?.startBy ?? '9999') <= today)

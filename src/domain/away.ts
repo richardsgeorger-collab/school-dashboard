@@ -1,4 +1,5 @@
 import { diffDays } from './dates';
+import { isNoise } from './requirements';
 import type { Schedule } from './schedule';
 import type { DateStr, Item } from './types';
 
@@ -36,7 +37,7 @@ export interface WelcomeBack {
 export function welcomeBack(items: Item[], schedule: Schedule, lastSeen: DateStr, today: DateStr): WelcomeBack {
   const days = awayDays(lastSeen, today);
   const missed = items
-    .filter((i) => i.status !== 'done' && i.type !== 'participation')
+    .filter((i) => i.status !== 'done' && !isNoise(i))
     .filter((i) => {
       const d = schedule.byItem[i.id]?.deadlineDay;
       return d !== undefined && d >= lastSeen && d < today;

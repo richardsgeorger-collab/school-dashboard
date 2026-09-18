@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, weekStart } from './dates';
+import { isNoise } from './requirements';
 import { courseGrade } from './grades';
 import type { Course, DateStr, Item } from './types';
 
@@ -34,7 +35,7 @@ export interface TermShape {
 
 /** The term as a shape: week by week weight, where the big things sit, what is banked per class, where the midpoint is. */
 export function termShape(items: Item[], courses: Course[], term: { start: DateStr; end: DateStr }, today: DateStr, tz: string, weekStartsOn: 0 | 1 = 1): TermShape {
-  const work = items.filter((i) => i.type !== 'participation');
+  const work = items.filter((i) => !isNoise(i));
   const first = weekStart(term.start, weekStartsOn);
   const weeks: TermWeek[] = [];
   for (let s = first, k = 0; s <= term.end && k < 24; s = addDays(s, 7), k++) {

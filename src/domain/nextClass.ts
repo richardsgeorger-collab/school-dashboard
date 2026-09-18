@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, fmtMinutes, makeIso, weekdayOf } from './dates';
+import { isNoise } from './requirements';
 import type { Nudge } from './deadlines';
 import type { Schedule } from './schedule';
 import type { Course, DateStr, Item, Meeting } from './types';
@@ -78,7 +79,7 @@ export function nextClassPrep(meeting: NextMeeting, items: Item[], schedule: Sch
   }
 
   const pick = items
-    .filter((i) => i.courseId === course.id && i.status !== 'done' && i.type !== 'participation')
+    .filter((i) => i.courseId === course.id && i.status !== 'done' && !isNoise(i))
     .map((i) => ({ i, due: dateOf(i.dueAt, tz) }))
     .filter(({ i, due }) => due < meeting.day || (i.flags.inClass && due === meeting.day) || i.dueAt < meeting.startAt)
     .sort((a, b) => a.due.localeCompare(b.due))[0];

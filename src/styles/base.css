@@ -5325,3 +5325,24 @@ a.hero-chip:hover {
 .gap-err { display: block; white-space: pre-wrap; word-break: break-word; font-size: 12px; }
 
 .pull-tally { border-left: 2px solid var(--line, #2a3038); padding-left: 10px; line-height: 1.5; }
+
+/* Parts of an assignment that the assignment itself does not mention. */
+.reqs { margin-top: 10px; border-left: 2px solid var(--accent, #f5e663); padding-left: 10px; }
+.reqs-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 12px; }
+.reqs-list li { display: grid; gap: 3px; }
+.reqs-list li[data-done='true'] .reqs-text { text-decoration: line-through; opacity: 0.55; }
+.reqs-list li[data-late='true'] .reqs-meta { color: var(--overdue, #e0796b); }
+.reqs-row { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.reqs-row input { margin-top: 3px; flex: none; }
+.reqs-text { line-height: 1.45; }
+.reqs-src { display: block; opacity: 0.8; line-height: 1.45; }
+.reqs-src q { font-style: italic; }
+.reqs-warn { margin-left: 8px; color: var(--overdue, #e0796b); }
+.reqs-dismiss { text-decoration: underline; justify-self: start; }
+.class-notes { margin-bottom: 12px; }
+.now-missed { border-left: 2px solid var(--overdue, #e0796b); padding-left: 10px; line-height: 1.5; margin: 10px 0; }
+.req-rows { list-style: none; margin: 4px 0 0; padding: 0 0 0 10px; display: grid; gap: 6px; border-left: 2px solid var(--accent, #f5e663); }
+.req-row { display: grid; gap: 2px; text-align: left; background: none; border: 0; padding: 2px 0; cursor: pointer; color: inherit; width: 100%; }
+.req-row-text { line-height: 1.4; }
+.readall-class { margin-top: 14px; }
+.news-readall { line-height: 1.5; }

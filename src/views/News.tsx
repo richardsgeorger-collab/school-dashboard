@@ -8,6 +8,7 @@ import { announceDb, announceStores, readAnnouncement, type StoredAnnouncement, 
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
+import { ReadAll } from './ReadAll';
 
 /**
  * Announcements, newest first. At GCU the week's real instructions often live here, so this is where they are read,
@@ -24,6 +25,7 @@ export function News() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [review, setReview] = useState<StoredAnnouncement | null>(null);
+  const [readAll, setReadAll] = useState(false);
   const hasKey = loadApiKey() !== '';
 
   const refresh = useCallback(async () => {
@@ -93,6 +95,16 @@ export function News() {
           </p>
         </div>
       </div>
+      {shown.length > 0 && (
+        <p className="hint news-readall">
+          <button type="button" className="btn small primary" onClick={() => setReadAll(true)} disabled={!hasKey}>
+            Read all for what they ask
+          </button>{' '}
+          {shown.filter((a) => a.actionsAt == null).length > 0
+            ? `${shown.filter((a) => a.actionsAt == null).length} of these have never been read for requirements. Your instructors put graded instructions here that the assignment never mentions.`
+            : 'All read. Anything they asked for is on the assignment it belongs to.'}
+        </p>
+      )}
       {note && <p className="hint news-note">{note}</p>}
       {messages.filter((m) => (only ? m.courseId === only : true) && courseById.has(m.courseId)).length > 0 && (
         <section className="news-messages">
@@ -161,6 +173,7 @@ export function News() {
           );
         })}
       </ul>
+      {readAll && <ReadAll list={shown} onClose={() => setReadAll(false)} onDone={() => void refresh()} />}
       {review && courseById.get(review.courseId) && (
         <LectureReview
           title={review.title}

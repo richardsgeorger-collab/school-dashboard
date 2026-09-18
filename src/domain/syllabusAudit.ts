@@ -1,4 +1,5 @@
 import { parseGcuSyllabus } from '../parser/gcuSyllabus';
+import { isNoise } from './requirements';
 import { numbersAgree, titleSimilarity } from '../record/match';
 import { wasStoredTruncated } from '../syllabus/context';
 import { dateOf, fmtDate, fmtTime } from './dates';
@@ -89,7 +90,7 @@ export function auditDates(course: Course, items: Item[], syllabusText: string |
       line: `${best.item.label} is ${when(best.item.dueAt)} here; the syllabus says ${when(row.dueAt)}${plannerDay === syllabusDay ? ' (same day, different time)' : ''}.`,
     });
   }
-  const unmatched = mine.filter((i) => !used.has(i.id) && i.type !== 'participation').map((i) => i.label);
+  const unmatched = mine.filter((i) => !used.has(i.id) && !isNoise(i)).map((i) => i.label);
   return { rows: parsed.assessments.length, matched, mismatches, unmatched, partial, topics, note: null };
 }
 

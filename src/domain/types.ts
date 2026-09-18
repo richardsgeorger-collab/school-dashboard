@@ -49,6 +49,8 @@ export interface Course {
   termStart: DateStr;
   termEnd: DateStr;
   /** Where this class's items come from: the parser (default) or the AI pass, once it proved better. */
+  /** Findings about the class that belong to no single assignment, including the ones that fit no category. */
+  notes?: ClassNote[];
   ingest?: 'parser' | 'ai';
   /** The class's topics in syllabus order and what each builds on, from the AI pass. */
   topics?: TopicNode[];
@@ -117,6 +119,8 @@ export interface Item {
   feedback?: ItemFeedback | null;
   /** A quiz attempt: the score, and the questions as they were asked. */
   quiz?: ItemQuiz | null;
+  /** Parts of this assignment, each with its own deadline and done state. Usually from an announcement. */
+  requirements?: Requirement[];
   /** The steps inside a big assignment. One item everywhere; this is just its inside. */
   steps?: Step[];
   /** What the assignment asks for, read from its description and rubric. */
@@ -163,6 +167,54 @@ export interface HaloFact {
 }
 
 /** Halo's own rubric for one assessment. */
+/**
+ * Where a requirement came from. At GCU the week's real instructions are posted in announcements and never reach the
+ * assignment itself, so anything derived from one carries the post it came from and the sentence that said it.
+ */
+export interface ReqSource {
+  kind: 'announcement' | 'syllabus' | 'lecture' | 'manual';
+  /** The announcement id, so the requirement can link back to the post. */
+  id: string | null;
+  title: string | null;
+  /** The professor's own words. Nothing is attached without them. */
+  quote: string | null;
+  /** When it was posted, for "said on the 14th, after the assignment was written". */
+  at: string | null;
+}
+
+/**
+ * One part of an assignment. An announcement routinely turns a single item into several steps with different
+ * deadlines, so a requirement carries its own date and its own done state, and the item is not finished until every
+ * graded one is.
+ */
+export interface Requirement {
+  id: string;
+  /** What to do, in the imperative. */
+  text: string;
+  /** Its own deadline when it has one, which is often not the assignment's. */
+  dueAt: string | null;
+  done: boolean;
+  doneAt: string | null;
+  /** Full credit depends on this. False for something worth knowing that is not itself graded. */
+  gradedOn: boolean;
+  /** Set when this changes what full credit means, rather than adding a step. */
+  redefinesDone?: boolean;
+  source: ReqSource;
+  addedAt: string;
+}
+
+/**
+ * A finding that belongs to the class rather than to any one assignment, including anything that did not fit a
+ * category. A finding that cannot be classified is still a finding and is never discarded.
+ */
+export interface ClassNote {
+  id: string;
+  text: string;
+  source: ReqSource;
+  addedAt: string;
+  seenAt?: string | null;
+}
+
 export interface ItemRubric {
   id: string;
   name: string | null;

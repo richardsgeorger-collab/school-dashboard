@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { EmptyState } from '../../components/EmptyState';
 import { ItemRow } from '../../components/ItemRow';
 import { addDays, dateOf, fmtDate, fmtMinutes } from '../../domain/dates';
+import { requirementRows } from '../../domain/requirements';
 import type { DateStr, Item } from '../../domain/types';
 import { useStore } from '../../storage/store';
 
@@ -30,6 +31,13 @@ export function AgendaView({ from, items, onOpen }: { from: DateStr; items: Item
     return [...m.entries()];
   }, [items, tz, from, end]);
 
+  // Parts an announcement added land on the calendar like anything else, on their own date when they have one.
+  const parts = useMemo(() => {
+    const m = new Map<DateStr, ReturnType<typeof requirementRows>>();
+    for (const r of requirementRows(items, tz, { from, to: end })) m.set(r.when, [...(m.get(r.when) ?? []), r]);
+    return m;
+  }, [items, tz, from, end]);
+
   return (
     <div className="agenda">
       {overdue.length > 0 && (
@@ -50,7 +58,9 @@ export function AgendaView({ from, items, onOpen }: { from: DateStr; items: Item
         <section key={d} className="day-group">
           <div className="day-group-head" data-today={d === today}>
             <b>{d === today ? 'Today' : fmtDate(d, 'long')}</b>
-            <span>{dayItems.length} due</span>
+            <span>
+              {dayItems.length} due{(parts.get(d) ?? []).length > 0 ? ` · ${(parts.get(d) ?? []).length} part${(parts.get(d) ?? []).length === 1 ? '' : 's'}` : ''}
+            </span>
             {schedule.loadByDay[d] ? <span className="muted">· {fmtMinutes(schedule.loadByDay[d])} planned</span> : null}
           </div>
           <ul className="item-list" style={{ marginTop: 6 }}>
@@ -58,6 +68,22 @@ export function AgendaView({ from, items, onOpen }: { from: DateStr; items: Item
               <ItemRow key={i.id} item={i} onOpen={onOpen} showStart />
             ))}
           </ul>
+          {(parts.get(d) ?? []).length > 0 && (
+            <ul className="req-rows">
+              {(parts.get(d) ?? []).map((r) => (
+                <li key={r.req.id}>
+                  <button type="button" className="req-row" onClick={() => onOpen(r.item)}>
+                    <span className="req-row-text">{r.req.text}</span>
+                    <span className="hint mono">
+                      {r.item.label}
+                      {r.fromAnnouncement ? ' · from an announcement' : ''}
+                      {r.ownDate ? ' · its own deadline' : ''}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       ))}
       <p className="hint" style={{ marginTop: 10 }}>

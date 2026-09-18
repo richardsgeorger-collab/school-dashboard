@@ -1,4 +1,5 @@
 import { addDays, diffDays, fmtDate } from './dates';
+import { isNoise } from './requirements';
 import { effectivePoints } from './gating';
 import type { Schedule } from './schedule';
 import type { DateStr, Item } from './types';
@@ -27,7 +28,7 @@ const kindWord = (i: Item) => (i.type === 'paper' ? 'paper' : i.type === 'exam' 
  * two weeks out with the start date of its biggest item. Null when nothing ahead deserves the word.
  */
 export function pileupAhead(items: Item[], schedule: Schedule, today: DateStr): Pileup | null {
-  const open = items.filter((i) => i.status !== 'done' && i.type !== 'participation');
+  const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
   const day = (i: Item) => schedule.byItem[i.id]?.deadlineDay ?? i.dueAt.slice(0, 10);
   let best: Pileup | null = null;
   for (let k = 1; k <= HORIZON - WINDOW + 1; k++) {

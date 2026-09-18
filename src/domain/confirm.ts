@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, fmtDate } from './dates';
+import { isNoise } from './requirements';
 import type { DateStr, Item } from './types';
 
 /** Halo states that mean the work went in. */
@@ -32,7 +33,7 @@ export interface SubmissionCheck {
 export function submissionCheck(items: Item[], today: DateStr, tz: string): SubmissionCheck {
   const weekAgo = addDays(today, -7);
   const due = (i: Item) => dateOf(i.dueAt, tz);
-  const work = items.filter((i) => i.type !== 'participation' && i.points > 0);
+  const work = items.filter((i) => !isNoise(i) && i.points > 0);
   const past = work.filter((i) => due(i) < today);
   const mismatches = past
     .filter((i) => i.status === 'done' && i.halo && haloSaysNotIn(i) && i.halo.checkedAt > i.dueAt)

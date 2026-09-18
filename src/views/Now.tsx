@@ -15,6 +15,7 @@ import { SYNC_EVENT } from '../ingest/auto';
 import { staleness, stalenessLine } from '../halo/freshness';
 import { blockedLine, blockPhrase } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
+import { missedLine, missedRequirement } from '../domain/requirements';
 import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
 import { submissionCheck } from '../domain/confirm';
@@ -409,6 +410,21 @@ export function Now() {
           </button>
         </p>
       )}
+
+      {(() => {
+        // The thing the assignment does not mention. It leads the lines because it is the one a student loses marks
+        // to without ever knowing it existed.
+        const row = missedRequirement(data.items, today, tz);
+        if (!row) return null;
+        return (
+          <p className="now-missed" role="status">
+            {missedLine(row, data.courses, today)}{' '}
+            <button type="button" className="hero-inline" onClick={() => setOpen(row.item)}>
+              open it
+            </button>
+          </p>
+        );
+      })()}
 
       {unread && (
         <p className="now-news mono">

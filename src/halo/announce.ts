@@ -11,6 +11,12 @@ import type { HaloAlert, HaloAnnouncement, HaloExport, HaloMessage, HaloResource
  * through the existing diff and approval flow, each citing the announcement it came from.
  */
 export interface StoredAnnouncement extends HaloAnnouncement {
+  /** When the action pass last read this post. Null means it has never been read. */
+  actionsAt?: string | null;
+  /** What that pass said it asks of the student. */
+  actionsSummary?: string | null;
+  /** How many actionable things came out of it. */
+  actionCount?: number | null;
   courseId: string;
   /** The body as readable text, markup gone. */
   text: string;
