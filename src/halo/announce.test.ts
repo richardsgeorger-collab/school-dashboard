@@ -82,7 +82,7 @@ describe('never a clean state you cannot back up', () => {
     const one = { ...settings, haloPulls: { eng: { assessments: '2026-09-17T19:00:00.000Z', grades: null, announcements: '2026-09-17T19:00:00.000Z', rubrics: null, feedback: null, resources: null } } };
     expect(stalenessLine(staleness([eng, chm], one, today), 2)).toBe('CHM-113 has never been synced from Halo, so nothing here is the whole picture for it.');
     const old = { ...settings, haloPulls: { eng: { assessments: '2026-09-10T19:00:00.000Z', grades: '2026-09-17T19:00:00.000Z', announcements: '2026-09-17T19:00:00.000Z', rubrics: null, feedback: null, resources: null } } };
-    expect(stalenessLine(staleness([eng], old, today), 1)).toBe('Assignments for ENG-105 are 7 days old, and 3 other kinds of data too.');
+    expect(stalenessLine(staleness([eng], old, today), 1)).toBe('Last Halo sync was 7 days ago. Sync now.');
     const fresh = { ...settings, haloPulls: { eng: { assessments: '2026-09-16T19:00:00.000Z', grades: '2026-09-16T19:00:00.000Z', announcements: '2026-09-16T19:00:00.000Z', rubrics: '2026-09-16T19:00:00.000Z', feedback: '2026-09-16T19:00:00.000Z', resources: '2026-09-16T19:00:00.000Z' } } };
     expect(stalenessLine(staleness([eng], fresh, today), 1)).toBeNull();
   });

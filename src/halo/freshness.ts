@@ -70,9 +70,9 @@ export function stalenessLine(s: Staleness, total: number): string | null {
   if (s.never.length === total && total > 0) return 'No class has been synced from Halo yet, so this is only what was imported.';
   if (s.never.length > 0) return `${list(s.never.map((c) => c.code))} ${s.never.length === 1 ? 'has' : 'have'} never been synced from Halo, so nothing here is the whole picture for ${s.never.length === 1 ? 'it' : 'them'}.`;
   if (s.stale.length === 0) return null;
-  const worst = [...s.stale].sort((a, b) => b.days - a.days)[0];
-  const others = s.stale.length - 1;
-  return `${PULL_WORDS[worst.kind].charAt(0).toUpperCase()}${PULL_WORDS[worst.kind].slice(1)} for ${list(worst.courses.map((c) => c.code))} are ${worst.days} days old${others > 0 ? `, and ${others} other kind${others === 1 ? '' : 's'} of data too` : ''}.`;
+  // Plain and actionable. The old wording stitched fragments together into "Them partial 5 days ago."
+  const days = Math.max(...s.stale.map((x) => x.days));
+  return `Last Halo sync was ${days === 1 ? 'a day' : `${days} days`} ago. Sync now.`;
 }
 
 /**

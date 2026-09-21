@@ -28,10 +28,13 @@ export interface SendArgs {
   /** Deck index plus the slides picked for this question. Changes per message, so it is not cached. */
   materials?: string;
   api: ToolApi;
+  /** Adaptive thinking, on by default. Turned off for the retry when a whole budget went on thinking. */
+  reasoning?: boolean;
 }
 
 /** One user message through the model, running tool calls locally until it answers in text. */
-export async function sendChat({ apiKey, history, userText, context, syllabi, materials, api, fetch }: SendArgs): Promise<string> {
+export async function sendChat(args: SendArgs): Promise<string> {
+  const { apiKey, history, userText, context, syllabi, materials, api, fetch, reasoning = true } = args;
   const Anthropic = await sdk();
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: fetch ? 0 : 1, ...(fetch ? { fetch } : {}) });
   const messages: Anthropic.MessageParam[] = [
@@ -42,8 +45,10 @@ export async function sendChat({ apiKey, history, userText, context, syllabi, ma
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const response = await client.messages.create({
       model: CHAT_MODEL,
-      max_tokens: 600,
-      thinking: { type: 'adaptive' },
+      // Adaptive thinking spends from this budget before a single word is written. At 600 a hard question — "I have
+      // a quiz tomorrow on 1.4 to 2.7, how do I prepare" — used the lot on thinking and returned no text at all.
+      max_tokens: reasoning ? 4000 : 1200,
+      ...(reasoning ? { thinking: { type: 'adaptive' as const } } : {}),
       system: [
         { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
         ...(syllabi ? [{ type: 'text' as const, text: `Syllabi:\n${syllabi}`, cache_control: { type: 'ephemeral' as const } }] : []),
@@ -60,7 +65,13 @@ export async function sendChat({ apiKey, history, userText, context, syllabi, ma
       .map((b) => b.text)
       .join('')
       .trim();
-    if (response.stop_reason !== 'tool_use') return text || 'I did not have anything to add.';
+    if (response.stop_reason !== 'tool_use') {
+      if (text) return text;
+      // An empty answer is never an answer. Ran out of room thinking: ask again with the thinking turned off
+      // rather than showing a stub that looks like a considered reply.
+      if (reasoning) return sendChat({ ...args, reasoning: false });
+      return 'That question needs more room than I have here. Ask it again in two or three shorter questions, or open the tutor for a longer session.';
+    }
 
     const uses = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
     messages.push({ role: 'assistant', content: response.content });

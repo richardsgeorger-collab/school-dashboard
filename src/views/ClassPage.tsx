@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ClassNotes } from './Requirements';
+import { ClassRules } from './ClassRules';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { ItemRow } from '../components/ItemRow';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes } from '../domain/dates';
@@ -107,6 +108,7 @@ export function ClassPage() {
       </div>
 
       <ClassNotes course={course} />
+      <ClassRules course={course} />
       <section className="card class-next" style={{ '--course': color } as React.CSSProperties}>
         {next ? (
           <>

@@ -50,7 +50,9 @@ export function buildContext(input: ContextInput): string {
   const tz = settings.timezone;
   const code = new Map(courses.map((c) => [c.id, c.code]));
   const open = items
-    .filter((i) => i.status !== 'done')
+    // A score from the gradebook means it is finished, whatever the planner's own status still says. The coach was
+    // telling the student that work they already had a mark for still needed doing.
+    .filter((i) => i.status !== 'done' && i.score === null)
     .map((i) => {
       const s = schedule.byItem[i.id];
       const due = dateOf(i.dueAt, tz);
@@ -65,6 +67,7 @@ export function buildContext(input: ContextInput): string {
         minutes: i.estimatedMinutes,
         points: i.points,
         status: i.status,
+        ...(i.requirements?.some((r) => !r.done && (r.scope ?? 'instance') === 'instance') ? { alsoRequired: i.requirements.filter((r) => !r.done && (r.scope ?? 'instance') === 'instance').map((r) => r.text).slice(0, 4) } : {}),
         ...(i.flags.inClass ? { inClass: true } : {}),
         ...(i.halo?.status ? { halo: i.halo.status } : {}),
         ...(i.plan?.asks ? { asks: i.plan.asks.slice(0, 120) } : {}),

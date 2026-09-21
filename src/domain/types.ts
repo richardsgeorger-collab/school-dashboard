@@ -199,6 +199,10 @@ export interface Requirement {
   gradedOn: boolean;
   /** Set when this changes what full credit means, rather than adding a step. */
   redefinesDone?: boolean;
+  /** instance: a thing to do. rule: true all term, never dated. reference: worth knowing, not an action. */
+  scope?: 'instance' | 'rule' | 'reference';
+  /** Every post that said it. The same instruction arrives from several announcements in different wordings. */
+  sources?: ReqSource[];
   source: ReqSource;
   addedAt: string;
 }
