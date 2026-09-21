@@ -1,5 +1,4 @@
 import type { ReactElement } from 'react';
-import { fmtDate } from '../domain/dates';
 import { useRoute, type Route } from '../router';
 import { useStore } from '../storage/store';
 import { IconCalendar, IconGrades, IconHome, IconLoad, IconNews, IconNow, IconCheckHalo, IconLibrary, IconOkay, IconPlus, IconSettings, IconSync } from './Icons';
@@ -22,7 +21,7 @@ function Links({ current, mobile = false }: { current: Route; mobile?: boolean }
       {LINKS.filter((l) => !mobile || l.mobile).map(({ route, label, icon: Icon }) => (
         <a key={route} className="nav-link" href={`#/${route}`} aria-current={current === route || (current === 'quiz' && route === 'library') ? 'page' : undefined}>
           <Icon />
-          <span>{label}</span>
+          <span className="nav-label">{label}</span>
         </a>
       ))}
     </>
@@ -31,7 +30,7 @@ function Links({ current, mobile = false }: { current: Route; mobile?: boolean }
 
 export function TopBar({ onSync, onCapture, onCheckHalo }: { onSync: () => void; onCapture: () => void; onCheckHalo: () => void }) {
   const { route } = useRoute();
-  const { today, sync } = useStore();
+  const { sync } = useStore();
   const syncTitle = {
     off: 'Local only',
     signed_out: 'Sync configured, signed out',
@@ -52,18 +51,22 @@ export function TopBar({ onSync, onCapture, onCheckHalo }: { onSync: () => void;
           <Links current={route} />
         </nav>
         <div className="topbar-date mono">
-          <span className="topbar-day">{fmtDate(today, 'long')}</span>
-          <button type="button" className="topbar-gear topbar-sync" onClick={onCapture} title="Quick capture (⌘K)" aria-label="Quick capture">
+          {/* Every screen already shows its own date in its header; in the bar it only crowded the buttons. */}
+          <button type="button" className="topbar-gear topbar-sync" onClick={onCapture} title="Add something (⌘K)" aria-label="Add something">
             <IconPlus />
+            <span className="gear-label">Add</span>
           </button>
-          <button type="button" className="topbar-gear topbar-okay" onClick={() => okayPress.current?.()} title="Am I okay? One paragraph on where you stand" aria-label="Am I okay">
+          <button type="button" className="topbar-gear topbar-okay" onClick={() => okayPress.current?.()} title="Where do I stand? One paragraph" aria-label="Where do I stand">
             <IconOkay />
+            <span className="gear-label">Okay?</span>
           </button>
           <button type="button" className="topbar-gear topbar-sync" onClick={onCheckHalo} title="Check Halo: copy the audit prompt and open Halo" aria-label="Check Halo">
             <IconCheckHalo />
+            <span className="gear-label">Check</span>
           </button>
-          <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync assignments from Halo" aria-label="Sync assignments from Halo">
+          <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync from Halo" aria-label="Sync from Halo">
             <IconSync />
+            <span className="gear-label">Sync</span>
           </button>
           <a href="#/settings" className="topbar-gear" title={syncTitle} aria-label={`Settings. ${syncTitle}`}>
             <IconSettings />

@@ -6,13 +6,14 @@ import { dayCapacity } from '../../domain/schedule';
 import type { DateStr, Item } from '../../domain/types';
 import { useStore } from '../../storage/store';
 
-const SHOW_NAMES_UP_TO = 2;
+// Three names read faster than the number 3. Past four a day needs the count instead.
+const SHOW_NAMES_UP_TO = 4;
 
 function LoadBar({ planned, capacity }: { planned: number; capacity: number }) {
   const ratio = capacity ? planned / capacity : 0;
   const status = planned === 0 ? 'none' : ratio <= 0.8 ? 'ok' : ratio <= 1 ? 'warn' : 'over';
   return (
-    <span className="week-load" data-status={status} title={`${fmtMinutes(planned)} planned of ${fmtMinutes(capacity)}`} aria-label={`${fmtMinutes(planned)} planned of ${fmtMinutes(capacity)}`}>
+    <span className="week-load" data-status={status} title={`${fmtMinutes(planned)} planned of ${fmtMinutes(capacity)}`} aria-label={`${fmtMinutes(planned)} planned of ${fmtMinutes(capacity)}`} data-label={planned ? `${fmtMinutes(planned)}/${fmtMinutes(capacity)}` : ''}>
       <span style={{ width: `${Math.min(100, ratio * 100)}%` }} />
     </span>
   );
@@ -54,7 +55,7 @@ function DayRow({ day, items, onOpen }: { day: DateStr; items: Item[]; onOpen: (
           })
         ) : (
           <button type="button" className="week-count" onClick={() => setExpanded(true)} aria-expanded={false}>
-            {open.length} due{planned ? ` · ${fmtMinutes(planned)} planned` : ''}
+            {open.length} due{planned ? ` · ${fmtMinutes(planned)}` : ''}
           </button>
         )}
         {expanded && open.length > SHOW_NAMES_UP_TO && (

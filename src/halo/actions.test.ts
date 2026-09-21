@@ -119,7 +119,7 @@ describe('an assignment with parts', () => {
     const row = missedRequirement([i], '2026-09-20', TZ)!;
     expect(row.req.text).toContain('two classmates');
     expect(missedLine(row, [mkCourse({ id: 'c1', code: 'UNV-106' })], '2026-09-20')).toBe(
-      'UNV-106 Topic 2 DQ 1: Reply to at least two classmates. That is today, and it is not in the assignment. Your instructor posted it in "Week 2".',
+      'UNV-106 Topic 2 DQ 1: Reply to at least two classmates. Due today, and the assignment does not mention it. Your instructor posted it in "Week 2".',
     );
     // A tick, and it stops asking.
     expect(missedRequirement([{ ...i, requirements: [{ ...i.requirements[0], done: true }] }], '2026-09-20', TZ)).toBeNull();

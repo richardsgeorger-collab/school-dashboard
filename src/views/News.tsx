@@ -26,6 +26,7 @@ export function News() {
   const [note, setNote] = useState<string | null>(null);
   const [review, setReview] = useState<StoredAnnouncement | null>(null);
   const [readAll, setReadAll] = useState(false);
+  const [filter, setFilter] = useState<string>('all');
   const hasKey = loadApiKey() !== '';
 
   const refresh = useCallback(async () => {
@@ -36,7 +37,7 @@ export function News() {
     void refresh();
   }, [refresh]);
 
-  const shown = useMemo(() => (list ?? []).filter((a) => (only ? a.courseId === only : true) && courseById.has(a.courseId)), [list, only, courseById]);
+  const shown = useMemo(() => (list ?? []).filter((a) => (only ? a.courseId === only : true) && (filter === 'all' || a.courseId === filter) && courseById.has(a.courseId)), [list, only, filter, courseById]);
 
   const markRead = async (a: StoredAnnouncement) => {
     if (a.readAt) return;
@@ -131,6 +132,18 @@ export function News() {
           </ul>
         </section>
       )}
+      {!only && data.courses.length > 1 && (
+        <div className="news-filter">
+          <button type="button" className="chip" data-on={filter === 'all'} onClick={() => setFilter('all')}>
+            All
+          </button>
+          {data.courses.map((c) => (
+            <button key={c.id} type="button" className="chip" data-on={filter === c.id} onClick={() => setFilter(c.id)}>
+              {c.code}
+            </button>
+          ))}
+        </div>
+      )}
       <ul className="news-list news-announcements">
         {shown.map((a) => {
           const c = courseById.get(a.courseId);
@@ -138,7 +151,17 @@ export function News() {
           return (
             <li key={a.id} className="news-item" data-unread={!a.readAt} data-open={isOpen}>
               <button type="button" className="news-head" onClick={() => void toggle(a)} aria-expanded={isOpen}>
-                <span className="news-title">{a.title || '(untitled)'}</span>
+                <span className="news-title">
+                  {/* A list of 47 titles, many of them "Attached", is not scannable. What it asks for is. */}
+                  {a.actionsSummary || a.title || '(untitled)'}
+                  {a.actionsAt && (a.actionCount ?? 0) === 0 && <span className="news-quiet"> · nothing to do</span>}
+                  {(a.actionCount ?? 0) > 0 && (
+                    <span className="news-added">
+                      {' '}
+                      · {a.actionCount} thing{a.actionCount === 1 ? '' : 's'} added
+                    </span>
+                  )}
+                </span>
                 <span className="news-meta mono">
                   {c && <CourseChip course={c} />} {a.publishedAt ? fmtDate(dateOf(a.publishedAt, tz), 'short') : ''}
                   {a.author ? ` · ${a.author}` : ''}

@@ -201,7 +201,9 @@ export const isUnread = (a: StoredAnnouncement): boolean => a.readAt === null;
 
 /** One quiet line for Now, or null. Never a count of things that are merely old. */
 export function unreadLine(list: StoredAnnouncement[], courses: Course[], tz: string): { text: string; first: StoredAnnouncement } | null {
-  const unread = list.filter(isUnread);
+  // A post the extraction pass has read is not waiting on the student: anything in it that asks for something is
+  // already on the assignment it belongs to. Only posts nothing has looked at count as unread.
+  const unread = list.filter((a) => isUnread(a) && a.actionsAt == null);
   if (unread.length === 0) return null;
   const first = unread[0];
   const code = courses.find((c) => c.id === first.courseId)?.code ?? '';

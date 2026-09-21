@@ -10,6 +10,8 @@ import { DaySheet } from './DaySheet';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_CHIPS = 2;
+// Even in the narrow layout a day shows what it is, not only how much of it there is.
+const MIN_CHIPS = 1;
 
 /** 0–4: how loaded a day is, from open items due and planned study against capacity. */
 function warmth(openCount: number, planned: number, capacity: number): number {
@@ -52,7 +54,7 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
           const marker = states.includes('overdue') ? 'overdue' : null;
           const level = other ? 0 : warmth(open.length, schedule.loadByDay[d] ?? 0, dayCapacity(data.settings, d));
           const big = open.some(isBig);
-          const shown = wide ? open.slice(0, MAX_CHIPS) : [];
+          const shown = open.slice(0, wide ? MAX_CHIPS : MIN_CHIPS);
           const rest = open.length - shown.length;
           return (
             <button

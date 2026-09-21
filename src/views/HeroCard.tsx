@@ -125,6 +125,7 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
   const done = item.status === 'done';
   const material = useMaterial(item, tz);
   const [choosing, setChoosing] = useState<'block' | 'snooze' | null>(null);
+  const [more, setMore] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
   const [panel, setPanel] = useState(false);
@@ -319,19 +320,6 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
         </p>
       )}
 
-      {!done && course && (
-        <p className="hero-starter">
-          <button type="button" className="btn small" onClick={() => setPanel(true)}>
-            Prompt for this
-          </button>
-          <button type="button" className="btn small" onClick={openTutor}>
-            Ask the tutor
-          </button>
-          <button type="button" className="hero-quiet" onClick={() => void copy()}>
-            {copied ? 'Copied' : 'copy a short one'}
-          </button>
-        </p>
-      )}
 
       {!done && (
         <div className="hero-actions">
@@ -352,13 +340,36 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
           <a className="btn hero-btn hero-halo" href={haloLink(item, course?.code).href} target="_blank" rel="noreferrer">
             {haloLink(item, course?.code).label} ↗
           </a>
+          {course && (
+            <button type="button" className="btn hero-btn" onClick={() => setPanel(true)}>
+              Prompt for this
+            </button>
+          )}
+          {/* Everything that is not Start, Done, Halo or the prompt lives behind one press. */}
           <span className="hero-secondary">
-            <button type="button" className="hero-skip" onClick={() => setChoosing((c) => (c === 'block' ? null : 'block'))}>
-              Can't do this yet
+            <button type="button" className="hero-skip" aria-expanded={more} onClick={() => setMore((m) => !m)}>
+              {more ? 'Less' : 'More'}
             </button>
-            <button type="button" className="hero-skip" onClick={() => setChoosing((c) => (c === 'snooze' ? null : 'snooze'))}>
-              Not today
-            </button>
+            {more && (
+              <>
+                <button type="button" className="hero-skip" onClick={() => setChoosing((c) => (c === 'block' ? null : 'block'))}>
+                  Can't do this yet
+                </button>
+                <button type="button" className="hero-skip" onClick={() => setChoosing((c) => (c === 'snooze' ? null : 'snooze'))}>
+                  Not today
+                </button>
+                {course && (
+                  <button type="button" className="hero-skip" onClick={openTutor}>
+                    Ask the tutor
+                  </button>
+                )}
+                {course && (
+                  <button type="button" className="hero-skip" onClick={() => void copy()}>
+                    {copied ? 'Copied' : 'Copy a short prompt'}
+                  </button>
+                )}
+              </>
+            )}
           </span>
           {choosing === 'block' && <BlockChooser onPick={block} onClose={() => setChoosing(null)} />}
           {choosing === 'snooze' && (

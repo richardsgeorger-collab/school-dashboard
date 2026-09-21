@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { bookmarkletHref } from '../halo/bookmarklet';
 import { COUNT_WORDS, countsLine, type PullCounts } from '../halo/counts';
+import { cleanAll, rulesFor } from '../domain/reqClean';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
 
@@ -17,6 +18,12 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
   }, [href]);
   const last = loadLastSync();
   const pull = data.settings.lastPull;
+  // Before and after on the announcement cleanup, over whatever is actually in the planner right now.
+  const before = data.items.reduce((n, i) => n + (i.requirements?.length ?? 0), 0);
+  const cleaned = cleanAll(data.items);
+  const after = cleaned.items.reduce((n, i) => n + (i.requirements?.length ?? 0), 0);
+  const rules = data.courses.reduce((n, c) => n + rulesFor(cleaned.items, c.id).length, 0);
+  const onAgenda = after - cleaned.items.reduce((n, i) => n + (i.requirements ?? []).filter((r) => r.scope === 'rule').length, 0);
 
   const copy = async () => {
     try {
@@ -30,6 +37,15 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
   return (
     <section className="card settings-card">
       <h2 className="section-title">Halo bookmark, fallback</h2>
+      {before > 0 && (
+        <p className="hint pull-tally">
+          <b>Announcement cleanup</b>
+          <br />
+          {before} parts were extracted from your announcements. {cleaned.merged} were the same instruction from more than one post and
+          merged; {cleaned.dropped} only repeated the assignment's own title and were dropped. {after} remain, of which {rules} are
+          standing class rules that moved off the calendar. That leaves <b>{onAgenda}</b> real things to do on your agenda.
+        </p>
+      )}
       {pull && (
         <p className="hint pull-tally">
           <b>Last sync</b> <span className="mono">{fmtDate(dateOf(pull.at, tz), 'short')} {fmtTime(pull.at, tz)}</span>

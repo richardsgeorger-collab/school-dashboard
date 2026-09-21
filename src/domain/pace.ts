@@ -67,25 +67,25 @@ export function classWords(courses: Course[], items: Item[]): Map<string, string
  * how long. "On pace in Math" told the student nothing they could act on; "Math starts today" does.
  */
 export function paceLine(courses: Course[], items: Item[], schedule: Schedule, today: DateStr): string | null {
-  const on: string[] = [];
-  const ahead = new Map<number, string[]>();
+  const ahead: string[] = [];
   const behind: { word: string; n: number }[] = [];
+  const starting: string[] = [];
   const words = classWords(courses, items);
   for (const c of courses) {
     const p = paceFor(c, items, schedule, today);
     const w = words.get(c.id) ?? c.code;
     if (p.kind === 'clear') continue;
-    if (p.kind === 'on') on.push(w);
-    else if (p.kind === 'ahead') ahead.set(p.days, [...(ahead.get(p.days) ?? []), w]);
+    if (p.kind === 'on') starting.push(w);
+    else if (p.kind === 'ahead') ahead.push(w);
     else behind.push({ word: w, n: p.n });
   }
-  const parts: string[] = [];
-  // What is already past its start day comes first: it is the only part that asks for something today.
-  if (behind.length === 1) parts.push(`${behind[0].word} has ${behind[0].n} thing${behind[0].n === 1 ? '' : 's'} past ${behind[0].n === 1 ? 'its' : 'their'} start day`);
-  else if (behind.length > 1) parts.push(`${list(behind.map((b) => `${b.word} (${b.n})`))} are past their start days`);
-  if (on.length) parts.push(`${list(on)} start${on.length === 1 ? 's' : ''} today`);
-  for (const [days, ws] of [...ahead.entries()].sort((a, b) => b[0] - a[0])) parts.push(`${list(ws)} ${ws.length === 1 ? 'is' : 'are'} clear for ${days} day${days === 1 ? '' : 's'}`);
-  if (parts.length === 0) return null;
-  const s = parts.join('; ');
-  return `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;
+  // The verdict first, then the one move that changes it. A list of class words is not a verdict.
+  if (behind.length > 0) {
+    const total = behind.reduce((n, b) => n + b.n, 0);
+    const worst = [...behind].sort((a, b) => b.n - a.n)[0];
+    return `You are behind in ${list(behind.map((b) => b.word))}: ${total} thing${total === 1 ? '' : 's'} should have been started by now. Clearing ${worst.word} first fixes most of it.`;
+  }
+  if (starting.length > 0) return `You are on pace. ${list(starting)} start${starting.length === 1 ? 's' : ''} today.`;
+  if (ahead.length > 0) return `You are ahead in ${list(ahead)}, and nothing else needs starting today.`;
+  return null;
 }

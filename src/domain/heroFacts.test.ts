@@ -33,7 +33,7 @@ describe('facts, not urgency', () => {
     const evening = at(today, '19:00:00');
     expect(fitLine(post, 25, schedule, [eng], today, evening, TZ)).toBeNull();
     const line = fitLine(draft, 240, schedule, [eng], today, evening, TZ);
-    expect(line).toMatch(/^4h of work, ~\d+(\.\d+)?h free across the 5 days before it's due\.$/);
+    expect(line).toMatch(/^About 4h of work, and about \d+(\.\d+)?h free over the next 5 days\. It fits\.$/);
   });
   it('reads the timer', () => {
     expect(elapsedLine(null, at(today, '10:00:00'))).toBeNull();

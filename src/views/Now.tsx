@@ -16,6 +16,8 @@ import { staleness, stalenessLine } from '../halo/freshness';
 import { blockedLine, blockPhrase } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { missedLine, missedRequirement } from '../domain/requirements';
+import { cleanAll } from '../domain/reqClean';
+import { isNoise } from '../domain/requirements';
 import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
 import { submissionCheck } from '../domain/confirm';
@@ -246,6 +248,9 @@ export function Now() {
     };
   }, [data.courses, today, newsTick]);
   const unread = useMemo(() => unreadLine(news, data.courses, tz), [news, data.courses, tz]);
+  // The same cleaning the agenda uses, so Now never surfaces a part that only restates the assignment.
+  const clean = useMemo(() => cleanAll(data.items).items, [data.items]);
+  const codeOf = useMemo(() => new Map(data.courses.map((c) => [c.id, c.code])), [data.courses]);
   const stale = useMemo(() => stalenessLine(staleness(data.courses, data.settings, today), data.courses.length), [data.courses, data.settings, today]);
   const chase = useMemo(() => blockedLine(work, data.courses, schedule, today, tz), [work, data.courses, schedule, today, tz]);
   const waiting = useMemo(() => work.filter((i) => i.status !== 'done' && isBlocked(i, today)), [work, today]);
@@ -412,9 +417,33 @@ export function Now() {
       )}
 
       {(() => {
+        // "9 due today" with one card on screen leaves eight unaccounted for. One line each for the rest, so the
+        // count is something you can see rather than something you have to trust.
+        const rest = clean
+          .filter((i) => i.id !== hero?.id && i.status !== 'done' && !isNoise(i) && dateOf(i.dueAt, tz) === today)
+          .sort((a, b) => b.points - a.points);
+        if (rest.length === 0) return null;
+        return (
+          <ul className="now-rest">
+            {rest.slice(0, 6).map((i) => (
+              <li key={i.id}>
+                <button type="button" className="now-rest-row" onClick={() => setOpen(i)}>
+                  <span className="now-rest-title">{i.label}</span>
+                  <span className="mono muted">
+                    {codeOf.get(i.courseId)} · {i.points} pts · {fmtMinutes(i.estimatedMinutes)}
+                  </span>
+                </button>
+              </li>
+            ))}
+            {rest.length > 6 && <li className="mono muted">and {rest.length - 6} more</li>}
+          </ul>
+        );
+      })()}
+
+      {(() => {
         // The thing the assignment does not mention. It leads the lines because it is the one a student loses marks
         // to without ever knowing it existed.
-        const row = missedRequirement(data.items, today, tz);
+        const row = missedRequirement(clean, today, tz);
         if (!row) return null;
         return (
           <p className="now-missed" role="status">
@@ -435,12 +464,13 @@ export function Now() {
       )}
 
       {(() => {
+        // One statement about how current this is. Two lines saying nearly the same thing read as noise.
         const v = verificationLine(data.settings.haloChecks, data.courses, data.items, today, tz);
         const due = checkDue(data.settings.haloChecks, today, tz);
         if (stale) {
           return (
             <p className="verify mono" data-level="amber">
-              {stale} <span className="muted">{v.text}</span>
+              {stale}
             </p>
           );
         }

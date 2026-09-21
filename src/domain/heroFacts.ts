@@ -56,9 +56,11 @@ export function fitLine(item: Item, minutes: number, schedule: Schedule, courses
     const load = (schedule.loadByDay[d] ?? 0) - (s?.plannedByDay[d] ?? 0);
     free += Math.max(0, cap - load);
   }
-  if (free <= 0) return `Your usual hours before it's due are already spoken for; the first step still fits an evening.`;
+  if (free <= 0) return `Every hour you normally work before this is due is already taken by something else. Start it anyway: the first step is short.`;
   const days = diffDays(today, end) + 1;
-  return `${fmtMinutes(minutes)} of work, ~${fmtMinutes(free)} free across the ${days === 1 ? 'day' : `${days} days`} before it's due.`;
+  const over = minutes > free;
+  if (over) return `It takes about ${fmtMinutes(minutes)} and you have about ${fmtMinutes(free)} free before it is due. That is not enough, so start today.`;
+  return `About ${fmtMinutes(minutes)} of work, and about ${fmtMinutes(free)} free ${days === 1 ? 'today' : `over the next ${days} days`}. It fits.`;
 }
 
 export const HALO_HOME = 'https://halo.gcu.edu/';

@@ -74,7 +74,9 @@ export function requirementRows(items: Item[], tz: string, opts: { from?: DateSt
 export function missedRequirement(items: Item[], today: DateStr, tz: string, withinDays = 7): RequirementRow | null {
   return (
     requirementRows(items, tz, { to: undefined })
-      .filter((r) => r.fromAnnouncement && r.req.gradedOn && r.item.status !== 'done')
+      // A class rule is true all term. Announcing it as something due today is the mistake this whole pass exists
+      // to avoid, so only concrete instances qualify.
+      .filter((r) => r.fromAnnouncement && r.req.gradedOn && r.item.status !== 'done' && (r.req.scope ?? 'instance') === 'instance')
       .filter((r) => diffDays(today, r.when) <= withinDays)
       .sort((a, b) => a.when.localeCompare(b.when))[0] ?? null
   );
@@ -85,7 +87,10 @@ export function missedLine(row: RequirementRow, courses: Course[], today: DateSt
   const code = courses.find((c) => c.id === row.item.courseId)?.code ?? '';
   const days = diffDays(today, row.when);
   const when = days <= 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
-  return `${code} ${row.item.title}: ${row.req.text} That is ${when}, and it is not in the assignment. Your instructor posted it${row.req.source.title ? ` in "${row.req.source.title}"` : ''}.`;
+  const said = row.req.text.replace(/\s*[.!]$/, '');
+  const posts = row.req.sources?.length ?? 0;
+  const where = row.req.source.title ? ` in "${row.req.source.title}"${posts > 1 ? ` and ${posts - 1} other post${posts - 1 === 1 ? '' : 's'}` : ''}` : '';
+  return `${code} ${row.item.title}: ${said}. Due ${when}, and the assignment does not mention it. Your instructor posted it${where}.`;
 }
 
 /**

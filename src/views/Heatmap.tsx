@@ -11,6 +11,8 @@ interface WeekRow {
   start: DateStr;
   end: DateStr;
   capacity: number;
+  /** Minutes in this week that belong to work already past its deadline. */
+  catchUp?: number;
   total: number;
   byCourse: Record<string, number>;
   big: Item[];
@@ -46,10 +48,19 @@ export function Heatmap() {
         const d = dateOf(i.dueAt, tz);
         return d >= ws && d <= end && (i.type === 'exam' || i.points >= 100);
       });
-      out.push({ start: ws, end, capacity, total: row.total, byCourse: row, big });
+      // Work whose deadline has already gone gets planned onto whatever day is left, which is usually today. That
+      // is catch-up, not this week's plan, and totalling the two together is what produced 24h against a 5h day.
+      const catchUp = data.items
+        .filter((i) => i.status !== 'done' && dateOf(i.dueAt, tz) < today)
+        .reduce((n, i) => {
+          const sc = schedule.byItem[i.id];
+          if (!sc) return n;
+          return n + Object.entries(sc.plannedByDay).reduce((m, [d, mins]) => (d >= ws && d <= end ? m + mins : m), 0);
+        }, 0);
+      out.push({ start: ws, end, capacity, total: row.total, byCourse: row, big, catchUp });
     }
     return out;
-  }, [term, schedule, data.settings, data.items, tz]);
+  }, [term, schedule, data.settings, data.items, tz, today]);
 
   const thisWeek = weekStart(today, data.settings.weekStartsOn);
   const maxCap = Math.max(1, ...weeks.map((w) => Math.max(w.capacity, w.total)));
@@ -88,9 +99,12 @@ export function Heatmap() {
                 <span className="load-track" aria-hidden>
                   <span className="load-cap" style={{ left: `${(w.capacity / maxCap) * 100}%` }} />
                   <span className="load-fill" style={{ width: `${Math.min(100, (w.total / maxCap) * 100)}%` }} />
+                  {/* Catch-up sits in its own shade so a week is not judged on work that was already late. */}
+                  {(w.catchUp ?? 0) > 0 && <span className="load-catchup" style={{ width: `${Math.min(100, ((w.catchUp ?? 0) / maxCap) * 100)}%` }} />}
                 </span>
                 <span className="load-value mono">
                   {w.total ? fmtMinutes(w.total) : '·'} <span className="muted">/ {fmtMinutes(w.capacity)}</span>
+                  {(w.catchUp ?? 0) > 0 && <span className="load-catchup-note">{fmtMinutes(w.catchUp ?? 0)} catch-up</span>}
                 </span>
                 <span className="load-marks" aria-label={w.big.length ? `${w.big.length} big items` : undefined}>
                   {w.big.map((i) => (
