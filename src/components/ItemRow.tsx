@@ -1,4 +1,6 @@
 import { isBlocked } from '../domain/blocked';
+import { movedRecently } from '../domain/requirements';
+import { dateOf, fmtDate } from '../domain/dates';
 import { useEffect, useState } from 'react';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -54,7 +56,12 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
         {showSubtitle && !compact && <span className="item-sub">{item.title}</span>}
         <span className="item-meta">
           <CourseChip course={course} />
-          <span>due {dueLabel(item, data.settings.timezone, today)}</span>
+          <span>
+            due {dueLabel(item, data.settings.timezone, today)}
+            {/* An announcement moved this. The date it moved from stays visible for a few days so the move is seen. */}
+            {movedRecently(item, today, data.settings.timezone) && <s className="item-was"> was {fmtDate(dateOf(item.dateChange!.from, data.settings.timezone), 'short')}</s>}
+          </span>
+          {item.origin?.kind === 'announcement' && <span className="flag flag-origin" title={item.origin.quote ?? undefined}>from an announcement</span>}
           <span>{hours(item.estimatedMinutes)}</span>
           {item.points > 0 && <span>{item.points} pts</span>}
           {isBlocked(item, today) && <span className="flag flag-wait">waiting</span>}

@@ -156,7 +156,7 @@ export function applyReadAll(r: ReadAllResult, items: Item[], courses: Course[])
 export async function stampRead(results: AnnouncementResult[], at: string): Promise<void> {
   for (const r of results) {
     if (r.error) continue;
-    await announceDb.put({ ...r.announcement, actionsAt: at, actionsSummary: r.summary, actionCount: r.actions.length });
+    await announceDb.put({ ...r.announcement, actionsAt: at, actionsModifiedAt: r.announcement.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
   }
 }
 

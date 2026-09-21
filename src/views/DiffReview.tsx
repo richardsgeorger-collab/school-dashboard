@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
+import { autoLine, needsRead, planFromActions, readReason, type AutoPlan } from '../halo/autoRead';
+import { readActions } from '../halo/actions';
+import { withRetry } from '../halo/readAll';
+import { announceDb, type StoredAnnouncement } from '../halo/announce';
+import { loadApiKey } from '../chat/key';
 import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
@@ -123,7 +128,7 @@ export function DiffReview({
       const courseIdOf = (classId: string, code: string) => data.courses.find((c) => c.haloClassId === classId)?.id ?? data.courses.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
       const plan = referencePlan(diff, data);
       if (plan.facts.length > 0 || plan.courses.length > 0) actions.applyHaloSync(plan);
-      let ann = { saved: 0, fresh: 0 };
+      let ann: Awaited<ReturnType<typeof saveAnnouncements>> = { saved: 0, fresh: 0, records: [] };
       let extra = { messages: 0, resources: 0, alerts: 0 };
       try {
         ann = await saveAnnouncements(payload, courseIdOf, at);
@@ -133,11 +138,62 @@ export function DiffReview({
       }
       actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, at), lastPull: { at, build: payload.build ?? null, counts: { ...pullCounts(payload) } } });
       setKept({ facts: plan.facts.length, classes: plan.courses.length, announcements: ann.saved, fresh: ann.fresh, messages: extra.messages, resources: extra.resources, alerts: extra.alerts });
+      // New and edited posts are read now, in this sync, not on a button and not on the next one. Professors post
+      // assignments in announcements constantly; anything that waits arrives late.
+      void readNew(ann.records);
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
     })();
     // The diff is derived from the payload, and the payload is what this is keyed on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload, source]);
+
+  /**
+   * Reads only the posts that are new or that the professor has edited since they were last read, then puts what
+   * they ask for straight onto the planner. Removals are the one thing held back for approval.
+   */
+  const readNew = async (stored: StoredAnnouncement[]) => {
+    const key = loadApiKey();
+    const ids = new Set(data.courses.map((c) => c.id));
+    const todo = needsRead(stored, ids);
+    if (!key || todo.length === 0) return;
+    const at = new Date().toISOString();
+    const total: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, needsApproval: [] };
+    let failed = 0;
+    // Each post's result is applied before the next one runs, so a failure halfway keeps what came before it.
+    let items = data.items;
+    let courses = data.courses;
+    for (let n = 0; n < todo.length; n++) {
+      const a = todo[n];
+      const course = courses.find((c) => c.id === a.courseId);
+      if (!course) continue;
+      setReading({ done: n + 1, total: todo.length, title: a.title || '(untitled)', why: readReason(a) });
+      try {
+        const r = await withRetry(() => readActions({ apiKey: key, announcement: a, course, items, tz }));
+        const p = planFromActions({ actions: r.actions, announcement: a, course, items, courses, now: at });
+        for (const i of p.upserts) {
+          actions.upsertItem(i);
+          items = [...items.filter((x) => x.id !== i.id), i];
+        }
+        for (const c of p.courses) {
+          actions.upsertCourse(c);
+          courses = courses.map((x) => (x.id === c.id ? c : x));
+        }
+        total.added.push(...p.added);
+        total.moved.push(...p.moved);
+        total.attached += p.attached;
+        total.noted += p.noted;
+        total.needsApproval.push(...p.needsApproval);
+        await announceDb.put({ ...a, actionsAt: at, actionsModifiedAt: a.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
+      } catch {
+        // A post that could not be read is left unstamped, so the next sync tries it again.
+        failed += 1;
+      }
+    }
+    setReading(null);
+    setReadFailed(failed);
+    setAuto(total);
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
+  };
 
   const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
   const toggle = (group: Group, key: string) =>
@@ -156,6 +212,9 @@ export function DiffReview({
   const counts = useMemo(() => pullCounts(payload), [payload]);
   const [copied, setCopied] = useState(false);
   const [kept, setKept] = useState<ReferenceCounts | null>(null);
+  const [reading, setReading] = useState<{ done: number; total: number; title: string; why: string } | null>(null);
+  const [auto, setAuto] = useState<AutoPlan | null>(null);
+  const [readFailed, setReadFailed] = useState<number>(0);
 
   const apply = async () => {
     if (!sel) return;
@@ -229,6 +288,33 @@ export function DiffReview({
       {stale && (
         <p className="hint diff-gap" role="alert">
           {stale}
+        </p>
+      )}
+      {reading && (
+        <p className="hint pull-tally" role="status">
+          Reading {reading.why} announcement {reading.done} of {reading.total}: “{reading.title}”…
+        </p>
+      )}
+      {auto && autoLine(auto) && (
+        <p className="hint pull-tally">
+          {autoLine(auto)}
+          {auto.added.length > 0 && (
+            <>
+              <br />
+              {auto.added.map((i) => i.label).join(', ')} {auto.added.length === 1 ? 'is' : 'are'} on your agenda now, from an announcement.
+            </>
+          )}
+          {auto.moved.length > 0 && (
+            <>
+              <br />
+              {auto.moved.map((m) => `${m.item.label}: ${fmtDate(dateOf(m.from, tz), 'short')} → ${fmtDate(dateOf(m.to, tz), 'short')}`).join(' · ')}
+            </>
+          )}
+        </p>
+      )}
+      {readFailed > 0 && (
+        <p className="hint diff-gap">
+          {readFailed} announcement{readFailed === 1 ? '' : 's'} could not be read, so I do not know what {readFailed === 1 ? 'it asks' : 'they ask'}. The next sync tries again.
         </p>
       )}
       {source === 'halo' && (

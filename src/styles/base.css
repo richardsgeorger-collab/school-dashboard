@@ -5378,3 +5378,7 @@ a.hero-chip:hover {
 /* Catch-up on work that was already late is not this week's plan. */
 .load-catchup { position: absolute; left: 0; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--overdue, #e0796b) 0 4px, transparent 4px 8px); opacity: 0.85; border-radius: inherit; }
 .load-catchup-note { display: block; font-size: 10px; color: var(--overdue, #e0796b); }
+
+/* A date an announcement moved, and the badge for work an announcement created. */
+.item-was { opacity: 0.6; margin-left: 6px; }
+.flag-origin { border-color: var(--accent, #f5e663); color: var(--accent, #f5e663); }

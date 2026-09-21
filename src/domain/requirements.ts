@@ -113,3 +113,12 @@ export function mergeNotes(existing: ClassNote[] | undefined, incoming: ClassNot
   }
   return out;
 }
+
+/**
+ * An announcement moved this date recently enough that the move should still be visible. The point is that an
+ * automatic change gets noticed rather than quietly becoming the new normal.
+ */
+export function movedRecently(i: Item, today: DateStr, tz: string, days = 5): boolean {
+  if (!i.dateChange) return false;
+  return diffDays(dateOf(i.dateChange.at, tz), today) <= days;
+}

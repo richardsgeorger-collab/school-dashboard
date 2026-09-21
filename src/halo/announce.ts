@@ -13,6 +13,8 @@ import type { HaloAlert, HaloAnnouncement, HaloExport, HaloMessage, HaloResource
 export interface StoredAnnouncement extends HaloAnnouncement {
   /** When the action pass last read this post. Null means it has never been read. */
   actionsAt?: string | null;
+  /** The post's modifiedAt at the moment it was read. A different value now means the professor edited it. */
+  actionsModifiedAt?: string | null;
   /** What that pass said it asks of the student. */
   actionsSummary?: string | null;
   /** How many actionable things came out of it. */
@@ -143,9 +145,14 @@ export async function saveExtras(payload: HaloExport, courseIdOf: (classId: stri
 }
 
 /** Everything the export carried, stored per class. Returns how many are new to this device. */
-export async function saveAnnouncements(payload: HaloExport, courseIdOf: (classId: string, courseCode: string) => string | null, now = new Date().toISOString()): Promise<{ saved: number; fresh: number }> {
+/**
+ * Stores what the sync carried and returns the records it wrote. The caller reads announcements straight from this
+ * rather than asking the store again: a re-read right after the write can still see the previous snapshot.
+ */
+export async function saveAnnouncements(payload: HaloExport, courseIdOf: (classId: string, courseCode: string) => string | null, now = new Date().toISOString()): Promise<{ saved: number; fresh: number; records: StoredAnnouncement[] }> {
   let saved = 0;
   let fresh = 0;
+  const records: StoredAnnouncement[] = [];
   for (const c of payload.classes) {
     const courseId = courseIdOf(c.id, c.courseCode);
     if (!courseId || !c.announcements?.length) continue;
@@ -154,10 +161,11 @@ export async function saveAnnouncements(payload: HaloExport, courseIdOf: (classI
       const merged = mergeAnnouncement(a, courseId, existing, now);
       if (!existing) fresh++;
       await announceDb.put(merged);
+      records.push(merged);
       saved++;
     }
   }
-  return { saved, fresh };
+  return { saved, fresh, records };
 }
 
 export const announceStores = {

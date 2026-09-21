@@ -8,10 +8,14 @@ const browser = await puppeteer.launch({ executablePath: '/Applications/Google C
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
+page.on('console', (m) => { if (/autoread/.test(m.text())) console.log('PAGE:', m.text()); });
 const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
 const all = (sel) => page.$$eval(sel, (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
 const clickText = (sel, re) => page.$$eval(sel, (els, src) => { const b = els.find((e) => new RegExp(src).test(e.textContent)); if (!b) return false; b.click(); return true; }, re.source);
 
+const shiftDay = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); };
+const SOON2 = shiftDay(2);
+const SOON3 = shiftDay(3);
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-expose-headers': '*' };
 const seen = [];
 await page.setRequestInterception(true);
@@ -25,6 +29,14 @@ page.on('request', (req) => {
   seen.push({ tool: body.tool_choice?.name, title, sawItems: /planner items/i.test(user) });
   // The id of the discussion this class already has, so the model can attach rather than duplicate.
   const dqId = (user.match(/^(\S+) · Topic 4 DQ 1 /m) ?? [])[1] ?? '';
+  if (body.tool_choice?.name === 'announcement_actions' && /AUTO/.test(title)) {
+    const auto = {
+      'AUTO new work': [{ kind: 'new_work', applies_to: '', what: 'Submit the Topic 3 reflection.', due: SOON3, time: '', points: 20, graded: true, changes_what_done_means: false, quote: 'a reflection is due the following Monday', confidence: 'high' }],
+      'AUTO date move': [{ kind: 'date_change', applies_to: dqId, what: 'Topic 4 DQ 1 now closes Wednesday.', due: SOON2, time: '', points: 0, graded: true, changes_what_done_means: false, quote: 'the DQ now closes Wednesday', confidence: 'high' }],
+      'AUTO removal': [{ kind: 'date_change', applies_to: dqId, what: 'Topic 4 DQ 1 is cancelled this week.', due: '', time: '', points: 0, graded: true, changes_what_done_means: false, quote: 'we are dropping the DQ', confidence: 'medium' }],
+    }[title] ?? [];
+    return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_actions', input: { summary: `Read: ${title}`, actions: auto } }], stop_reason: 'tool_use', usage: { input_tokens: 900, output_tokens: 90 } }) });
+  }
   const per = {
     'Replies count': [
       { kind: 'requirement', applies_to: dqId, what: 'Reply to at least two classmates on Topic 4 DQ 1.', due: '', time: '', points: 0, graded: true, changes_what_done_means: true, quote: 'your discussion grade includes replying to two classmates', confidence: 'high' },
@@ -81,23 +93,13 @@ await sleep(500);
 // 1. Read them all.
 await page.goto(`${BASE}#/news`, { waitUntil: 'networkidle0' });
 await sleep(500);
-console.log('prompt on News:', (await t('.news-readall'))?.slice(0, 110));
-const opened = await clickText('.news-readall .btn', /Read all/);
+// The first sync already read them automatically, so the backlog button has nothing left to do.
+console.log('prompt on News:', (await t('.news-readall'))?.slice(0, 120));
+console.log('auto-read on the sync itself:', seen.map((x) => x.title).join(', '));
+await clickText('.news-readall .btn', /Read all/);
 await sleep(700);
-console.log('clicked Read all:', opened, '| disabled:', await page.$eval('.news-readall .btn', (e) => e.disabled).catch(() => 'n/a'), '| modals:', await page.$$eval('.modal', (e) => e.length).catch(() => 0));
-console.log('modal offers:', (await all('.modal .hint')).join(' // '));
-console.log('modal buttons:', (await all('.modal .btn')).join(' | '));
-const pressed = await clickText('.modal .modal-actions .btn.primary', /Read \d/);
-console.log('pressed Read:', pressed);
-await sleep(2500);
-console.log('after press:', (await all('.modal .hint')).join(' // ').slice(0, 200));
-await page.waitForFunction(() => /Read \d+ announcement/.test(document.querySelector('.modal-body')?.textContent ?? ''), { timeout: 15000 });
-await sleep(400);
-console.log('result:', await t('.modal-body b'));
-console.log('per class:', (await all('.modal .readall-class .section-title')).join(' | '));
-console.log('quotes shown:', (await all('.modal .reqs-src')).length);
-console.log('calls made:', seen.length, '| titles:', seen.map((x) => x.title).join(', '), '| tool:', [...new Set(seen.map((x) => x.tool))].join(','));
-await clickText('.modal .modal-actions .btn.primary', /Done/);
+console.log('backlog modal offers:', (await all('.modal .hint.mono')).join(' // '));
+await clickText('.modal .modal-actions .btn', /Not now/);
 await sleep(400);
 
 // 2. The parts are on the assignment, with their source.
@@ -137,5 +139,45 @@ console.log('Now after ticking:', (await t('.now-missed'))?.slice(0, 80) ?? '(go
 // 6. Participation: hidden while bare, shown once something says what earns it.
 const before = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
 console.log('bare participation has no parts:', (before.items.find((i) => i.id === 'part-e2e').requirements ?? []).length === 0);
+
+
+// 7. AUTOMATIC: a second sync carrying three new posts must put their findings on the agenda without a button.
+const nBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.length);
+const auto = {
+  kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet',
+  classes: [{
+    id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [],
+    startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [],
+    announcements: [
+      { id: 'auto-1', forumId: 'f1', title: 'AUTO new work', content: '<p>A reflection is due the following Monday.</p>', publishedAt: iso(today), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] },
+      { id: 'auto-2', forumId: 'f1', title: 'AUTO date move', content: '<p>The DQ now closes Wednesday.</p>', publishedAt: iso(today), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] },
+      { id: 'auto-3', forumId: 'f1', title: 'AUTO removal', content: '<p>We are dropping the DQ.</p>', publishedAt: iso(today), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] },
+    ],
+    resources: [], discussions: [], messages: [],
+  }], alerts: [], problems: [],
+};
+await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await sleep(400);
+await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), auto);
+await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
+await page.waitForFunction(() => /From your announcements/.test(document.querySelector('.modal-body')?.textContent ?? ''), { timeout: 20000 }).catch(() => {});
+await sleep(800);
+console.log('AUTO calls seen:', seen.filter((x) => /AUTO/.test(x.title)).map((x) => x.title).join(', ') || '(none)');
+console.log('modal text:', (await t('.modal-body'))?.slice(0, 320));
+console.log('auto line:', (await all('.modal .pull-tally')).find((x) => /From your announcements/.test(x)));
+const state7 = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
+console.log('items before/after:', nBefore, '->', state7.items.length);
+const made = state7.items.find((i) => /Topic 3 reflection/.test(i.title));
+console.log('new work created:', !!made, '| origin:', made?.origin?.kind, '| points:', made?.points);
+const dq2 = state7.items.find((i) => i.id === 'dq-e2e');
+console.log('date moved:', dq2.dueAt.slice(0, 10), '| was:', dq2.dateChange?.from?.slice(0, 10));
+console.log('removal NOT applied (item still there):', !!dq2);
+await page.$$eval('.modal .modal-actions .btn', (els) => (els.find((e) => /Close|Cancel/.test(e.textContent)) ?? els[0]).click());
+await sleep(500);
+await page.goto(`${BASE}#/calendar?v=agenda`, { waitUntil: 'networkidle0' });
+await page.reload({ waitUntil: 'networkidle0' });
+await sleep(700);
+console.log('badge on the agenda:', (await all('.flag-origin')).length > 0);
+console.log('struck-through old date:', (await all('.item-was')).join(' | ') || '(none)');
 
 await browser.close();

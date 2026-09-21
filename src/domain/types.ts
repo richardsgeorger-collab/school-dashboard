@@ -121,6 +121,10 @@ export interface Item {
   quiz?: ItemQuiz | null;
   /** Parts of this assignment, each with its own deadline and done state. Usually from an announcement. */
   requirements?: Requirement[];
+  /** Set when an announcement, rather than the gradebook, is what put this on the calendar. */
+  origin?: ReqSource;
+  /** A date an announcement moved automatically. Shown struck through for a few days so the move is noticed. */
+  dateChange?: { from: string; at: string; source: ReqSource };
   /** The steps inside a big assignment. One item everywhere; this is just its inside. */
   steps?: Step[];
   /** What the assignment asks for, read from its description and rubric. */
