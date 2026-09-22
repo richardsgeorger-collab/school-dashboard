@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
-import { autoLine, needsRead, planFromActions, readReason, type AutoPlan } from '../halo/autoRead';
+import { autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from '../halo/autoRead';
 import { readActions } from '../halo/actions';
+import { describeAiError } from '../ai/client';
 import { withRetry } from '../halo/readAll';
 import { announceDb, type StoredAnnouncement } from '../halo/announce';
 import { loadApiKey } from '../chat/key';
@@ -155,10 +156,17 @@ export function DiffReview({
     const key = loadApiKey();
     const ids = new Set(data.courses.map((c) => c.id));
     const todo = needsRead(stored, ids);
-    if (!key || todo.length === 0) return;
+    if (todo.length === 0) return;
+    // No key, or no credit: the posts stay unstamped and the next sync that can read them will.
+    if (!key) {
+      setAuto({ ...emptyOutcome(), todo: todo.length, noKey: true });
+      return;
+    }
     const at = new Date().toISOString();
     const total: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, needsApproval: [] };
     let failed = 0;
+    let read = 0;
+    const why: string[] = [];
     // Each post's result is applied before the next one runs, so a failure halfway keeps what came before it.
     let items = data.items;
     let courses = data.courses;
@@ -183,15 +191,17 @@ export function DiffReview({
         total.attached += p.attached;
         total.noted += p.noted;
         total.needsApproval.push(...p.needsApproval);
+        read += 1;
         await announceDb.put({ ...a, actionsAt: at, actionsModifiedAt: a.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
-      } catch {
-        // A post that could not be read is left unstamped, so the next sync tries it again.
+      } catch (e) {
+        // A post that could not be read is left unstamped, so the next sync tries it again. One post failing
+        // costs that post: the loop carries on with the rest.
         failed += 1;
+        why.push(await describeAiError(e));
       }
     }
     setReading(null);
-    setReadFailed(failed);
-    setAuto(total);
+    setAuto({ todo: todo.length, read, failed, noKey: false, failures: groupFailures(why), plan: total });
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
   };
 
@@ -213,8 +223,7 @@ export function DiffReview({
   const [copied, setCopied] = useState(false);
   const [kept, setKept] = useState<ReferenceCounts | null>(null);
   const [reading, setReading] = useState<{ done: number; total: number; title: string; why: string } | null>(null);
-  const [auto, setAuto] = useState<AutoPlan | null>(null);
-  const [readFailed, setReadFailed] = useState<number>(0);
+  const [auto, setAuto] = useState<AutoOutcome | null>(null);
 
   const apply = async () => {
     if (!sel) return;
@@ -295,26 +304,21 @@ export function DiffReview({
           Reading {reading.why} announcement {reading.done} of {reading.total}: “{reading.title}”…
         </p>
       )}
-      {auto && autoLine(auto) && (
-        <p className="hint pull-tally">
-          {autoLine(auto)}
-          {auto.added.length > 0 && (
+      {auto && autoResultLine(auto) && (
+        <p className={auto.failed > 0 || auto.noKey ? 'hint diff-gap' : 'hint pull-tally'} role="status">
+          {autoResultLine(auto)}
+          {auto.plan.added.length > 0 && (
             <>
               <br />
-              {auto.added.map((i) => i.label).join(', ')} {auto.added.length === 1 ? 'is' : 'are'} on your agenda now, from an announcement.
+              {auto.plan.added.map((i) => i.label).join(', ')} {auto.plan.added.length === 1 ? 'is' : 'are'} on your agenda now, from an announcement.
             </>
           )}
-          {auto.moved.length > 0 && (
+          {auto.plan.moved.length > 0 && (
             <>
               <br />
-              {auto.moved.map((m) => `${m.item.label}: ${fmtDate(dateOf(m.from, tz), 'short')} → ${fmtDate(dateOf(m.to, tz), 'short')}`).join(' · ')}
+              {auto.plan.moved.map((m) => `${m.item.label}: ${fmtDate(dateOf(m.from, tz), 'short')} → ${fmtDate(dateOf(m.to, tz), 'short')}`).join(' · ')}
             </>
           )}
-        </p>
-      )}
-      {readFailed > 0 && (
-        <p className="hint diff-gap">
-          {readFailed} announcement{readFailed === 1 ? '' : 's'} could not be read, so I do not know what {readFailed === 1 ? 'it asks' : 'they ask'}. The next sync tries again.
         </p>
       )}
       {source === 'halo' && (

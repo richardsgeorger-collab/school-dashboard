@@ -164,3 +164,62 @@ export function autoLine(plan: { added: Item[]; moved: unknown[]; attached: numb
   const tail = plan.needsApproval.length ? ` ${n(plan.needsApproval.length, 'removal', 'removals')} needs your approval below.` : '';
   return `${head}${tail}`.trim();
 }
+
+/**
+ * What the automatic pass actually managed. Kept separate from the plan because the plan only describes what
+ * landed, and a pass where nothing landed because nothing could be read must never read like a pass where nothing
+ * needed doing.
+ */
+export interface AutoOutcome {
+  /** Posts that needed reading on this sync. */
+  todo: number;
+  read: number;
+  failed: number;
+  /** True when there was no API key, so nothing was even attempted. */
+  noKey: boolean;
+  /** One entry per distinct cause, most common first. */
+  failures: { message: string; count: number }[];
+  plan: AutoPlan;
+}
+
+export const emptyOutcome = (): AutoOutcome => ({ todo: 0, read: 0, failed: 0, noKey: false, failures: [], plan: { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, needsApproval: [] } });
+
+/** The same cause across every post is one problem. */
+export function groupFailures(messages: string[]): { message: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const x of messages) m.set(x, (m.get(x) ?? 0) + 1);
+  return [...m.entries()].map(([message, count]) => ({ message, count })).sort((a, b) => b.count - a.count);
+}
+
+/**
+ * One sentence for the sync result. The rule this exists to keep: a read that failed is never reported as a read
+ * that found nothing. Silence is the same mistake, so a pass with posts waiting always says something.
+ */
+export function autoResultLine(o: AutoOutcome): string | null {
+  if (o.todo === 0) return null;
+  const posts = (v: number) => `${v} announcement${v === 1 ? '' : 's'}`;
+
+  if (o.noKey) {
+    return `${posts(o.todo)} came in and ${o.todo === 1 ? 'has' : 'have'} not been read: no Anthropic key is connected. Add one on Now and the next sync reads ${o.todo === 1 ? 'it' : 'them'}. Until then I do not know what ${o.todo === 1 ? 'it asks' : 'they ask'}.`;
+  }
+
+  const why = o.failures[0]?.message ? ` ${o.failures[0].message}` : '';
+  if (o.failed === o.todo) {
+    return `${posts(o.todo)} could not be read.${why} I do not know what ${o.todo === 1 ? 'it asks' : 'they ask'}, and the next sync will try again.`;
+  }
+
+  const p = o.plan;
+  const parts: string[] = [];
+  if (p.added.length) parts.push(`${p.added.length} new assignment${p.added.length === 1 ? '' : 's'} added`);
+  if (p.moved.length) parts.push(`${p.moved.length} date${p.moved.length === 1 ? '' : 's'} moved`);
+  if (p.attached) parts.push(`${p.attached} requirement${p.attached === 1 ? '' : 's'} attached`);
+  if (p.noted) parts.push(`${p.noted} class note${p.noted === 1 ? '' : 's'}`);
+
+  const approval = p.needsApproval.length ? ` ${p.needsApproval.length} removal${p.needsApproval.length === 1 ? '' : 's'} needs your approval below.` : '';
+  const rest = o.failed ? ` ${posts(o.failed)} could not be read, so I do not know what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why}` : '';
+  if (parts.length) return `From your announcements: ${parts.join(', ')}.${approval}${rest}`;
+  // Nothing landed. With a failure in the pass that is not the same as nothing being there, so the failure leads
+  // and the clean claim is never made at all.
+  if (o.failed) return `${posts(o.failed)} could not be read, so I do not know what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why} The other ${o.read === 1 ? 'one asks' : `${o.read} ask`} nothing of you.${approval}`;
+  return `Nothing in ${o.read === 1 ? 'the new announcement' : `the ${o.read} new announcements`} asks anything of you.${approval}`;
+}

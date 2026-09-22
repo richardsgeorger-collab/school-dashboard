@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Action } from './actions';
-import { autoLine, needsRead, planFromActions, readReason } from './autoRead';
+import { autoLine, autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome } from './autoRead';
 import type { StoredAnnouncement } from './announce';
 import { mkCourse, mkItem, TZ } from './fixtures';
 
@@ -116,5 +116,55 @@ describe('what still waits for approval', () => {
     ]);
     expect(autoLine(p)).toBe('From your announcements: 1 new assignment added, 1 date moved. 1 removal needs your approval below.');
     expect(autoLine({ added: [], moved: [], attached: 0, noted: 0, needsApproval: [] })).toBeNull();
+  });
+});
+
+describe('when the automatic read fails', () => {
+  const base = { ...emptyOutcome(), todo: 3 };
+
+  it('all reads failing never renders as a clean result', () => {
+    // The real case: out of credits. What the user got was "Nothing in them asks anything of you."
+    const out: AutoOutcome = { ...base, read: 0, failed: 3, failures: groupFailures(['Your Anthropic credit balance is too low.', 'Your Anthropic credit balance is too low.', 'Your Anthropic credit balance is too low.']) };
+    const line = autoResultLine(out)!;
+    expect(line).toBe('3 announcements could not be read. Your Anthropic credit balance is too low. I do not know what they ask, and the next sync will try again.');
+    // The sentences that must never appear over a failed pass, in any form.
+    expect(line).not.toMatch(/nothing/i);
+    expect(line).not.toMatch(/asks anything of you/i);
+    expect(line).not.toBeNull();
+  });
+
+  it('says so plainly when there is no key, rather than saying nothing at all', () => {
+    const line = autoResultLine({ ...base, noKey: true })!;
+    expect(line).toContain('no Anthropic key is connected');
+    expect(line).toContain('the next sync reads them');
+    expect(line).not.toMatch(/nothing in/i);
+  });
+
+  it('one post failing never costs the others', () => {
+    const p = plan([action({ kind: 'new_work', text: 'Submit the Topic 3 reflection.', dueAt: '2026-09-25T06:59:00.000Z' })]);
+    const line = autoResultLine({ ...base, read: 2, failed: 1, plan: p, failures: groupFailures(['Halo answered 500.']) })!;
+    expect(line).toContain('1 new assignment added');
+    expect(line).toContain('1 announcement could not be read');
+    expect(line).toContain('I do not know what that one asks');
+  });
+
+  it('claims nothing was found only when every post was read', () => {
+    const clean = autoResultLine({ ...base, read: 3, failed: 0 })!;
+    expect(clean).toBe('Nothing in the 3 new announcements asks anything of you.');
+    // One failure and that claim is gone.
+    const partial = autoResultLine({ ...base, read: 2, failed: 1, failures: groupFailures(['Halo answered 500.']) })!;
+    expect(partial).not.toMatch(/^Nothing in/);
+    expect(partial).toBe('1 announcement could not be read, so I do not know what that one asks. Halo answered 500. The other 2 ask nothing of you.');
+  });
+
+  it('is silent only when there was nothing to read', () => {
+    expect(autoResultLine(emptyOutcome())).toBeNull();
+  });
+
+  it('counts one cause across every post as one problem', () => {
+    expect(groupFailures(['low balance', 'low balance', 'rate limited'])).toEqual([
+      { message: 'low balance', count: 2 },
+      { message: 'rate limited', count: 1 },
+    ]);
   });
 });

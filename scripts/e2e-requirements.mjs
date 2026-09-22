@@ -13,6 +13,7 @@ const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').t
 const all = (sel) => page.$$eval(sel, (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
 const clickText = (sel, re) => page.$$eval(sel, (els, src) => { const b = els.find((e) => new RegExp(src).test(e.textContent)); if (!b) return false; b.click(); return true; }, re.source);
 
+let outOfCredits = false;
 const shiftDay = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); };
 const SOON2 = shiftDay(2);
 const SOON3 = shiftDay(3);
@@ -29,6 +30,9 @@ page.on('request', (req) => {
   seen.push({ tool: body.tool_choice?.name, title, sawItems: /planner items/i.test(user) });
   // The id of the discussion this class already has, so the model can attach rather than duplicate.
   const dqId = (user.match(/^(\S+) · Topic 4 DQ 1 /m) ?? [])[1] ?? '';
+  if (outOfCredits && body.tool_choice?.name === 'announcement_actions') {
+    return req.respond({ status: 400, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low to access the Anthropic API.' } }) });
+  }
   if (body.tool_choice?.name === 'announcement_actions' && /AUTO/.test(title)) {
     const auto = {
       'AUTO new work': [{ kind: 'new_work', applies_to: '', what: 'Submit the Topic 3 reflection.', due: SOON3, time: '', points: 20, graded: true, changes_what_done_means: false, quote: 'a reflection is due the following Monday', confidence: 'high' }],
@@ -179,5 +183,37 @@ await page.reload({ waitUntil: 'networkidle0' });
 await sleep(700);
 console.log('badge on the agenda:', (await all('.flag-origin')).length > 0);
 console.log('struck-through old date:', (await all('.item-was')).join(' | ') || '(none)');
+
+
+// 8. THE REAL CASE: out of credits during an automatic sync. A failed read must never render as a clean result.
+outOfCredits = true;
+const broke = {
+  ...auto,
+  exportedAt: new Date().toISOString(),
+  classes: [{ ...auto.classes[0], announcements: [
+    { id: 'broke-1', forumId: 'f1', title: 'AUTO broke one', content: '<p>Something is due.</p>', publishedAt: iso(today), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] },
+    { id: 'broke-2', forumId: 'f1', title: 'AUTO broke two', content: '<p>Something else is due.</p>', publishedAt: iso(today), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] },
+  ] }],
+};
+await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await sleep(400);
+await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), broke);
+await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
+await page.waitForFunction(() => /could not be read/.test(document.querySelector('.modal-body')?.textContent ?? ''), { timeout: 25000 }).catch(() => {});
+await sleep(600);
+const failLine = (await all('.modal .hint')).find((x) => /could not be read/.test(x));
+console.log('failure line:', failLine);
+console.log('claims nothing:', /nothing/i.test(failLine ?? ''), '| says the reason:', /out of credit/i.test(failLine ?? ''));
+const body8 = (await t('.modal-body')) ?? '';
+console.log('never says asks anything of you:', !/asks anything of you/i.test(body8));
+await page.$$eval('.modal .modal-actions .btn', (els) => (els.find((e) => /Close|Cancel/.test(e.textContent)) ?? els[0]).click());
+await sleep(500);
+
+// And the next sync that can read them does, because a failed post was never stamped.
+outOfCredits = false;
+await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: { ...p, exportedAt: new Date().toISOString() }, source: window })), broke);
+await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
+await sleep(2500);
+console.log('retried after credits returned:', seen.filter((x) => /AUTO broke/.test(x.title)).length, 'reads of the two broken posts');
 
 await browser.close();
