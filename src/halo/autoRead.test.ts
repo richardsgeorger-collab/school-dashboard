@@ -168,3 +168,93 @@ describe('when the automatic read fails', () => {
     ]);
   });
 });
+
+describe('three states in one store', () => {
+  const never = post({ id: 'never', publishedAt: '2026-09-01T10:00:00.000Z' });
+  const unchanged = post({ id: 'unchanged', publishedAt: '2026-09-02T10:00:00.000Z', actionsAt: NOW, modifiedAt: '2026-09-02T10:00:00.000Z', actionsModifiedAt: '2026-09-02T10:00:00.000Z' });
+  const edited = post({ id: 'edited', publishedAt: '2026-09-03T10:00:00.000Z', actionsAt: NOW, modifiedAt: '2026-09-21T08:00:00.000Z', actionsModifiedAt: '2026-09-03T10:00:00.000Z' });
+
+  it('reads the never-read and the edited, skips the one that has not changed', () => {
+    const todo = needsRead([never, unchanged, edited], new Set(['c1']));
+    expect(todo.map((a) => a.id)).toEqual(['never', 'edited']);
+    expect(readReason(never)).toBe('new');
+    expect(readReason(edited)).toBe('edited');
+  });
+
+  it('stamps what it read with the edit it read, so neither comes back', () => {
+    // What the caller writes after a successful read.
+    const stamp = (a: StoredAnnouncement) => ({ ...a, actionsAt: '2026-09-22T12:00:00.000Z', actionsModifiedAt: a.modifiedAt ?? null });
+    const after = [stamp(never), unchanged, stamp(edited)];
+    expect(needsRead(after, new Set(['c1']))).toEqual([]);
+    // And a post the professor edits again is picked up on the next sync.
+    const editedAgain = { ...stamp(edited), modifiedAt: '2026-09-23T09:00:00.000Z' } as StoredAnnouncement;
+    expect(needsRead([editedAgain], new Set(['c1'])).map((a) => a.id)).toEqual(['edited']);
+  });
+
+  it('a failed read leaves no stamp, so it is still waiting next time', () => {
+    // Nothing is written on failure: the record goes back untouched.
+    expect(needsRead([never], new Set(['c1']))).toHaveLength(1);
+  });
+});
+
+describe('reading the same announcement twice', () => {
+  const made = (dueAt: string, title = 'Submit the Topic 3 worksheet') =>
+    action({ kind: 'new_work', text: `${title}.`, dueAt, points: 20 });
+
+  it('creates nothing the second time', () => {
+    const first = plan([made('2026-09-25T06:59:00.000Z')]);
+    expect(first.added).toHaveLength(1);
+    // The same post read again, for any reason: an edit, a retry, or the button.
+    const withIt = [...items, first.added[0]];
+    const second = planFromActions({ actions: [made('2026-09-25T06:59:00.000Z')], announcement: post(), course, items: withIt, courses: [course], now: NOW });
+    expect(second.added).toEqual([]);
+    expect(second.updated).toEqual([]);
+    expect(withIt.length + second.added.length).toBe(2);
+  });
+
+  it('reads through different wording for the same work', () => {
+    const first = plan([made('2026-09-25T06:59:00.000Z', 'Submit the worksheet by Friday')]);
+    const withIt = [...items, first.added[0]];
+    // A re-read phrases it differently, as the model does.
+    const second = planFromActions({ actions: [made('2026-09-25T06:59:00.000Z', 'Turn in the Topic 3 worksheet')], announcement: post(), course, items: withIt, courses: [course], now: NOW });
+    expect(second.added).toEqual([]);
+  });
+
+  it('an edited post with a new date updates the one item rather than adding a second', () => {
+    const first = plan([made('2026-09-25T06:59:00.000Z')]);
+    const withIt = [...items, first.added[0]];
+    const second = planFromActions({ actions: [made('2026-09-28T06:59:00.000Z')], announcement: post({ modifiedAt: '2026-09-22T08:00:00.000Z' }), course, items: withIt, courses: [course], now: NOW });
+    expect(second.added).toEqual([]);
+    expect(second.updated).toHaveLength(1);
+    expect(second.updated[0].changes).toEqual(['due date']);
+    const moved = second.updated[0].item;
+    expect(moved.id).toBe(first.added[0].id);
+    expect(moved.dueAt).toBe('2026-09-28T06:59:00.000Z');
+    // The move is visible for a few days, like any other automatic date change.
+    expect(moved.dateChange?.from).toBe('2026-09-25T06:59:00.000Z');
+  });
+
+  it('two different posts describing one assignment make one item', () => {
+    const first = plan([made('2026-09-25T06:59:00.000Z')]);
+    const withIt = [...items, first.added[0]];
+    const other = planFromActions({
+      actions: [{ ...made('2026-09-25T06:59:00.000Z'), source: { kind: 'announcement', id: 'a2', title: 'A different post', quote: 'the worksheet is due Friday', at: NOW } }],
+      announcement: post({ id: 'a2' }),
+      course,
+      items: withIt,
+      courses: [course],
+      now: NOW,
+    });
+    expect(other.added).toEqual([]);
+  });
+
+  it('never deletes work a later read stops mentioning', () => {
+    const first = plan([made('2026-09-25T06:59:00.000Z')]);
+    const withIt = [...items, first.added[0]];
+    // The post is re-read and says nothing about it at all.
+    const quiet = planFromActions({ actions: [], announcement: post(), course, items: withIt, courses: [course], now: NOW });
+    expect(quiet.upserts).toEqual([]);
+    expect(quiet.needsApproval).toEqual([]);
+    expect(withIt.some((i) => i.id === first.added[0].id)).toBe(true);
+  });
+});

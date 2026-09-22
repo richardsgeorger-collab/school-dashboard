@@ -213,7 +213,47 @@ await sleep(500);
 outOfCredits = false;
 await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: { ...p, exportedAt: new Date().toISOString() }, source: window })), broke);
 await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
-await sleep(2500);
+// Wait for the retry to finish and stamp, rather than racing it.
+await page.waitForFunction(() => /asks anything of you|From your announcements/.test(document.querySelector('.modal-body')?.textContent ?? ''), { timeout: 20000 }).catch(() => {});
+await sleep(1200);
 console.log('retried after credits returned:', seen.filter((x) => /AUTO broke/.test(x.title)).length, 'reads of the two broken posts');
+await page.$$eval('.modal .modal-actions .btn', (els) => (els.find((e) => /Close|Cancel/.test(e.textContent)) ?? els[0]).click());
+await sleep(400);
+
+
+// 9. THE BACKLOG. A post that arrived before the automatic pass existed must be read by the next sync, and a
+// second read of it must never make a second copy of what it already created.
+const backlogItems = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.length);
+// Put a post in the store with no read stamp, the way anything pulled before auto-read looks.
+await page.evaluate(async () => {
+  const db = await new Promise((res, rej) => { const r = indexedDB.open('school-dashboard-announcements'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const tx = db.transaction('posts', 'readwrite');
+  const existing = await new Promise((res) => { const r = tx.objectStore('posts').getAll(); r.onsuccess = () => res(r.result); });
+  const any = existing[0];
+  tx.objectStore('posts').put({ ...any, id: 'stranded', title: 'AUTO new work', actionsAt: null, actionsModifiedAt: null, modifiedAt: null, actionsSummary: null, actionCount: null });
+  await new Promise((res) => { tx.oncomplete = res; });
+});
+// A sync carrying nothing new at all.
+const empty = { ...auto, exportedAt: new Date().toISOString(), classes: [{ ...auto.classes[0], announcements: [] }] };
+await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await sleep(400);
+await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), empty);
+await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
+await page.waitForFunction(() => /announcement/.test(document.querySelector('.modal-body')?.textContent ?? ''), { timeout: 20000 }).catch(() => {});
+await sleep(1200);
+console.log('backlog read on a sync that carried nothing:', /Read \d+ announcement/.test((await t('.modal-body')) ?? ''));
+const line9 = (await all('.modal .hint')).find((x) => /From your announcements|asks anything|could not be read/.test(x));
+console.log('backlog line:', line9?.slice(0, 160));
+const after9 = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.length);
+console.log('items before/after backlog read:', backlogItems, '->', after9, '| no duplicate:', after9 === backlogItems);
+await page.$$eval('.modal .modal-actions .btn', (els) => (els.find((e) => /Close|Cancel/.test(e.textContent)) ?? els[0]).click());
+await sleep(400);
+
+// And a third sync reads nothing, because everything is stamped.
+const callsBefore = seen.length;
+await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: { ...p, exportedAt: new Date().toISOString() }, source: window })), empty);
+await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
+await sleep(1800);
+console.log('third sync made', seen.length - callsBefore, 'reads (want 0)');
 
 await browser.close();

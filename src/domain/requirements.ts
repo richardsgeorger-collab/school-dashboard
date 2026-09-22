@@ -1,4 +1,5 @@
 import { dateOf, diffDays } from './dates';
+import { overlap } from './reqClean';
 import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from './types';
 
 /**
@@ -7,9 +8,15 @@ import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from '.
  * done state, and the assignment is not finished until every graded one is.
  */
 
-/** Same requirement said twice. Re-reading an announcement must not double the checklist. */
+/**
+ * Same requirement said twice. Re-reading a post must not double the checklist, and the model rarely produces the
+ * identical sentence twice, so this matches on meaning with the same similarity check that collapsed the four
+ * Chemistry Connections claims.
+ */
 const same = (a: Requirement, b: { text: string; source: ReqSource }) =>
-  a.text.trim().toLowerCase() === b.text.trim().toLowerCase() || (!!a.source.quote && a.source.quote === b.source.quote && a.source.id === b.source.id);
+  a.text.trim().toLowerCase() === b.text.trim().toLowerCase() ||
+  (!!a.source.quote && a.source.quote === b.source.quote && a.source.id === b.source.id) ||
+  overlap(a.text, b.text) >= 0.6;
 
 /** Adds what is new and leaves what is there, so a re-read never loses a tick or duplicates a part. */
 export function mergeRequirements(existing: Requirement[] | undefined, incoming: Requirement[]): Requirement[] {
@@ -21,7 +28,15 @@ export function mergeRequirements(existing: Requirement[] | undefined, incoming:
       continue;
     }
     // A later post can move a part's date or sharpen its wording; the student's tick survives both.
-    out[hit] = { ...out[hit], text: r.text || out[hit].text, dueAt: r.dueAt ?? out[hit].dueAt, gradedOn: out[hit].gradedOn || r.gradedOn, redefinesDone: out[hit].redefinesDone || r.redefinesDone, source: out[hit].source.quote ? out[hit].source : r.source };
+    // Every post that said it is kept, so one part can link back to all of them.
+    const seen = new Set<string>();
+    const sources = [...(out[hit].sources ?? [out[hit].source]), ...(r.sources ?? [r.source])].filter((s) => {
+      const k = `${s.id ?? ''}|${s.quote ?? ''}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    out[hit] = { ...out[hit], dueAt: r.dueAt ?? out[hit].dueAt, gradedOn: out[hit].gradedOn || r.gradedOn, redefinesDone: out[hit].redefinesDone || r.redefinesDone, sources, source: out[hit].source.quote ? out[hit].source : r.source };
   }
   return out;
 }

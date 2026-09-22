@@ -5382,3 +5382,10 @@ a.hero-chip:hover {
 /* A date an announcement moved, and the badge for work an announcement created. */
 .item-was { opacity: 0.6; margin-left: 6px; }
 .flag-origin { border-color: var(--accent, #f5e663); color: var(--accent, #f5e663); }
+
+/* The class filter on News. Without these the buttons ran together as "AllCHM-113CHM-113L…". */
+.news-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.news-filter .chip { background: none; border: 1px solid var(--line, #2a3038); border-radius: 999px; padding: 4px 11px; font-size: 12px; line-height: 1.2; cursor: pointer; color: var(--text-2, #aeb7c2); }
+.news-filter .chip[data-on='true'] { color: var(--text-1, #e8ecf0); border-color: var(--accent, #f5e663); }
+.news-quiet { color: var(--text-2, #aeb7c2); font-weight: 400; }
+.news-added { color: var(--accent, #f5e663); font-weight: 400; }

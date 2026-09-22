@@ -76,7 +76,7 @@ export function News() {
     await refresh();
   };
 
-  const unread = shown.filter((a) => !a.readAt).length;
+  const unreadForReqs = shown.filter((a) => a.actionsAt == null).length;
   const course: Course | undefined = only ? courseById.get(only) : undefined;
 
   return (
@@ -92,7 +92,15 @@ export function News() {
             {course && <CourseChip course={course} />} <span>Announcements</span>
           </h1>
           <p className="hint mono">
-            {list === null ? 'Reading…' : shown.length === 0 ? 'None pulled yet. Run the Halo bookmark and they arrive with your assignments.' : `${shown.length} on file${unread ? `, ${unread} unread` : ''}`}
+            {list === null
+              ? 'Reading…'
+              : shown.length === 0
+                ? 'None pulled yet. Run the Halo bookmark and they arrive with your assignments.'
+                : // The only one that matters is whether they have been read for requirements. Whether the student
+                  // has personally opened one is a different thing and no longer shares a sentence with it.
+                  unreadForReqs === 0
+                  ? `${shown.length} on file, all read for requirements.`
+                  : `${shown.length} on file. ${unreadForReqs} not yet read for requirements — your next sync reads ${unreadForReqs === 1 ? 'it' : 'them'}.`}
           </p>
         </div>
       </div>
@@ -101,8 +109,8 @@ export function News() {
           <button type="button" className="btn small primary" onClick={() => setReadAll(true)} disabled={!hasKey}>
             Read all for what they ask
           </button>{' '}
-          {shown.filter((a) => a.actionsAt == null).length > 0
-            ? `${shown.filter((a) => a.actionsAt == null).length} of these have never been read for requirements. Your instructors put graded instructions here that the assignment never mentions.`
+          {unreadForReqs > 0
+            ? `Your next sync reads ${unreadForReqs === 1 ? 'it' : `the ${unreadForReqs} that are left`} on its own. Press this only if you want ${unreadForReqs === 1 ? 'it' : 'them'} now.`
             : 'All read. Anything they asked for is on the assignment it belongs to.'}
         </p>
       )}

@@ -3,6 +3,8 @@ import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
 import { autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from '../halo/autoRead';
+import { costOf, loadPrices, type ApiUsage } from '../ai/usage';
+import { confirmLine, needsConfirming } from '../halo/readCost';
 import { readActions } from '../halo/actions';
 import { describeAiError } from '../ai/client';
 import { withRetry } from '../halo/readAll';
@@ -152,18 +154,30 @@ export function DiffReview({
    * Reads only the posts that are new or that the professor has edited since they were last read, then puts what
    * they ask for straight onto the planner. Removals are the one thing held back for approval.
    */
-  const readNew = async (stored: StoredAnnouncement[]) => {
+  const readNew = async (fresh: StoredAnnouncement[], opts?: { approved?: boolean }) => {
     const key = loadApiKey();
     const ids = new Set(data.courses.map((c) => c.id));
-    const todo = needsRead(stored, ids);
+    // Everything on file that has never been read, not only what this sync carried. A post that arrived before the
+    // automatic pass existed is exactly the kind that costs points, and it would otherwise sit there for ever.
+    // The freshly written records win over the stored copies, which can still be a moment behind.
+    const byId = new Map<string, StoredAnnouncement>();
+    for (const a of await announceDb.list().catch(() => [])) byId.set(a.id, a);
+    for (const a of fresh) byId.set(a.id, a);
+    const todo = needsRead([...byId.values()], ids);
     if (todo.length === 0) return;
+    // A term's backlog is real money. The number goes on screen before it is spent, not after.
+    if (!opts?.approved && needsConfirming(todo.length)) {
+      setConfirmRead({ posts: todo });
+      return;
+    }
     // No key, or no credit: the posts stay unstamped and the next sync that can read them will.
     if (!key) {
       setAuto({ ...emptyOutcome(), todo: todo.length, noKey: true });
       return;
     }
     const at = new Date().toISOString();
-    const total: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, needsApproval: [] };
+    const total: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, updated: [], needsApproval: [] };
+    const spend = { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
     let failed = 0;
     let read = 0;
     const why: string[] = [];
@@ -190,7 +204,16 @@ export function DiffReview({
         total.moved.push(...p.moved);
         total.attached += p.attached;
         total.noted += p.noted;
+        total.updated.push(...p.updated);
         total.needsApproval.push(...p.needsApproval);
+        const u = r.usage as ApiUsage | undefined;
+        if (u) {
+          spend.calls += 1;
+          spend.input += u.input_tokens ?? 0;
+          spend.output += u.output_tokens ?? 0;
+          spend.cacheRead += u.cache_read_input_tokens ?? 0;
+          spend.cacheWrite += u.cache_creation_input_tokens ?? 0;
+        }
         read += 1;
         await announceDb.put({ ...a, actionsAt: at, actionsModifiedAt: a.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
       } catch (e) {
@@ -201,7 +224,7 @@ export function DiffReview({
       }
     }
     setReading(null);
-    setAuto({ todo: todo.length, read, failed, noKey: false, failures: groupFailures(why), plan: total });
+    setAuto({ todo: todo.length, read, failed, noKey: false, failures: groupFailures(why), cost: costOf(spend, loadPrices()), plan: total });
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
   };
 
@@ -224,6 +247,7 @@ export function DiffReview({
   const [kept, setKept] = useState<ReferenceCounts | null>(null);
   const [reading, setReading] = useState<{ done: number; total: number; title: string; why: string } | null>(null);
   const [auto, setAuto] = useState<AutoOutcome | null>(null);
+  const [confirmRead, setConfirmRead] = useState<{ posts: StoredAnnouncement[] } | null>(null);
 
   const apply = async () => {
     if (!sel) return;
@@ -302,6 +326,25 @@ export function DiffReview({
       {reading && (
         <p className="hint pull-tally" role="status">
           Reading {reading.why} announcement {reading.done} of {reading.total}: “{reading.title}”…
+        </p>
+      )}
+      {confirmRead && (
+        <p className="hint diff-gap" role="status">
+          {confirmLine(confirmRead.posts.length)} They are not read yet, so I do not know what they ask.{' '}
+          <button
+            type="button"
+            className="btn small primary"
+            onClick={() => {
+              const posts = confirmRead.posts;
+              setConfirmRead(null);
+              void readNew(posts, { approved: true });
+            }}
+          >
+            Read them
+          </button>{' '}
+          <button type="button" className="hero-skip" onClick={() => setConfirmRead(null)}>
+            Not now
+          </button>
         </p>
       )}
       {auto && autoResultLine(auto) && (

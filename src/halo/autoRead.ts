@@ -2,6 +2,8 @@ import { estimateMinutes } from '../domain/estimate';
 import { newId } from '../domain/ids';
 import { shortLabel } from '../domain/labels';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
+import { overlap } from '../domain/reqClean';
+import { money } from './readCost';
 import type { Course, Item, ReqSource } from '../domain/types';
 import type { Action } from './actions';
 import { routeActions } from './actions';
@@ -42,11 +44,23 @@ export interface AutoPlan {
   moved: { item: Item; from: string; to: string }[];
   attached: number;
   noted: number;
+  /** Work a re-read changed rather than created, with what moved. */
+  updated: { item: Item; changes: string[] }[];
   /** Removals and cancellations. These are returned, never applied. */
   needsApproval: { action: Action; announcement: StoredAnnouncement }[];
 }
 
 const asSource = (a: Action): ReqSource => a.source;
+
+/**
+ * Is this the same piece of work the planner already has? Same post is the strongest signal, because a re-read of
+ * one announcement should only ever touch what that announcement made. Failing that, near-identical wording in the
+ * same class, which catches two different posts describing one assignment.
+ */
+export function sameWork(existing: Item, made: Item, postId: string | null): boolean {
+  if (existing.origin?.id && postId && existing.origin.id === postId && overlap(existing.title, made.title) >= 0.5) return true;
+  return overlap(existing.title, made.title) >= 0.75;
+}
 
 /** A new assignment that an announcement describes, as a planner row that says where it came from. */
 export function itemFromAction(a: Action, course: Course, now: string): Item | null {
@@ -88,7 +102,7 @@ export function itemFromAction(a: Action, course: Course, now: string): Item | n
  */
 export function planFromActions(args: { actions: Action[]; announcement: StoredAnnouncement; course: Course; items: Item[]; courses: Course[]; now: string }): AutoPlan {
   const { actions, announcement, course, items, now } = args;
-  const plan: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, needsApproval: [] };
+  const plan: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, updated: [], needsApproval: [] };
   const routed = routeActions(actions, course.id, now);
   const byId = new Map(items.map((i) => [i.id, i]));
   const edited = new Map<string, Item>();
@@ -120,9 +134,30 @@ export function planFromActions(args: { actions: Action[]; announcement: StoredA
         plan.courses = [{ ...course, notes: merged }];
         continue;
       }
-      // Something with this title and date already there: the post is repeating itself, not adding work.
-      const dup = [...items, ...plan.added].some((i) => i.courseId === course.id && i.title.toLowerCase() === created.title.toLowerCase());
-      if (dup) continue;
+      // Whatever the reason this post is being read again, it must update what it already made rather than adding
+      // alongside it. Matching is on meaning, and it reaches across posts: two announcements describing the same
+      // assignment produce one item carrying both sources.
+      const candidates = [...items.map((i) => take(i.id) ?? i), ...plan.added].filter((i) => i.courseId === course.id);
+      const hit = candidates.find((i) => sameWork(i, created, announcement.id));
+      if (hit) {
+        const changes: string[] = [];
+        const next: Item = { ...hit, updatedAt: now };
+        if (created.dueAt !== hit.dueAt) {
+          changes.push(`due date`);
+          next.dueAt = created.dueAt;
+          next.dateChange = { from: hit.dueAt, at: now, source: asSource(action) };
+        }
+        if (created.points > 0 && created.points !== hit.points) {
+          changes.push(`points`);
+          next.points = created.points;
+        }
+        // A second post describing the same work joins the first as a source rather than replacing it.
+        if (!hit.origin) next.origin = created.origin;
+        if (changes.length === 0) continue;
+        edited.set(hit.id, next);
+        plan.updated.push({ item: next, changes });
+        continue;
+      }
       plan.added.push(created);
       continue;
     }
@@ -179,10 +214,12 @@ export interface AutoOutcome {
   noKey: boolean;
   /** One entry per distinct cause, most common first. */
   failures: { message: string; count: number }[];
+  /** What this pass cost, in dollars, from the usage the API reported. */
+  cost: number;
   plan: AutoPlan;
 }
 
-export const emptyOutcome = (): AutoOutcome => ({ todo: 0, read: 0, failed: 0, noKey: false, failures: [], plan: { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, needsApproval: [] } });
+export const emptyOutcome = (): AutoOutcome => ({ todo: 0, read: 0, failed: 0, noKey: false, failures: [], cost: 0, plan: { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, updated: [], needsApproval: [] } });
 
 /** The same cause across every post is one problem. */
 export function groupFailures(messages: string[]): { message: string; count: number }[] {
@@ -212,14 +249,16 @@ export function autoResultLine(o: AutoOutcome): string | null {
   const parts: string[] = [];
   if (p.added.length) parts.push(`${p.added.length} new assignment${p.added.length === 1 ? '' : 's'} added`);
   if (p.moved.length) parts.push(`${p.moved.length} date${p.moved.length === 1 ? '' : 's'} moved`);
+  if (p.updated.length) parts.push(`${p.updated.length} updated`);
   if (p.attached) parts.push(`${p.attached} requirement${p.attached === 1 ? '' : 's'} attached`);
   if (p.noted) parts.push(`${p.noted} class note${p.noted === 1 ? '' : 's'}`);
 
   const approval = p.needsApproval.length ? ` ${p.needsApproval.length} removal${p.needsApproval.length === 1 ? '' : 's'} needs your approval below.` : '';
   const rest = o.failed ? ` ${posts(o.failed)} could not be read, so I do not know what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why}` : '';
-  if (parts.length) return `From your announcements: ${parts.join(', ')}.${approval}${rest}`;
+  const spent = o.read > 0 && o.cost > 0 ? ` Read ${o.read} announcement${o.read === 1 ? '' : 's'}, ${o.cost < 0.01 ? 'under a cent' : `about ${money(o.cost)}`}.` : '';
+  if (parts.length) return `From your announcements: ${parts.join(', ')}.${approval}${rest}${spent}`;
   // Nothing landed. With a failure in the pass that is not the same as nothing being there, so the failure leads
   // and the clean claim is never made at all.
-  if (o.failed) return `${posts(o.failed)} could not be read, so I do not know what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why} The other ${o.read === 1 ? 'one asks' : `${o.read} ask`} nothing of you.${approval}`;
-  return `Nothing in ${o.read === 1 ? 'the new announcement' : `the ${o.read} new announcements`} asks anything of you.${approval}`;
+  if (o.failed) return `${posts(o.failed)} could not be read, so I do not know what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why} The other ${o.read === 1 ? 'one asks' : `${o.read} ask`} nothing of you.${approval}${spent}`;
+  return `Nothing in ${o.read === 1 ? 'the new announcement' : `the ${o.read} new announcements`} asks anything of you.${approval}${spent}`;
 }
