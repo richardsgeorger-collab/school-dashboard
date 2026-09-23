@@ -109,10 +109,16 @@ export function ChatCard() {
           },
         },
       });
-      setHistory([...next, { role: 'assistant', text: reply, at: new Date().toISOString() }]);
+      // A blank reply is not an answer. It has never been one, and rendering it makes an empty bubble that reads
+      // as the coach ignoring the question.
+      const text = reply.trim();
+      setHistory([...next, text ? { role: 'assistant', text, at: new Date().toISOString() } : { role: 'assistant', text: 'That came back empty. Nothing was wrong with your question; ask it again, or in two shorter parts.', at: new Date().toISOString(), failed: true }]);
     } catch (e) {
-      setError(await describeError(e));
-      setHistory(history);
+      // The failure belongs in the conversation, where the answer would have been. The question stays: losing what
+      // the student typed on top of not answering it is the worst of both.
+      const why = await describeError(e);
+      setError(null);
+      setHistory([...next, { role: 'assistant', text: why, at: new Date().toISOString(), failed: true }]);
     } finally {
       setBusy(false);
     }
@@ -185,7 +191,7 @@ export function ChatCard() {
               </div>
             )}
             {history.map((t, i) => (
-              <div key={i} className="chat-msg" data-role={t.role}>
+              <div key={i} className="chat-msg" data-role={t.role} data-failed={t.failed ? 'true' : undefined}>
                 {t.text}
               </div>
             ))}

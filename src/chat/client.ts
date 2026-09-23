@@ -11,6 +11,8 @@ export const CHAT_MODEL = 'claude-sonnet-4-6';
 const MAX_TOOL_ROUNDS = 3;
 
 export interface ChatTurn {
+  /** A failure shown in the conversation rather than swallowed. Styled as a problem, never as an answer. */
+  failed?: boolean;
   role: 'user' | 'assistant';
   text: string;
   at: string;
@@ -30,11 +32,32 @@ export interface SendArgs {
   api: ToolApi;
   /** Adaptive thinking, on by default. Turned off for the retry when a whole budget went on thinking. */
   reasoning?: boolean;
+  /** Set on the inner call once the deadline is already running. */
+  noTimeout?: boolean;
+  timeoutMs?: number;
 }
 
 /** One user message through the model, running tool calls locally until it answers in text. */
+/** Long enough for a real answer with thinking, short enough that a hung request does not spin for ever. */
+export const CHAT_TIMEOUT_MS = 90_000;
+
+export class ChatTimeout extends Error {
+  constructor() {
+    super('That took too long and I stopped waiting. Your key and connection are probably fine; ask again.');
+    this.name = 'ChatTimeout';
+  }
+}
+
 export async function sendChat(args: SendArgs): Promise<string> {
   const { apiKey, history, userText, context, syllabi, materials, api, fetch, reasoning = true } = args;
+  // Nothing below has a deadline of its own. Without this a stalled connection leaves the dots spinning and the
+  // conversation empty, which is the one failure that shows the user nothing at all.
+  if (!args.noTimeout) {
+    // The e2e shortens this so a stalled request can be exercised without a ninety second wait.
+    const override = typeof globalThis !== 'undefined' ? (globalThis as { __coachTimeout?: number }).__coachTimeout : undefined;
+    const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new ChatTimeout()), args.timeoutMs ?? override ?? CHAT_TIMEOUT_MS));
+    return Promise.race([sendChat({ ...args, noTimeout: true }), timeout]);
+  }
   const Anthropic = await sdk();
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: fetch ? 0 : 1, ...(fetch ? { fetch } : {}) });
   const messages: Anthropic.MessageParam[] = [
@@ -88,6 +111,11 @@ export async function describeError(e: unknown): Promise<string> {
   if (e instanceof Anthropic.AuthenticationError) return 'That API key was rejected. Check it and try again.';
   if (e instanceof Anthropic.RateLimitError) return 'Rate limited. Give it a minute.';
   if (e instanceof Anthropic.APIConnectionError) return 'Could not reach Anthropic. Check your connection.';
-  if (e instanceof Anthropic.APIError) return `Anthropic returned ${e.status}: ${e.message}`;
+  if (e instanceof Anthropic.APIError) {
+    // The SDK's message is the whole response body. The API's own sentence is the useful part.
+    const body = e.message ?? '';
+    const said = /"message"\s*:\s*"([^"]+)"/.exec(body)?.[1];
+    return said ? `${said} (Anthropic returned ${e.status}.)` : `Anthropic returned ${e.status}.`;
+  }
   return e instanceof Error ? e.message : String(e);
 }

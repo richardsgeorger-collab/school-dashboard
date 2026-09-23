@@ -5389,3 +5389,6 @@ a.hero-chip:hover {
 .news-filter .chip[data-on='true'] { color: var(--text-1, #e8ecf0); border-color: var(--accent, #f5e663); }
 .news-quiet { color: var(--text-2, #aeb7c2); font-weight: 400; }
 .news-added { color: var(--accent, #f5e663); font-weight: 400; }
+
+/* A failure sits where the answer would have been, and looks like a problem rather than an answer. */
+.chat-msg[data-failed='true'] { border-left: 2px solid var(--overdue, #e0796b); color: var(--text-2, #aeb7c2); }
