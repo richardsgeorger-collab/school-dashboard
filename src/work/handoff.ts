@@ -25,7 +25,8 @@ export interface HandoffContext {
 const NEGATED = /\b(not|no|isn't|aren't|never|without)\b[^.]{0,40}$/i;
 const asserted = (text: string, index: number): boolean => !NEGATED.test(text.slice(Math.max(0, index - 60), index)) && !/^[^.]{0,40}\b(is |are |)not required\b/i.test(text.slice(index));
 
-const WORD_COUNT = /\b(\d{2,4})\s*[-–—]?\s*(?:to\s*)?(\d{2,4})?\s*words?\b/i;
+const NUM = '(\\d{1,3}(?:,\\d{3})+|\\d{2,5})';
+const WORD_COUNT = new RegExp(`\\b${NUM}\\s*(?:[-–—]|to)?\\s*${NUM}?\\s*[-\\s]?words?\\b`, 'i');
 const SOURCES = /\b(\d+|one|two|three|four|five)\s+(?:scholarly\s+|peer[- ]reviewed\s+|credible\s+|academic\s+)?(?:sources?|references?|citations?|articles?)\b/i;
 const STYLE = /\b(APA|MLA|Chicago|IEEE)\b/i;
 const PAGES = /\b(\d+)\s*[-–—]?\s*(\d+)?\s*(?:full\s+)?pages?\b/i;
@@ -45,7 +46,8 @@ export function formatRules(item: Item): string[] {
   if (style && asserted(text, style.index)) out.push(`${style[1].toUpperCase()} formatting`);
   const sources = SOURCES.exec(text);
   if (sources && asserted(text, sources.index)) out.push(`${sources[1]} source${/^(1|one)$/i.test(sources[1]) ? '' : 's'} cited`);
-  if (item.flags.lopesWrite || item.plan?.flags.lopesWrite) out.push('submitted through LopesWrite (it checks for AI-written and copied text)');
+  // A fact about where it goes, not a warning.
+  if (item.flags.lopesWrite || item.plan?.flags.lopesWrite) out.push('submitted through LopesWrite');
   if (item.flags.group || item.plan?.flags.group) out.push('group work: a CLC team submits one copy');
   if (item.flags.timed || item.plan?.flags.timed) out.push('timed once it is opened');
   return out;

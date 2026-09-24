@@ -1,48 +1,32 @@
 import { useEffect, useMemo, useState } from 'react';
-import { courseGrade } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
-import { libraryDb, type Deck } from '../library/db';
-import { decksForItem } from '../library/links';
-import { recordingsDb, type Recording } from '../record/db';
-import { dateOf, fmtDate } from '../domain/dates';
-import { itemTopics, topicKey } from '../domain/concepts';
 import { useStore } from '../storage/store';
-import { handoffPrompt } from '../work/handoff';
+import { loadRaw, promptFor, type Raw } from '../work/prompt/gather';
 
 /**
- * One prompt for one assignment, ready to paste into Claude in another tab. No call is made from here: the tailored
- * half was written during ingestion and stored on the item, so this opens instantly and works offline.
+ * One prompt for one assignment, ready to paste into Claude in another tab. No call is made from here. The class's
+ * announcements, lectures, slides and syllabus are read from this device and the relevant stretches pasted in, so
+ * the prompt carries the material itself rather than a list of names.
  */
 export function PromptPanel({ item, course, onClose }: { item: Item; course: Course; onClose: () => void }) {
-  const { data, today } = useStore();
-  const tz = data.settings.timezone;
-  const [ctx, setCtx] = useState<{ sources: string[]; flagged: string[] } | null>(null);
+  const { data, schedule, today } = useStore();
+  const [raw, setRaw] = useState<Raw | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let live = true;
-    (async () => {
-      const [decks, recs] = await Promise.all([libraryDb.listDecks().catch(() => [] as Deck[]), recordingsDb.list().catch(() => [] as Recording[])]);
-      if (!live) return;
-      const mine = recs.filter((r) => r.courseId === item.courseId);
-      const words = [...new Set([...itemTopics(item).map(topicKey), ...item.title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 4)])];
-      const flagged = mine
-        .flatMap((r) => [...(r.notes?.knowledge?.examFlags ?? []), ...(r.notes?.knowledge?.emphasized ?? [])].filter((f) => words.some((w) => f.point.toLowerCase().includes(w))).map((f) => `"${f.point}" — ${r.title}, ${fmtDate(dateOf(r.startedAt, tz), 'short')}`))
-        .slice(0, 3);
-      const sources = [...new Set([...(item.plan?.sources.map((s) => s.label) ?? []), ...decksForItem(item, decks).map((d) => `${d.title}${d.tag ? ` (${d.tag})` : ''}`)])];
-      setCtx({ sources, flagged });
-    })();
+    void loadRaw(item.courseId).then((r) => {
+      if (live) setRaw(r);
+    });
     return () => {
       live = false;
     };
-  }, [item, tz]);
+  }, [item.courseId]);
 
-  const grade = useMemo(() => {
-    const g = courseGrade(course.id, data.items);
-    return g.pct === null ? null : `I am at ${g.pct}% in the class so far.`;
-  }, [course.id, data.items]);
-
-  const prompt = useMemo(() => handoffPrompt(item, course, { sources: ctx?.sources ?? [], flagged: ctx?.flagged ?? [], gradeNote: grade }, tz, today), [item, course, ctx, grade, tz, today]);
+  const prompt = useMemo(
+    () => promptFor({ item, course, data, schedule, today, raw: raw ?? { posts: [], lectures: [], pages: [], syllabus: null } }),
+    [item, course, data, schedule, today, raw],
+  );
 
   const copy = async () => {
     try {
@@ -68,7 +52,7 @@ export function PromptPanel({ item, course, onClose }: { item: Item; course: Cou
           </button>
         </header>
         <div className="panel-body">
-          <p className="hint">Copy this, paste it into Claude in another tab. It carries the description, what earns points, your material, and where you are, and it asks for the setup and not the graded content.</p>
+          <p className="hint">{raw ? 'Copy this and paste it into Claude in another tab. Your announcements, lectures, slides and syllabus are already in it.' : 'Reading your class material…'}</p>
           <pre className="panel-prompt">{prompt}</pre>
         </div>
         <footer className="panel-foot">
