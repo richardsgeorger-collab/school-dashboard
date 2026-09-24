@@ -3,7 +3,6 @@ import { estimateMinutes } from '../domain/estimate';
 import { stableId } from '../domain/ids';
 import { shortLabel } from '../domain/labels';
 import { DEFAULT_FLAGS, type Course, type Item, type ItemPlan, type PlanField } from '../domain/types';
-import { formatRules } from '../work/handoff';
 import { makeSteps } from '../work/steps';
 import type { PlanDiff } from './diff';
 import type { ClassPlan, DiscoveredItem } from './plan';
@@ -94,8 +93,7 @@ export function applyPlan(items: Item[], course: Course, plan: ClassPlan, diff: 
     if (!item) continue;
     const before = item;
     const attached: ItemPlan = { asks: p.asks, startBy: p.startBy, minutes: p.minutes, milestones: p.milestones, prerequisites: p.prerequisites, flags: p.flags, topics: p.topics, feeds: p.feeds, sources: p.sources, citations: p.citations, model: p.model, at: p.at, inputHash: p.inputHash };
-    const handoff = plan.handoffs[p.itemId];
-    item = { ...item, plan: attached, topic: item.topic ?? p.topics[0] ?? null, ...(handoff ? { handoff: { ...handoff, format: formatRules(item) } } : {}) };
+    item = { ...item, plan: attached, topic: item.topic ?? p.topics[0] ?? null };
 
     const start = diff.startBy.find((c) => c.itemId === item!.id);
     if (start) item = sel.startBy.has(item.id) ? { ...item, startByPlan: start.to, plan: { ...attached, startBy: { value: start.to, why: start.why, confidence: start.confidence } } } : decline(item, 'startBy');

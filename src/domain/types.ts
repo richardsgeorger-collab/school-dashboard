@@ -137,8 +137,6 @@ export interface Item {
   planDeclined?: PlanField[];
   /** Waiting on someone or something else. Leaves Now until `until`; never counts as late while it stands. */
   blocked?: Block | null;
-  /** The tailored half of the paste-into-Claude prompt, from the ingestion pass. */
-  handoff?: Handoff | null;
   /** When Start was pressed on Now, so Done can log the real time without asking. */
   startedAt?: string | null;
   updatedAt: string;
@@ -337,19 +335,6 @@ export interface TopicLink {
   note: string;
 }
 
-/** The tailored half of the paste-into-Claude prompt, written per assignment during ingestion. */
-export interface Handoff {
-  /** What kind of work it is, in its own terms: "a piece of writing graded on the thinking in it". */
-  kind: string;
-  /** The setup to ask Claude for, specific to this assignment. */
-  build: string[];
-  /** What Claude must not produce for this one, named concretely. */
-  withhold: string[];
-  /** The format rules that constrain it: word count, style, sources, LopesWrite. */
-  format: string[];
-  model: string;
-  at: string;
-}
 
 export type BlockReason = 'partner' | 'feedback' | 'materials' | 'instructor' | 'other';
 

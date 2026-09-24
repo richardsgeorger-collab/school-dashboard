@@ -1,7 +1,7 @@
 import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../../domain/dates';
 import type { Course, Item } from '../../domain/types';
 import { formatRules } from '../handoff';
-import { quizFacts, type Excerpt, type Material } from './excerpts';
+import { namesFor, quizFacts, type Excerpt, type Material } from './excerpts';
 import type { PromptKind } from './kind';
 
 /**
@@ -88,6 +88,61 @@ export function subQuestions(description: string): string[] {
   return [...new Set(out)].slice(0, 14);
 }
 
+
+/** A sentence from the professor, with where it was posted. */
+interface Said {
+  sentence: string;
+  where: string;
+}
+
+const LENGTH = /\b(?:at least|minimum(?: of)?|no (?:fewer|less) than|up to|between)?\s*(?:\d{1,3}(?:,\d{3})+|\d{2,5})\s*(?:\+|or more|[-–—]\s*(?:\d{1,3}(?:,\d{3})+|\d{2,5}))?\s*[- ]?words?\b/i;
+const CITES = /\b(?:(?:at least|minimum(?: of)?)\s+)?(?:\d+|one|two|three|four|five)\s+(?:in-text\s+)?(?:scholarly\s+|peer[- ]reviewed\s+|credible\s+)?(?:citations?|sources?|references?)\b/i;
+
+/**
+ * Length and citation requirements the professor posted. These beat the assignment description, which is written
+ * before the term and often revised in an announcement, and beat anything the app inferred.
+ */
+export function announcedFormat(p: Pick<PromptInput, 'material' | 'requirements' | 'item'>): { words: Said | null; sources: Said | null } {
+  const said: Said[] = [];
+  // Only posts that name this assignment. A length for the week's discussion posts is not a length for the paper.
+  const names = namesFor(p.item.title);
+  for (const a of p.material.announcements.filter((x) => names.some((re) => re.test(`${x.label}\n${x.text}`)))) {
+    for (const s of a.text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s+/)) said.push({ sentence: s.trim(), where: [a.label, a.date].filter(Boolean).join(', ') });
+  }
+  for (const r of p.requirements) said.push({ sentence: (r.quote ?? r.text).trim(), where: [r.post, r.date].filter(Boolean).join(', ') });
+  return {
+    words: said.find((x) => LENGTH.test(x.sentence)) ?? null,
+    sources: said.find((x) => CITES.test(x.sentence)) ?? null,
+  };
+}
+
+/**
+ * The format rules, with the professor's announcement taking precedence over the description on length and
+ * citations. When they disagree the prompt says so, rather than listing both and leaving the reader to guess.
+ */
+function formatWithOverrides(p: PromptInput, opts: { dropWords?: boolean } = {}): string[] {
+  const fromDescription = formatRules(p.item);
+  const ann = announcedFormat(p);
+  const out: string[] = [];
+  const descWords = fromDescription.find((r) => /words$/.test(r)) ?? null;
+  const descSources = fromDescription.find((r) => /cited$/.test(r)) ?? null;
+  for (const r of fromDescription) {
+    if (ann.words && r === descWords) continue;
+    if (ann.sources && r === descSources) continue;
+    if (opts.dropWords && /words$/.test(r)) continue;
+    out.push(r);
+  }
+  if (ann.words && !opts.dropWords) {
+    out.push(`Length, from the announcement (${ann.words.where}): "${ann.words.sentence}"`);
+    if (descWords) out.push(`The assignment description says ${descWords}. The announcement is more recent, so go by it.`);
+  }
+  if (ann.sources) {
+    out.push(`Citations, from the announcement (${ann.sources.where}): "${ann.sources.sentence}"`);
+    if (descSources) out.push(`The assignment description says ${descSources}. Go by the announcement.`);
+  }
+  return out;
+}
+
 function header(p: PromptInput, lead: string): string {
   const { item, course, today, tz } = p;
   const facts = [`Due ${when(item, today, tz)}`, item.points ? `${item.points} points` : null, gradeLine(p.grade)].filter(Boolean).join('. ');
@@ -165,7 +220,7 @@ function major(p: PromptInput, lab: boolean): string {
   const rubric = rubricOf(item);
   if (rubric.length) out.push(section('What earns points', bullets(rubric.map((r) => `${r.name}${r.points !== null ? ` (${r.points} pts)` : ''}${r.how ? `: ${r.how}` : ''}`))));
   if (p.requirements.length) out.push(section('Also from announcements', requirementsBlock(p.requirements)));
-  const rules = [...formatRules(item), ...p.rules];
+  const rules = [...formatWithOverrides(p), ...p.rules];
   if (rules.length) out.push(section('Class rules that apply', bullets([...new Set(rules)])));
   out.push(section('Already done', doneBlock(p)));
   out.push(section('My class material', materialBlock(p.material, ['announcement', 'transcript', 'slides', 'syllabus'])));
@@ -204,16 +259,18 @@ function gened(p: PromptInput): string {
   if (rubric.length) out.push(section('Rubric', bullets(rubric.map((r) => `[ ] ${r.name}${r.points !== null ? ` (${r.points} pts)` : ''}${r.how ? `: ${r.how}` : ''}`))));
   if (p.requirements.length) out.push(section('Also from announcements', requirementsBlock(p.requirements)));
   const fmt = formatRules(item);
-  const rules = [...new Set([...fmt, ...p.rules])];
+  const rules = [...new Set([...formatWithOverrides(p), ...p.rules])];
   if (rules.length) out.push(section('Class rules that apply', bullets(rules)));
   out.push(section('Already done', doneBlock(p)));
   out.push(section('My class material', materialBlock(p.material, ['announcement', 'syllabus', 'transcript', 'slides'])));
-  const words = fmt.find((f) => /words/.test(f));
+  // The length the skeleton adds up to: the announcement's when there is one, else the description's.
+  const posted = announcedFormat(p).words;
+  const words = posted ? null : fmt.find((f) => /words$/.test(f));
   const needsSources = /\b(source|reference|citation|cite|scholarly|peer[- ]reviewed)\b/i.test(description) || item.type === 'paper';
   const asks = [
     'Turn every part above into a checklist so nothing gets missed.',
     rubric.length ? 'Turn the rubric into a checklist I can tick as I write.' : null,
-    `The full document skeleton in APA 7: a title page with the fields filled from what's above, every heading in order, and a word-count target for each section${words ? ` that adds up to the ${words.replace(/^\w/, (c) => c.toLowerCase())}` : ''}.`,
+    `The full document skeleton in APA 7: a title page with the fields filled from what's above, every heading in order, and a word-count target for each section${posted ? ' that meets the length in the announcement' : words ? ` that adds up to the ${words.replace(/^\w/, (c) => c.toLowerCase())}` : ''}.`,
     needsSources ? 'Credible sources I can use, peer-reviewed or from the GCU library where possible: a line on what each one supports, and its APA 7 reference formatted and ready to paste.' : null,
     'When I paste my draft back, proofread it and check it against every rubric line, quoting the line each note refers to.',
   ].filter((x): x is string => !!x);
@@ -230,7 +287,7 @@ function genedDq(p: PromptInput): string {
   const parts = subQuestions(description);
   if (parts.length > 1) out.push(section('Every part it asks for', numbered(parts)));
   if (p.requirements.length) out.push(section('Requirements from announcements', requirementsBlock(p.requirements)));
-  const rules = [...new Set([...formatRules(item), ...p.rules])];
+  const rules = [...new Set([...formatWithOverrides(p), ...p.rules])];
   if (rules.length) out.push(section('Class rules that apply', bullets(rules)));
   const rubric = rubricOf(item);
   if (rubric.length) out.push(section('Rubric', bullets(rubric.map((r) => `[ ] ${r.name}${r.points !== null ? ` (${r.points} pts)` : ''}${r.how ? `: ${r.how}` : ''}`))));
@@ -260,7 +317,7 @@ function aiRequired(p: PromptInput): string {
   const prompts = [...description.matchAll(/[“"]([^”"]{30,})[”"]/g)].map((m) => m[1].trim());
   if (prompts.length) out.push(section('The prompts it tells me to use', numbered(prompts.map((x) => `"${x}"`))));
   if (p.requirements.length) out.push(section('Also from announcements', requirementsBlock(p.requirements)));
-  const rules = [...new Set([...formatRules(item).filter((r) => !/words$/.test(r)), ...p.rules])];
+  const rules = [...new Set([...formatWithOverrides(p, { dropWords: true }), ...p.rules])];
   if (rules.length) out.push(section('Class rules that apply', bullets(rules)));
   out.push(section('Already done', doneBlock(p)));
   out.push(section('About me, for the parts that ask for personal details', `First-year BS Mechanical Engineering student at Grand Canyon University. Ask me for anything else the assignment needs (hometown, background, campus involvement, goals) before you use it.`));

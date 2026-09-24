@@ -36,7 +36,7 @@ const hw: Item = {
   ...mkItem({ id: 'esg-hw2', courseId: 'esg', title: 'Topic 2 Homework', type: 'homework', points: 35, dueAt: phx('2026-09-27', '23:59') }),
   topic: 'Topic 2: Derivatives and Rates of Change',
   notes: 'Complete the Topic 2 homework problems in zyBooks, sections 2.1 through 2.7. Show your work for problems 2.4.3, 2.5.7 and 2.6.2 and upload a single PDF.',
-  requirements: [rule('esg-r1', 'Submit one PDF only, no handwriting', 'Formatting rules'), rule('esg-r2', 'Every DQ post must be 150-200 words', 'Discussion expectations')],
+  requirements: [rule('esg-r1', 'Submit one PDF only, no handwriting', 'Formatting rules'), rule('esg-r2', 'Late work receives zero points', 'Course policies')],
   steps: [{ id: 's1', label: 'Read zyBooks 2.1 to 2.3', done: true }, { id: 's2', label: 'Problems 2.4 to 2.7', done: false }] as never,
 };
 
@@ -55,16 +55,18 @@ const draft: Item = {
       { id: 'c4', name: 'APA format and mechanics', description: 'Title page, in-text citations, references.', points: 20, levels: [] },
     ],
   } as never,
-  requirements: [part('eng-p1', 'Bring a printed copy of your draft to Thursday’s peer review', 'Peer review this week', 'bring a printed copy of your draft to peer review on Thursday'), rule('eng-r1', 'Late work receives zero points', 'Course policies')],
+  requirements: [part('eng-p1', 'Bring a printed copy of your draft to Thursday’s peer review', 'Peer review this week', 'bring a printed copy of your draft to peer review on Thursday')],
 };
 
 const dq: Item = {
   ...mkItem({ id: 'unv-dq32', courseId: 'unv', title: 'Topic 3 DQ 2', type: 'discussion', points: 5, dueAt: phx('2026-09-25', '23:59') }),
   notes:
     "In today's rapidly evolving technological landscape, AI tools like ChatGPT, Grammarly, and AI-based research assistants have become increasingly prevalent in the academic and professional worlds. How can leveraging these AI resources help you in creating and achieving your academic, spiritual, and career goals?",
-  requirements: [rule('unv-r1', 'Every DQ post must be 150-200 words', 'Discussion expectations'), rule('unv-r2', 'Post 2 peer replies on 3 separate days', 'Discussion expectations'), part('unv-p1', 'Cite the course reading in APA', 'Replies count', 'cite the reading from the topic resources in apa')],
+  requirements: [rule('unv-r1', 'Every DQ post must be at least 75 words', 'DQ expectations'), rule('unv-r2', 'Reply to 2 classmates on 2 different days', 'DQ expectations'), part('unv-p1', 'Cite the course reading in APA', 'Replies count', 'cite the reading from the topic resources in apa')],
 };
-const dqOther: Item = { ...mkItem({ id: 'unv-dq31', courseId: 'unv', title: 'Topic 3 DQ 1', type: 'discussion', points: 5, dueAt: phx('2026-09-23', '23:59') }), requirements: [rule('unv-r3', 'Every DQ post must be 150-200 words', 'Discussion expectations')] };
+const dqOther: Item = { ...mkItem({ id: 'unv-dq31', courseId: 'unv', title: 'Topic 3 DQ 1', type: 'discussion', points: 5, dueAt: phx('2026-09-23', '23:59') }), requirements: [rule('unv-r3', 'Every DQ post must be at least 75 words', 'DQ expectations')] };
+// ENG-105's own discussion rules, on ENG-105's own discussion.
+const engDq: Item = { ...mkItem({ id: 'eng-dq21', courseId: 'eng', title: 'Topic 2 DQ 1', type: 'discussion', points: 5, dueAt: phx('2026-09-24', '23:59') }), requirements: [rule('eng-r2', 'Every DQ post must be 150-200 words', 'Discussion expectations'), rule('eng-r3', 'Post 2 peer replies on 3 separate days', 'Discussion expectations')] };
 
 const career: Item = {
   ...mkItem({ id: 'unv-ai', courseId: 'unv', title: 'AI-Assisted Career Reflection', type: 'paper', points: 100, dueAt: phx('2026-09-28', '23:59') }),
@@ -73,7 +75,7 @@ const career: Item = {
   flags: { ...flags, lopesWrite: true },
 };
 
-const data = mkData([chm, esg, eng, unv], [quiz, chmGraded, hw, draft, dq, dqOther, career]);
+const data = mkData([chm, esg, eng, unv], [quiz, chmGraded, hw, draft, dq, dqOther, career, engDq]);
 // Tonight and tomorrow morning's free time, as the planner sees it.
 const schedule = { byItem: {}, capacityByDay: { '2026-09-24': 240, '2026-09-25': 180 }, loadByDay: { '2026-09-24': 90, '2026-09-25': 60 } } as unknown as Schedule;
 
@@ -118,7 +120,7 @@ const chmRaw = raw({
 });
 
 const engRaw = raw({
-  posts: [{ id: 'ann-e1', courseId: 'eng', title: 'Rhetorical Analysis draft: what I am looking for', text: 'Your Rhetorical Analysis First Draft should have a clear thesis in the last sentence of your introduction. I want at least one quoted example for each appeal. Submit as a .docx file.', publishedAt: phx('2026-09-22', '08:00') }],
+  posts: [{ id: 'ann-e1', courseId: 'eng', title: 'Rhetorical Analysis draft: what I am looking for', text: 'Your Rhetorical Analysis First Draft should have a clear thesis in the last sentence of your introduction. It must be at least 500 words, not counting the reference page. Include at least one in-text citation. Submit as a .docx file.', publishedAt: phx('2026-09-22', '08:00') }],
   syllabus: 'Course information\n\nTopic 3: Rhetorical Analysis\n\nRhetorical Analysis First Draft: students draft a 750-1,000-word analysis applying ethos, pathos and logos to a selected article. Feedback is given through peer review.',
 });
 
@@ -179,10 +181,10 @@ describe('the four prompts', () => {
     expect(draftPrompt).not.toMatch(/peer repl|DQ post/i);
     // Homework: the PDF rule applies, the DQ rule does not.
     expect(hwPrompt).toContain('Submit one PDF only, no handwriting');
-    expect(hwPrompt).not.toContain('Every DQ post');
-    // The DQ gets its word count and reply rules.
-    expect(dqPrompt).toContain('Every DQ post must be 150-200 words');
-    expect(dqPrompt).toContain('Post 2 peer replies on 3 separate days');
+    expect(hwPrompt).toContain('Late work receives zero points');
+    // The DQ gets its own class's word count and reply rules.
+    expect(dqPrompt).toContain('Every DQ post must be at least 75 words');
+    expect(dqPrompt).toContain('Reply to 2 classmates on 2 different days');
   });
 
   it('drops the lecturing', () => {
@@ -199,7 +201,7 @@ describe('the four prompts', () => {
     expect(hwPrompt).toContain('Not the assigned problems themselves.');
     expect(hwPrompt).toContain('check the method line by line');
     expect(draftPrompt).toContain('APA 7');
-    expect(draftPrompt).toContain('word-count target for each section that adds up to the 750–1,000 words');
+    expect(draftPrompt).toContain('word-count target for each section that meets the length in the announcement');
     expect(draftPrompt).toContain('APA 7 reference');
     expect(draftPrompt).toContain('[ ] Thesis (20 pts)');
     expect(dqPrompt).toContain('bullet outline');
@@ -214,7 +216,7 @@ describe('the four prompts', () => {
   });
 
   it('reads a word count with a thousands separator, and states LopesWrite as a fact rather than a warning', () => {
-    expect(draftPrompt).toContain('750–1,000 words');
+    expect(draftPrompt).toContain('750–1,000 words.');
     // "000 words" with nothing before it is the old parser splitting "1,000" at the comma.
     expect(draftPrompt).not.toMatch(/(^|[^\d,])000 words/m);
     expect(draftPrompt).toContain('submitted through LopesWrite');
@@ -230,8 +232,67 @@ describe('the four prompts', () => {
     expect(dqPrompt).toContain('check it against that list.');
   });
 
+  it('lets the professor’s announcement override the description on length and citations, and says they differ', () => {
+    expect(draftPrompt).toContain('Length, from the announcement (Rhetorical Analysis draft: what I am looking for, Sep 22): "It must be at least 500 words, not counting the reference page."');
+    expect(draftPrompt).toContain('Citations, from the announcement (Rhetorical Analysis draft: what I am looking for, Sep 22): "Include at least one in-text citation."');
+    expect(draftPrompt).toContain('The assignment description says 750–1,000 words. The announcement is more recent, so go by it.');
+    expect(draftPrompt).toContain('The assignment description says two sources cited. Go by the announcement.');
+    // Neither guessed figure is stated as a rule on its own any more.
+    expect(draftPrompt).not.toMatch(/^- 750–1,000 words$/m);
+    expect(draftPrompt).not.toMatch(/^- two sources cited$/m);
+  });
+
   it('works out study time from the schedule, and nothing on the morning of an 8 AM quiz', () => {
     // Tonight: 240 capacity minus 90 planned. Friday morning at 8 AM leaves nothing.
     expect(quizPrompt).toContain('I have about 2.5h to study before it.');
+  });
+});
+
+
+describe('class rules stay in their own class', () => {
+  const engDqPrompt = build(engDq, raw(), eng);
+  const unvDqPrompt = build(dq, raw(), unv);
+  const draftPrompt = build(draft, engRaw, eng);
+  const hwPrompt = build(hw, raw(), esg);
+
+  it('never puts one class’s rule in another class’s prompt', () => {
+    // ENG-105's discussion rules are ENG-105's.
+    expect(engDqPrompt).toContain('Every DQ post must be 150-200 words');
+    expect(engDqPrompt).toContain('Post 2 peer replies on 3 separate days');
+    expect(unvDqPrompt).not.toContain('150-200 words');
+    expect(unvDqPrompt).not.toContain('3 separate days');
+    // UNV-106's are UNV-106's.
+    expect(unvDqPrompt).toContain('at least 75 words');
+    expect(engDqPrompt).not.toContain('at least 75 words');
+    expect(engDqPrompt).not.toContain('2 different days');
+    // ESG-162's late policy is ESG-162's.
+    expect(hwPrompt).toContain('Late work receives zero points');
+    expect(draftPrompt).not.toContain('Late work receives zero points');
+    expect(engDqPrompt).not.toContain('Late work receives zero points');
+    expect(unvDqPrompt).not.toContain('Late work receives zero points');
+  });
+
+  it('holds when two classes post the same rule in near-identical words', () => {
+    // Text similarity is never a reason to share: identical wording in two classes stays two separate rules.
+    const same = 'Late work receives zero points';
+    const unvLate: Item = { ...dqOther, id: 'unv-late', requirements: [rule('unv-late', same, 'UNV policies')] };
+    const d = mkData([chm, esg, eng, unv], [quiz, chmGraded, hw, draft, dq, unvLate, career, engDq]);
+    const p = promptFor({ item: draft, course: eng, data: d, schedule, raw: engRaw, today: TODAY });
+    expect(p).not.toContain(same);
+  });
+
+  it('a length posted for another assignment in the same class does not override this one', () => {
+    const dqPost = { id: 'ann-dq', courseId: 'eng', title: 'Discussion reminders', text: 'Rhetorical analysis is the focus this week. Every DQ post must be 150-200 words and cite one source.', publishedAt: phx('2026-09-23', '08:00') };
+    const p = build(draft, { ...engRaw, posts: [...engRaw.posts, dqPost] }, eng);
+    expect(p).toContain('"It must be at least 500 words, not counting the reference page."');
+    expect(p).not.toMatch(/Length, from the announcement \(Discussion reminders/);
+  });
+
+  it('an announcement in one class can never attach a rule to another class’s work', async () => {
+    const { actionsFromTool } = await import('../../halo/actions');
+    const post = { id: 'a', courseId: 'eng', forumId: 'f', title: 'ENG post', text: 't', publishedAt: at } as never;
+    const out = actionsFromTool({ actions: [{ kind: 'requirement', applies_to: 'unv-dq32', what: 'Every DQ post must be 150-200 words', due: '', time: '', points: 0, graded: true, changes_what_done_means: false, quote: 'every dq post must be 150-200 words', confidence: 'high' }] }, post, data.items, 'America/Phoenix');
+    // The id belongs to UNV-106, so it is not accepted; the finding falls back to belonging to the ENG-105 class.
+    expect(out.actions[0].itemId).toBeNull();
   });
 });

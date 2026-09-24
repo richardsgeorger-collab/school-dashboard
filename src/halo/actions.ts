@@ -101,7 +101,9 @@ function when(date: string, time: string, tz: string): string | null {
 
 export function actionsFromTool(raw: unknown, a: StoredAnnouncement, items: Item[], tz: string): { summary: string; actions: Action[] } {
   const o = obj(raw);
-  const ids = new Set(items.map((i) => i.id));
+  // Only work in the announcement's own class. A rule or a part posted in one class belongs to that class and
+  // nowhere else, whatever another class's items are called.
+  const ids = new Set(items.filter((i) => i.courseId === a.courseId).map((i) => i.id));
   const source: ReqSource = { kind: 'announcement', id: a.id, title: a.title || null, quote: null, at: a.publishedAt ?? null };
   const out: Action[] = [];
   for (const e of arr(o.actions)) {
