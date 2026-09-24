@@ -7,7 +7,7 @@ import { money } from './readCost';
 import type { Course, Item, ReqSource } from '../domain/types';
 import type { Action } from './actions';
 import { routeActions } from './actions';
-import type { StoredAnnouncement } from './announce';
+import { bodyHash, type ReadEntry, type StoredAnnouncement } from './announce';
 
 /**
  * Announcements read themselves on every sync. Professors post new assignments in them constantly, so anything that
@@ -21,18 +21,26 @@ import type { StoredAnnouncement } from './announce';
 export const DATE_CHANGE_VISIBLE_DAYS = 5;
 
 /**
- * Posts to read: never read, or edited since they were last read. Professors change dates inside an announcement
- * that already exists, so the modified date is as much a trigger as a new id is.
+ * Posts to read: never read, or whose words have changed since they were read. With the ledger this looks only at
+ * the content: a post read successfully is never read again unless the professor actually edited what it says,
+ * whatever Halo's dates do. Without a ledger (older callers and tests) it falls back to the stamp on the post.
  */
-export function needsRead(list: StoredAnnouncement[], courseIds: Set<string>): StoredAnnouncement[] {
+export function needsRead(list: StoredAnnouncement[], courseIds: Set<string>, ledger?: Map<string, ReadEntry>): StoredAnnouncement[] {
   return list
     .filter((a) => courseIds.has(a.courseId))
-    .filter((a) => a.actionsAt == null || (a.modifiedAt ?? null) !== (a.actionsModifiedAt ?? null))
+    .filter((a) => {
+      if (ledger) {
+        const e = ledger.get(a.id);
+        return !e || e.hash !== bodyHash(a);
+      }
+      return a.actionsAt == null || (a.modifiedAt ?? null) !== (a.actionsModifiedAt ?? null);
+    })
     .sort((a, b) => String(a.publishedAt ?? '').localeCompare(String(b.publishedAt ?? '')));
 }
 
-/** Why a post is being read, for the line on screen. */
-export const readReason = (a: StoredAnnouncement): 'new' | 'edited' => (a.actionsAt == null ? 'new' : 'edited');
+/** Why a post is being read, for the line on screen and for the confirmation before a large run. */
+export const readReason = (a: StoredAnnouncement, ledger?: Map<string, ReadEntry>): 'new' | 'edited' =>
+  ledger ? (ledger.has(a.id) ? 'edited' : 'new') : a.actionsAt == null ? 'new' : 'edited';
 
 export interface AutoPlan {
   /** Items to write back: parts attached, dates moved, new work created. */

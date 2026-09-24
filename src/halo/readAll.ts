@@ -2,7 +2,7 @@ import { describeAiError } from '../ai/client';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
 import type { ClassNote, Course, Item, Requirement } from '../domain/types';
 import { routeActions, readActions, type Action } from './actions';
-import { announceDb, type StoredAnnouncement } from './announce';
+import { announceDb, bodyHash, readLedger, type StoredAnnouncement } from './announce';
 
 /**
  * Every announcement on file, read once each. A class is run from these posts, so the backlog is not a nicety: a
@@ -156,6 +156,7 @@ export function applyReadAll(r: ReadAllResult, items: Item[], courses: Course[])
 export async function stampRead(results: AnnouncementResult[], at: string): Promise<void> {
   for (const r of results) {
     if (r.error) continue;
+    await readLedger.put({ id: r.announcement.id, hash: bodyHash(r.announcement), at, summary: r.summary, count: r.actions.length });
     await announceDb.put({ ...r.announcement, actionsAt: at, actionsModifiedAt: r.announcement.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
   }
 }

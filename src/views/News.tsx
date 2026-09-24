@@ -4,7 +4,7 @@ import { loadApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course } from '../domain/types';
-import { announceDb, announceStores, readAnnouncement, type StoredAnnouncement, type StoredMessage } from '../halo/announce';
+import { announceDb, announceStores, bodyHash, readAnnouncement, readLedger, type ReadEntry, type StoredAnnouncement, type StoredMessage } from '../halo/announce';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
@@ -21,6 +21,7 @@ export function News() {
   const only = params.get('c');
   const [list, setList] = useState<StoredAnnouncement[] | null>(null);
   const [messages, setMessages] = useState<StoredMessage[]>([]);
+  const [ledger, setLedger] = useState<Map<string, ReadEntry>>(new Map());
   const [open, setOpen] = useState<string | null>(params.get('a'));
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export function News() {
   const refresh = useCallback(async () => {
     setList(await announceDb.list().catch(() => []));
     setMessages(await announceStores.messages().catch(() => []));
+    setLedger(await readLedger.all().catch(() => new Map()));
   }, []);
   useEffect(() => {
     void refresh();
@@ -76,7 +78,8 @@ export function News() {
     await refresh();
   };
 
-  const unreadForReqs = shown.filter((a) => a.actionsAt == null).length;
+  // Read for requirements means an entry in the ledger whose words still match the post. Nothing else counts.
+  const unreadForReqs = shown.filter((a) => ledger.get(a.id)?.hash !== bodyHash(a)).length;
   const course: Course | undefined = only ? courseById.get(only) : undefined;
 
   return (
@@ -204,7 +207,7 @@ export function News() {
           );
         })}
       </ul>
-      {readAll && <ReadAll list={shown} onClose={() => setReadAll(false)} onDone={() => void refresh()} />}
+      {readAll && <ReadAll list={shown} ledger={ledger} onClose={() => setReadAll(false)} onDone={() => void refresh()} />}
       {review && courseById.get(review.courseId) && (
         <LectureReview
           title={review.title}

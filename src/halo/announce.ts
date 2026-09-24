@@ -50,13 +50,29 @@ let opening: Promise<IDBDatabase> | null = null;
 function open(): Promise<IDBDatabase> {
   if (opening) return opening;
   opening = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 2);
-    req.onupgradeneeded = () => {
+    const req = indexedDB.open(DB_NAME, 3);
+    req.onupgradeneeded = (ev) => {
       const db = req.result;
+      const had = (ev as IDBVersionChangeEvent).oldVersion;
       if (!db.objectStoreNames.contains('posts')) db.createObjectStore('posts', { keyPath: 'id' }).createIndex('byCourse', 'courseId');
       if (!db.objectStoreNames.contains('messages')) db.createObjectStore('messages', { keyPath: 'id' }).createIndex('byCourse', 'courseId');
       if (!db.objectStoreNames.contains('resources')) db.createObjectStore('resources', { keyPath: 'id' }).createIndex('byCourse', 'courseId');
       if (!db.objectStoreNames.contains('alerts')) db.createObjectStore('alerts', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('reads')) {
+        const reads = db.createObjectStore('reads', { keyPath: 'id' });
+        // Carry over every read the old stamp recorded, hashed against the text it was read with. Without this the
+        // upgrade would look like 56 unread posts and spend again on all of them.
+        if (had > 0 && had < 3 && db.objectStoreNames.contains('posts')) {
+          const cursor = req.transaction!.objectStore('posts').openCursor();
+          cursor.onsuccess = () => {
+            const c = cursor.result;
+            if (!c) return;
+            const p = c.value as StoredAnnouncement;
+            if (p.actionsAt) reads.put({ id: p.id, hash: bodyHash(p), at: p.actionsAt, summary: p.actionsSummary ?? null, count: p.actionCount ?? 0 } satisfies ReadEntry);
+            c.continue();
+          };
+        }
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => {
@@ -118,8 +134,58 @@ export function mergeAnnouncement(incoming: HaloAnnouncement, courseId: string, 
     processedAt: changed ? null : (existing?.processedAt ?? null),
     findings: changed ? null : (existing?.findings ?? null),
     review: changed ? {} : (existing?.review ?? {}),
+    // These were dropped here, which erased every read stamp on every sync. The ledger is now what decides
+    // whether a post is read; these stay for the summary shown on the News row.
+    actionsAt: existing?.actionsAt ?? null,
+    actionsModifiedAt: existing?.actionsModifiedAt ?? null,
+    actionsSummary: existing?.actionsSummary ?? null,
+    actionCount: existing?.actionCount ?? null,
   };
 }
+
+/**
+ * What a post says, as a short fingerprint. Only the words count: Halo's dates can move without anything being
+ * edited, and a read is only worth repeating when the professor changed what the post tells the student.
+ */
+export function bodyHash(p: { title?: string | null; text?: string | null }): string {
+  const s = `${(p.title ?? '').trim()}\n${(p.text ?? '').replace(/\s+/g, ' ').trim()}`;
+  // cyrb53: fast, deterministic, and plenty to tell an edited post from an unedited one.
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/** One post that has been read for requirements, and the words it was read with. */
+export interface ReadEntry {
+  id: string;
+  hash: string;
+  at: string;
+  summary: string | null;
+  count: number;
+}
+
+/**
+ * The record of what has been read, kept apart from the posts themselves. A sync rewrites posts; it never touches
+ * this, so a successful read can only be undone by the post's words actually changing.
+ */
+export const readLedger = {
+  async all(): Promise<Map<string, ReadEntry>> {
+    const db = await open();
+    const rows = await wait(db.transaction('reads').objectStore('reads').getAll() as IDBRequest<ReadEntry[]>);
+    return new Map(rows.map((r) => [r.id, r]));
+  },
+  async put(e: ReadEntry): Promise<void> {
+    const db = await open();
+    await wait(db.transaction('reads', 'readwrite').objectStore('reads').put(e));
+  },
+};
 
 /** Messages, resources, and Halo's own alert feed, stored the same way announcements are. */
 export async function saveExtras(payload: HaloExport, courseIdOf: (classId: string, courseCode: string) => string | null, now = new Date().toISOString()): Promise<{ messages: number; resources: number; alerts: number }> {

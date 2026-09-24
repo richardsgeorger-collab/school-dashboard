@@ -4,11 +4,11 @@ import { countsLine, pullCounts } from '../halo/counts';
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
 import { autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from '../halo/autoRead';
 import { costOf, loadPrices, type ApiUsage } from '../ai/usage';
-import { confirmLine, needsConfirming } from '../halo/readCost';
+import { readGuard } from '../halo/readCost';
 import { readActions } from '../halo/actions';
 import { describeAiError } from '../ai/client';
 import { withRetry } from '../halo/readAll';
-import { announceDb, type StoredAnnouncement } from '../halo/announce';
+import { announceDb, bodyHash, readLedger, type StoredAnnouncement } from '../halo/announce';
 import { loadApiKey } from '../chat/key';
 import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
@@ -163,11 +163,16 @@ export function DiffReview({
     const byId = new Map<string, StoredAnnouncement>();
     for (const a of await announceDb.list().catch(() => [])) byId.set(a.id, a);
     for (const a of fresh) byId.set(a.id, a);
-    const todo = needsRead([...byId.values()], ids);
+    // What has been read lives in its own ledger, which a sync never rewrites. A post is read only when it has no
+    // entry there or its words no longer match the ones it was read with.
+    const ledger = await readLedger.all().catch(() => new Map());
+    const onFile = [...byId.values()].filter((a) => ids.has(a.courseId));
+    const todo = needsRead(onFile, ids, ledger);
     if (todo.length === 0) return;
-    // A term's backlog is real money. The number goes on screen before it is spent, not after.
-    if (!opts?.approved && needsConfirming(todo.length)) {
-      setConfirmRead({ posts: todo });
+    // A large run, or one that would read most of what is on file, stops and asks first with the count and cost.
+    const guard = readGuard({ todo: todo.length, onFile: onFile.length, fresh: todo.filter((a) => !ledger.has(a.id)).length, edited: todo.filter((a) => ledger.has(a.id)).length });
+    if (!opts?.approved && guard.ask) {
+      setConfirmRead({ posts: todo, line: guard.line });
       return;
     }
     // No key, or no credit: the posts stay unstamped and the next sync that can read them will.
@@ -215,6 +220,8 @@ export function DiffReview({
           spend.cacheWrite += u.cache_creation_input_tokens ?? 0;
         }
         read += 1;
+        // The ledger entry is what stops this post being read again; it is written only after a read succeeds.
+        await readLedger.put({ id: a.id, hash: bodyHash(a), at, summary: r.summary, count: r.actions.length });
         await announceDb.put({ ...a, actionsAt: at, actionsModifiedAt: a.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
       } catch (e) {
         // A post that could not be read is left unstamped, so the next sync tries it again. One post failing
@@ -247,7 +254,7 @@ export function DiffReview({
   const [kept, setKept] = useState<ReferenceCounts | null>(null);
   const [reading, setReading] = useState<{ done: number; total: number; title: string; why: string } | null>(null);
   const [auto, setAuto] = useState<AutoOutcome | null>(null);
-  const [confirmRead, setConfirmRead] = useState<{ posts: StoredAnnouncement[] } | null>(null);
+  const [confirmRead, setConfirmRead] = useState<{ posts: StoredAnnouncement[]; line: string } | null>(null);
 
   const apply = async () => {
     if (!sel) return;
@@ -330,7 +337,7 @@ export function DiffReview({
       )}
       {confirmRead && (
         <p className="hint diff-gap" role="status">
-          {confirmLine(confirmRead.posts.length)} They are not read yet, so I do not know what they ask.{' '}
+          {confirmRead.line} Until they are read I do not know what they ask.{' '}
           <button
             type="button"
             className="btn small primary"
@@ -340,7 +347,7 @@ export function DiffReview({
               void readNew(posts, { approved: true });
             }}
           >
-            Read them
+            Read {confirmRead.posts.length} anyway
           </button>{' '}
           <button type="button" className="hero-skip" onClick={() => setConfirmRead(null)}>
             Not now

@@ -4,15 +4,16 @@ import { Modal } from '../components/Modal';
 import { dateOf, fmtDate } from '../domain/dates';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
 import type { Item } from '../domain/types';
-import { announceDb, type StoredAnnouncement } from '../halo/announce';
-import { errorGroups, genuinelyNothing, readAllAnnouncements, readAllLine, stampRead, unread, type ReadAllResult, type ReadProgress } from '../halo/readAll';
+import { announceDb, readLedger, type ReadEntry, type StoredAnnouncement } from '../halo/announce';
+import { needsRead } from '../halo/autoRead';
+import { errorGroups, genuinelyNothing, readAllAnnouncements, readAllLine, stampRead, type ReadAllResult, type ReadProgress } from '../halo/readAll';
 import { useStore } from '../storage/store';
 
 /**
  * Reads the whole backlog of announcements at once. A class is run from these posts, so a requirement from week two
  * is still graded in week six; until this runs, nothing in the app knows those requirements exist.
  */
-export function ReadAll({ list, onClose, onDone }: { list: StoredAnnouncement[]; onClose: () => void; onDone: () => void }) {
+export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnouncement[]; ledger: Map<string, ReadEntry>; onClose: () => void; onDone: () => void }) {
   const { data, actions } = useStore();
   const tz = data.settings.timezone;
   const [progress, setProgress] = useState<ReadProgress | null>(null);
@@ -24,8 +25,9 @@ export function ReadAll({ list, onClose, onDone }: { list: StoredAnnouncement[];
   const hasKey = loadApiKey() !== '';
 
   const courseIds = useMemo(() => new Set(data.courses.map((c) => c.id)), [data.courses]);
-  const todo = useMemo(() => unread(list, courseIds), [list, courseIds]);
-  const already = list.filter((a) => courseIds.has(a.courseId) && a.actionsAt != null).length;
+  // The same ledger the sync and the News header use, so all three always agree on what is left.
+  const todo = useMemo(() => needsRead(list, courseIds, ledger), [list, courseIds, ledger]);
+  const already = list.filter((a) => courseIds.has(a.courseId)).length - todo.length;
 
   const run = async (only: StoredAnnouncement[]) => {
     setError(null);
@@ -196,8 +198,8 @@ export function ReadAll({ list, onClose, onDone }: { list: StoredAnnouncement[];
   );
 }
 
-/** How many posts have never been read for what they ask. */
+/** How many posts are not yet read for what they ask, by the same ledger the sync uses. */
 export async function unreadCount(courseIds: Set<string>): Promise<number> {
   const list = await announceDb.list().catch(() => []);
-  return unread(list, courseIds).length;
+  return needsRead(list, courseIds, await readLedger.all().catch(() => new Map())).length;
 }

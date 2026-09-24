@@ -23,3 +23,24 @@ export const needsConfirming = (posts: number): boolean => posts > CONFIRM_ABOVE
 /** The sentence shown before a large run. */
 export const confirmLine = (posts: number): string =>
   `${posts} announcements have never been read for requirements. Reading them costs about ${money(estimateCost(posts))}.`;
+
+export interface ReadGuard {
+  ask: boolean;
+  line: string;
+}
+
+/**
+ * Whether to stop and ask before reading. Two tripwires: a large run by count, and a run that would read more than
+ * half of everything on file. The second is the one that catches a lost ledger, because a healthy sync only ever
+ * reads what is new. The sentence says how many were never read and how many changed, so a run that looks like a
+ * backlog but is really a re-read cannot pass as one.
+ */
+export function readGuard(args: { todo: number; onFile: number; fresh: number; edited: number }): ReadGuard {
+  const { todo, onFile, fresh, edited } = args;
+  const most = onFile >= 6 && todo > onFile / 2;
+  const big = todo > CONFIRM_ABOVE;
+  if (!most && !big) return { ask: false, line: '' };
+  const why = [fresh ? `${fresh} never read` : '', edited ? `${edited} changed since they were read` : ''].filter(Boolean).join(', ');
+  const share = most ? ` That is ${todo} of the ${onFile} on file, more than half, which a normal sync never needs.` : '';
+  return { ask: true, line: `About to read ${todo} announcement${todo === 1 ? '' : 's'} (${why}), about ${money(estimateCost(todo))}.${share}` };
+}
