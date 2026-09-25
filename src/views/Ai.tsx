@@ -40,7 +40,7 @@ export function Ai() {
     <>
       <div className="cal-toolbar">
         <h1 className="page-title">AI</h1>
-        <p className="hint mono ai-meter">{meterLine}</p>
+        <p className="hint ai-meter">{meterLine}</p>
       </div>
       <SegmentedControl
         label="AI mode"

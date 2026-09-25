@@ -99,7 +99,7 @@ export function ClassPage() {
         </div>
         <span className="settings-actions">
           <button type="button" className="btn small" onClick={() => setPaste(true)}>
-            Paste a lecture transcript
+            Paste transcript
           </button>
           <a className="btn small" href={`#/tutor?c=${course.id}`}>
             Tutor
@@ -113,7 +113,7 @@ export function ClassPage() {
       <section className="card class-next" style={{ '--course': color } as React.CSSProperties}>
         {next ? (
           <>
-            <p className="hint mono">next deadline</p>
+            <p className="eyebrow">Next deadline</p>
             <button type="button" className="class-next-title" onClick={() => setOpen(next)}>
               {next.label}
             </button>

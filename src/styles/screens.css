@@ -784,8 +784,8 @@
 
 /* ---- locked ---------------------------------------------------------------- */
 .locked {
-  background: var(--surface-2);
-  border: 1px dashed var(--line-strong);
+  background: var(--surface);
+  border: 1px solid var(--line);
   box-shadow: none;
   padding: var(--s-4);
 }
@@ -865,11 +865,6 @@
   gap: var(--s-2);
   color: var(--ink-2);
 }
-.onboard .sync-tabs .btn[aria-selected='true'] {
-  background: var(--ink);
-  color: var(--surface);
-  border-color: var(--ink);
-}
 .onboard .signin {
   padding: 0;
   border: 0;
@@ -886,16 +881,27 @@
   color: var(--ink-2);
   font: var(--t-body);
 }
+/* Device choice is a segmented control, the same piece the rest of the app uses. */
 .sync-tabs {
-  gap: 6px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
 }
 .sync-tabs .btn {
   flex: 1;
+  min-height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: none;
 }
 .sync-tabs .btn[aria-selected='true'] {
-  background: var(--ink);
-  color: var(--surface);
-  border-color: var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
 }
 .sync-trouble summary {
   font: 500 14px/1.3 var(--font-body);
@@ -935,6 +941,7 @@
 .month-cell[data-level='3'],
 .month-cell[data-level='4'] {
   background: var(--surface);
+  border-color: var(--line);
 }
 .month-cell[data-level='2'] {
   background: color-mix(in srgb, var(--warn-soft) 55%, var(--surface));
@@ -944,6 +951,13 @@
 }
 .month-cell[data-level='4'] {
   background: color-mix(in srgb, var(--warn-soft) 70%, var(--danger-soft));
+}
+/* A hint inside a field is a hint, not a second label. */
+.field > span.hint,
+.field > .hint {
+  font: var(--t-small);
+  font-weight: 400;
+  color: var(--ink-3);
 }
 .month-cell[data-today='true'] {
   border-color: var(--accent);
@@ -964,18 +978,15 @@
   border-radius: var(--r-pill);
   padding: 3px 6px;
   border: 0;
+  box-shadow: none;
 }
 .month-count[data-big='true'] {
   background: var(--warn-soft);
   color: var(--warn);
 }
 .month-big {
-  background: var(--danger-soft);
-  color: var(--danger);
-  border: 0;
-  font: 600 10px/1 var(--font-body);
-  border-radius: var(--r-pill);
-  padding: 3px 6px;
+  /* The tinted count pill already says the day is heavy; a second marker is noise. */
+  display: none;
 }
 .month-cell[data-other='true'] {
   background: transparent;
@@ -997,7 +1008,16 @@
 }
 .lib-head .settings-actions {
   margin: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+.lib-head .settings-actions .btn {
+  flex: 1 1 0;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+/* The You page scrolls a section under the sticky bar; leave room for it. */
+[id^='you-'] {
+  scroll-margin-top: calc(var(--topbar-h, 56px) + var(--s-3));
 }
 .lib-head .hint.mono,
 .class-next .hint.mono,

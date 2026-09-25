@@ -19,7 +19,7 @@ const SEEDED = [
   ['plans', '#/you?s=plan'],
   ['ai', '#/ai'],
   ['load', '#/load'],
-  ['item', '#/now', async (page) => { await page.click('.hero .btn.hero-btn:has-text("Open"), .hero-title').catch(() => undefined); await page.waitForTimeout(500); }],
+  ['item', '#/now', async (page) => { await page.click('.hero-title-btn'); await page.waitForTimeout(500); }],
 ];
 const FRESH = [
   ['onboarding-1', '#/now'],
@@ -27,6 +27,7 @@ const FRESH = [
   ['onboarding-prefs', '#/now', async (page) => { for (const t of ['Next', 'Next', 'Get started', 'do this later']) { await page.click(`.onboard button:has-text("${t}")`); await page.waitForTimeout(250); } }],
   ['now-empty', '#/now', async (page) => { await page.click('.onboard button:has-text("Skip for now")'); await page.waitForTimeout(400); }],
   ['landing', 'landing/'],
+  ['landing-full', 'landing/', null, true],
 ];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const scheme of ['light', 'dark']) {
@@ -37,7 +38,7 @@ for (const scheme of ['light', 'dark']) {
       await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle' });
       await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.theme = 'system'; d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
     }
-    for (const [name, route, act] of list) {
+    for (const [name, route, act, full] of list) {
       // Every fresh screen starts from nothing: onboarding progress must not carry over between shots.
       if (group === 'fresh') await page.evaluate(() => localStorage.clear()).catch(() => undefined);
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' });
@@ -45,7 +46,7 @@ for (const scheme of ['light', 'dark']) {
       await page.waitForTimeout(500);
       if (act) await act(page);
       await page.waitForTimeout(300);
-      await page.screenshot({ path: `${OUT}/${name}-${scheme}.png`, fullPage: false });
+      await page.screenshot({ path: `${OUT}/${name}-${scheme}.png`, fullPage: !!full });
     }
     await ctx.close();
   }
