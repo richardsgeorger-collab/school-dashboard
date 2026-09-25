@@ -11,4 +11,4 @@ Last updated 2026-09-24.
 7. **AI features.** The AI can be wrong. It reads, summarises and suggests; you decide. It never submits anything to Halo. Each plan has daily and monthly limits, shown in the app.
 8. **Fair use.** Do not try to break the service, use it to scrape Halo at scale, share an account, or resell it.
 9. **No warranty.** The app is provided as is. We work hard to keep it accurate and available, and we do not promise either. To the extent the law allows, we are not liable for missed deadlines, grades, or anything else that follows from using or not being able to use the app.
-10. **Changes and contact.** We may update these terms; material changes are announced in the app first. Contact: CONTACT_EMAIL_PLACEHOLDER.
+10. **Changes and contact.** We may update these terms; material changes are announced in the app first. Contact: richards.georger@gmail.com.

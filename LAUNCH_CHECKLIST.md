@@ -63,9 +63,9 @@ Steps 1 to 7 done 2026-09-25 (project `kiacmspgvntzwngijibr`, us-west-1, free pl
     at $0.032 (put "before Monday" on the Tuesday); after a written-out calendar in the prompt, Haiku 15/15 at $0.033,
     about 1.6x faster than Sonnet. A run in between read a lecture as empty; the wrapper now revives list fields sent
     as JSON strings and refuses empty lecture notes, so that can no longer save as a clean result.
-12. Replace `CONTACT_EMAIL_PLACEHOLDER` in `PRIVACY.md` and `TERMS.md`, regenerate `public/privacy.html` and
-    `public/terms.html` (the snippet in PROGRESS.md, Phase 8), and read both once more as the person whose name is on them.
-    Run `supabase/migrations/0004_admin_feedback.sql` so the admin screen and feedback screenshots work.
+12. ~~Contact email and migration 0004.~~ Done 2026-09-25: richards.georger@gmail.com on both pages, regenerated and
+    live. **Still yours:** read both pages once as the person whose name is on them. If you keep Stripe Managed
+    Payments on, the Terms should say plans are sold through Link as the seller of record.
 13. Extension: `npm run build:extension`, zip `extension/`, upload to the Chrome Web Store (developer account,
     $5 one-time), and put the store link on the You tab and the landing page. Until then Plus users can load it
     unpacked from `extension/README.md`.
