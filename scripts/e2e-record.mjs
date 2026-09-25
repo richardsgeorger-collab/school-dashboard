@@ -107,7 +107,7 @@ page.on('request', (req) => {
   if (req.method() === 'OPTIONS') return req.respond({ status: 204, headers: cors });
   seenBodies.push(JSON.parse(req.postData() ?? '{}'));
   const notes = { summary: ['Stoichiometry links mass to moles.', 'Limiting reagent caps the product.'], concepts: ['mole', 'limiting reagent'], mentions: [{ quote: 'the quiz moves to Friday', kind: 'date_change', title: 'Quiz', date: '2026-09-18', time: null, points: null, confidence: 'high', itemId: null }] };
-  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'toolu_n', name: 'lecture_notes', input: notes }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
+  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'toolu_n', name: 'lecture_notes', input: notes }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
 });
 await click('.rec-card:first-child .btn', 'Extract');
 await page.waitForSelector('.rev-mention', { timeout: 10000 });

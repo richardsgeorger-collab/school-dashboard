@@ -33,10 +33,10 @@ describe('study kits from the student’s own material', () => {
     expect(kitHash('cards', 'stoichiometry', sources, ['limiting reagent'])).not.toBe(kit.sourcesHash);
   });
   it('builds through one forced tool call and stamps the model', async () => {
-    const fetch = (async () => new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 't', name: 'study_kit', input: { formulas: [], cards: [], sections: [{ heading: 'Stoichiometry', lines: ['Mole ratios come from the balanced equation.'], sourceId: 'S1' }] } }], stop_reason: 'tool_use', usage: { input_tokens: 5, output_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof globalThis.fetch;
+    const fetch = (async () => new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 't', name: 'study_kit', input: { formulas: [], cards: [], sections: [{ heading: 'Stoichiometry', lines: ['Mole ratios come from the balanced equation.'], sourceId: 'S1' }] } }], stop_reason: 'tool_use', usage: { input_tokens: 5, output_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof globalThis.fetch;
     const kit = await buildKit({ apiKey: 'k', fetch, course: chm, kind: 'onepager', topic: '', sources, weak: [], flagged: [] });
     expect(kit.sections.length).toBe(1);
-    expect(kit.model).toBe('claude-sonnet-4-6');
+    expect(kit.model).toBe('claude-haiku-4-5-20251001');
     expect(kit.kind).toBe('onepager');
   });
 });

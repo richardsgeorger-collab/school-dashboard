@@ -16,7 +16,7 @@ const failing = (status: number, message: string): typeof globalThis.fetch =>
 
 const answering = (actions: unknown[]): typeof globalThis.fetch =>
   (async () =>
-    new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 't', name: 'announcement_actions', input: { summary: 's', actions } }], stop_reason: 'tool_use', usage: { input_tokens: 10, output_tokens: 5 } }), {
+    new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 't', name: 'announcement_actions', input: { summary: 's', actions } }], stop_reason: 'tool_use', usage: { input_tokens: 10, output_tokens: 5 } }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
     })) as never;

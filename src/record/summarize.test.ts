@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mkCourse, mkItem, TZ } from '../halo/fixtures';
-import { buildNotesPrompt, notesFromTool, NOTES_MODEL, NOTES_TOOL } from './summarize';
+import { MODEL } from '../ai/model';
+import { buildNotesPrompt, notesFromTool, NOTES_TOOL } from './summarize';
 
 describe('lecture notes prompt and parsing', () => {
   it('gives the model the date, the meeting times, and the open items with ids', () => {
@@ -13,7 +14,7 @@ describe('lecture notes prompt and parsing', () => {
     expect(p.user).not.toContain('Old');
     expect(p.user).not.toContain('Other class');
     expect(p.system).toMatch(/lecture_notes/);
-    expect(NOTES_MODEL).toBe('claude-sonnet-4-6');
+    expect(MODEL).toMatch(/^claude-haiku-4-5/);
     expect('strict' in NOTES_TOOL).toBe(false);
   });
   it('shapes model output defensively', () => {

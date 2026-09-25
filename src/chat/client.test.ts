@@ -9,7 +9,7 @@ function fakeApi(replies: { text?: string; stop?: string }[]) {
     seen.push({ maxTokens: body.max_tokens, thinking: !!body.thinking });
     const r = replies[Math.min(seen.length - 1, replies.length - 1)];
     return new Response(
-      JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: r.text ? [{ type: 'text', text: r.text }] : [], stop_reason: r.stop ?? 'end_turn', usage: { input_tokens: 10, output_tokens: 5 } }),
+      JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: r.text ? [{ type: 'text', text: r.text }] : [], stop_reason: r.stop ?? 'end_turn', usage: { input_tokens: 10, output_tokens: 5 } }),
       { status: 200, headers: { 'content-type': 'application/json' } },
     );
   }) as never;

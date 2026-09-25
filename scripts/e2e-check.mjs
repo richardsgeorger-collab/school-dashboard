@@ -26,7 +26,7 @@ const openPaste = async (courseIds) => {
   await page.waitForSelector('.modal textarea', { timeout: 5000 });
 };
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-expose-headers': '*' };
-const toolReply = (name, input) => ({ status: 200, body: JSON.stringify({ id: 'msg_e2e', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu_1', name, input }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
+const toolReply = (name, input) => ({ status: 200, body: JSON.stringify({ id: 'msg_e2e', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu_1', name, input }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
 const seen = [];
 const queue = [];
 await page.setRequestInterception(true);

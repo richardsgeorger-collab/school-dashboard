@@ -1,10 +1,8 @@
-import type Anthropic from '@anthropic-ai/sdk';
-import { recordUsage } from '../ai/usage';
+import { callTool } from '../ai/client';
+import { MODEL } from '../ai/model';
 import type { Course } from '../domain/types';
 import { sourcesBlock, type QuizSource } from './sources';
 
-/** Same model as the coach and the lecture pass. */
-export const QUIZ_MODEL = 'claude-sonnet-4-6';
 export const SET_SIZE = 5;
 
 export type QuestionKind = 'multiple_choice' | 'short' | 'worked';
@@ -113,7 +111,7 @@ const str = (v: unknown, max = 800) => (typeof v === 'string' ? v.trim().slice(0
 const strs = (v: unknown, max: number, each = 300) => (Array.isArray(v) ? v.map((s) => str(s, each)).filter(Boolean).slice(0, max) : []);
 
 /** Whatever the model sent, shaped into questions; anything malformed or citing an unknown source is dropped. */
-export function setFromTool(input: unknown, args: Pick<QuizArgs, 'course' | 'topic' | 'sources'>, model = QUIZ_MODEL, createdAt = new Date().toISOString()): QuizSet {
+export function setFromTool(input: unknown, args: Pick<QuizArgs, 'course' | 'topic' | 'sources'>, model = MODEL, createdAt = new Date().toISOString()): QuizSet {
   const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
   const ids = new Set(args.sources.map((s) => s.id));
   const questions: QuizQuestion[] = [];
@@ -142,23 +140,11 @@ export function setFromTool(input: unknown, args: Pick<QuizArgs, 'course' | 'top
   return { courseId: args.course.id, topic: args.topic, questions, sources: args.sources, model, createdAt };
 }
 
-/** One call, the key from this browser, answered through the forced tool. */
-export async function generateSet(args: QuizArgs & { apiKey: string; fetch?: typeof globalThis.fetch }): Promise<QuizSet> {
-  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
-  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+/** One call through the gateway, answered through the forced tool. */
+export async function generateSet(args: QuizArgs & { apiKey?: string; fetch?: typeof globalThis.fetch }): Promise<QuizSet> {
   const { system, user } = buildQuizPrompt(args);
-  const response = await client.messages.create({
-    model: QUIZ_MODEL,
-    max_tokens: 4000,
-    system,
-    tools: [QUIZ_TOOL as unknown as Anthropic.Tool],
-    tool_choice: { type: 'tool', name: QUIZ_TOOL.name },
-    messages: [{ role: 'user', content: user }],
-  });
-  recordUsage('quiz', QUIZ_MODEL, response.usage);
-  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not return questions.');
-  const set = setFromTool(use.input, args, QUIZ_MODEL);
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'quiz', system: [{ text: system, cache: true }], user, tool: QUIZ_TOOL, maxTokens: 4000 });
+  const set = setFromTool(r.input, args, r.model);
   if (set.questions.length === 0) throw new Error('Nothing in the material supported a question. Add slides or a recording for this topic first.');
   return set;
 }

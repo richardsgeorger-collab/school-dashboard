@@ -1,9 +1,5 @@
-import { recordUsage } from '../ai/usage';
-import type Anthropic from '@anthropic-ai/sdk';
+import { callTool } from '../ai/client';
 import type { NeedLine } from './needs';
-
-/** Same model as the coach and the lecture pass. */
-export const SUMMARY_MODEL = 'claude-sonnet-4-6';
 
 export interface PolishInput {
   lines: NeedLine[];
@@ -14,7 +10,6 @@ export interface PolishInput {
 export const POLISH_TOOL = {
   name: 'needs_you',
   description: 'The lines a student reads after a Halo check: the few things that need a person, in plain words.',
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -69,22 +64,10 @@ export function polishedLines(raw: unknown, lines: NeedLine[]): NeedLine[] {
   });
 }
 
-/** One call, the key from this browser, answered through the forced tool. */
-export async function polishNeeds(args: PolishInput & { apiKey: string; fetch?: typeof globalThis.fetch }): Promise<NeedLine[]> {
+/** One call through the gateway, answered through the forced tool. */
+export async function polishNeeds(args: PolishInput & { apiKey?: string; fetch?: typeof globalThis.fetch }): Promise<NeedLine[]> {
   if (args.lines.length === 0) return [];
-  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
-  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
   const { system, user } = buildPolishPrompt(args);
-  const response = await client.messages.create({
-    model: SUMMARY_MODEL,
-    max_tokens: 1200,
-    system,
-    tools: [POLISH_TOOL as unknown as Anthropic.Tool],
-    tool_choice: { type: 'tool', name: POLISH_TOOL.name },
-    messages: [{ role: 'user', content: user }],
-  });
-  recordUsage('needs', SUMMARY_MODEL, response.usage);
-  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not answer.');
-  return polishedLines(use.input, args.lines);
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'needs', system: [{ text: system, cache: true }], user, tool: POLISH_TOOL, maxTokens: 1200 });
+  return polishedLines(r.input, args.lines);
 }

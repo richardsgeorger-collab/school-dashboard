@@ -30,6 +30,6 @@ describe('time calibration', () => {
     expect(out[0].estimatedMinutes).toBe(40);
     expect(out[1].estimatedMinutes).toBe(60);
     expect(open.estimatedMinutes).toBe(75);
-    expect(withCalibration([open], new Map())).toBe;
+    expect(withCalibration([open], new Map())).toHaveLength(1);
   });
 });

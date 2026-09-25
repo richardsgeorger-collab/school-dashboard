@@ -1,11 +1,8 @@
-import type Anthropic from '@anthropic-ai/sdk';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
-import { recordUsage } from '../ai/usage';
+import { callTool } from '../ai/client';
 import type { Course, DateStr, Item } from '../domain/types';
 import type { Confidence, LectureKnowledge, LectureNotes, Mention, MentionKind } from './notes';
 
-/** The user asked for this model for the after-lecture pass. */
-export const NOTES_MODEL = 'claude-sonnet-4-6';
 const MAX_TRANSCRIPT_CHARS = 80_000;
 
 /**
@@ -177,21 +174,9 @@ export function notesFromTool(input: unknown, model: string, createdAt = new Dat
   return { summary, concepts, mentions, model, createdAt, ...(knowledge ? { knowledge } : {}) };
 }
 
-/** The optional after-lecture pass. Needs the key from this browser; never runs during recording. */
-export async function summarizeLecture(args: NotesArgs & { apiKey: string }): Promise<LectureNotes> {
-  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
-  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: 1 });
+/** The optional after-lecture pass, through the gateway. Never runs during recording. */
+export async function summarizeLecture(args: NotesArgs & { apiKey?: string; fetch?: typeof globalThis.fetch }): Promise<LectureNotes> {
   const { system, user } = buildNotesPrompt(args);
-  const response = await client.messages.create({
-    model: NOTES_MODEL,
-    max_tokens: 4000,
-    system,
-    tools: [NOTES_TOOL as unknown as Anthropic.Tool],
-    tool_choice: { type: 'tool', name: NOTES_TOOL.name },
-    messages: [{ role: 'user', content: user }],
-  });
-  recordUsage('lecture', NOTES_MODEL, response.usage);
-  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not return notes.');
-  return notesFromTool(use.input, NOTES_MODEL, new Date().toISOString(), args.deckOutline?.deckId ?? null);
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'lecture', system: [{ text: system, cache: true }], user, tool: NOTES_TOOL, maxTokens: 4000 });
+  return notesFromTool(r.input, r.model, new Date().toISOString(), args.deckOutline?.deckId ?? null);
 }

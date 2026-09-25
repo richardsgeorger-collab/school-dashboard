@@ -1,7 +1,7 @@
 // Seeds the real data shape, then screenshots a route. Before-and-after evidence for the agenda work.
 // usage: node scripts/shot-agenda.mjs <out.png> [route] [width]
 import puppeteer from 'puppeteer-core';
-import { CLASSES, TODAY, items } from './fixtures/messy.mjs';
+import { CLASSES, items } from './fixtures/messy.mjs';
 
 const [out = 'agenda.png', route = '#/calendar?v=agenda', width = '1280'] = process.argv.slice(2);
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });

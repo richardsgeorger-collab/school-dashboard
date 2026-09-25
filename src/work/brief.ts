@@ -1,15 +1,11 @@
-import type Anthropic from '@anthropic-ai/sdk';
-import { recordUsage } from '../ai/usage';
+import { callTool } from '../ai/client';
 import type { Brief, Course, Item } from '../domain/types';
 
-/** Same model as the coach and the lecture pass. */
-export const BRIEF_MODEL = 'claude-sonnet-4-6';
 const MAX_CHARS = 40_000;
 
 export const BRIEF_TOOL = {
   name: 'assignment_brief',
   description: 'What an assignment asks for, what earns points, and the steps it implies, from its description and rubric.',
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -68,15 +64,10 @@ export function localBrief(args: BriefArgs, at = new Date().toISOString()): Brie
   return { asks: lines, rubric: [], steps: [], at, source: 'local' };
 }
 
-export async function briefItem(args: BriefArgs & { apiKey: string; fetch?: typeof globalThis.fetch }): Promise<Brief> {
-  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
-  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+export async function briefItem(args: BriefArgs & { apiKey?: string; fetch?: typeof globalThis.fetch }): Promise<Brief> {
   const { system, user } = buildBriefPrompt(args);
-  const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [BRIEF_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: BRIEF_TOOL.name }, messages: [{ role: 'user', content: user }] });
-  recordUsage('brief', BRIEF_MODEL, response.usage);
-  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not answer.');
-  return briefFromTool(use.input);
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'brief', system: [{ text: system, cache: true }], user, tool: BRIEF_TOOL, maxTokens: 1500 });
+  return briefFromTool(r.input);
 }
 
 // ---- Draft check --------------------------------------------------------------
@@ -124,15 +115,10 @@ export function draftFromTool(raw: unknown): DraftCheck {
   return { hits: pairs(o.hits, 'note'), misses: pairs(o.misses, 'what'), next: str(o.next, 300) };
 }
 
-export async function checkDraft(args: BriefArgs & { brief: Brief; draft: string; apiKey: string; fetch?: typeof globalThis.fetch }): Promise<DraftCheck> {
-  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
-  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+export async function checkDraft(args: BriefArgs & { brief: Brief; draft: string; apiKey?: string; fetch?: typeof globalThis.fetch }): Promise<DraftCheck> {
   const { system, user } = buildDraftPrompt(args);
-  const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [DRAFT_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: DRAFT_TOOL.name }, messages: [{ role: 'user', content: user }] });
-  recordUsage('draft', BRIEF_MODEL, response.usage);
-  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not answer.');
-  return draftFromTool(use.input);
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'draft', system: [{ text: system, cache: true }], user, tool: DRAFT_TOOL, maxTokens: 1500 });
+  return draftFromTool(r.input);
 }
 
 // ---- Method check --------------------------------------------------------------
@@ -190,13 +176,8 @@ export function methodFromTool(raw: unknown): MethodCheck {
   return { problems, next: str(o.next, 300) };
 }
 
-export async function checkMethod(args: { item: Item; course: Course; description: string; material: string; work: string; apiKey: string; fetch?: typeof globalThis.fetch }): Promise<MethodCheck> {
-  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
-  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+export async function checkMethod(args: { item: Item; course: Course; description: string; material: string; work: string; apiKey?: string; fetch?: typeof globalThis.fetch }): Promise<MethodCheck> {
   const { system, user } = buildMethodPrompt(args);
-  const response = await client.messages.create({ model: BRIEF_MODEL, max_tokens: 1500, system, tools: [METHOD_TOOL as unknown as Anthropic.Tool], tool_choice: { type: 'tool', name: METHOD_TOOL.name }, messages: [{ role: 'user', content: user }] });
-  recordUsage('method', BRIEF_MODEL, response.usage);
-  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not answer.');
-  return methodFromTool(use.input);
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'method', system: [{ text: system, cache: true }], user, tool: METHOD_TOOL, maxTokens: 1500 });
+  return methodFromTool(r.input);
 }

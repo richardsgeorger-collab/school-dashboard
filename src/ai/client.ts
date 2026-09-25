@@ -1,28 +1,22 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import { recordUsage, type ApiUsage, type UsageKind } from './usage';
+import type { AiKind } from '../config/tiers';
+import { callGateway, GatewayError, type SystemBlock, type ToolSpec } from './gateway';
+import { recordUsage, type ApiUsage } from './usage';
 
-/** One model for every pass, so cost and behavior stay predictable. Same one the coach uses. */
-export const AI_MODEL = 'claude-sonnet-4-6';
+/**
+ * The two shapes of call the app makes: one forced tool call, or a plain text answer over a short history. Both go
+ * through the gateway, which is the only thing that knows the model or holds a key. Every caller names its `kind`,
+ * and the kind sets the output cap and the tier gate.
+ */
 
-/** A system block; cached ones are the big, stable context that repeats across calls (syllabus, slides, transcripts). */
-export interface SystemBlock {
-  text: string;
-  cache?: boolean;
-}
-
-export interface ToolSpec {
-  name: string;
-  description: string;
-  strict?: boolean;
-  input_schema: Record<string, unknown>;
-}
+export type { SystemBlock, ToolSpec };
 
 export interface CallBase {
-  apiKey: string;
-  /** Test hook: a fetch that answers instead of api.anthropic.com. */
+  /** Development only: a key in this browser sends the call straight to Anthropic. Production always goes through the server. */
+  apiKey?: string;
+  /** Test hook: a fetch that answers instead of the network. */
   fetch?: typeof globalThis.fetch;
-  kind: UsageKind;
-  model?: string;
+  kind: AiKind;
   system: SystemBlock[];
   maxTokens: number;
   /** Adaptive thinking on the passes that reason across many things. Off for short rewordings. */
@@ -40,32 +34,15 @@ export interface ToolResult {
   model: string;
 }
 
-async function sdk() {
-  return (await import('@anthropic-ai/sdk')).default;
-}
-
-function client(apiKey: string, fetch?: typeof globalThis.fetch) {
-  return sdk().then((SdkCtor) => new SdkCtor({ apiKey, dangerouslyAllowBrowser: true, maxRetries: fetch ? 0 : 1, ...(fetch ? { fetch } : {}) }));
-}
-
-const systemBlocks = (blocks: SystemBlock[]): Anthropic.TextBlockParam[] => blocks.filter((b) => b.text.trim()).map((b) => ({ type: 'text', text: b.text, ...(b.cache ? { cache_control: { type: 'ephemeral' as const } } : {}) }));
-
 /** One forced tool call. The usage the API reports is recorded under `kind` before the input is returned. */
 export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
-  const c = await client(args.apiKey, args.fetch);
-  const model = args.model ?? AI_MODEL;
-  const response = await c.messages.create({
-    model,
-    max_tokens: args.maxTokens,
-    ...(args.think ? { thinking: { type: 'adaptive' as const } } : {}),
-    system: systemBlocks(args.system),
-    tools: [args.tool as unknown as Anthropic.Tool],
-    tool_choice: { type: 'tool', name: args.tool.name },
-    messages: [{ role: 'user', content: args.user }],
-  });
-  recordUsage(args.kind, model, response.usage as ApiUsage);
+  const response = await callGateway(
+    { kind: args.kind, system: args.system, max_tokens: args.maxTokens, think: args.think, tools: [args.tool], tool_choice: { type: 'tool', name: args.tool.name }, messages: [{ role: 'user', content: args.user }] },
+    { apiKey: args.apiKey, fetch: args.fetch },
+  );
+  recordUsage(args.kind, response.model, response.usage as ApiUsage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (use) return { input: use.input, usage: response.usage as ApiUsage, model };
+  if (use) return { input: use.input, usage: response.usage as ApiUsage, model: response.model };
   // The tool is forced, so this is rare. When it happens the answer is usually the same object written as text, and
   // every reader validates what it gets, so parsing it is no less safe than trusting the tool block.
   const text = response.content
@@ -73,7 +50,7 @@ export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
     .map((b) => b.text)
     .join('');
   const loose = jsonFromText(text);
-  if (loose) return { input: loose, usage: response.usage as ApiUsage, model };
+  if (loose) return { input: loose, usage: response.usage as ApiUsage, model: response.model };
   throw new Error('The model did not answer through the tool.');
 }
 
@@ -106,26 +83,18 @@ export interface TextCallArgs extends CallBase {
 
 /** A plain text answer over a short history, for the tutor. */
 export async function callText(args: TextCallArgs): Promise<{ text: string; usage: ApiUsage; model: string }> {
-  const c = await client(args.apiKey, args.fetch);
-  const model = args.model ?? AI_MODEL;
   const messages: Anthropic.MessageParam[] = [...args.history.slice(-16).map((t) => ({ role: t.role, content: t.text }) as Anthropic.MessageParam), { role: 'user', content: args.user }];
-  const response = await c.messages.create({
-    model,
-    max_tokens: args.maxTokens,
-    ...(args.think ? { thinking: { type: 'adaptive' as const } } : {}),
-    system: systemBlocks(args.system),
-    messages,
-  });
-  recordUsage(args.kind, model, response.usage as ApiUsage);
+  const response = await callGateway({ kind: args.kind, system: args.system, max_tokens: args.maxTokens, think: args.think, messages }, { apiKey: args.apiKey, fetch: args.fetch });
+  recordUsage(args.kind, response.model, response.usage as ApiUsage);
   const text = response.content
     .filter((b): b is Anthropic.TextBlock => b.type === 'text')
     .map((b) => b.text)
     .join('')
     .trim();
-  return { text, usage: response.usage as ApiUsage, model };
+  return { text, usage: response.usage as ApiUsage, model: response.model };
 }
 
-/** What a failure means, in words a person can act on. The raw text goes to the console, never the screen. */
+/** What an upstream failure means, in words a person can act on. The raw text goes to the console, never the screen. */
 export function plainApiError(status: number | undefined, message: string): string {
   const m = message.toLowerCase();
   if (/compiled grammar|tool schemas|too large/.test(m)) return 'the request was shaped in a way Anthropic could not accept';
@@ -139,16 +108,12 @@ export function plainApiError(status: number | undefined, message: string): stri
   return 'the request to Anthropic failed';
 }
 
-/** One plain sentence for any failure of an AI pass. */
+/** One plain sentence for any failure of an AI pass. Gateway refusals (tier, cap, ceiling) already come worded. */
 export async function describeAiError(e: unknown): Promise<string> {
-  const SdkCtor = await sdk();
-  if (e instanceof SdkCtor.AuthenticationError) return 'That API key was rejected. Check it in Settings.';
-  if (e instanceof SdkCtor.RateLimitError) return 'This key is being rate limited. Give it a minute and try again.';
-  if (e instanceof SdkCtor.APIConnectionError) return 'Could not reach Anthropic. Check your connection.';
-  if (e instanceof SdkCtor.APIError) {
-    // eslint-disable-next-line no-console
-    console.warn('Anthropic error', e.status, e.message);
-    return `It failed because ${plainApiError(e.status, String(e.message ?? ''))}.`;
+  if (e instanceof GatewayError) {
+    if (e.code !== 'upstream') return e.message;
+    console.warn('AI error', e.status, e.message);
+    return `It failed because ${plainApiError(e.status, e.message)}.`;
   }
   return e instanceof Error ? e.message : String(e);
 }

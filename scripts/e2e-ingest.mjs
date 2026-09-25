@@ -20,7 +20,7 @@ const all = (sel) => page.$$eval(sel, (els) => els.map((e) => e.textContent.repl
 const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
 
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-expose-headers': '*' };
-const reply = (name, input) => JSON.stringify({ id: 'msg_e2e', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu_1', name, input }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 41000, output_tokens: 3800, cache_creation_input_tokens: 30000, cache_read_input_tokens: 0 } });
+const reply = (name, input) => JSON.stringify({ id: 'msg_e2e', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu_1', name, input }], stop_reason: 'tool_use', stop_sequence: null, usage: { input_tokens: 41000, output_tokens: 3800, cache_creation_input_tokens: 30000, cache_read_input_tokens: 0 } });
 const calls = [];
 // The canned passes read the refs out of the prompt, so they fit whatever the seed holds.
 /** The assignments the prompt listed, read back out of it. */

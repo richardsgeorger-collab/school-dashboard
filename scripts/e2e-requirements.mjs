@@ -39,7 +39,7 @@ page.on('request', (req) => {
       'AUTO date move': [{ kind: 'date_change', applies_to: dqId, what: 'Topic 4 DQ 1 now closes Wednesday.', due: SOON2, time: '', points: 0, graded: true, changes_what_done_means: false, quote: 'the DQ now closes Wednesday', confidence: 'high' }],
       'AUTO removal': [{ kind: 'date_change', applies_to: dqId, what: 'Topic 4 DQ 1 is cancelled this week.', due: '', time: '', points: 0, graded: true, changes_what_done_means: false, quote: 'we are dropping the DQ', confidence: 'medium' }],
     }[title] ?? [];
-    return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_actions', input: { summary: `Read: ${title}`, actions: auto } }], stop_reason: 'tool_use', usage: { input_tokens: 900, output_tokens: 90 } }) });
+    return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_actions', input: { summary: `Read: ${title}`, actions: auto } }], stop_reason: 'tool_use', usage: { input_tokens: 900, output_tokens: 90 } }) });
   }
   const per = {
     'Replies count': [
@@ -52,7 +52,7 @@ page.on('request', (req) => {
     'Office hours': [],
   }[title] ?? [];
   const input = { summary: `Read: ${title}`, actions: per };
-  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_actions', input }], stop_reason: 'tool_use', usage: { input_tokens: 1800, output_tokens: 180 } }) });
+  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_actions', input }], stop_reason: 'tool_use', usage: { input_tokens: 1800, output_tokens: 180 } }) });
 });
 
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });

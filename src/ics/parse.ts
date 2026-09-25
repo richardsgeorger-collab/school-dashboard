@@ -38,7 +38,7 @@ export function unfoldLines(text: string): string[] {
 }
 
 export function unescapeText(v: string): string {
-  return v.replace(/\\n/gi, '\n').replace(/\\,/g, ',').replace(/\;/g, ';').replace(/\\\\/g, '\\');
+  return v.replace(/\\n/gi, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
 }
 
 function splitProp(line: string): { name: string; params: Record<string, string>; value: string } | null {

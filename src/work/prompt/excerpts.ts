@@ -36,7 +36,7 @@ const words = (s: string) =>
 
 /** Words that say what this assignment is about, beyond its type. */
 export function termsFor(item: Pick<Item, 'title' | 'topic' | 'notes'>, extra = ''): string[] {
-  const topic = (item.topic ?? '').replace(/^topic\s*\d+\s*[:\-]\s*/i, '');
+  const topic = (item.topic ?? '').replace(/^topic\s*\d+\s*[:-]\s*/i, '');
   return [...new Set([...words(item.title), ...words(topic), ...words(extra)])];
 }
 

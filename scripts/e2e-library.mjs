@@ -153,7 +153,7 @@ page.on('request', (req) => {
   if (!url.startsWith('https://api.anthropic.com/')) return req.continue();
   if (req.method() === 'OPTIONS') return req.respond({ status: 204, headers: cors });
   seen.push(JSON.parse(req.postData() ?? '{}'));
-  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'text', text: 'ok (Stoichiometry lecture, page 2)' }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
+  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'text', text: 'ok (Stoichiometry lecture, page 2)' }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }) });
 });
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });

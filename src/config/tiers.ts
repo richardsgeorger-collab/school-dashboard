@@ -1,0 +1,158 @@
+/**
+ * THE ONE PLACE prices, limits, trials and feature gating live. Nothing else in the app or the server knows a price
+ * or a cap. Change a number here and it changes everywhere, client and Edge Functions alike: `scripts/sync-shared.mjs`
+ * copies this file to `supabase/functions/_shared/` and a test fails if the copies drift.
+ *
+ * Money is in dollars. Time is in days unless the name says otherwise.
+ */
+
+export const TIERS = ['free', 'plus', 'pro', 'max'] as const;
+export type Tier = (typeof TIERS)[number];
+
+export const TIER_NAMES: Record<Tier, string> = { free: 'Free', plus: 'Plus', pro: 'Pro', max: 'Max' };
+
+/** Monthly and annual prices. Annual is framed as "2 months free" in the UI; the numbers here are the truth. */
+export const PRICES: Record<Exclude<Tier, 'free'>, { month: number; year: number }> = {
+  plus: { month: 3.99, year: 29 },
+  pro: { month: 6.99, year: 49 },
+  max: { month: 9.99, year: 69 },
+};
+
+/**
+ * Stripe price ids, per environment. Test-mode ids until launch. Replace the placeholders with the ids Stripe shows
+ * on each price; the checkout function refuses to run while a placeholder is in use.
+ */
+export const STRIPE_PRICE_IDS: Record<Exclude<Tier, 'free'>, { month: string; year: string }> = {
+  plus: { month: 'price_PLACEHOLDER_plus_month', year: 'price_PLACEHOLDER_plus_year' },
+  pro: { month: 'price_PLACEHOLDER_pro_month', year: 'price_PLACEHOLDER_pro_year' },
+  max: { month: 'price_PLACEHOLDER_max_month', year: 'price_PLACEHOLDER_max_year' },
+};
+
+/** Every new account: Max for seven days, no card, then Free unless they pay. */
+export const TRIAL = { tier: 'max' as Tier, days: 7, cardRequired: false };
+
+/** After a failed payment the tier is kept this long before dropping to Free. */
+export const GRACE_DAYS = 7;
+
+/** Invite a friend: both get Plus for a month. */
+export const REFERRAL = { rewardTier: 'plus' as Tier, days: 30, both: true };
+
+/** Per-day and per-week caps. `null` means unlimited. */
+export const LIMITS = {
+  /** AI chat messages a day (the coach). Pro 10, Max 30, as set on 2026-09-24. */
+  aiMessagesPerDay: { free: 0, plus: 0, pro: 10, max: 30 } as Record<Tier, number>,
+  /** Lectures processed a week (transcript → notes). */
+  lecturesPerWeek: { free: 0, plus: 0, pro: 0, max: 10 } as Record<Tier, number>,
+  /** How far ahead Now's smart suggestions look. Free sees this week only. */
+  smartSuggestionDays: { free: 7, plus: null, pro: null, max: null } as Record<Tier, number | null>,
+};
+
+/**
+ * Hard monthly ceiling on what a student may cost in AI, in dollars, per tier. Tracked from real usage. At
+ * AI_WARN_AT they get a heads-up; at 100% AI features pause until the first of next month. No student ever costs more
+ * in AI than they pay.
+ */
+export const AI_CEILING_USD: Record<Tier, number> = { free: 0, plus: 0.75, pro: 2.5, max: 4.0 };
+export const AI_WARN_AT = 0.8;
+
+/**
+ * Every AI call has a hard output cap, per kind of call. Nothing runs without one. The wrapper takes the lower of what
+ * a caller asks for and this. Adaptive thinking spends from the same cap, which is why the reasoning passes are large.
+ */
+export const MAX_TOKENS = {
+  coach: 4000,
+  tutor: 1500,
+  announcement: 4000,
+  class_plan: 12_000,
+  term_plan: 12_000,
+  lecture: 4000,
+  study: 6000,
+  quiz: 4000,
+  brief: 1500,
+  draft: 1500,
+  method: 1500,
+  links: 2500,
+  audit: 12_000,
+  needs: 1200,
+  recap: 1500,
+  other: 1000,
+} as const;
+export type AiKind = keyof typeof MAX_TOKENS;
+
+/** Which feature each kind of AI call belongs to, so the meter can gate it by tier. */
+export const AI_KIND_FEATURE: Record<AiKind, Feature> = {
+  coach: 'aiChat',
+  tutor: 'aiChat',
+  brief: 'aiChat',
+  draft: 'aiChat',
+  method: 'aiChat',
+  announcement: 'announcementAI',
+  needs: 'announcementAI',
+  audit: 'announcementAI',
+  class_plan: 'syllabusAI',
+  term_plan: 'syllabusAI',
+  links: 'syllabusAI',
+  lecture: 'lectures',
+  study: 'flashcards',
+  quiz: 'flashcards',
+  recap: 'weeklyRecap',
+  other: 'aiChat',
+};
+
+/** Kinds that count against the daily message cap. */
+export const MESSAGE_KINDS: readonly AiKind[] = ['coach', 'tutor', 'brief', 'draft', 'method', 'other'];
+
+/** The lowest tier that has each feature. */
+export const FEATURES = {
+  // Free
+  haloManualSync: 'free',
+  monthView: 'free',
+  agendaView: 'free',
+  nowBasic: 'free',
+  manualItems: 'free',
+  // Plus
+  haloAutoSync: 'plus',
+  nowSmart: 'plus',
+  reminders: 'plus',
+  heavyDayWarnings: 'plus',
+  gamification: 'plus',
+  icsFeed: 'plus',
+  themes: 'plus',
+  // Pro
+  announcementAI: 'pro',
+  syllabusAI: 'pro',
+  gradeProjection: 'pro',
+  aiChat: 'pro',
+  examPlans: 'pro',
+  // Max
+  lectures: 'max',
+  flashcards: 'max',
+  weeklyRecap: 'max',
+  earlyAccess: 'max',
+} as const satisfies Record<string, Tier>;
+export type Feature = keyof typeof FEATURES;
+
+/** One line per feature for the upgrade sheet. What it does, not what it is called. */
+export const FEATURE_LINES: Record<Feature, string> = {
+  haloManualSync: 'Pull your assignments and grades from Halo with one tap.',
+  monthView: 'See the month at a glance.',
+  agendaView: 'Your work, day by day.',
+  nowBasic: 'What to do right now.',
+  manualItems: 'Add anything Halo does not have.',
+  haloAutoSync: 'Halo syncs on its own while your browser is open. Nothing to tap.',
+  nowSmart: 'Now ranks everything by due date, time it takes, and points, all term long.',
+  reminders: 'A morning note with your day, and a nudge before something slips.',
+  heavyDayWarnings: 'A heads-up the night before a heavy day, while there is still time.',
+  gamification: 'Points, streaks, and a bar that shows the term filling in.',
+  icsFeed: 'Your deadlines in Google or Apple Calendar, live.',
+  themes: 'Dark mode and themes.',
+  announcementAI: 'Reads every Halo announcement and puts the real requirements on your assignments.',
+  syllabusAI: 'Reads syllabi and rubrics into assignments, real start dates, and prep steps.',
+  gradeProjection: 'Your grade so far, and what you need on the final.',
+  aiChat: 'Ask what to work on next. It knows your classes.',
+  examPlans: 'Studying spread over the days before a test, not the night before.',
+  lectures: 'Record a lecture, get notes, a summary, and the key points.',
+  flashcards: 'Flashcards and practice questions from your own lectures.',
+  weeklyRecap: 'Sunday: what you finished, what is coming, where you are behind.',
+  earlyAccess: 'New features first.',
+};

@@ -48,7 +48,7 @@ export function termShape(items: Item[], courses: Course[], term: { start: DateS
   }
   const sorted = [...weeks.map((w) => w.points)].sort((a, b) => a - b);
   const q3 = sorted[Math.floor(sorted.length * 0.75)] ?? 0;
-  for (const w of weeks) w.brutal = (w.points >= q3 && w.points > 0 && w.points >= 150) || w.big.length >= 2;
+  for (const w of weeks) w.brutal = (w.points >= q3 && w.points >= 150) || w.big.length >= 2;
   const total = Math.max(1, diffDays(term.start, term.end));
   const stakes = courses.map((course) => {
     const g = courseGrade(course.id, items);

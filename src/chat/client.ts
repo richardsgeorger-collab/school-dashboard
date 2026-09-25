@@ -1,13 +1,8 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { callGateway, GatewayError, type ToolSpec } from '../ai/gateway';
 import { recordUsage } from '../ai/usage';
 import { CHAT_TOOLS, dispatchTool, SYSTEM_PROMPT, type ToolApi } from './context';
 
-/** The SDK is only pulled in when the coach is actually used. */
-async function sdk() {
-  return (await import('@anthropic-ai/sdk')).default;
-}
-
-export const CHAT_MODEL = 'claude-sonnet-4-6';
 const MAX_TOOL_ROUNDS = 3;
 
 export interface ChatTurn {
@@ -19,8 +14,9 @@ export interface ChatTurn {
 }
 
 export interface SendArgs {
-  apiKey: string;
-  /** Test hook: a fetch that answers instead of api.anthropic.com. */
+  /** Development only: a browser key sends the call straight to Anthropic. Production goes through the server. */
+  apiKey?: string;
+  /** Test hook: a fetch that answers instead of the network. */
   fetch?: typeof globalThis.fetch;
   history: ChatTurn[];
   userText: string;
@@ -37,17 +33,17 @@ export interface SendArgs {
   timeoutMs?: number;
 }
 
-/** One user message through the model, running tool calls locally until it answers in text. */
 /** Long enough for a real answer with thinking, short enough that a hung request does not spin for ever. */
 export const CHAT_TIMEOUT_MS = 90_000;
 
 export class ChatTimeout extends Error {
   constructor() {
-    super('That took too long and I stopped waiting. Your key and connection are probably fine; ask again.');
+    super('That took too long and I stopped waiting. Your connection is probably fine; ask again.');
     this.name = 'ChatTimeout';
   }
 }
 
+/** One user message through the model, running tool calls locally until it answers in text. */
 export async function sendChat(args: SendArgs): Promise<string> {
   const { apiKey, history, userText, context, syllabi, materials, api, fetch, reasoning = true } = args;
   // Nothing below has a deadline of its own. Without this a stalled connection leaves the dots spinning and the
@@ -58,31 +54,32 @@ export async function sendChat(args: SendArgs): Promise<string> {
     const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new ChatTimeout()), args.timeoutMs ?? override ?? CHAT_TIMEOUT_MS));
     return Promise.race([sendChat({ ...args, noTimeout: true }), timeout]);
   }
-  const Anthropic = await sdk();
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: fetch ? 0 : 1, ...(fetch ? { fetch } : {}) });
   const messages: Anthropic.MessageParam[] = [
     ...history.slice(-20).map((t) => ({ role: t.role, content: t.text }) as Anthropic.MessageParam),
     { role: 'user', content: userText },
   ];
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-    const response = await client.messages.create({
-      model: CHAT_MODEL,
-      // Adaptive thinking spends from this budget before a single word is written. At 600 a hard question — "I have
-      // a quiz tomorrow on 1.4 to 2.7, how do I prepare" — used the lot on thinking and returned no text at all.
-      max_tokens: reasoning ? 4000 : 1200,
-      ...(reasoning ? { thinking: { type: 'adaptive' as const } } : {}),
-      system: [
-        { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-        ...(syllabi ? [{ type: 'text' as const, text: `Syllabi:\n${syllabi}`, cache_control: { type: 'ephemeral' as const } }] : []),
-        ...(materials ? [{ type: 'text' as const, text: `Materials:\n${materials}` }] : []),
-        { type: 'text', text: `Context:\n${context}` },
-      ],
-      tools: CHAT_TOOLS,
-      messages,
-    });
+    const response = await callGateway(
+      {
+        kind: 'coach',
+        // Adaptive thinking spends from this budget before a single word is written. At 600 a hard question — "I have
+        // a quiz tomorrow on 1.4 to 2.7, how do I prepare" — used the lot on thinking and returned no text at all.
+        max_tokens: reasoning ? 4000 : 1200,
+        think: reasoning,
+        system: [
+          { text: SYSTEM_PROMPT, cache: true },
+          ...(syllabi ? [{ text: `Syllabi:\n${syllabi}`, cache: true }] : []),
+          ...(materials ? [{ text: `Materials:\n${materials}` }] : []),
+          { text: `Context:\n${context}` },
+        ],
+        tools: CHAT_TOOLS as unknown as ToolSpec[],
+        messages,
+      },
+      { apiKey, fetch },
+    );
 
-    recordUsage('coach', CHAT_MODEL, response.usage);
+    recordUsage('coach', response.model, response.usage);
     const text = response.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map((b) => b.text)
@@ -106,16 +103,8 @@ export async function sendChat(args: SendArgs): Promise<string> {
   return 'I made those changes. Ask me again for the next step.';
 }
 
+/** One plain sentence for the conversation. Gateway refusals already come worded; upstream failures name the status. */
 export async function describeError(e: unknown): Promise<string> {
-  const Anthropic = await sdk();
-  if (e instanceof Anthropic.AuthenticationError) return 'That API key was rejected. Check it and try again.';
-  if (e instanceof Anthropic.RateLimitError) return 'Rate limited. Give it a minute.';
-  if (e instanceof Anthropic.APIConnectionError) return 'Could not reach Anthropic. Check your connection.';
-  if (e instanceof Anthropic.APIError) {
-    // The SDK's message is the whole response body. The API's own sentence is the useful part.
-    const body = e.message ?? '';
-    const said = /"message"\s*:\s*"([^"]+)"/.exec(body)?.[1];
-    return said ? `${said} (Anthropic returned ${e.status}.)` : `Anthropic returned ${e.status}.`;
-  }
+  if (e instanceof GatewayError) return e.code === 'upstream' && e.status ? `${e.message} (Anthropic returned ${e.status}.)` : e.message;
   return e instanceof Error ? e.message : String(e);
 }

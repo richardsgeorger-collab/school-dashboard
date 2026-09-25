@@ -1,0 +1,8 @@
+/**
+ * The only model this product calls. Every AI request goes through the gateway, which sets this; nothing else may
+ * name a model. `model.test.ts` fails the build if any other model string appears anywhere in the codebase.
+ */
+export const MODEL = 'claude-haiku-4-5-20251001';
+
+/** What it costs, per million tokens, for the meter. Update when Anthropic's price list does. */
+export const MODEL_PRICES_USD = { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 };

@@ -1,8 +1,10 @@
+import { MODEL_PRICES_USD } from './model';
+
 /**
  * What the AI features cost, measured, not guessed: every call records the tokens the API reported, by month and kind.
  * Kept in this browser only. Prices are editable so the number stays honest when Anthropic's list changes.
  */
-export type UsageKind = 'class_plan' | 'term_plan' | 'lecture' | 'announcement' | 'tutor' | 'brief' | 'draft' | 'method' | 'links' | 'study' | 'quiz' | 'coach' | 'audit' | 'needs' | 'other';
+export type UsageKind = 'class_plan' | 'term_plan' | 'lecture' | 'announcement' | 'tutor' | 'brief' | 'draft' | 'method' | 'links' | 'study' | 'quiz' | 'coach' | 'audit' | 'needs' | 'recap' | 'other';
 
 export interface UsageRow {
   month: string;
@@ -23,8 +25,8 @@ export interface Prices {
   cacheWrite: number;
 }
 
-/** Sonnet-class list prices as of this build; edit in Settings when they change. */
-export const DEFAULT_PRICES: Prices = { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 };
+/** Haiku 4.5 list prices as of this build, the same numbers the server meters with; edit in Settings when they change. */
+export const DEFAULT_PRICES: Prices = { input: MODEL_PRICES_USD.input, output: MODEL_PRICES_USD.output, cacheRead: MODEL_PRICES_USD.cacheRead, cacheWrite: MODEL_PRICES_USD.cacheWrite };
 
 export const USAGE_SLOT = 'school-dashboard:ai-usage';
 export const PRICES_SLOT = 'school-dashboard:ai-prices';

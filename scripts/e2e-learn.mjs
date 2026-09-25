@@ -41,8 +41,8 @@ const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('school-
 const setState = (s) => page.evaluate((v) => localStorage.setItem('school-dashboard:v1', JSON.stringify(v)), s);
 
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-expose-headers': '*' };
-const toolReply = (name, input) => JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu', name, input }], stop_reason: 'tool_use', usage: { input_tokens: 9000, output_tokens: 900 } });
-const textReply = (text) => JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'text', text }], stop_reason: 'end_turn', usage: { input_tokens: 7000, output_tokens: 200, cache_read_input_tokens: 5000 } });
+const toolReply = (name, input) => JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu', name, input }], stop_reason: 'tool_use', usage: { input_tokens: 9000, output_tokens: 900 } });
+const textReply = (text) => JSON.stringify({ id: 'msg', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'text', text }], stop_reason: 'end_turn', usage: { input_tokens: 7000, output_tokens: 200, cache_read_input_tokens: 5000 } });
 const calls = [];
 await page.setRequestInterception(true);
 page.on('request', (req) => {

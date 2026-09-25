@@ -1,13 +1,10 @@
-import { recordUsage } from '../ai/usage';
-import type Anthropic from '@anthropic-ai/sdk';
+import { callTool } from '../ai/client';
 import type { Course, DateStr } from '../domain/types';
 import type { Mention, MentionKind } from '../record/notes';
 import { auditStatusKind, isGenericPage, type AuditParse, type AuditStatus, type ClassCoverage } from './audit';
 import { CONTENT, isCoverageLine, isNoiseLine, isPageNameLine } from './noise';
 import { resolveCourse } from './normalize';
 
-/** Same model as the coach and the lecture pass. */
-export const READ_MODEL = 'claude-sonnet-4-6';
 const MAX_CHARS = 120_000;
 
 const STATUSES = ['new', 'changed', 'missing', 'grade', 'overdue', 'announce', 'schedule', 'rubric', 'other'] as const;
@@ -15,7 +12,6 @@ const STATUSES = ['new', 'changed', 'missing', 'grade', 'overdue', 'announce', '
 export const READ_TOOL = {
   name: 'audit_findings',
   description: 'Everything an agent’s freeform Halo audit reported, as structured findings and per-class coverage.',
-  strict: true,
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -172,23 +168,11 @@ export function parseFromTool(raw: unknown, courses: Course[], audited: Course[]
   return out;
 }
 
-/** One call, the key from this browser, answered through the forced tool. Throws when the model does not answer. */
-export async function readAudit(args: ReadArgs & { apiKey: string; audited?: Course[]; fetch?: typeof globalThis.fetch }): Promise<AuditParse> {
-  const { default: AnthropicSdk } = await import('@anthropic-ai/sdk');
-  const client = new AnthropicSdk({ apiKey: args.apiKey, dangerouslyAllowBrowser: true, maxRetries: args.fetch ? 0 : 1, ...(args.fetch ? { fetch: args.fetch } : {}) });
+/** One call through the gateway, answered through the forced tool. Throws when the model does not answer. */
+export async function readAudit(args: ReadArgs & { apiKey?: string; audited?: Course[]; fetch?: typeof globalThis.fetch }): Promise<AuditParse> {
   const { system, user } = buildReadPrompt(args);
-  const response = await client.messages.create({
-    model: READ_MODEL,
-    max_tokens: 12000,
-    system,
-    tools: [READ_TOOL as unknown as Anthropic.Tool],
-    tool_choice: { type: 'tool', name: READ_TOOL.name },
-    messages: [{ role: 'user', content: user }],
-  });
-  recordUsage('audit', READ_MODEL, response.usage);
-  const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (!use) throw new Error('The model did not return findings.');
-  return parseFromTool(use.input, args.courses, args.audited ?? []);
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'audit', system: [{ text: system, cache: true }], user, tool: READ_TOOL, maxTokens: 12_000 });
+  return parseFromTool(r.input, args.courses, args.audited ?? []);
 }
 
 export type LineKind = 'finding' | 'coverage' | 'header' | 'noise' | 'prose' | 'unknown';

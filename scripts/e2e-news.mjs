@@ -28,7 +28,7 @@ page.on('request', (req) => {
     { kind: 'date_change', title: 'Topic 3 Quiz', date: '2026-09-25', time: '23:59', points: 0, quote: 'the Topic 3 quiz moves to Friday the 25th', confidence: 'high', item_id: '', note: 'It moved later.' },
     { kind: 'info', title: 'Bring goggles', date: '', time: '', points: 0, quote: 'bring your lab goggles on Thursday', confidence: 'high', item_id: '', note: 'Pack them Wednesday night.' },
   ] };
-  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_findings', input }], stop_reason: 'tool_use', usage: { input_tokens: 2400, output_tokens: 260 } }) });
+  return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_findings', input }], stop_reason: 'tool_use', usage: { input_tokens: 2400, output_tokens: 260 } }) });
 });
 
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });

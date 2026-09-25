@@ -286,7 +286,7 @@ describe('running the passes', () => {
     expect(sent.map((r) => r.system.map((b) => b.cached))).toEqual([[false, true, false], [false, true, false], [false, true, false]]);
     expect(new Set(sent.map((r) => r.system.slice(0, 2).map((b) => b.text).join('|'))).size).toBe(1);
     expect(sent[1].user).toContain('Break these down: A5, A4');
-    expect(first.plan.model).toBe('claude-sonnet-4-6');
+    expect(first.plan.model).toBe('claude-haiku-4-5-20251001');
     expect(Object.keys(first.plan.items).length).toBe(5);
     expect(first.plan.items.draft.milestones.length).toBe(6);
     expect(first.plan.items.draft.sources.length).toBe(2);

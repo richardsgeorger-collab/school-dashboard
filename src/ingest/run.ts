@@ -1,4 +1,5 @@
-import { AI_MODEL, callTool, type ToolSpec } from '../ai/client';
+import { callTool, type ToolSpec } from '../ai/client';
+import { MODEL } from '../ai/model';
 import type { ApiUsage } from '../ai/usage';
 import type { AppData, Course, DateStr } from '../domain/types';
 import { contextBlocks, gatherClassContext, type ClassContext, type ContextLoaders } from './context';
@@ -19,7 +20,6 @@ export interface RunDeps {
   fetch?: typeof globalThis.fetch;
   loaders: ContextLoaders;
   cache: Cache;
-  model?: string;
 }
 
 /** What a run actually spent, summed from what the API reported per call. */
@@ -84,11 +84,11 @@ export async function runClassPass(course: Course, data: AppData, today: DateStr
   if (cached && !opts.force && planState(cached, ctx) === 'fresh') return { plan: cached, ctx, cached: true, cost: NO_COST };
 
   const blocks = contextBlocks(ctx);
-  const model = deps.model ?? AI_MODEL;
+  const model = MODEL;
   let cost = NO_COST;
   const run = async ({ step, tool, prompt, maxTokens }: Call) => {
     opts.onStep?.(step);
-    const r = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'class_plan', model, system: prompt.system, user: prompt.user, tool, maxTokens, think: step === 'core' });
+    const r = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'class_plan', system: prompt.system, user: prompt.user, tool, maxTokens, think: step === 'core' });
     cost = addCost(cost, r.usage);
     return r.input;
   };
@@ -130,8 +130,8 @@ export async function runTermPass(data: AppData, plans: Record<string, ClassPlan
   if (cached && !opts.force && cached.inputHash === input.inputHash) return { term: cached, cached: true, cost: NO_COST };
   opts.onStep?.('term');
   const prompt = buildTermPrompt(input);
-  const model = deps.model ?? AI_MODEL;
-  const result = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'term_plan', model, system: prompt.system, user: prompt.user, tool: TERM_PLAN_TOOL, maxTokens: 12_000, think: true });
+  const model = MODEL;
+  const result = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'term_plan', system: prompt.system, user: prompt.user, tool: TERM_PLAN_TOOL, maxTokens: 12_000, think: true });
   const term = termFromTool(result.input, input, model);
   await deps.cache.put(TERM_KEY, term);
   return { term, cached: false, cost: addCost(NO_COST, result.usage) };

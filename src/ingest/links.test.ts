@@ -32,7 +32,7 @@ describe('topics that overlap across classes', () => {
     expect(linksFor(mkItem({ id: 'k', courseId: 'eng', title: 'Essay' }), links, [chm, esg, eng])).toEqual([]);
   });
   it('runs as one forced tool call', async () => {
-    const fetch = (async () => new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'tool_use', id: 't', name: 'topic_links', input: { links: [{ a_code: 'CHM-113', a_topic: 'moles', b_code: 'ESG-162', b_topic: 'Dimensional analysis', note: 'Counting by the mole is a unit conversion.' }] } }], stop_reason: 'tool_use', usage: { input_tokens: 5, output_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof globalThis.fetch;
+    const fetch = (async () => new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 't', name: 'topic_links', input: { links: [{ a_code: 'CHM-113', a_topic: 'moles', b_code: 'ESG-162', b_topic: 'Dimensional analysis', note: 'Counting by the mole is a unit conversion.' }] } }], stop_reason: 'tool_use', usage: { input_tokens: 5, output_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } })) as unknown as typeof globalThis.fetch;
     const links = await findLinks({ apiKey: 'k', fetch, courses: [chm, esg] });
     expect(links.map((l) => [l.a.topic, l.b.topic])).toEqual([['moles', 'Dimensional analysis']]);
   });

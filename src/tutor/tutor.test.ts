@@ -50,7 +50,7 @@ describe('what the tutor knows beyond the sources', () => {
     let sent: Record<string, unknown> | null = null;
     const fetch = (async (_url: unknown, init?: RequestInit) => {
       sent = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      return new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6', content: [{ type: 'text', text: 'What have you tried so far? [S1]' }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'text', text: 'What have you tried so far? [S1]' }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 5 } }), { status: 200, headers: { 'content-type': 'application/json' } });
     }) as unknown as typeof globalThis.fetch;
     const s = tutorSituation(chm, items, recordings, [], [], [chm], '2026-09-15', TZ, 'stoichiometry');
     const answer = await askTutor({ apiKey: 'k', fetch, sources, situation: s, history: [{ role: 'user', text: 'hi' }, { role: 'assistant', text: 'hello' }], text: 'How many moles?' });

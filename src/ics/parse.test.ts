@@ -8,7 +8,7 @@ import { descriptionFields, icsLocations, parseIcs, splitTitle, suggestCourse, u
 describe('ics parsing', () => {
   it('unfolds continuation lines and unescapes text', () => {
     expect(unfoldLines('A:one\r\n two\r\nB:three')).toEqual(['A:onetwo', 'B:three']);
-    expect(unescapeText('a\\nb\\, c\; d\\\\e')).toBe('a\nb, c; d\\e');
+    expect(unescapeText('a\\nb\\, c\\; d\\\\e')).toBe('a\nb, c; d\\e');
   });
   it('reads every field the export fills in', () => {
     const f = parseIcs(SAMPLE_ICS);

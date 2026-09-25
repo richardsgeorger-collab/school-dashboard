@@ -25,7 +25,6 @@ await page.evaluate(() => {
   localStorage.setItem('school-dashboard:v1', JSON.stringify(s));
 });
 await page.reload({ waitUntil: 'networkidle0' });
-const xpBefore = await page.evaluate(() => document.querySelector('.topbar')?.textContent && null);
 let s = await state();
 const chmDoneBefore = s.items.filter((i) => i.courseId === s.courses.find((c) => c.code === 'CHM-113').id && i.status === 'done').map((i) => i.id);
 console.log('seeded: ENG done', s.items.filter((i) => i.courseId === s.courses.find((c) => c.code === 'ENG-105').id && i.status === 'done').length, '| CHM done', chmDoneBefore.length);

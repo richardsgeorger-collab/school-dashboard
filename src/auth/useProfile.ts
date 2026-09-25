@@ -1,0 +1,87 @@
+import { useCallback, useEffect, useState } from 'react';
+import { effectiveTier, type TierSource } from '../config/flags';
+import type { Tier } from '../config/tiers';
+import { isConfigured, supabase } from './client';
+
+/** The row behind a signed-in student: what they are on, how long the trial has, whether onboarding is done. */
+export interface Profile extends TierSource {
+  userId: string | null;
+  referralCode: string | null;
+  onboardingStep: string | null;
+  onboardingDoneAt: string | null;
+  isAdmin: boolean;
+  timezone: string;
+}
+
+/**
+ * A build with no backend (a local checkout) has nothing to gate on, so it runs open: the developer's own copy is
+ * effectively Max. Every real build has a backend and a signed-in profile.
+ */
+export const LOCAL_PROFILE: Profile = { userId: null, tier: 'max', trialEndsAt: null, graceUntil: null, referralCode: null, onboardingStep: null, onboardingDoneAt: null, isAdmin: false, timezone: 'America/Phoenix' };
+
+interface Row {
+  user_id: string;
+  tier: Tier;
+  trial_ends_at: string | null;
+  grace_until: string | null;
+  referral_code: string | null;
+  onboarding_step: string | null;
+  onboarding_done_at: string | null;
+  is_admin: boolean;
+  timezone: string;
+}
+
+export const profileFromRow = (r: Row): Profile => ({ userId: r.user_id, tier: r.tier, trialEndsAt: r.trial_ends_at, graceUntil: r.grace_until, referralCode: r.referral_code, onboardingStep: r.onboarding_step, onboardingDoneAt: r.onboarding_done_at, isAdmin: r.is_admin, timezone: r.timezone });
+
+export interface ProfileState {
+  profile: Profile | null;
+  tier: Tier;
+  loading: boolean;
+  reload: () => void;
+  /** The client may change only these: onboarding progress and zone. Tier and trial are server-only. */
+  update: (patch: Partial<Pick<Row, 'onboarding_step' | 'onboarding_done_at' | 'timezone'>>) => Promise<void>;
+}
+
+export function useProfile(userId: string | null): ProfileState {
+  const configured = isConfigured();
+  const [profile, setProfile] = useState<Profile | null>(configured ? null : LOCAL_PROFILE);
+  const [loading, setLoading] = useState(configured && !!userId);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const c = supabase();
+    if (!c || !userId) {
+      setProfile(configured ? null : LOCAL_PROFILE);
+      setLoading(false);
+      return;
+    }
+    let live = true;
+    setLoading(true);
+    void c
+      .from('profiles')
+      .select('user_id, tier, trial_ends_at, grace_until, referral_code, onboarding_step, onboarding_done_at, is_admin, timezone')
+      .eq('user_id', userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!live) return;
+        setProfile(data ? profileFromRow(data as Row) : null);
+        setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [configured, userId, tick]);
+
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const update = useCallback(
+    async (patch: Partial<Pick<Row, 'onboarding_step' | 'onboarding_done_at' | 'timezone'>>) => {
+      const c = supabase();
+      if (!c || !userId) return;
+      await c.from('profiles').update(patch).eq('user_id', userId);
+      setTick((t) => t + 1);
+    },
+    [userId],
+  );
+
+  return { profile, tier: effectiveTier(profile), loading, reload, update };
+}

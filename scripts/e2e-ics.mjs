@@ -5,7 +5,6 @@ import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 const out = (process.argv[2] ?? 'ics.png').replace(/\.png$/, '');
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const seed = JSON.parse(fs.readFileSync(new URL('../src/data/seed.json', import.meta.url), 'utf8'));
 const chm = seed.courses.find((c) => c.code === 'CHM-113');
 const esg = seed.courses.find((c) => c.code === 'ESG-162');

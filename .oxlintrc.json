@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "react",
+    "unicorn",
+    "oxc"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
+    "no-console": [
+      "warn",
+      {
+        "allow": [
+          "warn",
+          "error"
+        ]
+      }
+    ],
+    "react/react-in-jsx-scope": "off",
+    "react/refs": "warn",
+    "react/set-state-in-effect": "warn",
+    "react/purity": "warn",
+    "react/immutability": "warn",
+    "react/use-memo": "warn",
+    "unicorn/prefer-string-starts-ends-with": "off",
+    "unicorn/no-useless-spread": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn",
+    "unicorn/prefer-set-size": "warn",
+    "unicorn/no-array-sort": "off",
+    "unicorn/consistent-function-scoping": "off"
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "supabase/functions/_shared",
+    "public"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "scripts/**",
+        "**/*.test.ts",
+        "supabase/**"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}
