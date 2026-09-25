@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   webpush.setVapidDetails(CONTACT, PUB, PRIV);
   const db = admin();
   const now = new Date().toISOString();
-  const { data: due, error } = await db.from('notification_plan').select('id, user_id, kind, title, body, url').is('sent_at', null).lte('send_at', now).limit(200);
+  const { data: due, error } = await db.from('notification_plan').select('id, user_id, key, kind, title, body, url').is('sent_at', null).lte('send_at', now).limit(200);
   if (error) return json(500, { error: error.message });
   let sent = 0;
   let dropped = 0;
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     let delivered = 0;
     for (const s of subs ?? []) {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint as string, keys: s.keys as { p256dh: string; auth: string } }, JSON.stringify({ title: n.title, body: n.body, url: n.url, tag: n.kind }), { TTL: 3600 });
+        await webpush.sendNotification({ endpoint: s.endpoint as string, keys: s.keys as { p256dh: string; auth: string } }, JSON.stringify({ title: n.title, body: n.body, url: n.url, tag: n.key ?? n.kind }), { TTL: 3600 });
         sent++;
         delivered++;
       } catch (e) {

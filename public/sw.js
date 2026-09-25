@@ -1,6 +1,6 @@
 // School Dashboard service worker: the app shell offline, and push notifications. Assets are hashed by the build
 // and cached on first use; navigations go to the network first and fall back to the cached shell.
-const VERSION = 'sd-1';
+const VERSION = 'sd-2';
 const SHELL = new URL('./', self.location.href).pathname;
 
 self.addEventListener('install', (e) => {
@@ -32,7 +32,9 @@ self.addEventListener('push', (e) => {
   } catch {
     data.body = e.data ? e.data.text() : '';
   }
-  e.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: SHELL + 'icon-192.png', badge: SHELL + 'icon-192.png', data: { url: data.url }, tag: data.tag || undefined }));
+  // Tagged by the notice's own key: two different notices never replace each other, and a notice that does replace
+  // an older copy of itself still alerts (renotify) instead of swapping silently.
+  e.waitUntil(self.registration.showNotification(data.title, { body: data.body, icon: SHELL + 'icon-192.png', badge: SHELL + 'icon-192.png', data: { url: data.url }, ...(data.tag ? { tag: data.tag, renotify: true } : {}) }));
 });
 
 self.addEventListener('notificationclick', (e) => {
