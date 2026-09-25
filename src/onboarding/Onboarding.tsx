@@ -9,6 +9,7 @@ import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { SyncSteps } from '../views/SyncSheet';
 import { visibleSteps, type OnboardingState, type Step } from './state';
+import { pixel } from '../analytics/pixel';
 import { track } from './track';
 
 const SLIDES = [
@@ -59,6 +60,7 @@ export function Onboarding() {
   };
   const finish = () => {
     track(step, 'complete');
+    pixel('CompleteRegistration');
     set({ step: 'done', doneAt: new Date().toISOString() });
     navigate('now');
   };

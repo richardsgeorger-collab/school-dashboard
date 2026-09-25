@@ -5887,3 +5887,17 @@ a.hero-chip:hover {
 .install-card .section-title {
   margin: 0 0 6px;
 }
+
+/* ---- checkbox rows inside fields ------------------------------------ */
+.field input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--ink);
+}
+.feedback-row p {
+  margin: 0 0 6px;
+}

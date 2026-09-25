@@ -21,6 +21,8 @@ import { Grades } from './views/Grades';
 import { Library } from './views/Library';
 import { You } from './views/You';
 import { Ai } from './views/Ai';
+import { Admin } from './views/Admin';
+import { initPixel } from './analytics/pixel';
 import { ClassPage } from './views/ClassPage';
 import { Classes } from './views/Classes';
 import { IngestView } from './views/IngestView';
@@ -168,6 +170,8 @@ function Screen() {
       return <Library />;
     case 'grades':
       return <Grades />;
+    case 'admin':
+      return <Admin />;
     case 'ai':
     case 'quiz':
     case 'tutor':
@@ -192,6 +196,7 @@ export default function App() {
   const dragging = useWindowDrop(onFile);
   const [captureOpen, setCaptureOpen] = useState(false);
   syncPress.current = () => setSyncOpen(true);
+  useEffect(() => initPixel(), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {

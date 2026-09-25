@@ -22,7 +22,9 @@ import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import type { Course } from '../domain/types';
 import { announceDb } from '../halo/announce';
 import { useRoute } from '../router';
+import { pixel } from '../analytics/pixel';
 import { NotificationsCard } from '../notify/NotificationsCard';
+import { FeedbackCard } from './FeedbackCard';
 import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
@@ -71,6 +73,7 @@ function AccountCard({ tier }: { tier: Tier }) {
   const [note, setNote] = useState<string | null>(checkout === 'success' ? 'Thank you. Your plan is live; it can take a few seconds to show here.' : checkout === 'cancel' ? 'No charge was made.' : null);
   useEffect(() => {
     if (checkout !== 'success') return;
+    pixel('Subscribe');
     const t = setTimeout(() => {
       reloadProfile();
       setTick((k) => k + 1);
@@ -120,6 +123,11 @@ function AccountCard({ tier }: { tier: Tier }) {
         ) : (
           <a className="btn small primary" href="#/you?s=plan">
             See plans
+          </a>
+        )}
+        {profile?.isAdmin && (
+          <a className="btn small" href="#/admin">
+            Admin
           </a>
         )}
         <button type="button" className="btn small" onClick={() => void auth.signOut()}>
@@ -330,6 +338,7 @@ export function You() {
         <AccountCard tier={tier} />
         <UsageCard />
         <ReferralCard />
+        <FeedbackCard />
         {section === 'plan' && <Plans current={tier} highlight={highlight} />}
         <ProgressCard />
 
@@ -566,7 +575,10 @@ export function You() {
         </Group>
       </div>
 
-      <p className="hint you-foot">School Dashboard is an independent planner and is not affiliated with Grand Canyon University. Halo is GCU&apos;s learning platform.</p>
+      <p className="hint you-foot">
+        School Dashboard is an independent planner and is not affiliated with Grand Canyon University. Halo is GCU&apos;s learning platform.{' '}
+        <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a>
+      </p>
 
       {editing && <CourseEditor key={editing.id} course={editing} onClose={() => setEditing(null)} />}
       {importing && <ImportSyllabus onClose={() => setImporting(false)} />}

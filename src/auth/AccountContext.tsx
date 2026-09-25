@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import type { Tier } from '../config/tiers';
+import { pixelOnce } from '../analytics/pixel';
 import { captureRef, claimPendingRef, rememberTier } from './referral';
 import { useAuth, type AuthState } from './useAuth';
 import { useProfile, type ProfileState } from './useProfile';
@@ -25,6 +26,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   useEffect(() => captureRef(), []);
   useEffect(() => {
     if (!auth.session) return;
+    // A first sign-in is the lead, and the trial starts with it.
+    pixelOnce('Lead');
+    pixelOnce('StartTrial');
     void claimPendingRef().then((r) => r?.ok && p.reload());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.session]);

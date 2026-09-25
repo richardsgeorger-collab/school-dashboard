@@ -44,10 +44,14 @@ been bought or enabled. The app is built to run on free tiers until the day you 
    `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT`, `NOTIFY_CRON_SECRET` as function secrets; deploy
    `notify-send`; run `supabase/migrations/0003_notifications_cron.sql` with your project ref and the same secret;
    then turn notifications on under You and confirm the sample note and, next morning, the real one.
-10. Put the Meta Pixel id in, confirm the four events fire in Events Manager.
+10. Meta Pixel: set `VITE_META_PIXEL_ID` as a repository variable (the app) and replace `META_PIXEL_ID_PLACEHOLDER`
+    in `public/landing/index.html` (the landing page). Confirm PageView, Lead, CompleteRegistration, HaloConnected
+    and Subscribe fire in Events Manager.
 11. Run the AI before/after once with your key: `ANTHROPIC_API_KEY=… BASELINE_MODEL=<the model the app used before> npm run ai:compare`,
     read `docs/ai-compare/<date>.md`, and fix any fixture the shipped model fails before launch (prompts, not model).
-12. Read `PRIVACY.md` and `TERMS.md` once more with your own name and contact in them.
+12. Replace `CONTACT_EMAIL_PLACEHOLDER` in `PRIVACY.md` and `TERMS.md`, regenerate `public/privacy.html` and
+    `public/terms.html` (the snippet in PROGRESS.md, Phase 8), and read both once more as the person whose name is on them.
+    Run `supabase/migrations/0004_admin_feedback.sql` so the admin screen and feedback screenshots work.
 13. Extension: `npm run build:extension`, zip `extension/`, upload to the Chrome Web Store (developer account,
     $5 one-time), and put the store link on the You tab and the landing page. Until then Plus users can load it
     unpacked from `extension/README.md`.

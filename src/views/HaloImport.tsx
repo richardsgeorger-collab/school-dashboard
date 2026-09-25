@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Modal } from '../components/Modal';
 import { parseHaloExport, saveLastSync } from '../halo/handoff';
 import type { HaloExport } from '../halo/types';
+import { pixelOnce } from '../analytics/pixel';
+import { track } from '../onboarding/track';
 import { DiffReview } from './DiffReview';
 
 /** Fallback path: the Halo bookmark's export, pasted or handed off. The .ics import is the normal path. */
@@ -54,7 +56,12 @@ export function HaloImport({ payload: initial = null, onClose }: { payload?: Hal
           <DiffReview
             payload={payload}
             source="halo"
-            onApplied={(s) => saveLastSync({ at: new Date().toISOString(), added: s.added, changed: s.changed, removed: s.removed, completed: s.completed + s.scored })}
+            onApplied={(s) => {
+              saveLastSync({ at: new Date().toISOString(), added: s.added, changed: s.changed, removed: s.removed, completed: s.completed + s.scored });
+              // One row per sync, with the platform, for the admin screen; the pixel once, for the funnel.
+              track('sync', 'complete');
+              pixelOnce('HaloConnected');
+            }}
             onClose={onClose}
           />
         )}

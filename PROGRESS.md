@@ -186,9 +186,41 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
 - Phone-only sync frequency for the admin screen: the `onboarding_events.platform` and `lastPull` data are in
   place; the admin view comes in Phase 8.
 
+### Phase 8: Landing page, admin, feedback, privacy and terms (2026-09-24)
+- **Landing page** (`public/landing/index.html`, served at `/school-dashboard/landing/`): a static page in the
+  app's own style. Hero ("Your week, from Halo, on one screen that says what to do now"), a mock of the Now card,
+  three value cards, the three-step sync, the four plans with prices from the config (a test fails if they drift),
+  a short FAQ, and the disclaimer in the FAQ and the footer. No GCU marks. Meta Pixel snippet with a placeholder id
+  that loads nothing until replaced; the Start button fires Lead.
+- **Pixel in the app** (`src/analytics/pixel.ts`): loads only with a real id; Lead and StartTrial on first sign-in,
+  HaloConnected on the first sync, CompleteRegistration at the end of onboarding, Subscribe on returning from
+  Stripe. No class data ever goes to Meta.
+- **Admin screen** (`#/admin`, admins only, one `admin_stats()` call): accounts, new this week, on trial, paying, per
+  tier; AI cost and calls this month and per paying account; the onboarding funnel per step (entered, completed,
+  skipped, distinct accounts); Halo syncs in the last 7 days by platform; accounts that synced in the last 30 days
+  and how many of them only ever from a phone (decision 1); open feedback with the screenshot and a Resolved button.
+  Every sync now writes one event row with its platform.
+- **Feedback** on You: an idea or something broke, two sentences, an optional screenshot from the device into a
+  private bucket that only the sender writes and admins read.
+- **Privacy and terms**: `PRIVACY.md` and `TERMS.md` in plain words (what is collected, the Halo bookmark and the
+  password it never sees, AI, Stripe, the pixel, export and delete), published as `public/privacy.html` and
+  `public/terms.html` and linked from You and the landing page. Contact email is a placeholder.
+- Fixed on the way: checkbox rows in You were inheriting the full-width input style.
+
+Regenerating the privacy and terms pages after editing the markdown (the same snippet Phase 8 used):
+
+    node -e "const fs=require('fs');const page=(t,md)=>{const h=md.split('\n').map(l=>l.startsWith('# ')?'<h1>'+l.slice(2)+'</h1>':l.startsWith('## ')?'<h2>'+l.slice(3)+'</h2>':l.startsWith('- ')?'<li>'+l.slice(2)+'</li>':/^\d+\. /.test(l)?'<li>'+l.replace(/^\d+\. /,'')+'</li>':l.trim()===''?'':'<p>'+l+'</p>').join('\n').replace(/\*\*([^*]+)\*\*/g,'<b>\$1</b>').replace(/(<li>[\s\S]*?<\/li>\n?)+/g,m=>'<ul>'+m+'</ul>');return '<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>'+t+' · School Dashboard</title><style>body{margin:0;background:#f3f5f7;color:#151a21;font:16px/1.55 system-ui,sans-serif}.wrap{max-width:720px;margin:0 auto;padding:24px 16px 48px}a{color:inherit}p,li{color:#4a545f}</style></head><body><div class=\"wrap\"><p><a href=\"./\">← School Dashboard</a></p>'+h+'</div></body></html>';};fs.writeFileSync('public/privacy.html',page('Privacy',fs.readFileSync('PRIVACY.md','utf8')));fs.writeFileSync('public/terms.html',page('Terms',fs.readFileSync('TERMS.md','utf8')));"
+
 ## In progress
 
-- Phase 8: Landing page, admin dashboard, feedback, privacy and terms.
+- Nothing. Phases 2 through 8 are built and committed. What is left needs George: see "Needs George" below and LAUNCH_CHECKLIST.md.
+
+## Needs George
+
+- The Haiku before/after numbers: `ANTHROPIC_API_KEY=… BASELINE_MODEL=<the model the app used before> npm run ai:compare` (this machine has no key).
+- How long a Halo session token lasts (needs a real Halo session; affects how often the extension can auto-sync unattended).
+- A Supabase project, Stripe test products, VAPID keys, a pixel id, the contact email: every one is a placeholder today, listed in LAUNCH_CHECKLIST.md in order.
+- The live RLS isolation test against the real project before launch.
 
 ## Decisions made alone
 
@@ -246,6 +278,15 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
   in the app and is already tested there; duplicating it in Deno would drift. The server's job is small enough to
   be obviously right: send what is due, drop dead devices.
 - **pg_cron over an external scheduler.** It is free, inside the same project, and one SQL file away.
+
+- **The landing page is static HTML in `public/`**, not a second Vite entry: nothing to bundle, nothing to
+  break, and the prices in it are pinned to the config by a test.
+- **The admin screen is one database function**, not a set of admin policies: one place to check `is_admin`,
+  and the client never needs read access to other people's rows.
+- **Feedback screenshots are a file the student picks**, not an automatic capture: no rendering library, no
+  surprise about what was captured, and it works on a phone.
+- **Every Halo sync writes an event row with its platform**, reusing the onboarding events table, so "how often do
+  phone-only users sync" is a query, not a new table.
 
 ## Extras
 
