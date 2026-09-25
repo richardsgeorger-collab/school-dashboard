@@ -17,6 +17,8 @@ export interface RunResult {
   said: string[];
   /** Operations the fake Halo was asked for, in order. */
   asked: string[];
+  /** How many times the page tried to open the dashboard tab. Zero in the extension's delivery mode. */
+  opened: number;
 }
 
 const el = (tag: string): any => {
@@ -43,6 +45,7 @@ export async function runBookmarklet(halo: Halo, opts: { download?: () => unknow
   const asked: string[] = [];
   let payload: any = null;
   let failed: string | null = null;
+  let opened = 0;
   let settle: () => void = () => {};
   const done = new Promise<void>((r) => {
     settle = r;
@@ -70,7 +73,16 @@ export async function runBookmarklet(halo: Halo, opts: { download?: () => unknow
     },
   };
   const window: any = {
-    open: () => win,
+    open: () => {
+      opened++;
+      return win;
+    },
+    // The extension mode posts to Halo's own window; the content script would answer from the same origin.
+    postMessage(p: any, origin: string) {
+      payload = p;
+      for (const fn of [...listeners]) fn({ origin, data: { kind: 'halo-received' } });
+      settle();
+    },
     addEventListener: (_: string, fn: any) => listeners.push(fn),
     removeEventListener: (_: string, fn: any) => {
       const i = listeners.indexOf(fn);
@@ -145,7 +157,7 @@ export async function runBookmarklet(halo: Halo, opts: { download?: () => unknow
   const src = opts.source ?? bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' });
   const fn = new Function('location', 'document', 'window', 'fetch', 'crypto', 'alert', 'navigator', 'setInterval', 'clearInterval', 'setTimeout', src);
   fn(
-    { hostname: 'halo.gcu.edu' },
+    { hostname: 'halo.gcu.edu', origin: 'https://halo.gcu.edu' },
     doc,
     window,
     fetchImpl,
@@ -160,5 +172,5 @@ export async function runBookmarklet(halo: Halo, opts: { download?: () => unknow
   );
 
   await Promise.race([done, new Promise<void>((r) => setTimeout(r, 4000))]);
-  return { payload, failed, said, asked };
+  return { payload, failed, said, asked, opened };
 }

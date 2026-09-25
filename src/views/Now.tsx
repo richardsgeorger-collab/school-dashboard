@@ -9,6 +9,7 @@ import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates'
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { useAccount } from '../auth/AccountContext';
+import { trialDaysLeft } from '../config/flags';
 import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
@@ -200,7 +201,8 @@ function useExamTopics(plan: ExamPlan | null, stats: Record<string, import('../d
  */
 export function Now() {
   const { data, schedule, today, term, actions, progress, previewAward, calibrate } = useStore();
-  const { tier } = useAccount();
+  const { tier, profile } = useAccount();
+  const trialDays = trialDaysLeft(profile);
   const tz = data.settings.timezone;
   const [open, setOpen] = useState<Item | null>(null);
   const [examSheet, setExamSheet] = useState(false);
@@ -418,6 +420,12 @@ export function Now() {
       {quiet && <DailyQuestion />}
 
       {!back && !exam && paceText && !(data.settings.eveningQuiet && Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date())) >= 21 && !work.some((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now())) && <p className="pace mono">{paceText}</p>}
+
+      {trialDays !== null && trialDays <= 3 && (
+        <p className="trial-line mono">
+          Your Max trial ends {trialDays === 0 ? 'today' : `in ${trialDays} day${trialDays === 1 ? '' : 's'}`}. <a href="#/you?s=plan">See plans</a>
+        </p>
+      )}
 
       <div className="term-progress" role="img" aria-label={`${pace.pct}% of the term's points banked, ${pace.elapsedPct}% of the term elapsed`}>
         <span className="term-progress-track">

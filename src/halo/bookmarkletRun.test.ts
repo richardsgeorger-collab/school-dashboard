@@ -212,13 +212,13 @@ describe('the guards themselves', () => {
     }
   });
 
-  it('nothing fails silently except the three that have nothing to lose', () => {
+  it('nothing fails silently except the four that have nothing to lose', () => {
     // A catch that writes the reason into the payload has reported it; `prob(` is not the only way.
     const silent = bodies.filter((b) => !b.includes('prob(') && !b.includes('Halo sync failed') && !b.includes('schema'));
     // The gql body's own json parse (it rethrows on the next line), the clipboard fallback, and the postMessage
-    // inside the delivery loop, which is retried every tick until it lands. Opening the tab keeps its own error so
-    // the failure message can tell a blocked pop-up from a tab that never answered.
-    expect(silent).toEqual(['openErr=e;', '', '', '']);
+    // inside each of the two delivery loops (tab, extension), retried every tick until it lands. Opening the tab
+    // keeps its own error so the failure message can tell a blocked pop-up from a tab that never answered.
+    expect(silent).toEqual(['openErr=e;', '', '', '', '']);
   });
 
   it('the per-class body is wrapped, so one bad class cannot end the run', () => {
@@ -391,5 +391,15 @@ describe('fixed from what Halo said', () => {
     const p = r.payload.problems.find((x: any) => x.kind === 'announcements' && x.op === 'GetForumNotifications');
     expect(p.message).toContain('named no announcement forum');
     expect(p.got).toContain('DQ');
+  });
+});
+
+describe('extension delivery', () => {
+  it('posts the export to Halo’s own window and never opens a tab', async () => {
+    const r = await runBookmarklet(good, { download: () => ({ downloadUrl: 'https://x/y' }), source: bookmarkletSource({ dashOrigin: 'https://richardsgoerger-collab.github.io', dashPath: '/school-dashboard/#/now?halo=1', deliver: 'message' }) });
+    expect(r.failed).toBeNull();
+    expect(r.opened).toBe(0);
+    expect(r.payload?.source).toBe('extension');
+    expect(r.said.at(-1)).toContain('Sent to the dashboard');
   });
 });

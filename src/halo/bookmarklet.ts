@@ -7,8 +7,13 @@
 export interface BookmarkletConfig {
   /** Dashboard origin the payload may be sent to, e.g. https://richardsgeorger-collab.github.io */
   dashOrigin: string;
-  /** Path opened in the dashboard, e.g. /school-dashboard/#/you?halo=1 */
+  /** Path opened in the dashboard, e.g. /school-dashboard/#/now?halo=1 */
   dashPath: string;
+  /**
+   * How the export leaves Halo. 'open' (the bookmark): open the dashboard tab and post to it. 'message' (the
+   * extension): post to Halo's own window, where the extension's content script picks it up and carries it over.
+   */
+  deliver?: 'open' | 'message';
 }
 
 export const HALO_HOST = 'halo.gcu.edu';
@@ -62,7 +67,7 @@ const Q_GRADES =
  * deploying new code does not update it. Stamping the payload is the only way the app can tell the user their
  * bookmark is old rather than quietly showing them three queries' worth of data and calling it eleven.
  */
-export const BOOKMARKLET_BUILD = '2026-09-18c';
+export const BOOKMARKLET_BUILD = '2026-09-24a';
 
 /**
  * Asked only when something already failed. If the gateway allows introspection this settles every remaining
@@ -104,10 +109,11 @@ var problems=[];
 var prob=function(where,kind,e){var m=(e&&e.message)?String(e.message):String(e);
 var list=(e&&e.errors&&e.errors.length)?e.errors.map(function(x){return String(x).slice(0,400);}):[m.slice(0,400)];
 problems.push({klass:where||null,kind:kind,message:m.slice(0,400),op:(e&&e.op)||null,status:(e&&e.status)==null?null:e.status,errors:list,sent:(e&&e.vars)?JSON.stringify(e.vars).slice(0,200):null,missingField:(e&&e.missingField)||null,got:(e&&e.shape)||null});};
-var win=null,openErr=null;try{win=window.open(P,'school-dashboard');}catch(e){openErr=e;}
-if(!win){openErr=openErr||new Error('blocked');}
+var MODE=${JSON.stringify(cfg.deliver ?? 'open')};
+var win=null,openErr=null;if(MODE==='open'){try{win=window.open(P,'school-dashboard');}catch(e){openErr=e;}
+if(!win){openErr=openErr||new Error('blocked');}}
 var fallback=function(json,why){
-say(why+' Copy this, then paste it in the dashboard under Settings, Halo, Paste Halo export.');
+say(why+' Copy this, then paste it in the dashboard: Sync, Having trouble, Paste the export.');
 var ta=document.createElement('textarea');ta.value=json;ta.readOnly=true;
 ta.style.cssText='display:block;width:100%;height:90px;margin-top:8px;font:11px monospace;color:#111;background:#fff';box.appendChild(ta);
 var b=document.createElement('button');b.textContent='Copy';
@@ -302,18 +308,19 @@ var probeTypes=['CourseClass','UserAlertsInputGQL','FilterInputGQL','Post'];
 for(var ti=0;ti<probeTypes.length;ti++){try{var TR=await gql('HaloTypeProbe',QT,{name:probeTypes[ti]});var T=(TR||{}).__type;
 if(T){var fl=[];var ff2=T.fields||T.inputFields||[];for(var fi3=0;fi3<ff2.length;fi3++){if(ff2[fi3]){fl.push(ff2[fi3].name);}}schema.types[probeTypes[ti]]=fl.sort();}}catch(e){schema.types[probeTypes[ti]]='could not read: '+((e&&e.message)||e);}}
 }catch(e){schema={introspection:'refused',why:(e&&e.message)?String(e.message).slice(0,300):String(e)};prob(null,'schema probe',e);}}
-var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:'bookmarklet',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
+var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:MODE==='open'?'bookmarklet':'extension',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
 var n=0;for(var q=0;q<classes.length;q++){n+=(classes[q].assessments||[]).length;}
 say('Read '+n+' assignment'+(n===1?'':'s')+' in '+classes.length+' class'+(classes.length===1?'':'es')+(problems.length?', '+problems.length+' thing'+(problems.length===1?'':'s')+' Halo would not give up':'')+'. Sending to the dashboard\\u2026');
-var got=false,ticks=0;var onMsg=function(e){if(e.origin===D&&e.data&&e.data.kind==='halo-received'){got=true;}};
+var ackOrigin=MODE==='open'?D:location.origin;var got=false,ticks=0;var onMsg=function(e){if(e.origin===ackOrigin&&e.data&&e.data.kind==='halo-received'){got=true;}};
 window.addEventListener('message',onMsg);
 var t0=Date.now();
 if(win){
 await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||Date.now()-t0>30000||win.closed){clearInterval(iv);res2();return;}try{win.postMessage(payload,D);}catch(e){}},400);});
 }
+else if(MODE==='message'){await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||Date.now()-t0>5000){clearInterval(iv);res2();return;}try{window.postMessage(payload,location.origin);}catch(e){}},400);});}
 window.removeEventListener('message',onMsg);
 if(got){say('Sent to the dashboard. Review the changes there.');setTimeout(function(){box.remove();},4000);}
-else{var why=openErr?'Your browser blocked the dashboard tab from opening. Allow pop-ups for halo.gcu.edu, or open '+P+' yourself first.':(win&&win.closed)?'The dashboard tab was closed before the export arrived.':'The dashboard tab at '+P+' did not answer in 30 seconds. It has to be that exact address, and it has to finish loading.';fallback(JSON.stringify(payload),why);}
+else{var why=MODE==='message'?'The extension did not pick up the export.':openErr?'Your browser blocked the dashboard tab from opening. Allow pop-ups for halo.gcu.edu, or open '+P+' yourself first.':(win&&win.closed)?'The dashboard tab was closed before the export arrived.':'The dashboard tab at '+P+' did not answer in 30 seconds. It has to be that exact address, and it has to finish loading.';fallback(JSON.stringify(payload),why);}
 }catch(e){say('Halo sync failed: '+(e&&e.message?e.message:e));}
 })();`;
   return code.replace(/\s*\n\s*/g, ' ').trim();

@@ -15,12 +15,24 @@ export interface TierSource {
   trialEndsAt?: string | null;
   /** Set by the Stripe webhook when a payment fails; the paid tier is kept until it passes. */
   graceUntil?: string | null;
+  /** A referral reward: this tier until this time, on top of whatever is paid for. */
+  rewardTier?: Tier | null;
+  rewardUntil?: string | null;
 }
 
+/** The best of what is paid for, a live trial, and a live reward. */
 export function effectiveTier(p: TierSource | null | undefined, now = new Date().toISOString()): Tier {
   if (!p) return 'free';
-  if (p.trialEndsAt && p.trialEndsAt > now && rank(TRIAL.tier) > rank(p.tier)) return TRIAL.tier;
-  return p.tier;
+  let best: Tier = p.tier;
+  if (p.trialEndsAt && p.trialEndsAt > now && rank(TRIAL.tier) > rank(best)) best = TRIAL.tier;
+  if (p.rewardTier && p.rewardUntil && p.rewardUntil > now && rank(p.rewardTier) > rank(best)) best = p.rewardTier;
+  return best;
+}
+
+/** Days of referral reward left, or null. */
+export function rewardDaysLeft(p: TierSource | null | undefined, now = new Date().toISOString()): number | null {
+  if (!p?.rewardUntil || p.rewardUntil <= now) return null;
+  return Math.ceil((new Date(p.rewardUntil).getTime() - new Date(now).getTime()) / 86_400_000);
 }
 
 export const can = (feature: Feature, tier: Tier): boolean => rank(tier) >= rank(FEATURES[feature]);

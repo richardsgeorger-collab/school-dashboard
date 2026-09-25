@@ -15,7 +15,17 @@ describe('bookmarklet', () => {
     expect(src).toContain(`var D="${cfg.dashOrigin}"`);
     expect(src).toMatch(/win\.postMessage\(payload,D\)/);
     expect(src).not.toMatch(/postMessage\([^)]*['"]\*['"]/);
-    expect(src).toMatch(/e\.origin===D/);
+    // The ack is accepted only from the dashboard (bookmark) or from Halo's own window (extension), never anywhere.
+    expect(src).toMatch(/e\.origin===ackOrigin/);
+    expect(src).toContain("ackOrigin=MODE==='open'?D:location.origin");
+  });
+  it('the extension mode never opens a tab and posts to Halo’s own window only', () => {
+    const ext = bookmarkletSource({ ...cfg, deliver: 'message' });
+    expect(ext).toContain('var MODE="message"');
+    expect(ext).toContain('window.postMessage(payload,location.origin)');
+    expect(ext).not.toMatch(/postMessage\([^)]*['"]\*['"]/);
+    expect(ext).toContain("source:MODE==='open'?'bookmarklet':'extension'");
+    expect(src).toContain('var MODE="open"');
   });
   it('only runs on Halo and only talks to Halo', () => {
     expect(src).toContain(`location.hostname!=="${HALO_HOST}"`);

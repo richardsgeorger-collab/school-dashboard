@@ -1,5 +1,6 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import type { Tier } from '../config/tiers';
+import { captureRef, claimPendingRef, rememberTier } from './referral';
 import { useAuth, type AuthState } from './useAuth';
 import { useProfile, type ProfileState } from './useProfile';
 
@@ -18,6 +19,15 @@ const Ctx = createContext<Account | null>(null);
 export function AccountProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const p = useProfile(auth.userId);
+  // The plan on this device, for the extension (auto-sync is Plus) and nothing else.
+  useEffect(() => rememberTier(p.tier), [p.tier]);
+  // An invite link is remembered on arrival and claimed once there is an account to claim it with.
+  useEffect(() => captureRef(), []);
+  useEffect(() => {
+    if (!auth.session) return;
+    void claimPendingRef().then((r) => r?.ok && p.reload());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.session]);
   const value: Account = { auth, profile: p.profile, tier: p.tier, loading: auth.loading || p.loading, reloadProfile: p.reload, updateProfile: p.update };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

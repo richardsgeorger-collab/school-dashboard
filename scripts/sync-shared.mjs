@@ -13,6 +13,7 @@ export const SHARED = [
   ['src/config/flags.ts', 'flags.ts'],
   ['src/ai/model.ts', 'model.ts'],
   ['src/ai/meter.ts', 'meter.ts'],
+  ['src/billing/subscription.ts', 'subscription.ts'],
 ];
 
 /** Deno wants explicit extensions on relative imports; the sources all sit in one flat folder there. */

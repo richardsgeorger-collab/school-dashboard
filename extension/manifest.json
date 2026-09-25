@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "School Dashboard for Halo",
+  "description": "Syncs your Halo classes, assignments, grades and announcements to School Dashboard. Auto-sync every few hours is part of Plus.",
+  "version": "0.1.0",
+  "permissions": ["alarms", "storage", "scripting", "tabs"],
+  "host_permissions": ["https://halo.gcu.edu/*", "https://richardsgeorger-collab.github.io/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "School Dashboard" },
+  "content_scripts": [
+    { "matches": ["https://halo.gcu.edu/*"], "js": ["content-halo.js"], "run_at": "document_idle" },
+    { "matches": ["https://richardsgeorger-collab.github.io/*"], "js": ["content-dash.js"], "run_at": "document_idle" }
+  ],
+  "web_accessible_resources": [{ "resources": ["sync-inject.js"], "matches": ["https://halo.gcu.edu/*"] }]
+}

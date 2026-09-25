@@ -33,11 +33,19 @@ been bought or enabled. The app is built to run on free tiers until the day you 
 7. **Remove `VITE_AI_DIRECT: '1'` from `.github/workflows/deploy.yml`.** After that, no build can send a browser key
    to Anthropic; every AI call goes through the server.
 8. Stripe: create the three products with month and year prices in **test mode**, paste the ids into
-   `STRIPE_PRICE_IDS` in `src/config/tiers.ts`, point the webhook at the `stripe-webhook` function, run a test
-   checkout end to end. Only then switch to live keys and repeat once with a real card and refund it.
+   `STRIPE_PRICE_IDS` in `src/config/tiers.ts` (then `npm run sync:shared` and redeploy the functions), deploy
+   `stripe-checkout`, `stripe-portal` and `stripe-webhook`, add a webhook endpoint in Stripe pointing at the
+   `stripe-webhook` function URL for the events `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, set
+   `STRIPE_WEBHOOK_SECRET`, turn on the customer portal in Stripe settings, and run a test checkout end to end
+   with card 4242 4242 4242 4242. Only then switch to live keys and repeat once with a real card and refund it.
+   Run `supabase/migrations/0002_referrals_rewards.sql` before this.
 9. Generate VAPID keys, set both, send yourself one push.
 10. Put the Meta Pixel id in, confirm the four events fire in Events Manager.
 11. Read `PRIVACY.md` and `TERMS.md` once more with your own name and contact in them.
+12. Extension: `npm run build:extension`, zip `extension/`, upload to the Chrome Web Store (developer account,
+    $5 one-time), and put the store link on the You tab and the landing page. Until then Plus users can load it
+    unpacked from `extension/README.md`.
 
 ## Things that must stay true
 

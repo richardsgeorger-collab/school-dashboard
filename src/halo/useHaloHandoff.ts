@@ -2,12 +2,15 @@ import { useEffect } from 'react';
 import { acceptHandoff, HALO_ORIGIN } from './handoff';
 import type { HaloExport } from './types';
 
-/** Origins a Halo export may arrive from. Only Halo itself in production; the dev server too while developing. */
+/**
+ * Origins a Halo export may arrive from: Halo itself (the bookmark posts from there), and this app's own origin,
+ * which is how the extension delivers (its content script posts into this page). Nothing else.
+ */
 export function allowedSenders(): string[] {
-  return import.meta.env.DEV ? [HALO_ORIGIN, window.location.origin] : [HALO_ORIGIN];
+  return [HALO_ORIGIN, window.location.origin];
 }
 
-/** Listen for the bookmark's postMessage and acknowledge it so the Halo tab stops resending. */
+/** Listen for the bookmark's or the extension's postMessage and acknowledge it so the sender stops resending. */
 export function useHaloHandoff(onPayload: (p: HaloExport) => void): void {
   useEffect(() => {
     const allowed = allowedSenders();

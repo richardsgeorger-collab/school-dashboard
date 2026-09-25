@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>School Dashboard</title>
+    <style>
+      body { font: 14px/1.4 system-ui, sans-serif; width: 280px; margin: 0; padding: 14px; color: #151a21; background: #f3f5f7; }
+      h1 { font-size: 15px; margin: 0 0 8px; }
+      p { margin: 4px 0; color: #4a545f; }
+      .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+      .row { display: flex; gap: 8px; margin-top: 12px; }
+      button, a.btn { flex: 1; text-align: center; padding: 8px 10px; border-radius: 8px; border: 1px solid #b9c2cc; background: #fff; color: inherit; font: inherit; cursor: pointer; text-decoration: none; }
+      button.primary { background: #151a21; color: #fff; border-color: #151a21; }
+      .err { color: #b3261e; }
+      .plus { background: #fbf3b3; color: #3a3400; padding: 6px 8px; border-radius: 6px; margin-top: 10px; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>School Dashboard</h1>
+    <p id="tier" class="mono"></p>
+    <p id="last" class="mono"></p>
+    <p id="err" class="err mono"></p>
+    <div id="plus" class="plus" hidden>Auto-sync every 3 hours is part of Plus. Syncing by hand from here works on any plan.</div>
+    <div class="row">
+      <button id="sync" class="primary" type="button">Sync now</button>
+      <a id="open" class="btn" target="_blank">Open dashboard</a>
+    </div>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

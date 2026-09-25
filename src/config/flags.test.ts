@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { can, effectiveTier, tierFor, trialDaysLeft } from './flags';
-import { FEATURES, PRICES, STRIPE_PRICE_IDS, TIERS, TRIAL } from './tiers';
+import { FEATURES, PRICES, REFERRAL, STRIPE_PRICE_IDS, TIERS, TRIAL } from './tiers';
 
 describe('feature flags', () => {
   it('each tier has everything below it and nothing above it', () => {
@@ -22,6 +24,17 @@ describe('feature flags', () => {
     expect(effectiveTier(null, now)).toBe('free');
     expect(trialDaysLeft({ tier: 'free', trialEndsAt: '2026-09-30T00:00:00.000Z' }, now)).toBe(6);
     expect(trialDaysLeft({ tier: 'free', trialEndsAt: null }, now)).toBeNull();
+    // A referral reward lifts a Free account to Plus for its month, never lowers a paid Pro.
+    expect(effectiveTier({ tier: 'free', rewardTier: 'plus', rewardUntil: '2026-10-20T00:00:00.000Z' }, now)).toBe('plus');
+    expect(effectiveTier({ tier: 'pro', rewardTier: 'plus', rewardUntil: '2026-10-20T00:00:00.000Z' }, now)).toBe('pro');
+    expect(effectiveTier({ tier: 'free', rewardTier: 'plus', rewardUntil: '2026-09-01T00:00:00.000Z' }, now)).toBe('free');
+  });
+
+  it('the SQL mirrors the config: trial days and referral days', () => {
+    const sql1 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '0001_foundations.sql'), 'utf8');
+    const sql2 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '0002_referrals_rewards.sql'), 'utf8');
+    expect(sql1).toContain(`interval '${TRIAL.days} days'`);
+    expect(sql2).toContain(`interval '${REFERRAL.days} days'`);
   });
 
   it('config is complete: every paid tier has prices and price ids, every feature names a real tier', () => {

@@ -12,7 +12,8 @@
     "check:secrets": "node scripts/secrets.mjs",
     "lint": "oxlint src scripts supabase/tests supabase/functions",
     "sync:shared": "node scripts/sync-shared.mjs",
-    "build:e2e": "VITE_AI_DIRECT=1 npm run build"
+    "build:e2e": "VITE_AI_DIRECT=1 npm run build",
+    "build:extension": "tsx scripts/build-extension.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

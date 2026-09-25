@@ -9,10 +9,13 @@ import { CourseChip } from '../components/CourseChip';
 import { ProgressCard } from '../components/ProgressCard';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Locked } from '../config/Locked';
-import { trialDaysLeft } from '../config/flags';
-import { FEATURE_LINES, FEATURES, PRICES, TIER_NAMES, TIERS, type Feature, type Tier } from '../config/tiers';
+import { rewardDaysLeft, trialDaysLeft } from '../config/flags';
+import { FEATURE_LINES, FEATURES, PRICES, REFERRAL, TIER_NAMES, TIERS, type Feature, type Tier } from '../config/tiers';
+import { openPortal, startCheckout } from '../billing/client';
+import { subscriptionLine, type Interval, type Paid } from '../billing/subscription';
+import { useSubscription } from '../billing/useSubscription';
 import { PALETTE } from '../data/courseDefaults';
-import { fmtClock, hhmmToMinutes } from '../domain/dates';
+import { dateOf, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
 import { courseGrade, letterFor } from '../domain/grades';
 import { newId } from '../domain/ids';
 import { finished as sundayFinished, switchedOn } from '../domain/sunday';
@@ -58,7 +61,21 @@ function Group({ id, title, open, children }: { id: Section; title: string; open
 }
 
 function AccountCard({ tier }: { tier: Tier }) {
-  const { auth, profile } = useAccount();
+  const { auth, profile, reloadProfile } = useAccount();
+  const { data } = useStore();
+  const { params } = useRoute();
+  const [tick, setTick] = useState(0);
+  const sub = useSubscription(auth.userId, tick);
+  const checkout = params.get('checkout');
+  const [note, setNote] = useState<string | null>(checkout === 'success' ? 'Thank you. Your plan is live; it can take a few seconds to show here.' : checkout === 'cancel' ? 'No charge was made.' : null);
+  useEffect(() => {
+    if (checkout !== 'success') return;
+    const t = setTimeout(() => {
+      reloadProfile();
+      setTick((k) => k + 1);
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [checkout, reloadProfile]);
   if (!auth.configured) {
     return (
       <section className="card settings-card" aria-label="Account">
@@ -68,7 +85,15 @@ function AccountCard({ tier }: { tier: Tier }) {
     );
   }
   if (!auth.session) return <SignIn auth={auth} note="Your classes and work follow you to your phone and laptop, and nothing is lost if this browser is cleared." />;
+  const tz = data.settings.timezone;
   const days = trialDaysLeft(profile);
+  const reward = rewardDaysLeft(profile);
+  const line = subscriptionLine(sub, profile?.graceUntil ?? null, (iso) => fmtDate(dateOf(iso, tz), 'short'));
+  const manage = async () => {
+    const r = await openPortal();
+    if (r.ok) window.location.assign(r.url);
+    else setNote(r.error);
+  };
   return (
     <section className="card settings-card" aria-label="Account">
       <h2 className="section-title">Account</h2>
@@ -78,13 +103,56 @@ function AccountCard({ tier }: { tier: Tier }) {
           {TIER_NAMES[tier]}
         </span>
         {days !== null ? ` · ${days} day${days === 1 ? '' : 's'} left on your Max trial` : ''}
+        {reward !== null ? ` · Plus from a friend for ${reward} more day${reward === 1 ? '' : 's'}` : ''}
       </p>
+      {line && <p className="hint">{line}</p>}
+      {note && (
+        <p className="hint" role="status">
+          {note}
+        </p>
+      )}
       <div className="settings-actions">
-        <a className="btn small primary" href="#/you?s=plan">
-          {tier === 'free' ? 'See plans' : 'Manage plan'}
-        </a>
+        {sub ? (
+          <button type="button" className="btn small primary" onClick={() => void manage()}>
+            Manage plan
+          </button>
+        ) : (
+          <a className="btn small primary" href="#/you?s=plan">
+            See plans
+          </a>
+        )}
         <button type="button" className="btn small" onClick={() => void auth.signOut()}>
           Sign out
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/** Send a friend the link; both get a month of Plus when they sign up. */
+function ReferralCard() {
+  const { auth, profile } = useAccount();
+  const [copied, setCopied] = useState(false);
+  if (!auth.configured || !auth.session || !profile?.referralCode) return null;
+  const link = `${window.location.origin}${import.meta.env.BASE_URL}#/now?ref=${profile.referralCode}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <section className="card settings-card" aria-label="Invite a friend">
+      <h2 className="section-title">Invite a friend</h2>
+      <p className="hint">
+        Send this link. When they sign up, you both get {REFERRAL.days} days of {TIER_NAMES[REFERRAL.rewardTier]}.
+      </p>
+      <p className="mono you-invite">{link}</p>
+      <div className="settings-actions">
+        <button type="button" className="btn small primary" onClick={() => void copy()}>
+          {copied ? 'Copied' : 'Copy link'}
         </button>
       </div>
     </section>
@@ -115,11 +183,35 @@ function UsageCard() {
 }
 
 function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }) {
-  const paid = TIERS.filter((t): t is Exclude<Tier, 'free'> => t !== 'free');
+  const { auth } = useAccount();
+  const [interval, setInterval_] = useState<Interval>('month');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const paid = TIERS.filter((t): t is Paid => t !== 'free');
+  const ready = auth.configured && !!auth.session;
+  const choose = async (t: Paid) => {
+    setBusy(t);
+    setError(null);
+    const r = await startCheckout(t, interval);
+    if (r.ok) window.location.assign(r.url);
+    else {
+      setError(r.error);
+      setBusy(null);
+    }
+  };
   return (
     <section className="card settings-card" id="you-plan" aria-label="Plans">
       <h2 className="section-title">Plans</h2>
       <p className="hint">Free keeps the planner: Halo sync, the calendar, Now. Each plan adds to the one before it. Every new account starts with seven days of Max.</p>
+      <SegmentedControl
+        label="Billing"
+        value={interval}
+        options={[
+          { value: 'month', label: 'Monthly' },
+          { value: 'year', label: 'Yearly, two months free' },
+        ]}
+        onChange={(v) => setInterval_(v)}
+      />
       <div className="plans">
         {paid.map((t) => {
           const adds = (Object.keys(FEATURES) as Feature[]).filter((f) => FEATURES[f] === t);
@@ -134,25 +226,33 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
                 )}
               </div>
               <p className="plan-price">
-                ${PRICES[t].month.toFixed(2)}
-                <small>
-                  {' '}
-                  a month, or ${PRICES[t].year} a year
-                </small>
+                {interval === 'month' ? `$${PRICES[t].month.toFixed(2)}` : `$${PRICES[t].year}`}
+                <small> {interval === 'month' ? 'a month' : 'a year'}</small>
               </p>
               <ul>
                 {adds.map((f) => (
                   <li key={f}>{FEATURE_LINES[f]}</li>
                 ))}
               </ul>
-              <button type="button" className="btn small primary" disabled title="Checkout is not switched on yet">
-                Choose {TIER_NAMES[t]}
-              </button>
+              {ready ? (
+                <button type="button" className="btn small primary" disabled={busy !== null || current === t} onClick={() => void choose(t)}>
+                  {current === t ? 'Current plan' : busy === t ? 'Opening…' : `Choose ${TIER_NAMES[t]}`}
+                </button>
+              ) : (
+                <a className="btn small primary" href="#/you">
+                  Sign in to choose
+                </a>
+              )}
             </div>
           );
         })}
       </div>
-      <p className="hint">Checkout is not switched on yet. Nothing is charged until it is.</p>
+      {error && (
+        <p className="hint" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="hint">Payments go through Stripe. Change or cancel any time from Manage plan; a cancelled plan runs to the end of what was paid for.</p>
     </section>
   );
 }
@@ -228,6 +328,7 @@ export function You() {
       <div className="settings-grid" key={section ?? 'none'}>
         <AccountCard tier={tier} />
         <UsageCard />
+        <ReferralCard />
         {section === 'plan' && <Plans current={tier} highlight={highlight} />}
         <ProgressCard />
 
