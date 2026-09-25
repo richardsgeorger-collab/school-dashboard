@@ -5,8 +5,8 @@ import Stripe from 'npm:stripe@17';
 import { admin, json } from '../_shared/admin.ts';
 import { profilePatch, subscriptionRow } from '../_shared/subscription.ts';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
-const crypto = Stripe.createSubtleCryptoProvider();
+// Created per request, after the key check: constructing it with no key set throws and takes the function down.
+const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
 
 async function userIdFor(db: ReturnType<typeof admin>, sub: Stripe.Subscription): Promise<string | null> {
   const fromMeta = sub.metadata?.user_id;
@@ -34,6 +34,9 @@ async function apply(db: ReturnType<typeof admin>, sub: Stripe.Subscription, now
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
+  if (!Deno.env.get('STRIPE_SECRET_KEY') || !Deno.env.get('STRIPE_WEBHOOK_SECRET')) return json(503, { error: 'Billing is not switched on yet.' });
+  const stripe = stripeClient();
+  const crypto = Stripe.createSubtleCryptoProvider();
   const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
   const sig = req.headers.get('stripe-signature') ?? '';
   const body = await req.text();

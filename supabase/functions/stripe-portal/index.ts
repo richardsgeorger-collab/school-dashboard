@@ -2,12 +2,14 @@
 import Stripe from 'npm:stripe@17';
 import { admin, json, userFromRequest } from '../_shared/admin.ts';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
+// Created per request, after the key check: constructing it with no key set throws and takes the function down.
+const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return json(204, {});
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
   if (!Deno.env.get('STRIPE_SECRET_KEY')) return json(503, { error: 'Billing is not switched on yet.' });
+  const stripe = stripeClient();
   const user = await userFromRequest(req);
   if (!user) return json(401, { error: 'Sign in first.' });
   const body = (await req.json().catch(() => ({}))) as { returnTo?: string };
