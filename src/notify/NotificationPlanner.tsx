@@ -28,8 +28,13 @@ export function NotificationPlanner() {
     const t = setTimeout(async () => {
       const now = new Date().toISOString();
       const notices = planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull });
-      await c.from('notification_plan').delete().eq('user_id', userId).is('sent_at', null);
-      if (notices.length) await c.from('notification_plan').insert(notices.map((n) => ({ send_at: n.sendAt, kind: n.kind, title: n.title, body: n.body, url: n.url })));
+      // Upsert by each notice's key (one "morning note for Sep 25" per student, enforced by a unique index), then drop
+      // unsent rows that are no longer planned. Overlapping runs converge instead of stacking duplicates, and a note
+      // that was already sent keeps its sent_at, so it is never sent twice.
+      if (notices.length) await c.from('notification_plan').upsert(notices.map((n) => ({ user_id: userId, key: n.key, send_at: n.sendAt, kind: n.kind, title: n.title, body: n.body, url: n.url })), { onConflict: 'user_id,key' });
+      const keep = notices.map((n) => `"${n.key}"`).join(',');
+      const stale = c.from('notification_plan').delete().eq('user_id', userId).is('sent_at', null);
+      await (keep ? stale.not('key', 'in', `(${keep})`) : stale);
       await c.from('notification_prefs').upsert({
         user_id: userId,
         morning_time: prefs.morningTime && prefs.morningTime !== 'off' ? prefs.morningTime : '07:30',
