@@ -19,6 +19,7 @@ import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import type { Course } from '../domain/types';
 import { announceDb } from '../halo/announce';
 import { useRoute } from '../router';
+import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
 import { AiPanel } from './AiPanel';
@@ -380,6 +381,9 @@ export function You() {
             </button>
             <button type="button" className="btn" onClick={() => fileRef.current?.click()}>
               Restore a backup
+            </button>
+            <button type="button" className="btn" onClick={() => actions.updateSettings({ onboarding: freshOnboarding() })}>
+              Show the welcome again
             </button>
             <input ref={fileRef} type="file" accept="application/json,.json" className="visually-hidden" onChange={(e) => e.target.files?.[0] && void importJson(e.target.files[0])} />
             {confirmFresh ? (

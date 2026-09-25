@@ -89,9 +89,30 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
   auto-merging duplicates on sync is not built because it would break the standing rule "never silently overwrite"
   (the Duplicates panel stays under Advanced with its undo).
 
+### Phase 4: Onboarding (2026-09-24)
+- **The first five minutes** (`src/onboarding/`): a full-screen welcome on the first open with a three-screen tour
+  (your day from Halo; sync in one tap, never your password; know where you stand), then Account (email link or
+  Google; only on a build with accounts; passes itself once signed in), then Connect Halo (the same bookmark steps
+  as the Sync sheet, computer or phone, with "Having trouble?" for paste-the-export and calendar-file import), then
+  two quick preferences (weekday and weekend study hours, morning note time), then "Show me my day".
+- **Instant payoff**: the moment the bookmark's export is approved, the Halo step becomes the celebration:
+  "6 classes and 181 assignments are in. First up: Chem Quiz 1, due Sep 25." with the class chips.
+- **Every step can be skipped** ("I'll do this later", "Not now", "Skip for now"); a progress bar says Step n of N;
+  "Show the welcome again" sits under You, Advanced.
+- **Tooltip tour on Now**, once, after the last step: the status line, the hero, the synced-from-Halo line. Each
+  tooltip points at the real element; a missing one is skipped.
+- **Drop-off tracking**: every step entered, completed or skipped writes a row to `onboarding_events` (with
+  `platform` phone/desktop) for a signed-in student, so the admin screen in Phase 8 can show where people stop.
+- **Existing users never see it**: anyone with classes on first load is marked done and toured. Development and
+  the e2e scripts (`seed=1`) start with classes and are therefore unaffected.
+- **Reminder preferences** (`settings.reminders.morningTime`) are stored now so Phase 7's push notifications can
+  read them without asking again.
+- Verified on the rendered UI: `scripts/audit-fresh.mjs` now walks the welcome flow and the tour before the tabs,
+  with a screenshot per step.
+
 ## In progress
 
-- Phase 4: Onboarding.
+- Phase 5: Payments, trial, referrals, and the Chrome extension for Plus auto-sync.
 
 ## Decisions made alone
 
@@ -124,6 +145,10 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
 - **Sign-in is magic link or Google only.** The old panel had password fields; the product never has a password.
 - **AI screens gate on `aiAvailable()`**, meaning an account on this build or a development key, and then let the
   gateway's refusal (plan, cap, budget) be the message. No screen decides on its own what a plan allows.
+
+- **Onboarding state lives in settings**, not only on the server profile, so a build without accounts remembers
+  it, and it travels with the account when there is one.
+- **The account step is skipped on a build with no accounts** rather than shown disabled: "Step 1 of 3" is honest.
 
 ## Extras
 

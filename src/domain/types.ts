@@ -408,6 +408,23 @@ export interface SundayReviewState {
   off?: boolean;
 }
 
+/** Where a new student is in the first five minutes; see src/onboarding/state.ts. */
+export interface OnboardingState {
+  startedAt: string;
+  step: 'welcome' | 'account' | 'halo' | 'preferences' | 'done';
+  doneAt: string | null;
+  skippedAt: string | null;
+  tourDoneAt: string | null;
+}
+
+/** Reminder preferences; the notification system (push) reads these. Times are HH:MM in the student's zone. */
+export interface ReminderPrefs {
+  /** 'off' for no morning note. */
+  morningTime?: string | null;
+  quietFrom?: string;
+  quietTo?: string;
+}
+
 export interface Settings {
   timezone: string;
   weekdayMinutes: number;
@@ -449,6 +466,8 @@ export interface Settings {
   haloPulls?: Record<string, HaloPull>;
   /** What the last Halo sync actually brought back, kept so the answer outlives the review screen. */
   lastPull?: { at: string; build: string | null; counts: Record<string, number> };
+  onboarding?: OnboardingState;
+  reminders?: ReminderPrefs;
   updatedAt: string;
 }
 

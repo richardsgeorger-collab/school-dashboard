@@ -29,6 +29,11 @@ import { StudyKit } from './views/StudyKit';
 import { Tutor } from './views/Tutor';
 import { useAutoRerun } from './ingest/auto';
 import { OkayCard, okayPress } from './views/Okay';
+import { NowTour } from './onboarding/NowTour';
+import { Onboarding } from './onboarding/Onboarding';
+import { initialState, isOpen, tourPending } from './onboarding/state';
+import { track } from './onboarding/track';
+import { useStore } from './storage/store';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
 function HaloHandoff() {
@@ -102,6 +107,23 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
     };
   }, [onFile]);
   return over;
+}
+
+/** The welcome on a first open, the three tooltips on Now after it, and nothing at all for anyone who was here before. */
+function OnboardingHost() {
+  const { data, actions } = useStore();
+  const { route } = useRoute();
+  useEffect(() => {
+    const s = initialState(data.settings, data.courses);
+    if (!s) return;
+    actions.updateSettings({ onboarding: s });
+    if (s.step === 'welcome') track('welcome', 'enter');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.settings.onboarding, data.courses.length]);
+  const ob = data.settings.onboarding;
+  if (isOpen(ob)) return <Onboarding />;
+  if (route === 'now' && tourPending(ob)) return <NowTour />;
+  return null;
 }
 
 function OkayHost() {
@@ -179,6 +201,7 @@ export default function App() {
         <AccountSync />
         <AutoRerun />
         <HaloHandoff />
+        <OnboardingHost />
         <OkayHost />
         <SyncHost
           open={syncOpen}

@@ -14,6 +14,24 @@ await page.setRequestInterception(true);
 page.on('request', (req) => (req.url().startsWith('https://api.anthropic.com/') ? req.abort() : req.continue()));
 
 const routes = ['#/now', '#/calendar', '#/calendar?v=month', '#/classes', '#/inbox', '#/you', '#/you?s=plan', '#/load', '#/load?v=term', '#/grades', '#/library'];
+// The first open is the welcome. Walk it, screenshotting each step, then finish it so the tabs can be walked.
+await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.reload({ waitUntil: 'networkidle0' });
+const click = (src) => page.$$eval('.onboard button, .tour-tip button', (els, s) => { const b = els.find((e) => new RegExp(s).test(e.textContent)); if (b) b.click(); return !!b; }, src);
+let k = 0;
+for (const label of ['Next', 'Next', 'Get started', 'do this later', 'Show me my day']) {
+  await sleep(300);
+  await page.screenshot({ path: `${OUT}/onboard-${k++}.png`, fullPage: true });
+  const info = await page.evaluate(() => ({ title: document.querySelector('.onboard-title')?.textContent ?? null, step: document.querySelector('.onboard-head .mono')?.textContent ?? null, words: document.querySelector('.onboard')?.innerText.split(/\s+/).length ?? 0 }));
+  console.log('onboarding:', info.step, '|', info.title, `(${info.words} words)`);
+  if (!(await click(label))) { console.log('  no button matching', label); break; }
+}
+await sleep(500);
+console.log('tour tip 1:', await page.evaluate(() => document.querySelector('.tour-tip p')?.textContent ?? null));
+await page.screenshot({ path: `${OUT}/tour-0.png`, fullPage: false });
+for (let t = 0; t < 3; t++) { await click('Next|Got it'); await sleep(250); }
+console.log('tour finished:', await page.evaluate(() => !document.querySelector('.tour-tip')));
+
 for (const r of routes) {
   await page.goto(`${BASE}${r}`, { waitUntil: 'networkidle0' });
   await page.reload({ waitUntil: 'networkidle0' });
