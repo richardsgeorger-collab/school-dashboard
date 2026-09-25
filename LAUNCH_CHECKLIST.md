@@ -38,14 +38,18 @@ Steps 1 to 7 done 2026-09-25 (project `kiacmspgvntzwngijibr`, us-west-1, free pl
    accounts with passwords through the admin API, as done here).
 7. ~~Remove `VITE_AI_DIRECT` from the deploy workflow.~~ Done 2026-09-25. No production build can send a browser key
    to Anthropic, and any key left in a browser from the old coach is deleted on load.
-8. Stripe: create the three products with month and year prices in **test mode**, paste the ids into
-   `STRIPE_PRICE_IDS` in `src/config/tiers.ts` (then `npm run sync:shared` and redeploy the functions), deploy
-   `stripe-checkout`, `stripe-portal` and `stripe-webhook`, add a webhook endpoint in Stripe pointing at the
-   `stripe-webhook` function URL for the events `checkout.session.completed`, `customer.subscription.created`,
-   `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`, set
-   `STRIPE_WEBHOOK_SECRET`, turn on the customer portal in Stripe settings, and run a test checkout end to end
-   with card 4242 4242 4242 4242. Only then switch to live keys and repeat once with a real card and refund it.
-   Run `supabase/migrations/0002_referrals_rewards.sql` before this.
+8. ~~Stripe in the sandbox.~~ Done 2026-09-25 in the School-Dashboard sandbox: three products with six prices
+   (ids in `src/config/tiers.ts`, tax code SaaS personal use), webhook endpoint with 5 events, customer portal
+   (cancel at period end), sandbox secret key and webhook secret on the server. Verified with a throwaway account:
+   Checkout paid with 4242 → webhook set Pro and an active subscription row; portal opened; cancel-at-period-end kept
+   Pro; immediate cancel dropped to Free. `scripts/e2e-checkout.mjs` fills the card form but Stripe's hCaptcha blocks
+   headless submission, so the Subscribe click is a person. **Not exercised live:** the failed-payment grace period
+   (same webhook path, mapping unit-tested; needs Stripe test clocks).
+   **Your decision before live payments: Managed Payments.** It is on by default on this account: Stripe (through
+   Link) becomes the seller of record and handles sales tax for you, adds sales tax at checkout (Pro showed $7.63 in
+   Phoenix: $6.99 + 9.1%), and charges a higher fee than standard Stripe. Off means standard fees, but sales tax is
+   yours to handle. Settings → Managed payments in the Stripe dashboard. Then create the same products and prices in
+   live mode, put the live ids in `tiers.ts`, and set the live secret key and a live webhook.
 9. Notifications: `npx web-push generate-vapid-keys`; set `VITE_VAPID_PUBLIC_KEY` as a repository variable and
    `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT`, `NOTIFY_CRON_SECRET` as function secrets; deploy
    `notify-send`; run `supabase/migrations/0003_notifications_cron.sql` with your project ref and the same secret;

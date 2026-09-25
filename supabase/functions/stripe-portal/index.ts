@@ -1,11 +1,11 @@
 // Stripe's customer portal: change the card, switch plans, cancel. Only for a customer that exists.
-import Stripe from 'npm:stripe@17';
-import { admin, json, userFromRequest } from '../_shared/admin.ts';
+import Stripe from 'npm:stripe@18';
+import { admin, json, guard, userFromRequest } from '../_shared/admin.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
 
-Deno.serve(async (req) => {
+Deno.serve(guard(async (req) => {
   if (req.method === 'OPTIONS') return json(204, {});
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
   if (!Deno.env.get('STRIPE_SECRET_KEY')) return json(503, { error: 'Billing is not switched on yet.' });
@@ -19,4 +19,4 @@ Deno.serve(async (req) => {
   if (!customer) return json(404, { error: 'No plan to manage yet.' });
   const session = await stripe.billingPortal.sessions.create({ customer, return_url: `${returnTo}#/you?s=plan` });
   return json(200, { url: session.url });
-});
+}));

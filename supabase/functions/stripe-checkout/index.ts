@@ -1,13 +1,13 @@
 // Stripe Checkout for one plan. TEST MODE until launch: the key in the environment decides, and placeholder price
 // ids refuse to run at all. The browser only ever gets the Checkout URL.
-import Stripe from 'npm:stripe@17';
-import { admin, json, userFromRequest } from '../_shared/admin.ts';
+import Stripe from 'npm:stripe@18';
+import { admin, json, guard, userFromRequest } from '../_shared/admin.ts';
 import { STRIPE_PRICE_IDS } from '../_shared/tiers.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
 
-Deno.serve(async (req) => {
+Deno.serve(guard(async (req) => {
   if (req.method === 'OPTIONS') return json(204, {});
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
   if (!Deno.env.get('STRIPE_SECRET_KEY')) return json(503, { error: 'Checkout is not switched on yet.' });
@@ -44,4 +44,4 @@ Deno.serve(async (req) => {
     subscription_data: { metadata: { user_id: user.id } },
   });
   return json(200, { url: session.url });
-});
+}));

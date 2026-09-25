@@ -1,8 +1,8 @@
 // Stripe tells us what happened to a subscription; this is the only thing that ever changes a paid tier. The
 // signature is verified before anything is read. The mapping from status to plan is the same pure code the client
 // uses (_shared/subscription.ts), so both sides agree on what "past due" means.
-import Stripe from 'npm:stripe@17';
-import { admin, json } from '../_shared/admin.ts';
+import Stripe from 'npm:stripe@18';
+import { admin, json, guard } from '../_shared/admin.ts';
 import { profilePatch, subscriptionRow } from '../_shared/subscription.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
@@ -32,7 +32,7 @@ async function apply(db: ReturnType<typeof admin>, sub: Stripe.Subscription, now
   if (row) await db.from('subscriptions').upsert(row, { onConflict: 'user_id' });
 }
 
-Deno.serve(async (req) => {
+Deno.serve(guard(async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
   if (!Deno.env.get('STRIPE_SECRET_KEY') || !Deno.env.get('STRIPE_WEBHOOK_SECRET')) return json(503, { error: 'Billing is not switched on yet.' });
   const stripe = stripeClient();
@@ -61,7 +61,11 @@ Deno.serve(async (req) => {
       break;
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice;
-      const subId = typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+      // From the 2025-03-31 API on, the subscription sits under parent.subscription_details; older payloads had it on
+      // the invoice itself.
+      const inv = invoice as unknown as { subscription?: string | { id: string } | null; parent?: { subscription_details?: { subscription?: string | { id: string } | null } | null } | null };
+      const ref = inv.parent?.subscription_details?.subscription ?? inv.subscription ?? null;
+      const subId = typeof ref === 'string' ? ref : ref?.id;
       if (subId) await apply(db, await stripe.subscriptions.retrieve(subId), now);
       break;
     }
@@ -69,4 +73,4 @@ Deno.serve(async (req) => {
       break;
   }
   return json(200, { received: true });
-});
+}));
