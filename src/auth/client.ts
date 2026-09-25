@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { ENV } from '../env';
 
 /**
  * The Supabase connection, baked into the build from VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY. The anon key is
@@ -14,8 +15,8 @@ export interface SupabaseConfig {
 const PLACEHOLDER = /PLACEHOLDER|xxxx/i;
 
 export function supabaseConfig(): SupabaseConfig | null {
-  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
-  const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
+  const url = ENV.SUPABASE_URL;
+  const anonKey = ENV.SUPABASE_ANON_KEY;
   if (!url || !anonKey || PLACEHOLDER.test(url) || PLACEHOLDER.test(anonKey)) return null;
   return { url, anonKey };
 }

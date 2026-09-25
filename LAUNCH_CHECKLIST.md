@@ -42,8 +42,10 @@ been bought or enabled. The app is built to run on free tiers until the day you 
    Run `supabase/migrations/0002_referrals_rewards.sql` before this.
 9. Generate VAPID keys, set both, send yourself one push.
 10. Put the Meta Pixel id in, confirm the four events fire in Events Manager.
-11. Read `PRIVACY.md` and `TERMS.md` once more with your own name and contact in them.
-12. Extension: `npm run build:extension`, zip `extension/`, upload to the Chrome Web Store (developer account,
+11. Run the AI before/after once with your key: `ANTHROPIC_API_KEY=… BASELINE_MODEL=<the model the app used before> npm run ai:compare`,
+    read `docs/ai-compare/<date>.md`, and fix any fixture the shipped model fails before launch (prompts, not model).
+12. Read `PRIVACY.md` and `TERMS.md` once more with your own name and contact in them.
+13. Extension: `npm run build:extension`, zip `extension/`, upload to the Chrome Web Store (developer account,
     $5 one-time), and put the store link on the You tab and the landing page. Until then Plus users can load it
     unpacked from `extension/README.md`.
 

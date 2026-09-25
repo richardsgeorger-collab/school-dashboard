@@ -1,0 +1,43 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Length 162 >>
+stream
+BT /F1 20 Tf 60 720 Td (Stoichiometry basics) Tj 0 -30 Td (Mole ratios come from the balanced equation) Tj 0 -30 Td (Molar mass of water is 18.02 g per mol) Tj ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 170 >>
+stream
+BT /F1 20 Tf 60 720 Td (Limiting reagent) Tj 0 -30 Td (The reactant that runs out first caps the product) Tj 0 -30 Td (Find moles of each reactant before comparing) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000000142 00000 n 
+0000000355 00000 n 
+0000000481 00000 n 
+0000000702 00000 n 
+0000000828 00000 n 
+trailer
+<< /Size 8 /Root 7 0 R >>
+startxref
+877
+%%EOF

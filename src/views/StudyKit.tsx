@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { describeAiError } from '../ai/client';
 import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { CourseChip } from '../components/CourseChip';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { weakConcepts } from '../domain/concepts';
@@ -22,7 +23,7 @@ export function StudyKit() {
   const { params } = useRoute();
   const tz = data.settings.timezone;
   const course = data.courses.find((c) => c.id === params.get('c')) ?? null;
-  const hasKey = loadApiKey() !== '';
+  const hasKey = useAiAllowed('flashcards');
   const [kind, setKind] = useState<KitKind>((KINDS as string[]).includes(params.get('k') ?? '') ? (params.get('k') as KitKind) : 'onepager');
   const [topic, setTopic] = useState(params.get('t') ?? '');
   const [pool, setPool] = useState<SourcePool | null>(null);
@@ -124,7 +125,7 @@ export function StudyKit() {
               Print
             </button>
           )}
-          {!hasKey && <span className="hint">Connect the Anthropic key on Now first.</span>}
+          {!hasKey && <span className="hint">Study kits are part of Max.</span>}
         </div>
         {note && (
           <p className="hint" style={{ color: 'var(--overdue)' }}>

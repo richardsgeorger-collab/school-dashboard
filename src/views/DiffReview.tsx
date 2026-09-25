@@ -10,6 +10,8 @@ import { describeAiError } from '../ai/client';
 import { withRetry } from '../halo/readAll';
 import { announceDb, bodyHash, readLedger, type StoredAnnouncement } from '../halo/announce';
 import { aiAvailable, loadApiKey } from '../chat/key';
+import { useAccount } from '../auth/AccountContext';
+import { can } from '../config/flags';
 import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
@@ -101,6 +103,7 @@ export function DiffReview({
   onApplied?: (s: AppliedSummary) => void;
   onClose: () => void;
 }) {
+  const { tier } = useAccount();
   const { data, actions } = useStore();
   const tz = data.settings.timezone;
   const [bareAs, setBareAs] = useState<BareDateMode>('utc');
@@ -177,7 +180,7 @@ export function DiffReview({
     }
     // No way to read (no account, no plan, or in development no key): the posts stay unstamped and the next sync
     // that can read them will.
-    if (!aiAvailable()) {
+    if (!aiAvailable() || !can('announcementAI', tier)) {
       setAuto({ ...emptyOutcome(), todo: todo.length, noKey: true });
       return;
     }

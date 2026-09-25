@@ -5869,3 +5869,11 @@ a.hero-chip:hover {
   padding: 8px 10px;
   border-radius: var(--r-sm);
 }
+
+/* ---- the AI surface ------------------------------------------------- */
+.ai-meter {
+  margin: 0;
+}
+.ai-body {
+  margin-top: 12px;
+}

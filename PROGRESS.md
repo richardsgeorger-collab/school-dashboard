@@ -138,9 +138,34 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
   loading it unpacked; publishing is on the launch checklist.
 - The bookmarklet build stamp is now `2026-09-24a`; the app keeps telling students when their bookmark is older.
 
+### Phase 6: Pro and Max AI on Haiku (2026-09-24)
+- **One AI surface** (`#/ai`, `src/views/Ai.tsx`): Coach, Tutor, Study kit and Practice under one screen with one
+  meter line ("3 of 10 messages today · $0.41 of $2.50 this month") and one lock per plan (chat and tutor are Pro,
+  study kit and practice are Max). The old `#/tutor`, `#/study` and `#/quiz` addresses open the right mode. The
+  coach card stays on Now.
+- **Plan gates on every AI entry point** (`useAiAllowed`): announcement reading (Inbox, Read all, and the automatic
+  read on sync), the syllabus AI pass, lecture notes from a transcript, study kits and practice, the tutor, the
+  assignment brief and draft checks, and grade projection with what-if (Pro). Each shows the quiet lock card or
+  tag instead of failing; the server refuses anyway if a request slips through.
+- **Server caps already in force from Phase 2**: 10 messages a day on Pro, 30 on Max, 10 lectures a week on Max,
+  monthly ceilings with the 80% heads-up and the pause at 100%.
+- **Haiku prompt work**: the announcement reader now carries a five-step procedure (mark every sentence aimed at
+  students, classify, resolve dates, quote, then summarise) and a worked example with the exact output shape; the
+  coach carries format rules (sentences only, no lists or preamble) and an example answer. Both keep every earlier
+  rule, so nothing the tests pin changed.
+- **Before/after harness** (`npm run ai:compare`, `scripts/ai-compare.ts`, fixtures in `scripts/fixtures/ai.ts`):
+  six GCU-shaped announcements (a moved lab with a goggles rule, a DQ reply rule, exam coverage and what to bring,
+  work that is not in Halo with a relative date, pure news that must produce nothing, a points change) and one
+  lecture transcript, each with plain checks on the shaped output. It runs the app's own prompt builders and
+  readers against the shipped model and, with `BASELINE_MODEL` set, an older one, and writes
+  `docs/ai-compare/<date>.md` with checks passed, cost and latency per model and the outputs side by side.
+  **It needs an API key, which this machine does not have, so the before/after numbers are George's to produce**
+  (see LAUNCH_CHECKLIST). `--dry` prints the fixtures and prompt sizes without a call.
+- Batch API for backlogs: not built (the per-post flow is ledgered and cheap on Haiku); noted under Extras.
+
 ## In progress
 
-- Phase 6: Pro and Max AI on Haiku, prompt work, before/after harness.
+- Phase 7: Notifications and PWA.
 
 ## Decisions made alone
 
@@ -188,6 +213,12 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
 - **Auto-sync is gated in the extension by the plan the dashboard tab reports**, and the export still goes through
   the same approval screen. "Nothing to tap" means not having to go to Halo, not skipping the review.
 
+- **The AI surface is one route with four modes, not four rewritten screens.** Tutor, Study kit and Practice keep
+  their own code and address parameters; the surface adds the meter line, the mode switch and the lock. A full
+  merge would have been weeks of UI for the same outcome.
+- **Prompt changes are additive.** Every earlier rule stays, so the fixtures and e2e checks that pin them still
+  hold; the procedure and the worked example are what Haiku most benefits from.
+
 ## Extras
 
 Built:
@@ -198,5 +229,7 @@ Built:
 - Meter feed (`onMeter`/`latestMeter`) so any screen can show "used 85% of this month's AI" without a second request.
 
 Not built (noted for later):
+- Batch API for announcement backlogs and syllabus passes (the two non-instant kinds). Halves those costs;
+  worth it once there are enough accounts for the backlog to matter.
 - Batch API for announcement backlogs (halves cost on non-instant work). Deferred: the current per-post flow is
   already ledgered and cheap on Haiku; revisit when the read backlog on a new account is large.

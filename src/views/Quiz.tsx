@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { describeError } from '../chat/client';
 import { libraryDb } from '../library/db';
 import { checkAnswer, type Verdict } from '../quiz/check';
@@ -35,7 +36,7 @@ export function Quiz() {
   const [answers, setAnswers] = useState<Record<string, Answered>>({});
   const [asked, setAsked] = useState<string[]>([]);
   const [pool, setPool] = useState<SourcePool | null>(null);
-  const hasKey = loadApiKey() !== '';
+  const hasKey = useAiAllowed('flashcards');
   const wantCourse = params.get('c');
   const wantTopic = params.get('t') ?? '';
 
@@ -128,7 +129,7 @@ export function Quiz() {
           <p className="hint mono quiz-sources">
             {pool === null ? 'Reading your material…' : sources.length === 0 ? `Nothing on file for ${course?.code ?? 'this class'}${topic ? ` about “${topic}”` : ''}. Add slides, a recording, or the syllabus in the Library first.` : `${sources.length} source${sources.length === 1 ? '' : 's'}: ${counts(sources)}`}
           </p>
-          {!hasKey && <p className="hint">Practice uses the same key as the coach. Connect it on the Now screen first.</p>}
+          {!hasKey && <p className="hint">Practice is part of Max.</p>}
           {error && (
             <p className="hint" style={{ color: 'var(--overdue)' }}>
               {error}

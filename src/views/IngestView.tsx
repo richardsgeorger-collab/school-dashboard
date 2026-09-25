@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeAiError } from '../ai/client';
 import { costOf, fmtDollars, loadPrices } from '../ai/usage';
-import { aiAvailable, loadApiKey } from '../chat/key';
+import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { CourseChip } from '../components/CourseChip';
 import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
 import type { DateStr, Item } from '../domain/types';
@@ -28,7 +29,7 @@ export function IngestView() {
   const { params } = useRoute();
   const tz = data.settings.timezone;
   const course = data.courses.find((c) => c.id === params.get('c')) ?? null;
-  const hasKey = aiAvailable();
+  const hasKey = useAiAllowed('syllabusAI');
   const [plan, setPlan] = useState<ClassPlan | null>(null);
   const [term, setTerm] = useState<TermResult | null>(null);
   const [ctx, setCtx] = useState<ClassContext | null>(null);

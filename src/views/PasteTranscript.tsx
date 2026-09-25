@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { describeAiError } from '../ai/client';
-import { aiAvailable, loadApiKey } from '../chat/key';
+import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { Modal } from '../components/Modal';
 import type { Course } from '../domain/types';
 import { libraryDb } from '../library/db';
@@ -27,7 +28,7 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
   const [note, setNote] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [review, setReview] = useState<{ recording: Recording; notes: LectureNotes } | null>(null);
-  const hasKey = aiAvailable();
+  const hasKey = useAiAllowed('lectures');
   const words = wordCount(text);
 
   const save = async () => {
@@ -38,7 +39,7 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
       notifyLibraryChanged();
       setSaved(true);
       if (!hasKey) {
-        setNote(`Saved: ${rec.title}, ${words.toLocaleString()} words. It is searchable now and the tutor can teach from it. Connect the key on Now and "Read notes" on it pulls out what the professor stressed.`);
+        setNote(`Saved: ${rec.title}, ${words.toLocaleString()} words. It is searchable now and the tutor can teach from it. On Max, "Read notes" pulls out what the professor stressed.`);
         return;
       }
       setBusy('reading');

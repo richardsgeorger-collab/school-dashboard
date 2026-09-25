@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { aiAvailable, loadApiKey } from '../chat/key';
+import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate } from '../domain/dates';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
@@ -22,7 +23,7 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const stop = useRef({ stopped: false });
-  const hasKey = aiAvailable();
+  const hasKey = useAiAllowed('announcementAI');
 
   const courseIds = useMemo(() => new Set(data.courses.map((c) => c.id)), [data.courses]);
   // The same ledger the sync and the News header use, so all three always agree on what is left.

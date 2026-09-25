@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { ENV } from '../env';
 import { MAX_TOKENS, type AiKind } from '../config/tiers';
 import { getAccessToken, supabaseConfig } from '../auth/client';
 import type { Meter } from './meter';
@@ -67,7 +68,7 @@ export interface GatewayOptions {
 }
 
 /** Whether this build may send a browser key straight to Anthropic (development, tests, or the transition flag). */
-export const AI_DIRECT_ALLOWED: boolean = !!(import.meta.env.DEV || import.meta.env.MODE === 'test' || import.meta.env.VITE_AI_DIRECT === '1');
+export const AI_DIRECT_ALLOWED: boolean = ENV.DEV || ENV.MODE === 'test' || ENV.AI_DIRECT;
 const DIRECT_ALLOWED = AI_DIRECT_ALLOWED;
 
 /** The wire shape sent either to our function or, in dev, to Anthropic. The model is set here and nowhere else. */

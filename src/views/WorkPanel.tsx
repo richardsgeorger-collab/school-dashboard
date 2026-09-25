@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { describeError } from '../chat/client';
-import { aiAvailable, loadApiKey } from '../chat/key';
+import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import type { Brief, Course, Item, Step } from '../domain/types';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
@@ -30,7 +31,7 @@ async function rubricTextFor(item: Item, decks: Deck[]): Promise<string> {
 export function WorkPanel({ item: given, course }: { item: Item; course: Course }) {
   const { actions, data } = useStore();
   const item = data.items.find((i) => i.id === given.id) ?? given;
-  const hasKey = aiAvailable();
+  const hasKey = useAiAllowed('aiChat');
   const [reading, setReading] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [draft, setDraft] = useState('');

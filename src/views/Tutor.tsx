@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { describeAiError, type Turn } from '../ai/client';
-import { aiAvailable, loadApiKey } from '../chat/key';
+import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { CourseChip } from '../components/CourseChip';
 import { weakConcepts } from '../domain/concepts';
 import { announceContext, announceDb, type StoredAnnouncement } from '../halo/announce';
@@ -36,7 +37,7 @@ export function Tutor() {
   const tz = data.settings.timezone;
   const course = data.courses.find((c) => c.id === params.get('c')) ?? null;
   const item = data.items.find((i) => i.id === params.get('i')) ?? null;
-  const hasKey = aiAvailable();
+  const hasKey = useAiAllowed('aiChat');
   const [topic, setTopic] = useState(params.get('t') ?? item?.topic ?? item?.title ?? '');
   const [pool, setPool] = useState<SourcePool | null>(null);
   const [history, setHistory] = useState<Msg[]>(() => (course ? loadHistory(course.id) : []));

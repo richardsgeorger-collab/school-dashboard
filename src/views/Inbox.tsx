@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeAiError } from '../ai/client';
-import { aiAvailable, loadApiKey } from '../chat/key';
+import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { CourseChip } from '../components/CourseChip';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course } from '../domain/types';
@@ -28,7 +29,7 @@ export function Inbox() {
   const [review, setReview] = useState<StoredAnnouncement | null>(null);
   const [readAll, setReadAll] = useState(false);
   const [filter, setFilter] = useState<string>('all');
-  const hasKey = aiAvailable();
+  const hasKey = useAiAllowed('announcementAI');
 
   const refresh = useCallback(async () => {
     setList(await announceDb.list().catch(() => []));
@@ -199,7 +200,7 @@ export function Inbox() {
                         {a.findings.length} thing{a.findings.length === 1 ? '' : 's'} it changes
                       </button>
                     )}
-                    {!hasKey && a.findings === null && <span className="hint">Connect the Anthropic key on Now to have it read.</span>}
+                    {!hasKey && a.findings === null && <span className="hint">Reading announcements is part of Pro.</span>}
                   </div>
                 </div>
               )}

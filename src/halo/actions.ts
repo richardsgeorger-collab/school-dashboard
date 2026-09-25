@@ -85,6 +85,21 @@ Rules:
 - Set applies_to when the post is about one of the listed planner items. Match on what the post is talking about, not on a word appearing in both.
 - Pure news with nothing to act on, an office-hours move, a welcome, encouragement, produces a summary and no actions. That is a valid answer, but read carefully first: a single clause in a friendly post is often the only place a requirement appears.
 - Plain words. Say what to do.
+
+Procedure, every time:
+1. Read the whole post once. Then go sentence by sentence and mark every sentence that tells students to do, bring, submit, read, reply, or prepare something, or that changes a date, a value, or what counts.
+2. For each marked sentence decide the kind: requirement (adds to work they have), new_work (not in their list), date_change, points_change, or note (actionable, fits nothing else).
+3. Resolve every relative date against the posting date. Write dates as YYYY-MM-DD.
+4. Copy the sentence as the quote, word for word. Then write "what" as a plain instruction.
+5. Only then write the summary: one sentence on what the post is about.
+
+Example. Post dated 2026-09-28 (a Monday) in CHM-113, planner has "Lab 3: Titration" (id i-lab3, due 2026-10-02):
+"Lab 3 will now be due Friday October 9 instead of the 2nd. Also, from this week bring your own splash goggles to lab. No goggles, no points."
+Actions:
+- kind date_change, applies_to i-lab3, what "Lab 3 is now due Friday, October 9", due 2026-10-09, quote "Lab 3 will now be due Friday October 9 instead of the 2nd."
+- kind requirement, applies_to i-lab3, what "Bring your own splash goggles to every lab; no goggles, no points", graded true, quote "from this week bring your own splash goggles to lab. No goggles, no points."
+Summary: "Lab 3 moved to October 9; goggles are now required in lab."
+
 Answer only through the announcement_actions tool.`;
 
 const obj = (x: unknown): Record<string, unknown> => (x && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : {});

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
+import { useAccount } from '../auth/AccountContext';
+import { LockTag } from '../config/Locked';
+import { useCan } from '../config/useCan';
 import { dateOf, fmtDate } from '../domain/dates';
 import { courseGrade, letterFor } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
@@ -47,6 +50,8 @@ function CourseCard({ course }: { course: Course }) {
   const g = courseGrade(course.id, data.items);
   const [expanded, setExpanded] = useState(false);
   const [whatIf, setWhatIf] = useState(false);
+  const canProject = useCan('gradeProjection');
+  const { tier } = useAccount();
   const items = data.items.filter((i) => i.courseId === course.id).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const gradedPct = g.totalPossible ? (g.possibleGraded / g.totalPossible) * 100 : 0;
 
@@ -91,7 +96,7 @@ function CourseCard({ course }: { course: Course }) {
           </div>
           <div>
             <dt>Projected</dt>
-            <dd>{g.projected === null ? '—' : `${g.projected}%`}</dd>
+            <dd>{canProject ? (g.projected === null ? '—' : `${g.projected}%`) : <LockTag feature="gradeProjection" tier={tier} />}</dd>
           </div>
         </dl>
       )}
@@ -110,9 +115,11 @@ function CourseCard({ course }: { course: Course }) {
         <button type="button" className="btn small" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}>
           {expanded ? 'Hide scores' : 'Scores'}
         </button>
-        <button type="button" className="btn small" onClick={() => setWhatIf((w) => !w)} aria-expanded={whatIf}>
-          {whatIf ? 'Hide what-if' : 'What if'}
-        </button>
+        {canProject && (
+          <button type="button" className="btn small" onClick={() => setWhatIf((w) => !w)} aria-expanded={whatIf}>
+            {whatIf ? 'Hide what-if' : 'What if'}
+          </button>
+        )}
       </div>
       {whatIf && <WhatIf course={course} />}
       {expanded && (
