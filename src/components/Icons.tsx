@@ -116,3 +116,11 @@ export const IconYou = () => (
     <path d="M5 19.5a7 7 0 0 1 14 0" />
   </svg>
 );
+/** The Halo+ mark: a ring with a plus sitting on it. */
+export const IconHalo = () => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden>
+    <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2.2" />
+    <circle cx="18" cy="6.5" r="4.6" fill="var(--halo)" />
+    <path d="M18 4.4v4.2M15.9 6.5h4.2" stroke="var(--halo-ink)" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);

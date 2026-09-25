@@ -2,8 +2,8 @@
 
 Last updated 2026-09-24.
 
-1. **What this is.** School Dashboard is a planner that shows your Halo coursework the way you choose to sync it. It is a tool, not a record of truth: Halo is. Always check Halo for anything that matters, and never rely on the app alone for a deadline.
-2. **Not affiliated with GCU.** School Dashboard is independent. It is not affiliated with, endorsed by, or connected to Grand Canyon University or Halo. No GCU marks are used.
+1. **What this is.** Halo+ is a planner that shows your Halo coursework the way you choose to sync it. It is a tool, not a record of truth: Halo is. Always check Halo for anything that matters, and never rely on the app alone for a deadline.
+2. **Not affiliated with GCU.** Halo+ is independent. It is not affiliated with, endorsed by, or connected to Grand Canyon University or Halo. No GCU marks are used.
 3. **Your account.** You need to be a college student or an adult. Keep your email sign-in to yourself. You may delete the account at any time from the You tab.
 4. **Your data.** It stays yours. We use it only to run the app for you, as described in the Privacy page. You may export it at any time.
 5. **Syncing Halo.** The bookmark and the extension act on your behalf, on your own Halo session, only when you run them. You are responsible for using them in line with GCU's own acceptable-use rules. Never use the app to access anyone else's Halo.

@@ -576,7 +576,7 @@ export function You() {
       </div>
 
       <p className="hint you-foot">
-        School Dashboard is an independent planner and is not affiliated with Grand Canyon University. Halo is GCU&apos;s learning platform.{' '}
+        Halo+ is an independent planner and is not affiliated with Grand Canyon University. Halo is GCU&apos;s learning platform.{' '}
         <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a>
       </p>
 

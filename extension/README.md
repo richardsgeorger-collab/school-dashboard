@@ -1,4 +1,4 @@
-# School Dashboard for Halo (Chrome extension)
+# Halo+ for Halo (Chrome extension)
 
 Desktop auto-sync for Plus and up. It opens Halo in a background tab every three hours while Chrome is running,
 runs the same sync the bookmark runs, and hands the export to the dashboard tab, where you approve the changes

@@ -4,7 +4,7 @@ Last updated 2026-09-24. Plain words; the short version is that your data is you
 
 ## Who we are
 
-School Dashboard is an independent planner made by a student for students who use Halo at Grand Canyon University. It is not affiliated with, endorsed by, or connected to Grand Canyon University. Contact: richards.georger@gmail.com.
+Halo+ is an independent planner made by a student for students who use Halo at Grand Canyon University. It is not affiliated with, endorsed by, or connected to Grand Canyon University. Contact: richards.georger@gmail.com.
 
 ## What we collect
 

@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { TAB_OF, TABS, useRoute, type Tab } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconClasses, IconInbox, IconNow, IconPlus, IconSync, IconYou } from './Icons';
+import { IconCalendar, IconClasses, IconHalo, IconInbox, IconNow, IconPlus, IconSync, IconYou } from './Icons';
 
 const LABEL: Record<Tab, string> = { now: 'Now', calendar: 'Calendar', classes: 'Classes', inbox: 'Inbox', you: 'You' };
 const ICON: Record<Tab, () => ReactElement> = { now: IconNow, calendar: IconCalendar, classes: IconClasses, inbox: IconInbox, you: IconYou };
@@ -37,9 +37,9 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
       <div className="topbar-inner">
         <a href="#/now" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
           <span className="brand-mark" aria-hidden>
-            S
+            <IconHalo />
           </span>
-          <span className="brand-text">School Dashboard</span>
+          <span className="brand-text">Halo+</span>
         </a>
         <nav className="nav-top" aria-label="Primary">
           <Links current={TAB_OF[route]} />

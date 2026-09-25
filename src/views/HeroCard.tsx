@@ -17,13 +17,17 @@ import { PromptPanel } from './PromptPanel';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
 
 /**
- * The one thing on Now, with everything needed to start it: what it asks for, the facts, the first step, what has to
- * happen first, the material that covers it, a starter prompt for the tutor, and a way in to Halo for the moment of
- * handing in. No countdown, nothing red. One piece of work, never a list.
+ * The one thing on Now. What it is, why it is the one, how long, how much, and Start. Everything a student might
+ * need once they have started (what it asks for, the first step, the rubric, the slides that cover it, the
+ * professor's warning, the tutor, Halo) sits behind one Details tap. No countdown, nothing red. Never a list.
  */
 export interface HeroProps {
   item: Item;
   optional: boolean;
+  /** One plain sentence on why this is the one. */
+  why?: string | null;
+  /** Set by the screen while the card animates out after Done. */
+  leaving?: boolean;
   onOpen: (i: Item) => void;
   onSkip: (i: Item, day: DateStr) => void;
   onDone: (i: Item) => void;
@@ -115,20 +119,27 @@ function SnoozeChooser({ today, deadlineDay, onPick, onClose }: { today: DateStr
   );
 }
 
-export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) {
+export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip, onDone }: HeroProps) {
   const { courseById, schedule, data, today, actions, calibrate } = useStore();
   const tz = data.settings.timezone;
   const cal = calibrate(item);
   const course = courseById.get(item.courseId);
   const color = useCourseColor(course);
-  const now = new Date().toISOString();
   const done = item.status === 'done';
   const material = useMaterial(item, tz);
   const [choosing, setChoosing] = useState<'block' | 'snooze' | null>(null);
-  const [more, setMore] = useState(false);
+  const [details, setDetails] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
   const [panel, setPanel] = useState(false);
+  // The timer: once started, the elapsed time on the card keeps up without a reload.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!item.startedAt || done) return;
+    const t = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, [item.startedAt, done]);
+  const now = new Date().toISOString();
 
   const asks = item.plan?.asks?.trim() || item.brief?.asks.join(' ') || (item.title !== item.label ? item.title : '');
   const facts = heroFacts(item, data.items, cal.minutes, tz, today);
@@ -150,6 +161,7 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
   // Slides, readings, and lecture stretches are places to go. "the syllabus" on its own is not, so it never shows alone.
   const realSources = sources.filter((s) => s.kind !== 'syllabus');
   const covered = realSources.length + material.decks.filter(deckShown).length + material.recs.length;
+  const halo = haloLink(item, course?.code);
 
   const start = () => actions.upsertItem({ ...item, status: 'in_progress', startedAt: now });
   const finish = () => {
@@ -185,192 +197,211 @@ export function HeroCard({ item, optional, onOpen, onSkip, onDone }: HeroProps) 
     window.location.hash = `/tutor?c=${item.courseId}&i=${item.id}&starter=1`;
   };
 
+  const status = done ? (
+    <span className="pill" data-tone="ok">
+      Done
+    </span>
+  ) : item.startedAt && elapsed ? (
+    <span className="pill" data-tone="accent">
+      {elapsed}
+    </span>
+  ) : pastDate ? (
+    <span className="pill" data-tone="warn">
+      Past its date
+    </span>
+  ) : optional ? (
+    <span className="pill">Getting ahead</span>
+  ) : null;
+
+  const hasDetails = !!asks || gates.length > 0 || prereqs.length > 0 || !!next || rubric.length > 0 || covered > 0 || material.flagged.length > 0 || !!shaky || !!link || !!fit;
+
   return (
-    <section key={item.id} className="hero" data-state={done ? 'done' : 'work'} style={{ '--course': color } as React.CSSProperties} aria-label="Now">
-      <div className="hero-eyebrow">
-        <span className="hero-eyebrow-left">
+    <section key={item.id} className="hero" data-state={done ? 'done' : 'work'} data-leaving={leaving} style={{ '--course': color } as React.CSSProperties} aria-label="Now">
+      <div className="hero-top">
+        <span className="hero-eyebrow">
           <CourseChip course={course} />
           <span className="hero-kind">{TYPE_LABELS[item.type]}</span>
         </span>
-        <span className="hero-eyebrow-right">{done ? 'done' : item.startedAt && elapsed ? elapsed.toLowerCase() : pastDate ? 'past its date' : optional ? 'getting ahead' : ''}</span>
+        {status}
       </div>
-      <h1 className="hero-title">
+      <h2 className="hero-title">
         <button type="button" className="hero-title-btn" onClick={() => onOpen(item)} title="Open the details">
           {item.label}
         </button>
-      </h1>
-      {asks && <p className="hero-asks">{asks}</p>}
-      <p className="hero-facts mono">
+      </h2>
+      {why && <p className="hero-why">{why}</p>}
+      <p className="hero-meta">
         {facts.map((f, i) =>
           f.itemId ? (
-            <button key={i} type="button" className="hero-fact hero-fact-link" onClick={() => { const t = data.items.find((x) => x.id === f.itemId); if (t) onOpen(t); }}>
+            <button key={i} type="button" className="pill hero-fact-link" onClick={() => { const t = data.items.find((x) => x.id === f.itemId); if (t) onOpen(t); }}>
               {f.text}
             </button>
           ) : (
-            <span key={i} className="hero-fact">
+            <span key={i} className="pill">
               {f.text}
             </span>
           ),
         )}
-        {fit && <span className="hero-fact hero-fit">{fit}</span>}
       </p>
 
       {ranOut && item.blocked && (
-        <p className="hero-line">
+        <p className="hero-line" style={{ marginTop: 12 }}>
           You were {blockPhrase(item, tz)}. Still stuck?{' '}
           <button type="button" className="hero-inline" onClick={() => block(item.blocked!.reason, item.blocked!.note)}>
             still blocked
           </button>
         </p>
       )}
-      {(gates.length > 0 || prereqs.length > 0) && (
-        <p className="hero-line">
-          <b>Needs first</b>{' '}
-          {gates.map((g) => (
-            <button key={g.id} type="button" className="hero-inline" onClick={() => onOpen(g)}>
-              {g.label}
-            </button>
-          ))}
-          {prereqs.map((p, i) => (
-            <span key={i}>
-              {p.text}
-              {p.source ? <span className="muted"> ({p.source})</span> : null}
-            </span>
-          ))}
-        </p>
-      )}
-
-      {!done && next && (
-        <div className="hero-first">
-          <label className="hero-first-step">
-            <input type="checkbox" checked={false} onChange={() => toggleStep(next.id)} aria-label={`Done: ${next.label}`} />
-            <span>
-              <span className="hero-first-word">First</span> {next.label}
-            </span>
-          </label>
-          {steps.length > 1 && (
-            <button type="button" className="hero-fold" onClick={() => setShowSteps((s) => !s)} aria-expanded={showSteps}>
-              {steps.filter((s) => s.done).length} of {steps.length} steps
-            </button>
-          )}
-          {showSteps && (
-            <ul className="hero-steps-list">
-              {steps.map((s) => (
-                <li key={s.id} data-next={s.id === next.id} data-done={s.done}>
-                  <label>
-                    <input type="checkbox" checked={s.done} onChange={() => toggleStep(s.id)} /> {s.label}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-      {!done && steps.length > 0 && !next && <p className="hero-line">Every step is ticked. Hand it in.</p>}
-
-      {rubric.length > 0 && (
-        <p className="hero-line">
-          <b>Full credit needs</b> {rubric.map((r) => `${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}`).join(' · ')}
-        </p>
-      )}
-      {covered > 0 && (
-        <p className="hero-covers">
-          <b>Covered by</b>
-          {realSources.map((s, i) =>
-            s.href ? (
-              <a key={`s${i}`} className="hero-chip" href={s.href}>
-                {s.label}
-              </a>
-            ) : (
-              <span key={`s${i}`} className="hero-chip">
-                {s.label}
-              </span>
-            ),
-          )}
-          {material.decks.filter(deckShown).map((d) => (
-            <a key={d.id} className="hero-chip" href={`#/library?v=slides&deck=${d.id}`}>
-              {d.title}
-            </a>
-          ))}
-          {material.recs.map((r) => (
-            <a key={r.id} className="hero-chip" href={`#/library?c=${item.courseId}`}>
-              {r.title} · {fmtDate(dateOf(r.startedAt, tz), 'short')}
-            </a>
-          ))}
-        </p>
-      )}
-      {material.flagged.length > 0 && (
-        <p className="hero-line">
-          <b>Your professor flagged</b> “{material.flagged[0].point}” <span className="muted">({material.flagged[0].where})</span>
-        </p>
-      )}
-      {shaky && (
-        <p className="hero-line">
-          <b>You've been shaky on {shaky.topic}</b>
-          {shaky.pct !== null ? ` (${shaky.pct}% so far)` : ''}. Start with the slides above, or{' '}
-          <a className="hero-inline" href={`#/tutor?c=${item.courseId}&t=${encodeURIComponent(shaky.topic)}&i=${item.id}`}>
-            ask the tutor
-          </a>
-          .
-        </p>
-      )}
-      {link && (
-        <p className="hero-line">
-          <b>Same idea as</b> {link.other.code} {link.topic}: {link.note}
-        </p>
-      )}
-
 
       {!done && (
         <div className="hero-actions">
           {item.startedAt ? (
-            <button type="button" className="btn primary hero-btn" onClick={finish}>
+            <button type="button" className="btn primary" onClick={finish}>
               <IconCheck /> Done
             </button>
           ) : (
             <>
-              <button type="button" className="btn primary hero-btn" onClick={start}>
+              <button type="button" className="btn primary" onClick={start}>
                 Start
               </button>
-              <button type="button" className="btn hero-btn" onClick={() => onDone(item)}>
-                <IconCheck /> Done
+              <button type="button" className="btn" onClick={() => onDone(item)} aria-label="Mark done">
+                <IconCheck />
               </button>
             </>
           )}
-          <a className="btn hero-btn hero-halo" href={haloLink(item, course?.code).href} target="_blank" rel="noreferrer">
-            {haloLink(item, course?.code).label} ↗
-          </a>
-          {course && (
-            <button type="button" className="btn hero-btn" onClick={() => setPanel(true)}>
-              Prompt for this
+          {hasDetails && (
+            <button type="button" className="btn quiet" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
+              {details ? 'Less' : 'Details'}
             </button>
           )}
-          {/* Everything that is not Start, Done, Halo or the prompt lives behind one press. */}
-          <span className="hero-secondary">
-            <button type="button" className="hero-skip" aria-expanded={more} onClick={() => setMore((m) => !m)}>
-              {more ? 'Less' : 'More'}
-            </button>
-            {more && (
-              <>
-                <button type="button" className="hero-skip" onClick={() => setChoosing((c) => (c === 'block' ? null : 'block'))}>
-                  Can't do this yet
+        </div>
+      )}
+
+      {details && (
+        <div className="hero-details">
+          {asks && <p className="hero-asks">{asks}</p>}
+          {fit && <p className="hero-line">{fit}</p>}
+          {(gates.length > 0 || prereqs.length > 0) && (
+            <p className="hero-line">
+              <b>Needs first</b>{' '}
+              {gates.map((g) => (
+                <button key={g.id} type="button" className="hero-inline" onClick={() => onOpen(g)}>
+                  {g.label}
                 </button>
-                <button type="button" className="hero-skip" onClick={() => setChoosing((c) => (c === 'snooze' ? null : 'snooze'))}>
-                  Not today
+              ))}
+              {prereqs.map((p, i) => (
+                <span key={i}>
+                  {p.text}
+                  {p.source ? <span className="muted"> ({p.source})</span> : null}
+                </span>
+              ))}
+            </p>
+          )}
+          {next && (
+            <div className="hero-first">
+              <label className="hero-first-step">
+                <input type="checkbox" checked={false} onChange={() => toggleStep(next.id)} aria-label={`Done: ${next.label}`} />
+                <span>
+                  <span className="hero-first-word">First</span>
+                  {next.label}
+                </span>
+              </label>
+              {steps.length > 1 && (
+                <button type="button" className="hero-fold" onClick={() => setShowSteps((s) => !s)} aria-expanded={showSteps}>
+                  {steps.filter((s) => s.done).length} of {steps.length} steps
                 </button>
-                {course && (
-                  <button type="button" className="hero-skip" onClick={openTutor}>
-                    Ask the tutor
-                  </button>
-                )}
-                {course && (
-                  <button type="button" className="hero-skip" onClick={() => void copy()}>
-                    {copied ? 'Copied' : 'Copy a short prompt'}
-                  </button>
-                )}
-              </>
+              )}
+              {showSteps && (
+                <ul className="hero-steps-list">
+                  {steps.map((s) => (
+                    <li key={s.id} data-next={s.id === next.id} data-done={s.done}>
+                      <label>
+                        <input type="checkbox" checked={s.done} onChange={() => toggleStep(s.id)} /> {s.label}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          {steps.length > 0 && !next && <p className="hero-line">Every step is ticked. Hand it in.</p>}
+          {rubric.length > 0 && (
+            <p className="hero-line">
+              <b>Full credit needs</b> {rubric.map((r) => `${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}`).join(' · ')}
+            </p>
+          )}
+          {covered > 0 && (
+            <p className="hero-covers">
+              <b>Covered by</b>
+              {realSources.map((s, i) =>
+                s.href ? (
+                  <a key={`s${i}`} className="hero-chip" href={s.href}>
+                    {s.label}
+                  </a>
+                ) : (
+                  <span key={`s${i}`} className="hero-chip">
+                    {s.label}
+                  </span>
+                ),
+              )}
+              {material.decks.filter(deckShown).map((d) => (
+                <a key={d.id} className="hero-chip" href={`#/library?v=slides&deck=${d.id}`}>
+                  {d.title}
+                </a>
+              ))}
+              {material.recs.map((r) => (
+                <a key={r.id} className="hero-chip" href={`#/library?c=${item.courseId}`}>
+                  {r.title} · {fmtDate(dateOf(r.startedAt, tz), 'short')}
+                </a>
+              ))}
+            </p>
+          )}
+          {material.flagged.length > 0 && (
+            <p className="hero-line">
+              <b>Your professor flagged</b> “{material.flagged[0].point}” <span className="muted">({material.flagged[0].where})</span>
+            </p>
+          )}
+          {shaky && (
+            <p className="hero-line">
+              <b>You've been shaky on {shaky.topic}</b>
+              {shaky.pct !== null ? ` (${shaky.pct}% so far)` : ''}. Start with the slides above, or{' '}
+              <a className="hero-inline" href={`#/tutor?c=${item.courseId}&t=${encodeURIComponent(shaky.topic)}&i=${item.id}`}>
+                ask the tutor
+              </a>
+              .
+            </p>
+          )}
+          {link && (
+            <p className="hero-line">
+              <b>Same idea as</b> {link.other.code} {link.topic}: {link.note}
+            </p>
+          )}
+          <div className="hero-more">
+            <a className="btn small" href={halo.href} target="_blank" rel="noreferrer">
+              {halo.label} ↗
+            </a>
+            {course && (
+              <button type="button" className="btn small" onClick={() => setPanel(true)}>
+                Prompt for this
+              </button>
             )}
-          </span>
+            {course && (
+              <button type="button" className="btn small" onClick={openTutor}>
+                Ask the tutor
+              </button>
+            )}
+            {course && (
+              <button type="button" className="btn small" onClick={() => void copy()}>
+                {copied ? 'Copied' : 'Copy a short prompt'}
+              </button>
+            )}
+            <button type="button" className="btn small" onClick={() => setChoosing((c) => (c === 'block' ? null : 'block'))}>
+              Can't do this yet
+            </button>
+            <button type="button" className="btn small" onClick={() => setChoosing((c) => (c === 'snooze' ? null : 'snooze'))}>
+              Not today
+            </button>
+          </div>
           {choosing === 'block' && <BlockChooser onPick={block} onClose={() => setChoosing(null)} />}
           {choosing === 'snooze' && (
             <SnoozeChooser

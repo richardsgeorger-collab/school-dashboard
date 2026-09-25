@@ -1,4 +1,4 @@
-// School Dashboard service worker: the app shell offline, and push notifications. Assets are hashed by the build
+// Halo+ service worker: the app shell offline, and push notifications. Assets are hashed by the build
 // and cached on first use; navigations go to the network first and fall back to the cached shell.
 const VERSION = 'sd-2';
 const SHELL = new URL('./', self.location.href).pathname;
@@ -26,7 +26,7 @@ self.addEventListener('fetch', (e) => {
 });
 
 self.addEventListener('push', (e) => {
-  let data = { title: 'School Dashboard', body: '', url: SHELL };
+  let data = { title: 'Halo+', body: '', url: SHELL };
   try {
     data = { ...data, ...e.data.json() };
   } catch {

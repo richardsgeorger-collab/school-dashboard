@@ -1,0 +1,562 @@
+/*
+ * Now. One thing to do, and calm. Every rule here is layout on top of components.css; the hero is the only element
+ * in the app allowed a display-size title.
+ */
+.now {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* ---- header: the day, the answer, a ring -------------------------- */
+.now-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-top: var(--s-1);
+}
+.now-head .eyebrow {
+  margin: 0 0 6px;
+}
+.now-title {
+  font: var(--t-display);
+  letter-spacing: var(--track-tight);
+  margin: 0;
+  text-wrap: balance;
+}
+.now-status-btn {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.now-status-btn:hover {
+  color: var(--ink-2);
+}
+.now-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.now-ring .ring {
+  --size: 48px;
+  --stroke: 5px;
+}
+.now-ring-label {
+  font: var(--t-micro);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- hero card ------------------------------------------------------ */
+.hero {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: var(--s-5) var(--s-5) var(--s-4);
+  box-shadow: var(--shadow-2);
+  transition: transform var(--dur-3) var(--ease), opacity var(--dur-3) var(--ease);
+}
+.hero[data-leaving='true'] {
+  transform: scale(0.97) translateY(-6px);
+  opacity: 0;
+}
+.hero[data-state='done'] {
+  opacity: 0.6;
+}
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  min-height: 24px;
+}
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--t-small);
+  color: var(--ink-3);
+}
+.hero-title {
+  font: var(--t-display);
+  letter-spacing: var(--track-tight);
+  margin: var(--s-3) 0 0;
+  text-wrap: balance;
+}
+.hero-title-btn {
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: left;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.hero-why {
+  margin: var(--s-2) 0 0;
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: var(--s-4) 0 0;
+}
+.hero-meta .pill {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+.hero-actions {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+.hero-actions .btn.primary {
+  flex: 1;
+  min-height: 48px;
+  font-size: 16px;
+}
+.hero-actions .btn.quiet {
+  color: var(--ink-2);
+  padding: 0 12px;
+}
+.hero-details {
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  animation: fade-in var(--dur-2) var(--ease);
+}
+.hero-asks {
+  margin: 0;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.hero-line {
+  margin: 0;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.hero-line b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.hero-first {
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+}
+.hero-first-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font: var(--t-body);
+  color: var(--ink);
+  cursor: pointer;
+}
+.hero-first-step input {
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+.hero-first-word {
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-right: 4px;
+}
+.hero-fold {
+  margin: 8px 0 0 30px;
+  font: var(--t-small);
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.hero-steps-list {
+  list-style: none;
+  margin: 8px 0 0 30px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.hero-steps-list li[data-done='true'] {
+  text-decoration: line-through;
+  color: var(--ink-3);
+}
+.hero-steps-list label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.hero-covers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.hero-covers b {
+  color: var(--ink);
+  font-weight: 600;
+  margin-right: 2px;
+}
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 500 13px/1 var(--font-body);
+  text-decoration: none;
+}
+.hero-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.hero-chooser {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3);
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+.hero-chooser .hint {
+  flex-basis: 100%;
+}
+.hero-chooser-note {
+  flex: 1;
+  min-width: 140px;
+  min-height: 36px !important;
+}
+.hero-chooser .hero-skip {
+  font: var(--t-small);
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ---- then ------------------------------------------------------------ */
+.then {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.then .row {
+  min-height: 52px;
+}
+.then .row-title {
+  font-weight: 500;
+}
+.then-more {
+  align-self: flex-start;
+}
+
+/* ---- quiet notes ------------------------------------------------------ */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.note[data-tone='warn'] {
+  background: var(--warn-soft);
+  border-color: transparent;
+  color: var(--warn);
+}
+.note[data-tone='danger'] {
+  background: var(--danger-soft);
+  border-color: transparent;
+  color: var(--danger);
+}
+.note[data-tone='accent'] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+.note b {
+  font-weight: 600;
+}
+.note .hero-inline,
+.note .verify-nudge,
+.note a {
+  color: inherit;
+  font-weight: 600;
+}
+.note-text {
+  flex: 1;
+}
+.note-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+/* ---- calm ------------------------------------------------------------- */
+.calm {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-2);
+  padding: var(--s-6) var(--s-5);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+}
+.calm .ring {
+  --size: 64px;
+  --stroke: 6px;
+  margin-bottom: var(--s-2);
+}
+.calm-title {
+  font: var(--t-display);
+  letter-spacing: var(--track-tight);
+  margin: 0;
+}
+.calm-text {
+  font: var(--t-body);
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 34ch;
+}
+.calm-more {
+  margin-top: var(--s-2);
+}
+.calm-check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--ok-soft);
+  color: var(--ok);
+  display: grid;
+  place-items: center;
+  animation: pop-in var(--dur-3) var(--ease);
+}
+.calm-check svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* ---- exam mode: the same card, one extra line ------------------------- */
+.hero-exam .hero-framing {
+  display: inline-flex;
+  height: 26px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  background: var(--warn-soft);
+  color: var(--warn);
+  font: 600 12px/1 var(--font-body);
+}
+.exam-sessions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.exam-session {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.exam-session[data-today='true'] {
+  border-color: var(--accent);
+}
+.pressure {
+  font: var(--t-small);
+  color: var(--warn);
+  margin: 0;
+}
+
+/* ---- next class, term, trust ------------------------------------------- */
+.nextclass-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font: var(--t-small);
+  color: var(--ink-2);
+  margin: 0;
+}
+.nextclass-link {
+  font: inherit;
+  color: var(--accent);
+  font-weight: 500;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.term-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.term-progress-track {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.term-progress-track .banked {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.term-progress-track .elapsed {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--ink-3);
+}
+.term-progress .mono {
+  font: var(--t-micro);
+  font-family: var(--font-mono);
+  color: var(--ink-3);
+}
+.synced {
+  margin: 0;
+  font: var(--t-micro);
+  font-family: var(--font-mono);
+  color: var(--ink-3);
+}
+.synced[data-level='ok'] {
+  color: var(--ok);
+}
+.synced[data-level='amber'] {
+  color: var(--warn);
+}
+.trial-line {
+  margin: 0;
+}
+
+/* ---- the coach, folded ------------------------------------------------- */
+.coach-fold {
+  padding: 0;
+}
+.coach-fold > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 var(--s-4);
+  font: 500 15px/1 var(--font-body);
+  color: var(--ink);
+  cursor: pointer;
+}
+.coach-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.coach-fold > summary::after {
+  content: '';
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid var(--ink-3);
+  border-bottom: 1.5px solid var(--ink-3);
+  transform: rotate(45deg);
+  transition: transform var(--dur-1) var(--ease);
+}
+.coach-fold[open] > summary::after {
+  transform: rotate(-135deg);
+}
+.coach-fold[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+.coach-fold .chat {
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  padding: var(--s-4);
+  margin: 0;
+}
+.coach-fold .chat-head {
+  display: none;
+}
+.coach-fold .locked {
+  border: 0;
+  box-shadow: none;
+}
+.coach-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--ink-3);
+}
+
+/* ---- settled after the direction review ------------------------------- */
+.now .section-title {
+  font: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.now-status-btn,
+.now-status-btn:hover {
+  text-decoration: none;
+}
+.now-sub {
+  margin: 6px 0 0;
+  font: var(--t-body);
+  color: var(--ink-2);
+}

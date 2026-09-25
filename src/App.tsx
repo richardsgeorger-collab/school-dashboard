@@ -14,6 +14,8 @@ import { StoreProvider } from './storage/store';
 import { syncPress } from './ui/presses';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/components.css';
+import './styles/now.css';
 import { Calendar } from './views/calendar/Calendar';
 import { Now } from './views/Now';
 import { Load } from './views/Load';

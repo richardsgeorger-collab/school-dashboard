@@ -1,36 +1,25 @@
+/*
+ * Halo+ design tokens. The whole visual language lives here: every screen uses these and nothing else.
+ * See DESIGN.md for the reasoning. The old names at the bottom keep the existing stylesheet working while it is
+ * moved over screen by screen; new code uses the new names.
+ */
 :root {
   color-scheme: light;
-  --bg: #f3f5f7;
-  --surface: #ffffff;
-  --surface-2: #e9edf1;
-  --surface-3: #dde3e9;
-  --line: #d6dce3;
-  --line-strong: #b9c2cc;
-  --ink: #151a21;
-  --ink-2: #4a545f;
-  --ink-3: #7b8590;
-  --hi: #f5e663;
-  --hi-soft: #fbf3b3;
-  --hi-ink: #3a3400;
-  --overdue: #b3261e;
-  --overdue-soft: #f9dedc;
-  --risk: #a15a00;
-  --risk-soft: #fbe7cc;
-  --soon: #1f4fb0;
-  --soon-soft: #dbe5fb;
-  --ok: #1d7a4a;
-  --ok-soft: #d6f0e1;
-  --shadow: 0 1px 2px rgb(21 26 33 / 0.06), 0 8px 24px -12px rgb(21 26 33 / 0.18);
-  --sheet-shadow: 0 -8px 40px -8px rgb(21 26 33 / 0.35);
-  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(21 26 33 / 0.28) 3px 5px);
 
-  --font-display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
-  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  /* Type: one family, weight does the hierarchy. Tabular numerals wherever numbers line up. */
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-display: var(--font-body);
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --t-display: 600 28px/1.15 var(--font-display);
+  --t-title: 600 22px/1.2 var(--font-display);
+  --t-heading: 600 16px/1.3 var(--font-body);
+  --t-body: 400 15px/1.5 var(--font-body);
+  --t-small: 400 13px/1.45 var(--font-body);
+  --t-micro: 500 11px/1.3 var(--font-body);
+  --track-tight: -0.02em;
+  --track-caps: 0.06em;
 
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 16px;
+  /* Spacing: a 4px scale. Groups sit 24px apart, things inside a group 8–12px. */
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
@@ -38,34 +27,101 @@
   --s-5: 24px;
   --s-6: 32px;
   --s-7: 48px;
+  --gutter: 20px;
+  --content-max: 640px;
+  --wide-max: 1040px;
   --tap: 44px;
-  --nav-h: 60px;
-  --content-max: 1120px;
+  --nav-h: 56px;
+
+  /* Colour: a tinted page, white cards, two inks, one accent. Status colours only for real status. */
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --surface-3: #e3e6eb;
+  --line: rgb(16 24 40 / 0.08);
+  --line-strong: rgb(16 24 40 / 0.16);
+  --ink: #101828;
+  --ink-2: #4b5565;
+  --ink-3: #8a94a6;
+  --accent: #2f6bff;
+  --accent-ink: #ffffff;
+  --accent-soft: #e9f0ff;
+  --ok: #12835a;
+  --ok-soft: #e2f5ec;
+  --warn: #b25e09;
+  --warn-soft: #fdf1dc;
+  --danger: #d0342c;
+  --danger-soft: #fde8e6;
+  /* The halo: gold, for the brand mark and the one celebratory moment. Never for text. */
+  --halo: #f2c14e;
+  --halo-soft: #fff6db;
+  --halo-ink: #6a4a00;
+
+  /* Depth: hairline plus a shadow so soft it reads as lifted, never boxed. */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+  --shadow-1: 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-2: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px -12px rgb(16 24 40 / 0.16);
+  --shadow-3: 0 2px 4px rgb(16 24 40 / 0.06), 0 16px 40px -16px rgb(16 24 40 / 0.24);
+  --sheet-shadow: 0 -8px 40px -8px rgb(16 24 40 / 0.28);
+
+  /* Motion: only on state change. */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-1: 150ms;
+  --dur-2: 240ms;
+  --dur-3: 420ms;
+
+  /* Old names, mapped. Removed as each screen moves over. */
+  --hi: var(--halo);
+  --hi-soft: var(--halo-soft);
+  --hi-ink: var(--halo-ink);
+  --overdue: var(--danger);
+  --overdue-soft: var(--danger-soft);
+  --risk: var(--warn);
+  --risk-soft: var(--warn-soft);
+  --soon: var(--accent);
+  --soon-soft: var(--accent-soft);
+  --shadow: var(--shadow-2);
+  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(16 24 40 / 0.22) 3px 5px);
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0f1216;
-  --surface: #171b21;
-  --surface-2: #1f252d;
-  --surface-3: #2a323c;
-  --line: #2b333d;
-  --line-strong: #3d4854;
-  --ink: #e8ecf0;
-  --ink-2: #aeb7c2;
-  --ink-3: #7d8895;
-  --hi: #e9d94a;
-  --hi-soft: #4a4520;
-  --hi-ink: #fff8c2;
-  --overdue: #ff7b70;
-  --overdue-soft: #4a1f1c;
-  --risk: #f0a848;
-  --risk-soft: #46300f;
-  --soon: #8db0ff;
-  --soon-soft: #1f2d4d;
-  --ok: #5fcf8f;
-  --ok-soft: #173826;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --bg: #0b0d11;
+  --surface: #14171d;
+  --surface-2: #1b1f27;
+  --surface-3: #262b35;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.16);
+  --ink: #f2f4f7;
+  --ink-2: #a5adbb;
+  --ink-3: #6c7585;
+  --accent: #6b8cff;
+  --accent-ink: #0b0d11;
+  --accent-soft: #1a2340;
+  --ok: #4ad48d;
+  --ok-soft: #10291c;
+  --warn: #f2b545;
+  --warn-soft: #2e2208;
+  --danger: #f87171;
+  --danger-soft: #3a1717;
+  --halo: #f2c14e;
+  --halo-soft: #2f2610;
+  --halo-ink: #ffe8a3;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-3: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 40px -16px rgb(0 0 0 / 0.7);
   --sheet-shadow: 0 -8px 40px -8px rgb(0 0 0 / 0.7);
-  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(232 236 240 / 0.3) 3px 5px);
+  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(242 244 247 / 0.28) 3px 5px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-1: 0ms;
+    --dur-2: 0ms;
+    --dur-3: 0ms;
+  }
 }
