@@ -50,10 +50,11 @@ Steps 1 to 7 done 2026-09-25 (project `kiacmspgvntzwngijibr`, us-west-1, free pl
    Phoenix: $6.99 + 9.1%), and charges a higher fee than standard Stripe. Off means standard fees, but sales tax is
    yours to handle. Settings → Managed payments in the Stripe dashboard. Then create the same products and prices in
    live mode, put the live ids in `tiers.ts`, and set the live secret key and a live webhook.
-9. Notifications: `npx web-push generate-vapid-keys`; set `VITE_VAPID_PUBLIC_KEY` as a repository variable and
-   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT`, `NOTIFY_CRON_SECRET` as function secrets; deploy
-   `notify-send`; run `supabase/migrations/0003_notifications_cron.sql` with your project ref and the same secret;
-   then turn notifications on under You and confirm the sample note and, next morning, the real one.
+9. ~~Notifications.~~ Done 2026-09-25: VAPID keys generated (private half only in function secrets, public half a
+   repository variable passed to the build), `notify-send` deployed, cron reading its URL and secret from Vault.
+   Verified on George's Mac: server → cron → push → banner, and tapping it opens the app. Two bugs found and fixed on
+   the way: every notice was planned four times (overlapping planner runs; now unique per key, migration 0005), and
+   notices sharing a kind silently replaced each other in Notification Center (now tagged per notice, renotify).
 10. Meta Pixel: set `VITE_META_PIXEL_ID` as a repository variable (the app) and replace `META_PIXEL_ID_PLACEHOLDER`
     in `public/landing/index.html` (the landing page). Confirm PageView, Lead, CompleteRegistration, HaloConnected
     and Subscribe fire in Events Manager.
