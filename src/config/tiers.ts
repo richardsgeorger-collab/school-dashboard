@@ -19,13 +19,13 @@ export const PRICES: Record<Exclude<Tier, 'free'>, { month: number; year: number
 };
 
 /**
- * Stripe price ids, per environment. Test-mode ids until launch. Replace the placeholders with the ids Stripe shows
- * on each price; the checkout function refuses to run while a placeholder is in use.
+ * Stripe price ids, per environment. Sandbox (test) ids, created 2026-09-25 in the School-Dashboard sandbox. At launch, replace with the live
+ * ids; the checkout function refuses to run while a placeholder is in use.
  */
 export const STRIPE_PRICE_IDS: Record<Exclude<Tier, 'free'>, { month: string; year: string }> = {
-  plus: { month: 'price_PLACEHOLDER_plus_month', year: 'price_PLACEHOLDER_plus_year' },
-  pro: { month: 'price_PLACEHOLDER_pro_month', year: 'price_PLACEHOLDER_pro_year' },
-  max: { month: 'price_PLACEHOLDER_max_month', year: 'price_PLACEHOLDER_max_year' },
+  plus: { month: 'price_1UJPwl02Mu8IT856d8uZS8PC', year: 'price_1UJPwm02Mu8IT856Eb3nwA2d' },
+  pro: { month: 'price_1UJPwn02Mu8IT856KmnOWttp', year: 'price_1UJPwn02Mu8IT856L2DuH6t0' },
+  max: { month: 'price_1UJPwp02Mu8IT8564INq2yEE', year: 'price_1UJPwp02Mu8IT856WwAw4KUl' },
 };
 
 /** Every new account: Max for seven days, no card, then Free unless they pay. */
