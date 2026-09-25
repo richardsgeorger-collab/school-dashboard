@@ -175,6 +175,11 @@ describe('pickReason', () => {
     const others = [1, 2, 3].map(() => item({ dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 30 }));
     expect(pickReason(a, [a, ...others], sched([a, ...others]), TODAY, NOW, TZ, {})).toBe("Picked because it's ~2h, due Sunday, and 3 other things land that day.");
   });
+  it('names the real due day and time when an early due pulls the work to the night before', () => {
+    // Due Thursday 8:00 AM: the planner's deadline day is Wednesday, but "due today" would contradict the pill.
+    const a = item({ id: 'a', dueAt: '2026-09-10T08:00:00-07:00', estimatedMinutes: 120 });
+    expect(pickReason(a, [a], sched([a]), TODAY, NOW, TZ, {})).toBe("Picked because it's ~2h, due tomorrow by 8:00 AM, and it's the only thing in its start window.");
+  });
   it('mentions a derived deadline and an open start window', () => {
     const a = item({ id: 'a', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 600 });
     const derived = { a: { deadlineAt: '2026-09-12T23:59:00-07:00', reasons: ['Sunday due → Saturday'] } };

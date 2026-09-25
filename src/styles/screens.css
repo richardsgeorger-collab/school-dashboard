@@ -572,8 +572,8 @@
 }
 .progress-xp .mono {
   font: var(--t-small);
-  font-family: var(--font-mono);
   color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 .levelbar-track.big {
   display: block;

@@ -32,7 +32,7 @@ describe('blocked is not snoozed', () => {
     const s = sched(items);
     expect(isBlocked(blocked, today)).toBe(true);
     expect(rankItems(items, s, `${today}T16:00:00.000Z`, TZ).map((i) => i.id)).toEqual(['post', 'far']);
-    expect(todayLine(items, s, today, `${today}T16:00:00.000Z`, TZ)).toBe('Nothing due today. Next deadline Tomorrow, 1 thing.');
+    expect(todayLine(items, s, today, `${today}T16:00:00.000Z`, TZ)).toBe('Nothing due today. Next deadline tomorrow, 1 thing.');
     expect(nowMode(items, s, settings, today, `${today}T16:00:00.000Z`).mode).toBe('urgent');
     expect(blockPhrase(blocked, TZ)).toBe('waiting on your partner (CLC partner has the data) since Sep 17');
     // Two days on, the wait has run out: it is back, and the hero can say what it was waiting on.

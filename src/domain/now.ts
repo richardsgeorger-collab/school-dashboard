@@ -1,4 +1,4 @@
-import { addDays, dateOf, diffDays, fmtMinutes, weekdayOf } from './dates';
+import { addDays, dateOf, diffDays, fmtMinutes, fmtTime, weekdayOf } from './dates';
 import { isNoise } from './requirements';
 import type { Schedule } from './schedule';
 import { effectivePoints, gatingLine } from './gating';
@@ -94,10 +94,15 @@ export function todayLine(items: Item[], schedule: Schedule, today: DateStr, now
   const next = Object.keys(counts).filter((d) => d > today).sort()[0];
   if (!next) return 'Nothing due today.';
   const count = counts[next];
-  return `Nothing due today. Next deadline ${dayName(today, next)}, ${count} thing${count === 1 ? '' : 's'}.`;
+  return `Nothing due today. Next deadline ${lowerRel(dayName(today, next))}, ${count} thing${count === 1 ? '' : 's'}.`;
 }
 
 /** One line under the hero saying why it is the hero. */
+/** "Today" and "Tomorrow" read as words mid-sentence; weekday names keep their capital. */
+function lowerRel(name: string): string {
+  return name === 'Today' || name === 'Tomorrow' ? name.toLowerCase() : name;
+}
+
 export function pickReason(item: Item, items: Item[], schedule: Schedule, today: DateStr, now: string, tz: string, derived: Record<string, DerivedDeadline>): string {
   const gate = gatingLine(item, items, tz);
   if (gate) return `Picked because it's small and it gates bigger work. ${gate}`;
@@ -106,7 +111,13 @@ export function pickReason(item: Item, items: Item[], schedule: Schedule, today:
   if (due === today) return "Picked because it's due today.";
   const s = schedule.byItem[item.id];
   const deadline = s?.deadlineDay ?? due;
-  const dueWord = derived[item.id] && deadline !== due ? `really due ${WEEKDAY_LONG[weekdayOf(deadline)]}` : `due ${dayName(today, deadline).toLowerCase() === 'today' ? 'today' : dayName(today, deadline)}`;
+  // An early due time pulls the work to the night before; say the real due day and time, not "due today".
+  const dueWord =
+    derived[item.id] && deadline !== due
+      ? `really due ${WEEKDAY_LONG[weekdayOf(deadline)]}`
+      : deadline !== due
+        ? `due ${lowerRel(dayName(today, due))} by ${fmtTime(item.dueAt, tz)}`
+        : `due ${lowerRel(dayName(today, deadline))}`;
   const others = (openCountByDay(items, schedule)[deadline] ?? 1) - 1;
   const windowOpen = s ? s.startBy <= today : false;
   const alone = windowOpen && !items.some((o) => o.id !== item.id && o.status === 'todo' && (schedule.byItem[o.id]?.startBy ?? '9999') <= today);

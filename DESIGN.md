@@ -97,3 +97,46 @@ What changed after seeing A: the status sentence split into a display title and 
 display type is not calm), the stray underline on the title went, the "Then" rows got their meta on its own line,
 and the section labels went to small caps. The Done animation is the card leaving (400ms scale and fade) and the
 ring filling; nothing else on the screen moves.
+
+## 4. The other screens
+
+Final screenshots in `docs/screens/after/` (every screen, 390×844, light and dark); the originals are in
+`docs/screens/before/`.
+
+- **Rows** (`ItemRow`): one component everywhere. A 22px check circle, a 500-weight title, one muted meta line, and
+  a status pill on the right only when there is real status (overdue, due today, at risk). The coloured left border
+  is gone; the course is a dot and a mono code in the meta line.
+- **Calendar**: the title and the Agenda/Month control share the first line; ‹ › and a Filter button share the
+  second, with Today appearing only when you are not on it and the class chips only while filtering. Agenda rows
+  drop the date the day header already gives. The month grid is tint only: warm for heavy days, a count pill in the
+  cell, today as a filled accent circle, and no coloured borders or second markers; red is reserved for the overdue
+  dot.
+- **Classes**: one "synced" line under the title instead of one per card; a card is the course dot, the name, the
+  next meeting and the next deadline, and a grade only when there is one.
+- **Inbox**: announcements are cards with a course code, a date and the body; the filter chips only appear when
+  there is something to filter; an empty inbox is a sentence and a Sync button.
+- **You**: the level card is a level, one bar and two streak tiles; badges are grey until earned and explain
+  themselves on tap, not in a paragraph. Plans are one card per tier with the price large, a short list, one
+  button. Sections leave room for the sticky bar when a link scrolls to them.
+- **Class page**: a title, the meetings, one sync line, three equal actions on one row, then a card with an
+  eyebrow ("Next deadline"), the item, and four stats with micro labels.
+- **Onboarding**: one question per screen, a progress bar that matches the step count, a single full-width
+  primary button (52px) and a quiet secondary; the device choice is the same segmented control the rest of the app
+  uses; the "not affiliated" line stays under the first button.
+- **Sheets**: every modal (item detail, sync, review) is a bottom sheet with a handle, a 17px title and a round
+  close button; field labels are small and 500-weight, hints under a field are small, regular and third-ink.
+- **Landing**: the app's own tokens and type (Inter, the blue accent, hairline cards), the Halo+ mark, a headline
+  that says what the app answers, one primary "Start free" button, and a mock of the Now screen in the hero so the
+  page shows the product instead of describing it. Plans and the sync steps are cards and a list; the footer keeps
+  the "not affiliated with Grand Canyon University" line. `prefers-color-scheme` drives dark.
+- **AI, Load**: restyled with the same pieces (segmented control, hairline cards); the locked card is a hairline
+  card with a micro tier label, not a dashed box.
+
+Two things worth knowing when reading the shots:
+- Fresh-profile screens (onboarding, the empty Now) render light in both columns because the theme defaults to
+  light and dark mode is a Plus feature; the landing page and every seeded screen show real dark mode.
+- "Not synced from Halo yet" and the overdue counts in the sample term are the seeded data, not a defect.
+
+Rules that held throughout: one filled button per screen; two ink tones; status colour only for real status; sheets
+from the bottom; no colour, size or shadow defined outside `tokens.css`; every screen built from the components in
+`components.css`. Anything a screen needed that the system did not have was added to the system, not to the screen.

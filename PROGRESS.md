@@ -305,3 +305,12 @@ Built:
 Not built (noted for later):
 - Batch API for announcement backlogs and syllabus passes (the two non-instant kinds). Halves those costs;
   worth it once there are enough accounts for the backlog to matter.
+
+## Design overhaul (2026-09-24)
+
+The whole app moved onto one design system: `src/styles/tokens.css` (Inter and JetBrains Mono, one blue accent, light
+and dark), `components.css` (card, button, row, pill, sheet, empty state, progress, ring, segmented control),
+`now.css` and `screens.css`. Now was redesigned first from three directions (A "Focus" ships); every other screen,
+onboarding, the sheets and the landing page followed. Decisions and takeaways are in DESIGN.md; before, directions and
+after screenshots (390×844, light and dark) are in docs/screens/. `node scripts/screens.mjs <label>` recaptures them
+against `npm run preview`. No logic changed except one wording fix: an early due time no longer reads as "due today".
