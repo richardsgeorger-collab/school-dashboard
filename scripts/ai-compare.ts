@@ -92,6 +92,13 @@ async function main() {
     console.log('No ANTHROPIC_API_KEY set; nothing was called. Use --dry to see the fixtures.');
     return;
   }
+  // A run where no call reached the model is not a score. Say why and write nothing.
+  const failedCalls = rows.filter((r) => r.failures.some((f) => f.startsWith('call failed')));
+  if (failedCalls.length === rows.length) {
+    console.log(`No call reached the model (${failedCalls[0]?.failures[0] ?? 'unknown'}). No report written.`);
+    process.exitCode = 1;
+    return;
+  }
   const date = new Date().toISOString().slice(0, 10);
   mkdirSync('docs/ai-compare', { recursive: true });
   const lines: string[] = [`# AI before/after · ${date}`, '', `Models: ${models.join(' vs ')}`, ''];
