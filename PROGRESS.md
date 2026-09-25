@@ -305,5 +305,3 @@ Built:
 Not built (noted for later):
 - Batch API for announcement backlogs and syllabus passes (the two non-instant kinds). Halves those costs;
   worth it once there are enough accounts for the backlog to matter.
-- Batch API for announcement backlogs (halves cost on non-instant work). Deferred: the current per-post flow is
-  already ledgered and cheap on Haiku; revisit when the read backlog on a new account is large.
