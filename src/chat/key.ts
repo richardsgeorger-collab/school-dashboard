@@ -10,7 +10,23 @@ export const aiAvailable = (): boolean => isConfigured() || (AI_DIRECT_ALLOWED &
 /** Development only: the key lives in this browser's localStorage. Same slot the coach used to use. */
 export const ANTHROPIC_KEY_SLOT = 'school-dashboard:anthropic-key';
 
+/**
+ * On a build that cannot use a browser key (every production build), any key left on this device from the old
+ * paste-your-key coach is deleted, not merely ignored: a key in localStorage is readable by any script on the site.
+ */
+export function forgetStrayKey(): boolean {
+  if (AI_DIRECT_ALLOWED) return false;
+  try {
+    if (localStorage.getItem(ANTHROPIC_KEY_SLOT) === null) return false;
+    localStorage.removeItem(ANTHROPIC_KEY_SLOT);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function loadApiKey(): string {
+  if (!AI_DIRECT_ALLOWED) return '';
   try {
     const raw = localStorage.getItem(ANTHROPIC_KEY_SLOT);
     return raw ? (JSON.parse(raw) as string) : '';
@@ -21,6 +37,7 @@ export function loadApiKey(): string {
 
 /** Development only: keep a key on this device for the direct-to-Anthropic path. */
 export function saveApiKey(key: string): void {
+  if (!AI_DIRECT_ALLOWED) return;
   try {
     if (key.trim()) localStorage.setItem(ANTHROPIC_KEY_SLOT, JSON.stringify(key.trim()));
     else localStorage.removeItem(ANTHROPIC_KEY_SLOT);

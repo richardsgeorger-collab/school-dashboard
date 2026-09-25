@@ -15,10 +15,10 @@ export interface Profile extends TierSource {
 }
 
 /**
- * A build with no backend (a local checkout) has nothing to gate on, so it runs open: the developer's own copy is
- * effectively Max. Every real build has a backend and a signed-in profile.
+ * A build with no backend has no account to check, so it fails closed: Free, with nothing paid unlocked. A missing
+ * or broken config must never hand out a paid plan.
  */
-export const LOCAL_PROFILE: Profile = { userId: null, tier: 'max', trialEndsAt: null, graceUntil: null, rewardTier: null, rewardUntil: null, referralCode: null, referredBy: null, onboardingStep: null, onboardingDoneAt: null, isAdmin: false, timezone: 'America/Phoenix' };
+export const LOCAL_PROFILE: Profile = { userId: null, tier: 'free', trialEndsAt: null, graceUntil: null, rewardTier: null, rewardUntil: null, referralCode: null, referredBy: null, onboardingStep: null, onboardingDoneAt: null, isAdmin: false, timezone: 'America/Phoenix' };
 
 interface Row {
   user_id: string;

@@ -30,9 +30,6 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
-          # Transition only: lets a key typed into Settings reach Anthropic from the browser until the Edge Function is
-          # deployed. LAUNCH_CHECKLIST.md says to remove this line before launch.
-          VITE_AI_DIRECT: '1'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

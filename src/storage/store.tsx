@@ -16,6 +16,7 @@ import { diffBatch, loadUndo, revert, saveUndo, type UndoBatch } from './undo';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type HaloCheckRecord, type Item, type ItemStatus, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
+import { ENV } from '../env';
 
 export type SyncStatus = 'off' | 'signed_out' | 'syncing' | 'synced' | 'error';
 export interface SyncState {
@@ -95,9 +96,10 @@ const StoreContext = createContext<Store | null>(null);
 
 const nowIso = () => new Date().toISOString();
 
-function env(key: string): string | null {
-  const v = (import.meta.env as Record<string, string | undefined>)[key];
-  return v && v.length > 0 ? v : null;
+/** The two public Supabase settings, by name (see src/env.ts for why never the whole env object). */
+function env(key: 'VITE_SUPABASE_URL' | 'VITE_SUPABASE_ANON_KEY'): string | null {
+  const v = key === 'VITE_SUPABASE_URL' ? ENV.SUPABASE_URL : ENV.SUPABASE_ANON_KEY;
+  return v.length > 0 ? v : null;
 }
 
 export function seedData(): AppData {

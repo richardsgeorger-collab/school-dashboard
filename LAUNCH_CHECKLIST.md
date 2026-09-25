@@ -30,8 +30,8 @@ been bought or enabled. The app is built to run on free tiers until the day you 
 6. **Run the isolation test against the live project**: create two throwaway accounts with passwords enabled
    temporarily, then `SUPABASE_URL=… SUPABASE_ANON_KEY=… RLS_USER_A=… RLS_PASS_A=… RLS_USER_B=… RLS_PASS_B=… npx vitest run supabase/tests`.
    Turn passwords back off afterwards. Do not launch on a failure.
-7. **Remove `VITE_AI_DIRECT: '1'` from `.github/workflows/deploy.yml`.** After that, no build can send a browser key
-   to Anthropic; every AI call goes through the server.
+7. ~~Remove `VITE_AI_DIRECT` from the deploy workflow.~~ Done 2026-09-25. No production build can send a browser key
+   to Anthropic, and any key left in a browser from the old coach is deleted on load.
 8. Stripe: create the three products with month and year prices in **test mode**, paste the ids into
    `STRIPE_PRICE_IDS` in `src/config/tiers.ts` (then `npm run sync:shared` and redeploy the functions), deploy
    `stripe-checkout`, `stripe-portal` and `stripe-webhook`, add a webhook endpoint in Stripe pointing at the

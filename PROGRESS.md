@@ -229,11 +229,16 @@ Regenerating the privacy and terms pages after editing the markdown (the same sn
 - **Output caps match what each pass already used**, not the smaller numbers in PLAN.md: class/term plans and the
   audit at 12,000 with thinking, lectures and quizzes at 4,000, coach 4,000 with thinking (the 600-token empty-answer
   bug is documented in the code). Lowering them would have regressed quality on day one; the ceiling protects cost.
-- **Transition flag `VITE_AI_DIRECT=1` in the deploy workflow.** Until the Edge Function is deployed, a key typed
-  into Settings still reaches Anthropic from the browser (exactly what the app did before), so George's own copy keeps
-  working. Production builds without the flag never take that branch. Removing the line is on the launch checklist.
-- **An unconfigured build runs as Max.** With no Supabase connection there is nothing to gate on; the local checkout
-  behaves as the top tier so every feature can be worked on. Real builds always have a connection.
+- **Reversed on review (2026-09-25): no browser key on the live site, ever.** I had left `VITE_AI_DIRECT=1` in the
+  deploy workflow so George's copy kept working until the server existed. George asked for a secrets check; the
+  flag kept a key in his browser's localStorage on github.io. The flag is gone from the workflow, and every build
+  without it deletes a stored key on load (`forgetStrayKey`, tested). The flag remains for local development only.
+- **Reversed on review: a build with no Supabase config runs as Free (fail closed)**, not Max. A missing or broken
+  config must never hand out a paid plan. Tested in `src/auth/useProfile.test.ts`.
+- **Only five VITE_ variables can reach the client.** Found on review: `src/env.ts` and the store read
+  `import.meta.env` as a whole, which makes Vite inline every VITE_ variable present at build time; a canary
+  `VITE_OOPS_ANTHROPIC_KEY` reached the bundle. Every read is now by literal name, and `vite.config.ts` refuses to
+  build if any other VITE_ variable is set or any value looks like a secret or a service_role key (tested).
 - **Client may edit only `onboarding_step`, `onboarding_done_at`, `timezone` on its profile.** A database trigger
   reverts any client change to tier, trial, grace, Stripe id, referral code or admin, so a tampered request cannot
   self-upgrade even if a policy were wrong.
