@@ -19,17 +19,23 @@ been bought or enabled. The app is built to run on free tiers until the day you 
 
 ## Before going live, in order
 
-1. Create the Supabase project (free). Run `supabase/migrations/0001_foundations.sql` in the SQL editor.
-2. Set the two `VITE_SUPABASE_*` repository variables on GitHub so the deploy bakes them in.
-3. Enable Email (magic link) and Google providers in Supabase Auth. Add the github.io (or custom domain) URL to the
-   redirect allow-list.
-4. Set your own profile to `tier = 'max', is_admin = true` in the SQL editor so your copy is never metered and the
-   admin dashboard opens for you.
-5. Deploy the Edge Functions (`supabase functions deploy ai …`) and set the server secrets from
-   `supabase/functions/.env.example`.
-6. **Run the isolation test against the live project**: create two throwaway accounts with passwords enabled
-   temporarily, then `SUPABASE_URL=… SUPABASE_ANON_KEY=… RLS_USER_A=… RLS_PASS_A=… RLS_USER_B=… RLS_PASS_B=… npx vitest run supabase/tests`.
-   Turn passwords back off afterwards. Do not launch on a failure.
+Steps 1 to 7 done 2026-09-25 (project `kiacmspgvntzwngijibr`, us-west-1, free plan).
+
+1. ~~Create the Supabase project and run the migrations.~~ Done: 0001 to 0004 applied; 16 tables, RLS on all.
+2. ~~Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as repository variables.~~ Done.
+3. ~~Email link and Google sign-in; redirect allow-list.~~ Done. **Still to do before launch:**
+   - Google sign-in is in **Testing**: only listed test users can use it. To open it to everyone, finish Google Auth
+     Platform → Branding (final app name, logo, privacy and terms links, your domain) and publish; Google may verify.
+   - Supabase's built-in mailer sends **2 sign-in emails an hour**. Before launch, add a free SMTP sender (Resend's
+     free tier covers 3,000 emails a month) under Authentication → Emails → SMTP.
+4. ~~Your profile set to Max and admin.~~ Done for richards.georger@gmail.com.
+5. ~~Deploy the Edge Functions and set the server secrets.~~ Done: all five deployed and smoke-tested;
+   `ANTHROPIC_API_KEY` (workspace-scoped) and `NOTIFY_CRON_SECRET` set; cron URL and secret in Vault. One real
+   AI call verified: the server forced Haiku and the cap when the client asked for another model, metered and logged.
+6. ~~Live RLS isolation test.~~ **Passed** 2026-09-25: across all 16 tables a second student could not read, update or
+   delete the first student's rows, could not upgrade itself, and both admin functions refused it. Test accounts
+   deleted through `delete_my_account`, which removed every row they wrote. Re-run after any migration (create two
+   accounts with passwords through the admin API, as done here).
 7. ~~Remove `VITE_AI_DIRECT` from the deploy workflow.~~ Done 2026-09-25. No production build can send a browser key
    to Anthropic, and any key left in a browser from the old coach is deleted on load.
 8. Stripe: create the three products with month and year prices in **test mode**, paste the ids into
