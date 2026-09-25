@@ -6,3 +6,4 @@ dist
 *.log
 supabase/functions/.env
 .supabase
+supabase/.temp

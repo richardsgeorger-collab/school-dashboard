@@ -46,7 +46,7 @@ create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
   insert into public.profiles (user_id, tier, trial_ends_at, referral_code)
-  values (new.id, 'free', now() + interval '7 days', encode(gen_random_bytes(4), 'hex'))
+  values (new.id, 'free', now() + interval '7 days', encode(extensions.gen_random_bytes(4), 'hex'))
   on conflict (user_id) do nothing;
   return new;
 end $$;
