@@ -3,6 +3,8 @@ import { describeAiError } from '../ai/client';
 import { loadApiKey } from '../chat/key';
 import { useAiAllowed } from '../config/useCan';
 import { CourseChip } from '../components/CourseChip';
+import { EmptyState } from '../components/EmptyState';
+import { syncPress } from '../ui/presses';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course } from '../domain/types';
 import { announceDb, announceStores, bodyHash, readAnnouncement, readLedger, type ReadEntry, type StoredAnnouncement, type StoredMessage } from '../halo/announce';
@@ -95,17 +97,13 @@ export function Inbox() {
           <h1 className="page-title lib-class-title">
             {course && <CourseChip course={course} />} <span>Inbox</span>
           </h1>
-          <p className="hint mono">
-            {list === null
-              ? 'Reading…'
-              : shown.length === 0
-                ? 'Nothing here yet. Press Sync and your announcements arrive with your assignments.'
-                : // The only one that matters is whether they have been read for requirements. Whether the student
-                  // has personally opened one is a different thing and no longer shares a sentence with it.
-                  unreadForReqs === 0
-                  ? `${shown.length} on file, all read for requirements.`
-                  : `${shown.length} on file. ${unreadForReqs} not yet read for requirements — your next sync reads ${unreadForReqs === 1 ? 'it' : 'them'}.`}
-          </p>
+          {list !== null && shown.length > 0 && (
+            <p className="hint">
+              {/* The only one that matters is whether they have been read for requirements. Whether the student has
+                  personally opened one is a different thing and no longer shares a sentence with it. */}
+              {unreadForReqs === 0 ? `${shown.length} on file, all read for requirements.` : `${shown.length} on file. ${unreadForReqs} not yet read for requirements; your next sync reads ${unreadForReqs === 1 ? 'it' : 'them'}.`}
+            </p>
+          )}
         </div>
       </div>
       {shown.length > 0 && (
@@ -144,7 +142,20 @@ export function Inbox() {
           </ul>
         </section>
       )}
-      {!only && data.courses.length > 1 && (
+      {list !== null && shown.length === 0 && filter === 'all' && (
+        <EmptyState>
+          <p>
+            <b>Nothing here yet.</b>
+          </p>
+          <p>Your professors' announcements arrive with every sync, and anything they ask for lands on the assignment it belongs to.</p>
+          <p className="empty-actions">
+            <button type="button" className="btn primary" onClick={() => syncPress.current?.()}>
+              Sync Halo
+            </button>
+          </p>
+        </EmptyState>
+      )}
+      {!only && data.courses.length > 1 && (list?.length ?? 0) > 0 && (
         <div className="news-filter">
           <button type="button" className="chip" data-on={filter === 'all'} onClick={() => setFilter('all')}>
             All

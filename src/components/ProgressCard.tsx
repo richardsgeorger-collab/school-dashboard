@@ -9,7 +9,7 @@ export function ProgressCard() {
   const span = progress.levelCeil - progress.levelFloor;
   const pct = span > 0 ? ((progress.xp - progress.levelFloor) / span) * 100 : 0;
   return (
-    <section className="card progress-card" aria-label="Progress">
+    <section className="card progress-card" aria-label="Progress" title="Points: item value × 1.5 if done by start-by, × 1 by the due time, × 0.5 late, × your score once graded. Locked at first completion.">
       <div className="progress-head">
         <div>
           <span className="section-title">Level</span>
@@ -61,9 +61,6 @@ export function ProgressCard() {
       <div className="modal-actions" style={{ marginTop: 12 }}>
         <RecapButton />
       </div>
-      <p className="hint">
-        Points: item value × 1.5 if done by start-by, × 1 by the due time, × 0.5 late, × your score once graded. Locked at first completion.
-      </p>
     </section>
   );
 }

@@ -10,6 +10,7 @@ import type { Course } from '../domain/types';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
 import { CourseEditor } from './CourseEditor';
+import { SyncedLine } from './SyncedLine';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -34,14 +35,13 @@ function ClassCard({ course }: { course: Course }) {
   const overdue = open.filter((i) => dateOf(i.dueAt, tz) < today).length;
   const g = courseGrade(course.id, data.items);
   const letter = letterFor(g.pct, course.gradeScale);
-  const pulled = data.settings.haloPulls?.[course.id]?.assessments ?? null;
   const nextLine = next ? `${next.label} · ${diffDays(today, dateOf(next.dueAt, tz)) === 0 ? 'today' : diffDays(today, dateOf(next.dueAt, tz)) === 1 ? 'tomorrow' : fmtDate(dateOf(next.dueAt, tz), 'short')}` : open.length === 0 ? 'Nothing open' : null;
   return (
     <li>
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />
-          <span className="class-card-grade mono">{g.pct === null ? '—' : `${g.pct}%${letter ? ` ${letter}` : ''}`}</span>
+          {g.pct !== null && <span className="class-card-grade mono">{`${g.pct}%${letter ? ` ${letter}` : ''}`}</span>}
         </div>
         <h2 className="class-card-name">{course.name || 'Untitled class'}</h2>
         <p className="class-card-meta mono muted">{meetingSummary(course)}</p>
@@ -53,7 +53,6 @@ function ClassCard({ course }: { course: Course }) {
           )}
           {nextLine && <span>{overdue > 0 ? nextLine : `Next: ${nextLine}`}</span>}
         </p>
-        <p className="class-card-sync mono muted">{pulled ? `Synced from Halo ${fmtDate(dateOf(pulled, tz), 'short')}` : 'Not synced from Halo yet'}</p>
       </a>
     </li>
   );
@@ -88,6 +87,11 @@ export function Classes() {
           </button>
         )}
       </div>
+      {data.courses.length > 0 && (
+        <div className="classes-sync">
+          <SyncedLine />
+        </div>
+      )}
       {data.courses.length === 0 ? (
         <EmptyState>
           <p>

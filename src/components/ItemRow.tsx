@@ -1,6 +1,6 @@
 import { isBlocked } from '../domain/blocked';
 import { movedRecently } from '../domain/requirements';
-import { dateOf, fmtDate } from '../domain/dates';
+import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { useEffect, useState } from 'react';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -11,7 +11,8 @@ import { useChipState } from './ItemChip';
 import { RiskBadge } from './RiskBadge';
 import { haloSaysNotIn } from '../domain/confirm';
 
-export function ItemRow({ item, onOpen, showStart = false, compact = false }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean }) {
+/** `dateless`: the row sits under a day header, so only the time is repeated. */
+export function ItemRow({ item, onOpen, showStart = false, compact = false, dateless = false }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean; dateless?: boolean }) {
   const { courseById, schedule, today, data, actions, previewAward } = useStore();
   const [burst, setBurst] = useState<{ value: number; key: number } | null>(null);
   useEffect(() => {
@@ -57,7 +58,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
         <span className="item-meta">
           <CourseChip course={course} />
           <span>
-            due {dueLabel(item, data.settings.timezone, today)}
+            {dateless ? fmtTime(item.dueAt, data.settings.timezone) : `due ${dueLabel(item, data.settings.timezone, today)}`}
             {/* An announcement moved this. The date it moved from stays visible for a few days so the move is seen. */}
             {movedRecently(item, today, data.settings.timezone) && <s className="item-was"> was {fmtDate(dateOf(item.dateChange!.from, data.settings.timezone), 'short')}</s>}
           </span>
@@ -70,7 +71,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false }: { 
           {(item.blocks?.length ?? 0) > 0 && <span className="flag">unlocks {item.blocks!.length}</span>}
           {item.haloLate && <span className="flag flag-late">Halo says late</span>}
           {done && haloSaysNotIn(item) && item.halo && item.halo.checkedAt > item.dueAt && <span className="flag flag-late">Halo says not submitted</span>}
-          {showStart && sched && !done && <span>start by {shortDate(sched.startBy)}</span>}
+          {showStart && sched && !done && !sched.risk && <span>start by {shortDate(sched.startBy)}</span>}
         </span>
       </button>
       <span className="item-side">

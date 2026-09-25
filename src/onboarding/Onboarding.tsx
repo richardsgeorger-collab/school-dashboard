@@ -95,7 +95,7 @@ export function Onboarding() {
 
         {step === 'welcome' && (
           <section className="onboard-step" aria-label="Welcome">
-            <p className="onboard-eyebrow mono">The planner built for Halo</p>
+            <p className="eyebrow">The planner built for Halo</p>
             <h1 className="onboard-title">{SLIDES[slide].title}</h1>
             <p className="onboard-text">{SLIDES[slide].text}</p>
             <div className="onboard-dots" aria-hidden>

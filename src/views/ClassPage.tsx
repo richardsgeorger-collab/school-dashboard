@@ -98,7 +98,7 @@ export function ClassPage() {
           <SyncedLine courseId={course.id} />
         </div>
         <span className="settings-actions">
-          <button type="button" className="btn small primary" onClick={() => setPaste(true)}>
+          <button type="button" className="btn small" onClick={() => setPaste(true)}>
             Paste a lecture transcript
           </button>
           <a className="btn small" href={`#/tutor?c=${course.id}`}>
@@ -142,7 +142,7 @@ export function ClassPage() {
             <dd>{week.length}</dd>
           </div>
           <div>
-            <dt>Synced from Halo</dt>
+            <dt>Synced</dt>
             <dd>{pulled ? fmtDate(dateOf(pulled, tz), 'short') : 'never'}</dd>
           </div>
         </dl>

@@ -71,7 +71,7 @@ export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items:
           <div className="day-group-head" data-today={day === today}>
             <b>{day === today ? 'Today' : fmtDate(day, 'long')}</b>
             <span>{work.length === 0 ? 'nothing to do' : `${work.length} to do`}</span>
-            {minutes > 0 && <span className="muted">· about {fmtMinutes(minutes)}</span>}
+            {minutes > 0 && <span className="muted">about {fmtMinutes(minutes)}</span>}
           </div>
           {work.length > 0 && (
             <ul className="item-list" style={{ marginTop: 6 }}>
@@ -128,7 +128,7 @@ function AgendaItem({ item, onOpen, tz, today }: { item: Item; onOpen: (i: Item)
 
   return (
     <li className="agenda-item">
-      <ItemRow item={item} onOpen={onOpen} showStart />
+      <ItemRow item={item} onOpen={onOpen} showStart dateless />
       {parts.length > 0 && (
         <ul className="part-list" aria-label="Also required">
           {parts.map((r) => {

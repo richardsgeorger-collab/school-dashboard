@@ -40,6 +40,7 @@ export function Calendar() {
   const codes = useMemo(() => (filterParam ? new Set(filterParam.split(',')) : null), [filterParam]);
   const items = useFilteredItems(codes);
   const [open, setOpen] = useState<{ item: Item; isNew: boolean } | null>(null);
+  const [filtering, setFiltering] = useState(!!filterParam);
   const openItem = (item: Item) => setOpen({ item, isNew: false });
 
   const set = (patch: Partial<{ v: View; d: string; c: string | null }>) => {
@@ -94,28 +95,6 @@ export function Calendar() {
     <>
       <div className="cal-toolbar">
         <h1 className="page-title cal-title">{title}</h1>
-        <div className="cal-nav">
-          <button type="button" className="btn small" onClick={() => step(-1)} aria-label="Previous">
-            ‹
-          </button>
-          <button type="button" className="btn small" onClick={() => set({ d: today })}>
-            Today
-          </button>
-          <button type="button" className="btn small" onClick={() => step(1)} aria-label="Next">
-            ›
-          </button>
-          <button
-            type="button"
-            className="btn small primary"
-            aria-label="Add item"
-            onClick={() => setOpen({ item: blankItem(data.courses[0]?.id ?? '', data.settings.timezone, today), isNew: true })}
-          >
-            <IconPlus />
-          </button>
-        </div>
-      </div>
-
-      <div className="cal-controls">
         <SegmentedControl
           label="Calendar view"
           value={view}
@@ -125,11 +104,41 @@ export function Calendar() {
           ]}
           onChange={(v) => set({ v })}
         />
-        <div className="filter-chips">
-          {data.courses.map((c) => (
-            <FilterChip key={c.id} course={c} active={!codes || codes.has(c.code)} onToggle={() => toggleCourse(c.code)} />
-          ))}
+      </div>
+
+      <div className="cal-controls">
+        <div className="cal-filter-row">
+          <div className="cal-nav">
+            <button type="button" className="btn small" onClick={() => step(-1)} aria-label="Previous">
+              ‹
+            </button>
+            {anchor !== today && (
+              <button type="button" className="btn small" onClick={() => set({ d: today })}>
+                Today
+              </button>
+            )}
+            <button type="button" className="btn small" onClick={() => step(1)} aria-label="Next">
+              ›
+            </button>
+          </div>
+          <div className="cal-nav">
+            {data.courses.length > 1 && (
+              <button type="button" className="btn small quiet" aria-expanded={filtering} onClick={() => setFiltering((f) => !f)}>
+                {codes ? `${codes.size} of ${data.courses.length} classes` : 'Filter'}
+              </button>
+            )}
+            <button type="button" className="btn small" aria-label="Add item" onClick={() => setOpen({ item: blankItem(data.courses[0]?.id ?? '', data.settings.timezone, today), isNew: true })}>
+              <IconPlus />
+            </button>
+          </div>
         </div>
+        {filtering && (
+          <div className="filter-chips">
+            {data.courses.map((c) => (
+              <FilterChip key={c.id} course={c} active={!codes || codes.has(c.code)} onToggle={() => toggleCourse(c.code)} />
+            ))}
+          </div>
+        )}
       </div>
       <div className="cal-body">
         {view === 'agenda' && (
