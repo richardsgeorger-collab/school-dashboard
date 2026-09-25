@@ -118,4 +118,19 @@ async function main() {
   console.log(`wrote ${out}`);
 }
 
-void main();
+// A run cut short says so, instead of ending with no report and no reason.
+let finished = false;
+process.on('SIGINT', () => {
+  console.log('\nStopped by Ctrl-C before the report was written. Run it again and leave the terminal alone until it says "wrote docs/ai-compare/…".');
+  process.exit(130);
+});
+process.on('beforeExit', () => {
+  if (!finished) console.log('Stopped early: nothing was left to wait for before the report was written.');
+});
+process.on('unhandledRejection', (e) => {
+  console.log('Stopped on an error:', e instanceof Error ? e.message : String(e));
+  process.exitCode = 1;
+});
+void main().then(() => {
+  finished = true;
+});
