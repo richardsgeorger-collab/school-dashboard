@@ -55,11 +55,14 @@ Steps 1 to 7 done 2026-09-25 (project `kiacmspgvntzwngijibr`, us-west-1, free pl
    Verified on George's Mac: server → cron → push → banner, and tapping it opens the app. Two bugs found and fixed on
    the way: every notice was planned four times (overlapping planner runs; now unique per key, migration 0005), and
    notices sharing a kind silently replaced each other in Notification Center (now tagged per notice, renotify).
-10. Meta Pixel: set `VITE_META_PIXEL_ID` as a repository variable (the app) and replace `META_PIXEL_ID_PLACEHOLDER`
-    in `public/landing/index.html` (the landing page). Confirm PageView, Lead, CompleteRegistration, HaloConnected
-    and Subscribe fire in Events Manager.
-11. Run the AI before/after once with your key: `ANTHROPIC_API_KEY=… BASELINE_MODEL=<the model the app used before> npm run ai:compare`,
-    read `docs/ai-compare/<date>.md`, and fix any fixture the shipped model fails before launch (prompts, not model).
+10. **Meta Pixel: skipped for now (2026-09-25).** The code is in place and does nothing until an id is set. When you
+    run ads: create a pixel in Meta Events Manager (free), set `VITE_META_PIXEL_ID` as a repository variable (the
+    deploy already passes it), replace `META_PIXEL_ID_PLACEHOLDER` in `public/landing/index.html`, and confirm
+    PageView, Lead, CompleteRegistration, HaloConnected and Subscribe in Events Manager.
+11. ~~AI before/after.~~ Done 2026-09-25 (`docs/ai-compare/`). Sonnet 4.6 15/15 at $0.064; Haiku 4.5 first run 14/15
+    at $0.032 (put "before Monday" on the Tuesday); after a written-out calendar in the prompt, Haiku 15/15 at $0.033,
+    about 1.6x faster than Sonnet. A run in between read a lecture as empty; the wrapper now revives list fields sent
+    as JSON strings and refuses empty lecture notes, so that can no longer save as a clean result.
 12. Replace `CONTACT_EMAIL_PLACEHOLDER` in `PRIVACY.md` and `TERMS.md`, regenerate `public/privacy.html` and
     `public/terms.html` (the snippet in PROGRESS.md, Phase 8), and read both once more as the person whose name is on them.
     Run `supabase/migrations/0004_admin_feedback.sql` so the admin screen and feedback screenshots work.
