@@ -22,6 +22,7 @@ import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import type { Course } from '../domain/types';
 import { announceDb } from '../halo/announce';
 import { useRoute } from '../router';
+import { NotificationsCard } from '../notify/NotificationsCard';
 import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
@@ -37,7 +38,7 @@ import { SyllabusPanel } from './SyllabusPanel';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const ZONES = ['America/Phoenix', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York', 'UTC'];
-type Section = 'plan' | 'halo' | 'study' | 'display' | 'classes' | 'advanced';
+type Section = 'plan' | 'halo' | 'notifications' | 'study' | 'display' | 'classes' | 'advanced';
 
 function meetingSummary(c: Course): string {
   if (c.online) return 'Online';
@@ -365,6 +366,10 @@ export function You() {
         </a>
 
         <HaloPanel onPaste={() => setHalo(true)} />
+
+        <Group id="notifications" title="Notifications" open={section === 'notifications'}>
+          <NotificationsCard />
+        </Group>
 
         <Group id="study" title="Study time" open={section === 'study'}>
           <div className="field-row">

@@ -423,6 +423,12 @@ export interface ReminderPrefs {
   morningTime?: string | null;
   quietFrom?: string;
   quietTo?: string;
+  morning?: boolean;
+  heavyDay?: boolean;
+  notStarted?: boolean;
+  resync?: boolean;
+  /** The student turned push on from this app (the browser permission is checked separately). */
+  pushEnabled?: boolean;
 }
 
 export interface Settings {

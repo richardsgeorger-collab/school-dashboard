@@ -27,6 +27,7 @@ import { IngestView } from './views/IngestView';
 import { Inbox } from './views/Inbox';
 import { useAutoRerun } from './ingest/auto';
 import { OkayCard, okayPress } from './views/Okay';
+import { NotificationPlanner } from './notify/NotificationPlanner';
 import { NowTour } from './onboarding/NowTour';
 import { Onboarding } from './onboarding/Onboarding';
 import { initialState, isOpen, tourPending } from './onboarding/state';
@@ -124,6 +125,15 @@ function OnboardingHost() {
   return null;
 }
 
+/** A notification's tap lands on #/now?sync=1: open the Sync sheet without another tap. */
+function SyncParam() {
+  const { params } = useRoute();
+  useEffect(() => {
+    if (params.get('sync') === '1') syncPress.current?.();
+  }, [params]);
+  return null;
+}
+
 function OkayHost() {
   const [open, setOpen] = useState(false);
   okayPress.current = () => setOpen(true);
@@ -199,6 +209,8 @@ export default function App() {
         <AutoRerun />
         <HaloHandoff />
         <OnboardingHost />
+        <NotificationPlanner />
+        <SyncParam />
         <OkayHost />
         <SyncHost
           open={syncOpen}

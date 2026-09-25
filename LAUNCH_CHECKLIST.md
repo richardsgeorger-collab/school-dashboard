@@ -40,7 +40,10 @@ been bought or enabled. The app is built to run on free tiers until the day you 
    `STRIPE_WEBHOOK_SECRET`, turn on the customer portal in Stripe settings, and run a test checkout end to end
    with card 4242 4242 4242 4242. Only then switch to live keys and repeat once with a real card and refund it.
    Run `supabase/migrations/0002_referrals_rewards.sql` before this.
-9. Generate VAPID keys, set both, send yourself one push.
+9. Notifications: `npx web-push generate-vapid-keys`; set `VITE_VAPID_PUBLIC_KEY` as a repository variable and
+   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CONTACT`, `NOTIFY_CRON_SECRET` as function secrets; deploy
+   `notify-send`; run `supabase/migrations/0003_notifications_cron.sql` with your project ref and the same secret;
+   then turn notifications on under You and confirm the sample note and, next morning, the real one.
 10. Put the Meta Pixel id in, confirm the four events fire in Events Manager.
 11. Run the AI before/after once with your key: `ANTHROPIC_API_KEY=… BASELINE_MODEL=<the model the app used before> npm run ai:compare`,
     read `docs/ai-compare/<date>.md`, and fix any fixture the shipped model fails before launch (prompts, not model).

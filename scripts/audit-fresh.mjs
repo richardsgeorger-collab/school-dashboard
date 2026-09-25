@@ -13,7 +13,7 @@ page.on('pageerror', (e) => errors.push(e.message));
 await page.setRequestInterception(true);
 page.on('request', (req) => (req.url().startsWith('https://api.anthropic.com/') ? req.abort() : req.continue()));
 
-const routes = ['#/now', '#/calendar', '#/calendar?v=month', '#/classes', '#/inbox', '#/you', '#/you?s=plan', '#/load', '#/load?v=term', '#/grades', '#/library', '#/ai', '#/ai?m=quiz'];
+const routes = ['#/now', '#/calendar', '#/calendar?v=month', '#/classes', '#/inbox', '#/you', '#/you?s=plan', '#/load', '#/load?v=term', '#/grades', '#/library', '#/ai', '#/ai?m=quiz', '#/you?s=notifications'];
 // The first open is the welcome. Walk it, screenshotting each step, then finish it so the tabs can be walked.
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
 await page.reload({ waitUntil: 'networkidle0' });

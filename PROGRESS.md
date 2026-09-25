@@ -163,9 +163,32 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
   (see LAUNCH_CHECKLIST). `--dry` prints the fixtures and prompt sizes without a call.
 - Batch API for backlogs: not built (the per-post flow is ledgered and cheap on Haiku); noted under Extras.
 
+### Phase 7: Notifications and PWA (2026-09-24)
+- **Service worker** (`public/sw.js`): the app shell offline (network first for the page, cached assets), push
+  events shown as notifications, and a tap that focuses the app on the right screen.
+- **Web push, no vendor**: our own VAPID key, one `push_subscriptions` row per device, turned on from You with the
+  browser's one permission prompt and a sample note straight away. iPhone is told to add the app to the Home
+  Screen first, which is what iOS requires.
+- **Four kinds, four switches** (`src/notify/plan.ts`, pure and tested): the morning note at the chosen time with
+  the first thing due; the night-before heavy-day warning at 8 PM when three or more things are due or the planned
+  hours pass capacity; the not-started nudge at 6 PM for big work untouched within two days; the re-sync reminder
+  when Halo has not been synced for three days (the tap opens the Sync sheet). Quiet hours move anything inside
+  them to when they end. Nothing in the past is ever planned.
+- **The client plans, the server sends.** The plan is computed from the same schedule the screens use and written to
+  `notification_plan` a few seconds after any change; `notify-send` runs every five minutes from pg_cron (free),
+  sends what is due through web push, drops dead subscriptions, marks rows sent. Preferences mirror to
+  `notification_prefs`.
+- **Email is a marked branch**, not a provider: the send function has the place, the prefs table has the column,
+  and nothing costs money until someone chooses a provider.
+- **Reminders are Plus**: the card shows the lock below Plus, and the planner never writes for a plan without them.
+- **Install**: the You card offers the browser's install prompt where there is one, and the Home Screen steps on
+  iPhone.
+- Phone-only sync frequency for the admin screen: the `onboarding_events.platform` and `lastPull` data are in
+  place; the admin view comes in Phase 8.
+
 ## In progress
 
-- Phase 7: Notifications and PWA.
+- Phase 8: Landing page, admin dashboard, feedback, privacy and terms.
 
 ## Decisions made alone
 
@@ -218,6 +241,11 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
   merge would have been weeks of UI for the same outcome.
 - **Prompt changes are additive.** Every earlier rule stays, so the fixtures and e2e checks that pin them still
   hold; the procedure and the worked example are what Haiku most benefits from.
+
+- **The client plans notifications, the server only sends.** The schedule logic (capacity, start-by, risk) lives
+  in the app and is already tested there; duplicating it in Deno would drift. The server's job is small enough to
+  be obviously right: send what is due, drop dead devices.
+- **pg_cron over an external scheduler.** It is free, inside the same project, and one SQL file away.
 
 ## Extras
 
