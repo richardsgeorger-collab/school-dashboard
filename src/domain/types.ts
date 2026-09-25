@@ -462,7 +462,7 @@ export const DEFAULT_SETTINGS: Settings = {
   timezone: 'America/Phoenix',
   weekdayMinutes: 180,
   weekendMinutes: 300,
-  theme: 'system',
+  theme: 'light',
   weekStartsOn: 0,
   supabaseUrl: null,
   supabaseAnonKey: null,

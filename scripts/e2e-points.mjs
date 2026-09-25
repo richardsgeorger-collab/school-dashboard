@@ -5,7 +5,7 @@ const browser = await puppeteer.launch({ executablePath: '/Applications/Google C
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 const xp = async () => {
-  await page.goto('http://localhost:4173/school-dashboard/#/plan', { waitUntil: 'networkidle0' });
+  await page.goto('http://localhost:4173/school-dashboard/#/load?seed=1', { waitUntil: 'networkidle0' });
   const v = await page.$eval('.progress-xp .mono', (el) => el.textContent.trim());
   await page.goto('http://localhost:4173/school-dashboard/#/calendar?v=agenda', { waitUntil: 'networkidle0' });
   return v;
@@ -25,6 +25,6 @@ console.log('after undo:', await xp());
 await page.click('.day-group .item-row .check'); // redo
 await new Promise((r) => setTimeout(r, 200));
 console.log('after redo:', await xp());
-await page.goto('http://localhost:4173/school-dashboard/#/plan', { waitUntil: 'networkidle0' });
+await page.goto('http://localhost:4173/school-dashboard/#/load', { waitUntil: 'networkidle0' });
 console.log('plan streak:', await page.$eval('.streaks', (el) => el.textContent.replace(/\s+/g, ' ').trim()));
 await browser.close();

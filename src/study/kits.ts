@@ -119,7 +119,7 @@ export function kitFromTool(raw: unknown, args: { course: Course; kind: KitKind;
   return { courseId: args.course.id, kind: args.kind, topic: args.topic, formulas, cards, sections, sources: args.sources, weak: args.weak, model: args.model, at: args.at ?? new Date().toISOString(), sourcesHash: kitHash(args.kind, args.topic, args.sources, args.weak) };
 }
 
-export async function buildKit(args: { apiKey: string; fetch?: typeof globalThis.fetch; course: Course; kind: KitKind; topic: string; sources: QuizSource[]; weak: string[]; flagged: string[] }): Promise<StudyKit> {
+export async function buildKit(args: { apiKey?: string; fetch?: typeof globalThis.fetch; course: Course; kind: KitKind; topic: string; sources: QuizSource[]; weak: string[]; flagged: string[] }): Promise<StudyKit> {
   const prompt = buildKitPrompt(args.course, args.kind, args.topic, args.sources, args.weak, args.flagged);
   const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'study', system: prompt.system, user: prompt.user, tool: KIT_TOOL, maxTokens: 6000 });
   return kitFromTool(r.input, { course: args.course, kind: args.kind, topic: args.topic, sources: args.sources, weak: args.weak, model: r.model });

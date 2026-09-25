@@ -2,7 +2,6 @@
 import fs from 'node:fs';
 import puppeteer from 'puppeteer-core';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
@@ -27,16 +26,15 @@ page.on('request', (req) => {
 // Syllabus for the coach: a text syllabus for CHM-113 through Settings.
 const syl = (process.argv[2] ?? 'chat.png').replace(/\.png$/, '-syllabus.txt');
 fs.writeFileSync(syl, 'CHM-113 General Chemistry I\nGrading: exams 40%, homework 20%, labs 20%, final 20%.\nLate work: 10% per day, nothing accepted after five days.\n' + 'Attendance is expected. '.repeat(20));
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you?seed=1`, { waitUntil: 'networkidle0' });
 await (await page.$('input[aria-label="Syllabus file for CHM-113"]')).uploadFile(syl);
 await page.waitForFunction(() => document.querySelector('.syllabus-row .syllabus-status')?.textContent.includes('characters'), { timeout: 8000 });
 console.log('syllabus row:', await t('.syllabus-row'), '|', await t('.settings-card .hint[style]'));
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
-console.log('no key:', await t('.chat-connect .hint'));
-console.log('key field is password:', await page.$eval('.chat-connect input', (e) => e.type));
-await page.type('.chat-connect input', 'sk-ant-e2e');
-await page.$$eval('.chat-connect button', (els) => els.find((e) => e.textContent.includes('Connect')).click());
+// No key form in the product: in development a key lives on the device and the coach just works.
+await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 await page.waitForSelector('.chat-input input', { timeout: 5000 });
+console.log('no key form:', (await page.$('.chat-connect')) === null);
 console.log('suggestions:', await page.$$eval('.chat-suggest .btn', (els) => els.map((e) => e.textContent.trim()).join(' | ')));
 
 const firstOpen = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.filter((i) => i.status !== 'done' && i.type !== 'participation').sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0]);
@@ -59,10 +57,9 @@ console.log('item status after tool:', firstOpen.label, '→', after);
 queue.push({ status: 401, body: JSON.stringify({ type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }) });
 await page.type('.chat-input input', 'and now?');
 await page.$$eval('.chat-input button', (els) => els[0].click());
-await page.waitForFunction(() => document.querySelector('.chat .hint[style]'), { timeout: 10000 });
-console.log('rejected key:', await t('.chat .hint[style]'));
-await page.$$eval('.chat-head-actions .btn', (els) => els.find((e) => e.textContent.includes('Disconnect')).click());
-await sleep(200);
-console.log('after disconnect, key gone:', await page.evaluate(() => localStorage.getItem('school-dashboard:anthropic-key')), '| connect form back:', !!(await page.$('.chat-connect')));
+// A refusal is a failed assistant turn in the thread, never a footnote, and the question stays.
+await page.waitForSelector('.chat-msg[data-failed="true"]', { timeout: 10000 });
+console.log('rejected key, as a turn:', await t('.chat-msg[data-failed="true"]'));
+console.log('question kept:', (await page.$$eval('.chat-msg[data-role="user"]', (els) => els.map((e) => e.textContent.trim()))).includes('and now?'));
 await page.screenshot({ path: process.argv[2] ?? 'chat.png', fullPage: true });
 await browser.close();

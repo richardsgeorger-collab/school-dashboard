@@ -63,7 +63,7 @@ page.on('request', (req) => {
 });
 
 // Material on file for CHM-113.
-await page.goto(`${BASE}#/library`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/library?seed=1`, { waitUntil: 'networkidle0' });
 let s = await state();
 const chm = s.courses.find((c) => c.code === 'CHM-113');
 const esg = s.courses.find((c) => c.code === 'ESG-162');

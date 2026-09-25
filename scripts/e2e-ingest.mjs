@@ -96,7 +96,7 @@ page.on('request', (req) => {
   return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: reply(tool, input) });
 });
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 let s = await state();
 const eng = s.courses.find((c) => c.code === 'ENG-105');
 const engItems = s.items.filter((i) => i.courseId === eng.id);
@@ -164,7 +164,7 @@ await sleep(800);
 console.log('re-run forced calls:', calls.length);
 
 // 6. Settings shows the cost and which classes run on what.
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.ai-month', { timeout: 5000 });
 console.log('settings AI:', await t('.ai-month'), '|', (await all('.ai-usage tbody tr')).join(' ; '));
 console.log('class modes:', (await all('section[aria-label="AI"] .diff-list li')).map((x) => x.replace(/\s+/g, ' ')).join(' | '));

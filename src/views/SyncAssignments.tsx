@@ -8,7 +8,6 @@ import type { Course } from '../domain/types';
 import { icsLocations, icsToExport, parseIcs, suggestCourse, type IcsFile, type IcsLocation } from '../ics/parse';
 import { useStore } from '../storage/store';
 import { DiffReview } from './DiffReview';
-import { HaloImport } from './HaloImport';
 
 const NEW = '__new__';
 
@@ -52,8 +51,8 @@ function newCourse(location: string, code: string, index: number, template: Cour
 }
 
 /**
- * The primary data path: drop the .ics that Better Halo's "Export Assignments" makes, confirm which class each
- * LOCATION means (once), review the diff, apply.
+ * The secondary path: drop the .ics that Better Halo's "Export Assignments" makes, confirm which class each
+ * LOCATION means (once), review the diff, apply. The bookmark is the normal way.
  */
 export function SyncAssignments({ initialFile = null, onClose }: { initialFile?: File | null; onClose: () => void }) {
   const { data, actions } = useStore();
@@ -66,7 +65,6 @@ export function SyncAssignments({ initialFile = null, onClose }: { initialFile?:
   const [newCodes, setNewCodes] = useState<Record<string, string>>({});
   const [step, setStep] = useState<'drop' | 'map' | 'diff'>('drop');
   const [dragging, setDragging] = useState(false);
-  const [showHalo, setShowHalo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const now = useMemo(() => new Date().toISOString(), []);
 
@@ -123,7 +121,7 @@ export function SyncAssignments({ initialFile = null, onClose }: { initialFile?:
   };
 
   return (
-    <Modal title="Sync assignments" onClose={onClose}>
+    <Modal title="Import a calendar file" onClose={onClose}>
       <div className="modal-body">
         {step === 'drop' && (
           <>
@@ -152,22 +150,9 @@ export function SyncAssignments({ initialFile = null, onClose }: { initialFile?:
                 {error}
               </p>
             )}
-            <p className="hint">The export carries no submission status: this never marks anything done or undone, and never touches your notes, estimates, snoozes, or items you added yourself.</p>
-            <div className="sync-grades">
-              <h3 className="section-title">Scores and submissions</h3>
-              <p className="hint">On halo.gcu.edu, press the <b>Sync Halo</b> bookmark. It reads the gradebook and opens this site with every posted score and submission to approve. No typing.</p>
-              <div className="settings-actions">
-                <button type="button" className="btn" onClick={() => setShowHalo(true)}>
-                  Paste a bookmark export
-                </button>
-                <a className="btn" href="#/settings">
-                  Get the bookmark
-                </a>
-              </div>
-            </div>
+            <p className="hint">A calendar file carries dates only, never scores or submissions: this never marks anything done or undone, and never touches your notes, estimates, snoozes, or items you added yourself. The Halo bookmark brings everything.</p>
           </>
         )}
-        {showHalo && <HaloImport onClose={() => setShowHalo(false)} />}
 
         {step === 'map' && file && (
           <>

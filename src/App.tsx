@@ -1,33 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
+import { AccountProvider } from './auth/AccountContext';
+import { useAccountSync } from './auth/useAccountSync';
 import { BottomNav, TopBar } from './components/Nav';
 import { TimeAsk } from './components/TimeAsk';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloImport } from './views/HaloImport';
-import { buildAuditPrompt, HALO_URL } from './halo/audit';
-import { checkHaloPress, clearPendingCheck, pendingCheck, setPendingCheck } from './halo/checkState';
-import { useStore } from './storage/store';
-import { HaloCheck } from './views/HaloCheck';
-import { HaloClassPicker } from './views/HaloClassPicker';
-import type { Course } from './domain/types';
 import { QuickCapture } from './views/QuickCapture';
 import { SyncAssignments } from './views/SyncAssignments';
+import { SyncSheet } from './views/SyncSheet';
 import { useRoute } from './router';
 import { StoreProvider } from './storage/store';
-import { useSupabaseSession } from './storage/useSupabaseSession';
+import { syncPress } from './ui/presses';
 import './styles/tokens.css';
 import './styles/base.css';
 import { Calendar } from './views/calendar/Calendar';
 import { Now } from './views/Now';
-import { Plan } from './views/Plan';
+import { Load } from './views/Load';
 import { Grades } from './views/Grades';
-import { Heatmap } from './views/Heatmap';
 import { Library } from './views/Library';
-import { Settings } from './views/Settings';
+import { You } from './views/You';
 import { Quiz } from './views/Quiz';
 import { ClassPage } from './views/ClassPage';
+import { Classes } from './views/Classes';
 import { IngestView } from './views/IngestView';
-import { News } from './views/News';
+import { Inbox } from './views/Inbox';
 import { StudyKit } from './views/StudyKit';
 import { Tutor } from './views/Tutor';
 import { useAutoRerun } from './ingest/auto';
@@ -53,7 +50,7 @@ function HaloHandoff() {
     <>
       {waiting && (
         <div className="halo-banner" role="status">
-          Waiting for Halo. Keep this tab open. If nothing arrives, use Settings, Halo, Paste Halo export.
+          Waiting for Halo. Keep this tab open. If nothing arrives, open You, Halo, and paste the export.
         </div>
       )}
       {payload && <HaloImport payload={payload} onClose={() => setPayload(null)} />}
@@ -61,9 +58,10 @@ function HaloHandoff() {
   );
 }
 
-/** The Sync button and a whole-window drop target for the .ics export. */
+/** The Sync sheet and a whole-window drop target for a calendar file. */
 function SyncHost({ open, file, onClose }: { open: boolean; file: File | null; onClose: () => void }) {
-  return open ? <SyncAssignments initialFile={file} onClose={onClose} /> : null;
+  if (!open) return null;
+  return file ? <SyncAssignments initialFile={file} onClose={onClose} /> : <SyncSheet onClose={onClose} />;
 }
 
 function useWindowDrop(onFile: (f: File) => void): boolean {
@@ -88,7 +86,7 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
       depth = 0;
       setOver(false);
       const f = e.dataTransfer?.files?.[0];
-      if (!f || !/\.ics$/i.test(f.name)) return;
+      if (!f || !f.name.toLowerCase().endsWith('.ics')) return;
       e.preventDefault();
       onFile(f);
     };
@@ -106,69 +104,6 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
   return over;
 }
 
-/** Check Halo: first press copies the prompt and opens Halo; the next press opens the paste box. */
-function CheckHaloHost({ open, onOpen, onClose }: { open: boolean; onOpen: () => void; onClose: () => void }) {
-  const { data, today } = useStore();
-  const [hint, setHint] = useState<string | null>(null);
-  const [picking, setPicking] = useState(false);
-  useEffect(() => {
-    if (!hint) return;
-    const t = setTimeout(() => setHint(null), 9000);
-    return () => clearTimeout(t);
-  }, [hint]);
-  // First press: pick the class. Second press within a day: the paste box for that class.
-  const pick = (course: Course | null) => {
-    const list = course ? [course] : data.courses;
-    const prompt = buildAuditPrompt(data.settings.haloAuditPrompt, data, data.settings.timezone, today, list);
-    void navigator.clipboard?.writeText(prompt).catch(() => undefined);
-    window.open(HALO_URL, '_blank', 'noopener');
-    setPendingCheck(list.map((c) => c.id));
-    setPicking(false);
-    setHint(course ? `Copied the ${course.code} audit. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.` : `Copied the audit for all ${list.length} classes, one at a time. Paste it into Claude in Chrome on the Halo tab, then come back and press Check Halo.`);
-  };
-  const press = useCallback(
-    (mode?: 'all') => {
-      if (mode === 'all') {
-        pick(null);
-        return;
-      }
-      if (pendingCheck()) {
-        onOpen();
-        return;
-      }
-      setPicking(true);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [onOpen, data, today],
-  );
-  return (
-    <>
-      <CheckHaloPress press={press} />
-      {hint && (
-        <div className="halo-banner" role="status">
-          {hint}
-        </div>
-      )}
-      {picking && <HaloClassPicker onPick={pick} onClose={() => setPicking(false)} />}
-      {open && (
-        <HaloCheck
-          onClose={onClose}
-          onHint={setHint}
-          onSwitchClass={() => {
-            clearPendingCheck();
-            onClose();
-            setPicking(true);
-          }}
-        />
-      )}
-    </>
-  );
-}
-function CheckHaloPress({ press }: { press: (mode?: 'all') => void }) {
-  checkHaloPress.current = press;
-  return null;
-}
-
 function OkayHost() {
   const [open, setOpen] = useState(false);
   okayPress.current = () => setOpen(true);
@@ -181,8 +116,8 @@ function AutoRerun() {
   return null;
 }
 
-function SyncBootstrap() {
-  useSupabaseSession();
+function AccountSync() {
+  useAccountSync();
   return null;
 }
 
@@ -191,16 +126,18 @@ function Screen() {
   switch (route) {
     case 'calendar':
       return <Calendar />;
-    case 'plan':
-      return <Plan />;
+    case 'classes':
+      return <Classes />;
+    case 'inbox':
+      return <Inbox />;
+    case 'you':
+      return <You />;
     case 'load':
-      return <Heatmap />;
+      return <Load />;
     case 'library':
       return <Library />;
     case 'grades':
       return <Grades />;
-    case 'settings':
-      return <Settings />;
     case 'quiz':
       return <Quiz />;
     case 'class':
@@ -211,8 +148,6 @@ function Screen() {
       return <Tutor />;
     case 'study':
       return <StudyKit />;
-    case 'news':
-      return <News />;
     default:
       return <Now />;
   }
@@ -227,7 +162,7 @@ export default function App() {
   }, []);
   const dragging = useWindowDrop(onFile);
   const [captureOpen, setCaptureOpen] = useState(false);
-  const [checkOpen, setCheckOpen] = useState(false);
+  syncPress.current = () => setSyncOpen(true);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -240,29 +175,30 @@ export default function App() {
   }, []);
   return (
     <StoreProvider>
-      <SyncBootstrap />
-      <AutoRerun />
-      <HaloHandoff />
-      <CheckHaloHost open={checkOpen} onOpen={() => setCheckOpen(true)} onClose={() => setCheckOpen(false)} />
-      <OkayHost />
-      <SyncHost
-        open={syncOpen}
-        file={syncFile}
-        onClose={() => {
-          setSyncOpen(false);
-          setSyncFile(null);
-        }}
-      />
-      {dragging && <div className="drop-overlay">Drop the .ics to sync assignments</div>}
-      <div className="app">
-        <TopBar onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} onCheckHalo={() => checkHaloPress.current?.()} />
-        {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
-        <main className="main">
-          <Screen />
-        </main>
-        <BottomNav />
-        <TimeAsk />
-      </div>
+      <AccountProvider>
+        <AccountSync />
+        <AutoRerun />
+        <HaloHandoff />
+        <OkayHost />
+        <SyncHost
+          open={syncOpen}
+          file={syncFile}
+          onClose={() => {
+            setSyncOpen(false);
+            setSyncFile(null);
+          }}
+        />
+        {dragging && <div className="drop-overlay">Drop the .ics to import a calendar</div>}
+        <div className="app">
+          <TopBar onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} />
+          {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
+          <main className="main">
+            <Screen />
+          </main>
+          <BottomNav />
+          <TimeAsk />
+        </div>
+      </AccountProvider>
     </StoreProvider>
   );
 }

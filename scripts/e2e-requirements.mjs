@@ -55,7 +55,7 @@ page.on('request', (req) => {
   return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_actions', input }], stop_reason: 'tool_use', usage: { input_tokens: 1800, output_tokens: 180 } }) });
 });
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 await page.reload({ waitUntil: 'networkidle0' });
 const s = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
@@ -95,7 +95,7 @@ await page.$$eval('.modal .modal-actions .btn', (els) => (els.find((e) => /Close
 await sleep(500);
 
 // 1. Read them all.
-await page.goto(`${BASE}#/news`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/inbox`, { waitUntil: 'networkidle0' });
 await sleep(500);
 // The first sync already read them automatically, so the backlog button has nothing left to do.
 console.log('prompt on News:', (await t('.news-readall'))?.slice(0, 120));

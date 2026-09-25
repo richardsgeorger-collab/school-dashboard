@@ -19,7 +19,7 @@ page.on('request', (req) => {
 });
 
 // Load the app once so the planner store exists, then learn a course id.
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 const N = 30;

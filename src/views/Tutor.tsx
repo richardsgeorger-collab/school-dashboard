@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { describeAiError, type Turn } from '../ai/client';
-import { loadApiKey } from '../chat/key';
+import { aiAvailable, loadApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { weakConcepts } from '../domain/concepts';
 import { announceContext, announceDb, type StoredAnnouncement } from '../halo/announce';
@@ -36,7 +36,7 @@ export function Tutor() {
   const tz = data.settings.timezone;
   const course = data.courses.find((c) => c.id === params.get('c')) ?? null;
   const item = data.items.find((i) => i.id === params.get('i')) ?? null;
-  const hasKey = loadApiKey() !== '';
+  const hasKey = aiAvailable();
   const [topic, setTopic] = useState(params.get('t') ?? item?.topic ?? item?.title ?? '');
   const [pool, setPool] = useState<SourcePool | null>(null);
   const [history, setHistory] = useState<Msg[]>(() => (course ? loadHistory(course.id) : []));
@@ -152,7 +152,7 @@ export function Tutor() {
             </button>
           </div>
         </div>
-        {!hasKey && <p className="hint">Connect the Anthropic key on Now to use the tutor.</p>}
+        {!hasKey && <p className="hint">The tutor needs a Pro or Max plan.</p>}
         {situation && situation.upcoming.length > 0 && (
           <p className="hint mono">
             Coming up: {situation.upcoming.map((u) => `${u.label} in ${Math.max(0, Math.round((new Date(`${u.due}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()) / 86_400_000))} days`).join(' · ')}

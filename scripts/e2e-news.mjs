@@ -31,7 +31,7 @@ page.on('request', (req) => {
   return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'claude-haiku-4-5-20251001', content: [{ type: 'tool_use', id: 'tu', name: 'announcement_findings', input }], stop_reason: 'tool_use', usage: { input_tokens: 2400, output_tokens: 260 } }) });
 });
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 let s = await state();
 const chm = s.courses.find((c) => c.code === 'CHM-113');
 const today = await page.evaluate(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }));
@@ -83,7 +83,7 @@ console.log('verify now:', await t('.verify'));
 
 // 4. Reading one: the pass gets the posting date and the planner list; findings go through the approval flow.
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
-await page.goto(`${BASE}#/news`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/inbox`, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.news-item', { timeout: 8000 });
 console.log('list:', (await all('.news-announcements .news-title')).join(' | '), '| unread marks:', await page.$$eval('.news-announcements .news-dot', (e) => e.length));
 await page.$$eval('.news-announcements .news-head', (els) => els[0].click());
@@ -156,7 +156,7 @@ console.log('announcements on the screen:', (await all2('.news-announcements .ne
 console.log('what it says when empty:', (await t2('.lib-head .hint')) ?? '(no hint)');
 
 // 9. The tally: a sync that got everything and a sync that got nothing must not read the same.
-await page2.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page2.goto(`${BASE}#/you`, { waitUntil: 'networkidle0' });
 const tally = (await all2('.pull-tally')).find((x) => /assignment/.test(x));
 console.log('persistent tally in Settings:', tally ? tally.slice(0, 200) : '(none)');
 
@@ -192,7 +192,7 @@ console.log('secondary button:', (await all2('.modal .modal-actions .btn')).join
 // Press the one that throws everything away.
 await page2.$$eval('.modal .modal-actions .btn', (els) => (els.find((e) => /Cancel|Close/.test(e.textContent)) ?? els[0]).click());
 await sleep(600);
-await page2.goto(`${BASE}#/news`, { waitUntil: 'networkidle0' });
+await page2.goto(`${BASE}#/inbox`, { waitUntil: 'networkidle0' });
 await sleep(500);
 const kept2 = await all2('.news-announcements .news-title');
 console.log('after Cancel, announcements on News:', kept2.join(' | ') || '(none)');

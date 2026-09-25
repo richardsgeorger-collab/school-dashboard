@@ -35,6 +35,8 @@ export interface StoreActions {
   updateSettings(patch: Partial<Settings>): void;
   importParsed(course: Course, items: Item[], mode: 'replace' | 'merge'): void;
   resetToSeed(): void;
+  /** Wipe every class and item, keep settings. The account mirror gets the deletions. */
+  clearAll(): void;
   exportJson(): string;
   importJson(json: string): { courses: number; items: number };
   /** Wire a remote repository (Supabase). Pass null to disconnect. */
@@ -112,6 +114,12 @@ export function seedData(): AppData {
   };
 }
 
+/** A brand-new student starts with nothing: the first sync or the first class is theirs. */
+export function emptyData(): AppData {
+  const now = nowIso();
+  return { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, supabaseUrl: env('VITE_SUPABASE_URL'), supabaseAnonKey: env('VITE_SUPABASE_ANON_KEY'), updatedAt: now } };
+}
+
 /** Fill fields added after a row was written (older caches, other devices, imports). */
 export function normalizeData(data: AppData): AppData {
   const codeById = new Map(data.courses.map((c) => [c.id, c.code]));
@@ -143,7 +151,9 @@ function initialData(): AppData {
     }
     return normalizeData({ ...cached, settings });
   }
-  return seedData();
+  // Development and the e2e scripts: a fresh browser opened at #/now?seed=1 loads the sample term.
+  if (typeof window !== 'undefined' && window.location.hash.includes('seed=1')) return seedData();
+  return emptyData();
 }
 
 function termOf(courses: Course[], today: DateStr): { start: DateStr; end: DateStr } {
@@ -333,6 +343,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setData(next);
   }, []);
 
+  /** Swap every class and item for `fresh`, keep settings, and tell the account mirror about the deletions. */
+  const replaceAll = useCallback(
+    (fresh: AppData) => {
+      const keepSettings = { ...dataRef.current.settings, updatedAt: nowIso() };
+      const removedItems = dataRef.current.items.map((i) => i.id);
+      const removedCourses = dataRef.current.courses.map((c) => c.id);
+      const next = { ...fresh, settings: keepSettings };
+      update(() => next);
+      const now = nowIso();
+      for (const id of removedItems) if (!next.items.some((i) => i.id === id)) mirror({ kind: 'deleteItem', id, deletedAt: now });
+      for (const id of removedCourses) if (!next.courses.some((c) => c.id === id)) mirror({ kind: 'deleteCourse', id, deletedAt: now });
+      mirror({ kind: 'courses', ids: next.courses.map((c) => c.id) });
+      mirror({ kind: 'items', ids: next.items.map((i) => i.id) });
+    },
+    [update, mirror],
+  );
+
   const actions = useMemo<StoreActions>(
     () => ({
       upsertItem(item) {
@@ -501,17 +528,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         for (const id of removed) mirror({ kind: 'deleteItem', id, deletedAt: now });
       },
       resetToSeed() {
-        const fresh = seedData();
-        const keepSettings = { ...dataRef.current.settings, updatedAt: nowIso() };
-        const removedItems = dataRef.current.items.map((i) => i.id);
-        const removedCourses = dataRef.current.courses.map((c) => c.id);
-        const next = { ...fresh, settings: keepSettings };
-        update(() => next);
-        const now = nowIso();
-        for (const id of removedItems) if (!next.items.some((i) => i.id === id)) mirror({ kind: 'deleteItem', id, deletedAt: now });
-        for (const id of removedCourses) if (!next.courses.some((c) => c.id === id)) mirror({ kind: 'deleteCourse', id, deletedAt: now });
-        mirror({ kind: 'courses', ids: next.courses.map((c) => c.id) });
-        mirror({ kind: 'items', ids: next.items.map((i) => i.id) });
+        replaceAll(seedData());
+      },
+      clearAll() {
+        replaceAll(emptyData());
       },
       exportJson() {
         const { supabaseAnonKey: _k, supabaseUrl: _u, ...settings } = dataRef.current.settings;
@@ -564,7 +584,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       connectRemote,
       syncNow,
     }),
-    [update, mirror, connectRemote, syncNow],
+    [update, mirror, connectRemote, syncNow, replaceAll],
   );
 
   const value = useMemo<Store>(

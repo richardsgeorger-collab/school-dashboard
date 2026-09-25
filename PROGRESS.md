@@ -49,9 +49,49 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
 - **Lint**: `oxlint` (`npm run lint`), added to the deploy workflow before the build. Warnings allowed; errors fail.
 - Tests 685 passing, typecheck clean, production build clean including the secrets scan.
 
+### Phase 3: Core makeover (2026-09-24)
+- **Five tabs**: Now / Calendar / Classes / Inbox / You (`src/router.ts`, `src/components/Nav.tsx`). Every other
+  screen (class page, library, quiz, study, tutor, AI plan, load, grades) lights up the tab it belongs to (`TAB_OF`).
+  Old addresses keep working: `#/news` → Inbox, `#/settings` → You, `#/plan` → Load, `#/record` → Library
+  (`src/router.test.ts`).
+- **Cut**: the Week view, the Plan tab, Check Halo (the freeform audit paste, its AI reader, the "needs you" polish,
+  the class picker and its two panels), the "Okay?" top-bar button (Now's status line already opens it), the
+  typed-in Supabase URL/key panel with password sign-in. Fifteen source files and their tests are gone.
+- **Calendar**: Agenda by default with a seven-day strip on top (`WeekStrip`: day, count due, heavy days shaded, tap
+  to start the agenda there), and Month. Term moved into Load as a toggle.
+- **Load**: This week (the old Plan tab's time ledger and hours-by-class) / Weeks / Term. Reached from You.
+- **Classes tab** (`Classes.tsx`): one card per class with grade so far, next due, overdue count, meeting times, and
+  when it was last synced from Halo. Tap for the class page.
+- **Inbox**: the announcements screen, renamed and reworded.
+- **You** (`You.tsx`): Account (sign in with email link or Google; plan badge; trial days left; sign out), AI usage
+  this month (from the server's meter), Plans (three cards from the config, checkout arrives in Phase 5), Level and
+  streaks, Grades summary, Workload link, Halo card, then Study time / Display / Classes / Advanced as collapsible
+  groups (`#/you?s=classes` opens one). Advanced holds syllabus PDF import, add by hand, calendar-file import,
+  export everything (JSON, announcements included), restore, duplicates, start fresh, and delete account. Footer
+  says the app is not affiliated with GCU. 1,640 px on a phone, down from 4,869.
+- **Trust**: `SyncedLine` ("Synced from Halo today 7:12 AM" / "Not synced from Halo yet · Sync now") on Now and on
+  every class page; `SourceBlock` on every item (from Halo / the syllabus / a calendar export / you, when it last
+  matched Halo, Halo's own status, the announcement it came from with the professor's words, a moved date's old
+  value, and the Open in Halo link).
+- **Sync sheet** (`SyncSheet.tsx`): the Sync button now leads with the bookmark. Computer: drag the button, open
+  Halo, click it. Phone: copy the address, bookmark any page, replace its address, run it from Halo. "Having
+  trouble?" holds paste-the-export and import-a-calendar-file. The bookmark hands off to `#/now?halo=1`.
+- **Empty states** on Now, Calendar, Classes, Inbox, Load and Grades, each with the one button that fills it.
+  A brand-new user starts with zero classes and zero items (no more seed term); the sample term is a developer
+  button under Advanced.
+- **No key in the product**: the coach's API-key form is gone; every AI screen gates on `aiAvailable()` (an account
+  on this build, or a development key) and the gateway's refusal is what a student sees. Copy that said "connect the
+  Anthropic key on Now" now names the plan.
+- **Light is the default theme**; Dark and Auto sit behind Plus with a quiet lock card.
+- Verified on the rendered UI: `scripts/audit-fresh.mjs` walks every route as a fresh phone user (screenshots
+  reviewed), and the populated e2e flows (now, news, requirements, classes, grades, reread) run against the build.
+- Not done here, on purpose: measuring how long a Halo session token lasts needs George on a real Halo session;
+  auto-merging duplicates on sync is not built because it would break the standing rule "never silently overwrite"
+  (the Duplicates panel stays under Advanced with its undo).
+
 ## In progress
 
-- Phase 3: Core makeover.
+- Phase 4: Onboarding.
 
 ## Decisions made alone
 
@@ -74,9 +114,23 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
 - **Placeholders that look like keys are not allowed**, even in `.env.example`: the secrets scanner fails the build on
   anything key-shaped, so the server env example ships blank values.
 
+- **A fresh browser starts empty; `#/now?seed=1` loads the sample term.** New students see empty states with one
+  button each, which is the point; the developer and the e2e scripts get the six-class sample through the flag,
+  which is honored only when there is nothing on the device.
+- **The Duplicates panel stays** (under You, Advanced). The plan said to auto-merge on sync; that collides with the
+  standing rule that nothing is silently overwritten, so merges stay a tap with an undo.
+- **The Halo bookmark hands off to Now**, not Settings: the diff opens over the screen a student actually lives on.
+- **The coach does not render with zero classes.** It has nothing to coach; the empty state's one button is Sync.
+- **Sign-in is magic link or Google only.** The old panel had password fields; the product never has a password.
+- **AI screens gate on `aiAvailable()`**, meaning an account on this build or a development key, and then let the
+  gateway's refusal (plan, cap, budget) be the message. No screen decides on its own what a plan allows.
+
 ## Extras
 
 Built:
+- The seven-day strip on the agenda shows heavy days shaded, from the same capacity math as Load.
+- Every item carries its provenance (`SourceBlock`), including the professor's own words when an announcement created or moved it.
+- The Sync sheet has a phone tab with the iPhone/Android bookmark steps, since Free is bookmarklet-on-every-device.
 - `LockTag` inline plan marker for menus and buttons, alongside `Locked`.
 - Meter feed (`onMeter`/`latestMeter`) so any screen can show "used 85% of this month's AI" without a second request.
 

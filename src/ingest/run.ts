@@ -16,7 +16,7 @@ export interface Cache {
 }
 
 export interface RunDeps {
-  apiKey: string;
+  apiKey?: string;
   fetch?: typeof globalThis.fetch;
   loaders: ContextLoaders;
   cache: Cache;

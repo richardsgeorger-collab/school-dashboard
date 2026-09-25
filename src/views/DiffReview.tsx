@@ -9,7 +9,7 @@ import { readActions } from '../halo/actions';
 import { describeAiError } from '../ai/client';
 import { withRetry } from '../halo/readAll';
 import { announceDb, bodyHash, readLedger, type StoredAnnouncement } from '../halo/announce';
-import { loadApiKey } from '../chat/key';
+import { aiAvailable, loadApiKey } from '../chat/key';
 import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
@@ -155,7 +155,7 @@ export function DiffReview({
    * they ask for straight onto the planner. Removals are the one thing held back for approval.
    */
   const readNew = async (fresh: StoredAnnouncement[], opts?: { approved?: boolean }) => {
-    const key = loadApiKey();
+    const key = loadApiKey() || undefined;
     const ids = new Set(data.courses.map((c) => c.id));
     // Everything on file that has never been read, not only what this sync carried. A post that arrived before the
     // automatic pass existed is exactly the kind that costs points, and it would otherwise sit there for ever.
@@ -175,8 +175,9 @@ export function DiffReview({
       setConfirmRead({ posts: todo, line: guard.line });
       return;
     }
-    // No key, or no credit: the posts stay unstamped and the next sync that can read them will.
-    if (!key) {
+    // No way to read (no account, no plan, or in development no key): the posts stay unstamped and the next sync
+    // that can read them will.
+    if (!aiAvailable()) {
       setAuto({ ...emptyOutcome(), todo: todo.length, noKey: true });
       return;
     }
@@ -299,7 +300,7 @@ export function DiffReview({
           {kept && referenceLine(kept) && (
             <li>
               {referenceLine(kept)}{' '}
-              <a className="diff-toggle" href="#/news">
+              <a className="diff-toggle" href="#/inbox">
                 read them
               </a>
             </li>
@@ -377,7 +378,7 @@ export function DiffReview({
           {kept && referenceLine(kept) ? (
             <>
               <br />
-              {referenceLine(kept)} <a href="#/news">See announcements</a>
+              {referenceLine(kept)} <a href="#/inbox">See announcements</a>
             </>
           ) : null}
         </p>

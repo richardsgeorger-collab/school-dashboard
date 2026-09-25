@@ -15,7 +15,7 @@ const setState = (s) => page.evaluate((v) => localStorage.setItem('school-dashbo
 const out = (process.argv[2] ?? 'peace.png').replace(/\.png$/, '');
 
 // 1. Am I okay: from the top bar, one paragraph, ending in the thing to handle first (the seed has overdue items).
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 await page.click('button[aria-label="Am I okay"]');
 await page.waitForSelector('.okay', { timeout: 5000 });
 console.log('okay (overdue seed):', await t('.okay-text'));
@@ -92,7 +92,7 @@ await setState(s);
 await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
 await page.reload({ waitUntil: 'networkidle0' });
 console.log('pace/pileup line:', await t('.pace'));
-await page.goto(`${BASE}#/plan`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/load`, { waitUntil: 'networkidle0' });
 await page.goto(`${BASE}#/class?c=${eng.id}`, { waitUntil: 'networkidle0' });
 await page.evaluate(() => { const row = [...document.querySelectorAll('.item-row')].find((r) => r.textContent.includes('Eng Rhetorical Analysis')); if (!row) throw new Error('Eng Rhetorical Analysis row not found'); row.querySelector('.item-main').click(); });
 await page.waitForSelector('.modal .work', { timeout: 5000 });
@@ -111,7 +111,7 @@ await page.reload({ waitUntil: 'networkidle0' });
 console.log('row bar:', !!(await page.$('.item-steps-bar')));
 
 // 6. Term shape.
-await page.goto(`${BASE}#/calendar?v=term`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/load?v=term`, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.term-weeks', { timeout: 5000 });
 console.log('term:', await t('.term > .hint'), '| weeks:', await page.$$eval('.term-week', (els) => els.length), '| brutal:', await page.$$eval('.term-week[data-brutal="true"]', (els) => els.length), '| stakes:', await page.$$eval('.stake', (els) => els.length));
 await page.screenshot({ path: `${out}-term.png`, fullPage: false });

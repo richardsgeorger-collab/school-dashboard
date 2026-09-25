@@ -8,14 +8,18 @@ import { useRoute } from '../../router';
 import { useStore } from '../../storage/store';
 import { IconPlus } from '../../components/Icons';
 import { blankItem, ItemDetail } from '../ItemDetail';
+import { EmptyState } from '../../components/EmptyState';
+import { syncPress } from '../../ui/presses';
 
 import { AgendaView } from './AgendaView';
-import { TermView } from './TermView';
 import { MonthView } from './MonthView';
-import { WeekView } from './WeekView';
+import { WeekStrip } from './WeekStrip';
 import { useFilteredItems } from './shared';
 
-type View = 'month' | 'week' | 'agenda' | 'term';
+/** Agenda is the calendar. Month is the map. There is no Week: the seven-day strip on the agenda is what that was for. */
+type View = 'agenda' | 'month';
+
+const isDay = (s: string | null): s is string => !!s && s.length === 10 && !Number.isNaN(Date.parse(`${s}T12:00:00Z`));
 
 function FilterChip({ course, active, onToggle }: { course: Course; active: boolean; onToggle: () => void }) {
   const color = useCourseColor(course);
@@ -30,8 +34,8 @@ function FilterChip({ course, active, onToggle }: { course: Course; active: bool
 export function Calendar() {
   const { data, today } = useStore();
   const { params, navigate } = useRoute();
-  const view = (['month', 'week', 'agenda', 'term'].includes(params.get('v') ?? '') ? params.get('v') : 'week') as View;
-  const anchor = /^\d{4}-\d{2}-\d{2}$/.test(params.get('d') ?? '') ? params.get('d')! : today;
+  const view: View = params.get('v') === 'month' ? 'month' : 'agenda';
+  const anchor = isDay(params.get('d')) ? params.get('d')! : today;
   const filterParam = params.get('c');
   const codes = useMemo(() => (filterParam ? new Set(filterParam.split(',')) : null), [filterParam]);
   const items = useFilteredItems(codes);
@@ -50,13 +54,11 @@ export function Calendar() {
 
   const month = monthKey(anchor);
   const wkStart = weekStart(anchor, data.settings.weekStartsOn);
-  const title =
-    view === 'month' ? fmtMonth(`${month}-01`) : view === 'week' ? `${fmtDate(wkStart, 'short')} – ${fmtDate(addDays(wkStart, 6), 'short')}` : `From ${fmtDate(anchor, 'long')}`;
+  const title = view === 'month' ? fmtMonth(`${month}-01`) : anchor === today ? 'Agenda' : `From ${fmtDate(anchor, 'long')}`;
 
   const step = (n: number) => {
     if (view === 'month') set({ d: `${shiftMonth(month, n)}-01` });
-    else if (view === 'week') set({ d: addDays(wkStart, 7 * n) });
-    else set({ d: addDays(anchor, 7 * n) });
+    else set({ d: addDays(wkStart, 7 * n) });
   };
 
   const toggleCourse = (code: string) => {
@@ -65,6 +67,28 @@ export function Calendar() {
     const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code];
     set({ c: next.length === all.length || next.length === 0 ? null : next.join(',') });
   };
+
+  if (data.courses.length === 0) {
+    return (
+      <>
+        <h1 className="page-title">Calendar</h1>
+        <EmptyState>
+          <p>
+            <b>Your deadlines will land here.</b>
+          </p>
+          <p>Sync Halo once and every assignment, quiz and discussion shows up by day, with the time it takes.</p>
+          <p className="empty-actions">
+            <button type="button" className="btn primary" onClick={() => syncPress.current?.()}>
+              Sync Halo
+            </button>
+            <a className="btn" href="#/you?s=classes">
+              Add a class by hand
+            </a>
+          </p>
+        </EmptyState>
+      </>
+    );
+  }
 
   return (
     <>
@@ -96,10 +120,8 @@ export function Calendar() {
           label="Calendar view"
           value={view}
           options={[
-            { value: 'month', label: 'Month' },
-            { value: 'week', label: 'Week' },
             { value: 'agenda', label: 'Agenda' },
-            { value: 'term', label: 'Term' },
+            { value: 'month', label: 'Month' },
           ]}
           onChange={(v) => set({ v })}
         />
@@ -110,10 +132,13 @@ export function Calendar() {
         </div>
       </div>
       <div className="cal-body">
+        {view === 'agenda' && (
+          <>
+            <WeekStrip start={wkStart} selected={anchor} items={items} onPick={(d) => set({ d })} />
+            <AgendaView from={anchor} items={items} onOpen={openItem} />
+          </>
+        )}
         {view === 'month' && <MonthView month={month} items={items} onOpen={openItem} />}
-        {view === 'week' && <WeekView start={wkStart} items={items} onOpen={openItem} />}
-        {view === 'agenda' && <AgendaView from={anchor} items={items} onOpen={openItem} />}
-        {view === 'term' && <TermView items={items} onOpen={openItem} />}
       </div>
       {open && <ItemDetail key={open.item.id} item={open.item} isNew={open.isNew} onClose={() => setOpen(null)} />}
     </>

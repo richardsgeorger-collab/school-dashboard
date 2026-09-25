@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeAiError } from '../ai/client';
-import { loadApiKey } from '../chat/key';
+import { aiAvailable, loadApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course } from '../domain/types';
@@ -11,10 +11,10 @@ import { LectureReview, type Decision } from './LectureReview';
 import { ReadAll } from './ReadAll';
 
 /**
- * Announcements, newest first. At GCU the week's real instructions often live here, so this is where they are read,
+ * The inbox: announcements, newest first. At GCU the week's real instructions often live here, so this is where they are read,
  * and where what they change goes through the same approval flow as everything else.
  */
-export function News() {
+export function Inbox() {
   const { data, today, courseById } = useStore();
   const { params } = useRoute();
   const tz = data.settings.timezone;
@@ -28,7 +28,7 @@ export function News() {
   const [review, setReview] = useState<StoredAnnouncement | null>(null);
   const [readAll, setReadAll] = useState(false);
   const [filter, setFilter] = useState<string>('all');
-  const hasKey = loadApiKey() !== '';
+  const hasKey = aiAvailable();
 
   const refresh = useCallback(async () => {
     setList(await announceDb.list().catch(() => []));
@@ -92,13 +92,13 @@ export function News() {
             </a>
           )}
           <h1 className="page-title lib-class-title">
-            {course && <CourseChip course={course} />} <span>Announcements</span>
+            {course && <CourseChip course={course} />} <span>Inbox</span>
           </h1>
           <p className="hint mono">
             {list === null
               ? 'Reading…'
               : shown.length === 0
-                ? 'None pulled yet. Run the Halo bookmark and they arrive with your assignments.'
+                ? 'Nothing here yet. Press Sync and your announcements arrive with your assignments.'
                 : // The only one that matters is whether they have been read for requirements. Whether the student
                   // has personally opened one is a different thing and no longer shares a sentence with it.
                   unreadForReqs === 0

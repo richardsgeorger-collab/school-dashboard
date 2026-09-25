@@ -7,7 +7,7 @@ const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
 const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
-await page.goto(`${BASE}#/calendar`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/calendar?seed=1`, { waitUntil: 'networkidle0' });
 const before = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('school-dashboard:v1')); const chm = s.courses.find((c) => c.code === 'CHM-113'); return s.items.filter((i) => i.courseId === chm.id && i.type === 'quiz' && i.status !== 'done').sort((a, b) => a.dueAt.localeCompare(b.dueAt)).map((i) => ({ id: i.id, label: i.label, dueAt: i.dueAt }))[0]; });
 console.log('next open chem quiz:', before.label, before.dueAt);
 await page.keyboard.down('Meta');

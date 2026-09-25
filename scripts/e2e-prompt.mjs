@@ -10,7 +10,7 @@ page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
 await page.setRequestInterception(true);
 page.on('request', (req) => (req.url().startsWith('https://api.anthropic.com/') ? req.abort() : req.continue()));
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 await sleep(600);
 const hero = await page.evaluate(() => {
   const raw = JSON.parse(localStorage.getItem('school-dashboard:v1'));

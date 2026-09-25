@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { describeAiError } from '../ai/client';
-import { loadApiKey } from '../chat/key';
+import { aiAvailable, loadApiKey } from '../chat/key';
 import { Modal } from '../components/Modal';
 import type { Course } from '../domain/types';
 import { libraryDb } from '../library/db';
@@ -27,7 +27,7 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
   const [note, setNote] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [review, setReview] = useState<{ recording: Recording; notes: LectureNotes } | null>(null);
-  const hasKey = loadApiKey() !== '';
+  const hasKey = aiAvailable();
   const words = wordCount(text);
 
   const save = async () => {
@@ -84,7 +84,7 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
         <textarea className="halo-paste paste-transcript" rows={10} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste the transcript here." aria-label="Transcript" disabled={saved} />
         <p className="hint mono">
           {words ? `${words.toLocaleString()} words` : ''}
-          {!hasKey && words ? ' · no key on this device, so it is saved and searchable; the extraction runs once a key is connected' : ''}
+          {!hasKey && words ? ' · saved and searchable; notes from it need a Max plan' : ''}
         </p>
         {note && <p className="hint">{note}</p>}
         <div className="modal-actions">

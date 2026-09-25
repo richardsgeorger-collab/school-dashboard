@@ -77,9 +77,6 @@ export function Heatmap() {
 
   return (
     <>
-      <h1 className="page-title">
-        Load <span className="light">by week</span>
-      </h1>
       <p className="hint" style={{ marginTop: 6, maxWidth: 640 }}>
         Planned study hours each week against your capacity ({fmtMinutes(data.settings.weekdayMinutes)} weekdays, {fmtMinutes(data.settings.weekendMinutes)} weekends).
         {over > 0 ? ` ${over} week${over === 1 ? '' : 's'} run over.` : ' No week runs over.'} Tap a week for the breakdown.

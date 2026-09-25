@@ -22,7 +22,7 @@ page.on('request', (req) => {
   return req.respond({ status: 200, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: body.model, content: [{ type: 'tool_use', id: 't', name: 'announcement_actions', input }], stop_reason: 'tool_use', usage: { input_tokens: 1500, output_tokens: 60 } }) });
 });
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 await page.reload({ waitUntil: 'networkidle0' });
 const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));

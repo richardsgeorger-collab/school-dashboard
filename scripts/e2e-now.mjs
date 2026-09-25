@@ -36,7 +36,7 @@ page.on('request', (req) => {
   return req.respond({ status: 500, headers: { ...cors, 'content-type': 'application/json' }, body: JSON.stringify({ type: 'error', error: { type: 'api_error', message: `unexpected ${tool}` } }) });
 });
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 let s = await state();
 const today = await page.evaluate(() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }));
 const shift = (d, n) => { const x = new Date(`${d}T12:00:00-07:00`); x.setDate(x.getDate() + n); return x.toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); };
@@ -80,12 +80,15 @@ console.log('checklist:', (await page.$$eval('.hero-steps-list li', (els) => els
 
 // 3. Copy the starter prompt (clipboard is faked), then hand it to the tutor, which sends it as the first turn.
 await page.evaluate(() => { window.__copied = ''; navigator.clipboard.writeText = (t) => { window.__copied = t; return Promise.resolve(); }; });
-await clickText('.hero-starter .btn', /Copy a prompt/);
+// The starter actions live behind More now.
+await clickText('.hero-secondary .hero-skip', /More/);
+await sleep(150);
+await clickText('.hero-secondary .hero-skip', /Copy a short prompt/);
 await sleep(200);
 const copied = await page.evaluate(() => window.__copied);
 console.log('starter prompt:', copied.split('\n')[0], '| has rubric:', /Thesis \(20 pts\)/.test(copied), '| has the line:', /Do not write any of it for me/.test(copied), '| chars:', copied.length);
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
-await clickText('.hero-starter .btn', /Ask the tutor/);
+await clickText('.hero-secondary .hero-skip', /Ask the tutor/);
 await page.waitForSelector('.tutor-msg[data-role="assistant"] .tutor-text', { timeout: 10000 });
 console.log('tutor first turn (user):', (await all('.tutor-msg[data-role="user"] .tutor-text'))[0]?.slice(0, 70), '| reply:', (await all('.tutor-msg[data-role="assistant"] .tutor-text'))[0]?.slice(0, 60));
 console.log('handed once:', calls.filter((c) => c.tool === 'text').length === 1);
@@ -113,6 +116,8 @@ console.log('new hero after the linger:', await t('.hero-title'));
 // 5. Blocked is not snoozed: the hero leaves Now, is not counted, shows as waiting, and comes back on its own.
 const victim = await t('.hero-title');
 console.log('hero before block:', victim);
+await clickText('.hero-secondary .hero-skip', /More/);
+await sleep(150);
 console.log('block click:', await clickText('.hero-secondary .hero-skip', /Can.t do this yet/));
 await sleep(300);
 console.log('block reasons:', (await all('.hero-chooser .btn')).join(' | '));
@@ -154,6 +159,8 @@ await page.reload({ waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.hero', { timeout: 8000 });
 
 // 6. Not today still works and records the day.
+await clickText('.hero-secondary .hero-skip', /More/);
+await sleep(150);
 await clickText('.hero-secondary .hero-skip', /Not today/);
 await sleep(200);
 const opts = await all('.hero-chooser .btn');

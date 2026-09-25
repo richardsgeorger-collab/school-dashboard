@@ -8,8 +8,10 @@ import { IconCheck } from '../components/Icons';
 import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
-import { checkDue, verificationLine } from '../halo/verification';
-import { checkHaloPress } from '../halo/checkState';
+import { useAccount } from '../auth/AccountContext';
+import { Locked } from '../config/Locked';
+import { syncPress } from '../ui/presses';
+import { SyncedLine } from './SyncedLine';
 import { announceDb, unreadLine, type StoredAnnouncement } from '../halo/announce';
 import { SYNC_EVENT } from '../ingest/auto';
 import { staleness, stalenessLine } from '../halo/freshness';
@@ -198,6 +200,7 @@ function useExamTopics(plan: ExamPlan | null, stats: Record<string, import('../d
  */
 export function Now() {
   const { data, schedule, today, term, actions, progress, previewAward, calibrate } = useStore();
+  const { tier } = useAccount();
   const tz = data.settings.timezone;
   const [open, setOpen] = useState<Item | null>(null);
   const [examSheet, setExamSheet] = useState(false);
@@ -364,7 +367,27 @@ export function Now() {
         </p>
       )}
 
-      {!back && !exam && mode.mode === 'empty' && <EmptyState>Nothing open. Import a syllabus from Settings, or enjoy the quiet.</EmptyState>}
+      {!back &&
+        !exam &&
+        mode.mode === 'empty' &&
+        (data.courses.length === 0 ? (
+          <EmptyState>
+            <p>
+              <b>Your day, from Halo.</b>
+            </p>
+            <p>Sync once and this screen shows the one thing to do now, what is due today, and how the week looks.</p>
+            <p className="empty-actions">
+              <button type="button" className="btn primary" onClick={() => syncPress.current?.()}>
+                Sync Halo
+              </button>
+              <a className="btn" href="#/you?s=classes">
+                Add a class by hand
+              </a>
+            </p>
+          </EmptyState>
+        ) : (
+          <EmptyState>Nothing open. Enjoy the quiet.</EmptyState>
+        ))}
 
       {!back && !exam && mode.mode === 'enough' && !showAnyway && (
         <section className="calm" data-tone="enough" aria-label="Done for today">
@@ -457,45 +480,24 @@ export function Now() {
 
       {unread && (
         <p className="now-news mono">
-          <a className="now-news-link" href={`#/news?a=${unread.first.id}`}>
+          <a className="now-news-link" href={`#/inbox?a=${unread.first.id}`}>
             {unread.text}
           </a>
         </p>
       )}
 
-      {(() => {
-        // One statement about how current this is. Two lines saying nearly the same thing read as noise.
-        const v = verificationLine(data.settings.haloChecks, data.courses, data.items, today, tz);
-        const due = checkDue(data.settings.haloChecks, today, tz);
-        if (stale) {
-          return (
-            <p className="verify mono" data-level="amber">
-              {stale}
-            </p>
-          );
-        }
-        if (sub.line && !due) {
-          return (
-            <p className="verify mono" data-level={sub.level === 'alarm' ? 'alarm' : sub.level}>
-              {sub.line} <span className="muted">{v.text}</span>
-            </p>
-          );
-        }
-        return due ? (
-          <p className="verify mono" data-level="amber">
-            <button type="button" className="verify-nudge" onClick={() => checkHaloPress.current?.('all')}>
-              Time to check Halo.
-            </button>{' '}
-            <span className="muted">{v.text}</span>
-          </p>
-        ) : (
-          <p className="verify mono" data-level={v.level}>
-            {v.text}
-          </p>
-        );
-      })()}
+      {sub.line && (
+        <p className="verify mono" data-level={sub.level === 'alarm' ? 'alarm' : sub.level}>
+          {sub.line}
+        </p>
+      )}
+      {data.courses.length > 0 && <SyncedLine stale={stale} />}
 
-      <ChatCard />
+      {data.courses.length > 0 && (
+        <Locked feature="aiChat" tier={tier} compact>
+          <ChatCard />
+        </Locked>
+      )}
       {sunday && (
         <SundayReview
           onOpen={(i) => {

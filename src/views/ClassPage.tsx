@@ -9,7 +9,7 @@ import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { weakLine } from '../domain/weak';
-import { lastCheckFor } from '../halo/verification';
+import { SyncedLine } from './SyncedLine';
 import { announceStores, type StoredResource } from '../halo/announce';
 import { usePlanStatus } from '../ingest/usePlan';
 import { materialsFor } from '../library/ingest';
@@ -61,7 +61,7 @@ export function ClassPage() {
       <>
         <h1 className="page-title">Class</h1>
         <p className="hint">
-          No such class. <a href="#/settings">Settings</a> lists them.
+          No such class. <a href="#/classes">Classes</a> lists them.
         </p>
       </>
     );
@@ -77,7 +77,7 @@ export function ClassPage() {
   const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz).filter((w) => w.courseId === course.id), 6);
   const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, tz);
   const pace = paceFor(course, data.items, schedule, today);
-  const check = lastCheckFor(data.settings.haloChecks, course.id);
+  const pulled = data.settings.haloPulls?.[course.id]?.assessments ?? null;
   const meetings = course.online ? 'Online' : course.meetings.map((m) => `${DAYS[m.day]} ${m.start}–${m.end}`).join(', ') || 'No meetings set';
   const paceText = pace.kind === 'behind' ? `${pace.n} item${pace.n === 1 ? '' : 's'} behind` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : 'Nothing open';
 
@@ -85,8 +85,8 @@ export function ClassPage() {
     <>
       <div className="lib-head">
         <div>
-          <a className="diff-toggle" href="#/now">
-            ← Now
+          <a className="diff-toggle" href="#/classes">
+            ← Classes
           </a>
           <h1 className="page-title lib-class-title">
             <CourseChip course={course} /> <span>{course.name}</span>
@@ -95,6 +95,7 @@ export function ClassPage() {
             {meetings}
             {course.instructors.length ? ` · ${course.instructors.map((p) => p.name).join(', ')}` : ''}
           </p>
+          <SyncedLine courseId={course.id} />
         </div>
         <span className="settings-actions">
           <button type="button" className="btn small primary" onClick={() => setPaste(true)}>
@@ -141,8 +142,8 @@ export function ClassPage() {
             <dd>{week.length}</dd>
           </div>
           <div>
-            <dt>Halo check</dt>
-            <dd>{check ? `${fmtDate(dateOf(check.at, tz), 'short')}${check.partial ? ' partial' : check.clean ? ' clean' : ''}` : 'never'}</dd>
+            <dt>Synced from Halo</dt>
+            <dd>{pulled ? fmtDate(dateOf(pulled, tz), 'short') : 'never'}</dd>
           </div>
         </dl>
         {weak && <p className="hint">{weak}</p>}
@@ -213,7 +214,7 @@ export function ClassPage() {
           <a className="btn small" href={`#/ingest?c=${course.id}`}>
             {course.ingest === 'ai' ? (planStatus && planStatus.pending > 0 ? `AI plan · ${planStatus.pending} to review` : planStatus?.state === 'stale' ? 'AI plan · changed since' : 'AI plan') : 'AI plan (compare)'}
           </a>{' '}
-          <a className="btn small" href="#/settings">
+          <a className="btn small" href="#/you?s=classes">
             Edit class
           </a>
         </p>

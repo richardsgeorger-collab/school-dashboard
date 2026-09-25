@@ -15,7 +15,7 @@ const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('school-
 const setState = (s) => page.evaluate((v) => localStorage.setItem('school-dashboard:v1', JSON.stringify(v)), s);
 
 // 1. Pace line replaces the pressure line.
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.term-progress', { timeout: 5000 });
 console.log('pace:', await t('.pace'), '| pressure present:', !!(await page.$('.pressure')));
 console.log('now lines: hero', !!(await page.$('.hero')), '| pace', !!(await page.$('.pace')), '| progress', !!(await page.$('.term-progress')), '| verify', !!(await page.$('.verify')));
@@ -34,7 +34,7 @@ await sleep(200);
 console.log('after show everything: welcome', !!(await page.$('.welcome')), '| hero or calm', !!(await page.$('.hero, .calm')), '| pace', !!(await page.$('.pace')), '| last seen stamped today:', await page.evaluate(() => localStorage.getItem('school-dashboard:last-seen') === new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' })));
 
 // 3. Sunday review from Settings, any day.
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle0' });
 console.log('sunday row:', await t('.sunday-settings'));
 await page.$$eval('.sunday-settings .btn', (els) => els.find((e) => e.textContent.includes('Review the week')).click());
 await page.waitForSelector('.sunday', { timeout: 5000 });
@@ -87,7 +87,7 @@ s = await state();
 const hw = s.items.filter((i) => i.courseId === chm.id && i.status === 'todo' && /Prerequisite|Homework|ALEKS/i.test(i.title)).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
 s.items = s.items.map((i) => (i.id === hw.id ? { ...i, status: 'in_progress' } : i));
 await setState(s);
-await page.goto(`${BASE}#/plan`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/load`, { waitUntil: 'networkidle0' });
 await page.reload({ waitUntil: 'domcontentloaded' });
 await page.waitForSelector('.item-row', { timeout: 5000 });
 const opened = await page.evaluate((id) => { const row = [...document.querySelectorAll('.item-row')].find((r) => r.querySelector('.item-main')?.getAttribute('title') === id); if (!row) return null; row.querySelector('.item-main').click(); return row.querySelector('.item-title').textContent; }, hw.title);

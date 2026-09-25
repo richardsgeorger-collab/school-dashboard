@@ -97,3 +97,22 @@ export const IconLibrary = () => (
     <path d="m16 6 3.5-1 3.5 13.5-3.5 1z" />
   </svg>
 );
+export const IconClasses = () => (
+  <svg {...base}>
+    <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 16.5z" />
+    <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h4.5a1.5 1.5 0 0 0 1.5-1.5z" />
+  </svg>
+);
+export const IconInbox = () => (
+  <svg {...base}>
+    <path d="M4 13.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.5" />
+    <path d="M4 13.5h4l1.5 2.5h5l1.5-2.5h4" />
+    <path d="M6.5 13.5 8 6h8l1.5 7.5" />
+  </svg>
+);
+export const IconYou = () => (
+  <svg {...base}>
+    <circle cx="12" cy="8.5" r="3.5" />
+    <path d="M5 19.5a7 7 0 0 1 14 0" />
+  </svg>
+);

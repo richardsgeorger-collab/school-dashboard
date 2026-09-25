@@ -8,7 +8,7 @@ const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').t
 const all = (sel) => page.$$eval(sel, (els) => els.map((e) => e.textContent.replace(/\s+/g, ' ').trim()));
 const tab = async (label) => { await page.$$eval('button', (els, label) => els.find((e) => e.textContent.trim() === label)?.click(), label); await new Promise((r) => setTimeout(r, 300)); };
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 console.log('NOW status      :', await t('.now-status'));
 console.log('NOW then heads  :', (await all('.then-day')).join(' || '));
 const allBtn = await page.$('.then-all');

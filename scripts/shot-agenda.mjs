@@ -10,7 +10,7 @@ await page.setViewport({ width: Number(width), height: 1400, deviceScaleFactor: 
 page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 // Make sure every class exists, and learn its id, before building the items in node where the fixture's helpers live.
 const byCode = await page.evaluate((classes) => {
   const raw = JSON.parse(localStorage.getItem('school-dashboard:v1'));

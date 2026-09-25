@@ -142,7 +142,7 @@ export async function runBookmarklet(halo: Halo, opts: { download?: () => unknow
     },
   };
 
-  const src = opts.source ?? bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/settings?halo=1' });
+  const src = opts.source ?? bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' });
   const fn = new Function('location', 'document', 'window', 'fetch', 'crypto', 'alert', 'navigator', 'setInterval', 'clearInterval', 'setTimeout', src);
   fn(
     { hostname: 'halo.gcu.edu' },

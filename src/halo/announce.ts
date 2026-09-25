@@ -384,7 +384,7 @@ export function announceFromTool(raw: unknown, a: StoredAnnouncement, items: Ite
   return { summary: str(o.summary, 400), findings: findings.slice(0, 12) };
 }
 
-export async function readAnnouncement(args: { apiKey: string; fetch?: typeof globalThis.fetch; announcement: StoredAnnouncement; course: Course; items: Item[]; tz: string }): Promise<AnnounceRead> {
+export async function readAnnouncement(args: { apiKey?: string; fetch?: typeof globalThis.fetch; announcement: StoredAnnouncement; course: Course; items: Item[]; tz: string }): Promise<AnnounceRead> {
   const prompt = buildAnnouncePrompt(args.announcement, args.course, args.items, args.tz);
   const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'announcement', system: prompt.system, user: prompt.user, tool: ANNOUNCE_TOOL, maxTokens: 3000 });
   return announceFromTool(r.input, args.announcement, args.items);

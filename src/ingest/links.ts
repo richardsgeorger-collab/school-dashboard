@@ -65,7 +65,7 @@ export function linksFromTool(raw: unknown, courses: Course[]): TopicLink[] {
 /** True when the links are worth (re)computing: two or more classes carry a topic map. */
 export const canLink = (courses: Course[]): boolean => courses.filter((c) => c.topics?.length).length >= 2;
 
-export async function findLinks(args: { apiKey: string; fetch?: typeof globalThis.fetch; courses: Course[] }): Promise<TopicLink[]> {
+export async function findLinks(args: { apiKey?: string; fetch?: typeof globalThis.fetch; courses: Course[] }): Promise<TopicLink[]> {
   const prompt = buildLinksPrompt(args.courses);
   const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'links', system: prompt.system, user: prompt.user, tool: LINKS_TOOL, maxTokens: 2500 });
   return linksFromTool(r.input, args.courses);

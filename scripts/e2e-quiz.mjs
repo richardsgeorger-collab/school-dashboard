@@ -55,7 +55,7 @@ page.on('request', (req) => {
 });
 
 // Material: a deck on the CHM-113 class page and a syllabus.
-await page.goto(`${BASE}#/library`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/library?seed=1`, { waitUntil: 'networkidle0' });
 const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113').id);
 await page.goto(`${BASE}#/library?c=${chm}`, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.lib-drop input[type=file]', { timeout: 5000 });

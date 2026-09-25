@@ -44,7 +44,7 @@ const heads = () => page.$$eval('.diff-section h3', (els) => els.map((e) => e.te
 const click = (sel, text) => page.$$eval(sel, (els, text) => { const el = els.find((e) => e.textContent.includes(text)); if (!el) throw new Error('no ' + text); el.click(); }, text);
 const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 // C is done before the import; the import must leave that alone.
 await page.evaluate((id) => { const s = JSON.parse(localStorage.getItem('school-dashboard:v1')); const it = s.items.find((i) => i.id === id); it.status = 'done'; it.completedAt = new Date().toISOString(); it.score = 8; it.award = { base: it.points, multiplier: 1.5, earnedAt: it.completedAt, scoreFactor: 0.8 }; it.notes = 'kept'; localStorage.setItem('school-dashboard:v1', JSON.stringify(s)); }, C.id);
 await page.reload({ waitUntil: 'networkidle0' });

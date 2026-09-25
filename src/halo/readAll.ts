@@ -94,7 +94,7 @@ export function unread(list: StoredAnnouncement[], courseIds: Set<string>): Stor
  * costs that post rather than the batch. Nothing is written to the planner here; the caller decides what to keep.
  */
 export async function readAllAnnouncements(args: {
-  apiKey: string;
+  apiKey?: string;
   fetch?: typeof globalThis.fetch;
   list: StoredAnnouncement[];
   courses: Course[];

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bookmarkletHref, bookmarkletSource, GATEWAY, HALO_HOST } from './bookmarklet';
 
-const cfg = { dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/settings?halo=1' };
+const cfg = { dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' };
 
 describe('bookmarklet', () => {
   const src = bookmarkletSource(cfg);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
+import { EmptyState } from '../components/EmptyState';
 import { dateOf, fmtDate } from '../domain/dates';
 import { courseGrade, letterFor } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
@@ -145,11 +146,15 @@ export function Grades() {
         Scores arrive from Halo&apos;s gradebook through the Sync button. None of the syllabi publish category weights, so this is points earned over points
         graded, and Projected assumes the rest of the term scores at your current average. Typing a score is an override for when Halo is wrong or missing.
       </p>
-      <div className="grade-grid">
-        {data.courses.map((c) => (
-          <CourseCard key={c.id} course={c} />
-        ))}
-      </div>
+      {data.courses.length === 0 ? (
+        <EmptyState>Grades arrive with your first Halo sync, one card per class.</EmptyState>
+      ) : (
+        <div className="grade-grid">
+          {data.courses.map((c) => (
+            <CourseCard key={c.id} course={c} />
+          ))}
+        </div>
+      )}
     </>
   );
 }

@@ -7,7 +7,7 @@ const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
 const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
-await page.goto(`${BASE}#/grades`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/grades?seed=1`, { waitUntil: 'networkidle0' });
 // Score two small CHM-113 items so there is an average to project from.
 await page.evaluate(() => {
   const s = JSON.parse(localStorage.getItem('school-dashboard:v1'));

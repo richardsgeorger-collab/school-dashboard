@@ -145,7 +145,7 @@ export function buildActionsPrompt(a: StoredAnnouncement, course: Course, items:
   };
 }
 
-export async function readActions(args: { apiKey: string; fetch?: typeof globalThis.fetch; announcement: StoredAnnouncement; course: Course; items: Item[]; tz: string }): Promise<{ summary: string; actions: Action[]; usage?: unknown }> {
+export async function readActions(args: { apiKey?: string; fetch?: typeof globalThis.fetch; announcement: StoredAnnouncement; course: Course; items: Item[]; tz: string }): Promise<{ summary: string; actions: Action[]; usage?: unknown }> {
   const p = buildActionsPrompt(args.announcement, args.course, args.items, args.tz);
   const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'announcement', system: p.system, user: p.user, tool: ACTIONS_TOOL, maxTokens: 4000 });
   return { ...actionsFromTool(r.input, args.announcement, args.items, args.tz), usage: r.usage };

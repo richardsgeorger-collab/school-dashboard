@@ -26,7 +26,7 @@ const browser = await puppeteer.launch({ executablePath: '/Applications/Google C
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
 page.on('pageerror', (e) => console.log('PAGE ERROR:', e.message));
-await page.goto(`${BASE}#/now?halo=1`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?halo=1&seed=1`, { waitUntil: 'networkidle0' });
 console.log('banner:', await page.$eval('.halo-banner', (e) => e.textContent.trim()).catch(() => 'none'));
 
 // 1. Handoff path: synthetic message with Halo's origin.
@@ -57,7 +57,7 @@ console.log('last sync:', await page.evaluate(() => localStorage.getItem('school
 await (await page.$('.modal .modal-actions .btn.primary')).click();
 
 // 2. Paste path from Settings, second export lacks the new item → removal proposed.
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle0' });
 await page.screenshot({ path: (process.argv[2] ?? 'halo-diff.png').replace(/\.png$/, '-settings.png'), fullPage: true });
 await page.screenshot({ path: (process.argv[2] ?? 'halo-diff.png').replace(/\.png$/, '-settings.png'), fullPage: true });
 console.log('halo card:', await page.$eval('.halo-steps', (e) => e.textContent.replace(/\s+/g, ' ').trim().slice(0, 80)));

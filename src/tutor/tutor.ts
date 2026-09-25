@@ -93,7 +93,7 @@ export function buildTutorBlocks(sources: QuizSource[], situation: TutorSituatio
 export const BEHIND = (topic: string) => `Explain ${topic || 'this'} like I'm behind.`;
 export const STUCK = "I'm stuck on a problem. Here's what I have so far: ";
 
-export async function askTutor(args: { apiKey: string; fetch?: typeof globalThis.fetch; sources: QuizSource[]; situation: TutorSituation; history: Turn[]; text: string }): Promise<string> {
+export async function askTutor(args: { apiKey?: string; fetch?: typeof globalThis.fetch; sources: QuizSource[]; situation: TutorSituation; history: Turn[]; text: string }): Promise<string> {
   const r = await callText({ apiKey: args.apiKey, fetch: args.fetch, kind: 'tutor', system: buildTutorBlocks(args.sources, args.situation), history: args.history, user: args.text, maxTokens: 900 });
   return r.text || 'I did not have anything to add.';
 }

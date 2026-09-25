@@ -14,7 +14,7 @@ const openClass = async (code) => {
 };
 const clickBtn = (text) => page.$$eval('.modal .btn', (els, text) => { const el = els.find((e) => e.textContent.trim().startsWith(text)); if (!el) throw new Error('no ' + text); el.click(); }, text);
 
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you?seed=1`, { waitUntil: 'networkidle0' });
 // Seed some history: one ENG item done with an award and a timing; one CHM item done with a timing.
 await page.evaluate(() => {
   const s = JSON.parse(localStorage.getItem('school-dashboard:v1'));
@@ -53,9 +53,9 @@ const engItems = s.items.filter((i) => i.courseId === eng.id);
 console.log('ENG after save: online', eng.online, '| meetings', eng.meetings.length, '| in-class items left', engItems.filter((i) => i.flags.inClass).length, 'of', engItems.length);
 
 // 3. Reset ENG-105 items; XP, timings, and CHM history must survive.
-await page.goto(`${BASE}#/plan`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/load`, { waitUntil: 'networkidle0' });
 const xp1 = await t('.level-bar, .levelbar, [class*="level"]');
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle0' });
 await openClass('ENG-105');
 console.log('admin text:', await t('.class-admin .hint'));
 await clickBtn('Reset items');
@@ -69,11 +69,11 @@ const engLeft = s.items.filter((i) => i.courseId === eng.id).length;
 const chmDoneAfter = s.items.filter((i) => chmDoneBefore.includes(i.id) && i.status === 'done' && i.notes === 'keep me' && i.actualMinutes === 40).length;
 console.log('ENG items left:', engLeft, '| CHM done intact:', chmDoneAfter, '/', chmDoneBefore.length, '| banked awards:', (s.settings.bankedAwards ?? []).length, '| ledger:', (s.settings.timings ?? []).map((x) => `${x.minutes}m`).join(','), '| total items', s.items.length);
 await page.keyboard.press('Escape');
-await page.goto(`${BASE}#/plan`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/load`, { waitUntil: 'networkidle0' });
 console.log('XP text before/after:', xp1, '→', await t('.level-bar, .levelbar, [class*="level"]'));
 
 // 4. Delete UNV-106 entirely; nothing else moves.
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle0' });
 const before = await state();
 await openClass('UNV-106');
 await clickBtn('Delete class');

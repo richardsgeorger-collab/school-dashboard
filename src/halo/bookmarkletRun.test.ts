@@ -187,7 +187,7 @@ describe('the bookmarklet, actually run', () => {
  * result was not. Every catch either records the loss or is one of the three that genuinely has nothing to say.
  */
 describe('the guards themselves', () => {
-  const src = bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/settings?halo=1' });
+  const src = bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' });
   /** Bodies of every catch block, brace-balanced rather than regex-truncated. */
   const bodies: string[] = [];
   for (let i = src.indexOf('catch(e){'); i >= 0; i = src.indexOf('catch(e){', i + 1)) {
@@ -328,7 +328,7 @@ describe('the schema probe', () => {
 
 /** The three failures Halo named, each with the check that would have caught it before it shipped. */
 describe('fixed from what Halo said', () => {
-  const src = bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/settings?halo=1' });
+  const src = bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' });
 
   it('declares no variable it does not use, which is what killed class facts', () => {
     // 'Variable "$isStudent" is never used.' is a validation error: the whole query is rejected before a single

@@ -18,7 +18,7 @@ console.log('completed:', firstLabel, '| row done =', await page.$eval('.day-gro
 await page.reload({ waitUntil: 'networkidle0' });
 console.log('done rows after reload:', await page.$$eval('.item-row[data-done="true"]', (els) => els.length));
 
-await page.goto(base + '#/settings', { waitUntil: 'networkidle0' });
+await page.goto(base + '#/you', { waitUntil: 'networkidle0' });
 for (const b of await page.$$('button')) if ((await b.evaluate((e) => e.textContent)).includes('Import syllabus')) { await b.click(); break; }
 await page.waitForSelector('.dropzone input[type=file]');
 await (await page.$('.dropzone input[type=file]')).uploadFile(pdf);

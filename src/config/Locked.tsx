@@ -15,7 +15,7 @@ export function Locked({ feature, tier, children, compact = false }: { feature: 
       <p className="locked-line">{FEATURE_LINES[feature]}</p>
       <div className="locked-actions">
         <span className="locked-tier">{TIER_NAMES[need]}</span>
-        <a className="btn small primary" href={`#/you/upgrade?to=${need}&for=${feature}`}>
+        <a className="btn small primary" href={`#/you?s=plan&to=${need}&for=${feature}`}>
           See {TIER_NAMES[need]}
         </a>
       </div>

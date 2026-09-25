@@ -7,7 +7,7 @@
 export interface BookmarkletConfig {
   /** Dashboard origin the payload may be sent to, e.g. https://richardsgeorger-collab.github.io */
   dashOrigin: string;
-  /** Path opened in the dashboard, e.g. /school-dashboard/#/settings?halo=1 */
+  /** Path opened in the dashboard, e.g. /school-dashboard/#/you?halo=1 */
   dashPath: string;
 }
 

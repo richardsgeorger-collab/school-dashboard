@@ -61,7 +61,7 @@ export function SourceLine({ source }: { source: Requirement['source'] }) {
       {source.kind === 'announcement' && source.id && (
         <>
           {' '}
-          <a href={`#/news?a=${source.id}`}>read it</a>
+          <a href={`#/inbox?a=${source.id}`}>read it</a>
         </>
       )}
     </span>

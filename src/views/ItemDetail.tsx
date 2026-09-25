@@ -10,6 +10,7 @@ import { linksFor } from '../ingest/links';
 import { BLOCK_REASONS, BLOCK_WORDS, blockPhrase, isBlocked, makeBlock } from '../domain/blocked';
 import type { BlockReason } from '../domain/types';
 import { Feedback, RubricBlock } from './Feedback';
+import { SourceBlock } from './SourceBlock';
 import { Requirements } from './Requirements';
 import { RulesOnItem } from './ClassRules';
 import { Sure } from './PlanReview';
@@ -501,13 +502,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             </ul>
           </details>
         )}
-        {item.url && (
-          <p className="hint">
-            <a href={item.url} target="_blank" rel="noreferrer">
-              Open in Halo
-            </a>
-          </p>
-        )}
+        {!isNew && <SourceBlock item={item} />}
         {item.snoozedUntil && item.snoozedUntil > today && (
           <p className="hint">
             Pushed down until {fmtDate(item.snoozedUntil, 'long')} ·{' '}

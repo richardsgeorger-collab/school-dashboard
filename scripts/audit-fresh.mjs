@@ -13,7 +13,7 @@ page.on('pageerror', (e) => errors.push(e.message));
 await page.setRequestInterception(true);
 page.on('request', (req) => (req.url().startsWith('https://api.anthropic.com/') ? req.abort() : req.continue()));
 
-const routes = ['#/now', '#/calendar?v=week', '#/calendar?v=month', '#/calendar?v=agenda', '#/calendar?v=term', '#/plan', '#/load', '#/news', '#/library', '#/grades', '#/settings'];
+const routes = ['#/now', '#/calendar', '#/calendar?v=month', '#/classes', '#/inbox', '#/you', '#/you?s=plan', '#/load', '#/load?v=term', '#/grades', '#/library'];
 for (const r of routes) {
   await page.goto(`${BASE}${r}`, { waitUntil: 'networkidle0' });
   await page.reload({ waitUntil: 'networkidle0' });

@@ -17,7 +17,7 @@ await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
 const t = (sel) => page.$eval(sel, (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => null);
 const click = (sel, text) => page.$$eval(sel, (els, text) => { const el = els.find((e) => (text.startsWith('=') ? e.textContent.trim() === text.slice(1) : e.textContent.includes(text))); if (!el) throw new Error('no button ' + text); el.click(); }, text);
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
 const chmId = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113').id);
 await page.goto(`${BASE}#/library?c=${chmId}`, { waitUntil: 'networkidle0' });

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { describeAiError } from '../ai/client';
 import { costOf, fmtDollars, loadPrices } from '../ai/usage';
-import { loadApiKey } from '../chat/key';
+import { aiAvailable, loadApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
 import type { DateStr, Item } from '../domain/types';
@@ -28,7 +28,7 @@ export function IngestView() {
   const { params } = useRoute();
   const tz = data.settings.timezone;
   const course = data.courses.find((c) => c.id === params.get('c')) ?? null;
-  const hasKey = loadApiKey() !== '';
+  const hasKey = aiAvailable();
   const [plan, setPlan] = useState<ClassPlan | null>(null);
   const [term, setTerm] = useState<TermResult | null>(null);
   const [ctx, setCtx] = useState<ClassContext | null>(null);
@@ -109,7 +109,7 @@ export function IngestView() {
       <>
         <h1 className="page-title">AI plan</h1>
         <p className="hint">
-          Pick a class from <a href="#/settings">Settings</a> or a class page.
+          Pick a class from <a href="#/classes">Classes</a>.
         </p>
       </>
     );
@@ -143,7 +143,7 @@ export function IngestView() {
       <DateAudit course={course} />
 
       <section className="card ingest-status">
-        {!hasKey && <p className="hint">Connect the Anthropic key on Now to run the AI pass. Until then this class runs on the parser.</p>}
+        {!hasKey && <p className="hint">The AI pass needs a Pro or Max plan. Until then this class runs on the parser.</p>}
         {ctx?.syllabusInfo && (
           <p className="hint mono" data-full={ctx.syllabusInfo.dropped.length === 0 && !ctx.syllabusInfo.storedTruncated}>
             Syllabus: {ctx.syllabusInfo.sent.toLocaleString()} of {ctx.syllabusInfo.stored.toLocaleString()} stored characters go to the model

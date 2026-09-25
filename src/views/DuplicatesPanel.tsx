@@ -15,7 +15,7 @@ export function DuplicatesPanel() {
       <h2 className="section-title">
         Possible duplicates <span className="count">{pairs.length}</span>
       </h2>
-      <p className="hint">The calendar export, the bookmark, and Check Halo can each add the same thing. Merge keeps the linked or older record and carries over notes, progress, and scores.</p>
+      <p className="hint">A calendar export and the Halo bookmark can each add the same thing. Merge keeps the linked or older record and carries over notes, progress, and scores.</p>
       <ul className="dup-list">
         {pairs.map((p) => (
           <li key={`${p.keep.id}:${p.drop.id}`}>

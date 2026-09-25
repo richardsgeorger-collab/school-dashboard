@@ -63,7 +63,7 @@ const upload = async (path) => (await page.$('.lib-drop input[type=file]')).uplo
 const waitNote = async (re) => page.waitForFunction((src) => [...document.querySelectorAll('.lib-notes li')].some((li) => new RegExp(src).test(li.textContent)), { timeout: 30000 }, re.source);
 
 // Home: rows with counts, top-level drop asks once and remembers.
-await page.goto(`${BASE}#/library`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/library?seed=1`, { waitUntil: 'networkidle0' });
 await page.waitForSelector('.lib-row', { timeout: 5000 });
 console.log('home rows:', await rows());
 await upload(files.pdf);
@@ -128,7 +128,7 @@ await page.goto(`${BASE}#/library?c=${esgId}`, { waitUntil: 'networkidle0' });
 await sleep(500);
 console.log('ESG decks:', await page.$$eval('.deck-card .inline-title', (els) => els.map((e) => e.textContent.trim()).join(' | ')));
 // Delete ESG-162 keeping materials → Unassigned row → move it back
-await page.goto(`${BASE}#/settings`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle0' });
 await page.$$eval('.course-row', (els) => els.find((e) => /ESG-162(?!L)/.test(e.textContent) && !/Lab/.test(e.textContent)).click());
 await page.waitForSelector('.modal form', { timeout: 5000 });
 await page.waitForFunction(() => /slide deck/.test(document.querySelector('.class-admin .hint')?.textContent ?? ''), { timeout: 5000 });

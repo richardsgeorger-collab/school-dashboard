@@ -11,7 +11,7 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
   const tz = data.settings.timezone;
   const link = useRef<HTMLAnchorElement>(null);
   const [note, setNote] = useState<string | null>(null);
-  const href = useMemo(() => bookmarkletHref({ dashOrigin: window.location.origin, dashPath: `${import.meta.env.BASE_URL}#/settings?halo=1` }), []);
+  const href = useMemo(() => bookmarkletHref({ dashOrigin: window.location.origin, dashPath: `${import.meta.env.BASE_URL}#/now?halo=1` }), []);
   // React refuses javascript: hrefs as props; the bookmark link is set on the element directly.
   useEffect(() => {
     link.current?.setAttribute('href', href);
@@ -36,7 +36,7 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
 
   return (
     <section className="card settings-card">
-      <h2 className="section-title">Halo bookmark, fallback</h2>
+      <h2 className="section-title">Halo</h2>
       {before > 0 && (
         <p className="hint pull-tally">
           <b>Announcement cleanup</b>
@@ -62,8 +62,8 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
         </p>
       )}
       <p className="hint">
-        The normal way to sync is the Sync button in the top bar with Better Halo&apos;s .ics export. Keep this bookmark for when that export is not available: it runs on
-        Halo&apos;s own page, reads your session there, and sends only assignment data here. You approve every change before it applies.
+        One bookmark is the whole connection. It runs on Halo&apos;s own page while you are logged in there, reads your classes, assignments, grades and
+        announcements, and sends only that here. It never sees your password and nothing is stored anywhere but this app. You approve every change before it applies.
       </p>
       <ol className="halo-steps">
         <li>

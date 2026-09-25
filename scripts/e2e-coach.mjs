@@ -53,7 +53,7 @@ const ask = async (label, text) => {
   return { shown, err, visible, calls: [...calls] };
 };
 
-await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
+await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
 
 // 1. No key at all: the request cannot fire.
 await page.evaluate(() => localStorage.removeItem('school-dashboard:anthropic-key'));

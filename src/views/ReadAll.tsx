@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { loadApiKey } from '../chat/key';
+import { aiAvailable, loadApiKey } from '../chat/key';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate } from '../domain/dates';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
@@ -22,7 +22,7 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const stop = useRef({ stopped: false });
-  const hasKey = loadApiKey() !== '';
+  const hasKey = aiAvailable();
 
   const courseIds = useMemo(() => new Set(data.courses.map((c) => c.id)), [data.courses]);
   // The same ledger the sync and the News header use, so all three always agree on what is left.
@@ -90,7 +90,7 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
             <p className="hint mono">
               {todo.length} to read{already > 0 ? ` · ${already} already read` : ''}
             </p>
-            {!hasKey && <p className="hint">Connect the Anthropic key on Now first.</p>}
+            {!hasKey && <p className="hint">Reading announcements needs a Pro or Max plan.</p>}
             {progress && (
               <p className="hint mono" role="status">
                 Reading {progress.done} of {progress.total}: {progress.course} “{progress.title}”
@@ -177,7 +177,7 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
                       </span>
                       {r.quote && (
                         <span className="reqs-src hint">
-                          <q>{r.quote}</q> <a href={`#/news?a=${r.post.id}`}>read it</a>
+                          <q>{r.quote}</q> <a href={`#/inbox?a=${r.post.id}`}>read it</a>
                         </span>
                       )}
                     </li>
