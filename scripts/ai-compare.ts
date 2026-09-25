@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { costOf } from '../src/ai/meter';
 import { MODEL } from '../src/ai/model';
 import { MAX_TOKENS } from '../src/config/tiers';
+import { reviveJsonStrings } from '../src/ai/client';
 import { ACTIONS_TOOL, actionsFromTool, buildActionsPrompt } from '../src/halo/actions';
 import { buildNotesPrompt, NOTES_TOOL, notesFromTool } from '../src/record/summarize';
 import { ACTION_FIXTURES, COURSES, ITEMS, LECTURE_FIXTURES, TZ } from './fixtures/ai';
@@ -42,7 +43,8 @@ async function call(model: string, kind: keyof typeof MAX_TOKENS, system: { text
   const use = json.content?.find((b) => b.type === 'tool_use');
   const usage = json.usage ?? { input_tokens: 0, output_tokens: 0 };
   const usd = model === MODEL ? costOf(usage) : (usage.input_tokens * baselinePrices[0] + usage.output_tokens * baselinePrices[1]) / 1_000_000;
-  return { input: use?.input ?? null, ms: Date.now() - t0, usd, tokens: { in: usage.input_tokens, out: usage.output_tokens } };
+  // The same revival the app's wrapper applies, so the harness measures what students get; the raw answer is kept too.
+  return { input: reviveJsonStrings(use?.input ?? null), raw: use?.input ?? null, ms: Date.now() - t0, usd, tokens: { in: usage.input_tokens, out: usage.output_tokens } };
 }
 
 async function main() {
@@ -59,7 +61,7 @@ async function main() {
         const r = await call(model, 'announcement', p.system, p.user, ACTIONS_TOOL);
         const { actions, summary } = actionsFromTool(r.input, f.post, ITEMS, TZ);
         const failures = f.expect.map((e) => e(actions, summary)).filter((x): x is string => !!x);
-        rows.push({ model, fixture: f.name, kind: 'announcement', passed: f.expect.length - failures.length, total: f.expect.length, failures, ms: r.ms, usd: r.usd, tokens: r.tokens, output: { summary, actions: actions.map((a) => ({ kind: a.kind, itemId: a.itemId, text: a.text, dueAt: a.dueAt, points: a.points, quote: a.source.quote })) } });
+        rows.push({ model, fixture: f.name, kind: 'announcement', passed: f.expect.length - failures.length, total: f.expect.length, failures, ms: r.ms, usd: r.usd, tokens: r.tokens, output: { summary, actions: actions.map((a) => ({ kind: a.kind, itemId: a.itemId, text: a.text, dueAt: a.dueAt, points: a.points, quote: a.source.quote })), ...(failures.length ? { raw: r.raw } : {}) } });
         console.log(`  ${model} · ${f.name}: ${f.expect.length - failures.length}/${f.expect.length}${failures.length ? ' · ' + failures.join('; ') : ''}`);
       } catch (e) {
         rows.push({ model, fixture: f.name, kind: 'announcement', passed: 0, total: f.expect.length, failures: [`call failed: ${e instanceof Error ? e.message : String(e)}`], ms: 0, usd: 0, tokens: { in: 0, out: 0 }, output: null });
@@ -78,7 +80,7 @@ async function main() {
         const r = await call(model, 'lecture', p.system, p.user, NOTES_TOOL);
         const notes = notesFromTool(r.input, model);
         const failures = f.expect.map((e) => e(notes)).filter((x): x is string => !!x);
-        rows.push({ model, fixture: f.name, kind: 'lecture', passed: f.expect.length - failures.length, total: f.expect.length, failures, ms: r.ms, usd: r.usd, tokens: r.tokens, output: notes });
+        rows.push({ model, fixture: f.name, kind: 'lecture', passed: f.expect.length - failures.length, total: f.expect.length, failures, ms: r.ms, usd: r.usd, tokens: r.tokens, output: failures.length ? { shaped: notes, raw: r.raw } : notes });
         console.log(`  ${model} · ${f.name}: ${f.expect.length - failures.length}/${f.expect.length}${failures.length ? ' · ' + failures.join('; ') : ''}`);
       } catch (e) {
         rows.push({ model, fixture: f.name, kind: 'lecture', passed: 0, total: f.expect.length, failures: [`call failed: ${e instanceof Error ? e.message : String(e)}`], ms: 0, usd: 0, tokens: { in: 0, out: 0 }, output: null });

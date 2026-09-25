@@ -174,9 +174,15 @@ export function notesFromTool(input: unknown, model: string, createdAt = new Dat
   return { summary, concepts, mentions, model, createdAt, ...(knowledge ? { knowledge } : {}) };
 }
 
+export const notesAreEmpty = (n: LectureNotes): boolean => n.summary.length === 0 && n.concepts.length === 0 && n.mentions.length === 0 && !(n.knowledge && (n.knowledge.emphasized.length || n.knowledge.examFlags.length || n.knowledge.terms.length));
+
 /** The optional after-lecture pass, through the gateway. Never runs during recording. */
 export async function summarizeLecture(args: NotesArgs & { apiKey?: string; fetch?: typeof globalThis.fetch }): Promise<LectureNotes> {
   const { system, user } = buildNotesPrompt(args);
   const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'lecture', system: [{ text: system, cache: true }], user, tool: NOTES_TOOL, maxTokens: 4000 });
-  return notesFromTool(r.input, r.model, new Date().toISOString(), args.deckOutline?.deckId ?? null);
+  const notes = notesFromTool(r.input, r.model, new Date().toISOString(), args.deckOutline?.deckId ?? null);
+  // A real lecture always has a summary or a concept. All empty means the answer did not come through, and saving it
+  // would show "nothing in this lecture": a failure dressed as a clean result.
+  if (notesAreEmpty(notes)) throw new Error('The lecture notes came back empty. Nothing was saved; try Read notes again.');
+  return notes;
 }

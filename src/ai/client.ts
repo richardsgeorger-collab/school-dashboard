@@ -42,7 +42,7 @@ export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
   );
   recordUsage(args.kind, response.model, response.usage as ApiUsage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-  if (use) return { input: use.input, usage: response.usage as ApiUsage, model: response.model };
+  if (use) return { input: reviveJsonStrings(use.input), usage: response.usage as ApiUsage, model: response.model };
   // The tool is forced, so this is rare. When it happens the answer is usually the same object written as text, and
   // every reader validates what it gets, so parsing it is no less safe than trusting the tool block.
   const text = response.content
@@ -52,6 +52,30 @@ export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
   const loose = jsonFromText(text);
   if (loose) return { input: loose, usage: response.usage as ApiUsage, model: response.model };
   throw new Error('The model did not answer through the tool.');
+}
+
+/**
+ * Haiku sometimes sends a list or object field of a tool answer as a string holding its JSON ("[{...}]") instead of
+ * the list itself. Every reader checks for a real array, so without this the whole field silently became empty: a
+ * lecture read that came back full was saved as "nothing in this lecture". Top-level fields only, and only strings
+ * that parse to an array or object.
+ */
+export function reviveJsonStrings(input: unknown): unknown {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return input;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (typeof v === 'string' && /^\s*[[{]/.test(v)) {
+      try {
+        const parsed: unknown = JSON.parse(v);
+        out[k] = parsed && typeof parsed === 'object' ? parsed : v;
+        continue;
+      } catch {
+        /* a string that only starts like JSON: keep it as written */
+      }
+    }
+    out[k] = v;
+  }
+  return out;
 }
 
 /** The first JSON object in a piece of text, fenced or not. Null when there is none to read. */
