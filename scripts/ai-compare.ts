@@ -6,7 +6,7 @@
 //   ANTHROPIC_API_KEY=... npm run ai:compare
 //   ANTHROPIC_API_KEY=... BASELINE_MODEL=<older model id> npm run ai:compare
 //   npm run ai:compare -- --dry     (no calls: prints the fixtures and the prompt sizes)
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { costOf } from '../src/ai/meter';
 import { MODEL } from '../src/ai/model';
 import { MAX_TOKENS } from '../src/config/tiers';
@@ -109,7 +109,9 @@ async function main() {
       lines.push(`**${r.model}** · ${r.passed}/${r.total} · $${r.usd.toFixed(4)} · ${r.ms} ms${r.failures.length ? ` · ${r.failures.join('; ')}` : ''}`, '', '```json', JSON.stringify(r.output, null, 2).slice(0, 4000), '```', '');
     }
   }
-  const out = `docs/ai-compare/${date}.md`;
+  // A second run on the same day never overwrites the first: before/after pairs stay side by side.
+  let out = `docs/ai-compare/${date}.md`;
+  for (let n = 2; existsSync(out); n++) out = `docs/ai-compare/${date}-${n}.md`;
   writeFileSync(out, lines.join('\n'));
   console.log(`wrote ${out}`);
 }

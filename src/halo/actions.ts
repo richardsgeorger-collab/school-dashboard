@@ -1,5 +1,5 @@
 import { callTool, type ToolSpec } from '../ai/client';
-import { dateOf, fmtDate, makeIso } from '../domain/dates';
+import { addDays, dateOf, makeIso } from '../domain/dates';
 import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from '../domain/types';
 import type { StoredAnnouncement } from './announce';
 
@@ -89,7 +89,9 @@ Rules:
 Procedure, every time:
 1. Read the whole post once. Then go sentence by sentence and mark every sentence that tells students to do, bring, submit, read, reply, or prepare something, or that changes a date, a value, or what counts.
 2. For each marked sentence decide the kind: requirement (adds to work they have), new_work (not in their list), date_change, points_change, or note (actionable, fits nothing else).
-3. Resolve every relative date against the posting date. Write dates as YYYY-MM-DD.
+3. Resolve every relative date with the calendar in the message: find the named weekday there and use its date,
+   never count days yourself. "Before Monday", "by Monday" and "due Monday" all mean that Monday's date: the first
+   Monday after the posting day, or next week's if the post says "next Monday". Write dates as YYYY-MM-DD.
 4. Copy the sentence as the quote, word for word. Then write "what" as a plain instruction.
 5. Only then write the summary: one sentence on what the post is about.
 
@@ -146,17 +148,32 @@ export function actionsFromTool(raw: unknown, a: StoredAnnouncement, items: Item
   return { summary: str(o.summary, 400), actions: out.slice(0, 20) };
 }
 
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const weekday = (d: DateStr) => WEEKDAYS[new Date(`${d}T12:00:00Z`).getUTCDay()];
+const dayLabel = (d: DateStr) => `${weekday(d)} ${d}`;
+
+/**
+ * The posting day and the two weeks after it, written out. The model looks a day up here instead of counting: asked
+ * to count, Haiku put "before Monday" on the Tuesday.
+ */
+export function calendarFrom(posted: DateStr): string {
+  return Array.from({ length: 15 }, (_, k) => {
+    const d = addDays(posted, k);
+    return `${dayLabel(d)}${k === 0 ? ' (posted)' : ''}`;
+  }).join('\n');
+}
+
 export function buildActionsPrompt(a: StoredAnnouncement, course: Course, items: Item[], tz: string): { system: { text: string; cache?: boolean }[]; user: string } {
   const open = items
     .filter((i) => i.courseId === course.id)
     .sort((x, y) => x.dueAt.localeCompare(y.dueAt))
     .slice(0, 80)
-    .map((i) => `${i.id} · ${i.title} · ${i.type} · ${i.points} pts · due ${fmtDate(dateOf(i.dueAt, tz), 'short')}${i.status === 'done' ? ' · done' : ''}`)
+    .map((i) => `${i.id} · ${i.title} · ${i.type} · ${i.points} pts · due ${dayLabel(dateOf(i.dueAt, tz))}${i.status === 'done' ? ' · done' : ''}`)
     .join('\n');
-  const posted = a.publishedAt ? dateOf(a.publishedAt, tz) : 'unknown';
+  const posted = a.publishedAt ? dateOf(a.publishedAt, tz) : null;
   return {
     system: [{ text: ACTIONS_SYSTEM, cache: true }],
-    user: `Class: ${course.code} ${course.name}\nPosted: ${posted}${a.author ? ` by ${a.author}` : ''}\nTitle: ${a.title}\n\nThis class's planner items (id · title · type · points · due):\n${open || '(none)'}\n\nThe announcement:\n"""\n${a.text.slice(0, 20_000)}\n"""`,
+    user: `Class: ${course.code} ${course.name}\nPosted: ${posted ? dayLabel(posted) : 'unknown'}${a.author ? ` by ${a.author}` : ''}\nTitle: ${a.title}\n\n${posted ? `Calendar (look a day up here; never count days):\n${calendarFrom(posted)}\n\n` : ''}This class's planner items (id · title · type · points · due):\n${open || '(none)'}\n\nThe announcement:\n"""\n${a.text.slice(0, 20_000)}\n"""`,
   };
 }
 

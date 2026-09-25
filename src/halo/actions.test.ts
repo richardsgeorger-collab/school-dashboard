@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { itemFinished, gradedOpen, isNoise, mergeRequirements, missedLine, missedRequirement, partsLine, requirementRows } from '../domain/requirements';
 import type { Requirement } from '../domain/types';
-import { actionsFromTool, buildActionsPrompt, routeActions } from './actions';
+import { actionsFromTool, buildActionsPrompt, calendarFrom, routeActions } from './actions';
 import { mkCourse, mkItem, TZ } from './fixtures';
 
 const post = {
@@ -85,8 +85,18 @@ describe('reading an announcement for anything actionable', () => {
   it('shows the model what it already has, so it can attach rather than duplicate', () => {
     const p = buildActionsPrompt(post, mkCourse({ id: 'c1', code: 'UNV-106' }), items, TZ);
     expect(p.user).toContain('i-dq · Topic 2 DQ 1 · discussion · 5 pts');
-    expect(p.user).toContain('Posted: 2026-09-14');
+    expect(p.user).toContain('Posted: Monday 2026-09-14');
     expect(p.system[0].cache).toBe(true);
+  });
+
+  it('gives the model a written-out calendar so it looks weekdays up instead of counting', () => {
+    // Posted Friday Sep 25: "before Monday" is Monday Sep 28. Haiku, left to count, said Tuesday.
+    const cal = calendarFrom('2026-09-25');
+    const lines = cal.split('\n');
+    expect(lines[0]).toBe('Friday 2026-09-25 (posted)');
+    expect(lines).toContain('Monday 2026-09-28');
+    expect(lines).toHaveLength(15);
+    expect(lines.at(-1)).toBe('Friday 2026-10-09');
   });
 });
 
