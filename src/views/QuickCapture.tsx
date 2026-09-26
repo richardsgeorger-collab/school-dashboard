@@ -97,7 +97,7 @@ export function QuickCapture({ onClose, initial = '' }: { onClose: () => void; i
           )}
           {m && !m.date && m.kind !== 'cancel' && m.kind !== 'info' && <p className="hint">Add a day, like &ldquo;friday&rdquo;, &ldquo;tomorrow&rdquo;, or &ldquo;sep 25&rdquo;.</p>}
           <div className="modal-actions">
-            <span className="hint">⌘K opens this anywhere.</span>
+            {typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches && <span className="hint">⌘K opens this anywhere.</span>}
             <span className="spacer" />
             <button type="submit" className="btn primary" disabled={!ready}>
               Review

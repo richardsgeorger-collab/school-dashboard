@@ -38,3 +38,4 @@ One line per change, newest last. Proposals that need George's approval are mark
 - 2026-09-26 · Loop 19 · An empty class no longer shouts "0 RECORDINGS · 0 SLIDE DECKS · NO SYLLABUS"; zero counts are dropped and a quiet "Nothing on file yet" hint says where to drop things. "AI plan (compare)" is "AI plan".
 - 2026-09-26 · Loop 20 · A brand-new account's Now said "Nothing open." above "Your day, from Halo"; with no classes at all it now says "Nothing here yet."
 - 2026-09-26 · Loop 21 · The Grades intro paragraph is one third the length and drops "none of the syllabi publish category weights".
+- 2026-09-26 · Loop 22 · "⌘K opens this anywhere" is shown only on devices with a pointer; a phone has no ⌘K.
