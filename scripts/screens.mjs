@@ -22,6 +22,8 @@ const SEEDED = [
   ['plans', '#/you?s=plan'],
   ['ai', '#/ai'],
   ['load', '#/load'],
+  ['grades', '#/grades'],
+  ['library', '#/library'],
   ['item', '#/now', async (page) => { await page.click('.hero-title-btn'); await page.waitForTimeout(500); }],
   ['you-progress', '#/you?s=progress'],
   ['you-workload', '#/you?s=workload'],

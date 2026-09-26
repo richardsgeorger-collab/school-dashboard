@@ -32,7 +32,7 @@ export function ProgressCard() {
           <dt>Clean weeks</dt>
           <dd>
             {progress.weeklyCleanStreak} in a row
-            <small>{progress.currentWeekClean ? ' · this week clean so far' : ' · this week has a slip'}</small>
+            <small>{progress.currentWeekClean ? ' · clean so far this week' : ' · something slipped this week'}</small>
           </dd>
         </div>
       </dl>

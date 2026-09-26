@@ -152,7 +152,9 @@ function LibraryHome() {
                 <CourseChip course={c} />
                 <span className="course-row-name">{c.name}</span>
                 <span className="hint mono">
-                  {n.recordings} recording{n.recordings === 1 ? '' : 's'} · {n.decks} slide{n.decks === 1 ? '' : 's'}
+                  {n.recordings === 0 && n.decks === 0
+                    ? 'nothing on file'
+                    : [n.recordings > 0 ? `${n.recordings} recording${n.recordings === 1 ? '' : 's'}` : null, n.decks > 0 ? `${n.decks} slide deck${n.decks === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ')}
                 </span>
               </a>
             </li>
