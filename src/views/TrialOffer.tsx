@@ -63,12 +63,12 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** What Max did in the last seven days, from local records. Null until loaded. */
-export function useReceipts(): Receipts | null {
+/** What Max did since a moment (the last seven days unless told otherwise), from local records. Null until loaded. */
+export function useReceipts(sinceIso?: string | null): Receipts | null {
   const [r, setR] = useState<Receipts | null>(null);
   useEffect(() => {
     let live = true;
-    const since = new Date(Date.now() - WEEK_MS).toISOString();
+    const since = sinceIso ?? new Date(Date.now() - WEEK_MS).toISOString();
     void (async () => {
       const ledger = await readLedger.all().catch(() => new Map());
       const recs = await recordingsDb.list().catch(() => []);
@@ -85,7 +85,7 @@ export function useReceipts(): Receipts | null {
     return () => {
       live = false;
     };
-  }, []);
+  }, [sinceIso]);
   return r;
 }
 
