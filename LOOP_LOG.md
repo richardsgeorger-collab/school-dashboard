@@ -39,3 +39,4 @@ One line per change, newest last. Proposals that need George's approval are mark
 - 2026-09-26 · Loop 20 · A brand-new account's Now said "Nothing open." above "Your day, from Halo"; with no classes at all it now says "Nothing here yet."
 - 2026-09-26 · Loop 21 · The Grades intro paragraph is one third the length and drops "none of the syllabi publish category weights".
 - 2026-09-26 · Loop 22 · "⌘K opens this anywhere" is shown only on devices with a pointer; a phone has no ⌘K.
+- 2026-09-26 · Loop 23 · Speed: the Google Fonts stylesheet no longer blocks the first paint (preload, then swap in; a noscript fallback keeps it working without JavaScript).
