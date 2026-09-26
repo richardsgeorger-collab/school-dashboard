@@ -103,7 +103,7 @@ describe('a bookmark saved before today', () => {
   it('names the stale bookmark rather than blaming the queries', () => {
     expect(staleBookmarkLine({ build: '2026-09-18c', pulls: ['a'] }, '2026-09-18c')).toBeNull();
     expect(staleBookmarkLine({}, '2026-09-18c')).toBe(
-      'This came from an older copy of the Halo bookmark, saved before builds were stamped. It pulled assignments and grades only. Open Settings, Halo and drag the bookmark to your bar again to replace it, then sync once more.',
+      'This came from an older copy of the Halo bookmark, saved before builds were stamped. It pulled assignments and grades only. Open You, Halo connection, and drag the bookmark to your bar again to replace it, then sync once more.',
     );
     expect(staleBookmarkLine({ build: '2026-09-01', pulls: ['assessments', 'grades', 'instructors'] }, '2026-09-18c')).toContain('built 2026-09-01. It pulled only 3 kinds of data');
   });

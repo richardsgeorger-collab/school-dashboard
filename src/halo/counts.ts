@@ -62,11 +62,16 @@ export function pullCounts(payload: HaloExport): PullCounts {
 
 const n = (v: number, one: string, many: string) => `${v} ${v === 1 ? one : many}`;
 
-/** The whole tally in one sentence, zeros included. */
+/**
+ * The whole tally in one sentence, zeros included, but grouped: what came back first, then one clause naming every
+ * kind that came back empty. A sync that brought no announcements still says so; it just does not say it eleven
+ * times over.
+ */
 export function countsLine(c: PullCounts): string {
-  const parts = COUNT_WORDS.map((w) => n(c[w.key], w.one, w.many));
-  parts.push(`class facts for ${c.classFacts} of ${c.classes} ${c.classes === 1 ? 'class' : 'classes'}`);
-  return `${parts.join(', ')}.`;
+  const got = COUNT_WORDS.filter((w) => c[w.key] > 0).map((w) => n(c[w.key], w.one, w.many));
+  const none = COUNT_WORDS.filter((w) => c[w.key] === 0).map((w) => w.many);
+  got.push(`class facts for ${c.classFacts} of ${c.classes} ${c.classes === 1 ? 'class' : 'classes'}`);
+  return `${got.join(', ')}.${none.length ? ` Nothing for ${none.join(', ')}.` : ''}`;
 }
 
 /** The kinds that came back with nothing at all, for the one line that says so plainly. */

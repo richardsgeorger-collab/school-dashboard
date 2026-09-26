@@ -101,7 +101,7 @@ export function staleBookmarkLine(payload: Pick<HaloExport, 'build' | 'pulls'>, 
   if (payload.build === current) return null;
   const known = payload.pulls?.length ?? 0;
   const had = payload.build ? `built ${payload.build}` : 'saved before builds were stamped';
-  return `This came from an older copy of the Halo bookmark, ${had}. It pulled ${known > 0 ? `only ${known} kinds of data` : 'assignments and grades only'}. Open Settings, Halo and drag the bookmark to your bar again to replace it, then sync once more.`;
+  return `This came from an older copy of the Halo bookmark, ${had}. It pulled ${known > 0 ? `only ${known} kinds of data` : 'assignments and grades only'}. Open You, Halo connection, and drag the bookmark to your bar again to replace it, then sync once more.`;
 }
 
 

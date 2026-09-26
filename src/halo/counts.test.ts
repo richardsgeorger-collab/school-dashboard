@@ -39,7 +39,7 @@ describe('what a sync actually pulled', () => {
   it('reports zeros rather than leaving them out, which is the whole point', () => {
     const bare = mkExport([mkClass({ id: 'h1', courseCode: 'CHM-113', assessments: [mkAssessment({ id: 'x', title: 'T', status: null, score: null })] })]);
     const line = countsLine(pullCounts(bare));
-    expect(line).toBe('1 assignment, 0 grades, 0 announcements, 0 rubrics, 0 feedback comments, 0 quiz attempts, 0 class resources, 0 discussion forums, 0 messages, 0 alerts, 0 rubric files, class facts for 0 of 1 class.');
+    expect(line).toBe('1 assignment, class facts for 0 of 1 class. Nothing for grades, announcements, rubrics, feedback comments, quiz attempts, class resources, discussion forums, messages, alerts, rubric files.');
     expect(emptyKinds(pullCounts(bare))).toContain('announcements');
   });
 
@@ -48,7 +48,7 @@ describe('what a sync actually pulled', () => {
     const bare = countsLine(pullCounts(mkExport([mkClass({ id: 'h1', courseCode: 'CHM-113', assessments: [] })])));
     expect(rich).not.toBe(bare);
     expect(rich).toContain('1 announcement,');
-    expect(bare).toContain('0 announcements,');
+    expect(bare).toContain('Nothing for grades, announcements');
     expect(emptyKinds(pullCounts(full()))).toEqual(['alerts']);
   });
 
