@@ -536,7 +536,8 @@ export function Now() {
       if (!hero || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-      if (document.querySelector('.modal-backdrop')) return;
+      // Anything on top of Now takes the keyboard: a sheet, onboarding, the Max welcome, the palette, a level-up.
+      if (document.querySelector('.modal-backdrop, [role="dialog"], .onboard, .levelup, .palette')) return;
       const k = e.key.toLowerCase();
       if (k === 'z' && justFinished) undoFinish();
       else if (k === 'd') finish(hero);

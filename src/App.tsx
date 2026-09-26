@@ -294,6 +294,8 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        // Not over the first-run screens or the Max welcome: they own the screen until they are done.
+        if (document.querySelector('.onboard')) return;
         e.preventDefault();
         setPaletteOpen((o) => !o);
         return;
