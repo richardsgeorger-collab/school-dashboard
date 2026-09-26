@@ -88,6 +88,15 @@ const SEEDED = [
   // Back after five days away: what slipped, what changed, the one thing to start with.
   ['welcome-back', '#/now', async (page) => { await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 5); localStorage.setItem('school-dashboard:last-seen', d.toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' })); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(800); await page.evaluate(() => localStorage.removeItem('school-dashboard:last-seen')); }],
   ['levelup', '#/now', async (page) => { await page.evaluate(() => localStorage.setItem('school-dashboard:seen-level', '0')); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1400); await page.evaluate(() => localStorage.removeItem('school-dashboard:seen-level')); }],
+  // Mid-term: everything due before today done and scored (85–100%), so rings, percentages, projections and the
+  // skip-impact line can be looked at. Idempotent, so any one of these can run on its own; they sit before now-done.
+  ...['now', 'classes', 'class', 'grades', 'item', 'you-grades'].map((name) => [`graded-${name}`, name === 'class' ? '#/classes' : name === 'item' ? '#/now' : name === 'you-grades' ? '#/you?s=grades' : `#/${name}`, async (page) => {
+    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); let k = 0; for (const i of d.items) if (i.dueAt.slice(0, 10) < today && i.type !== 'participation') { i.status = 'done'; i.completedAt = i.dueAt; i.score = Math.round(i.points * (0.85 + ((k++ * 7) % 16) / 100)); } localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    if (name === 'class') { await page.click('.classes-list a'); await page.waitForTimeout(500); }
+    if (name === 'item') { await page.click('.hero-actions .btn.quiet'); await page.waitForTimeout(400); }
+  }]),
   // Last: this one marks the day's items done in the seed, and every shot after it would see that.
   ['now-done', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); for (const i of d.items) if (i.dueAt.slice(0, 10) <= today && i.status !== 'done') { i.status = 'done'; i.completedAt = new Date().toISOString(); } localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(500); }],
 ];
