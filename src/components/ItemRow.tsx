@@ -73,6 +73,12 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
               {progress.done} of {progress.total}
             </span>
           )}
+          {/* Parts an announcement attached, still open: the row says so, so the sheet is not the only place. */}
+          {!progress && !done && (item.requirements ?? []).some((r) => !r.done) && (
+            <span className="flag">
+              {(item.requirements ?? []).filter((r) => !r.done).length} part{(item.requirements ?? []).filter((r) => !r.done).length === 1 ? '' : 's'} from announcements
+            </span>
+          )}
           {isBlocked(item, today) && <span className="flag flag-wait">waiting</span>}
           {item.flags.inClass && <span className="flag">in class</span>}
           {item.flags.group && <span className="flag">group</span>}
