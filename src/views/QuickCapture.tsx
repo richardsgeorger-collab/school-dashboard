@@ -12,9 +12,9 @@ const KIND_WORD = { new: 'New item', date_change: 'Date change', cancel: 'Cancel
  * One line in, one proposal out. The escape hatch for anything the export does not know:
  * what a professor said, what changed, what you noticed. Nothing is saved until approved on the review screen.
  */
-export function QuickCapture({ onClose }: { onClose: () => void }) {
+export function QuickCapture({ onClose, initial = '' }: { onClose: () => void; initial?: string }) {
   const { data, today } = useStore();
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initial);
   const [courseId, setCourseId] = useState<string>('');
   const [reviewing, setReviewing] = useState(false);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});

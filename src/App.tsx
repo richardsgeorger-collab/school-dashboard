@@ -7,6 +7,7 @@ import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloImport } from './views/HaloImport';
 import { QuickCapture } from './views/QuickCapture';
+import { Palette } from './views/Palette';
 import { SyncAssignments } from './views/SyncAssignments';
 import { SyncSheet } from './views/SyncSheet';
 import { useRoute } from './router';
@@ -219,13 +220,15 @@ export default function App() {
   }, []);
   const dragging = useWindowDrop(onFile);
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   syncPress.current = () => setSyncOpen(true);
   useEffect(() => initPixel(), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setCaptureOpen(true);
+        setPaletteOpen((o) => !o);
+        return;
       }
     };
     window.addEventListener('keydown', onKey);
@@ -255,6 +258,7 @@ export default function App() {
         <div className="app">
           <TopBar onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} />
           {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
+          {paletteOpen && <Palette onClose={() => setPaletteOpen(false)} />}
           <main className="main">
             <Screen />
           </main>
