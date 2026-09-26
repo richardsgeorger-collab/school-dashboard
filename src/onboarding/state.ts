@@ -11,8 +11,11 @@ export type Step = (typeof STEPS)[number];
 
 export const stepIndex = (s: Step): number => STEPS.indexOf(s);
 
-/** The steps a student sees as numbered progress; the account step only exists on a build with accounts. */
-export const visibleSteps = (accounts: boolean): Step[] => (accounts ? ['welcome', 'account', 'halo', 'preferences'] : ['welcome', 'halo', 'preferences']);
+/**
+ * The steps a student sees as numbered progress; the account step only exists on a build with accounts. Study hours
+ * (the old preferences step) are asked later, from You; the first run ends on the payoff.
+ */
+export const visibleSteps = (accounts: boolean): Step[] => (accounts ? ['welcome', 'account', 'halo'] : ['welcome', 'halo']);
 
 export const fresh = (now = new Date().toISOString()): OnboardingState => ({ startedAt: now, step: 'welcome', doneAt: null, skippedAt: null, tourDoneAt: null });
 

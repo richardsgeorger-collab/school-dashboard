@@ -22,8 +22,9 @@ describe('onboarding state', () => {
     expect(tourPending({ ...fresh(), skippedAt: 'x' })).toBe(false);
   });
   it('numbers the steps by what the build can show', () => {
-    expect(visibleSteps(true)).toHaveLength(4);
-    expect(visibleSteps(false)).toHaveLength(3);
+    // Study hours are asked later, from You; the first run is sign up, connect, payoff.
+    expect(visibleSteps(true)).toHaveLength(3);
+    expect(visibleSteps(false)).toHaveLength(2);
     expect(stepIndex('halo')).toBeGreaterThan(stepIndex('account'));
   });
 });

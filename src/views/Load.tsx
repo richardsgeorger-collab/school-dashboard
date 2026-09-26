@@ -65,7 +65,7 @@ export function Load() {
     return (
       <>
         <h1 className="page-title">Load</h1>
-        <EmptyState>
+        <EmptyState art="calendar">
           <p>
             <b>Your workload appears after the first sync.</b>
           </p>

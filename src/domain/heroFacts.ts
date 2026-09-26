@@ -27,7 +27,8 @@ export function heroFacts(item: Item, items: Item[], minutes: number, tz: string
   // chips name the same day.
   if (finishBy) {
     const f = dateOf(finishBy, tz);
-    if (f < d) out.push({ text: `finish by ${diffDays(today, f) === 0 ? 'today' : diffDays(today, f) === 1 ? 'tomorrow' : fmtDate(f, 'short')}` });
+    // Only while it still helps: a finish-by day that has passed is noise next to "was due".
+    if (f < d && f >= today) out.push({ text: `finish by ${diffDays(today, f) === 0 ? 'today' : diffDays(today, f) === 1 ? 'tomorrow' : fmtDate(f, 'short')}` });
   }
   const feeds = item.plan?.feeds ? items.find((i) => i.id === item.plan!.feeds) : null;
   if (feeds) out.push({ text: `feeds ${feeds.label}`, itemId: feeds.id });

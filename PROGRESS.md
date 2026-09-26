@@ -314,3 +314,13 @@ and dark), `components.css` (card, button, row, pill, sheet, empty state, progre
 onboarding, the sheets and the landing page followed. Decisions and takeaways are in DESIGN.md; before, directions and
 after screenshots (390×844, light and dark) are in docs/screens/. `node scripts/screens.mjs <label>` recaptures them
 against `npm run preview`. No logic changed except one wording fix: an early due time no longer reads as "due today".
+
+## Second overhaul: product, not developer tool (2026-09-25)
+
+Fourteen bugs from the screen-recording review fixed first (Phase 1 commit). Three visual directions built at
+`#/looks` (Ink, Paper, Pop); Paper ships as the token system: Instrument Serif display, Inter body, ink-blue accent,
+warm page with gradient and grain, layered cards, a glow behind the hero, a new mark, motion on state change only.
+One meaning per colour (`domain/status.ts`). Every screen shows the minimum with detail one tap away (Phase 3
+commit). Onboarding rebuilt around the drag demo and a counted-up payoff; celebrations for done, level up and
+streaks; illustrated empty states; gradient rings and bars (Phase 4). Decisions in DESIGN.md §5–6; screenshots in
+docs/screens/v2-before, v2-after, v2-after-phone and looks. Domain move audit in docs/DOMAIN_MOVE.md.

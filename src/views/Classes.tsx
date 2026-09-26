@@ -99,7 +99,7 @@ export function Classes() {
         </div>
       )}
       {data.courses.length === 0 ? (
-        <EmptyState>
+        <EmptyState art="classes">
           <p>
             <b>No classes yet.</b>
           </p>

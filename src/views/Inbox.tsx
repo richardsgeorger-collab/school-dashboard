@@ -195,7 +195,7 @@ export function Inbox() {
         </section>
       )}
       {list !== null && shown.length === 0 && filter === 'all' && (
-        <EmptyState>
+        <EmptyState art="inbox">
           <p>
             <b>Nothing here yet.</b>
           </p>

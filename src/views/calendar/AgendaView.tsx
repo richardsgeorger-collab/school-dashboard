@@ -71,7 +71,7 @@ export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items:
           </ul>
         </section>
       )}
-      {days.length === 0 && later.length === 0 && <EmptyState>Nothing due in the next {LATER_DAYS} days.</EmptyState>}
+      {days.length === 0 && later.length === 0 && <EmptyState art="calendar">Nothing due in the next {LATER_DAYS} days.</EmptyState>}
       {days.map(({ day, work, done, minutes }) => (
         <section key={day} className="day-group">
           <div className="day-group-head" data-today={day === today}>

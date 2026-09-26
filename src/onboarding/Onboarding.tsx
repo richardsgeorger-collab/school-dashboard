@@ -2,21 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
 import { CourseChip } from '../components/CourseChip';
+import { HaloDraw } from '../components/HaloDraw';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { dateOf, fmtDate } from '../domain/dates';
 import { rankItems } from '../domain/now';
+import type { Item } from '../domain/types';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
-import { SyncSteps } from '../views/SyncSheet';
+import { BookmarkButton, SyncSteps } from '../views/SyncSheet';
 import { visibleSteps, type OnboardingState, type Step } from './state';
 import { pixel } from '../analytics/pixel';
 import { track } from './track';
-
-const SLIDES = [
-  { title: 'Your day, from Halo.', text: 'One screen says what to do right now: the due date, how long it takes, what it is worth. Nothing you have to sort.' },
-  { title: 'Sync in one tap.', text: 'A bookmark reads Halo while you are logged in there. It never sees your password, and you approve every change before it lands.' },
-  { title: 'Know where you stand.', text: 'Every item says when it last matched Halo and where it came from. When an announcement moves a deadline, it moves here too, with the professor’s words.' },
-];
 
 const HOURS = ['1', '2', '3', '4'] as const;
 const WEEKEND = ['2', '4', '6', '8'] as const;
@@ -27,10 +23,42 @@ const MORNING = [
   { value: 'off', label: 'No note' },
 ] as const;
 
+const isPhone = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || /iPhone|iPad|Android/i.test(navigator.userAgent));
+
+/** A number that counts up to its target over about a second, easing out. Reduced motion lands immediately. */
+function useCountUp(target: number, ms = 1300): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setN(target);
+      return;
+    }
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - t0) / ms);
+      setN(Math.round(target * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms]);
+  return n;
+}
+
+/** Things the professors only said in announcements: work made from a post, and parts attached from one. */
+export function announcementFinds(items: Item[]): number {
+  let n = 0;
+  for (const i of items) {
+    if (i.origin?.kind === 'announcement') n += 1;
+    for (const r of i.requirements ?? []) if (r.source?.kind === 'announcement') n += 1;
+  }
+  return n;
+}
+
 /**
- * The first five minutes. Welcome, an account (when the build has them), Halo, two preferences, done. Every step can
- * be skipped, the whole thing can be skipped, and it can be run again from You. A student who arrives from an ad
- * should be looking at their own assignments within two minutes of the first screen.
+ * The first two minutes, one question per screen: sign up, drag the bookmark (shown, not described), open Halo and
+ * click it, then the payoff: how much was found, counted up, and the real first assignment. Extras come later.
  */
 export function Onboarding() {
   const { data, schedule, actions } = useStore();
@@ -40,8 +68,9 @@ export function Onboarding() {
   const ob = data.settings.onboarding as OnboardingState;
   const step = ob.step;
   const steps = visibleSteps(auth.configured);
-  const [slide, setSlide] = useState(0);
+  const [phase, setPhase] = useState<'install' | 'sync'>('install');
   const [note, setNote] = useState<string | null>(null);
+  const phone = useMemo(isPhone, []);
 
   const set = (patch: Partial<OnboardingState>) => actions.updateSettings({ onboarding: { ...ob, ...patch } });
   const go = (next: Step) => {
@@ -73,6 +102,9 @@ export function Onboarding() {
 
   const synced = data.courses.length > 0;
   const hero = useMemo(() => (synced ? (rankItems(data.items.filter((i) => i.type !== 'participation'), schedule, new Date().toISOString(), tz)[0] ?? null) : null), [synced, data.items, schedule, tz]);
+  const found = useCountUp(synced ? data.items.length : 0);
+  const finds = announcementFinds(data.items);
+  const foundPosts = useCountUp(synced ? finds : 0, 1600);
   const n = Math.max(1, steps.indexOf(step) + 1);
   const hours = (min: number) => String(Math.round(min / 60));
 
@@ -80,8 +112,8 @@ export function Onboarding() {
     <div className="onboard" role="dialog" aria-modal="true" aria-label="Welcome">
       <div className="onboard-inner">
         <header className="onboard-head">
-          <span className="mono muted">
-            Step {n} of {steps.length}
+          <span className="onboard-count">
+            {n} of {steps.length}
           </span>
           <span className="onboard-progress" aria-hidden>
             {steps.map((s, i) => (
@@ -95,42 +127,25 @@ export function Onboarding() {
 
         {step === 'welcome' && (
           <section className="onboard-step" aria-label="Welcome">
+            <HaloDraw size={72} />
             <p className="eyebrow">The planner built for Halo</p>
-            <h1 className="onboard-title">{SLIDES[slide].title}</h1>
-            <p className="onboard-text">{SLIDES[slide].text}</p>
-            <div className="onboard-dots" aria-hidden>
-              {SLIDES.map((_, i) => (
-                <i key={i} data-on={i === slide} />
-              ))}
-            </div>
+            <h1 className="onboard-title">Your day, from Halo.</h1>
+            <p className="onboard-text">One screen says what to do right now: the due date, how long it takes, what it is worth. Every announcement read for you. Nothing you have to sort.</p>
             <div className="onboard-actions">
-              {slide > 0 && (
-                <button type="button" className="btn" onClick={() => setSlide((s) => s - 1)}>
-                  Back
-                </button>
-              )}
-              <span className="spacer" />
-              {slide < SLIDES.length - 1 ? (
-                <button type="button" className="btn primary" onClick={() => setSlide((s) => s + 1)}>
-                  Next
-                </button>
-              ) : (
-                <button type="button" className="btn primary" onClick={() => go(auth.configured ? 'account' : 'halo')}>
-                  Get started
-                </button>
-              )}
+              <button type="button" className="btn primary" onClick={() => go(auth.configured ? 'account' : 'halo')}>
+                {auth.configured ? 'Sign up' : 'Get started'}
+              </button>
             </div>
             <p className="hint onboard-foot">Not affiliated with Grand Canyon University. Never asks for your GCU password.</p>
           </section>
         )}
 
         {step === 'account' && (
-          <section className="onboard-step" aria-label="Account">
-            <h1 className="onboard-title">Save it to an account.</h1>
-            <p className="onboard-text">Your classes and work follow you between your phone and laptop, and nothing is lost if a browser is cleared. Email link or Google; no password.</p>
+          <section className="onboard-step" aria-label="Sign up">
+            <h1 className="onboard-title">Sign up.</h1>
+            <p className="onboard-text">Your classes and work follow you between your phone and laptop. Email link or Google; no password to invent.</p>
             <SignIn auth={auth} title="Sign in" />
             <div className="onboard-actions">
-              <span className="spacer" />
               <button type="button" className="btn" onClick={() => skipStep('halo')}>
                 Not now, keep it on this device
               </button>
@@ -138,32 +153,92 @@ export function Onboarding() {
           </section>
         )}
 
-        {step === 'halo' && !synced && (
+        {step === 'halo' && !synced && phase === 'install' && (
           <section className="onboard-step" aria-label="Connect Halo">
-            <h1 className="onboard-title">Connect Halo.</h1>
-            <p className="onboard-text">One bookmark, pressed while you are logged in to Halo. Your classes, assignments, grades and announcements arrive together; you approve them before they land.</p>
-            <SyncSteps onNote={setNote} />
+            <h1 className="onboard-title">Drag this to your bookmarks bar.</h1>
+            {phone ? (
+              <>
+                <p className="onboard-text">On a phone the bookmark is made by hand. Four short steps.</p>
+                <SyncSteps onNote={setNote} />
+              </>
+            ) : (
+              <>
+                <div className="drag-demo" aria-hidden>
+                  <div className="demo-chrome">
+                    <span className="demo-dot" />
+                    <span className="demo-dot" />
+                    <span className="demo-dot" />
+                    <span className="demo-url">halo.gcu.edu</span>
+                  </div>
+                  <div className="demo-bar">
+                    <span className="demo-bm" />
+                    <span className="demo-bm" />
+                    <span className="demo-slot">
+                      <i>Sync Halo</i>
+                    </span>
+                  </div>
+                  <div className="demo-page">
+                    <span className="demo-pill">Sync Halo</span>
+                    <span className="demo-cursor" />
+                  </div>
+                </div>
+                <p className="onboard-text">
+                  Drag <BookmarkButton onClickNote={setNote} /> up to the bookmarks bar. (Hidden bar: ⌘⇧B on Mac, Ctrl+Shift+B on Windows.) It reads Halo while you are logged in there and never sees your password.
+                </p>
+              </>
+            )}
             {note && (
               <p className="hint" role="status">
                 {note}
               </p>
             )}
             <div className="onboard-actions">
-              <span className="spacer" />
+              <button type="button" className="btn primary" onClick={() => setPhase('sync')}>
+                {phone ? 'I made the bookmark' : 'I dragged it'}
+              </button>
               <button type="button" className="btn" onClick={() => skipStep('preferences')}>
-                I’ll do this later
+                Later
+              </button>
+            </div>
+          </section>
+        )}
+
+        {step === 'halo' && !synced && phase === 'sync' && (
+          <section className="onboard-step onboard-wait" aria-label="First sync">
+            <span className="wait-ring" aria-hidden>
+              <HaloDraw size={72} />
+            </span>
+            <h1 className="onboard-title">Open Halo and click Sync Halo.</h1>
+            <p className="onboard-text">Log in at halo.gcu.edu, then click the bookmark. This page fills in on its own the moment your classes arrive.</p>
+            <p className="hint">
+              <a href="https://halo.gcu.edu" target="_blank" rel="noreferrer">
+                Open halo.gcu.edu
+              </a>
+            </p>
+            <div className="onboard-actions">
+              <button type="button" className="btn" onClick={() => setPhase('install')}>
+                Back
+              </button>
+              <button type="button" className="btn" onClick={() => skipStep('preferences')}>
+                Later
               </button>
             </div>
           </section>
         )}
 
         {step === 'halo' && synced && (
-          <section className="onboard-step onboard-celebrate" aria-label="Halo is connected">
-            <p className="onboard-big" aria-hidden>
-              ✓
-            </p>
+          <section className="onboard-step onboard-payoff" aria-label="Halo is connected">
+            <HaloDraw size={80} />
             <h1 className="onboard-title">
-              {data.courses.length} {data.courses.length === 1 ? 'class' : 'classes'} and {data.items.length} {data.items.length === 1 ? 'assignment' : 'assignments'} are in.
+              We found <span className="payoff-num">{found}</span> {data.items.length === 1 ? 'assignment' : 'assignments'}
+              {finds > 0 ? (
+                <>
+                  {' '}
+                  and <span className="payoff-num">{foundPosts}</span> {finds === 1 ? 'thing' : 'things'} your professors only mentioned in announcements.
+                </>
+              ) : (
+                '.'
+              )}
             </h1>
             <p className="onboard-chips">
               {data.courses.map((c) => (
@@ -176,9 +251,8 @@ export function Onboarding() {
               </p>
             )}
             <div className="onboard-actions">
-              <span className="spacer" />
-              <button type="button" className="btn primary" onClick={() => go('preferences')}>
-                Keep going
+              <button type="button" className="btn primary" onClick={finish}>
+                Show me my day
               </button>
             </div>
           </section>
@@ -201,7 +275,6 @@ export function Onboarding() {
               <SegmentedControl label="Morning note" value={(data.settings.reminders?.morningTime ?? '07:30') as (typeof MORNING)[number]['value']} options={[...MORNING]} onChange={(v) => actions.updateSettings({ reminders: { ...(data.settings.reminders ?? {}), morningTime: v } })} />
             </div>
             <div className="onboard-actions">
-              <span className="spacer" />
               <button type="button" className="btn primary" onClick={finish}>
                 Show me my day
               </button>

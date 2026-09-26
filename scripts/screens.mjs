@@ -20,13 +20,15 @@ const SEEDED = [
   ['ai', '#/ai'],
   ['load', '#/load'],
   ['item', '#/now', async (page) => { await page.click('.hero-title-btn'); await page.waitForTimeout(500); }],
+  ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
+  ['levelup', '#/now', async (page) => { await page.evaluate(() => localStorage.setItem('school-dashboard:seen-level', '0')); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1400); await page.evaluate(() => localStorage.removeItem('school-dashboard:seen-level')); }],
   // Last: this one marks the day's items done in the seed, and every shot after it would see that.
   ['now-done', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); for (const i of d.items) if (i.dueAt.slice(0, 10) <= today && i.status !== 'done') { i.status = 'done'; i.completedAt = new Date().toISOString(); } localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(500); }],
 ];
 const FRESH = [
   ['onboarding-1', '#/now'],
-  ['onboarding-halo', '#/now', async (page) => { for (const t of ['Next', 'Next', 'Get started']) { await page.click(`.onboard button:has-text("${t}")`); await page.waitForTimeout(250); } }],
-  ['onboarding-prefs', '#/now', async (page) => { for (const t of ['Next', 'Next', 'Get started', 'do this later']) { await page.click(`.onboard button:has-text("${t}")`); await page.waitForTimeout(250); } }],
+  ['onboarding-halo', '#/now', async (page) => { await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(400); }],
+  ['onboarding-wait', '#/now', async (page) => { await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(250); await page.click('.onboard button:has-text("I dragged it"), .onboard button:has-text("I made the bookmark")'); await page.waitForTimeout(400); }],
   ['now-empty', '#/now', async (page) => { await page.click('.onboard button:has-text("Skip for now")'); await page.waitForTimeout(400); }],
   ['landing', 'landing/'],
   ['landing-full', 'landing/', null, true],

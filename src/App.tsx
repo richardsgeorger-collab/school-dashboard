@@ -32,6 +32,7 @@ import { Classes } from './views/Classes';
 import { IngestView } from './views/IngestView';
 import { Inbox } from './views/Inbox';
 import { Looks } from './views/Looks';
+import { Celebrations } from './views/Celebrate';
 import { useAutoRerun } from './ingest/auto';
 import { OkayCard, okayPress } from './views/Okay';
 import { NotificationPlanner } from './notify/NotificationPlanner';
@@ -231,6 +232,7 @@ export default function App() {
         <HaloHandoff />
         <OnboardingHost />
         <NotificationPlanner />
+        <Celebrations />
         <SyncParam />
         <OkayHost />
         <SyncHost

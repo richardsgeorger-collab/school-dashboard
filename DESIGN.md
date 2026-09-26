@@ -189,3 +189,42 @@ Ink and Pop stay at `#/looks?d=ink` and `#/looks?d=pop`; switching is one token 
   reduced motion.
 - Model-written strings: checklist lines are five to ten words in the prompt and capped at ten in code; summaries
   at eighteen. The quote keeps the full text one tap away.
+
+## 6. Third pass: fewer things, one meaning per colour, moments (2026-09-25)
+
+**Bugs first** (fourteen from the screen recording, all in the Phase 1 commit). The one worth recording here: the
+Inbox header and a row read two different records for "was this post read", so they could disagree. Both now read
+one answer per post (`readState`), a ledger that fails to open is reported instead of being treated as empty, and
+a stamped post the ledger has lost is healed. The two contradictions on Now ("Today's done" over "420 pts due
+today") are impossible by construction now: `statusLine` and `riskLine` count the same thing, and a test says so.
+
+**Now** answers "what do I do next, and am I okay" in two seconds: one sentence in one colour, the hero (title,
+class, points, time, due, Start, Done, Details, one why-line that names the same day as its chips), three Then
+rows, one Heads-up card (every warning, one line each, three shown), and one coach row that opens a side panel.
+Term progress, next class and the sync time moved off. **Agenda**: collapsed rows, expand for parts and notes,
+two weeks then Later. **Month**: grey, two short labels a cell, red only for late, fits a laptop screen.
+**Classes**: tiles with a grade ring; a grade needs three graded items or a tenth of the points. **Class page**:
+Work / Rules / Notes. **Inbox**: what a post asks leads; Needs you first. **You**: account, stats, Halo as one
+line; diagnostics under Advanced.
+
+**Moments**: the mark draws itself (ring traced, gold plus popped in) for the onboarding payoff, "Today's done",
+and a level up. Onboarding is sign up, drag the bookmark (shown by a looping demo, not described), open Halo and
+click it, then the payoff counted up: "We found 181 assignments and 12 things your professors only mentioned in
+announcements." Study hours moved out of the first run. Streaks get a toast. Empty states have a drawing. Load
+bars fill with a gradient and grow in. Rings animate on load.
+
+**Colour, audited**: the accent is the primary action and today; red is late or broken; amber is due within a day
+and untouched; the gold halo is the mark and the moments; everything else is grey. `domain/status.ts` is the
+single source of a row's tone. The old risk badges (at risk, due soon, start today) are gone: those are meta text.
+
+**Model-written strings**: five to ten words for a checklist line in the prompt, capped at ten in code; summaries at
+eighteen. The professor's own sentence is always one tap away behind "source".
+
+**Haiku**: every AI call already goes through the gateway on `claude-haiku-4-5-20251001` (a test refuses any other
+model id). The last before/after run (`docs/ai-compare/2026-09-25-3.md`) is 15/15 on the announcement reader (six
+real posts) and the lecture ingestion fixtures at $0.033 for the set. The coach and the prompt generator have no
+harness fixtures yet, so their quality on Haiku is observed, not measured: the coach's answers are shorter and
+occasionally skip the "why", which the shorter prompts in this pass lean into rather than fight.
+
+**Not a colour, not a diagnostic**: sync counts, the announcement cleanup tally and the pull build live under
+Advanced. The submission check speaks in plain words.

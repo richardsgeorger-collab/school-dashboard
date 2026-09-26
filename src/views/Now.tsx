@@ -6,6 +6,7 @@ import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { IconCheck, IconNow } from '../components/Icons';
 import { HeadsUp, type HeadsUpLine } from './HeadsUp';
+import { HaloDraw } from '../components/HaloDraw';
 import { Ring } from '../components/Ring';
 import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
@@ -377,9 +378,7 @@ export function Now() {
 
   const calmEnough = (
     <section className="calm" data-tone="enough" aria-label="Done for today">
-      <span className="calm-check" aria-hidden>
-        <IconCheck />
-      </span>
+      <HaloDraw size={96} />
       <h2 className="calm-title">That's it for today.</h2>
       <p className="calm-text">
         {finished ? `${finished.label} done, +${finished.xp} XP. ` : ''}
@@ -449,7 +448,7 @@ export function Now() {
     </>
   ) : mode.mode === 'empty' ? (
     data.courses.length === 0 ? (
-      <EmptyState>
+      <EmptyState art="halo">
         <p>
           <b>Your day, from Halo.</b>
         </p>
