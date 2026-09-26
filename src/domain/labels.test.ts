@@ -6,6 +6,8 @@ const label = (title: string, courseCode: string) => shortLabel({ title, courseC
 
 const cases: [string, string, string][] = [
   ['Topic 1 Homework', 'CHM-113', 'Chem HW 1'],
+  ['Chem Lab 4 report', 'CHM-113', 'Chem Lab 4'],
+  ['Chem Quiz 3', 'CHM-113', 'Chem Quiz 3'],
   ['Topic 3 Activity', 'CHM-113', 'Chem Activity 3'],
   ['Topic 2 Review', 'ESG-162', 'Eng Math Review 2'],
   ['Topic 1 Homework', 'ESG-162', 'Eng Math HW 1'],

@@ -100,6 +100,9 @@ export interface LabelInput {
 export function shortLabel({ title, courseCode }: LabelInput): string {
   const cls = courseShortName(courseCode);
   let core = coreLabel(title);
+  // A professor who already writes "Chem Lab 4" gets "Chem Lab 4", not "Chem Chem Lab 4".
+  const first = cls.split(' ')[0];
+  if (first && new RegExp(`^${first}\\b\\s*`, 'i').test(core) && core.length > first.length + 1) core = core.replace(new RegExp(`^${first}\\b\\s*`, 'i'), '');
   if (/\bLab$/.test(cls)) {
     if (/^Lab\s/i.test(core)) core = core.slice(4);
     else if (/\sLab$/i.test(core)) core = core.slice(0, -4);
