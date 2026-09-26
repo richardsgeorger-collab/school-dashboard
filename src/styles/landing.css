@@ -379,3 +379,20 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ---- the moment before the front door: the mark alone, centred, no layout to jump ---- */
+.front-pending {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+}
+.front-pending .brand-mark {
+  width: 40px;
+  height: 40px;
+  opacity: 0.8;
+}
+.front-pending .brand-mark svg {
+  width: 40px;
+  height: 40px;
+}
+

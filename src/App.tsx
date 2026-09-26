@@ -26,6 +26,7 @@ import { useFront } from './landing/useShowLanding';
 import { accentToShow, applyAccent } from './config/accents';
 import { can } from './config/flags';
 import { useAccount } from './auth/AccountContext';
+import { IconHalo } from './components/Icons';
 import { Now } from './views/Now';
 import { initPixel } from './analytics/pixel';
 // Every screen but Now (and the landing page) loads when first opened, so a stranger's first paint and Now's are
@@ -254,7 +255,14 @@ function ScreenFor({ route }: { route: ReturnType<typeof useRoute>['route'] }) {
 function Shell({ captureOpen, paletteOpen, onSync, onCapture, onCloseCapture, onClosePalette }: { captureOpen: boolean; paletteOpen: boolean; onSync: () => void; onCapture: () => void; onCloseCapture: () => void; onClosePalette: () => void }) {
   const front = useFront();
   const { route } = useRoute();
-  if (front === 'pending') return <div className="app" aria-busy="true" />;
+  if (front === 'pending')
+    return (
+      <div className="app front-pending" aria-busy="true">
+        <span className="brand-mark" aria-hidden>
+          <IconHalo />
+        </span>
+      </div>
+    );
   if (front === 'landing') return <Landing />;
   if (route === 'login') return <Login />;
   return (
