@@ -152,6 +152,11 @@ export function Onboarding() {
                 {auth.configured ? 'Sign up' : 'Get started'}
               </button>
             </div>
+            {auth.configured && (
+              <p className="hint">
+                Already have an account? <a href="#/login">Log in</a>
+              </p>
+            )}
             <p className="hint onboard-foot">Not affiliated with Grand Canyon University. Never asks for your GCU password.</p>
           </section>
         )}
