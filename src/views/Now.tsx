@@ -423,7 +423,9 @@ export function Now() {
     });
 
   // Keyed on the item: when one is done the next slides in as a new card.
-  const heroCard = hero && <HeroCard key={hero.id} item={hero} optional={mode.mode !== 'urgent'} why={why} leaving={leaving === hero.id} onOpen={setOpen} onSkip={skip} onDone={finish} />;
+  // Keyed apart from the item sheet: both used to carry the bare item id, and when the sheet opened for the hero
+  // itself React saw two siblings with one key and left a second, third, fourth copy of the card behind.
+  const heroCard = hero && <HeroCard key={`hero-${hero.id}`} item={hero} optional={mode.mode !== 'urgent'} why={why} leaving={leaving === hero.id} onOpen={setOpen} onSkip={skip} onDone={finish} />;
 
   const calmEnough = (
     <section className="calm" data-tone="enough" aria-label="Done for today">
@@ -631,7 +633,7 @@ export function Now() {
         </div>
       )}
       {examSheet && exam && <ExamSheet plan={exam} onClose={() => setExamSheet(false)} onOpen={(i) => { setExamSheet(false); setOpen(i); }} />}
-      {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
+      {open && <ItemDetail key={`detail-${open.id}`} item={open} onClose={() => setOpen(null)} />}
     </div>
   );
 }

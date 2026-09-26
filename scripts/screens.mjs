@@ -24,7 +24,13 @@ const SEEDED = [
   ['load', '#/load'],
   ['grades', '#/grades'],
   ['library', '#/library'],
-  ['item', '#/now', async (page) => { await page.click('.hero-title-btn'); await page.waitForTimeout(500); }],
+  ['item', '#/now', async (page) => {
+    await page.click('.hero-title-btn');
+    await page.waitForTimeout(500);
+    // Opening the hero's own sheet once duplicated the card (two siblings sharing a React key); keep it at one.
+    const heroes = await page.evaluate(() => document.querySelectorAll('.now > .hero').length);
+    if (heroes !== 1) throw new Error(`item: ${heroes} hero cards on Now with the sheet open; expected 1`);
+  }],
   ['you-progress', '#/you?s=progress'],
   ['you-workload', '#/you?s=workload'],
   ['you-halo', '#/you?s=halo'],
