@@ -40,6 +40,9 @@ const SEEDED = [
   ['you-study', '#/you?s=study'],
   ['you-advanced', '#/you?s=advanced'],
   ['you-notifications', '#/you?s=notifications'],
+  ['you-invite', '#/you?s=invite'],
+  ['you-feedback', '#/you?s=feedback'],
+  ['home-nudge', '#/now', async (page) => { await page.evaluate(() => localStorage.removeItem('school-dashboard:home-screen-nudge')); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(600); await page.evaluate(() => localStorage.setItem('school-dashboard:home-screen-nudge', 'done')); }],
   ['you-display', '#/you?s=display'],
   ['palette', '#/now', async (page) => { await page.keyboard.press('Meta+KeyK'); await page.waitForTimeout(400); await page.keyboard.type('chem'); await page.waitForTimeout(400); }],
   // Announcements arrive the way a sync brings them: a Halo export posted to the window. The review sheet saves
@@ -205,7 +208,8 @@ for (const scheme of ['light', 'dark']) {
     const page = await ctx.newPage();
     if (group === 'seeded') {
       await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle' });
-      await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.theme = 'system'; d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
+      // The iPhone device carries an iPhone user agent, so the Home Screen nudge would sit on every phone shot; it gets its own.
+      await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.theme = 'system'; d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); localStorage.setItem('school-dashboard:home-screen-nudge', 'done'); });
     }
     for (const [name, route, act, full] of list) {
       if (only && !only.has(name)) continue;

@@ -46,6 +46,16 @@ import { TrialOffer, TrialReceipts, useReceipts } from './TrialOffer';
 import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
+import { isIos, isStandalone } from '../notify/push';
+
+const HOME_NUDGE_KEY = 'school-dashboard:home-screen-nudge';
+const readNudge = (): boolean => {
+  try {
+    return localStorage.getItem(HOME_NUDGE_KEY) === 'done';
+  } catch {
+    return true;
+  }
+};
 
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const approx = (min: number) => `~${fmtMinutes(min)}`;
@@ -435,6 +445,34 @@ export function Now() {
       text: (
         <>
           Your Max trial ends {trialDays === 0 ? 'today' : `in ${trialDays} day${trialDays === 1 ? '' : 's'}`}. <a href="#/you?s=plan">See plans</a>
+        </>
+      ),
+    });
+
+  // iPhone in Safari, classes on file, not yet on the Home Screen: one line, once, because notifications and the
+  // full-screen app both need it and nothing else in the app says so until the Notifications card.
+  const [homeNudged, setHomeNudged] = useState(readNudge);
+  const homeNudge = !homeNudged && data.courses.length > 0 && isIos() && !isStandalone();
+  if (homeNudge)
+    headsUp.push({
+      key: 'home-screen',
+      text: (
+        <>
+          Add Halo+ to your Home Screen for notifications: Share, then Add to Home Screen.{' '}
+          <button
+            type="button"
+            className="hero-inline"
+            onClick={() => {
+              try {
+                localStorage.setItem(HOME_NUDGE_KEY, 'done');
+              } catch {
+                /* storage off: it shows again next time, which is fine */
+              }
+              setHomeNudged(true);
+            }}
+          >
+            Got it
+          </button>
         </>
       ),
     });
