@@ -154,8 +154,7 @@ export function Grades() {
         Grades <span className="light">by points</span>
       </h1>
       <p className="hint" style={{ marginTop: 6, maxWidth: 640 }}>
-        Scores arrive from Halo&apos;s gradebook through the Sync button. None of the syllabi publish category weights, so this is points earned over points
-        graded, and Projected assumes the rest of the term scores at your current average. Typing a score is an override for when Halo is wrong or missing.
+        Points earned over points graded, from Halo&apos;s gradebook. Projected assumes the rest of the term scores at your average. Type a score to override Halo when it is wrong or missing.
       </p>
       {data.courses.length === 0 ? (
         <EmptyState>Grades arrive with your first Halo sync, one card per class.</EmptyState>
