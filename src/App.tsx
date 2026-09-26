@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { AccountProvider } from './auth/AccountContext';
 import { useAccountSync } from './auth/useAccountSync';
 import { BottomNav, TopBar } from './components/Nav';
@@ -26,20 +26,22 @@ import { useFront } from './landing/useShowLanding';
 import { accentToShow, applyAccent } from './config/accents';
 import { can } from './config/flags';
 import { useAccount } from './auth/AccountContext';
-import { Calendar } from './views/calendar/Calendar';
 import { Now } from './views/Now';
-import { Load } from './views/Load';
-import { Grades } from './views/Grades';
-import { Library } from './views/Library';
-import { You } from './views/You';
-import { Ai } from './views/Ai';
-import { Admin } from './views/Admin';
 import { initPixel } from './analytics/pixel';
-import { ClassPage } from './views/ClassPage';
-import { Classes } from './views/Classes';
-import { IngestView } from './views/IngestView';
-import { Inbox } from './views/Inbox';
-import { Looks } from './views/Looks';
+// Every screen but Now (and the landing page) loads when first opened, so a stranger's first paint and Now's are
+// not paying for the calendar, the settings, the coach or the admin table.
+const Calendar = lazy(() => import('./views/calendar/Calendar').then((m) => ({ default: m.Calendar })));
+const Load = lazy(() => import('./views/Load').then((m) => ({ default: m.Load })));
+const Grades = lazy(() => import('./views/Grades').then((m) => ({ default: m.Grades })));
+const Library = lazy(() => import('./views/Library').then((m) => ({ default: m.Library })));
+const You = lazy(() => import('./views/You').then((m) => ({ default: m.You })));
+const Ai = lazy(() => import('./views/Ai').then((m) => ({ default: m.Ai })));
+const Admin = lazy(() => import('./views/Admin').then((m) => ({ default: m.Admin })));
+const ClassPage = lazy(() => import('./views/ClassPage').then((m) => ({ default: m.ClassPage })));
+const Classes = lazy(() => import('./views/Classes').then((m) => ({ default: m.Classes })));
+const IngestView = lazy(() => import('./views/IngestView').then((m) => ({ default: m.IngestView })));
+const Inbox = lazy(() => import('./views/Inbox').then((m) => ({ default: m.Inbox })));
+const Looks = lazy(() => import('./views/Looks').then((m) => ({ default: m.Looks })));
 import { Celebrations } from './views/Celebrate';
 import { useBackgroundRead } from './halo/backgroundRead';
 import { useAutoRerun } from './ingest/auto';
@@ -205,7 +207,9 @@ function Screen() {
   // Keyed on the route so a tab change remounts the screen and its entrance plays.
   return (
     <div className="screen" key={route}>
-      <ScreenFor route={route} />
+      <Suspense fallback={null}>
+        <ScreenFor route={route} />
+      </Suspense>
     </div>
   );
 }
