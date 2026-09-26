@@ -102,7 +102,7 @@ describe('nextClassPrep', () => {
 
   it('flags an in-class item as prep for that meeting', () => {
     const quiz = item({ id: 'q', label: 'Eng Math Quiz 1', type: 'quiz', dueAt: '2026-09-10T08:00:00-07:00', estimatedMinutes: 120, flags: { ...DEFAULT_FLAGS, inClass: true } });
-    expect(prep([quiz]).text).toBe('Eng Math Quiz 1 is in class — ~2h of prep, start today.');
+    expect(prep([quiz]).text).toBe('Eng Math Quiz 1 is in class: ~2h of prep, start today.');
   });
 
   it('flags something due before the class', () => {
@@ -116,7 +116,7 @@ describe('nextClassPrep', () => {
     const r = nextClassPrep(labMeeting, [labItem], computeSchedule([labItem], DEFAULT_SETTINGS, '2026-09-19', TERM, '2026-09-19T12:00:00-07:00'), [{ key: 'prelab:L', itemId: 'L', day: '2026-09-19', label: 'Pre-lab prep for Chem Lab Emissions', minutes: 45 }], '2026-09-19', TZ);
     expect(r.inferred).toBe(true);
     expect(r.nudge?.key).toBe('prelab:L');
-    expect(r.text).toBe("Pre-lab prep for Chem Lab Emissions — ~45m before Monday's lab.");
+    expect(r.text).toBe("Pre-lab prep for Chem Lab Emissions: ~45m before Monday's lab.");
   });
 
   it('ignores participation and done items', () => {

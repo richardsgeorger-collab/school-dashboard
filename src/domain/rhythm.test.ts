@@ -66,7 +66,7 @@ describe('where points went', () => {
   });
   it('writes one calm line, with the exam that covers it and what practice keeps missing', () => {
     const stats = { 'c1:limiting reagent': { courseId: 'c1', topic: 'limiting reagent', attempts: 3, misses: 2, lastAt: 'x' } };
-    expect(weakLine(chm, graded, stats, today, TZ)).toBe('Lowest so far: Topic 2 Quiz at 60% and 1 other — Chem Exam 1 is in 3 weeks. Practice keeps slipping on limiting reagent.');
+    expect(weakLine(chm, graded, stats, today, TZ)).toBe('Lowest so far: Topic 2 Quiz at 60% and 1 other. Chem Exam 1 is in 3 weeks. Practice keeps slipping on limiting reagent.');
     expect(weakLine(chm, graded.filter((i) => i.id !== 'g3' && i.id !== 'x1'), undefined, today, TZ)).toBe('Lowest so far: Topic 2 Quiz at 60%.');
     expect(weakLine(chm, [], undefined, today, TZ)).toBeNull();
     expect(weakTopicFor(chm, graded, stats)).toBe('Topic 2 Quiz');

@@ -192,7 +192,7 @@ export function WorkPanel({ item: given, course }: { item: Item; course: Course 
                     <ul className="work-hits">
                       {check.hits.map((h, i) => (
                         <li key={i}>
-                          <b>{h.criterion}</b> — {h.note}
+                          <b>{h.criterion}</b>: {h.note}
                         </li>
                       ))}
                     </ul>
@@ -201,7 +201,7 @@ export function WorkPanel({ item: given, course }: { item: Item; course: Course 
                     <ul className="work-misses">
                       {check.misses.map((m, i) => (
                         <li key={i}>
-                          <b>{m.criterion}</b> — {m.what}
+                          <b>{m.criterion}</b>: {m.what}
                         </li>
                       ))}
                     </ul>
@@ -235,7 +235,7 @@ export function WorkPanel({ item: given, course }: { item: Item; course: Course 
                   <ul className="work-method">
                     {method.problems.map((p, i) => (
                       <li key={i} data-setup={p.setup}>
-                        <b>{p.label || `Problem ${i + 1}`}</b> <span className="mono muted">· setup {p.setup}</span> — {p.note}
+                        <b>{p.label || `Problem ${i + 1}`}</b> <span className="mono muted">· setup {p.setup}</span>: {p.note}
                         {p.step && <span className="hint"> Look again at: {p.step}</span>}
                       </li>
                     ))}

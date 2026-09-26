@@ -46,7 +46,7 @@ export function submissionCheck(items: Item[], today: DateStr, tz: string): Subm
   if (mismatches.length) {
     const m = mismatches[0];
     const more = mismatches.length > 1 ? ` and ${mismatches.length - 1} more` : '';
-    line = `Halo shows ${m.label} unsubmitted${more} — you marked it done here. Check it in Halo.`;
+    line = `Halo shows ${m.label} unsubmitted${more}. You marked it done here. Check it in Halo.`;
     level = 'alarm';
   } else if (dueWeek.length && unconfirmed.length === 0) {
     line = `Halo shows all ${dueWeek.length} item${dueWeek.length === 1 ? '' : 's'} due this week submitted.`;

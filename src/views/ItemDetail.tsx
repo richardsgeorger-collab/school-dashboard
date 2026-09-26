@@ -342,7 +342,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
                       if (r) actions.upsertItem({ ...item, blocked: makeBlock(r, item, course, today, tz), startedAt: null });
                     }}
                   >
-                    <option value="">Nothing — it can be done</option>
+                    <option value="">Nothing, it can be done</option>
                     {BLOCK_REASONS.map((r) => (
                       <option key={r} value={r}>
                         {BLOCK_WORDS[r].label}
@@ -541,7 +541,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
                       if (r) actions.upsertItem({ ...item, blocked: makeBlock(r, item, course, today, tz), startedAt: null });
                     }}
                   >
-                    <option value="">Nothing — it can be done</option>
+                    <option value="">Nothing, it can be done</option>
                     {BLOCK_REASONS.map((r) => (
                       <option key={r} value={r}>
                         {BLOCK_WORDS[r].label}

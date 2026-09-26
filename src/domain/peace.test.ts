@@ -27,7 +27,7 @@ describe('submission confirmation from Halo', () => {
     expect(part.level).toBe('amber');
     const bad = submissionCheck([done('a', '2026-09-10', { status: 'ACTIVE', submittedAt: null })], today, TZ);
     expect(bad.mismatches.map((i) => i.id)).toEqual(['a']);
-    expect(bad.line).toBe('Halo shows a unsubmitted — you marked it done here. Check it in Halo.');
+    expect(bad.line).toBe('Halo shows a unsubmitted. You marked it done here. Check it in Halo.');
     expect(bad.level).toBe('alarm');
     expect(haloSaysIn(done('x', '2026-09-10', { status: 'LATE', submittedAt: null }))).toBe(true);
   });

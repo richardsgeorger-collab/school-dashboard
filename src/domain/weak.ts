@@ -49,7 +49,7 @@ export function weakLine(course: Course, items: Item[], stats: Record<string, Qu
     const more = spots.length > 1 ? ` and ${spots.length - 1} other${spots.length - 1 === 1 ? '' : 's'}` : '';
     let line = `Lowest so far: ${s.item.title} at ${s.pct}%${more}`;
     const exam = nextExam(course.id, items, today, tz);
-    if (exam) line += ` — ${exam.label} is ${inWords(diffDays(today, dateOf(exam.dueAt, tz)))}`;
+    if (exam) line += `. ${exam.label} is ${inWords(diffDays(today, dateOf(exam.dueAt, tz)))}`;
     parts.push(`${line}.`);
   }
   if (practice.length) parts.push(`Practice keeps slipping on ${practice.map((p) => p.topic).join(' and ')}.`);

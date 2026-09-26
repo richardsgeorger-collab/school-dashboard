@@ -75,7 +75,7 @@ export function nextClassPrep(meeting: NextMeeting, items: Item[], schedule: Sch
   const nudge = nudges.filter((nd) => ownIds.has(nd.itemId) && nd.day <= meeting.day).sort((a, b) => a.day.localeCompare(b.day))[0];
   if (nudge) {
     const item = items.find((i) => i.id === nudge.itemId) ?? null;
-    return { text: `${nudge.label} — ${approx(nudge.minutes)} before ${WEEKDAY_LONG[weekdayOf(meeting.day)]}'s ${isLab ? 'lab' : 'class'}.`, item, nudge, inferred: true };
+    return { text: `${nudge.label}: ${approx(nudge.minutes)} before ${WEEKDAY_LONG[weekdayOf(meeting.day)]}'s ${isLab ? 'lab' : 'class'}.`, item, nudge, inferred: true };
   }
 
   const pick = items
@@ -89,7 +89,7 @@ export function nextClassPrep(meeting: NextMeeting, items: Item[], schedule: Sch
   const { i, due } = pick;
   const est = approx(i.estimatedMinutes);
   const startBy = schedule.byItem[i.id]?.startBy ?? today;
-  if (i.flags.inClass && due === meeting.day) return { text: `${i.label} is in class — ${est} of prep, ${startPhrase(startBy, today)}.`, item: i, nudge: null, inferred: false };
+  if (i.flags.inClass && due === meeting.day) return { text: `${i.label} is in class: ${est} of prep, ${startPhrase(startBy, today)}.`, item: i, nudge: null, inferred: false };
   const when = dayWord(today, due);
   return { text: `${i.label} is due ${when} — ${est}.${when === 'tonight' ? '' : ` Due before class, ${startPhrase(startBy, today)}.`}`, item: i, nudge: null, inferred: false };
 }

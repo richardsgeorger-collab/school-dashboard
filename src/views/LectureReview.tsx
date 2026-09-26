@@ -99,7 +99,7 @@ function MentionRow({
       case 'flag':
         return (
           <>
-            <mark>Halo says late</mark> — {p.text.replace(/^Halo says /, '')}{' '}
+            <mark>Halo says late</mark>: {p.text.replace(/^Halo says /, '')}{' '}
             {p.item.url && (
               <a href={p.item.url} target="_blank" rel="noreferrer" className="diff-toggle">
                 Open in Halo
@@ -282,7 +282,7 @@ export function LectureReview({
             )}
             {notes.knowledge.terms.length > 0 && (
               <p className="hint">
-                <b>Terms:</b> {notes.knowledge.terms.map((t) => `${t.term} — ${t.meaning}`).join('; ')}
+                <b>Terms:</b> {notes.knowledge.terms.map((t) => `${t.term}: ${t.meaning}`).join('; ')}
               </p>
             )}
           </section>
