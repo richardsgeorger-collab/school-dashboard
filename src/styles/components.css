@@ -362,6 +362,7 @@ textarea:focus-visible {
   align-items: flex-start;
   gap: 10px;
   cursor: pointer;
+  margin-top: var(--s-2);
 }
 .field-check input[type='checkbox'] {
   flex: 0 0 auto;

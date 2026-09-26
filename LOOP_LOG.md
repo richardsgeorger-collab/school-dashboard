@@ -28,3 +28,4 @@ One line per change, newest last. Proposals that need George's approval are mark
 - 2026-09-26 · Loop 9 · The welcome screen has "Already have an account? Log in" for a returning student on a new device, who otherwise saw only Sign up.
 - 2026-09-26 · Loop 10 · Checkbox rows on You (Study time, Notifications) and in the class editor put the box on its own line above the sentence on a phone; one class (.field-check) puts the box first on the same line, and the Sunday review status is plain text instead of mono.
 - 2026-09-26 · Loop 11 · A class with no grade yet said "—" and one never synced said "never"; both now say "not yet" (class page and grade projection).
+- 2026-09-26 · Loop 12 · Breathing room: checkbox rows sit a step below the hint above them, and the accent picker no longer runs into the time zone field.

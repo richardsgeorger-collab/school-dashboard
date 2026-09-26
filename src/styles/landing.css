@@ -303,6 +303,9 @@
 .accent-lock {
   margin-top: var(--s-3);
 }
+.accent-picker {
+  margin-bottom: var(--s-2);
+}
 .accent-swatch:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
