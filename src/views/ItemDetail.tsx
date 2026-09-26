@@ -11,6 +11,7 @@ import { BLOCK_REASONS, BLOCK_WORDS, blockPhrase, isBlocked, makeBlock } from '.
 import type { BlockReason } from '../domain/types';
 import { Feedback, RubricBlock } from './Feedback';
 import { SourceBlock } from './SourceBlock';
+import { heroFacts } from '../domain/heroFacts';
 import { Requirements } from './Requirements';
 import { RulesOnItem } from './ClassRules';
 import { Sure } from './PlanReview';
@@ -74,7 +75,7 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
 }
 
 export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew?: boolean; onClose: () => void }) {
-  const { data, courseById, schedule, actions, today, derived } = useStore();
+  const { data, courseById, schedule, actions, today, derived, calibrate } = useStore();
   const [decks, setDecks] = useState<Deck[]>([]);
   const [recs, setRecs] = useState<Recording[]>([]);
   const [sylLine, setSylLine] = useState<string | null>(null);
@@ -175,125 +176,17 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           save();
         }}
       >
-        <label className="field">
-          <span>Name</span>
-          <input value={draft.title} onChange={(e) => set('title', e.target.value)} required autoComplete="off" />
-        </label>
-        <label className="field">
-          <span>Short name</span>
-          <input
-            value={draft.labelOverridden ? draft.label : suggestedLabel}
-            onChange={(e) => {
-              set('label', e.target.value);
-              set('labelOverridden', true);
-            }}
-            autoComplete="off"
-            maxLength={40}
-          />
-          <span className="hint">
-            {draft.labelOverridden && draft.label.trim() !== suggestedLabel ? (
-              <>
-                Suggested "{suggestedLabel}" ·{' '}
-                <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { set('label', suggestedLabel); set('labelOverridden', false); }}>
-                  use suggested
-                </button>
-              </>
-            ) : (
-              'Shown on Now, the calendar and in lists; the name stays as the subtitle.'
-            )}
-          </span>
-        </label>
-        <div className="field-row">
-          <label className="field">
-            <span>Class</span>
-            <select value={draft.courseId} onChange={(e) => set('courseId', e.target.value)}>
-              {data.courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Type</span>
-            <select value={draft.type} onChange={(e) => set('type', e.target.value as ItemType)}>
-              {ITEM_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {TYPE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="field-row">
-          <label className="field">
-            <span>Due date</span>
-            <input type="date" value={draft.dueDate} onChange={(e) => set('dueDate', e.target.value)} required />
-          </label>
-          <label className="field">
-            <span>Due time</span>
-            <input type="time" value={draft.dueTime} onChange={(e) => set('dueTime', e.target.value)} />
-          </label>
-        </div>
-        <div className="field-row">
-          <label className="field">
-            <span>Opens</span>
-            <input type="date" value={draft.opensDate} onChange={(e) => set('opensDate', e.target.value)} />
-          </label>
-          <label className="field">
-            <span>Points</span>
-            <input type="number" min={0} step={1} inputMode="numeric" value={draft.points} onChange={(e) => set('points', e.target.value)} />
-          </label>
-        </div>
-        <div className="field-row">
-          <label className="field">
-            <span>Time it takes, minutes</span>
-            <input
-              type="number"
-              min={0}
-              step={15}
-              inputMode="numeric"
-              value={draft.estimatedMinutes}
-              onChange={(e) => {
-                set('estimatedMinutes', e.target.value);
-                set('estimateOverridden', true);
-              }}
-            />
-            <span className="hint">
-              {item.plan?.minutes && !draft.estimateOverridden && Number(draft.estimatedMinutes) === item.plan.minutes.value ? (
-                <>
-                  <span className="ai-from">AI</span> {item.plan.minutes.why} <Sure c={item.plan.minutes.confidence} />
-                  {' · '}
-                </>
-              ) : null}
-              Suggested {fmtMinutes(suggested)}
-              {Number(draft.estimatedMinutes) !== suggested && (
-                <>
-                  {' · '}
-                  <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { set('estimatedMinutes', String(suggested)); set('estimateOverridden', false); }}>
-                    use suggested
-                  </button>
-                </>
-              )}
-            </span>
-          </label>
-          <label className="field">
-            <span>Start by</span>
-            <input type="date" value={draft.startByOverride} onChange={(e) => set('startByOverride', e.target.value)} />
-            {sched && (
-              <span className="hint">
-                {item.startByPlan && !draft.startByOverride && item.plan?.startBy ? (
-                  <>
-                    <span className="ai-from">AI</span> {fmtDate(item.startByPlan, 'long')} <Sure c={item.plan.startBy.confidence} />
-                    <span className="plan-why">{item.plan.startBy.why}</span>
-                  </>
-                ) : (
-                  <>Computed {fmtDate(sched.startBy, 'long')}</>
-                )}
+        {/* Read first: what it is worth, how long, when. The fields to change any of it sit behind one line. */}
+        {!isNew && (
+          <p className="hero-meta item-facts">
+            {heroFacts(item, data.items, calibrate(item).minutes, tz, today, derived[item.id]?.deadlineAt ?? null).map((f, i) => (
+              <span key={i} className="pill">
+                {f.text}
               </span>
-            )}
-          </label>
-        </div>
+            ))}
+            {sched && item.status !== 'done' && <span className="pill">start by {fmtDate(sched.startBy, 'short')}</span>}
+          </p>
+        )}
         <div className="field">
           <span>Status</span>
           <SegmentedControl
@@ -307,81 +200,403 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             onChange={(v) => set('status', v)}
           />
         </div>
-        {!isNew && (
-          <div className="field">
-            <span>Waiting on</span>
-            {item.blocked && isBlocked(item, today) ? (
-              <p className="hint">
-                {blockPhrase(item, tz)} · back on Now {fmtDate(item.blocked.until, 'short')}.{' '}
-                <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => actions.upsertItem({ ...item, blocked: null })}>
-                  it's unblocked
-                </button>
-              </p>
-            ) : (
-              <select
-                value=""
-                aria-label="Waiting on"
+        {isNew ? (
+          <>
+            <label className="field">
+              <span>Name</span>
+              <input value={draft.title} onChange={(e) => set('title', e.target.value)} required autoComplete="off" />
+            </label>
+            <label className="field">
+              <span>Short name</span>
+              <input
+                value={draft.labelOverridden ? draft.label : suggestedLabel}
                 onChange={(e) => {
-                  const r = e.target.value as BlockReason | '';
-                  if (r) actions.upsertItem({ ...item, blocked: makeBlock(r, item, course, today, tz), startedAt: null });
+                  set('label', e.target.value);
+                  set('labelOverridden', true);
                 }}
-              >
-                <option value="">Nothing — it can be done</option>
-                {BLOCK_REASONS.map((r) => (
-                  <option key={r} value={r}>
-                    {BLOCK_WORDS[r].label}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-        )}
-        <div className="field-row">
-          <label className="field">
-            <span>Score</span>
-            <input type="number" min={0} step={0.5} inputMode="decimal" value={draft.score} onChange={(e) => set('score', e.target.value)} placeholder="Not graded" />
-          </label>
-          <div className="field">
-            <span>Flags</span>
-            <div style={{ display: 'flex', gap: 12, minHeight: 44, alignItems: 'center' }}>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={draft.inClass} onChange={(e) => set('inClass', e.target.checked)} /> In class
+                autoComplete="off"
+                maxLength={40}
+              />
+              <span className="hint">
+                {draft.labelOverridden && draft.label.trim() !== suggestedLabel ? (
+                  <>
+                    Suggested "{suggestedLabel}" ·{' '}
+                    <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { set('label', suggestedLabel); set('labelOverridden', false); }}>
+                      use suggested
+                    </button>
+                  </>
+                ) : (
+                  'Shown on Now, the calendar and in lists; the name stays as the subtitle.'
+                )}
+              </span>
+            </label>
+            <div className="field-row">
+              <label className="field">
+                <span>Class</span>
+                <select value={draft.courseId} onChange={(e) => set('courseId', e.target.value)}>
+                  {data.courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code}
+                    </option>
+                  ))}
+                </select>
               </label>
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={draft.group} onChange={(e) => set('group', e.target.checked)} /> Group
+              <label className="field">
+                <span>Type</span>
+                <select value={draft.type} onChange={(e) => set('type', e.target.value as ItemType)}>
+                  {ITEM_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {TYPE_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
-          </div>
-        </div>
-        <label className="field">
-          <span>Notes</span>
-          <textarea value={draft.notes} onChange={(e) => set('notes', e.target.value)} />
-        </label>
-        {sched && (
-          <p className="hint mono">
-            Due {fmtDate(dateOf(item.dueAt, tz), 'long')}
-            {inference ? ` · really ${fmtDate(dateOf(inference.deadlineAt, tz), 'long')}` : ''} · start by {fmtDate(sched.startBy, 'long')}
-            {inference ? ` · ${inference.reasons.join('; ')}` : ''}
-          </p>
-        )}
-        {item.topic && <p className="hint">{item.topic}</p>}
-        {item.status === 'done' && (
-          <p className="hint">
-            Actually took{' '}
-            <input
-              type="number"
-              min={0}
-              className="inline-num"
-              aria-label="Minutes it actually took"
-              defaultValue={item.actualMinutes ?? ''}
-              placeholder="min"
-              onBlur={(e) => {
-                const n = Number(e.target.value);
-                if (e.target.value !== '' && Number.isFinite(n) && n >= 0 && n !== (item.actualMinutes ?? null)) actions.logActual(item.id, n || null);
-              }}
-            />{' '}
-            minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
-          </p>
+            <div className="field-row">
+              <label className="field">
+                <span>Due date</span>
+                <input type="date" value={draft.dueDate} onChange={(e) => set('dueDate', e.target.value)} required />
+              </label>
+              <label className="field">
+                <span>Due time</span>
+                <input type="time" value={draft.dueTime} onChange={(e) => set('dueTime', e.target.value)} />
+              </label>
+            </div>
+            <div className="field-row">
+              <label className="field">
+                <span>Opens</span>
+                <input type="date" value={draft.opensDate} onChange={(e) => set('opensDate', e.target.value)} />
+              </label>
+              <label className="field">
+                <span>Points</span>
+                <input type="number" min={0} step={1} inputMode="numeric" value={draft.points} onChange={(e) => set('points', e.target.value)} />
+              </label>
+            </div>
+            <div className="field-row">
+              <label className="field">
+                <span>Time it takes, minutes</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={15}
+                  inputMode="numeric"
+                  value={draft.estimatedMinutes}
+                  onChange={(e) => {
+                    set('estimatedMinutes', e.target.value);
+                    set('estimateOverridden', true);
+                  }}
+                />
+                <span className="hint">
+                  {item.plan?.minutes && !draft.estimateOverridden && Number(draft.estimatedMinutes) === item.plan.minutes.value ? (
+                    <>
+                      <span className="ai-from">AI</span> {item.plan.minutes.why} <Sure c={item.plan.minutes.confidence} />
+                      {' · '}
+                    </>
+                  ) : null}
+                  Suggested {fmtMinutes(suggested)}
+                  {Number(draft.estimatedMinutes) !== suggested && (
+                    <>
+                      {' · '}
+                      <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { set('estimatedMinutes', String(suggested)); set('estimateOverridden', false); }}>
+                        use suggested
+                      </button>
+                    </>
+                  )}
+                </span>
+              </label>
+              <label className="field">
+                <span>Start by</span>
+                <input type="date" value={draft.startByOverride} onChange={(e) => set('startByOverride', e.target.value)} />
+                {sched && (
+                  <span className="hint">
+                    {item.startByPlan && !draft.startByOverride && item.plan?.startBy ? (
+                      <>
+                        <span className="ai-from">AI</span> {fmtDate(item.startByPlan, 'long')} <Sure c={item.plan.startBy.confidence} />
+                        <span className="plan-why">{item.plan.startBy.why}</span>
+                      </>
+                    ) : (
+                      <>Computed {fmtDate(sched.startBy, 'long')}</>
+                    )}
+                  </span>
+                )}
+              </label>
+            </div>
+            {!isNew && (
+              <div className="field">
+                <span>Waiting on</span>
+                {item.blocked && isBlocked(item, today) ? (
+                  <p className="hint">
+                    {blockPhrase(item, tz)} · back on Now {fmtDate(item.blocked.until, 'short')}.{' '}
+                    <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => actions.upsertItem({ ...item, blocked: null })}>
+                      it's unblocked
+                    </button>
+                  </p>
+                ) : (
+                  <select
+                    value=""
+                    aria-label="Waiting on"
+                    onChange={(e) => {
+                      const r = e.target.value as BlockReason | '';
+                      if (r) actions.upsertItem({ ...item, blocked: makeBlock(r, item, course, today, tz), startedAt: null });
+                    }}
+                  >
+                    <option value="">Nothing — it can be done</option>
+                    {BLOCK_REASONS.map((r) => (
+                      <option key={r} value={r}>
+                        {BLOCK_WORDS[r].label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+            <div className="field-row">
+              <label className="field">
+                <span>Score</span>
+                <input type="number" min={0} step={0.5} inputMode="decimal" value={draft.score} onChange={(e) => set('score', e.target.value)} placeholder="Not graded" />
+              </label>
+              <div className="field">
+                <span>Flags</span>
+                <div style={{ display: 'flex', gap: 12, minHeight: 44, alignItems: 'center' }}>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input type="checkbox" checked={draft.inClass} onChange={(e) => set('inClass', e.target.checked)} /> In class
+                  </label>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input type="checkbox" checked={draft.group} onChange={(e) => set('group', e.target.checked)} /> Group
+                  </label>
+                </div>
+              </div>
+            </div>
+            <label className="field">
+              <span>Notes</span>
+              <textarea value={draft.notes} onChange={(e) => set('notes', e.target.value)} />
+            </label>
+            {sched && (
+              <p className="hint mono">
+                Due {fmtDate(dateOf(item.dueAt, tz), 'long')}
+                {inference ? ` · really ${fmtDate(dateOf(inference.deadlineAt, tz), 'long')}` : ''} · start by {fmtDate(sched.startBy, 'long')}
+                {inference ? ` · ${inference.reasons.join('; ')}` : ''}
+              </p>
+            )}
+            {item.topic && <p className="hint">{item.topic}</p>}
+            {item.status === 'done' && (
+              <p className="hint">
+                Actually took{' '}
+                <input
+                  type="number"
+                  min={0}
+                  className="inline-num"
+                  aria-label="Minutes it actually took"
+                  defaultValue={item.actualMinutes ?? ''}
+                  placeholder="min"
+                  onBlur={(e) => {
+                    const n = Number(e.target.value);
+                    if (e.target.value !== '' && Number.isFinite(n) && n >= 0 && n !== (item.actualMinutes ?? null)) actions.logActual(item.id, n || null);
+                  }}
+                />{' '}
+                minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
+              </p>
+            )}
+          </>
+        ) : (
+          <details className="item-edit">
+            <summary>Edit details</summary>
+            <label className="field">
+              <span>Name</span>
+              <input value={draft.title} onChange={(e) => set('title', e.target.value)} required autoComplete="off" />
+            </label>
+            <label className="field">
+              <span>Short name</span>
+              <input
+                value={draft.labelOverridden ? draft.label : suggestedLabel}
+                onChange={(e) => {
+                  set('label', e.target.value);
+                  set('labelOverridden', true);
+                }}
+                autoComplete="off"
+                maxLength={40}
+              />
+              <span className="hint">
+                {draft.labelOverridden && draft.label.trim() !== suggestedLabel ? (
+                  <>
+                    Suggested "{suggestedLabel}" ·{' '}
+                    <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { set('label', suggestedLabel); set('labelOverridden', false); }}>
+                      use suggested
+                    </button>
+                  </>
+                ) : (
+                  'Shown on Now, the calendar and in lists; the name stays as the subtitle.'
+                )}
+              </span>
+            </label>
+            <div className="field-row">
+              <label className="field">
+                <span>Class</span>
+                <select value={draft.courseId} onChange={(e) => set('courseId', e.target.value)}>
+                  {data.courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Type</span>
+                <select value={draft.type} onChange={(e) => set('type', e.target.value as ItemType)}>
+                  {ITEM_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {TYPE_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="field-row">
+              <label className="field">
+                <span>Due date</span>
+                <input type="date" value={draft.dueDate} onChange={(e) => set('dueDate', e.target.value)} required />
+              </label>
+              <label className="field">
+                <span>Due time</span>
+                <input type="time" value={draft.dueTime} onChange={(e) => set('dueTime', e.target.value)} />
+              </label>
+            </div>
+            <div className="field-row">
+              <label className="field">
+                <span>Opens</span>
+                <input type="date" value={draft.opensDate} onChange={(e) => set('opensDate', e.target.value)} />
+              </label>
+              <label className="field">
+                <span>Points</span>
+                <input type="number" min={0} step={1} inputMode="numeric" value={draft.points} onChange={(e) => set('points', e.target.value)} />
+              </label>
+            </div>
+            <div className="field-row">
+              <label className="field">
+                <span>Time it takes, minutes</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={15}
+                  inputMode="numeric"
+                  value={draft.estimatedMinutes}
+                  onChange={(e) => {
+                    set('estimatedMinutes', e.target.value);
+                    set('estimateOverridden', true);
+                  }}
+                />
+                <span className="hint">
+                  {item.plan?.minutes && !draft.estimateOverridden && Number(draft.estimatedMinutes) === item.plan.minutes.value ? (
+                    <>
+                      <span className="ai-from">AI</span> {item.plan.minutes.why} <Sure c={item.plan.minutes.confidence} />
+                      {' · '}
+                    </>
+                  ) : null}
+                  Suggested {fmtMinutes(suggested)}
+                  {Number(draft.estimatedMinutes) !== suggested && (
+                    <>
+                      {' · '}
+                      <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => { set('estimatedMinutes', String(suggested)); set('estimateOverridden', false); }}>
+                        use suggested
+                      </button>
+                    </>
+                  )}
+                </span>
+              </label>
+              <label className="field">
+                <span>Start by</span>
+                <input type="date" value={draft.startByOverride} onChange={(e) => set('startByOverride', e.target.value)} />
+                {sched && (
+                  <span className="hint">
+                    {item.startByPlan && !draft.startByOverride && item.plan?.startBy ? (
+                      <>
+                        <span className="ai-from">AI</span> {fmtDate(item.startByPlan, 'long')} <Sure c={item.plan.startBy.confidence} />
+                        <span className="plan-why">{item.plan.startBy.why}</span>
+                      </>
+                    ) : (
+                      <>Computed {fmtDate(sched.startBy, 'long')}</>
+                    )}
+                  </span>
+                )}
+              </label>
+            </div>
+            {!isNew && (
+              <div className="field">
+                <span>Waiting on</span>
+                {item.blocked && isBlocked(item, today) ? (
+                  <p className="hint">
+                    {blockPhrase(item, tz)} · back on Now {fmtDate(item.blocked.until, 'short')}.{' '}
+                    <button type="button" className="muted" style={{ textDecoration: 'underline' }} onClick={() => actions.upsertItem({ ...item, blocked: null })}>
+                      it's unblocked
+                    </button>
+                  </p>
+                ) : (
+                  <select
+                    value=""
+                    aria-label="Waiting on"
+                    onChange={(e) => {
+                      const r = e.target.value as BlockReason | '';
+                      if (r) actions.upsertItem({ ...item, blocked: makeBlock(r, item, course, today, tz), startedAt: null });
+                    }}
+                  >
+                    <option value="">Nothing — it can be done</option>
+                    {BLOCK_REASONS.map((r) => (
+                      <option key={r} value={r}>
+                        {BLOCK_WORDS[r].label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+            <div className="field-row">
+              <label className="field">
+                <span>Score</span>
+                <input type="number" min={0} step={0.5} inputMode="decimal" value={draft.score} onChange={(e) => set('score', e.target.value)} placeholder="Not graded" />
+              </label>
+              <div className="field">
+                <span>Flags</span>
+                <div style={{ display: 'flex', gap: 12, minHeight: 44, alignItems: 'center' }}>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input type="checkbox" checked={draft.inClass} onChange={(e) => set('inClass', e.target.checked)} /> In class
+                  </label>
+                  <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input type="checkbox" checked={draft.group} onChange={(e) => set('group', e.target.checked)} /> Group
+                  </label>
+                </div>
+              </div>
+            </div>
+            <label className="field">
+              <span>Notes</span>
+              <textarea value={draft.notes} onChange={(e) => set('notes', e.target.value)} />
+            </label>
+            {sched && (
+              <p className="hint mono">
+                Due {fmtDate(dateOf(item.dueAt, tz), 'long')}
+                {inference ? ` · really ${fmtDate(dateOf(inference.deadlineAt, tz), 'long')}` : ''} · start by {fmtDate(sched.startBy, 'long')}
+                {inference ? ` · ${inference.reasons.join('; ')}` : ''}
+              </p>
+            )}
+            {item.topic && <p className="hint">{item.topic}</p>}
+            {item.status === 'done' && (
+              <p className="hint">
+                Actually took{' '}
+                <input
+                  type="number"
+                  min={0}
+                  className="inline-num"
+                  aria-label="Minutes it actually took"
+                  defaultValue={item.actualMinutes ?? ''}
+                  placeholder="min"
+                  onBlur={(e) => {
+                    const n = Number(e.target.value);
+                    if (e.target.value !== '' && Number.isFinite(n) && n >= 0 && n !== (item.actualMinutes ?? null)) actions.logActual(item.id, n || null);
+                  }}
+                />{' '}
+                minutes. Used to size future {TYPE_LABELS[item.type].toLowerCase()} in this class.
+              </p>
+            )}
+          </details>
         )}
         {!isNew && item.plan && (item.plan.asks || item.plan.prerequisites.some((p) => !p.itemId) || item.plan.sources.length > 0) && (
           <div className="plan-block">
@@ -486,7 +701,8 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         )}
         {!isNew && (
           <details className="unlocks">
-            <summary className="hint">Unlocks {item.blocks?.length ? `${item.blocks.length} item${item.blocks.length === 1 ? '' : 's'}` : 'nothing'} — a small task that gates bigger work carries its urgency</summary>
+            <summary className="hint">{item.blocks?.length ? `Unlocks ${item.blocks.length} item${item.blocks.length === 1 ? '' : 's'}` : 'Unlocks nothing yet'}</summary>
+            <p className="hint">Tick anything that cannot start until this is done. A small task that holds up bigger work is treated as urgent.</p>
             <ul className="unlocks-list">
               {data.items
                 .filter((o) => o.id !== item.id && o.courseId === item.courseId && o.status !== 'done')

@@ -2322,3 +2322,43 @@
   border-radius: 5px;
   padding: 0 5px;
 }
+
+/* ---- the item sheet: facts first, the fields behind one line ---- */
+.item-facts {
+  margin: 0 0 var(--s-2);
+}
+.item-edit {
+  margin: var(--s-2) 0 0;
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-2);
+}
+.item-edit > summary {
+  cursor: pointer;
+  list-style: none;
+  font: var(--t-small);
+  font-weight: 600;
+  color: var(--accent-text);
+  padding: 8px 0;
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.item-edit > summary::-webkit-details-marker {
+  display: none;
+}
+.item-edit > summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--dur-1) var(--ease);
+}
+.item-edit[open] > summary::before {
+  transform: rotate(45deg);
+}
+.item-edit[open] > summary {
+  margin-bottom: var(--s-2);
+}
