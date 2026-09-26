@@ -48,6 +48,13 @@ describe('rankItems', () => {
     const items = [later, soonShort, done, soonLong, overdue];
     expect(rankItems(items, sched(items), NOW, TZ).map((i) => i.id)).toEqual(['overdue', 'soonLong', 'soonShort', 'later']);
   });
+  it('among late things, the one worth the most comes first, then the oldest', () => {
+    const oldPost = item({ id: 'oldPost', dueAt: '2026-09-01T23:59:00-07:00', points: 5 });
+    const newerPost = item({ id: 'newerPost', dueAt: '2026-09-05T23:59:00-07:00', points: 5 });
+    const lab = item({ id: 'lab', dueAt: '2026-09-07T23:59:00-07:00', points: 50 });
+    const items = [newerPost, oldPost, lab];
+    expect(rankItems(items, sched(items), NOW, TZ).map((i) => i.id)).toEqual(['lab', 'oldPost', 'newerPost']);
+  });
   it('breaks equal deadline and estimate by points', () => {
     const a = item({ id: 'a', points: 5 });
     const b = item({ id: 'b', points: 50 });

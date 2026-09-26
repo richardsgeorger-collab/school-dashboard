@@ -17,7 +17,7 @@ const isSnoozed = (i: Item, today: DateStr) => !!i.snoozedUntil && i.snoozedUnti
 export const isBlocked = (i: Item, today: DateStr) => !!i.blocked && i.blocked.until > today;
 
 /**
- * What to do next: overdue first (by the real due date), then the derived deadline,
+ * What to do next: overdue first (the biggest late thing, then the oldest), then the derived deadline,
  * then the longer job, then the bigger one. Snoozed items sink to the back; done are excluded.
  */
 export function rankItems(items: Item[], schedule: Schedule, now: string, tz: string): Item[] {
@@ -44,6 +44,9 @@ export function rankItems(items: Item[], schedule: Schedule, now: string, tz: st
       const ao = ms(a.dueAt) < nowMs ? 0 : 1;
       const bo = ms(b.dueAt) < nowMs ? 0 : 1;
       if (ao !== bo) return ao - bo;
+      // Among late things, the one worth the most comes first: a late 50-point lab before a late 5-point post, so
+      // a student with a backlog of small posts is not shown the oldest of them while the big one waits.
+      if (ao === 0 && pts(a) !== pts(b)) return pts(b) - pts(a);
       if (ao === 0 && a.dueAt !== b.dueAt) return a.dueAt.localeCompare(b.dueAt);
       const att = attention(a).localeCompare(attention(b));
       if (att !== 0) return att;
