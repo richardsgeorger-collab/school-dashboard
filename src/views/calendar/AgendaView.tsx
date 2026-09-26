@@ -2,94 +2,87 @@ import { useMemo, useState } from 'react';
 import { EmptyState } from '../../components/EmptyState';
 import { ItemRow } from '../../components/ItemRow';
 import { addDays, dateOf, fmtDate, fmtMinutes, fmtTime } from '../../domain/dates';
-import { cleanAll, instanceParts } from '../../domain/reqClean';
+import { unlocks } from '../../domain/gating';
+import { cleanAll, foldReadings, instanceParts, referenceParts } from '../../domain/reqClean';
 import { isNoise } from '../../domain/requirements';
 import type { DateStr, Item, Requirement } from '../../domain/types';
 import { useStore } from '../../storage/store';
 
-const DAYS_AHEAD = 60;
-const WEEK = 7;
+const WEEKS_SHOWN = 14;
+const LATER_DAYS = 60;
 
 /**
- * One day, four things, in this order: what to do, participation compacted, what is already done folded away, and
- * nothing else. Requirements live inside the assignment they belong to rather than in a list of prose underneath,
- * because a part about APA Quiz 1 is only useful next to APA Quiz 1.
+ * Two weeks of days, one collapsed row per item, then "Later" as titles only. A row is the checkbox, the title,
+ * the class dot, the due time, the points and "3 of 8" when it has parts; a tap opens the parts, the notes and what
+ * it unlocks. Attendance-only participation is not on the agenda at all. Done rows fold away under their day.
  */
 export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items: Item[]; onOpen: (i: Item) => void }) {
   const { data, schedule, today } = useStore();
   const tz = data.settings.timezone;
-  const [wide, setWide] = useState(false);
   const [openDone, setOpenDone] = useState<Record<string, boolean>>({});
-  const end = addDays(from, wide ? DAYS_AHEAD : WEEK - 1);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const end = addDays(from, WEEKS_SHOWN - 1);
+  const laterEnd = addDays(from, LATER_DAYS);
 
-  // Duplicates collapsed, restatements dropped and class rules set aside before anything reaches the screen.
-  const items = useMemo(() => cleanAll(raw).items, [raw]);
-  const codeOf = useMemo(() => new Map(data.courses.map((c) => [c.id, c.code])), [data.courses]);
+  // Duplicates collapsed, restatements dropped, class rules set aside, overlapping readings folded, before anything
+  // reaches the screen.
+  const items = useMemo(() => foldReadings(cleanAll(raw).items), [raw]);
 
   const overdue = useMemo(
-    () => (from === today ? items.filter((i) => i.status !== 'done' && schedule.byItem[i.id]?.risk === 'overdue').sort((a, b) => a.dueAt.localeCompare(b.dueAt)) : []),
+    () => (from === today ? items.filter((i) => i.status !== 'done' && !isNoise(i) && schedule.byItem[i.id]?.risk === 'overdue').sort((a, b) => a.dueAt.localeCompare(b.dueAt)) : []),
     [items, schedule, from, today],
   );
 
-  const days = useMemo(() => {
+  const { days, later } = useMemo(() => {
     const m = new Map<DateStr, Item[]>();
+    const after: Item[] = [];
     for (const i of [...items].sort((a, b) => a.dueAt.localeCompare(b.dueAt))) {
       const d = dateOf(i.dueAt, tz);
-      if (d < from || d > end) continue;
+      if (d < from || d > laterEnd) continue;
+      if (d > end) {
+        if (i.status !== 'done' && !isNoise(i)) after.push(i);
+        continue;
+      }
       m.set(d, [...(m.get(d) ?? []), i]);
     }
-    return [...m.entries()].map(([day, all]) => {
+    const days = [...m.entries()].map(([day, all]) => {
       const done = all.filter((i) => i.status === 'done');
-      const open = all.filter((i) => i.status !== 'done');
-      // Attendance-only participation is compacted; participation that says what earns the points is real work.
-      const quiet = open.filter((i) => isNoise(i));
-      const work = open.filter((i) => !isNoise(i));
-      // What this day's open work is estimated to take, not what the planner spread across it.
+      const work = all.filter((i) => i.status !== 'done' && !isNoise(i));
       const minutes = work.reduce((n, i) => n + (i.estimatedMinutes ?? 0), 0);
-      return { day, work, quiet, done, minutes };
+      return { day, work, done, minutes };
     });
-  }, [items, tz, from, end, schedule]);
+    return { days, later: after };
+  }, [items, tz, from, end, laterEnd]);
+
+  const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
 
   return (
     <div className="agenda">
       {overdue.length > 0 && (
         <section className="day-group">
-          <div className="day-group-head">
-            <b style={{ color: 'var(--overdue)' }}>Overdue</b>
+          <div className="day-group-head" data-tone="late">
+            <b>Late</b>
             <span>{overdue.length}</span>
           </div>
           <ul className="item-list">
             {overdue.map((i) => (
-              <AgendaItem key={i.id} item={i} onOpen={onOpen} tz={tz} today={today} />
+              <AgendaItem key={i.id} item={i} open={expanded === i.id} onToggle={() => toggle(i.id)} onOpen={onOpen} tz={tz} today={today} />
             ))}
           </ul>
         </section>
       )}
-      {days.length === 0 && <EmptyState>Nothing due in the next {DAYS_AHEAD} days.</EmptyState>}
-      {days.map(({ day, work, quiet, done, minutes }) => (
+      {days.length === 0 && later.length === 0 && <EmptyState>Nothing due in the next {LATER_DAYS} days.</EmptyState>}
+      {days.map(({ day, work, done, minutes }) => (
         <section key={day} className="day-group">
           <div className="day-group-head" data-today={day === today}>
             <b>{day === today ? 'Today' : fmtDate(day, 'long')}</b>
-            <span>{work.length === 0 ? 'nothing to do' : `${work.length} to do`}</span>
+            <span>{work.length === 0 ? (done.length ? 'all done' : 'nothing due') : `${work.length} due`}</span>
             {minutes > 0 && <span className="muted">about {fmtMinutes(minutes)}</span>}
           </div>
           {work.length > 0 && (
-            <ul className="item-list" style={{ marginTop: 6 }}>
+            <ul className="item-list">
               {work.map((i) => (
-                <AgendaItem key={i.id} item={i} onOpen={onOpen} tz={tz} today={today} />
-              ))}
-            </ul>
-          )}
-          {quiet.length > 0 && (
-            <ul className="quiet-list">
-              {quiet.map((i) => (
-                <li key={i.id}>
-                  <button type="button" className="quiet-row" onClick={() => onOpen(i)}>
-                    <span className="quiet-code mono">{codeOf.get(i.courseId)}</span>
-                    <span>participation</span>
-                    <span className="mono muted">{i.points} pts</span>
-                  </button>
-                </li>
+                <AgendaItem key={i.id} item={i} open={expanded === i.id} onToggle={() => toggle(i.id)} onOpen={onOpen} tz={tz} today={today} />
               ))}
             </ul>
           )}
@@ -101,7 +94,7 @@ export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items:
               {openDone[day] && (
                 <ul className="item-list" style={{ marginTop: 6 }}>
                   {done.map((i) => (
-                    <ItemRow key={i.id} item={i} onOpen={onOpen} />
+                    <ItemRow key={i.id} item={i} onOpen={onOpen} dateless compact />
                   ))}
                 </ul>
               )}
@@ -109,48 +102,84 @@ export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items:
           )}
         </section>
       ))}
-      <p className="hint" style={{ marginTop: 10 }}>
-        <button type="button" className="diff-toggle" onClick={() => setWide((w) => !w)}>
-          {wide ? 'Just the next seven days' : `Show the next ${DAYS_AHEAD} days`}
-        </button>
-      </p>
+      {later.length > 0 && (
+        <section className="day-group later">
+          <div className="day-group-head">
+            <b>Later</b>
+            <span>{later.length}</span>
+          </div>
+          <ul className="later-list">
+            {later.map((i) => (
+              <li key={i.id}>
+                <button type="button" className="later-row" onClick={() => onOpen(i)}>
+                  <span className="dot" style={{ '--course': data.courses.find((c) => c.id === i.courseId)?.color } as React.CSSProperties} />
+                  <span className="later-title">{i.label}</span>
+                  <span className="later-when">{fmtDate(dateOf(i.dueAt, tz), 'short')}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
 
-/** An assignment with its own parts folded in underneath it, tickable where they sit. */
-function AgendaItem({ item, onOpen, tz, today }: { item: Item; onOpen: (i: Item) => void; tz: string; today: DateStr }) {
-  const { actions } = useStore();
-  const parts = instanceParts(item).filter((r) => !r.done);
-  const ticked = (item.requirements ?? []).filter((r) => (r.scope ?? 'instance') === 'instance' && r.done).length;
-  const toggle = (r: Requirement) =>
+/** One collapsed row; open, it shows the parts to tick, the notes, and what it unlocks. */
+function AgendaItem({ item, open, onToggle, onOpen, tz, today }: { item: Item; open: boolean; onToggle: () => void; onOpen: (i: Item) => void; tz: string; today: DateStr }) {
+  const { actions, data, schedule } = useStore();
+  const parts = instanceParts(item);
+  const notes = referenceParts(item);
+  const todo = parts.filter((r) => !r.done);
+  const gated = unlocks(item, data.items);
+  const tick = (r: Requirement) =>
     actions.upsertItem({ ...item, requirements: (item.requirements ?? []).map((x) => (x.id === r.id ? { ...x, done: !x.done, doneAt: x.done ? null : new Date().toISOString() } : x)) });
+  const hasMore = parts.length > 0 || notes.length > 0 || gated.length > 0;
+  const startBy = schedule.byItem[item.id]?.startBy;
 
   return (
-    <li className="agenda-item">
-      <ItemRow item={item} onOpen={onOpen} showStart dateless />
-      {parts.length > 0 && (
-        <ul className="part-list" aria-label="Also required">
-          {parts.map((r) => {
-            const own = r.dueAt && dateOf(r.dueAt, tz) !== dateOf(item.dueAt, tz);
-            const late = r.dueAt && dateOf(r.dueAt, tz) < today;
-            return (
-              <li key={r.id} data-late={!!late}>
-                <label className="part-row">
-                  <input type="checkbox" checked={false} onChange={() => toggle(r)} />
-                  <span>{r.text}</span>
-                </label>
-                {own && (
-                  <span className="mono muted part-when">
-                    {late ? 'was due ' : 'due '}
-                    {fmtDate(dateOf(r.dueAt!, tz), 'short')} {fmtTime(r.dueAt!, tz)}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-          {ticked > 0 && <li className="part-done mono muted">{ticked} part{ticked === 1 ? '' : 's'} done</li>}
-        </ul>
+    <li className="agenda-item" data-open={open}>
+      <ItemRow item={item} onOpen={hasMore ? () => onToggle() : onOpen} dateless compact progress={parts.length > 0 ? { done: parts.length - todo.length, total: parts.length } : null} />
+      {open && (
+        <div className="agenda-detail">
+          {todo.length > 0 && (
+            <ul className="part-list" aria-label="Parts">
+              {todo.map((r) => {
+                const own = r.dueAt && dateOf(r.dueAt, tz) !== dateOf(item.dueAt, tz);
+                const late = r.dueAt && dateOf(r.dueAt, tz) < today;
+                return (
+                  <li key={r.id} data-late={!!late}>
+                    <label className="part-row">
+                      <input type="checkbox" checked={false} onChange={() => tick(r)} />
+                      <span>{r.text}</span>
+                    </label>
+                    {own && (
+                      <span className="part-when">
+                        {late ? 'was due ' : 'due '}
+                        {fmtDate(dateOf(r.dueAt!, tz), 'short')} {fmtTime(r.dueAt!, tz)}
+                      </span>
+                    )}
+                    {r.source.quote && (
+                      <a className="part-source" href={r.source.kind === 'announcement' && r.source.id ? `#/inbox?a=${r.source.id}` : undefined} title={r.source.quote}>
+                        source
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {notes.map((n) => (
+            <p key={n.id} className="part-note" title={n.source.quote ?? undefined}>
+              {n.text}
+            </p>
+          ))}
+          {gated.length > 0 && <p className="part-note">Unlocks {gated.map((g) => g.label).join(', ')}.</p>}
+          {startBy && startBy > today && <p className="part-note">Start by {fmtDate(startBy, 'short')}.</p>}
+          <button type="button" className="agenda-open" onClick={() => onOpen(item)}>
+            Open
+          </button>
+        </div>
       )}
     </li>
   );

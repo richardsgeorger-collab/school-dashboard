@@ -14,7 +14,7 @@ export interface Fact {
 }
 
 /** Points, time, due date, what it feeds, what goes through LopesWrite. In that order, only what applies. */
-export function heroFacts(item: Item, items: Item[], minutes: number, tz: string, today: DateStr): Fact[] {
+export function heroFacts(item: Item, items: Item[], minutes: number, tz: string, today: DateStr, finishBy?: string | null): Fact[] {
   const out: Fact[] = [];
   if (item.points > 0) out.push({ text: `${item.points} pts` });
   out.push({ text: `~${fmtMinutes(minutes)}` });
@@ -23,6 +23,12 @@ export function heroFacts(item: Item, items: Item[], minutes: number, tz: string
   const k = diffDays(today, d);
   const when = k === 0 ? 'today' : k === 1 ? 'tomorrow' : k < 0 ? `was ${fmtDate(d, 'short')}` : fmtDate(d, 'long');
   out.push({ text: `due ${when}${time !== '11:59 PM' ? ` ${time}` : ''}` });
+  // A derived deadline (LopesWrite processing, a class the day before) is a second chip, so the why line and the
+  // chips name the same day.
+  if (finishBy) {
+    const f = dateOf(finishBy, tz);
+    if (f < d) out.push({ text: `finish by ${diffDays(today, f) === 0 ? 'today' : diffDays(today, f) === 1 ? 'tomorrow' : fmtDate(f, 'short')}` });
+  }
   const feeds = item.plan?.feeds ? items.find((i) => i.id === item.plan!.feeds) : null;
   if (feeds) out.push({ text: `feeds ${feeds.label}`, itemId: feeds.id });
   else if (item.blocks?.length) {

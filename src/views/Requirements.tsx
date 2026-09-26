@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { gradedOpen, partsLine } from '../domain/requirements';
 import type { ClassNote, Course, Item, Requirement } from '../domain/types';
@@ -51,9 +52,18 @@ export function Requirements({ item: passed }: { item: Item }) {
 }
 
 /** Where it came from, quoted, with a link back to the post. Nothing is attached without this. */
-export function SourceLine({ source }: { source: Requirement['source'] }) {
+export function SourceLine({ source, compact = false }: { source: Requirement['source']; compact?: boolean }) {
   if (!source.quote) return null;
   const label = source.kind === 'announcement' ? 'Your instructor posted' : source.kind === 'syllabus' ? 'The syllabus says' : 'From your notes';
+  // Compact: one word that carries the quote, and the link to the post. The full sentence is one hover or tap away.
+  if (compact) {
+    const href = source.kind === 'announcement' && source.id ? `#/inbox?a=${source.id}` : undefined;
+    return (
+      <a className="part-source" href={href} title={`${label}${source.title ? ` in "${source.title}"` : ''}: ${source.quote}`}>
+        source
+      </a>
+    );
+  }
   return (
     <span className="reqs-src hint">
       {label}
@@ -74,10 +84,20 @@ export function SourceLine({ source }: { source: Requirement['source'] }) {
  */
 export function ClassNotes({ course }: { course: Course }) {
   const { actions } = useStore();
+  const [undo, setUndo] = useState<ClassNote | null>(null);
+  useEffect(() => {
+    if (!undo) return;
+    const t = setTimeout(() => setUndo(null), 6000);
+    return () => clearTimeout(t);
+  }, [undo]);
   const notes = (course.notes ?? []).filter((n) => !n.seenAt);
-  if (notes.length === 0) return null;
-  const dismiss = (n: ClassNote) =>
-    actions.upsertCourse({ ...course, notes: (course.notes ?? []).map((x) => (x.id === n.id ? { ...x, seenAt: new Date().toISOString() } : x)) });
+  const mark = (n: ClassNote, seenAt: string | null) => actions.upsertCourse({ ...course, notes: (course.notes ?? []).map((x) => (x.id === n.id ? { ...x, seenAt } : x)) });
+  // "Got it" hides the note; for six seconds one tap brings it back.
+  const dismiss = (n: ClassNote) => {
+    mark(n, new Date().toISOString());
+    setUndo(n);
+  };
+  if (notes.length === 0 && !undo) return <p className="hint">Nothing worth knowing beyond the assignments themselves.</p>;
   return (
     <section className="card class-notes" aria-label="Worth knowing in this class">
       <h2 className="section-title">Worth knowing</h2>
@@ -85,13 +105,28 @@ export function ClassNotes({ course }: { course: Course }) {
         {notes.map((n) => (
           <li key={n.id}>
             <span className="reqs-text">{n.text}</span>
-            <SourceLine source={n.source} />
+            <SourceLine source={n.source} compact />
             <button type="button" className="muted reqs-dismiss" onClick={() => dismiss(n)}>
-              got it
+              Got it
             </button>
           </li>
         ))}
       </ul>
+      {undo && (
+        <p className="undo-line" role="status">
+          Hidden.{' '}
+          <button
+            type="button"
+            className="hero-inline"
+            onClick={() => {
+              mark(undo, null);
+              setUndo(null);
+            }}
+          >
+            Undo
+          </button>
+        </p>
+      )}
     </section>
   );
 }

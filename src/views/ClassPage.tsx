@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ClassNotes } from './Requirements';
+import { SegmentedControl } from '../components/SegmentedControl';
+import { cleanAll, foldReadings, rulesFor } from '../domain/reqClean';
 import { ClassRules } from './ClassRules';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { ItemRow } from '../components/ItemRow';
@@ -32,6 +34,7 @@ export function ClassPage() {
   const [materials, setMaterials] = useState<{ recordings: number; decks: number; syllabus: boolean } | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [paste, setPaste] = useState(false);
+  const [tab, setTab] = useState<'work' | 'rules' | 'notes'>('work');
   const [resources, setResources] = useState<StoredResource[]>([]);
   useEffect(() => {
     if (!course) return;
@@ -67,7 +70,9 @@ export function ClassPage() {
     );
   }
 
-  const items = data.items.filter((i) => i.courseId === course.id && i.type !== 'participation');
+  const items = foldReadings(data.items.filter((i) => i.courseId === course.id && i.type !== 'participation'));
+  const rules = rulesFor(cleanAll(data.items).items, course.id);
+  const notes = (course.notes ?? []).filter((n) => !n.seenAt);
   const openItems = items.filter((i) => i.status !== 'done').sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const done = items.filter((i) => i.status === 'done').sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   const next = openItems.find((i) => dateOf(i.dueAt, tz) >= today) ?? openItems[0] ?? null;
@@ -108,8 +113,6 @@ export function ClassPage() {
         </span>
       </div>
 
-      <ClassNotes course={course} />
-      <ClassRules course={course} />
       <section className="card class-next" style={{ '--course': color } as React.CSSProperties}>
         {next ? (
           <>
@@ -149,6 +152,18 @@ export function ClassPage() {
         {weak && <p className="hint">{weak}</p>}
       </section>
 
+      <SegmentedControl
+        label="Class"
+        value={tab}
+        options={[
+          { value: 'work', label: 'Work' },
+          { value: 'rules', label: `Rules${rules.length ? ` · ${rules.length}` : ''}` },
+          { value: 'notes', label: `Notes${notes.length ? ` · ${notes.length}` : ''}` },
+        ]}
+        onChange={(v) => setTab(v)}
+      />
+      {tab === 'work' && (
+        <>
       {overdue.length > 0 && (
         <section className="section">
           <h2 className="section-title">
@@ -237,6 +252,11 @@ export function ClassPage() {
           </ul>
         )}
       </section>
+
+        </>
+      )}
+      {tab === 'rules' && <ClassRules course={course} />}
+      {tab === 'notes' && <ClassNotes course={course} />}
 
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
       {paste && <PasteTranscript course={course} onClose={() => setPaste(false)} />}

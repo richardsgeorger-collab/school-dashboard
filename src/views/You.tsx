@@ -32,7 +32,7 @@ import { AiPanel } from './AiPanel';
 import { CourseEditor } from './CourseEditor';
 import { DuplicatesPanel } from './DuplicatesPanel';
 import { HaloImport } from './HaloImport';
-import { HaloPanel } from './HaloPanel';
+import { HaloDiagnostics, HaloPanel } from './HaloPanel';
 import { ImportSyllabus } from './ImportSyllabus';
 import { blankItem, ItemDetail } from './ItemDetail';
 import { SundayReview } from './SundayReview';
@@ -102,10 +102,9 @@ function AccountCard({ tier }: { tier: Tier }) {
     <section className="card settings-card" aria-label="Account">
       <h2 className="section-title">Account</h2>
       <p className="you-email">{auth.email}</p>
+      {/* The plan and the trial are one quiet line, not a coloured badge. */}
       <p className="hint">
-        <span className="plan-badge" data-tier={tier}>
-          {TIER_NAMES[tier]}
-        </span>
+        {TIER_NAMES[tier]}
         {days !== null ? ` · ${days} day${days === 1 ? '' : 's'} left on your Max trial` : ''}
         {reward !== null ? ` · Plus from a friend for ${reward} more day${reward === 1 ? '' : 's'}` : ''}
       </p>
@@ -336,9 +335,6 @@ export function You() {
       <h1 className="page-title">You</h1>
       <div className="settings-grid" key={section ?? 'none'}>
         <AccountCard tier={tier} />
-        <UsageCard />
-        <ReferralCard />
-        <FeedbackCard />
         {section === 'plan' && <Plans current={tier} highlight={highlight} />}
         <ProgressCard />
 
@@ -480,7 +476,12 @@ export function You() {
           <p className="hint">Tap a class to edit its code, name, instructor, meeting times, or online status, or to delete it.</p>
         </Group>
 
+        <ReferralCard />
+        <FeedbackCard />
+        <UsageCard />
+
         <Group id="advanced" title="Advanced" open={section === 'advanced'}>
+          <HaloDiagnostics />
           <div className="settings-actions">
             <button type="button" className="btn" onClick={() => setImporting(true)}>
               Import a syllabus PDF

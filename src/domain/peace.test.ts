@@ -23,7 +23,7 @@ describe('submission confirmation from Halo', () => {
     expect(clear.line).toBe('Halo shows all 2 items due this week submitted.');
     expect(clear.level).toBe('quiet');
     const part = submissionCheck([done('a', '2026-09-10', { status: 'SUBMITTED', submittedAt: at('2026-09-10') }), done('b', '2026-09-12', null)], today, TZ);
-    expect(part.line).toBe('1 of 2 items due this week confirmed in Halo; 1 not asked since Sep 12.');
+    expect(part.line).toBe("1 thing you finished this week isn't confirmed as submitted in Halo yet (last checked Sep 12). Sync to check.");
     expect(part.level).toBe('amber');
     const bad = submissionCheck([done('a', '2026-09-10', { status: 'ACTIVE', submittedAt: null })], today, TZ);
     expect(bad.mismatches.map((i) => i.id)).toEqual(['a']);

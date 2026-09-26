@@ -1,12 +1,27 @@
-/** One ring, one number. Progress for the day; full means done, and it says so in colour. */
-export function Ring({ value, max, label }: { value: number; max: number; label?: string }) {
+/**
+ * One ring, one number. The arc draws itself on load (700ms, off under reduced motion) and fills with a gradient
+ * of the accent; full means done and it says so in colour. `text` puts a value in the middle for a grade tile.
+ */
+export function Ring({ value, max, label, text, size = 44 }: { value: number; max: number; label?: string; text?: string; size?: number }) {
   const r = 18;
   const c = 2 * Math.PI * r;
   const pct = max > 0 ? Math.min(1, value / max) : 0;
+  const offset = c * (1 - pct);
   return (
-    <svg data-viz="" className="ring" viewBox="0 0 44 44" role="img" aria-label={label ?? `${value} of ${max}`} data-done={max > 0 && value >= max}>
+    <svg data-viz="" className="ring" viewBox="0 0 44 44" width={size} height={size} role="img" aria-label={label ?? `${value} of ${max}`} data-done={max > 0 && value >= max}>
+      <defs>
+        <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="var(--accent)" />
+          <stop offset="1" stopColor="var(--halo)" />
+        </linearGradient>
+      </defs>
       <circle className="ring-track" cx="22" cy="22" r={r} />
-      <circle className="ring-fill" cx="22" cy="22" r={r} strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
+      <circle className="ring-fill" cx="22" cy="22" r={r} strokeDasharray={c} strokeDashoffset={offset} style={{ '--c': c, '--target': offset } as React.CSSProperties} />
+      {text && (
+        <text className="ring-text" x="22" y="22" textAnchor="middle" dominantBaseline="central">
+          {text}
+        </text>
+      )}
     </svg>
   );
 }

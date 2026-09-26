@@ -11,6 +11,10 @@ import { announceDb, announceStores, readAnnouncement, readLedger, readState, ty
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
+import { SegmentedControl } from '../components/SegmentedControl';
+
+type Group = 'needs' | 'info' | 'empty' | 'unread';
+const GROUP_LABEL: Record<Group, string> = { needs: 'Needs you', info: 'Info only', empty: 'Nothing in it', unread: 'Not read yet' };
 import { ReadAll } from './ReadAll';
 
 /**
@@ -32,6 +36,7 @@ export function Inbox() {
   const [review, setReview] = useState<StoredAnnouncement | null>(null);
   const [readAll, setReadAll] = useState(false);
   const [filter, setFilter] = useState<string>('all');
+  const [group, setGroup] = useState<Group | null>(null);
   const hasKey = useAiAllowed('announcementAI');
 
   const refresh = useCallback(async () => {
@@ -98,6 +103,22 @@ export function Inbox() {
     for (const s of states.values()) if (s.heal) void readLedger.put(s.heal).catch(() => undefined);
   }, [states]);
   const unreadForReqs = ledger ? [...states.values()].filter((s) => !s.read).length : 0;
+  // Four piles. What needs you leads; what was read and asks nothing is information; a post with no body is nothing.
+  const groupOf = (a: StoredAnnouncement): Group => {
+    const st = states.get(a.id);
+    if (!st || !st.read) return 'unread';
+    if ((st.count ?? 0) > 0) return 'needs';
+    return (a.text ?? '').trim().length < 80 ? 'empty' : 'info';
+  };
+  const piles = useMemo(() => {
+    const p: Record<Group, StoredAnnouncement[]> = { needs: [], info: [], empty: [], unread: [] };
+    for (const a of shown) p[groupOf(a)].push(a);
+    return p;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown, states]);
+  const order: Group[] = ['needs', 'info', 'empty', 'unread'];
+  const current: Group = group && piles[group].length ? group : (order.find((g) => piles[g].length > 0) ?? 'needs');
+  const visible = piles[current];
   const course: Course | undefined = only ? courseById.get(only) : undefined;
 
   return (
@@ -127,14 +148,25 @@ export function Inbox() {
         </div>
       </div>
       {shown.length > 0 && (
-        <p className="hint news-readall">
-          <button type="button" className="btn small primary" onClick={() => setReadAll(true)} disabled={!hasKey}>
-            Read all for what they ask
-          </button>{' '}
-          {unreadForReqs > 0
-            ? `Your next sync reads ${unreadForReqs === 1 ? 'it' : `the ${unreadForReqs} that are left`} on its own. Press this only if you want ${unreadForReqs === 1 ? 'it' : 'them'} now.`
-            : 'All read. Anything they asked for is on the assignment it belongs to.'}
-        </p>
+        <div className="news-groups">
+          <SegmentedControl
+            label="Announcements"
+            value={current}
+            options={order.filter((g) => piles[g].length > 0).map((g) => ({ value: g, label: `${GROUP_LABEL[g]} · ${piles[g].length}` }))}
+            onChange={(v) => setGroup(v)}
+          />
+          <details className="menu">
+            <summary aria-label="More">⋯</summary>
+            <div className="menu-list">
+              <button type="button" className="menu-item" onClick={() => setReadAll(true)} disabled={!hasKey}>
+                Read all for what they ask
+              </button>
+              <span className="menu-hint">
+                {unreadForReqs > 0 ? `Your next sync reads the ${unreadForReqs} left on its own.` : 'All read. Anything they asked for is on the assignment it belongs to.'}
+              </span>
+            </div>
+          </details>
+        </div>
       )}
       {note && <p className="hint news-note">{note}</p>}
       {messages.filter((m) => (only ? m.courseId === only : true) && courseById.has(m.courseId)).length > 0 && (
@@ -188,20 +220,21 @@ export function Inbox() {
         </div>
       )}
       <ul className="news-list news-announcements">
-        {shown.map((a) => {
+        {visible.map((a) => {
           const c = courseById.get(a.courseId);
           const isOpen = open === a.id;
+          const st = states.get(a.id);
+          const summary = st?.summary || a.actionsSummary;
           return (
             <li key={a.id} className="news-item" data-unread={!a.readAt} data-open={isOpen}>
               <button type="button" className="news-head" onClick={() => void toggle(a)} aria-expanded={isOpen}>
                 <span className="news-title">
-                  {/* A list of 47 titles, many of them "Attached", is not scannable. What it asks for is. */}
-                  {a.actionsSummary || a.title || '(untitled)'}
-                  {states.get(a.id)?.read && (states.get(a.id)?.count ?? 0) === 0 && <span className="news-quiet"> · nothing to do</span>}
-                  {states.get(a.id)?.read && (states.get(a.id)?.count ?? 0) > 0 && (
+                  {/* What the post asks leads; the professor's own title sits under it in small text. */}
+                  <span className="news-summary">{summary || a.title || '(untitled)'}</span>
+                  {summary && a.title && <span className="news-raw">{a.title}</span>}
+                  {st?.read && (st.count ?? 0) > 0 && (
                     <span className="news-added">
-                      {' '}
-                      · {states.get(a.id)?.count} thing{states.get(a.id)?.count === 1 ? '' : 's'} added
+                      {st.count} thing{st.count === 1 ? '' : 's'} added
                     </span>
                   )}
                 </span>

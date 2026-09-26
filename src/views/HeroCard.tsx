@@ -121,7 +121,7 @@ function SnoozeChooser({ today, deadlineDay, onPick, onClose }: { today: DateStr
 }
 
 export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip, onDone }: HeroProps) {
-  const { courseById, schedule, data, today, actions, calibrate } = useStore();
+  const { courseById, schedule, data, today, actions, calibrate, derived } = useStore();
   const tz = data.settings.timezone;
   const cal = calibrate(item);
   const course = courseById.get(item.courseId);
@@ -143,7 +143,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
   const now = new Date().toISOString();
 
   const asks = item.plan?.asks?.trim() || item.brief?.asks.join(' ') || (item.title !== item.label ? item.title : '');
-  const facts = heroFacts(item, data.items, cal.minutes, tz, today);
+  const facts = heroFacts(item, data.items, cal.minutes, tz, today, derived[item.id]?.deadlineAt ?? null);
   const fit = done ? null : fitLine(item, cal.minutes, schedule, data.courses, today, now, tz);
   const gates = done ? [] : gatedBy(item, data.items);
   const prereqs = item.plan?.prerequisites.filter((p) => !p.itemId) ?? [];

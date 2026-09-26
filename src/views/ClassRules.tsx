@@ -9,7 +9,7 @@ import { useStore } from '../storage/store';
 export function ClassRules({ course }: { course: Course }) {
   const { data } = useStore();
   const rules = rulesFor(cleanAll(data.items).items, course.id);
-  if (rules.length === 0) return null;
+  if (rules.length === 0) return <p className="hint">No standing rules found in this class's announcements yet.</p>;
   return (
     <section className="card class-rules" aria-label={`Rules for ${course.code}`}>
       <h2 className="section-title">Rules in this class</h2>
@@ -18,10 +18,16 @@ export function ClassRules({ course }: { course: Course }) {
         {rules.map((r, i) => (
           <li key={i}>
             <span className="rules-text">{r.text}</span>
-            <span className="hint mono">
+            <span className="hint">
               {r.items.length === 1 ? r.items[0] : `${r.items.length} assignments`}
-              {r.sources[0]?.title ? ` · from "${r.sources[0].title}"` : ''}
-              {r.sources.length > 1 ? ` and ${r.sources.length - 1} more post${r.sources.length - 1 === 1 ? '' : 's'}` : ''}
+              {r.sources[0]?.quote && (
+                <>
+                  {' · '}
+                  <a className="part-source" href={r.sources[0].kind === 'announcement' && r.sources[0].id ? `#/inbox?a=${r.sources[0].id}` : undefined} title={r.sources[0].quote}>
+                    source
+                  </a>
+                </>
+              )}
             </span>
           </li>
         ))}

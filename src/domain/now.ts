@@ -97,6 +97,24 @@ export function todayLine(items: Item[], schedule: Schedule, today: DateStr, now
   return `Nothing due today. Next deadline ${lowerRel(dayName(today, next))}, ${count} thing${count === 1 ? '' : 's'}.`;
 }
 
+/**
+ * The one sentence at the top of Now: "You're on track." or "2 things need you." A thing needs you when it is
+ * overdue, or due within a day and not started. The risk line ("100 pts due today, not started") can only name an
+ * item that is due within a day and not started, so whenever it speaks this line says "need you": the two cannot
+ * contradict. "Today's done." is todayDone(): everything due today done and nothing overdue.
+ */
+export function statusLine(items: Item[], today: DateStr, now: string, tz: string): { text: string; needs: number; tone: 'late' | null } {
+  const work = items.filter((i) => i.type !== 'participation' && !isNoise(i) && i.status !== 'done' && !isBlocked(i, today));
+  const nowMs = ms(now);
+  const overdue = work.filter((i) => ms(i.dueAt) < nowMs).length;
+  const soon = work.filter((i) => ms(i.dueAt) >= nowMs && ms(i.dueAt) - nowMs <= 24 * 60 * 60 * 1000 && i.status === 'todo').length;
+  const needs = overdue + soon;
+  if (needs > 0) return { text: `${needs} thing${needs === 1 ? '' : 's'} need${needs === 1 ? 's' : ''} you.`, needs, tone: overdue > 0 ? 'late' : null };
+  if (todayDone(items, today, now, tz)) return { text: "Today's done.", needs: 0, tone: null };
+  if (work.length === 0) return { text: 'Nothing open.', needs: 0, tone: null };
+  return { text: "You're on track.", needs: 0, tone: null };
+}
+
 /** One line under the hero saying why it is the hero. */
 /** "Today" and "Tomorrow" read as words mid-sentence; weekday names keep their capital. */
 function lowerRel(name: string): string {
@@ -115,7 +133,7 @@ export function pickReason(item: Item, items: Item[], schedule: Schedule, today:
   // An early due time pulls the work to the night before; say the real due day and time, not "due today".
   const dueWord =
     derived[item.id] && deadline !== due
-      ? `really due ${WEEKDAY_LONG[weekdayOf(deadline)]}`
+      ? `it needs to be in by ${WEEKDAY_LONG[weekdayOf(deadline)]}`
       : deadline !== due
         ? `due ${lowerRel(dayName(today, due))} by ${fmtTime(item.dueAt, tz)}`
         : `due ${lowerRel(dayName(today, deadline))}`;

@@ -5,9 +5,9 @@ import { Modal } from '../components/Modal';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { IconCheck, IconNow } from '../components/Icons';
+import { HeadsUp, type HeadsUpLine } from './HeadsUp';
 import { Ring } from '../components/Ring';
 import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
-import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { staleness, stalenessLine } from '../halo/freshness';
 import { blockedLine, blockPhrase } from '../domain/blocked';
@@ -28,7 +28,7 @@ import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '.
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
 import { WelcomeBack } from './WelcomeBack';
-import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, termProgress, todayDone, todayLine } from '../domain/now';
+import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, statusLine, todayDone } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
@@ -39,7 +39,6 @@ import { useAccount } from '../auth/AccountContext';
 import { trialDaysLeft } from '../config/flags';
 import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
-import { SyncedLine } from './SyncedLine';
 
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const approx = (min: number) => `~${fmtMinutes(min)}`;
@@ -59,33 +58,6 @@ const whyLine = (reason: string) => {
 };
 
 /** One line: the next class and whether anything needs doing before it. */
-function NextClassLine({ heroId, onOpen }: { heroId: string | undefined; onOpen: (i: Item) => void }) {
-  const { data, schedule, nudges, today, courseById } = useStore();
-  const tz = data.settings.timezone;
-  const now = new Date().toISOString();
-  const meeting = useMemo(() => nextMeeting(data.courses, now, tz), [data.courses, now.slice(0, 16), tz]);
-  if (!meeting) return null;
-  const prep = nextClassPrep(meeting, data.items, schedule, nudges, today, tz, heroId);
-  const course = courseById.get(meeting.course.id);
-  const k = diffDays(today, meeting.day);
-  const when = `${k === 0 ? 'today' : k === 1 ? 'tomorrow' : fmtDate(meeting.day, 'long').split(',')[0]} ${fmtTime(meeting.startAt, tz)}`;
-  return (
-    <p className="nextclass-line" aria-label="Next class">
-      <span className="muted">Next class</span>
-      <CourseChip course={course} />
-      <span>{when}</span>
-      <span className="muted">·</span>
-      {prep.item ? (
-        <button type="button" className="nextclass-link" onClick={() => onOpen(prep.item!)}>
-          {prep.text}
-        </button>
-      ) : (
-        <span className="muted">{prep.text}</span>
-      )}
-    </p>
-  );
-}
-
 /** Exam mode hero: the exam, the days left, and how much study is left. Replaces the normal hero; nothing stacks. */
 function ExamHero({ plan, onOpen, onDone, onLog }: { plan: ExamPlan; onOpen: (i: Item) => void; onDone: (i: Item) => void; onLog: (minutes: number) => void }) {
   const { data, courseById } = useStore();
@@ -240,7 +212,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
  * logic and differ only in how the day is laid out; see DESIGN.md for which shipped and why.
  */
 export function Now() {
-  const { data, schedule, derived, today, term, actions, progress, previewAward, calibrate } = useStore();
+  const { data, schedule, derived, today, actions, progress, previewAward, calibrate } = useStore();
   const { tier, profile } = useAccount();
   const trialDays = trialDaysLeft(profile);
   const tz = data.settings.timezone;
@@ -292,11 +264,8 @@ export function Now() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today]);
-  // The status sentence is two sentences: the answer (display size) and the detail (a quiet line under it).
-  const status = todayLine(work, schedule, today, now, tz);
-  const cut = status.indexOf('. ');
-  const statusTitle = cut > 0 ? status.slice(0, cut + 1) : status;
-  const statusSub = cut > 0 ? status.slice(cut + 2) : '';
+  // One sentence, one colour: "You're on track." or "2 things need you." (domain/now.ts statusLine).
+  const status = statusLine(clean, today, now, tz);
   // An exam within a week reshapes the screen: exam hero, study sessions, one pressure line.
   const exam = useMemo(() => examMode(work, schedule, data.settings, today, (i) => calibrate(i).minutes), [work, schedule, data.settings, today, calibrate]);
   const examTopics = useExamTopics(exam, data.settings.quizStats, data.items);
@@ -304,7 +273,6 @@ export function Now() {
     if (!exam) return;
     actions.upsertItem({ ...exam.exam, estimatedMinutes: Math.max(0, exam.exam.estimatedMinutes - minutes), estimateOverridden: true, status: 'in_progress' });
   };
-  const pace = termProgress(data.items, term, today);
   const nextDeadline = Object.keys(counts).filter((d) => d >= today).sort()[0];
   const why = hero ? whyLine(pickReason(hero, work, schedule, today, now, tz, derived)) : null;
 
@@ -335,6 +303,74 @@ export function Now() {
   const showQueue = !back && !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
   const quiet = !back && !exam && (mode.mode === 'fine' || mode.mode === 'enough' || mode.mode === 'empty');
   const eveningQuiet = data.settings.eveningQuiet && hour >= 21 && !work.some((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now());
+
+  // Every warning in one place, one line each. Order: what costs points first, then what is waiting or stale.
+  const [coach, setCoach] = useState(false);
+  const missed = missedRequirement(clean, today, tz);
+  const headsUp: HeadsUpLine[] = [];
+  if (sub.line) headsUp.push({ key: 'sub', tone: sub.level === 'alarm' ? 'late' : 'soon', text: sub.line });
+  if (chase)
+    headsUp.push({
+      key: 'chase',
+      tone: 'soon',
+      text: (
+        <>
+          <button type="button" className="hero-inline" onClick={() => setOpen(chase.item)}>
+            {chase.text}
+          </button>{' '}
+          <button type="button" className="hero-inline" onClick={() => unblock(chase.item)}>
+            It's unblocked now
+          </button>
+        </>
+      ),
+    });
+  if (missed)
+    headsUp.push({
+      key: 'missed',
+      text: (
+        <>
+          {missedLine(missed, data.courses, today)}{' '}
+          <button type="button" className="hero-inline" onClick={() => setOpen(missed.item)}>
+            Open it
+          </button>
+        </>
+      ),
+    });
+  if (heavy && !exam && !back) headsUp.push({ key: 'heavy', text: heavy.line });
+  if (!back && !exam && paceText && paceText !== heavy?.line && !eveningQuiet) headsUp.push({ key: 'pace', text: paceText });
+  if (waiting.length > 0 && !chase)
+    headsUp.push({
+      key: 'waiting',
+      text: (
+        <>
+          {waiting.length === 1 ? `${waiting[0].label} is ${blockPhrase(waiting[0], tz)}; back ${fmtDate(waiting[0].blocked!.until, 'short')}.` : `${waiting.length} things are waiting on someone else; the first is back ${fmtDate([...waiting].sort((a, b) => a.blocked!.until.localeCompare(b.blocked!.until))[0].blocked!.until, 'short')}.`}{' '}
+          <button type="button" className="hero-inline" onClick={() => setOpen(waiting[0])}>
+            Open
+          </button>
+        </>
+      ),
+    });
+  if (stale && data.courses.length > 0)
+    headsUp.push({
+      key: 'stale',
+      text: (
+        <>
+          {stale}{' '}
+          <button type="button" className="hero-inline" onClick={() => syncPress.current?.()}>
+            Sync now
+          </button>
+        </>
+      ),
+    });
+  if (trialDays !== null && trialDays <= 3)
+    headsUp.push({
+      key: 'trial',
+      text: (
+        <>
+          Your Max trial ends {trialDays === 0 ? 'today' : `in ${trialDays} day${trialDays === 1 ? '' : 's'}`}. <a href="#/you?s=plan">See plans</a>
+        </>
+      ),
+    });
 
   // Keyed on the item: when one is done the next slides in as a new card.
   const heroCard = hero && <HeroCard key={hero.id} item={hero} optional={mode.mode !== 'urgent'} why={why} leaving={leaving === hero.id} onOpen={setOpen} onSkip={skip} onDone={finish} />;
@@ -448,12 +484,11 @@ export function Now() {
           <p className="eyebrow">
             {weekday} {daypart}
           </p>
-          <h1 className="now-title">
+          <h1 className="now-title" data-tone={status.tone ?? undefined}>
             <button type="button" className="now-status-btn" onClick={() => okayPress.current?.()} title="Am I okay?">
-              {eveningWrap ? "Today's done." : statusTitle}
+              {eveningWrap ? "Today's done." : status.text}
             </button>
           </h1>
-          {(eveningWrap || statusSub) && <p className="now-sub">{eveningWrap ? "Here's tomorrow." : statusSub}</p>}
         </div>
         {dueToday.length > 0 && (
           <div className="now-ring">
@@ -479,92 +514,21 @@ export function Now() {
 
       {quiet && !eveningWrap && <DailyQuestion />}
 
-      <div className="notes">
-        {chase && (
-          <p className="note" data-tone="warn">
-            <span className="note-text">
-              <button type="button" className="hero-inline" onClick={() => setOpen(chase.item)}>
-                {chase.text}
-              </button>{' '}
-              <button type="button" className="hero-inline" onClick={() => unblock(chase.item)}>
-                It's unblocked now
-              </button>
-            </span>
-          </p>
-        )}
-        {heavy && !exam && !back && (
-          <p className="note" data-tone="warn">
-            <span className="note-text">{heavy.line}</span>
-          </p>
-        )}
-        {!back && !exam && paceText && paceText !== heavy?.line && !eveningQuiet && (
-          <p className="note">
-            <span className="note-text">{paceText}</span>
-          </p>
-        )}
-        {(() => {
-          const row = missedRequirement(clean, today, tz);
-          if (!row) return null;
-          return (
-            <p className="note" data-tone="accent" role="status">
-              <span className="note-text">
-                {missedLine(row, data.courses, today)}{' '}
-                <button type="button" className="hero-inline" onClick={() => setOpen(row.item)}>
-                  Open it
-                </button>
-              </span>
-            </p>
-          );
-        })()}
-        {waiting.length > 0 && !chase && (
-          <p className="note">
-            <span className="note-text">
-              {waiting.length === 1 ? `${waiting[0].label} is ${blockPhrase(waiting[0], tz)}; back ${fmtDate(waiting[0].blocked!.until, 'short')}.` : `${waiting.length} things are waiting on someone else; the first is back ${fmtDate([...waiting].sort((a, b) => a.blocked!.until.localeCompare(b.blocked!.until))[0].blocked!.until, 'short')}.`}{' '}
-              <button type="button" className="hero-inline" onClick={() => setOpen(waiting[0])}>
-                Open
-              </button>
-            </span>
-          </p>
-        )}
-        {sub.line && (
-          <p className="note" data-tone={sub.level === 'alarm' ? 'danger' : 'warn'}>
-            <span className="note-text">{sub.line}</span>
-          </p>
-        )}
-        {trialDays !== null && trialDays <= 3 && (
-          <p className="note trial-line">
-            <span className="note-text">
-              Your Max trial ends {trialDays === 0 ? 'today' : `in ${trialDays} day${trialDays === 1 ? '' : 's'}`}. <a href="#/you?s=plan">See plans</a>
-            </span>
-          </p>
-        )}
-      </div>
-
-      {!back && <NextClassLine heroId={exam?.exam.id ?? hero?.id} onOpen={setOpen} />}
+      <HeadsUp lines={headsUp} />
 
       {data.courses.length > 0 && (
-        <div className="term-progress" role="img" aria-label={`${pace.pct}% of the term's points banked, ${pace.elapsedPct}% of the term elapsed`}>
-          <span className="term-progress-track">
-            <span className="banked" style={{ width: `${pace.pct}%` }} />
-            <span className="elapsed" style={{ left: `${pace.elapsedPct}%` }} />
-          </span>
-          <span className="mono">
-            {pace.pct}% of the term banked · {pace.elapsedPct}% elapsed
-          </span>
-        </div>
+        <button type="button" className="coach-ask" onClick={() => setCoach(true)} aria-haspopup="dialog">
+          <IconNow />
+          <span>Ask what to do next</span>
+          <kbd>⏎</kbd>
+        </button>
       )}
-      {data.courses.length > 0 && <SyncedLine stale={stale} />}
-
-      {data.courses.length > 0 && (
-        <details className="card coach-fold">
-          <summary>
-            <IconNow />
-            Ask the coach
-          </summary>
+      {coach && (
+        <Modal title="Coach" onClose={() => setCoach(false)} side>
           <Locked feature="aiChat" tier={tier} compact>
             <ChatCard />
           </Locked>
-        </details>
+        </Modal>
       )}
 
       {sunday && (

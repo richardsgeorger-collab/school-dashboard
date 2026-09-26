@@ -1,6 +1,6 @@
 import { riskLine } from './pace';
 import { describe, expect, it } from 'vitest';
-import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine, todayDone } from './now';
+import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine, todayDone, statusLine } from './now';
 import { computeSchedule } from './schedule';
 import { DEFAULT_FLAGS, DEFAULT_SETTINGS, type Item } from './types';
 
@@ -185,7 +185,7 @@ describe('pickReason', () => {
     const a = item({ id: 'a', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 600 });
     const derived = { a: { deadlineAt: '2026-09-12T23:59:00-07:00', reasons: ['Sunday due → Saturday'] } };
     const s = computeSchedule([{ ...a, deadlineAt: derived.a.deadlineAt }], DEFAULT_SETTINGS, TODAY, TERM, NOW);
-    expect(pickReason(a, [a], s, TODAY, NOW, TZ, derived)).toBe("Picked because it's ~10h, really due Saturday, and it's the only thing in its start window.");
+    expect(pickReason(a, [a], s, TODAY, NOW, TZ, derived)).toBe("Picked because it's ~10h, it needs to be in by Saturday, and it's the only thing in its start window.");
   });
 });
 
@@ -243,5 +243,31 @@ describe('the day is done only when it is', () => {
     expect(pickReason(paper, [paper, gated], sched([paper, gated]), TODAY, NOW, TZ, {})).toMatch(/^Picked because it gates bigger work\./);
     const quick = item({ id: 's', dueAt: '2026-09-13T23:59:00-07:00', points: 5, estimatedMinutes: 20, blocks: ['q'] });
     expect(pickReason(quick, [quick, gated], sched([quick, gated]), TODAY, NOW, TZ, {})).toMatch(/^Picked because it's small and it gates bigger work\./);
+  });
+});
+
+describe('the status line', () => {
+  it('counts what needs you: overdue, or due within a day and not started', () => {
+    const late = item({ id: 'a', dueAt: '2026-09-07T23:59:00-07:00' });
+    const tonight = item({ id: 'b', dueAt: '2026-09-09T23:59:00-07:00' });
+    const started = item({ id: 'c', dueAt: '2026-09-09T23:59:00-07:00', status: 'in_progress' });
+    const later = item({ id: 'd', dueAt: '2026-09-13T23:59:00-07:00' });
+    expect(statusLine([late, tonight, started, later], TODAY, NOW, TZ)).toEqual({ text: '2 things need you.', needs: 2, tone: 'late' });
+    expect(statusLine([tonight], TODAY, NOW, TZ)).toEqual({ text: '1 thing needs you.', needs: 1, tone: null });
+    expect(statusLine([later], TODAY, NOW, TZ).text).toBe("You're on track.");
+    expect(statusLine([], TODAY, NOW, TZ).text).toBe('Nothing open.');
+  });
+  it('never says on track or done while the risk line says something is due today untouched', () => {
+    const big = item({ id: 'p', dueAt: '2026-09-09T23:59:00-07:00', points: 420, estimatedMinutes: 180 });
+    const done = item({ id: 'q', dueAt: '2026-09-09T20:00:00-07:00', status: 'done', completedAt: '2026-09-09T10:00:00-07:00' });
+    const items = [big, done];
+    const s = computeSchedule(items, DEFAULT_SETTINGS, TODAY, TERM, NOW);
+    expect(riskLine(items, s, TODAY, TZ)).toBe('420 pts due today, not started.');
+    expect(statusLine(items, TODAY, NOW, TZ).text).toBe('1 thing needs you.');
+    expect(todayDone(items, TODAY, NOW, TZ)).toBe(false);
+    // Once it is started the risk line is silent and the status line agrees.
+    const startedItems = [{ ...big, status: 'in_progress' as const }, done];
+    expect(riskLine(startedItems, s, TODAY, TZ)).toBeNull();
+    expect(statusLine(startedItems, TODAY, NOW, TZ).text).toBe("You're on track.");
   });
 });

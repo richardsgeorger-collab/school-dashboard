@@ -560,3 +560,124 @@
   font: var(--t-body);
   color: var(--ink-2);
 }
+
+/* ---- heads up: one card, one line per warning ---- */
+.headsup {
+  padding: var(--s-4);
+}
+.headsup .section-title {
+  margin: 0 0 var(--s-2);
+}
+.headsup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.headsup-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.headsup-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.headsup-line[data-tone='late'] .headsup-dot {
+  background: var(--danger);
+}
+.headsup-line[data-tone='soon'] .headsup-dot {
+  background: var(--warn);
+}
+.headsup-line .hero-inline,
+.headsup-line a {
+  color: var(--ink);
+  font-weight: 600;
+}
+.headsup-more {
+  margin-top: var(--s-2);
+  padding: 0;
+  background: none;
+  border: 0;
+  font: var(--t-small);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* ---- the coach is one input row; the conversation opens beside the screen ---- */
+.coach-ask {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  color: var(--ink-3);
+  font: var(--t-body);
+  text-align: left;
+  cursor: text;
+}
+.coach-ask svg {
+  width: 20px;
+  height: 20px;
+  color: var(--ink-3);
+}
+.coach-ask span {
+  flex: 1;
+}
+.coach-ask kbd {
+  font: var(--t-small);
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.coach-ask:hover {
+  border-color: var(--line-strong);
+  color: var(--ink-2);
+}
+@media (min-width: 768px) {
+  .modal[data-side='true'] {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(440px, 92vw);
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 40px -16px rgb(0 0 0 / 0.3);
+    animation: side-in var(--dur-2) var(--ease);
+  }
+  .modal[data-side='true']::before {
+    display: none;
+  }
+  .modal-backdrop:has(.modal[data-side='true']) {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+}
+@keyframes side-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

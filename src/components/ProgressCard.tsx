@@ -1,6 +1,7 @@
 import { BADGE_INFO, EARLY_BIRD_TARGET, type BadgeId } from '../domain/points';
 import { useStore } from '../storage/store';
 import { RecapButton } from './Recap';
+import { Ring } from './Ring';
 
 const BADGES: BadgeId[] = ['early_bird', 'survived_week', 'clean_sweep'];
 
@@ -11,16 +12,11 @@ export function ProgressCard() {
   return (
     <section className="card progress-card" aria-label="Progress" title="Points: item value × 1.5 if done by start-by, × 1 by the due time, × 0.5 late, × your score once graded. Locked at first completion.">
       <div className="progress-head">
-        <div>
-          <span className="section-title">Level</span>
-          <div className="progress-level">{progress.level}</div>
-        </div>
+        <Ring value={Math.min(100, pct)} max={100} size={64} text={String(progress.level)} label={`Level ${progress.level}, ${Math.round(pct)}% to the next`} />
         <div className="progress-xp">
+          <span className="section-title">Level {progress.level}</span>
           <span className="mono">
             {progress.xp} XP <span className="muted">· {progress.levelCeil - progress.xp} to level {progress.level + 1}</span>
-          </span>
-          <span className="levelbar-track big" aria-hidden>
-            <span className="levelbar-fill" style={{ width: `${Math.min(100, pct)}%` }} />
           </span>
         </div>
       </div>

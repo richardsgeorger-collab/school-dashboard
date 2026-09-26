@@ -12,7 +12,7 @@ import { haloSaysNotIn } from '../domain/confirm';
 import { itemTone, toneLabel } from '../domain/status';
 
 /** `dateless`: the row sits under a day header, so only the time is repeated. */
-export function ItemRow({ item, onOpen, showStart = false, compact = false, dateless = false }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean; dateless?: boolean }) {
+export function ItemRow({ item, onOpen, showStart = false, compact = false, dateless = false, progress = null }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean; dateless?: boolean; progress?: { done: number; total: number } | null }) {
   const { courseById, schedule, today, data, actions, previewAward } = useStore();
   const [burst, setBurst] = useState<{ value: number; key: number } | null>(null);
   useEffect(() => {
@@ -65,13 +65,16 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
             {/* An announcement moved this. The date it moved from stays visible for a few days so the move is seen. */}
             {movedRecently(item, today, data.settings.timezone) && <s className="item-was"> was {fmtDate(dateOf(item.dateChange!.from, data.settings.timezone), 'short')}</s>}
           </span>
-          {item.origin?.kind === 'announcement' && <span className="flag flag-origin" title={item.origin.quote ?? undefined}>from an announcement</span>}
           <span>{hours(item.estimatedMinutes)}</span>
           {item.points > 0 && <span>{item.points} pts</span>}
+          {progress && progress.total > 0 && (
+            <span className="item-progress">
+              {progress.done} of {progress.total}
+            </span>
+          )}
           {isBlocked(item, today) && <span className="flag flag-wait">waiting</span>}
           {item.flags.inClass && <span className="flag">in class</span>}
           {item.flags.group && <span className="flag">group</span>}
-          {(item.blocks?.length ?? 0) > 0 && <span className="flag">unlocks {item.blocks!.length}</span>}
           {done && haloSaysNotIn(item) && item.halo && item.halo.checkedAt > item.dueAt && <span className="flag flag-late">Halo says not submitted</span>}
           {showStart && sched && !done && !sched.risk && <span>start by {shortDate(sched.startBy)}</span>}
         </span>

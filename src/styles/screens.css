@@ -97,8 +97,12 @@
   align-items: center;
   gap: 2px 8px;
   font: var(--t-small);
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-variant-numeric: tabular-nums;
+}
+.item-progress {
+  color: var(--ink);
+  font-weight: 500;
 }
 .item-meta .chip {
   color: var(--ink-2);
@@ -246,7 +250,8 @@
 }
 .week-strip-count {
   font: var(--t-micro);
-  color: var(--ink-3);
+  font-weight: 600;
+  color: var(--ink);
 }
 .agenda {
   display: flex;
@@ -386,8 +391,14 @@
 .class-card {
   border-left: 1px solid var(--line);
   padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .class-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 6px;
 }
 .class-card-name {
@@ -1166,4 +1177,303 @@
 .synced[data-level='ok'] {
   color: var(--ink-3);
   font-family: var(--font-body);
+}
+
+/* ---- agenda: collapsed rows, details one tap away, "Later" as titles ---- */
+.agenda-item[data-open='true'] .item-row {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.agenda-detail {
+  margin-top: -1px;
+  padding: var(--s-3) var(--s-4) var(--s-3) 52px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.agenda-detail .part-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agenda-detail .part-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.agenda-detail .part-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.agenda-detail .part-row input {
+  margin-top: 4px;
+  accent-color: var(--ink);
+}
+.part-when,
+.part-source {
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.part-source {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.part-note {
+  margin: 0;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.agenda-open {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--t-small);
+  font-weight: 600;
+  color: var(--ink);
+}
+.day-group-head[data-tone='late'] b {
+  color: var(--danger);
+}
+.later-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.later-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  text-align: left;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.later-title {
+  flex: 1;
+}
+.later-when {
+  font: var(--t-small);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+/* Month: the grid is grey; only a late chip is red. No warmth for heavy days, no glow for big items. */
+.month-cell[data-level='1'],
+.month-cell[data-level='2'],
+.month-cell[data-level='3'],
+.month-cell[data-level='4'] {
+  background: var(--surface);
+}
+.month-count[data-big='true'] {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.chip-item[data-plain='true'][data-big='true'] {
+  box-shadow: none;
+  outline: 0;
+}
+.week-strip-day[data-heavy='true'] {
+  background: var(--surface);
+}
+
+/* ---- classes: tiles ---- */
+.class-card-grade .ring {
+  display: block;
+}
+.class-card-pace {
+  margin: var(--s-2) 0 0;
+  font: var(--t-small);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.class-card-pace[data-tone='late'] {
+  color: var(--danger);
+}
+.ring-text {
+  font: 600 13px var(--font-body);
+  fill: var(--ink);
+}
+.ring-track {
+  fill: none;
+  stroke: var(--surface-3);
+  stroke-width: 4;
+}
+.ring-fill {
+  fill: none;
+  stroke: url('#ring-grad');
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  animation: ring-in 700ms var(--ease) both;
+}
+.ring[data-done='true'] .ring-fill {
+  stroke: var(--accent);
+}
+@keyframes ring-in {
+  from {
+    stroke-dashoffset: var(--c);
+  }
+  to {
+    stroke-dashoffset: var(--target);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-fill {
+    animation: none;
+  }
+}
+
+/* ---- inbox: what it asks leads, the raw title follows; groups; the rest in a menu ---- */
+.news-groups {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-3);
+}
+.news-summary {
+  display: block;
+  font: 500 15px/1.4 var(--font-body);
+  color: var(--ink);
+}
+.news-raw {
+  display: block;
+  font: var(--t-small);
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+.news-added {
+  display: inline-block;
+  margin-top: 4px;
+  font: var(--t-small);
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.menu {
+  position: relative;
+}
+.menu > summary {
+  list-style: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 600 16px/1 var(--font-body);
+  cursor: pointer;
+}
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+.menu-list {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  z-index: 5;
+  min-width: 260px;
+  padding: var(--s-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.menu-item {
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.menu-item:hover {
+  background: var(--surface-2);
+}
+.menu-item:disabled {
+  color: var(--ink-3);
+}
+.menu-hint {
+  padding: 0 10px 4px;
+  font: var(--t-small);
+  color: var(--ink-3);
+}
+.undo-line {
+  margin: var(--s-2) 0 0;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.undo-line .hero-inline {
+  color: var(--ink);
+  font-weight: 600;
+}
+.part-source {
+  font: var(--t-small);
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- You: the level is a ring; plans in three columns; the halo line ---- */
+.progress-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.progress-head .ring-text {
+  font: 600 15px var(--font-body);
+}
+.progress-xp {
+  gap: 2px;
+}
+.progress-xp .section-title {
+  margin: 0;
+}
+.halo-status {
+  margin: 0 0 var(--s-2);
+  font: var(--t-body);
+  color: var(--ink);
+}
+.halo-diagnostics {
+  margin-bottom: var(--s-3);
+}
+@media (min-width: 768px) {
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-3);
+  }
+  #you-plan {
+    grid-column: 1 / -1;
+  }
+}
+
+.month-chips .chip-item[data-plain='true'][data-big='true'],
+.chip-item[data-plain='true'][data-big='true'] {
+  border: 1px solid transparent;
+  box-shadow: none;
+  outline: 0;
 }

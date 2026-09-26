@@ -4,6 +4,8 @@ import { EmptyState } from '../components/EmptyState';
 import { PALETTE } from '../data/courseDefaults';
 import { dateOf, diffDays, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
 import { courseGrade, letterFor, NOT_ENOUGH_GRADED } from '../domain/grades';
+import { paceFor } from '../domain/pace';
+import { Ring } from '../components/Ring';
 import { newId } from '../domain/ids';
 import { isNoise } from '../domain/requirements';
 import type { Course } from '../domain/types';
@@ -26,7 +28,7 @@ function meetingSummary(c: Course): string {
 }
 
 function ClassCard({ course }: { course: Course }) {
-  const { data, today } = useStore();
+  const { data, today, schedule } = useStore();
   const tz = data.settings.timezone;
   const color = useCourseColor(course);
   const items = data.items.filter((i) => i.courseId === course.id);
@@ -37,23 +39,26 @@ function ClassCard({ course }: { course: Course }) {
   const g = courseGrade(course.id, data.items);
   const letter = letterFor(g.pct, course.gradeScale);
   const nextLine = next ? `${next.label} · ${diffDays(today, dateOf(next.dueAt, tz)) === 0 ? 'today' : diffDays(today, dateOf(next.dueAt, tz)) === 1 ? 'tomorrow' : fmtDate(dateOf(next.dueAt, tz), 'short')}` : open.length === 0 ? 'Nothing open' : null;
+  // One pace line per class: late counts as late; otherwise on pace or ahead.
+  const pace = paceFor(course, data.items, schedule, today);
+  const paceLine = overdue > 0 ? `${overdue} late` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : pace.kind === 'behind' ? `${pace.n} behind` : null;
   return (
     <li>
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />
-          {g.pct !== null ? <span className="class-card-grade mono">{`${g.pct}%${letter ? ` ${letter}` : ''}`}</span> : g.graded > 0 ? <span className="class-card-grade muted" title={NOT_ENOUGH_GRADED}>{NOT_ENOUGH_GRADED}</span> : null}
+          <span className="class-card-grade" title={g.pct === null && g.graded > 0 ? NOT_ENOUGH_GRADED : undefined}>
+            <Ring value={g.pct ?? 0} max={100} size={40} text={g.pct === null ? '—' : `${Math.round(g.pct)}`} label={g.pct === null ? NOT_ENOUGH_GRADED : `${g.pct}%${letter ? ` ${letter}` : ''}`} />
+          </span>
         </div>
         <h2 className="class-card-name">{course.name || 'Untitled class'}</h2>
-        <p className="class-card-meta mono muted">{meetingSummary(course)}</p>
-        <p className="class-card-next">
-          {overdue > 0 && (
-            <span className="class-card-overdue">
-              {overdue} overdue{nextLine ? ' · ' : ''}
-            </span>
-          )}
-          {nextLine && <span>{overdue > 0 ? nextLine : `Next: ${nextLine}`}</span>}
-        </p>
+        <p className="class-card-meta">{meetingSummary(course)}</p>
+        <p className="class-card-next">{nextLine ? `Next: ${nextLine}` : ''}</p>
+        {paceLine && (
+          <p className="class-card-pace" data-tone={overdue > 0 ? 'late' : undefined}>
+            {paceLine}
+          </p>
+        )}
       </a>
     </li>
   );
