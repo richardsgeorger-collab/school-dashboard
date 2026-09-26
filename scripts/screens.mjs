@@ -155,23 +155,12 @@ const SEEDED = [
   ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
   // The coach, opened from Now's side column (locked on this build, so the honest card with the trial shows).
   ['coach', '#/now', async (page) => { await page.click('.coach-ask'); await page.waitForTimeout(500); }],
-  // Time travel (Playwright's clock): the Sunday review as it is offered on a Sunday morning, and Now in exam mode
-  // five days before Chem Exam 1. The clock is pinned before the page loads and released after the shot.
-  ['sunday', '#/now', async (page) => { await page.clock.install({ time: new Date('2026-09-27T17:00:00.000Z') }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(900); }],
-  ['exam-mode', '#/now', async (page) => {
-    // Tuesday Oct 27, 6 PM Phoenix, three days before Chem Exam 1. Not a Sunday, and not "back after days away".
-    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.sundayReview = { skips: 0, lastOffered: null, lastDone: null, off: true }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); localStorage.setItem('school-dashboard:last-seen', '2026-10-27'); });
-    await page.clock.install({ time: new Date('2026-10-28T01:00:00.000Z') });
-    await page.reload({ waitUntil: 'networkidle' });
-    await page.waitForTimeout(900);
-    await page.evaluate(() => localStorage.removeItem('school-dashboard:last-seen'));
-  }],
   // "Am I okay?": the one paragraph behind the status line.
-  // Start pressed: the timer runs on the card and Done becomes the primary action.
-  ['hero-started', '#/now', async (page) => { await page.click('.hero-actions .btn.primary:has-text("Start")'); await page.waitForTimeout(700); await page.click('.hero-actions .btn.quiet'); await page.waitForTimeout(400); }],
   // Done from the hero: the toast with Undo, then Undo puts the card back.
   ['done-toast', '#/now', async (page) => { await page.click('.hero-actions button[aria-label="Mark done"]'); await page.waitForTimeout(900); }],
   ['done-undone', '#/now', async (page) => { await page.click('.hero-actions button[aria-label="Mark done"]'); await page.waitForTimeout(900); await page.click('.time-ask-undo, .done-toast-undo'); await page.waitForTimeout(500); }],
+  // Start pressed: the timer runs on the card and Done becomes the primary action.
+  ['hero-started', '#/now', async (page) => { await page.click('.hero-actions .btn.primary:has-text("Start")'); await page.waitForTimeout(700); await page.click('.hero-actions .btn.quiet'); await page.waitForTimeout(400); }],
   ['okay', '#/now', async (page) => { await page.click('.now-status-btn'); await page.waitForTimeout(500); }],
   // Back after five days away: what slipped, what changed, the one thing to start with.
   ['welcome-back', '#/now', async (page) => { await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 5); localStorage.setItem('school-dashboard:last-seen', d.toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' })); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(800); await page.evaluate(() => localStorage.removeItem('school-dashboard:last-seen')); }],
@@ -188,6 +177,21 @@ const SEEDED = [
   // Last: this one marks the day's items done in the seed, and every shot after it would see that.
   ['now-done', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); for (const i of d.items) if (i.dueAt.slice(0, 10) <= today && i.status !== 'done') { i.status = 'done'; i.completedAt = new Date().toISOString(); } localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(500); }],
 ];
+// Time travel runs in a context of its own: an installed clock outlives its scene, and everything after it would
+// otherwise be captured on that date.
+const TIMED = [
+  // Time travel (Playwright's clock): the Sunday review as it is offered on a Sunday morning, and Now in exam mode
+  // five days before Chem Exam 1. The clock is pinned before the page loads and released after the shot.
+  ['sunday', '#/now', async (page) => { await page.clock.install({ time: new Date('2026-09-27T17:00:00.000Z') }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(900); }],
+  ['exam-mode', '#/now', async (page) => {
+    // Tuesday Oct 27, 6 PM Phoenix, three days before Chem Exam 1. Not a Sunday, and not "back after days away".
+    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.sundayReview = { skips: 0, lastOffered: null, lastDone: null, off: true }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); localStorage.setItem('school-dashboard:last-seen', '2026-10-27'); });
+    await page.clock.install({ time: new Date('2026-10-28T01:00:00.000Z') });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+    await page.evaluate(() => localStorage.removeItem('school-dashboard:last-seen'));
+  }],
+];
 const FRESH = [
   ['onboarding-1', '#/now'],
   ['onboarding-halo', '#/now', async (page) => { await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(400); }],
@@ -203,16 +207,17 @@ const vp = process.env.VIEWPORT;
 const device = vp === 'desk' ? { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 } : vp === 'laptop' ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } : vp === 'tiny' ? { ...devices['iPhone SE'], viewport: { width: 320, height: 568 }, deviceScaleFactor: 2 } : { ...devices['iPhone 14'], deviceScaleFactor: 2 };
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const scheme of ['light', 'dark']) {
-  for (const [group, list] of [['seeded', SEEDED], ['fresh', FRESH]]) {
+  for (const [group, list] of [['seeded', SEEDED], ['timed', TIMED], ['fresh', FRESH]]) {
     const ctx = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });
     const page = await ctx.newPage();
-    if (group === 'seeded') {
+    if (group !== 'fresh') {
       await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle' });
       // The iPhone device carries an iPhone user agent, so the Home Screen nudge would sit on every phone shot; it gets its own.
       await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.theme = 'system'; d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); localStorage.setItem('school-dashboard:home-screen-nudge', 'done'); });
     }
     for (const [name, route, act, full] of list) {
       if (only && !only.has(name)) continue;
+      if (process.env.VERBOSE) console.log(`${scheme} ${name}`);
       // Every fresh screen starts from nothing: onboarding progress must not carry over between shots.
       if (group === 'fresh') await page.evaluate(() => localStorage.clear()).catch(() => undefined);
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' });
@@ -233,4 +238,4 @@ for (const scheme of ['light', 'dark']) {
   }
 }
 await browser.close();
-console.log(`wrote ${(SEEDED.length + FRESH.length) * 2} screenshots to ${OUT}/`);
+console.log(`wrote ${(SEEDED.length + TIMED.length + FRESH.length) * 2} screenshots to ${OUT}/`);
