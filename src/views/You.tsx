@@ -9,7 +9,7 @@ import { CourseChip } from '../components/CourseChip';
 import { ProgressCard } from '../components/ProgressCard';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { rewardDaysLeft, trialDaysLeft } from '../config/flags';
-import { FEATURE_LINES, FEATURES, PRICES, REFERRAL, TIER_NAMES, TIERS, type Feature, type Tier } from '../config/tiers';
+import { FEATURE_LINES, FEATURES, PRICES, REFERRAL, TIER_NAMES, TIERS, TRIAL, type Feature, type Tier } from '../config/tiers';
 import { openPortal, startCheckout } from '../billing/client';
 import { subscriptionLine, type Interval, type Paid } from '../billing/subscription';
 import { useSubscription } from '../billing/useSubscription';
@@ -25,6 +25,7 @@ import { useRoute } from '../router';
 import { pixel } from '../analytics/pixel';
 import { NotificationsCard } from '../notify/NotificationsCard';
 import { FeedbackCard } from './FeedbackCard';
+import { TrialOffer, TrialReceipts } from './TrialOffer';
 import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
@@ -258,7 +259,8 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
   return (
     <section className="card settings-card" id="you-plan" aria-label="Plans">
       <h2 className="section-title">Plans</h2>
-      <p className="hint">Free keeps the planner: Halo sync, the calendar, Now. Each plan adds to the one before it. Every new account starts with seven days of Max.</p>
+      <p className="hint">Each plan adds to the one before it. Change or cancel any time.</p>
+      <TrialOffer lead={`Not sure? Try Max free for ${TRIAL.days} days.`} />
       <SegmentedControl
         label="Billing"
         value={interval}
@@ -390,6 +392,8 @@ export function You() {
           {active === 'profile' && (
             <>
               <AccountCard tier={tier} />
+              <TrialReceipts />
+              <TrialOffer />
               {(section === 'plan' || showPlans) && <Plans current={tier} highlight={highlight} />}
               {section !== 'plan' && !showPlans && (
                 <p className="hint">

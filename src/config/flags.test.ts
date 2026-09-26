@@ -31,7 +31,8 @@ describe('feature flags', () => {
   });
 
   it('the SQL mirrors the config: trial days and referral days', () => {
-    const sql1 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '0001_foundations.sql'), 'utf8');
+    // 0006 redefines the trial: started on purpose, five days.
+    const sql1 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '0006_trial_usage.sql'), 'utf8');
     const sql2 = readFileSync(join(__dirname, '..', '..', 'supabase', 'migrations', '0002_referrals_rewards.sql'), 'utf8');
     expect(sql1).toContain(`interval '${TRIAL.days} days'`);
     expect(sql2).toContain(`interval '${REFERRAL.days} days'`);

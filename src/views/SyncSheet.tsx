@@ -4,6 +4,7 @@ import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { bookmarkletHref } from '../halo/bookmarklet';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
+import { PlanWall, useNeedsPlan } from './PlanWall';
 import { HaloImport } from './HaloImport';
 import { SyncAssignments } from './SyncAssignments';
 
@@ -118,6 +119,16 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
   const tz = data.settings.timezone;
   const [note, setNote] = useState<string | null>(null);
   const last = data.settings.lastPull?.at ?? loadLastSync()?.at ?? null;
+  const walled = useNeedsPlan();
+  if (walled) {
+    return (
+      <Modal title="Sync from Halo" onClose={onClose}>
+        <div className="modal-body sync-sheet">
+          <PlanWall context="sync" />
+        </div>
+      </Modal>
+    );
+  }
   return (
     <Modal title="Sync from Halo" onClose={onClose}>
       <div className="modal-body sync-sheet">

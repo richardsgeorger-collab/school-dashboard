@@ -12,6 +12,8 @@ export const rank = (t: Tier): number => TIERS.indexOf(t);
 export interface TierSource {
   tier: Tier;
   trialEndsAt?: string | null;
+  /** Set the moment a trial was started; null means one is still available. */
+  trialStartedAt?: string | null;
   /** Set by the Stripe webhook when a payment fails; the paid tier is kept until it passes. */
   graceUntil?: string | null;
   /** A referral reward: this tier until this time, on top of whatever is paid for. */
@@ -43,6 +45,25 @@ export const tierFor = (feature: Feature): Tier => FEATURES[feature];
 export function trialDaysLeft(p: TierSource | null | undefined, now = new Date().toISOString()): number | null {
   if (!p?.trialEndsAt || p.trialEndsAt <= now) return null;
   return Math.ceil((new Date(p.trialEndsAt).getTime() - new Date(now).getTime()) / 86_400_000);
+}
+
+/** Where the account stands with the trial. */
+export type TrialState = 'available' | 'active' | 'used' | 'paid';
+export function trialState(p: TierSource | null | undefined, now = new Date().toISOString()): TrialState {
+  if (!p) return 'available';
+  if (p.tier === 'max') return 'paid';
+  if (p.trialEndsAt && p.trialEndsAt > now) return 'active';
+  return p.trialStartedAt ? 'used' : 'available';
+}
+
+/**
+ * With the free plan off, an account whose trial has been used and ended, and that pays for nothing, is asked to
+ * pick a plan before it syncs again. Their data stays. Everyone else, including an account that has never started
+ * the trial, uses the planner freely.
+ */
+export function needsPlan(p: TierSource | null | undefined, freePlanEnabled: boolean, now = new Date().toISOString()): boolean {
+  if (freePlanEnabled || !p) return false;
+  return effectiveTier(p, now) === 'free' && trialState(p, now) === 'used';
 }
 
 /** How far ahead Now may suggest work, in days, or null for the whole term. */

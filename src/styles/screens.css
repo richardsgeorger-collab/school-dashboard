@@ -2203,3 +2203,83 @@
   background: var(--warn-soft);
   color: var(--warn);
 }
+
+/* ---- the trial: one sentence, one button, never a banner ---- */
+.trial-offer,
+.trial-receipts {
+  padding: var(--s-4);
+}
+.trial-lead {
+  margin: 4px 0 6px;
+  font: 500 15px/1.5 var(--font-body);
+  color: var(--ink);
+}
+.trial-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.locked-preview {
+  margin: -4px 0 var(--s-3);
+  font: var(--t-small);
+  color: var(--ink);
+}
+.locked-trial {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- ⌘K palette ---- */
+.palette-list {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 50vh;
+  overflow: auto;
+}
+.palette-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  text-align: left;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.palette-row[aria-selected='true'] {
+  background: var(--surface-2);
+}
+.palette-kind {
+  min-width: 28px;
+  font: var(--t-small);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.palette-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.palette-meta {
+  font: var(--t-small);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.palette kbd {
+  font: var(--t-small);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0 5px;
+}

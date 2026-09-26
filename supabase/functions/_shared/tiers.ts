@@ -29,8 +29,20 @@ export const STRIPE_PRICE_IDS: Record<Exclude<Tier, 'free'>, { month: string; ye
   max: { month: 'price_1UJPwp02Mu8IT8564INq2yEE', year: 'price_1UJPwp02Mu8IT856WwAw4KUl' },
 };
 
-/** Every new account: Max for seven days, no card, then Free unless they pay. */
-export const TRIAL = { tier: 'max' as Tier, days: 7, cardRequired: false };
+/**
+ * The trial: five days of Max, started on purpose (at the first-sync payoff, on a locked Max feature, or from
+ * You), once per account, tracked server-side. No card, nothing charges, ever, unless they choose a plan. The
+ * sentence is used everywhere the trial is mentioned, so it never drifts.
+ */
+export const TRIAL = { tier: 'max' as Tier, days: 5, cardRequired: false, line: 'Free for 5 days. No card. Nothing charges.' };
+
+/**
+ * The free plan switch. ON: an account with no plan keeps the planner (Halo sync, calendar, Now) for ever, with
+ * every AI feature shown as a soft, honest preview. OFF: the same account can sync and use the planner until its
+ * trial has been used and ended; after that the planner keeps their data but asks them to pick a plan before it
+ * syncs again. OFF until the pricing decision is made (docs/PRICING.md).
+ */
+export const FREE_PLAN_ENABLED = false;
 
 /** After a failed payment the tier is kept this long before dropping to Free. */
 export const GRACE_DAYS = 7;

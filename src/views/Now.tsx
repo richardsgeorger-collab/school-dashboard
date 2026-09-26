@@ -7,10 +7,11 @@ import { EmptyState } from '../components/EmptyState';
 import { IconCheck, IconNow } from '../components/Icons';
 import { HeadsUp, type HeadsUpLine } from './HeadsUp';
 import { HaloDraw } from '../components/HaloDraw';
+import { PlanWall, useNeedsPlan } from './PlanWall';
 import { useReadStatus } from '../halo/backgroundRead';
 import { useReadNow } from './ReadStatus';
 import { Ring } from '../components/Ring';
-import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
+import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { staleness, stalenessLine } from '../halo/freshness';
 import { blockedLine, blockPhrase } from '../domain/blocked';
@@ -496,8 +497,29 @@ export function Now() {
     heroCard
   ) : null;
 
+  const walled = useNeedsPlan();
+  // Keyboard on Now: d done, n not today, s start, o open. Only when no field or sheet has focus.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!hero || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (document.querySelector('.modal-backdrop')) return;
+      const k = e.key.toLowerCase();
+      if (k === 'd') finish(hero);
+      else if (k === 'n') skip(hero, addDays(today, 1));
+      else if (k === 's') actions.upsertItem({ ...hero, startedAt: hero.startedAt ?? new Date().toISOString(), status: hero.status === 'done' ? hero.status : 'in_progress' });
+      else if (k === 'o') setOpen(hero);
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hero?.id, today]);
   return (
     <div className="now">
+      {walled && <PlanWall />}
       <header className="now-head">
         <div>
           <p className="eyebrow">

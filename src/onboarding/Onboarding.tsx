@@ -12,6 +12,7 @@ import { useStore } from '../storage/store';
 import { BookmarkButton, SyncSteps } from '../views/SyncSheet';
 import { visibleSteps, type OnboardingState, type Step } from './state';
 import { pixel } from '../analytics/pixel';
+import { TrialOffer } from '../views/TrialOffer';
 import { track } from './track';
 
 const HOURS = ['1', '2', '3', '4'] as const;
@@ -250,6 +251,7 @@ export function Onboarding() {
                 First up: <b>{hero.label}</b>, due {fmtDate(dateOf(hero.dueAt, tz), 'short')}.
               </p>
             )}
+            <TrialOffer variant="card" lead={finds > 0 ? 'Max already found what your professors only said in announcements. Keep it reading, plan your studying, and ask what to do next.' : undefined} />
             <div className="onboard-actions">
               <button type="button" className="btn primary" onClick={finish}>
                 Show me my day

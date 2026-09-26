@@ -8,7 +8,7 @@ import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
  * the screens use and writes it to the server, which only sends what is due. Four kinds, each its own switch:
  * the morning note, the night-before heavy-day warning, the not-started nudge, and the re-sync reminder.
  */
-export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync';
+export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends';
 
 export interface Notice {
   kind: NoticeKind;
@@ -30,6 +30,8 @@ export interface PlanInput {
   today: DateStr;
   now: string;
   lastPull: string | null;
+  /** When the Max trial ends, for the one reminder the day before. */
+  trialEndsAt?: string | null;
 }
 
 export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true };
@@ -109,6 +111,16 @@ export function planNotices(input: PlanInput): Notice[] {
       const sendAt = at(today, '10:00', tz);
       const day = sendAt > now ? today : tomorrow;
       push({ kind: 'resync', sendAt: at(day, '10:00', tz), title: 'Sync Halo', body: days === null ? 'Halo has not been synced yet. One tap and your week is in.' : `Halo was last synced ${days} days ago. Deadlines may have moved.`, url: '#/now?sync=1', key: `resync:${day}` });
+    }
+  }
+
+  // The trial: one reminder, the evening before it ends, with what it did (the app fills the receipts in when
+  // the note is tapped). Never more than once.
+  if (input.trialEndsAt && input.trialEndsAt > now) {
+    const endDay = dateOf(input.trialEndsAt, tz);
+    const dayBefore = addDays(endDay, -1);
+    if (dayBefore >= today) {
+      push({ kind: 'trial_ends', sendAt: at(dayBefore, '18:00', tz), title: 'Your Max trial ends tomorrow', body: "Here's what it has done for you, and one button if you want to keep it. Nothing charges on its own.", url: '#/you', key: `trial_ends:${endDay}` });
     }
   }
 
