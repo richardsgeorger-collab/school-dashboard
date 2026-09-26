@@ -31,7 +31,7 @@ export function HaloImport({ payload: initial = null, onClose }: { payload?: Hal
   };
 
   return (
-    <Modal title="Sync from the Halo bookmark" onClose={onClose}>
+    <Modal title="What Halo sent" onClose={onClose}>
       <div className="modal-body">
         {!payload ? (
           <>

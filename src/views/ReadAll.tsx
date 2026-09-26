@@ -153,7 +153,7 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
                 </ul>
                 <p className="hint">
                   <button type="button" className="btn small" onClick={() => void navigator.clipboard.writeText(JSON.stringify(failures, null, 1)).then(() => setCopied(true))}>
-                    {copied ? 'Copied' : 'Copy this for Claude'}
+                    {copied ? 'Copied' : 'Copy the error'}
                   </button>{' '}
                   <button type="button" className="btn small" onClick={() => void run(result.results.filter((x) => x.error).map((x) => x.announcement))}>
                     Try those again
