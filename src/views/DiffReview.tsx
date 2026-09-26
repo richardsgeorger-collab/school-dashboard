@@ -94,7 +94,7 @@ export function DiffReview({
   onApplied?: (s: AppliedSummary) => void;
   onClose: () => void;
 }) {
-  const { data, actions } = useStore();
+  const { data, actions, undo } = useStore();
   const tz = data.settings.timezone;
   const [bareAs, setBareAs] = useState<BareDateMode>('utc');
   const [includeZero, setIncludeZero] = useState(false);
@@ -210,6 +210,19 @@ export function DiffReview({
           )}
         </ul>
         <div className="modal-actions">
+          {/* Everything this sync changed goes back in one tap, until the next sync replaces the batch. */}
+          {undo && undo.count > 0 && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                actions.undoLast();
+                onClose();
+              }}
+            >
+              Undo this sync
+            </button>
+          )}
           <span className="spacer" />
           <button type="button" className="btn primary" onClick={onClose}>
             Close

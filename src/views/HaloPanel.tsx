@@ -9,7 +9,7 @@ import { syncPress } from '../ui/presses';
 
 /** The connection to Halo as one line, and the one button that sets it up. Everything else is in Advanced. */
 export function HaloPanel({ onPaste }: { onPaste: () => void }) {
-  const { data, today } = useStore();
+  const { data, today, undo, actions } = useStore();
   const tz = data.settings.timezone;
   const link = useRef<HTMLAnchorElement>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -33,6 +33,15 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
     <section className="card settings-card" aria-label="Halo">
       <h2 className="section-title">Halo</h2>
       <p className="halo-status">{when ? `Connected. Last synced ${when}.` : 'Not connected yet.'}</p>
+      {/* The last sync's changes can be put back whole until the next sync replaces them. */}
+      {undo && (
+        <p className="hint">
+          The last sync made {undo.count} change{undo.count === 1 ? '' : 's'}.{' '}
+          <button type="button" className="hero-inline" onClick={() => actions.undoLast()}>
+            Undo {undo.count === 1 ? 'it' : 'them'}
+          </button>
+        </p>
+      )}
       <div className="settings-actions">
         {when ? (
           <button type="button" className="btn small primary" onClick={() => syncPress.current?.()}>
