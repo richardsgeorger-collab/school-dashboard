@@ -1,5 +1,6 @@
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from './dates';
 import { nextMeeting } from './nextClass';
+import { shareLine } from './share';
 import type { Schedule } from './schedule';
 import type { Course, DateStr, Item } from './types';
 
@@ -16,7 +17,10 @@ export interface Fact {
 /** Points, time, due date, what it feeds, what goes through LopesWrite. In that order, only what applies. */
 export function heroFacts(item: Item, items: Item[], minutes: number, tz: string, today: DateStr, finishBy?: string | null): Fact[] {
   const out: Fact[] = [];
-  if (item.points > 0) out.push({ text: `${item.points} pts` });
+  if (item.points > 0) {
+    const share = shareLine(item, items);
+    out.push({ text: share ? `${item.points} pts · ${share}` : `${item.points} pts` });
+  }
   out.push({ text: `~${fmtMinutes(minutes)}` });
   const d = dateOf(item.dueAt, tz);
   const time = fmtTime(item.dueAt, tz);

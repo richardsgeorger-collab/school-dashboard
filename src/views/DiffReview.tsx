@@ -237,7 +237,7 @@ export function DiffReview({
       <ReadStatusLines />
       {source === 'halo' && (
         <p className="hint pull-tally">
-          <b>This sync pulled:</b> {countsLine(counts)}
+          <b>{gaps ? 'Not everything came through.' : 'Everything in Halo is in Halo+.'}</b> {countsLine(counts)}
           {kept && referenceLine(kept) ? (
             <>
               <br />

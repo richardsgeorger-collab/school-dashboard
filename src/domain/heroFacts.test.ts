@@ -16,9 +16,14 @@ const schedule = computeSchedule(items, settings, today, { start: '2026-08-31', 
 
 describe('facts, not urgency', () => {
   it('names worth, time, due day, what it unlocks or feeds, and LopesWrite, in that order', () => {
-    expect(heroFacts(draft, items, 240, TZ, today).map((f) => f.text)).toEqual(['100 pts', '~4h', 'due Mon, Sep 21', 'unlocks Eng Op-Ed Final', 'goes through LopesWrite']);
+    const facts = heroFacts(draft, items, 240, TZ, today).map((f) => f.text);
+    // The points chip also says the share of the class grade, so a 5-point DQ never looks like a paper.
+    expect(facts[0]).toMatch(/^100 pts · \d+(\.\d)?% of grade$/);
+    expect(facts.slice(1)).toEqual(['~4h', 'due Mon, Sep 21', 'unlocks Eng Op-Ed Final', 'goes through LopesWrite']);
     expect(heroFacts(draft, items, 240, TZ, today)[3].itemId).toBe('final');
-    expect(heroFacts(post, items, 25, TZ, today).map((f) => f.text)).toEqual(['5 pts', '~25m', 'due tomorrow']);
+    const small = heroFacts(post, items, 25, TZ, today).map((f) => f.text);
+    expect(small[0]).toMatch(/^5 pts · \d+(\.\d)?% of grade$/);
+    expect(small.slice(1)).toEqual(['~25m', 'due tomorrow']);
     const late = { ...post, dueAt: at('2026-09-10') };
     expect(heroFacts(late, items, 25, TZ, today)[2].text).toBe('due was Sep 10');
     const withFeeds = { ...draft, blocks: [], plan: { ...final.plan!, feeds: 'final' } };

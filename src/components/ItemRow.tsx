@@ -10,6 +10,7 @@ import { IconCheck } from './Icons';
 import { useChipState } from './ItemChip';
 import { haloSaysNotIn } from '../domain/confirm';
 import { itemTone, toneLabel } from '../domain/status';
+import { shareLine } from '../domain/share';
 
 /** `dateless`: the row sits under a day header, so only the time is repeated. */
 export function ItemRow({ item, onOpen, showStart = false, compact = false, dateless = false, progress = null }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean; dateless?: boolean; progress?: { done: number; total: number } | null }) {
@@ -66,7 +67,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
             {movedRecently(item, today, data.settings.timezone) && <s className="item-was"> was {fmtDate(dateOf(item.dateChange!.from, data.settings.timezone), 'short')}</s>}
           </span>
           <span>{hours(item.estimatedMinutes)}</span>
-          {item.points > 0 && <span>{item.points} pts</span>}
+          {item.points > 0 && <span title={shareLine(item, data.items) ?? undefined}>{item.points} pts{!compact && shareLine(item, data.items) ? ` · ${shareLine(item, data.items)}` : ''}</span>}
           {progress && progress.total > 0 && (
             <span className="item-progress">
               {progress.done} of {progress.total}
