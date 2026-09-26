@@ -33,6 +33,15 @@ const SEEDED = [
   ['palette', '#/now', async (page) => { await page.keyboard.press('Meta+KeyK'); await page.waitForTimeout(400); await page.keyboard.type('chem'); await page.waitForTimeout(400); }],
   // Announcements arrive the way a sync brings them: a Halo export posted to the window. The review sheet saves
   // them on mount; Escape closes it; the Inbox then has six posts to show in two panes.
+  // The review sheet itself, as a sync opens it: what arrived, what changed, one line on whether everything came through.
+  ['sync-review', '#/now', async (page) => {
+    const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
+    const post = (n, title, body) => ({ id: `rev-${n}`, forumId: 'f1', title, content: `<p>${body}</p>`, publishedAt: `2026-09-${String(10 + n).padStart(2, '0')}T15:00:00.000Z`, modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] });
+    const assess = (n, title, due, pts) => ({ id: `a-${n}`, title, dueDate: due, points: pts, type: 'ASSIGNMENT', status: null, score: null, description: '' });
+    const payload = { kind: 'halo-export', version: 1, build: 'shot', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [assess(1, 'Chem Lab 4 report', '2026-10-09T23:59:00.000Z', 50), assess(2, 'Chem Quiz 3', '2026-10-12T23:59:00.000Z', 20)], announcements: [post(1, 'Lab 3 goggles', 'Bring your own splash goggles to lab from now on.')], resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1800);
+  }],
   ['inbox-full', '#/now', async (page) => {
     const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
     const post = (n, title, body) => ({ id: `shot-${n}`, forumId: 'f1', title, content: `<p>${body}</p>`, publishedAt: `2026-09-${String(10 + n).padStart(2, '0')}T15:00:00.000Z`, modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] });
@@ -61,6 +70,10 @@ const SEEDED = [
   ['max-tour', '#/now', async (page) => { await page.click('.max-welcome button:has-text("Next")'); await page.waitForTimeout(500); }],
   ['max-done', '#/now', async (page) => { await page.click('.max-welcome button:has-text("Take me to Now")'); await page.waitForTimeout(600); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.accent = 'gold'; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
   ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
+  // "Am I okay?": the one paragraph behind the status line.
+  ['okay', '#/now', async (page) => { await page.click('.now-status-btn'); await page.waitForTimeout(500); }],
+  // Back after five days away: what slipped, what changed, the one thing to start with.
+  ['welcome-back', '#/now', async (page) => { await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() - 5); localStorage.setItem('school-dashboard:last-seen', d.toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' })); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(800); await page.evaluate(() => localStorage.removeItem('school-dashboard:last-seen')); }],
   ['levelup', '#/now', async (page) => { await page.evaluate(() => localStorage.setItem('school-dashboard:seen-level', '0')); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1400); await page.evaluate(() => localStorage.removeItem('school-dashboard:seen-level')); }],
   // Last: this one marks the day's items done in the seed, and every shot after it would see that.
   ['now-done', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); for (const i of d.items) if (i.dueAt.slice(0, 10) <= today && i.status !== 'done') { i.status = 'done'; i.completedAt = new Date().toISOString(); } localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(500); }],

@@ -1,7 +1,7 @@
 import { submissionCheck } from './confirm';
 import { addDays, dateOf, diffDays, fmtDate } from './dates';
 import { gradeFloor } from './floor';
-import { unlocks } from './gating';
+import { effectivePoints, unlocks } from './gating';
 import { pileupAhead } from './pileup';
 import type { Schedule } from './schedule';
 import type { AppData, DateStr, Item } from './types';
@@ -29,7 +29,9 @@ export function amIOkay(data: AppData, schedule: Schedule, today: DateStr, now: 
   const waiting = items.filter((i) => i.status !== 'done' && isBlocked(i, today));
   const open = items.filter((i) => i.status !== 'done' && !isBlocked(i, today));
   const nowMs = new Date(now).getTime();
-  const overdue = open.filter((i) => new Date(i.dueAt).getTime() < nowMs).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  // The same order Now uses for late things: the one worth the most first, then the oldest.
+  const overdue = open.filter((i) => new Date(i.dueAt).getTime() < nowMs).sort((a, b) => effectivePoints(b, items) - effectivePoints(a, items) || a.dueAt.localeCompare(b.dueAt));
+  const oldest = overdue.length ? [...overdue].sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0] : null;
   const sub = submissionCheck(items, today, tz);
   const pile = pileupAhead(items, schedule, today);
   const gates = open
@@ -58,7 +60,7 @@ export function amIOkay(data: AppData, schedule: Schedule, today: DateStr, now: 
   if (overdue.length) {
     const named = overdue.slice(0, 2).map((i) => i.label);
     parts.push(`${overdue.length === 1 ? `${named[0]} is` : `${overdue.length} things are`} past ${overdue.length === 1 ? 'its' : 'their'} date${overdue.length > 1 ? `: ${overdue.length > 2 ? `${named.join(', ')}, and ${overdue.length - 2} more` : list(named)}` : ''}.`);
-    handle = handle ?? `Handle ${overdue[0].label} first; it's the oldest.`;
+    handle = handle ?? `Handle ${overdue[0].label} first; it's ${overdue[0] === oldest ? 'the oldest' : 'worth the most'}.`;
     first = first ?? overdue[0];
   }
   if (gates.length) {
