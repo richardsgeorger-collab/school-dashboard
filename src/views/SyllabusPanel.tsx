@@ -11,7 +11,7 @@ function fmtChars(n: number): string {
   return n >= 1000 ? `${Math.round(n / 1000)}k characters` : `${n} characters`;
 }
 
-/** One syllabus per class, as text the coach can quote. Reference only; assignments come from the .ics export. */
+/** One syllabus per class, as text. Due dates come from Halo; the syllabus feeds the AI read (start dates, prep steps), the date check, the quiz pool, the prompt panel and the coach. */
 export function SyllabusPanel({ courseId: onlyCourse }: { courseId?: string } = {}) {
   const { data } = useStore();
   const tz = data.settings.timezone;
@@ -102,8 +102,8 @@ export function SyllabusPanel({ courseId: onlyCourse }: { courseId?: string } = 
   if (onlyCourse) return rows;
   return (
     <section className="card settings-card">
-      <h2 className="section-title">Syllabi, for the coach</h2>
-      <p className="hint">Drop each class&apos;s syllabus PDF so you can ask things like &ldquo;what&apos;s the late policy for chem&rdquo; and get the line quoted back. Reference only: assignments and dates come from the Halo export, never from here.</p>
+      <h2 className="section-title">Syllabi</h2>
+      <p className="hint">Drop each class&apos;s syllabus PDF. Due dates always come from Halo; the syllabus is what the AI read uses for start dates and prep steps, what the date check compares against, and what the coach quotes when you ask &ldquo;what&apos;s the late policy for chem&rdquo;.</p>
       {rows}
     </section>
   );
