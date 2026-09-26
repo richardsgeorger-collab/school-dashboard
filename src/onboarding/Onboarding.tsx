@@ -163,9 +163,9 @@ export function Onboarding() {
 
         {step === 'account' && (
           <section className="onboard-step" aria-label="Sign up">
-            <h1 className="onboard-title">Sign up.</h1>
-            <p className="onboard-text">Your classes and work follow you between your phone and laptop. Email link or Google; no password to invent.</p>
-            <SignIn auth={auth} title="Sign in" />
+            <h1 className="onboard-title">Create your account.</h1>
+            <p className="onboard-text">Your classes and work follow you between your phone and laptop. Email link or Google; no password to invent. Already have one? The same form signs you in.</p>
+            <SignIn auth={auth} title="Your account" />
             <div className="onboard-actions">
               <button type="button" className="btn" onClick={() => skipStep('halo')}>
                 Not now, keep it on this device
