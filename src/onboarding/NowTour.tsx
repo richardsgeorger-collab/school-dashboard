@@ -3,9 +3,9 @@ import { useStore } from '../storage/store';
 import type { OnboardingState } from './state';
 
 const STOPS = [
-  { selector: '.now-status', text: 'One line on the day. Tap it any time for the full picture.' },
-  { selector: '.hero, .now .empty', text: 'The one thing to do right now, with what you need to start it. Done, Start, or More.' },
-  { selector: '.synced', text: 'When this last matched Halo. If it says sync, sync: the bookmark does the rest.' },
+  { selector: '.now-title', text: 'One line on the day. Tap it any time for the full picture.' },
+  { selector: '.hero, .now .empty', text: 'The one thing to do right now, with what you need to start it. Start, the check when it is done, or Details.' },
+  { selector: '.now-side .synced', text: 'When this last matched Halo. If it says sync, sync: the bookmark does the rest.' },
 ];
 
 /** Three tooltips on Now, once, after onboarding. Each points at the real element; a missing one is skipped. */
