@@ -232,6 +232,12 @@ export function Now() {
   const [finished, setFinished] = useState<{ xp: number; label: string } | null>(null);
   const [showAnyway, setShowAnyway] = useState(false);
   const [leaving, setLeaving] = useState<string | null>(null);
+  // A tab left open: the clock moves without a touch, so a thing that becomes due, late, or "today" shows as such.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const now = new Date().toISOString();
   const minuteKey = now.slice(0, 16);
 
