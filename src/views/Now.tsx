@@ -205,6 +205,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
           <span className="row-meta">
             {course?.code} · {when} · {approx(item.estimatedMinutes)}
             {item.points > 0 ? ` · ${item.points} pts` : ''}
+            {(item.requirements ?? []).some((r) => !r.done) ? ` · ${(item.requirements ?? []).filter((r) => !r.done).length} part${(item.requirements ?? []).filter((r) => !r.done).length === 1 ? '' : 's'} from announcements` : ''}
           </span>
         </span>
         {item.status === 'done' && <IconCheck />}
@@ -383,7 +384,8 @@ export function Now() {
         </>
       ),
     });
-  if (missed)
+  // The hero already shows its own requirements; the heads-up only points at ones on other assignments.
+  if (missed && missed.item.id !== hero?.id)
     headsUp.push({
       key: 'missed',
       text: (
