@@ -436,6 +436,8 @@ export interface Settings {
   weekdayMinutes: number;
   weekendMinutes: number;
   theme: 'system' | 'light' | 'dark';
+  /** The accent preset (config/accents.ts). Shown only while the account has Max; kept otherwise. */
+  accent?: 'gold' | 'blue' | 'green' | 'rose' | 'violet' | 'teal';
   weekStartsOn: 0 | 1;
   supabaseUrl: string | null;
   supabaseAnonKey: string | null;
@@ -487,7 +489,8 @@ export const DEFAULT_SETTINGS: Settings = {
   timezone: 'America/Phoenix',
   weekdayMinutes: 180,
   weekendMinutes: 300,
-  theme: 'light',
+  // Follows the device until the student picks; the landing page and a first open respect a dark phone.
+  theme: 'system',
   weekStartsOn: 0,
   supabaseUrl: null,
   supabaseAnonKey: null,

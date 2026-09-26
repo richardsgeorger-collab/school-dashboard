@@ -1,40 +1,36 @@
 import { useEffect } from 'react';
+import { useAccount } from '../auth/AccountContext';
+import { ACCENTS, accentToShow, applyAccent, isAccent, type AccentId } from '../config/accents';
+import { can } from '../config/flags';
 import { useRoute } from '../router';
+import { useStore } from '../storage/store';
 import { Now } from './Now';
 
 /**
- * Hidden: #/looks?d=default|sky shows the Now screen under the default blue and one alternate, light or dark by
- * the theme toggle, on real data (#/looks?seed=1 loads the sample term). Switching is one token block. DESIGN.md §7.
+ * Hidden: #/looks?d=gold|blue|green|rose|violet|teal shows the Now screen under each accent preset, light or dark
+ * by the theme toggle, on real data (#/looks?seed=1 loads the sample term). Leaving restores the account's accent.
  */
-export type Look = 'default' | 'sky';
-export const LOOKS: { id: Look; name: string; line: string }[] = [
-  { id: 'default', name: 'Default', line: 'Neutral greys, one cool blue (#3F7FEE / #6FA0FF at night).' },
-  { id: 'sky', name: 'Alternate blue', line: 'The same system with a softer, lighter blue (#5B93F5 / #86B1FF).' },
-];
-
-/** Applies a look to the document. Both follow the light/dark toggle. */
-export function applyLook(look: Look | null) {
-  const root = document.documentElement;
-  if (look && look !== 'default') root.dataset.look = look;
-  else delete root.dataset.look;
-}
-
 export function Looks() {
   const { params } = useRoute();
-  const d = (params.get('d') as Look | null) ?? 'default';
-  const look = LOOKS.some((l) => l.id === d) ? d : 'default';
+  const { data } = useStore();
+  const { tier } = useAccount();
+  const d = params.get('d');
+  const look: AccentId = isAccent(d) ? d : 'gold';
+  const mine = accentToShow(data.settings.accent, can('themes', tier));
   useEffect(() => {
-    applyLook(look);
-    return () => applyLook(null);
-  }, [look]);
+    applyAccent(document.documentElement, look);
+    return () => applyAccent(document.documentElement, mine);
+  }, [look, mine]);
   const keep = params.get('seed') === '1' ? '&seed=1' : '';
   return (
     <>
-      <div className="looks-bar" role="tablist" aria-label="Visual direction">
-        {LOOKS.map((l) => (
-          <a key={l.id} role="tab" aria-selected={l.id === look} className="looks-tab" href={`#/looks?d=${l.id}${keep}`}>
-            <b>{l.name}</b>
-            <span>{l.line}</span>
+      <div className="looks-bar" role="tablist" aria-label="Accent preset">
+        {ACCENTS.map((a) => (
+          <a key={a.id} role="tab" aria-selected={a.id === look} className="looks-tab" href={`#/looks?d=${a.id}${keep}`}>
+            <b>{a.name}</b>
+            <span>
+              {a.light} light · {a.dark} dark{a.id === 'gold' ? ' · default' : ''}
+            </span>
           </a>
         ))}
       </div>

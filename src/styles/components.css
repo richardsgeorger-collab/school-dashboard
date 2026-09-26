@@ -107,7 +107,7 @@ body {
 }
 .nav-bottom .nav-link[aria-current='page'],
 .nav-bottom .nav-link[aria-current='page'] svg {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .nav-bottom .nav-link:active svg {
   transform: scale(0.92);
@@ -286,7 +286,7 @@ a {
 .verify-nudge,
 .calm-more {
   font: 500 14px/1.3 var(--font-body);
-  color: var(--accent);
+  color: var(--accent-text);
   background: none;
   border: 0;
   padding: 0;
@@ -332,7 +332,7 @@ textarea {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .field {
@@ -354,7 +354,7 @@ textarea:focus-visible {
   width: 20px;
   height: 20px;
   min-height: 0;
-  accent-color: var(--accent);
+  accent-color: var(--accent-text);
 }
 :focus-visible {
   outline: 2px solid var(--accent);
@@ -480,7 +480,7 @@ textarea:focus-visible {
 }
 .pill[data-tone='accent'] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ---- sheet (every modal on a phone) ---------------------------------- */
@@ -617,7 +617,7 @@ textarea:focus-visible {
 }
 .empty .empty-actions .btn:not(.primary) {
   border-color: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ---- progress ------------------------------------------------------- */
@@ -828,7 +828,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: 0;
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 input::placeholder,

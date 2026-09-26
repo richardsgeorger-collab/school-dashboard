@@ -226,7 +226,7 @@
   box-shadow: var(--shadow-1);
 }
 .week-strip-day[aria-selected='true'] {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: 0 0 0 3px var(--accent-soft);
   color: var(--ink);
 }
@@ -278,7 +278,7 @@
   color: var(--ink-2);
 }
 .day-group-head[data-today='true'] b {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .day-group-head .muted {
   margin-left: auto;
@@ -307,7 +307,7 @@
   height: 18px;
   min-height: 0;
   margin: 1px 0 0;
-  accent-color: var(--accent);
+  accent-color: var(--accent-text);
 }
 .part-when {
   font: var(--t-micro);
@@ -505,7 +505,7 @@
   font-weight: 600;
 }
 .news-added {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 500;
 }
 .news-quiet {
@@ -700,7 +700,7 @@
   letter-spacing: var(--track-caps);
   text-transform: uppercase;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   padding: 4px 8px;
   border-radius: var(--r-pill);
 }
@@ -910,7 +910,7 @@
 }
 .sync-trouble summary {
   font: 500 14px/1.3 var(--font-body);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* ---- tour tips ------------------------------------------------------------------- */
@@ -919,7 +919,7 @@
   box-shadow: var(--shadow-3);
 }
 .tour-mark {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   border-radius: var(--r-lg);
 }
 
@@ -965,7 +965,7 @@
   color: var(--ink-3);
 }
 .month-cell[data-today='true'] {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 .month-cell[data-marker='today']::after,
@@ -1135,7 +1135,7 @@
   font-weight: 600;
 }
 .looks-tab[aria-selected='true'] {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 @media (max-width: 600px) {
@@ -1168,7 +1168,7 @@
 /* Today in the agenda is the accent, as a word, not a gold pill. */
 .day-group-head[data-today='true'] b {
   background: none;
-  color: var(--accent);
+  color: var(--accent-text);
   padding: 0;
 }
 /* The sync line is information, not a warning: grey, one link. */
@@ -1635,12 +1635,12 @@
   background: var(--hatch);
 }
 .load-week[data-current='true'] .load-label {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .load-label .load-now,
 .load-week[data-current='true'] .load-label b {
   background: none;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 @keyframes bar-in {
   from {
@@ -1707,7 +1707,7 @@
 }
 .payoff-num {
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .onboard-chips {
   display: flex;
@@ -1885,7 +1885,7 @@
 .load-label em {
   font-style: normal;
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-text);
   border-radius: var(--r-pill);
 }
 
@@ -2017,7 +2017,7 @@
   color: var(--ink);
 }
 .glance-row[data-today='true'] .glance-day {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .glance-bar {
   height: 6px;
@@ -2149,7 +2149,7 @@
   background: linear-gradient(180deg, var(--warn), color-mix(in srgb, var(--warn) 60%, var(--surface)));
 }
 .wl-col[data-current='true'] .wl-label {
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 .wl-cap {

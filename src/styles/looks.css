@@ -1,7 +1,8 @@
 /*
- * Depth, and the one alternate. The page has a faint wash and grain behind everything, cards sit on a faint
- * gradient with a lit top edge, and the hero has the one glow. The alternate blue overrides the accent under
- * data-look on <html>; #/looks shows the Now screen under each, light and dark. See DESIGN.md §7.
+ * Depth, and the accent presets. The page has a faint wash and grain behind everything, cards sit on a faint
+ * gradient with a lit top edge, and the hero has the one glow. Gold is the default accent (tokens.css); a Max
+ * account may pick another preset, applied as data-accent on <html> (or on a preview box, which is why the
+ * selectors are not pinned to :root). #/looks shows Now under each, light and dark. See DESIGN.md §7–8.
  */
 
 /* ---- always on: the page has depth, cards sit above it, the hero has a glow ---- */
@@ -71,15 +72,125 @@
   box-shadow: 0 1px 0 rgb(255 255 255 / 0.18) inset, 0 6px 16px -8px var(--glow);
 }
 
-/* ---- Sky: the same system with a softer, lighter blue, to compare against the default. ---- */
-:root[data-look='sky'] {
-  --accent: #5b93f5;
-  --accent-soft: #eaf1fe;
-  --glow: rgb(91 147 245 / 0.18);
+/* ---- Accent presets. Light under [data-accent], dark under the theme; gold repeats the defaults so a preview
+   box can show gold while the page is on another colour. ---- */
+
+[data-accent='gold'] {
+  --accent: #dfa321;
+  --accent-ink: #1b1400;
+  --accent-text: #946800;
+  --accent-soft: #fbf1d3;
+  --halo: #f2b84b;
+  --glow: rgb(223 163 33 / 0.2);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(223 163 33 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(223 163 33 / 0.05), transparent 60%);
 }
-:root[data-look='sky'][data-theme='dark'] {
-  --accent: #86b1ff;
+[data-theme='dark'] [data-accent='gold'],
+[data-theme='dark'][data-accent='gold'] {
+  --accent: #f2b84b;
+  --accent-ink: #1b1400;
+  --accent-text: #f2b84b;
+  --accent-soft: rgb(242 184 75 / 0.14);
+  --halo: #ffd27a;
+  --glow: rgb(242 184 75 / 0.24);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(242 184 75 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(242 184 75 / 0.05), transparent 60%);
+}
+
+[data-accent='blue'] {
+  --accent: #3f7fee;
+  --accent-ink: #ffffff;
+  --accent-text: #2f66c4;
+  --accent-soft: #e8f0fe;
+  --halo: #7fb0ff;
+  --glow: rgb(63 127 238 / 0.2);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(63 127 238 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(63 127 238 / 0.05), transparent 60%);
+}
+[data-theme='dark'] [data-accent='blue'],
+[data-theme='dark'][data-accent='blue'] {
+  --accent: #6fa0ff;
   --accent-ink: #0b0d10;
-  --accent-soft: rgb(134 177 255 / 0.14);
-  --glow: rgb(134 177 255 / 0.26);
+  --accent-text: #8ab4ff;
+  --accent-soft: rgb(111 160 255 / 0.14);
+  --halo: #a9c8ff;
+  --glow: rgb(111 160 255 / 0.24);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(111 160 255 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(111 160 255 / 0.05), transparent 60%);
+}
+
+[data-accent='green'] {
+  --accent: #2f9e5b;
+  --accent-ink: #ffffff;
+  --accent-text: #1f7a44;
+  --accent-soft: #e3f3e9;
+  --halo: #6fd39a;
+  --glow: rgb(47 158 91 / 0.2);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(47 158 91 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(47 158 91 / 0.05), transparent 60%);
+}
+[data-theme='dark'] [data-accent='green'],
+[data-theme='dark'][data-accent='green'] {
+  --accent: #5ccf8a;
+  --accent-ink: #0b0d10;
+  --accent-text: #7fdca4;
+  --accent-soft: rgb(92 207 138 / 0.14);
+  --halo: #9de8bb;
+  --glow: rgb(92 207 138 / 0.24);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(92 207 138 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(92 207 138 / 0.05), transparent 60%);
+}
+
+[data-accent='rose'] {
+  --accent: #e0507a;
+  --accent-ink: #ffffff;
+  --accent-text: #b8325c;
+  --accent-soft: #fce8ef;
+  --halo: #ff96b8;
+  --glow: rgb(224 80 122 / 0.2);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(224 80 122 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(224 80 122 / 0.05), transparent 60%);
+}
+[data-theme='dark'] [data-accent='rose'],
+[data-theme='dark'][data-accent='rose'] {
+  --accent: #ff8fb0;
+  --accent-ink: #0b0d10;
+  --accent-text: #ff9fbc;
+  --accent-soft: rgb(255 143 176 / 0.14);
+  --halo: #ffbcd0;
+  --glow: rgb(255 143 176 / 0.24);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(255 143 176 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(255 143 176 / 0.05), transparent 60%);
+}
+
+[data-accent='violet'] {
+  --accent: #7b5cf0;
+  --accent-ink: #ffffff;
+  --accent-text: #5c3fd0;
+  --accent-soft: #eeeafd;
+  --halo: #b4a3ff;
+  --glow: rgb(123 92 240 / 0.2);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(123 92 240 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(123 92 240 / 0.05), transparent 60%);
+}
+[data-theme='dark'] [data-accent='violet'],
+[data-theme='dark'][data-accent='violet'] {
+  --accent: #a996ff;
+  --accent-ink: #0b0d10;
+  --accent-text: #b9aaff;
+  --accent-soft: rgb(169 150 255 / 0.14);
+  --halo: #cfc5ff;
+  --glow: rgb(169 150 255 / 0.24);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(169 150 255 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(169 150 255 / 0.05), transparent 60%);
+}
+
+[data-accent='teal'] {
+  --accent: #1f9aa8;
+  --accent-ink: #ffffff;
+  --accent-text: #177885;
+  --accent-soft: #e2f4f6;
+  --halo: #6fd8e3;
+  --glow: rgb(31 154 168 / 0.2);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(31 154 168 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(31 154 168 / 0.05), transparent 60%);
+}
+[data-theme='dark'] [data-accent='teal'],
+[data-theme='dark'][data-accent='teal'] {
+  --accent: #5fd3df;
+  --accent-ink: #0b0d10;
+  --accent-text: #7fdde7;
+  --accent-soft: rgb(95 211 223 / 0.14);
+  --halo: #a4e8ef;
+  --glow: rgb(95 211 223 / 0.24);
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(95 211 223 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(95 211 223 / 0.05), transparent 60%);
 }

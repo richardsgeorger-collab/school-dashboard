@@ -208,7 +208,7 @@
   height: 20px;
   min-height: 0;
   margin: 2px 0 0;
-  accent-color: var(--accent);
+  accent-color: var(--accent-text);
 }
 .hero-first-word {
   font-weight: 600;
@@ -345,7 +345,7 @@
 .note[data-tone='accent'] {
   background: var(--accent-soft);
   border-color: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
 }
 .note b {
   font-weight: 600;
@@ -445,7 +445,7 @@
   color: var(--ink-2);
 }
 .exam-session[data-today='true'] {
-  border-color: var(--accent);
+  border-color: var(--accent-text);
 }
 .pressure {
   font: var(--t-small);
@@ -465,7 +465,7 @@
 }
 .nextclass-link {
   font: inherit;
-  color: var(--accent);
+  color: var(--accent-text);
   font-weight: 500;
   background: none;
   border: 0;

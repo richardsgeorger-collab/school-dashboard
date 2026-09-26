@@ -1,6 +1,6 @@
 /**
  * One ring, one number. The arc draws itself on load (700ms, off under reduced motion) and fills with a gradient
- * of the accent; full means done and it says so in colour. `text` puts a value in the middle for a grade tile.
+ * from the accent to the halo, a golden ring; full means done and it says so. `text` puts a value in the middle.
  */
 export function Ring({ value, max, label, text, size = 44 }: { value: number; max: number; label?: string; text?: string; size?: number }) {
   const r = 18;

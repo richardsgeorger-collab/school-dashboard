@@ -141,7 +141,7 @@ export const IconMoon = ({ size = 20 }: IconProps = {}) => (
  */
 export const IconHalo = ({ size = 24 }: IconProps = {}) => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden data-icon="" width={size} height={size}>
-    <path d="M19.73 9.93A8 8 0 1 1 14.07 4.27" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-    <path d="M17.66 3.5v5.7M14.8 6.35h5.7" stroke="var(--halo)" strokeWidth="2.6" strokeLinecap="round" />
+    <path d="M19.73 9.93A8 8 0 1 1 14.07 4.27" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" />
+    <path d="M17.66 3.5v5.7M14.8 6.35h5.7" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
   </svg>
 );

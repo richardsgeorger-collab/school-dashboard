@@ -8,7 +8,9 @@ import { loadApiKey, saveApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { ProgressCard } from '../components/ProgressCard';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { rewardDaysLeft, trialDaysLeft } from '../config/flags';
+import { can, rewardDaysLeft, trialDaysLeft } from '../config/flags';
+import { DEFAULT_ACCENT } from '../config/accents';
+import { AccentPicker } from './AccentPicker';
 import { FEATURE_LINES, FEATURES, PRICES, REFERRAL, TIER_NAMES, TIERS, TRIAL, type Feature, type Tier } from '../config/tiers';
 import { openPortal, startCheckout } from '../billing/client';
 import { subscriptionLine, type Interval, type Paid } from '../billing/subscription';
@@ -500,6 +502,11 @@ export function You() {
                 onChange={(v) => actions.updateSettings({ theme: v })}
               />
             </div>
+          </div>
+          <div className="field">
+            <span>Accent</span>
+            <AccentPicker value={data.settings.accent ?? DEFAULT_ACCENT} allowed={can('themes', tier)} onChange={(a) => actions.updateSettings({ accent: a })} />
+            {can('themes', tier) && data.settings.accent && data.settings.accent !== DEFAULT_ACCENT && <p className="hint">Gold comes back if Max ends; your choice is kept.</p>}
           </div>
           <label className="field">
             <span>Time zone</span>

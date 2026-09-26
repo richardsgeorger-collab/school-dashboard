@@ -13,7 +13,7 @@ import { pixel } from '../analytics/pixel';
  * quiet line on You and on the plans. Always the same sentence: "Free for 5 days. No card. Nothing charges."
  * `card` is the payoff version; `line` is the quiet one.
  */
-export function TrialOffer({ variant = 'line', lead }: { variant?: 'card' | 'line' | 'button'; lead?: string }) {
+export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card' | 'line' | 'button'; lead?: string; label?: string }) {
   const { auth, profile, reloadProfile } = useAccount();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function TrialOffer({ variant = 'line', lead }: { variant?: 'card' | 'lin
   };
   const button = (
     <button type="button" className={`btn ${variant === 'card' ? 'primary' : 'small primary'}`} disabled={busy || !auth.session} onClick={() => void go()}>
-      {busy ? 'Starting…' : 'Start the free trial'}
+      {busy ? 'Starting…' : (label ?? 'Start the free trial')}
     </button>
   );
   if (variant === 'button') return button;

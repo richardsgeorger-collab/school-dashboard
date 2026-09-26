@@ -1,10 +1,10 @@
-// Screenshots of the three visual directions on the Now screen: docs/screens/looks/<look>-<laptop|phone>.png
+// Screenshots of the Now screen under each accent preset: docs/screens/looks/<preset>-<light|dark>-<desk|phone>.png
 import { chromium, devices } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 const OUT = 'docs/screens/looks';
 mkdirSync(OUT, { recursive: true });
-const LOOKS = ['default', 'sky'];
+const LOOKS = ['gold', 'blue', 'green', 'rose', 'violet', 'teal'];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const [size, device] of [['desk', { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }], ['phone', { ...devices['iPhone 14'], deviceScaleFactor: 2 }]]) {
   for (const look of LOOKS) {
