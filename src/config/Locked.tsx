@@ -45,16 +45,17 @@ function usePreview(feature: Feature): string | null {
  * that says what the feature does, what it would do with this student's data, and one way up: the free trial when
  * it is still available, otherwise the plan. Never a wall, never a modal: the rest of the screen keeps working.
  */
-export function Locked({ feature, tier, children, compact = false }: { feature: Feature; tier: Tier; children: ReactNode; compact?: boolean }) {
+export function Locked({ feature, tier, children, compact = false, line, quiet = false }: { feature: Feature; tier: Tier; children: ReactNode; compact?: boolean; /** Words for this surface when the feature's own line does not fit (the tutor shares the coach's feature). */ line?: string; /** Leave out the data preview. */ quiet?: boolean }) {
   const { profile, auth } = useAccount();
-  const preview = usePreview(feature);
+  const previewLine = usePreview(feature);
+  const preview = quiet ? null : previewLine;
   if (can(feature, tier)) return <>{children}</>;
   const need = tierFor(feature);
   // The trial is Max, and Max has everything Pro has: offer it on any feature the trial tier covers.
   const trial = auth.configured && trialState(profile) === 'available' && rank(TRIAL.tier) >= rank(need);
   return (
     <div className={`locked card${compact ? ' locked-compact' : ''}`} role="note" aria-label={`Included with ${TIER_NAMES[need]}`}>
-      <p className="locked-line">{FEATURE_LINES[feature]}</p>
+      <p className="locked-line">{line ?? FEATURE_LINES[feature]}</p>
       {preview && <p className="locked-preview">{preview}</p>}
       <div className="locked-actions">
         <span className="locked-tier">{TIER_NAMES[need]}</span>

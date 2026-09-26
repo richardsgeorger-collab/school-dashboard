@@ -102,7 +102,7 @@ export function IngestView() {
     }
     setReview(false);
     const n = countSelected(sel);
-    setNote(`Applied ${n} change${n === 1 ? '' : 's'}${out.added.length ? `, added ${out.added.length}` : ''}. ${course.code} now runs on the AI version; the parser stays as fallback.`);
+    setNote(`Applied ${n} change${n === 1 ? '' : 's'}${out.added.length ? `, added ${out.added.length}` : ''}. ${course.code} now uses the AI read; the built-in read stays as the fallback.`);
   };
 
   if (!course) {
@@ -135,8 +135,8 @@ export function IngestView() {
             <CourseChip course={course} /> <span>AI plan</span>
           </h1>
           <p className="hint mono">
-            {course.ingest === 'ai' ? 'Running on the AI version · parser is the fallback' : 'Running on the parser'}
-            {plan ? ` · last pass ${fmtDate(dateOf(plan.at, tz), 'short')}${state === 'stale' ? ' · changed since (new file or sync)' : ''}` : ' · never run'}
+            {course.ingest === 'ai' ? 'AI read on · the built-in read is the fallback' : 'Built-in read of the syllabus and descriptions'}
+            {plan ? ` · last AI read ${fmtDate(dateOf(plan.at, tz), 'short')}${state === 'stale' ? ' · changed since (new file or sync)' : ''}` : ' · AI read not run yet'}
           </p>
         </div>
       </div>
@@ -144,7 +144,7 @@ export function IngestView() {
       <DateAudit course={course} />
 
       <section className="card ingest-status">
-        {!hasKey && <p className="hint">The AI pass needs a Pro or Max plan. Until then this class runs on the parser.</p>}
+        {!hasKey && <p className="hint">The AI read is part of Pro and Max. Until then start dates and time estimates come from the built-in read of the syllabus and each description.</p>}
         {ctx?.syllabusInfo && (
           <p className="hint mono" data-full={ctx.syllabusInfo.dropped.length === 0 && !ctx.syllabusInfo.storedTruncated}>
             Syllabus: {ctx.syllabusInfo.sent.toLocaleString()} of {ctx.syllabusInfo.stored.toLocaleString()} stored characters go to the model

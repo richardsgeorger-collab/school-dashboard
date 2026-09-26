@@ -31,6 +31,9 @@ const SEEDED = [
     const heroes = await page.evaluate(() => document.querySelectorAll('.now > .hero').length);
     if (heroes !== 1) throw new Error(`item: ${heroes} hero cards on Now with the sheet open; expected 1`);
   }],
+  // The AI screens and the ingest review, on the first class: locked previews on this build, the real shape of each.
+  ...['ingest', 'tutor', 'study', 'quiz'].map((r) => [r, '#/now', async (page) => { const id = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses[0].id); await page.goto(`${BASE}#/${r}?c=${id}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700); }]),
+  ['looks', '#/looks?d=violet'],
   ['you-progress', '#/you?s=progress'],
   ['you-workload', '#/you?s=workload'],
   ['you-halo', '#/you?s=halo'],

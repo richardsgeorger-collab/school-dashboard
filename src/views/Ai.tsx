@@ -60,7 +60,7 @@ export function Ai() {
           </Locked>
         )}
         {mode === 'tutor' && (
-          <Locked feature="aiChat" tier={tier}>
+          <Locked feature="aiChat" tier={tier} line="Stuck on something? The tutor explains it from your own slides and lectures, at your level." quiet>
             <Tutor />
           </Locked>
         )}
@@ -70,7 +70,7 @@ export function Ai() {
           </Locked>
         )}
         {mode === 'quiz' && (
-          <Locked feature="flashcards" tier={tier}>
+          <Locked feature="flashcards" tier={tier} line="Practice questions from your own slides and lectures, weak spots first.">
             <Quiz />
           </Locked>
         )}
