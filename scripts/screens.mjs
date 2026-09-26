@@ -50,6 +50,15 @@ const SEEDED = [
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1800);
   }],
+  // A sync from the current bookmark where Halo refused one class's announcements: the honest "not everything" path.
+  ['sync-partial', '#/now', async (page) => {
+    const cs = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.filter((c) => c.code === 'CHM-113' || c.code === 'ENG-105'));
+    const cls = (c, posts) => ({ id: `h-${c.id}`, slugId: 'X', classCode: `${c.code}-X`, courseCode: c.code, name: c.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] });
+    const post = { id: 'sp-1', forumId: 'f1', title: 'Office hours moved', content: '<p>Office hours are Thursdays 1–2 this week only.</p>', publishedAt: '2026-09-24T15:00:00.000Z', modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] };
+    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [cls(cs[0], [post]), cls(cs[1], undefined)], alerts: [], problems: [{ klass: 'ENG-105', kind: 'announcements', message: 'Internal server error', op: 'getForums', status: 500 }], pulls: ['assessments', 'grades', 'instructors', 'announcements', 'class facts', 'instructor feedback', 'rubrics', 'class resources', 'discussions', 'quiz results', 'alerts', 'inbox'] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1800);
+  }],
   ['inbox-full', '#/now', async (page) => {
     const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
     const post = (n, title, body) => ({ id: `shot-${n}`, forumId: 'f1', title, content: `<p>${body}</p>`, publishedAt: `2026-09-${String(10 + n).padStart(2, '0')}T15:00:00.000Z`, modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] });
@@ -152,6 +161,8 @@ const SEEDED = [
     await page.evaluate(() => localStorage.removeItem('school-dashboard:last-seen'));
   }],
   // "Am I okay?": the one paragraph behind the status line.
+  // Start pressed: the timer runs on the card and Done becomes the primary action.
+  ['hero-started', '#/now', async (page) => { await page.click('.hero-actions .btn.primary:has-text("Start")'); await page.waitForTimeout(700); await page.click('.hero-actions .btn.quiet'); await page.waitForTimeout(400); }],
   // Done from the hero: the toast with Undo, then Undo puts the card back.
   ['done-toast', '#/now', async (page) => { await page.click('.hero-actions button[aria-label="Mark done"]'); await page.waitForTimeout(900); }],
   ['done-undone', '#/now', async (page) => { await page.click('.hero-actions button[aria-label="Mark done"]'); await page.waitForTimeout(900); await page.click('.time-ask-undo, .done-toast-undo'); await page.waitForTimeout(500); }],

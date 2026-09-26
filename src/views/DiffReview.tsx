@@ -251,7 +251,7 @@ export function DiffReview({
           <p className="hint" role="status" style={{ margin: 0 }}>
             {gaps}
           </p>
-          <details className="gap-detail" open>
+          <details className="gap-detail">
             <summary className="hint">What Halo actually said</summary>
             <p className="hint">
               <button
@@ -259,7 +259,7 @@ export function DiffReview({
                 className="btn small"
                 onClick={() => void navigator.clipboard.writeText(JSON.stringify({ problems: payload.problems ?? [], schema: payload.schema ?? null }, null, 1)).then(() => setCopied(true))}
               >
-                {copied ? 'Copied' : 'Copy this for Claude'}
+                {copied ? 'Copied' : 'Copy the error'}
               </button>
             </p>
             <ul className="gap-list">
