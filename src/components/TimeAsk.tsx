@@ -4,7 +4,10 @@ import { useStore } from '../storage/store';
 
 const ASK_MS = 15_000;
 
-/** After something is marked done: one tap for how long it took, or nothing. Never in the way of the next thing. */
+/**
+ * After something is marked done: one tap for how long it took, or nothing, and one tap to take the Done back for a
+ * mis-tap. Never in the way of the next thing.
+ */
 export function TimeAsk() {
   const { data, justDone, actions } = useStore();
   const [other, setOther] = useState(false);
@@ -55,6 +58,16 @@ export function TimeAsk() {
         )}
         <button type="button" className="diff-toggle" onClick={() => actions.dismissTimeAsk()}>
           skip
+        </button>
+        <button
+          type="button"
+          className="diff-toggle time-ask-undo"
+          onClick={() => {
+            actions.setStatus(item.id, 'todo');
+            actions.dismissTimeAsk();
+          }}
+        >
+          undo
         </button>
       </span>
     </div>

@@ -234,7 +234,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
           {item.label}
         </button>
       </h2>
-      {why && <p className="hero-why">{why}</p>}
+      {why && !done && <p className="hero-why">{why}</p>}
       <p className="hero-meta">
         {facts.map((f, i) =>
           f.itemId ? (

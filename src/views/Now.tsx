@@ -219,7 +219,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
  * logic and differ only in how the day is laid out; see DESIGN.md for which shipped and why.
  */
 export function Now() {
-  const { data, schedule, derived, today, actions, progress, previewAward, calibrate } = useStore();
+  const { data, schedule, derived, today, actions, progress, previewAward, calibrate, justDone } = useStore();
   const { tier, profile } = useAccount();
   const trialDays = trialDaysLeft(profile);
   const onTrial = trialState(profile) === 'active';
@@ -297,7 +297,9 @@ export function Now() {
 
   // "Not today" records a day, not just a skip: the item is pushed down until then and planned to start then.
   const skip = (i: Item, day: DateStr) => actions.upsertItem({ ...i, snoozedUntil: day, startByOverride: day });
-  // Done: the card leaves first, then the item does. The check is the reward; nothing else moves.
+  // Done: the card leaves first, then the item does. The check is the reward; nothing else moves. A mis-tap (or a
+  // stray d key) is one tap from undone for a few seconds: the item as it was is put back whole.
+  const [justFinished, setJustFinished] = useState<Item | null>(null);
   const finish = (i: Item) => {
     setFinished({ xp: previewAward(i), label: i.label });
     setShowAnyway(false);
@@ -305,8 +307,24 @@ export function Now() {
     setTimeout(() => {
       actions.setStatus(i.id, 'done');
       setLeaving(null);
+      setJustFinished(i);
     }, LEAVE_MS);
   };
+  const undoFinish = () => {
+    if (!justFinished) return;
+    actions.upsertItem(justFinished);
+    setJustFinished(null);
+    setFinished(null);
+  };
+  useEffect(() => {
+    if (!justFinished) return;
+    const t = setTimeout(() => setJustFinished(null), 7000);
+    return () => clearTimeout(t);
+  }, [justFinished]);
+  // Undone somewhere else (the time question has its own undo): nothing left to take back here.
+  useEffect(() => {
+    if (justFinished && data.items.find((i) => i.id === justFinished.id)?.status !== 'done') setJustFinished(null);
+  }, [justFinished, data.items]);
   const unblock = (i: Item) => actions.upsertItem({ ...i, blocked: null });
 
   const showQueue = !back && !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
@@ -516,7 +534,8 @@ export function Now() {
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
       if (document.querySelector('.modal-backdrop')) return;
       const k = e.key.toLowerCase();
-      if (k === 'd') finish(hero);
+      if (k === 'z' && justFinished) undoFinish();
+      else if (k === 'd') finish(hero);
       else if (k === 'n') skip(hero, addDays(today, 1));
       else if (k === 's') actions.upsertItem({ ...hero, startedAt: hero.startedAt ?? new Date().toISOString(), status: hero.status === 'done' ? hero.status : 'in_progress' });
       else if (k === 'o') setOpen(hero);
@@ -526,7 +545,7 @@ export function Now() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hero?.id, today]);
+  }, [hero?.id, today, justFinished]);
   return (
     <div className="now">
       {walled && <PlanWall />}
@@ -601,6 +620,15 @@ export function Now() {
             setSunday(false);
           }}
         />
+      )}
+      {/* The time question carries its own undo while it is up; this toast covers the case where it is not. */}
+      {justFinished && !justDone && (
+        <div className="done-toast" role="status">
+          <span className="done-toast-text">Done: {justFinished.label}</span>
+          <button type="button" className="done-toast-undo" onClick={undoFinish}>
+            Undo
+          </button>
+        </div>
       )}
       {examSheet && exam && <ExamSheet plan={exam} onClose={() => setExamSheet(false)} onOpen={(i) => { setExamSheet(false); setOpen(i); }} />}
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}

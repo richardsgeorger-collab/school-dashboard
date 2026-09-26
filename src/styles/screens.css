@@ -1588,6 +1588,45 @@
   display: inline-block;
   animation: flame 900ms var(--ease) infinite alternate;
 }
+/* After Done on Now: what was done, and one tap to put it back. Same place and shape as the streak toast. */
+.done-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  transform: translateX(-50%);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 15px/1 var(--font-body);
+  box-shadow: var(--shadow-3);
+  animation: toast-in 320ms var(--ease) both;
+}
+.done-toast-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.done-toast-undo {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 14px/1 var(--font-body);
+  cursor: pointer;
+}
+.done-toast-undo:focus-visible {
+  outline: 2px solid var(--bg);
+  outline-offset: 2px;
+}
 @keyframes toast-in {
   from {
     opacity: 0;
