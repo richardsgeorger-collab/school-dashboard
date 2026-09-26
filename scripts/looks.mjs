@@ -4,11 +4,11 @@ import { mkdirSync } from 'node:fs';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 const OUT = 'docs/screens/looks';
 mkdirSync(OUT, { recursive: true });
-const LOOKS = ['ink', 'paper', 'pop'];
+const LOOKS = ['default', 'sky'];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-for (const [size, device] of [['laptop', { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 }], ['phone', { ...devices['iPhone 14'], deviceScaleFactor: 2 }]]) {
+for (const [size, device] of [['desk', { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }], ['phone', { ...devices['iPhone 14'], deviceScaleFactor: 2 }]]) {
   for (const look of LOOKS) {
-    for (const scheme of look === 'ink' ? ['dark'] : ['light', 'dark']) {
+    for (const scheme of ['light', 'dark']) {
       const ctx = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });
       const page = await ctx.newPage();
       await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle' });

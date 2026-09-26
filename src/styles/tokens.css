@@ -8,17 +8,17 @@
 
   /* Type: one family, weight does the hierarchy. Tabular numerals wherever numbers line up. */
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
-  /* The display face carries the personality: a serif for the one answer on a screen and for titles. */
-  --font-display: 'Instrument Serif', 'Iowan Old Style', 'Palatino', Georgia, serif;
+  /* Titles and the one answer on a screen: a clean geometric sans, bold and tight. Everything else is Inter. */
+  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --t-display: 400 40px/1.04 var(--font-display);
-  --t-title: 400 30px/1.1 var(--font-display);
+  --t-display: 700 34px/1.1 var(--font-display);
+  --t-title: 700 26px/1.15 var(--font-display);
   --t-heading: 600 16px/1.3 var(--font-body);
   --t-body: 400 15px/1.5 var(--font-body);
   --t-small: 400 13px/1.45 var(--font-body);
   /* Three sizes do the work in a working view; nothing is set under 13px. */
   --t-micro: 500 13px/1.3 var(--font-body);
-  --track-tight: -0.012em;
+  --track-tight: -0.02em;
   --track-caps: 0.04em;
 
   /* Spacing: a 4px scale. Groups sit 24px apart, things inside a group 8–12px. */
@@ -30,54 +30,59 @@
   --s-6: 32px;
   --s-7: 48px;
   --gutter: 20px;
-  --content-max: 640px;
-  --wide-max: 1040px;
+  /* Every screen and the nav fill the width up to 1440px; screens add columns where they help. */
+  --content-max: 1440px;
+  --wide-max: 1440px;
+  /* A reading column for prose (legal pages, long hints). */
+  --prose-max: 68ch;
   --tap: 44px;
   --nav-h: 56px;
 
-  /* Colour: warm paper, cream cards, two inks, one ink-blue accent. Status colours only for real status:
-     red is late or broken, amber is due within a day and not started, everything else is grey. Every text colour
-     clears 4.5:1 on the page and on a card. */
-  --bg: #f6f2ea;
-  --surface: #fffdf9;
-  --surface-2: #efe9dd;
-  --surface-3: #e4dccc;
-  --line: rgb(60 45 20 / 0.1);
-  --line-strong: rgb(60 45 20 / 0.2);
-  --ink: #1c1915;
-  --ink-2: #5b554b;
-  --ink-3: #6f6859;
-  --accent: #1f4fd8;
+  /* Colour: the whole app is neutral; colour is only ever an accent. Near-white page, white cards, grey lines and
+     inks, one cool blue for the primary action, the active tab, progress, links, today and focus. Status colours
+     only for real status: red is late or broken, amber is due within a day and not started, everything else is
+     grey. Every text colour clears 4.5:1 on the page and on a card. */
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --surface-3: #e3e6eb;
+  --line: rgb(16 20 28 / 0.08);
+  --line-strong: rgb(16 20 28 / 0.16);
+  --ink: #14171c;
+  --ink-2: #4b5261;
+  --ink-3: #6b7382;
+  --accent: #3f7fee;
   --accent-ink: #ffffff;
-  --accent-soft: #e5ebfa;
+  --accent-soft: #e8f0fe;
   --ok: #2a7549;
   --ok-soft: #e3f1e7;
-  --warn: #9f560b;
+  --warn: #b4690e;
   --warn-soft: #fbeedc;
-  --danger: #b9362a;
-  --danger-soft: #f9e4e1;
+  --danger: #c73a31;
+  --danger-soft: #fbe6e4;
   /* The halo: gold, for the brand mark and the one celebratory moment. Never for text. */
   --halo: #e9b949;
   --halo-soft: #fbf1d3;
   --halo-ink: #5c4200;
-  /* The page has depth: a slow warm gradient and grain behind everything, cards on a faint gradient, the hero lit. */
-  --page-blobs: radial-gradient(50% 42% at 8% -4%, rgb(255 216 176 / 0.45), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(196 212 255 / 0.4), transparent 60%);
-  --grain: 0.06;
+  /* Depth without tint: a faint cool wash behind everything, fine grain, cards a shade lighter with a lit edge,
+     and the one glow, blue, behind the hero. */
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(63 127 238 / 0.07), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(63 127 238 / 0.05), transparent 60%);
+  --grain: 0.035;
   --grain-blend: multiply;
-  --card-bg: linear-gradient(180deg, #fffefb, #fbf8f1);
+  --card-bg: linear-gradient(180deg, #ffffff, #fbfcfd);
   --card-edge: rgb(255 255 255 / 0.9);
-  --glow: rgb(31 79 216 / 0.16);
+  --glow: rgb(63 127 238 / 0.18);
 
   /* Depth: hairline plus a shadow so soft it reads as lifted, never boxed. */
-  --r-sm: 8px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
+  --r-sm: 10px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
   --r-pill: 999px;
-  --shadow-1: 0 1px 2px rgb(60 45 20 / 0.05);
-  --shadow-2: 0 1px 2px rgb(60 45 20 / 0.05), 0 10px 28px -14px rgb(60 45 20 / 0.22);
-  --shadow-3: 0 2px 4px rgb(60 45 20 / 0.06), 0 22px 44px -18px rgb(60 45 20 / 0.28);
-  --sheet-shadow: 0 -8px 40px -8px rgb(60 45 20 / 0.3);
+  --shadow-1: 0 1px 2px rgb(16 20 28 / 0.05);
+  --shadow-2: 0 1px 2px rgb(16 20 28 / 0.05), 0 10px 28px -14px rgb(16 20 28 / 0.18);
+  --shadow-3: 0 2px 4px rgb(16 20 28 / 0.06), 0 22px 44px -18px rgb(16 20 28 / 0.24);
+  --sheet-shadow: 0 -8px 40px -8px rgb(16 20 28 / 0.28);
 
   /* Motion: only on state change. */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -96,24 +101,24 @@
   --soon: var(--accent);
   --soon-soft: var(--accent-soft);
   --shadow: var(--shadow-2);
-  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(60 45 20 / 0.22) 3px 5px);
+  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(16 20 28 / 0.22) 3px 5px);
 }
 
-/* Dark is the same paper at night: warm charcoal, the accent lifted so it does not glow, the grain overlaid. */
+/* Dark: true neutral near-black, cards one step lighter, grey lines, the blue lifted so it does not glow. */
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #16130f;
-  --surface: #1f1b16;
-  --surface-2: #27221c;
-  --surface-3: #332d25;
-  --line: rgb(255 240 210 / 0.08);
-  --line-strong: rgb(255 240 210 / 0.16);
-  --ink: #f3ede2;
-  --ink-2: #b3aa99;
-  --ink-3: #948c7c;
-  --accent: #8fa8ff;
-  --accent-ink: #16130f;
-  --accent-soft: rgb(143 168 255 / 0.14);
+  --bg: #0b0d10;
+  --surface: #15181c;
+  --surface-2: #1c2025;
+  --surface-3: #262b31;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.16);
+  --ink: #f2f4f7;
+  --ink-2: #a9b0bc;
+  --ink-3: #8a919d;
+  --accent: #6fa0ff;
+  --accent-ink: #0b0d10;
+  --accent-soft: rgb(111 160 255 / 0.14);
   --ok: #6fcf97;
   --ok-soft: rgb(111 207 151 / 0.12);
   --warn: #f0b458;
@@ -123,17 +128,17 @@
   --halo: #e9b949;
   --halo-soft: rgb(233 185 73 / 0.14);
   --halo-ink: #ffe3a0;
-  --page-blobs: radial-gradient(50% 42% at 8% -4%, rgb(255 170 90 / 0.14), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(120 150 255 / 0.14), transparent 60%);
-  --grain: 0.07;
+  --page-blobs: radial-gradient(50% 42% at 10% -4%, rgb(111 160 255 / 0.08), transparent 62%), radial-gradient(42% 38% at 100% 8%, rgb(111 160 255 / 0.05), transparent 60%);
+  --grain: 0.05;
   --grain-blend: overlay;
-  --card-bg: linear-gradient(180deg, rgb(255 240 210 / 0.05), rgb(255 240 210 / 0.015)), #1f1b16;
-  --card-edge: rgb(255 240 210 / 0.07);
-  --glow: rgb(143 168 255 / 0.3);
+  --card-bg: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(255 255 255 / 0.01)), #15181c;
+  --card-edge: rgb(255 255 255 / 0.06);
+  --glow: rgb(111 160 255 / 0.26);
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.45);
   --shadow-2: 0 1px 2px rgb(0 0 0 / 0.45), 0 10px 28px -14px rgb(0 0 0 / 0.7);
   --shadow-3: 0 2px 4px rgb(0 0 0 / 0.5), 0 22px 44px -18px rgb(0 0 0 / 0.8);
   --sheet-shadow: 0 -8px 40px -8px rgb(0 0 0 / 0.7);
-  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(243 237 226 / 0.28) 3px 5px);
+  --hatch: repeating-linear-gradient(135deg, transparent 0 3px, rgb(242 244 247 / 0.28) 3px 5px);
 }
 
 @media (prefers-reduced-motion: reduce) {

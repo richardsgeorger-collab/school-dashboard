@@ -1,6 +1,7 @@
 // Screenshots of every screen, light and dark, against a running preview (npm run preview).
 //   node scripts/screens.mjs <label>            → docs/screens/<label>/<screen>-<light|dark>.png  (iPhone 14)
 //   VIEWPORT=laptop node scripts/screens.mjs <label>   → the same at 1280×800
+//   VIEWPORT=desk node scripts/screens.mjs <label>     → the same at 1440×900
 // Populated screens use the sample term (#/now?seed=1); onboarding and empty states use a fresh profile.
 import { chromium, devices } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
@@ -33,8 +34,8 @@ const FRESH = [
   ['landing', 'landing/'],
   ['landing-full', 'landing/', null, true],
 ];
-const laptop = process.env.VIEWPORT === 'laptop';
-const device = laptop ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } : { ...devices['iPhone 14'], deviceScaleFactor: 2 };
+const vp = process.env.VIEWPORT;
+const device = vp === 'desk' ? { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 } : vp === 'laptop' ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } : { ...devices['iPhone 14'], deviceScaleFactor: 2 };
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const scheme of ['light', 'dark']) {
   for (const [group, list] of [['seeded', SEEDED], ['fresh', FRESH]]) {

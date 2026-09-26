@@ -8,18 +8,18 @@ import { loadApiKey, saveApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { ProgressCard } from '../components/ProgressCard';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { Locked } from '../config/Locked';
 import { rewardDaysLeft, trialDaysLeft } from '../config/flags';
 import { FEATURE_LINES, FEATURES, PRICES, REFERRAL, TIER_NAMES, TIERS, type Feature, type Tier } from '../config/tiers';
 import { openPortal, startCheckout } from '../billing/client';
 import { subscriptionLine, type Interval, type Paid } from '../billing/subscription';
 import { useSubscription } from '../billing/useSubscription';
 import { PALETTE } from '../data/courseDefaults';
-import { dateOf, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
+import { addDays, dateOf, fmtClock, fmtDate, hhmmToMinutes, weekStart } from '../domain/dates';
+import { dayCapacity } from '../domain/schedule';
 import { courseGrade, letterFor, NOT_ENOUGH_GRADED } from '../domain/grades';
 import { newId } from '../domain/ids';
 import { finished as sundayFinished, switchedOn } from '../domain/sunday';
-import type { Course } from '../domain/types';
+import type { Course, DateStr } from '../domain/types';
 import { announceDb } from '../halo/announce';
 import { useRoute } from '../router';
 import { pixel } from '../analytics/pixel';
@@ -40,7 +40,22 @@ import { SyllabusPanel } from './SyllabusPanel';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const ZONES = ['America/Phoenix', 'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York', 'UTC'];
-type Section = 'plan' | 'halo' | 'notifications' | 'study' | 'display' | 'classes' | 'advanced';
+type Section = 'profile' | 'plan' | 'progress' | 'grades' | 'workload' | 'halo' | 'study' | 'display' | 'classes' | 'notifications' | 'invite' | 'feedback' | 'advanced';
+/** The section list, in the order a student needs them. `plan` is Profile with the plans open. */
+const NAV: [Section, string][] = [
+  ['profile', 'Profile and plan'],
+  ['progress', 'Progress'],
+  ['grades', 'Grades'],
+  ['workload', 'Workload'],
+  ['halo', 'Halo connection'],
+  ['study', 'Study time'],
+  ['display', 'Display'],
+  ['classes', 'Classes'],
+  ['notifications', 'Notifications'],
+  ['invite', 'Invite a friend'],
+  ['feedback', 'Feedback'],
+  ['advanced', 'Advanced'],
+];
 
 function meetingSummary(c: Course): string {
   if (c.online) return 'Online';
@@ -54,15 +69,6 @@ function meetingSummary(c: Course): string {
 }
 
 /** One collapsible group of settings. Opens itself when the address names it. */
-function Group({ id, title, open, children }: { id: Section; title: string; open: boolean; children: React.ReactNode }) {
-  return (
-    <details className="card settings-card you-group" id={`you-${id}`} open={open}>
-      <summary className="section-title">{title}</summary>
-      {children}
-    </details>
-  );
-}
-
 function AccountCard({ tier }: { tier: Tier }) {
   const { auth, profile, reloadProfile } = useAccount();
   const { data } = useStore();
@@ -157,11 +163,53 @@ function ReferralCard() {
       <p className="hint">
         Send this link. When they sign up, you both get {REFERRAL.days} days of {TIER_NAMES[REFERRAL.rewardTier]}.
       </p>
-      <p className="mono you-invite">{link}</p>
+      <p className="mono you-invite" title={link}>
+        {link.replace(/^https?:\/\//, '').replace(/\/(?:[^/]*\/)?#\/now\?ref=/, '/…ref=')}
+      </p>
       <div className="settings-actions">
         <button type="button" className="btn small primary" onClick={() => void copy()}>
           {copied ? 'Copied' : 'Copy link'}
         </button>
+      </div>
+    </section>
+  );
+}
+
+/** Hours planned each week of the term against capacity, as bars; the full breakdown is one tap away. */
+function WorkloadSection() {
+  const { data, schedule, term, today } = useStore();
+  const weeks: { start: DateStr; planned: number; cap: number; label: string }[] = [];
+  const first = weekStart(term.start, data.settings.weekStartsOn);
+  for (let ws = first; ws <= term.end; ws = addDays(ws, 7)) {
+    const cap = Array.from({ length: 7 }, (_, k) => dayCapacity(data.settings, addDays(ws, k))).reduce((a, b) => a + b, 0);
+    weeks.push({ start: ws, planned: schedule.weekLoad[ws]?.total ?? 0, cap, label: fmtDate(ws, 'short') });
+  }
+  const max = Math.max(1, ...weeks.map((w) => Math.max(w.planned, w.cap)));
+  const thisWeek = weekStart(today, data.settings.weekStartsOn);
+  const over = weeks.filter((w) => w.planned > w.cap).length;
+  return (
+    <section className="card settings-card" aria-label="Workload">
+      <h2 className="section-title">Workload</h2>
+      <p className="hint">
+        Study hours planned each week against your capacity. {over > 0 ? `${over} week${over === 1 ? '' : 's'} run over.` : 'No week runs over.'}
+      </p>
+      {weeks.length === 0 ? (
+        <p className="hint">Your workload appears after the first sync.</p>
+      ) : (
+        <div className="wl" role="img" aria-label="Hours by week">
+          {weeks.map((w) => (
+            <div key={w.start} className="wl-col" data-current={w.start === thisWeek} data-over={w.planned > w.cap} title={`${w.label}: ${(w.planned / 60).toFixed(1)}h of ${(w.cap / 60).toFixed(0)}h`}>
+              <span className="wl-cap" style={{ bottom: `${(w.cap / max) * 100}%` }} />
+              <span className="wl-bar" style={{ height: `${(w.planned / max) * 100}%` }} />
+              <span className="wl-label">{w.label.replace(/^(\w+) /, '')}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="settings-actions">
+        <a className="btn small" href="#/load">
+          Week by week
+        </a>
       </div>
     </section>
   );
@@ -283,11 +331,8 @@ export function You() {
   const [keyDraft, setKeyDraft] = useState(() => loadApiKey());
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!section) return;
-    const t = setTimeout(() => document.getElementById(`you-${section}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
-    return () => clearTimeout(t);
-  }, [section]);
+  const active: Section = section === 'plan' || !section ? 'profile' : section;
+  const [showPlans, setShowPlans] = useState(false);
 
   const exportAll = async () => {
     const announcements = await announceDb.list().catch(() => []);
@@ -333,12 +378,31 @@ export function You() {
   return (
     <>
       <h1 className="page-title">You</h1>
-      <div className="settings-grid" key={section ?? 'none'}>
-        <AccountCard tier={tier} />
-        {section === 'plan' && <Plans current={tier} highlight={highlight} />}
-        <ProgressCard />
-
-        <section className="card settings-card" aria-label="Grades">
+      <div className="you-layout">
+        <nav className="you-nav" aria-label="Settings">
+          {NAV.map(([id, label]) => (
+            <a key={id} href={`#/you?s=${id}`} aria-current={active === id ? 'page' : undefined}>
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div className="you-content" key={active}>
+          {active === 'profile' && (
+            <>
+              <AccountCard tier={tier} />
+              {(section === 'plan' || showPlans) && <Plans current={tier} highlight={highlight} />}
+              {section !== 'plan' && !showPlans && (
+                <p className="hint">
+                  <button type="button" className="hero-inline" onClick={() => setShowPlans(true)}>
+                    See plans
+                  </button>
+                </p>
+              )}
+            </>
+          )}
+          {active === 'progress' && <ProgressCard />}
+          {active === 'grades' && (
+            <section className="card settings-card" aria-label="Grades">
           <div className="grade-head">
             <h2 className="section-title">Grades</h2>
             {data.courses.length > 0 && (
@@ -357,26 +421,19 @@ export function You() {
                 return (
                   <li key={c.id}>
                     <CourseChip course={c} link />
-                    <span className="mono" title={g.pct === null && g.graded > 0 ? NOT_ENOUGH_GRADED : undefined}>{g.pct === null ? '—' : `${g.pct}%${letter ? ` ${letter}` : ''}`}</span>
+                    {g.pct === null ? <span className="muted">{g.graded > 0 ? NOT_ENOUGH_GRADED : 'Not graded yet'}</span> : <span className="mono">{`${g.pct}%${letter ? ` ${letter}` : ''}`}</span>}
                   </li>
                 );
               })}
             </ul>
           )}
-        </section>
-
-        <a className="card settings-card you-link" href="#/load">
-          <h2 className="section-title">Workload</h2>
-          <p className="hint">Study hours by week against your capacity, and the whole term on one line.</p>
-        </a>
-
-        <HaloPanel onPaste={() => setHalo(true)} />
-
-        <Group id="notifications" title="Notifications" open={section === 'notifications'}>
-          <NotificationsCard />
-        </Group>
-
-        <Group id="study" title="Study time" open={section === 'study'}>
+            </section>
+          )}
+          {active === 'workload' && <WorkloadSection />}
+          {active === 'halo' && <HaloPanel onPaste={() => setHalo(true)} />}
+          {active === 'study' && (
+            <section className="card settings-card" aria-label="Study time">
+              <h2 className="section-title">Study time</h2>
           <div className="field-row">
             <label className="field">
               <span>Weekday study hours</span>
@@ -420,10 +477,12 @@ export function You() {
               onChange={(v) => actions.updateSettings({ weekStartsOn: Number(v) as 0 | 1 })}
             />
           </div>
-        </Group>
-
-        <Group id="display" title="Display" open={section === 'display'}>
-          <Locked feature="themes" tier={tier} compact>
+            </section>
+          )}
+          {active === 'display' && (
+            <section className="card settings-card" aria-label="Display">
+              <h2 className="section-title">Display</h2>
+          <div className="theme-field">
             <div className="field">
               <span>Theme</span>
               <SegmentedControl
@@ -437,7 +496,7 @@ export function You() {
                 onChange={(v) => actions.updateSettings({ theme: v })}
               />
             </div>
-          </Locked>
+          </div>
           <label className="field">
             <span>Time zone</span>
             <input list="zones" value={data.settings.timezone} onChange={(e) => actions.updateSettings({ timezone: e.target.value })} />
@@ -447,9 +506,11 @@ export function You() {
               ))}
             </datalist>
           </label>
-        </Group>
-
-        <Group id="classes" title="Classes" open={section === 'classes'}>
+            </section>
+          )}
+          {active === 'classes' && (
+            <section className="card settings-card" aria-label="Classes">
+              <h2 className="section-title">Classes</h2>
           {data.courses.length === 0 ? (
             <p className="hint">No classes yet. Sync Halo, or add one by hand.</p>
           ) : (
@@ -474,13 +535,25 @@ export function You() {
             </button>
           </div>
           <p className="hint">Tap a class to edit its code, name, instructor, meeting times, or online status, or to delete it.</p>
-        </Group>
-
-        <ReferralCard />
-        <FeedbackCard />
-        <UsageCard />
-
-        <Group id="advanced" title="Advanced" open={section === 'advanced'}>
+            </section>
+          )}
+          {active === 'notifications' && (
+            <section className="card settings-card" aria-label="Notifications">
+              <h2 className="section-title">Notifications</h2>
+          <NotificationsCard />
+            </section>
+          )}
+          {active === 'invite' && (
+            <>
+              <ReferralCard />
+              <UsageCard />
+            </>
+          )}
+          {active === 'feedback' && <FeedbackCard />}
+          {active === 'advanced' && (
+            <section className="card settings-card" aria-label="Advanced">
+              <h2 className="section-title">Advanced</h2>
+              <p className="hint">Diagnostics, imports, backups, and the things you should rarely need.</p>
           <HaloDiagnostics />
           <div className="settings-actions">
             <button type="button" className="btn" onClick={() => setImporting(true)}>
@@ -573,7 +646,9 @@ export function You() {
               )}
             </div>
           )}
-        </Group>
+            </section>
+          )}
+        </div>
       </div>
 
       <p className="hint you-foot">

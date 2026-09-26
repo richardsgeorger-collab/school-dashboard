@@ -145,7 +145,7 @@ export const FEATURE_LINES: Record<Feature, string> = {
   heavyDayWarnings: 'A heads-up the night before a heavy day, while there is still time.',
   gamification: 'Points, streaks, and a bar that shows the term filling in.',
   icsFeed: 'Your deadlines in Google or Apple Calendar, live.',
-  themes: 'Dark mode and themes.',
+  themes: 'Accent themes.',
   announcementAI: 'Reads every Halo announcement and puts the real requirements on your assignments.',
   syllabusAI: 'Reads syllabi and rubrics into assignments, real start dates, and prep steps.',
   gradeProjection: 'Your grade so far, and what you need on the final.',

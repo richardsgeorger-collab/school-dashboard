@@ -12,6 +12,9 @@ import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { capWords } from '../halo/actions';
+import { READ_EVENT, useReadStatus } from '../halo/backgroundRead';
+import { ReadStatusLines, useReadNow } from './ReadStatus';
 
 type Group = 'needs' | 'info' | 'empty' | 'unread';
 const GROUP_LABEL: Record<Group, string> = { needs: 'Needs you', info: 'Info only', empty: 'Nothing in it', unread: 'Not read yet' };
@@ -55,7 +58,12 @@ export function Inbox() {
   }, []);
   useEffect(() => {
     void refresh();
+    // A background read finished: the piles change.
+    window.addEventListener(READ_EVENT, refresh);
+    return () => window.removeEventListener(READ_EVENT, refresh);
   }, [refresh]);
+  const readNow = useReadNow();
+  const reading = useReadStatus();
 
   const shown = useMemo(() => (list ?? []).filter((a) => (only ? a.courseId === only : true) && (filter === 'all' || a.courseId === filter) && courseById.has(a.courseId)), [list, only, filter, courseById]);
 
@@ -119,6 +127,7 @@ export function Inbox() {
   const order: Group[] = ['needs', 'info', 'empty', 'unread'];
   const current: Group = group && piles[group].length ? group : (order.find((g) => piles[g].length > 0) ?? 'needs');
   const visible = piles[current];
+  const openPost = open ? (shown.find((a) => a.id === open) ?? null) : null;
   const course: Course | undefined = only ? courseById.get(only) : undefined;
 
   return (
@@ -162,13 +171,22 @@ export function Inbox() {
                 Read all for what they ask
               </button>
               <span className="menu-hint">
-                {unreadForReqs > 0 ? `Your next sync reads the ${unreadForReqs} left on its own.` : 'All read. Anything they asked for is on the assignment it belongs to.'}
+                {unreadForReqs > 0 ? `${unreadForReqs} still to read; the app reads them on its own.` : 'All read. Anything they asked for is on the assignment it belongs to.'}
               </span>
             </div>
           </details>
         </div>
       )}
       {note && <p className="hint news-note">{note}</p>}
+      <ReadStatusLines compact />
+      {current === 'unread' && visible.length > 0 && !reading.running && (
+        <p className="hint news-note">
+          {visible.length} not read for requirements yet.{' '}
+          <button type="button" className="btn small primary" onClick={readNow}>
+            Read {visible.length} now
+          </button>
+        </p>
+      )}
       {messages.filter((m) => (only ? m.courseId === only : true) && courseById.has(m.courseId)).length > 0 && (
         <section className="news-messages">
           <h2 className="section-title">messages from your instructor</h2>
@@ -219,6 +237,7 @@ export function Inbox() {
           ))}
         </div>
       )}
+      <div className="news-layout" data-open={!!openPost}>
       <ul className="news-list news-announcements">
         {visible.map((a) => {
           const c = courseById.get(a.courseId);
@@ -230,7 +249,7 @@ export function Inbox() {
               <button type="button" className="news-head" onClick={() => void toggle(a)} aria-expanded={isOpen}>
                 <span className="news-title">
                   {/* What the post asks leads; the professor's own title sits under it in small text. */}
-                  <span className="news-summary">{summary || a.title || '(untitled)'}</span>
+                  <span className="news-summary">{capWords(summary || a.title || '(untitled)', 12)}</span>
                   {summary && a.title && <span className="news-raw">{a.title}</span>}
                   {st?.read && (st.count ?? 0) > 0 && (
                     <span className="news-added">
@@ -272,6 +291,39 @@ export function Inbox() {
           );
         })}
       </ul>
+      {openPost && (
+        <aside className="news-detail" aria-label="Announcement">
+          <div className="news-detail-head">
+            <span className="news-meta mono">
+              {courseById.get(openPost.courseId) && <CourseChip course={courseById.get(openPost.courseId)!} />} {openPost.publishedAt ? fmtDate(dateOf(openPost.publishedAt, tz), 'long') : ''}
+              {openPost.author ? ` · ${openPost.author}` : ''}
+            </span>
+            <h2 className="news-detail-title">{openPost.title || '(untitled)'}</h2>
+            {(states.get(openPost.id)?.summary || openPost.actionsSummary) && <p className="news-detail-summary">{states.get(openPost.id)?.summary || openPost.actionsSummary}</p>}
+          </div>
+          <p className="news-text">{openPost.text}</p>
+          {openPost.resources.length > 0 && <p className="hint">Attached in Halo: {openPost.resources.map((r) => r.name).join(', ')}</p>}
+          <div className="settings-actions">
+            {states.get(openPost.id)?.read && (states.get(openPost.id)?.count ?? 0) > 0 && (
+              <span className="hint">
+                {states.get(openPost.id)?.count} thing{states.get(openPost.id)?.count === 1 ? '' : 's'} added to your planner from this post.
+              </span>
+            )}
+            {openPost.findings === null ? (
+              <button type="button" className="btn small" disabled={!hasKey || busy === openPost.id} onClick={() => void read(openPost)}>
+                {busy === openPost.id ? 'Reading…' : 'What does this change?'}
+              </button>
+            ) : openPost.findings.length === 0 ? (
+              <span className="hint">Nothing here changes your planner.</span>
+            ) : (
+              <button type="button" className="btn small" onClick={() => setReview(openPost)}>
+                {openPost.findings.length} thing{openPost.findings.length === 1 ? '' : 's'} it changes
+              </button>
+            )}
+          </div>
+        </aside>
+      )}
+      </div>
       {readAll && ledger && <ReadAll list={shown} ledger={ledger} onClose={() => setReadAll(false)} onDone={() => void refresh()} />}
       {review && courseById.get(review.courseId) && (
         <LectureReview

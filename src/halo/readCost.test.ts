@@ -4,7 +4,8 @@ import { confirmLine, estimateCost, money, needsConfirming } from './readCost';
 describe('what reading announcements costs', () => {
   it('says the number before spending it when the backlog is large', () => {
     expect(needsConfirming(3)).toBe(false);
-    expect(needsConfirming(34)).toBe(true);
+    expect(needsConfirming(34)).toBe(false);
+    expect(needsConfirming(180)).toBe(true);
     expect(confirmLine(34)).toBe('34 announcements have never been read for requirements. Reading them costs about $0.20.');
   });
 

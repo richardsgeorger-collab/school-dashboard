@@ -14,6 +14,7 @@ import { syncPress } from '../../ui/presses';
 import { AgendaView } from './AgendaView';
 import { MonthView } from './MonthView';
 import { WeekStrip } from './WeekStrip';
+import { WeekGlance } from './WeekGlance';
 import { useFilteredItems } from './shared';
 
 /** Agenda is the calendar. Month is the map. There is no Week: the seven-day strip on the agenda is what that was for. */
@@ -140,11 +141,14 @@ export function Calendar() {
           </div>
         )}
       </div>
-      <div className="cal-body">
+      <div className="cal-body" data-view={view}>
         {view === 'agenda' && (
           <>
             <WeekStrip start={wkStart} selected={anchor} items={items} onPick={(d) => set({ d })} />
             <AgendaView from={anchor} items={items} onOpen={openItem} />
+            <div className="cal-aside">
+              <WeekGlance start={wkStart} items={items} />
+            </div>
           </>
         )}
         {view === 'month' && <MonthView month={month} items={items} onOpen={openItem} />}

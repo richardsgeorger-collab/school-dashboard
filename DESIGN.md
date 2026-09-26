@@ -228,3 +228,36 @@ occasionally skip the "why", which the shorter prompts in this pass lean into ra
 
 **Not a colour, not a diagnostic**: sync counts, the announcement cleanup tally and the pull build live under
 Advanced. The submission check speaks in plain words.
+
+## 7. Fourth pass: Halo+'s own identity, full width, neutral (2026-09-26)
+
+The serif and the warm paper were the wrong call for this product: they made it look like a magazine, not a tool a
+student opens forty times a week. Two reference screenshots were offered as a floor, not a target, and then the
+direction was sharpened: keep Halo+'s own structure (the hero, Then, Heads up), only change the surface.
+
+- **Full width.** `--content-max` is 1440px with 32–48px side padding; the nav spans the same width. Now is two
+  columns on a wide screen (the answer, hero and Then on the left; Heads up and the coach on the right, sticky).
+  Agenda is the list with the week at a glance beside it. Classes are three across. Inbox is two panes: the list and
+  the selected post. You is a settings page: sections on the left, one section's content on the right. Below 900px
+  everything is one column.
+- **Type.** Plus Jakarta Sans 700 for titles and the hero, Inter for everything else. No serif anywhere.
+- **Colour.** Neutral light (`#F6F7F9` page, white cards) and neutral dark (`#0B0D10` page, `#15181C` cards), grey
+  lines and inks, one cool blue (`#3F7FEE`, `#6FA0FF` at night) for the primary action, the active tab, progress,
+  links, today and focus. Status colours stay small and muted; class colours are the dot. A faint blue wash and fine
+  grain in the page, cards a shade lighter with a lit edge, the one glow behind the hero. The theme toggle is in the
+  nav for everyone; dark mode is no longer a Plus feature.
+- **Controls.** Every input, select, textarea, checkbox, radio, file picker and disabled button is styled; nothing
+  is the browser's default.
+- **Quality.** Heads-up lines are one line (about fifteen words); a link becomes "Open", never a raw address.
+  No bare dashes: a class with nothing graded says so. The invite link is shortened on screen with a copy button.
+  Badge labels never wrap; the earned date is on hover.
+- **The alternate.** `#/looks?d=sky` is the same system with a softer blue, light or dark by the toggle.
+
+**The announcement bug, third report, proven.** The account's server-side usage log had zero rows: not one post had
+ever reached the reader. Two things conspired. The large-run guard asked before reading more than half of what was
+on file, and a first sync is always more than half (56 of 58). And the question lived inside the review sheet, so
+closing the sheet lost it, and the next sync asked again. Now the reader runs in the app, not the sheet
+(`halo/backgroundRead.ts`): after every sync and once on open, with its state shown on Now, in the Inbox and in the
+review; the guard only asks above about a dollar; a "Read now" button exists wherever posts are waiting. The replay
+(`docs/ai-compare/ledger-e2e-2026-09-25.txt`) reads 56 on the first sync, 0 on an identical second, 1 when one body
+changes, 0 again.

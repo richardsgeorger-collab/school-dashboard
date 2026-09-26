@@ -324,3 +324,11 @@ One meaning per colour (`domain/status.ts`). Every screen shows the minimum with
 commit). Onboarding rebuilt around the drag demo and a counted-up payoff; celebrations for done, level up and
 streaks; illustrated empty states; gradient rings and bars (Phase 4). Decisions in DESIGN.md §5–6; screenshots in
 docs/screens/v2-before, v2-after, v2-after-phone and looks. Domain move audit in docs/DOMAIN_MOVE.md.
+
+## Fourth pass (2026-09-26): identity kept, surface replaced
+
+Full width (1440), Plus Jakarta Sans + Inter, neutral light and dark with a cool blue accent, a theme toggle in the
+nav, styled controls, one-line heads-up items, no raw URLs or bare dashes, You as a settings page, Inbox in two
+panes, Classes three across, the agenda with a week-at-a-glance column. The announcement reader now runs in the
+background (halo/backgroundRead.ts) and the large-run guard no longer blocks a first sync; the account's empty
+usage log was the proof that nothing had ever been read. DESIGN.md §7.

@@ -33,6 +33,7 @@ import { IngestView } from './views/IngestView';
 import { Inbox } from './views/Inbox';
 import { Looks } from './views/Looks';
 import { Celebrations } from './views/Celebrate';
+import { useBackgroundRead } from './halo/backgroundRead';
 import { useAutoRerun } from './ingest/auto';
 import { OkayCard, okayPress } from './views/Okay';
 import { NotificationPlanner } from './notify/NotificationPlanner';
@@ -159,6 +160,12 @@ function AccountSync() {
   return null;
 }
 
+/** Announcements read themselves after every sync and on open, whatever sheet is or is not on screen. */
+function BackgroundRead() {
+  useBackgroundRead();
+  return null;
+}
+
 function Screen() {
   const { route } = useRoute();
   // Keyed on the route so a tab change remounts the screen and its entrance plays.
@@ -233,6 +240,7 @@ export default function App() {
         <OnboardingHost />
         <NotificationPlanner />
         <Celebrations />
+        <BackgroundRead />
         <SyncParam />
         <OkayHost />
         <SyncHost

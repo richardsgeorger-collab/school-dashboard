@@ -47,9 +47,13 @@ function ClassCard({ course }: { course: Course }) {
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />
-          <span className="class-card-grade" title={g.pct === null && g.graded > 0 ? NOT_ENOUGH_GRADED : undefined}>
-            <Ring value={g.pct ?? 0} max={100} size={40} text={g.pct === null ? '—' : `${Math.round(g.pct)}`} label={g.pct === null ? NOT_ENOUGH_GRADED : `${g.pct}%${letter ? ` ${letter}` : ''}`} />
-          </span>
+          {g.pct !== null ? (
+            <span className="class-card-grade" title={`${g.pct}%${letter ? ` ${letter}` : ''}`}>
+              <Ring value={g.pct} max={100} size={40} text={`${Math.round(g.pct)}`} label={`${g.pct}%${letter ? ` ${letter}` : ''}`} />
+            </span>
+          ) : (
+            <span className="class-card-grade class-card-nograde">{g.graded > 0 ? NOT_ENOUGH_GRADED : 'Not graded yet'}</span>
+          )}
         </div>
         <h2 className="class-card-name">{course.name || 'Untitled class'}</h2>
         <p className="class-card-meta">{meetingSummary(course)}</p>

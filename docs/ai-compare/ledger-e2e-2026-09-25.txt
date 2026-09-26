@@ -1,0 +1,26 @@
+--- 56 posts ---
+sync 1: 56 reads | Nothing in the 56 new announcements asks anything of you. Read 56 announcements, about $0.10.
+sync 2 (identical): 0 reads (want 0) | gate shown: false | Nothing in the 56 new announcements asks anything of you. Read 56 announcements, about $0.10.
+
+stamp for three posts, before sync 2 -> after sync 2:
+  posts:post-1
+    before: {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":"2026-09-10T15:05:00.000Z","modifiedAt":"2026-09-10T15:05:00.000Z","hash":null}
+    after:  {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":"2026-09-10T15:05:00.000Z","modifiedAt":"2026-09-10T15:05:00.000Z","hash":null}
+  posts:post-2
+    before: {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":"2026-09-10T15:05:00.000Z","modifiedAt":"2026-09-10T15:05:00.000Z","hash":null}
+    after:  {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":"2026-09-10T15:05:00.000Z","modifiedAt":"2026-09-10T15:05:00.000Z","hash":null}
+  posts:post-3
+    before: {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":"2026-09-10T15:05:00.000Z","modifiedAt":"2026-09-10T15:05:00.000Z","hash":null}
+    after:  {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":"2026-09-10T15:05:00.000Z","modifiedAt":"2026-09-10T15:05:00.000Z","hash":null}
+  reads:post-1
+    before: {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":null,"modifiedAt":null,"hash":"vbvdl3mbun"}
+    after:  {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":null,"modifiedAt":null,"hash":"vbvdl3mbun"}
+  reads:post-2
+    before: {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":null,"modifiedAt":null,"hash":"1w67kww4gzz"}
+    after:  {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":null,"modifiedAt":null,"hash":"1w67kww4gzz"}
+  reads:post-3
+    before: {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":null,"modifiedAt":null,"hash":"v3l9dy9vf5"}
+    after:  {"actionsAt":"2026-09-26T06:16:36.083Z","actionsModifiedAt":null,"modifiedAt":null,"hash":"v3l9dy9vf5"}
+
+sync 3 (one body changed): 1 reads (want 1) | read: Week 5 note
+sync 4 (identical again): 0 reads (want 0)

@@ -66,7 +66,7 @@ function CourseCard({ course }: { course: Course }) {
             </a>
           </h2>
         </div>
-        <div className="grade-pct mono" title={g.pct === null && g.graded > 0 ? NOT_ENOUGH_GRADED : undefined}>{g.pct === null ? '—' : `${g.pct}%`}{letterFor(g.pct, course.gradeScale) ? <span className="grade-letter"> {letterFor(g.pct, course.gradeScale)}</span> : null}</div>
+        <div className="grade-pct mono">{g.pct === null ? <span className="muted grade-none">{g.graded > 0 ? NOT_ENOUGH_GRADED : 'Not graded yet'}</span> : `${g.pct}%`}{letterFor(g.pct, course.gradeScale) ? <span className="grade-letter"> {letterFor(g.pct, course.gradeScale)}</span> : null}</div>
       </header>
       <div className="grade-bar" aria-hidden>
         <span className="earned" style={{ width: `${g.totalPossible ? (g.earned / g.totalPossible) * 100 : 0}%` }} />

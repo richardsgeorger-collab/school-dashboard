@@ -48,7 +48,9 @@ export function ProgressCard() {
                 {info.glyph}
               </span>
               <b>{info.name}</b>
-              <span className="hint">{earned ? `Earned ${earned.slice(0, 10)}` : (hint ?? 'Locked')}</span>
+              <span className="hint" title={earned ? `Earned ${earned.slice(0, 10)}` : info.how}>
+                {earned ? 'Earned' : (hint ?? 'Locked')}
+              </span>
             </div>
           );
         })}

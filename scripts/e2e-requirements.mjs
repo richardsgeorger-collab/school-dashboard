@@ -56,7 +56,7 @@ page.on('request', (req) => {
 });
 
 await page.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle0' });
-await page.evaluate(() => localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')));
+await page.evaluate(() => { localStorage.setItem('school-dashboard:anthropic-key', JSON.stringify('sk-ant-e2e')); localStorage.setItem('school-dashboard:dev-tier', 'max'); });
 await page.reload({ waitUntil: 'networkidle0' });
 const s = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
 const chm = s.courses.find((c) => c.code === 'CHM-113');

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { effectiveTier, type TierSource } from '../config/flags';
 import type { Tier } from '../config/tiers';
+import { AI_DIRECT_ALLOWED } from '../ai/gateway';
 import { isConfigured, supabase } from './client';
 
 /** The row behind a signed-in student: what they are on, how long the trial has, whether onboarding is done. */
@@ -87,5 +88,21 @@ export function useProfile(userId: string | null): ProfileState {
     [userId],
   );
 
-  return { profile, tier: effectiveTier(profile), loading, reload, update };
+  return { profile, tier: devTier() ?? effectiveTier(profile), loading, reload, update };
+}
+
+/**
+ * Development and the e2e scripts only: a tier pinned in localStorage so a build with no accounts can exercise
+ * Pro and Max paths. Never read on a production build (AI_DIRECT_ALLOWED is false there), so it cannot unlock
+ * anything for a real user; a build without Supabase config still runs as Free.
+ */
+export const DEV_TIER_SLOT = 'school-dashboard:dev-tier';
+function devTier(): Tier | null {
+  if (!AI_DIRECT_ALLOWED) return null;
+  try {
+    const t = localStorage.getItem(DEV_TIER_SLOT);
+    return t === 'plus' || t === 'pro' || t === 'max' ? t : null;
+  } catch {
+    return null;
+  }
 }

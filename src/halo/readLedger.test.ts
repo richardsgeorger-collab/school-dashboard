@@ -77,16 +77,15 @@ describe('the guard before spending', () => {
     expect(readGuard({ todo: 2, onFile: 56, fresh: 2, edited: 0 }).ask).toBe(false);
   });
 
-  it('stops before reading more than half of what is on file, and says how many were never read', () => {
-    const g = readGuard({ todo: 20, onFile: 30, fresh: 0, edited: 20 });
-    expect(g.ask).toBe(true);
-    expect(g.line).toBe('About to read 20 announcements (20 changed since they were read), about $0.12. That is 20 of the 30 on file, more than half, which a normal sync never needs.');
+  it('a first backlog goes straight through: 56 of 58 on file is thirty cents, not a question', () => {
+    // Real data: this exact shape stopped every sync at a question nobody saw, and nothing was ever read.
+    expect(readGuard({ todo: 56, onFile: 58, fresh: 56, edited: 0 }).ask).toBe(false);
+    expect(readGuard({ todo: 20, onFile: 30, fresh: 0, edited: 20 }).ask).toBe(false);
   });
-
-  it('stops before a large run by count alone', () => {
-    const g = readGuard({ todo: 34, onFile: 200, fresh: 34, edited: 0 });
+  it('stops only before a run that costs real money, and says why', () => {
+    const g = readGuard({ todo: 200, onFile: 400, fresh: 180, edited: 20 });
     expect(g.ask).toBe(true);
-    expect(g.line).toContain('34 never read');
-    expect(g.line).toContain('$0.20');
+    expect(g.line).toContain('180 never read');
+    expect(g.line).toContain('20 changed since they were read');
   });
 });

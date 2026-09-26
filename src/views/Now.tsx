@@ -7,6 +7,8 @@ import { EmptyState } from '../components/EmptyState';
 import { IconCheck, IconNow } from '../components/Icons';
 import { HeadsUp, type HeadsUpLine } from './HeadsUp';
 import { HaloDraw } from '../components/HaloDraw';
+import { useReadStatus } from '../halo/backgroundRead';
+import { useReadNow } from './ReadStatus';
 import { Ring } from '../components/Ring';
 import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
@@ -307,8 +309,26 @@ export function Now() {
 
   // Every warning in one place, one line each. Order: what costs points first, then what is waiting or stale.
   const [coach, setCoach] = useState(false);
-  const missed = missedRequirement(clean, today, tz);
   const headsUp: HeadsUpLine[] = [];
+  const reading = useReadStatus();
+  const readNow = useReadNow();
+  if (reading.running && reading.progress) headsUp.push({ key: 'reading', text: `Reading announcement ${reading.progress.done} of ${reading.progress.total}…` });
+  else if (reading.waiting)
+    headsUp.push({
+      key: 'read-waiting',
+      tone: 'soon',
+      text: (
+        <>
+          {reading.waiting.count} announcements are waiting to be read.{' '}
+          <button type="button" className="hero-inline" onClick={readNow}>
+            Read them now
+          </button>
+        </>
+      ),
+    });
+  else if (reading.outcome && (reading.outcome.failed > 0 || reading.outcome.noKey || reading.outcome.ledgerError))
+    headsUp.push({ key: 'read-failed', tone: 'late', text: reading.outcome.ledgerError ? 'The record of what has been read could not be opened; nothing was read.' : reading.outcome.noKey ? `${reading.outcome.todo} announcements are unread: reading them is part of Pro.` : `${reading.outcome.failed} announcement${reading.outcome.failed === 1 ? '' : 's'} could not be read; the next sync tries again.` });
+  const missed = missedRequirement(clean, today, tz);
   if (sub.line) headsUp.push({ key: 'sub', tone: sub.level === 'alarm' ? 'late' : 'soon', text: sub.line });
   if (chase)
     headsUp.push({
@@ -513,15 +533,16 @@ export function Now() {
 
       {quiet && !eveningWrap && <DailyQuestion />}
 
-      <HeadsUp lines={headsUp} />
-
-      {data.courses.length > 0 && (
-        <button type="button" className="coach-ask" onClick={() => setCoach(true)} aria-haspopup="dialog">
-          <IconNow />
-          <span>Ask what to do next</span>
-          <kbd>⏎</kbd>
-        </button>
-      )}
+      <aside className="now-side">
+        <HeadsUp lines={headsUp} />
+        {data.courses.length > 0 && (
+          <button type="button" className="coach-ask" onClick={() => setCoach(true)} aria-haspopup="dialog">
+            <IconNow />
+            <span>Ask what to do next</span>
+            <kbd>⏎</kbd>
+          </button>
+        )}
+      </aside>
       {coach && (
         <Modal title="Coach" onClose={() => setCoach(false)} side>
           <Locked feature="aiChat" tier={tier} compact>

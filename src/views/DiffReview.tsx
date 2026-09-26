@@ -1,20 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { healEntries, saveAnnouncements, saveExtras, type ReadEntry } from '../halo/announce';
+import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
-import { autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from '../halo/autoRead';
-import { costOf, loadPrices, type ApiUsage } from '../ai/usage';
-import { readGuard } from '../halo/readCost';
-import { readActions } from '../halo/actions';
-import { describeAiError } from '../ai/client';
-import { withRetry } from '../halo/readAll';
-import { announceDb, bodyHash, readLedger, type StoredAnnouncement } from '../halo/announce';
-import { aiAvailable, loadApiKey } from '../chat/key';
-import { useAccount } from '../auth/AccountContext';
-import { can } from '../config/flags';
 import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
 import { SYNC_EVENT } from '../ingest/auto';
+import { ReadStatusLines } from './ReadStatus';
 import { normCode } from '../halo/normalize';
 import { CourseChip } from '../components/CourseChip';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -103,7 +94,6 @@ export function DiffReview({
   onApplied?: (s: AppliedSummary) => void;
   onClose: () => void;
 }) {
-  const { tier } = useAccount();
   const { data, actions } = useStore();
   const tz = data.settings.timezone;
   const [bareAs, setBareAs] = useState<BareDateMode>('utc');
@@ -144,112 +134,13 @@ export function DiffReview({
       }
       actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, at), lastPull: { at, build: payload.build ?? null, counts: { ...pullCounts(payload) } } });
       setKept({ facts: plan.facts.length, classes: plan.courses.length, announcements: ann.saved, fresh: ann.fresh, messages: extra.messages, resources: extra.resources, alerts: extra.alerts });
-      // New and edited posts are read now, in this sync, not on a button and not on the next one. Professors post
-      // assignments in announcements constantly; anything that waits arrives late.
-      void readNew(ann.records);
+      // The sync event is what starts the background read (halo/backgroundRead.ts): new and edited posts are read
+      // now, by the app, whether or not this sheet stays open.
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
     })();
     // The diff is derived from the payload, and the payload is what this is keyed on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload, source]);
-
-  /**
-   * Reads only the posts that are new or that the professor has edited since they were last read, then puts what
-   * they ask for straight onto the planner. Removals are the one thing held back for approval.
-   */
-  const readNew = async (fresh: StoredAnnouncement[], opts?: { approved?: boolean }) => {
-    const key = loadApiKey() || undefined;
-    const ids = new Set(data.courses.map((c) => c.id));
-    // Everything on file that has never been read, not only what this sync carried. A post that arrived before the
-    // automatic pass existed is exactly the kind that costs points, and it would otherwise sit there for ever.
-    // The freshly written records win over the stored copies, which can still be a moment behind.
-    const byId = new Map<string, StoredAnnouncement>();
-    for (const a of await announceDb.list().catch(() => [])) byId.set(a.id, a);
-    for (const a of fresh) byId.set(a.id, a);
-    // What has been read lives in its own ledger, which a sync never rewrites. A post is read only when it has no
-    // entry there or its words no longer match the ones it was read with. A ledger that cannot be opened is not an
-    // empty ledger: treating it as one would read, and pay for, every post on file.
-    let ledger: Map<string, ReadEntry>;
-    try {
-      ledger = await readLedger.all();
-    } catch (e) {
-      setAuto({ ...emptyOutcome(), ledgerError: e instanceof Error ? e.message : String(e) });
-      return;
-    }
-    const onFile = [...byId.values()].filter((a) => ids.has(a.courseId));
-    // Posts stamped by an earlier build but missing from the ledger get their entries back before anything is read.
-    for (const h of healEntries(onFile, ledger)) {
-      await readLedger.put(h).catch(() => undefined);
-      ledger.set(h.id, h);
-    }
-    const todo = needsRead(onFile, ids, ledger);
-    if (todo.length === 0) return;
-    // A large run, or one that would read most of what is on file, stops and asks first with the count and cost.
-    const guard = readGuard({ todo: todo.length, onFile: onFile.length, fresh: todo.filter((a) => !ledger.has(a.id)).length, edited: todo.filter((a) => ledger.has(a.id)).length });
-    if (!opts?.approved && guard.ask) {
-      setConfirmRead({ posts: todo, line: guard.line });
-      return;
-    }
-    // No way to read (no account, no plan, or in development no key): the posts stay unstamped and the next sync
-    // that can read them will.
-    if (!aiAvailable() || !can('announcementAI', tier)) {
-      setAuto({ ...emptyOutcome(), todo: todo.length, noKey: true });
-      return;
-    }
-    const at = new Date().toISOString();
-    const total: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, updated: [], needsApproval: [] };
-    const spend = { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-    let failed = 0;
-    let read = 0;
-    const why: string[] = [];
-    // Each post's result is applied before the next one runs, so a failure halfway keeps what came before it.
-    let items = data.items;
-    let courses = data.courses;
-    for (let n = 0; n < todo.length; n++) {
-      const a = todo[n];
-      const course = courses.find((c) => c.id === a.courseId);
-      if (!course) continue;
-      setReading({ done: n + 1, total: todo.length, title: a.title || '(untitled)', why: readReason(a) });
-      try {
-        const r = await withRetry(() => readActions({ apiKey: key, announcement: a, course, items, tz }));
-        const p = planFromActions({ actions: r.actions, announcement: a, course, items, courses, now: at });
-        for (const i of p.upserts) {
-          actions.upsertItem(i);
-          items = [...items.filter((x) => x.id !== i.id), i];
-        }
-        for (const c of p.courses) {
-          actions.upsertCourse(c);
-          courses = courses.map((x) => (x.id === c.id ? c : x));
-        }
-        total.added.push(...p.added);
-        total.moved.push(...p.moved);
-        total.attached += p.attached;
-        total.noted += p.noted;
-        total.updated.push(...p.updated);
-        total.needsApproval.push(...p.needsApproval);
-        const u = r.usage as ApiUsage | undefined;
-        if (u) {
-          spend.calls += 1;
-          spend.input += u.input_tokens ?? 0;
-          spend.output += u.output_tokens ?? 0;
-          spend.cacheRead += u.cache_read_input_tokens ?? 0;
-          spend.cacheWrite += u.cache_creation_input_tokens ?? 0;
-        }
-        read += 1;
-        // The ledger entry is what stops this post being read again; it is written only after a read succeeds.
-        await readLedger.put({ id: a.id, hash: bodyHash(a), at, summary: r.summary, count: r.actions.length });
-        await announceDb.put({ ...a, actionsAt: at, actionsModifiedAt: a.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
-      } catch (e) {
-        // A post that could not be read is left unstamped, so the next sync tries it again. One post failing
-        // costs that post: the loop carries on with the rest.
-        failed += 1;
-        why.push(await describeAiError(e));
-      }
-    }
-    setReading(null);
-    setAuto({ todo: todo.length, read, failed, noKey: false, failures: groupFailures(why), cost: costOf(spend, loadPrices()), plan: total });
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
-  };
 
   const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
   const toggle = (group: Group, key: string) =>
@@ -268,9 +159,6 @@ export function DiffReview({
   const counts = useMemo(() => pullCounts(payload), [payload]);
   const [copied, setCopied] = useState(false);
   const [kept, setKept] = useState<ReferenceCounts | null>(null);
-  const [reading, setReading] = useState<{ done: number; total: number; title: string; why: string } | null>(null);
-  const [auto, setAuto] = useState<AutoOutcome | null>(null);
-  const [confirmRead, setConfirmRead] = useState<{ posts: StoredAnnouncement[]; line: string } | null>(null);
 
   const apply = async () => {
     if (!sel) return;
@@ -346,47 +234,7 @@ export function DiffReview({
           {stale}
         </p>
       )}
-      {reading && (
-        <p className="hint pull-tally" role="status">
-          Reading {reading.why} announcement {reading.done} of {reading.total}: “{reading.title}”…
-        </p>
-      )}
-      {confirmRead && (
-        <p className="hint diff-gap" role="status">
-          {confirmRead.line} Until they are read I do not know what they ask.{' '}
-          <button
-            type="button"
-            className="btn small primary"
-            onClick={() => {
-              const posts = confirmRead.posts;
-              setConfirmRead(null);
-              void readNew(posts, { approved: true });
-            }}
-          >
-            Read {confirmRead.posts.length} anyway
-          </button>{' '}
-          <button type="button" className="hero-skip" onClick={() => setConfirmRead(null)}>
-            Not now
-          </button>
-        </p>
-      )}
-      {auto && autoResultLine(auto) && (
-        <p className={auto.failed > 0 || auto.noKey ? 'hint diff-gap' : 'hint pull-tally'} role="status">
-          {autoResultLine(auto)}
-          {auto.plan.added.length > 0 && (
-            <>
-              <br />
-              {auto.plan.added.map((i) => i.label).join(', ')} {auto.plan.added.length === 1 ? 'is' : 'are'} on your agenda now, from an announcement.
-            </>
-          )}
-          {auto.plan.moved.length > 0 && (
-            <>
-              <br />
-              {auto.plan.moved.map((m) => `${m.item.label}: ${fmtDate(dateOf(m.from, tz), 'short')} → ${fmtDate(dateOf(m.to, tz), 'short')}`).join(' · ')}
-            </>
-          )}
-        </p>
-      )}
+      <ReadStatusLines />
       {source === 'halo' && (
         <p className="hint pull-tally">
           <b>This sync pulled:</b> {countsLine(counts)}
