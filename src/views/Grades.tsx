@@ -100,7 +100,7 @@ function CourseCard({ course }: { course: Course }) {
           </div>
           <div>
             <dt>Projected</dt>
-            <dd>{canProject ? (g.projected === null ? '—' : `${g.projected}%`) : <LockTag feature="gradeProjection" tier={tier} />}</dd>
+            <dd>{canProject ? (g.projected === null ? 'not yet' : `${g.projected}%`) : <LockTag feature="gradeProjection" tier={tier} />}</dd>
           </div>
         </dl>
       )}

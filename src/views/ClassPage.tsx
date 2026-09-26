@@ -134,7 +134,7 @@ export function ClassPage() {
         <dl className="grade-stats mono class-stats">
           <div>
             <dt>Grade</dt>
-            <dd>{grade.pct === null ? '—' : `${grade.pct}%`}</dd>
+            <dd>{grade.pct === null ? 'not yet' : `${grade.pct}%`}</dd>
           </div>
           <div>
             <dt>Pace</dt>
@@ -146,7 +146,7 @@ export function ClassPage() {
           </div>
           <div>
             <dt>Synced</dt>
-            <dd>{pulled ? fmtDate(dateOf(pulled, tz), 'short') : 'never'}</dd>
+            <dd>{pulled ? fmtDate(dateOf(pulled, tz), 'short') : 'not yet'}</dd>
           </div>
         </dl>
         {weak && <p className="hint">{weak}</p>}

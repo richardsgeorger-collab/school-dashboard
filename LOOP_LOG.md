@@ -27,3 +27,4 @@ One line per change, newest last. Proposals that need George's approval are mark
 - 2026-09-26 · Loop 8 · When the trial has ended and a plan is asked for, the card says what Max actually did during the trial from the student's own records ("Max during your trial: read 23 announcements, found 4 hidden requirements."), counted from the trial's start rather than the last seven days.
 - 2026-09-26 · Loop 9 · The welcome screen has "Already have an account? Log in" for a returning student on a new device, who otherwise saw only Sign up.
 - 2026-09-26 · Loop 10 · Checkbox rows on You (Study time, Notifications) and in the class editor put the box on its own line above the sentence on a phone; one class (.field-check) puts the box first on the same line, and the Sunday review status is plain text instead of mono.
+- 2026-09-26 · Loop 11 · A class with no grade yet said "—" and one never synced said "never"; both now say "not yet" (class page and grade projection).
