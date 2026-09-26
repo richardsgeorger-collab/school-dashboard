@@ -21,6 +21,35 @@ const SEEDED = [
   ['ai', '#/ai'],
   ['load', '#/load'],
   ['item', '#/now', async (page) => { await page.click('.hero-title-btn'); await page.waitForTimeout(500); }],
+  ['you-progress', '#/you?s=progress'],
+  ['you-workload', '#/you?s=workload'],
+  ['you-halo', '#/you?s=halo'],
+  ['you-study', '#/you?s=study'],
+  ['you-advanced', '#/you?s=advanced'],
+  ['palette', '#/now', async (page) => { await page.keyboard.press('Meta+KeyK'); await page.waitForTimeout(400); await page.keyboard.type('chem'); await page.waitForTimeout(400); }],
+  // Announcements arrive the way a sync brings them: a Halo export posted to the window. The review sheet saves
+  // them on mount; Escape closes it; the Inbox then has six posts to show in two panes.
+  ['inbox-full', '#/now', async (page) => {
+    const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
+    const post = (n, title, body) => ({ id: `shot-${n}`, forumId: 'f1', title, content: `<p>${body}</p>`, publishedAt: `2026-09-${String(10 + n).padStart(2, '0')}T15:00:00.000Z`, modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] });
+    const posts = [
+      post(1, 'Welcome to CHM-113', 'Welcome to General Chemistry. Office hours are Tuesdays 2–3 in the science building. Bring questions.'),
+      post(2, 'Lab 3 goggles', 'Starting this week you must bring your own splash goggles to lab. No goggles, no lab, no points. Lab 3 (titration) will now be due Friday October 9 instead of the 2nd.'),
+      post(3, 'DQ replies', 'A reminder that your initial post is due by Wednesday and you need to reply to at least two classmates by Sunday with substantive replies of 100 words or more.'),
+      post(4, 'Exam 1', 'Exam 1 covers chapters 1 through 4. Bring a pencil and your calculator; no phones. Review the practice quiz first.'),
+      post(5, 'Attached', 'Attached'),
+      post(6, 'Reading for next week', 'Read chapters 5 and 6 before Monday. We will start with limiting reagents.'),
+    ];
+    const payload = { kind: 'halo-export', version: 1, build: 'shot', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1800);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
+    await page.goto(`${BASE}#/inbox`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    await page.click('.news-head').catch(() => undefined);
+    await page.waitForTimeout(400);
+  }],
   ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
   ['levelup', '#/now', async (page) => { await page.evaluate(() => localStorage.setItem('school-dashboard:seen-level', '0')); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1400); await page.evaluate(() => localStorage.removeItem('school-dashboard:seen-level')); }],
   // Last: this one marks the day's items done in the seed, and every shot after it would see that.

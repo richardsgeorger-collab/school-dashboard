@@ -53,7 +53,7 @@ describe('a pileup with lead time', () => {
     expect(p.points).toBe(400);
     expect(p.items.length).toBe(5);
     expect(p.lead.id).toBe('ra');
-    expect(p.line).toBe('Oct 4–9 has 400 pts across 5 items including two papers. Start Eng Rhetorical Analysis by Sep 29.');
+    expect(p.line).toBe('Oct 4–9 is heavy: 5 items, 400 pts. Start Eng Rhetorical Analysis by Sep 29.');
     expect(pileupAhead(items.slice(2, 4), sched(items), today)).toBeNull();
   });
 });

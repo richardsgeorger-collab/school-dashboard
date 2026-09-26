@@ -46,7 +46,10 @@ export function pileupAhead(items: Item[], schedule: Schedule, today: DateStr): 
     const including = kinds.size ? ` including ${[...kinds.entries()].map(([w, n]) => `${n === 1 ? 'a' : n === 2 ? 'two' : n} ${w}${n === 1 ? '' : 's'}`).join(' and ')}` : '';
     const range = `${fmtDate(from, 'short')}–${fmtDate(to, 'short').replace(/^\w+ /, (m) => (from.slice(5, 7) === to.slice(5, 7) ? '' : m))}`;
     const start = diffDays(today, startBy) <= 0 ? 'now' : `by ${fmtDate(startBy, 'short')}`;
-    best = { from, to, points, items: inside, lead, startBy, line: `${range} has ${points} pts across ${inside.length} items${including}. Start ${lead.label} ${start}.` };
+    // One line, under fifteen words: the range, the weight, the first thing to start. The kinds are kept for the
+    // sheet, not the sentence.
+    void including;
+    best = { from, to, points, items: inside, lead, startBy, line: `${range} is heavy: ${inside.length} items, ${points} pts. Start ${lead.label} ${start}.` };
   }
   return best;
 }

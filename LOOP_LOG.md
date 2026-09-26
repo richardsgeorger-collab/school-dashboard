@@ -13,3 +13,4 @@ One line per change, newest last. Proposals that need George's approval are mark
 - Chrome extension: opening Halo is the sync (content script asks the worker when the last sync is >30 min old); switch in the popup; docs/EXTENSION.md says what shipping takes.
 - **PROPOSAL** (needs approval): collapse Plus/Pro/Max to Free + Plus $3.99 + Max $9.99 (docs/PRICING.md). No live price changed.
 - **PROPOSAL** (needs approval): remove the Load screen's "Weeks" view (You → Workload shows the same bars) and route the heavy-day warning to Calendar instead; keep "This week" and "Term".
+- 2026-09-25 · Loop 1 · Pileup heads-up line rewritten under fifteen words ("Oct 4–9 is heavy: 5 items, 400 pts. Start X by Sep 29.") so it never truncates; capture script gains the You sections, the ⌘K palette, and a populated Inbox so those screens get reviewed each loop.
