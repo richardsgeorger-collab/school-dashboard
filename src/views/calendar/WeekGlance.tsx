@@ -32,7 +32,7 @@ export function WeekGlance({ start, items }: { start: DateStr; items: Item[] }) 
             <span className="glance-bar" aria-hidden>
               <i style={{ width: `${r.cap ? Math.min(100, (r.planned / r.cap) * 100) : 0}%` }} />
             </span>
-            <span className="glance-n">{r.due ? `${r.due} due` : r.planned ? fmtMinutes(r.planned) : '·'}</span>
+            <span className="glance-n">{r.due ? `${r.due} due` : r.planned ? fmtMinutes(r.planned) : ''}</span>
           </li>
         ))}
       </ul>
