@@ -4,7 +4,7 @@
 import { DASH_ORIGIN, DASH_URL, PERIOD_MINUTES } from './config.js';
 
 const PAID = ['plus', 'pro', 'max'];
-const state = { pending: null };
+const state = { pending: null, running: false };
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create('auto-sync', { periodInMinutes: PERIOD_MINUTES, delayInMinutes: 5 });
@@ -26,7 +26,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     if (state.pending) state.pending(msg.payload);
     reply({ ok: true });
   } else if (msg.kind === 'sync-now') {
-    void runSync({ auto: false }).then(() => reply({ ok: true }));
+    // From the popup (by hand) or from the Halo page itself when it was just opened (auto). Sync-on-open is for
+    // everyone: it is the bookmark, without the bookmark. The timed schedule stays with the plans that have it.
+    void runSync({ auto: !!msg.auto }).then(() => reply({ ok: true }));
     return true;
   }
 });
@@ -52,9 +54,13 @@ async function setBadge(text, title) {
 
 async function runSync({ auto }) {
   await setBadge('…', 'Syncing Halo');
+  if (state.running) return;
+  state.running = true;
   let haloTab = (await chrome.tabs.query({ url: 'https://halo.gcu.edu/*' }))[0] ?? null;
   const opened = !haloTab;
   if (!haloTab) {
+    // A tab this worker opens must not trigger sync-on-open itself.
+    await chrome.storage.local.set({ openedBySync: true });
     haloTab = await chrome.tabs.create({ url: 'https://halo.gcu.edu/', active: false });
     await waitForLoad(haloTab.id);
     await sleep(1500);
@@ -73,7 +79,11 @@ async function runSync({ auto }) {
     }
   });
   state.pending = null;
-  if (opened) chrome.tabs.remove(haloTab.id).catch(() => undefined);
+  state.running = false;
+  if (opened) {
+    chrome.tabs.remove(haloTab.id).catch(() => undefined);
+    await chrome.storage.local.set({ openedBySync: false });
+  }
   if (!payload || payload.error) {
     const why = payload && payload.error ? payload.error : 'Halo did not answer. Are you logged in there?';
     await chrome.storage.local.set({ lastError: why, lastErrorAt: new Date().toISOString() });

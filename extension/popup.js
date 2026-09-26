@@ -24,3 +24,10 @@ $('sync').addEventListener('click', async () => {
 
 chrome.storage.onChanged.addListener(() => void render());
 void render();
+
+// Sync-on-open: on by default, one switch to turn it off.
+const onOpen = $('syncOnOpen');
+if (onOpen) {
+  chrome.storage.local.get('syncOnOpen').then((s) => { onOpen.checked = s.syncOnOpen !== false; });
+  onOpen.addEventListener('change', () => void chrome.storage.local.set({ syncOnOpen: onOpen.checked }));
+}
