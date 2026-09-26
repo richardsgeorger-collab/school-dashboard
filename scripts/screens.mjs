@@ -2,6 +2,7 @@
 //   node scripts/screens.mjs <label>            → docs/screens/<label>/<screen>-<light|dark>.png  (iPhone 14)
 //   VIEWPORT=laptop node scripts/screens.mjs <label>   → the same at 1280×800
 //   VIEWPORT=desk node scripts/screens.mjs <label>     → the same at 1440×900
+//   ONLY=now,landing node scripts/screens.mjs <label>  → just those screens
 // Populated screens use the sample term (#/now?seed=1); onboarding and empty states use a fresh profile.
 import { chromium, devices } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
@@ -60,9 +61,12 @@ const FRESH = [
   ['onboarding-halo', '#/now', async (page) => { await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(400); }],
   ['onboarding-wait', '#/now', async (page) => { await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(250); await page.click('.onboard button:has-text("I dragged it"), .onboard button:has-text("I made the bookmark")'); await page.waitForTimeout(400); }],
   ['now-empty', '#/now', async (page) => { await page.click('.onboard button:has-text("Skip for now")'); await page.waitForTimeout(400); }],
-  ['landing', 'landing/'],
-  ['landing-full', 'landing/', null, true],
+  ['landing', ''],
+  ['landing-full', '', null, true],
+  ['login', '#/login'],
+  ['onboarding-start', '#/start'],
 ];
+const only = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 const vp = process.env.VIEWPORT;
 const device = vp === 'desk' ? { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 } : vp === 'laptop' ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } : { ...devices['iPhone 14'], deviceScaleFactor: 2 };
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -75,6 +79,7 @@ for (const scheme of ['light', 'dark']) {
       await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.theme = 'system'; d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
     }
     for (const [name, route, act, full] of list) {
+      if (only && !only.has(name)) continue;
       // Every fresh screen starts from nothing: onboarding progress must not carry over between shots.
       if (group === 'fresh') await page.evaluate(() => localStorage.clear()).catch(() => undefined);
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' });

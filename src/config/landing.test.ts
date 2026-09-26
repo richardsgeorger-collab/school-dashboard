@@ -1,21 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PRICES, TRIAL } from './tiers';
 
-/** The landing page is static; this keeps its prices and trial length honest against the one config file. */
+/**
+ * The landing page is the app's own screen now (src/landing/Landing.tsx), so its prices come straight from
+ * tiers.ts. This keeps the promises on it honest: the trial sentence, the disclaimer, never a password, no GCU marks.
+ */
 describe('landing page', () => {
-  const html = readFileSync(join(__dirname, '..', '..', 'public', 'landing', 'index.html'), 'utf8');
-  it('quotes the configured prices', () => {
-    for (const t of ['plus', 'pro', 'max'] as const) {
-      expect(html).toContain(`$${PRICES[t].month.toFixed(2)}`);
-      expect(html).toContain(`$${PRICES[t].year} a year`);
-    }
+  const src = readFileSync(join(__dirname, '..', 'landing', 'Landing.tsx'), 'utf8');
+  it('takes its prices and trial length from the config, never from a literal', () => {
+    expect(src).toContain("from '../config/tiers'");
+    expect(src).toMatch(/PRICES\[p\.tier\]\.month\.toFixed\(2\)/);
+    expect(src).toMatch(/PRICES\[p\.tier\]\.year/);
+    expect(src).toContain('{TRIAL.days} days. No card. Nothing charges.');
+    expect(src).not.toMatch(/\$\d+\.\d\d/);
   });
-  it('states the trial and the disclaimer, and never asks for a password', () => {
-    expect(html).toContain(`${TRIAL.days === 7 ? 'seven' : String(TRIAL.days)} days of Max`);
-    expect(html).toContain('not affiliated with');
-    expect(html).toContain('Never your password');
-    expect(html).not.toMatch(/gcu\.edu\/[a-z]*logo|GCU logo/i);
+  it('states the disclaimer and never asks for a password', () => {
+    expect(src).toContain('not affiliated with');
+    expect(src).toContain('Never your password');
+    expect(src).not.toMatch(/gcu\.edu\/[a-z]*logo|GCU logo/i);
+  });
+  it('the old /landing/ address forwards to the root', () => {
+    const old = readFileSync(join(__dirname, '..', '..', 'public', 'landing', 'index.html'), 'utf8');
+    expect(old).toContain('http-equiv="refresh"');
   });
 });

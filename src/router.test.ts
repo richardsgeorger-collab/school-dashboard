@@ -12,7 +12,11 @@ describe('routes', () => {
     expect(parseHash('#/news?a=x').route).toBe('inbox');
     expect(parseHash('#/plan').route).toBe('load');
     expect(parseHash('#/record').route).toBe('library');
-    expect(parseHash('').route).toBe('now');
+    expect(parseHash('').route).toBe('home');
+    expect(parseHash('#/').route).toBe('home');
+    expect(parseHash('#/home').route).toBe('home');
+    expect(parseHash('#/signup').route).toBe('start');
+    expect(parseHash('#access_token=abc&type=magiclink').route).toBe('now');
     expect(parseHash('#/nonsense').route).toBe('now');
   });
 });

@@ -1,0 +1,308 @@
+/*
+ * The landing page and the sign-in screen. Same tokens, same components; the hero's picture is the Now screen's own
+ * markup inside .landing-mock, so it wears the app's accent and can never drift from the product.
+ */
+.landing {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--gutter) var(--s-7);
+}
+.landing-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 64px;
+}
+.landing-nav {
+  display: flex;
+  gap: var(--s-2);
+}
+.landing .brand {
+  text-decoration: none;
+  color: inherit;
+}
+.landing-hero {
+  display: grid;
+  gap: var(--s-6);
+  padding: var(--s-6) 0 var(--s-5);
+  align-items: center;
+}
+.landing-title {
+  font: var(--t-display);
+  font-size: clamp(32px, 4.6vw, 50px);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  margin: 0 0 var(--s-4);
+  text-wrap: balance;
+}
+.landing-lede {
+  font: var(--t-body);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0 0 var(--s-5);
+  max-width: 34em;
+}
+.landing-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+.landing-cta .btn.primary {
+  min-height: 52px;
+  padding: 0 26px;
+  font-size: 16px;
+}
+.landing-cta .btn {
+  min-height: 52px;
+  padding: 0 22px;
+  font-size: 16px;
+}
+/* The picture: Now at its phone layout, whatever the viewport, lifted on a soft glow. Nothing in it is live. */
+.landing-mock {
+  position: relative;
+  isolation: isolate;
+  pointer-events: none;
+  user-select: none;
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  background: var(--bg);
+  box-shadow: var(--shadow-3), inset 0 1px 0 var(--card-edge);
+}
+.landing-mock::before {
+  content: '';
+  position: absolute;
+  inset: -8% -6% -12%;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(55% 60% at 50% 40%, var(--glow), transparent 72%);
+  filter: blur(30px);
+}
+.landing-mock .now {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  max-width: none;
+}
+.landing-mock .now-side {
+  position: static;
+}
+.landing-mock .now-title,
+.landing-mock .hero-title {
+  font-size: 26px;
+}
+.landing-mock .then .row {
+  cursor: default;
+}
+.landing-section {
+  padding: var(--s-7) 0 0;
+}
+.landing-h2 {
+  font: var(--t-title);
+  letter-spacing: var(--track-tight);
+  margin: 0 0 var(--s-4);
+}
+.landing-grid {
+  display: grid;
+  gap: var(--s-3);
+}
+.landing-feature {
+  padding: var(--s-4) var(--s-4) var(--s-4);
+}
+.landing-feature h3 {
+  font: var(--t-heading);
+  margin: 0 0 6px;
+}
+.landing-feature p {
+  margin: 0;
+  color: var(--ink-2);
+  font: var(--t-body);
+}
+.landing-steps {
+  margin: 0 0 var(--s-3);
+  padding-left: 22px;
+  color: var(--ink-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 60ch;
+}
+.landing-steps li::marker {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.landing-plans {
+  display: grid;
+  gap: var(--s-3);
+}
+.landing-plan {
+  padding: var(--s-4);
+}
+.landing-plan[data-tier='max'] {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-2), inset 0 0 0 1px var(--accent);
+}
+.landing-plan-name {
+  margin: 0;
+  font: var(--t-heading);
+}
+.landing-plan-price {
+  font: var(--t-title);
+  letter-spacing: var(--track-tight);
+  font-variant-numeric: tabular-nums;
+  margin: 6px 0 10px;
+}
+.landing-plan-price small {
+  font: var(--t-small);
+  color: var(--ink-3);
+  letter-spacing: 0;
+}
+.landing-plan ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-2);
+  font: var(--t-small);
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.landing-trial {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: var(--s-4) 0 0;
+  color: var(--ink-2);
+  font: var(--t-body);
+}
+.landing-trial .halo-draw {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.landing-faq dl {
+  margin: 0;
+  max-width: var(--prose-max);
+}
+.landing-faq dt {
+  font-weight: 600;
+  margin-top: var(--s-4);
+}
+.landing-faq dd {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+}
+.landing-foot {
+  margin-top: var(--s-7);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--line);
+  font: var(--t-small);
+  color: var(--ink-3);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.landing-foot p {
+  margin: 0;
+  max-width: 60ch;
+}
+.landing-foot a {
+  color: var(--ink-2);
+}
+.login-box {
+  max-width: 460px;
+  margin: var(--s-7) auto 0;
+}
+.login-box .landing-title {
+  font-size: 36px;
+}
+.login-box .signin {
+  margin-bottom: var(--s-3);
+}
+@media (min-width: 768px) {
+  .landing {
+    padding-left: var(--s-6);
+    padding-right: var(--s-6);
+  }
+  .landing-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .landing-plans {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1100px) {
+  .landing {
+    padding-left: var(--s-7);
+    padding-right: var(--s-7);
+  }
+  .landing-hero {
+    grid-template-columns: minmax(0, 6fr) minmax(380px, 5fr);
+    gap: var(--s-7);
+    padding: var(--s-7) 0 var(--s-6);
+  }
+  .landing-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .landing-plans {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ---- accent picker (You → Display, and the Max welcome) ---- */
+.accent-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.accent-swatch {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 4px;
+  min-width: 64px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--ink-2);
+  font: var(--t-micro);
+  cursor: pointer;
+}
+.accent-swatch::before {
+  content: '';
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  transition: transform var(--dur-1) var(--ease);
+}
+.accent-swatch:hover::before {
+  transform: scale(1.06);
+}
+.accent-swatch[aria-checked='true'] {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.accent-swatch[aria-checked='true']::before {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--sw);
+}
+.accent-swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.accent-picker[data-locked='true'] .accent-swatch[aria-checked='true'] {
+  opacity: 1;
+}
+.accent-lock {
+  margin-top: var(--s-3);
+}
+.accent-swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -19,6 +19,13 @@ import './styles/components.css';
 import './styles/now.css';
 import './styles/screens.css';
 import './styles/looks.css';
+import './styles/landing.css';
+import { Landing } from './landing/Landing';
+import { Login } from './landing/Login';
+import { useFront } from './landing/useShowLanding';
+import { accentToShow, applyAccent } from './config/accents';
+import { can } from './config/flags';
+import { useAccount } from './auth/AccountContext';
 import { Calendar } from './views/calendar/Calendar';
 import { Now } from './views/Now';
 import { Load } from './views/Load';
@@ -118,20 +125,42 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
   return over;
 }
 
-/** The welcome on a first open, the three tooltips on Now after it, and nothing at all for anyone who was here before. */
+/**
+ * The welcome on a first open, the three tooltips on Now after it, and nothing at all for anyone who was here
+ * before. It waits: not on the landing page or the sign-in screen, and, for a signed-in account, not until the
+ * account's own data has arrived, so a returning student on a new device is never greeted as a stranger (and
+ * their settings are never overwritten by a fresh welcome). #/start opens straight at sign-up.
+ */
 function OnboardingHost() {
-  const { data, actions } = useStore();
+  const { data, actions, sync } = useStore();
+  const { auth } = useAccount();
   const { route } = useRoute();
+  const front = useFront();
+  const settled = !auth.session || sync.status === 'synced' || sync.status === 'error';
   useEffect(() => {
+    if (front !== 'app' || route === 'login' || !settled) return;
     const s = initialState(data.settings, data.courses);
     if (!s) return;
+    if (route === 'start' && s.step === 'welcome') s.step = auth.configured && !auth.session ? 'account' : 'halo';
     actions.updateSettings({ onboarding: s });
-    if (s.step === 'welcome') track('welcome', 'enter');
+    track(s.step, 'enter');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.settings.onboarding, data.courses.length]);
+  }, [data.settings.onboarding, data.courses.length, front, route, settled]);
   const ob = data.settings.onboarding;
+  if (front !== 'app' || route === 'login') return null;
   if (isOpen(ob)) return <Onboarding />;
-  if (route === 'now' && tourPending(ob)) return <NowTour />;
+  if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;
+  return null;
+}
+
+/** The accent the account may wear: the chosen preset with Max (or the trial), gold otherwise. */
+function AccentHost() {
+  const { data } = useStore();
+  const { tier } = useAccount();
+  const accent = accentToShow(data.settings.accent, can('themes', tier));
+  useEffect(() => {
+    applyAccent(document.documentElement, accent);
+  }, [accent]);
   return null;
 }
 
@@ -179,6 +208,8 @@ function Screen() {
 
 function ScreenFor({ route }: { route: ReturnType<typeof useRoute>['route'] }) {
   switch (route) {
+    case 'login':
+      return <Login />;
     case 'calendar':
       return <Calendar />;
     case 'classes':
@@ -211,6 +242,27 @@ function ScreenFor({ route }: { route: ReturnType<typeof useRoute>['route'] }) {
   }
 }
 
+/** The app with its nav, or the landing page / sign-in screen on their own. Nothing renders while the account is being looked up. */
+function Shell({ captureOpen, paletteOpen, onSync, onCapture, onCloseCapture, onClosePalette }: { captureOpen: boolean; paletteOpen: boolean; onSync: () => void; onCapture: () => void; onCloseCapture: () => void; onClosePalette: () => void }) {
+  const front = useFront();
+  const { route } = useRoute();
+  if (front === 'pending') return <div className="app" aria-busy="true" />;
+  if (front === 'landing') return <Landing />;
+  if (route === 'login') return <Login />;
+  return (
+    <div className="app">
+      <TopBar onSync={onSync} onCapture={onCapture} />
+      {captureOpen && <QuickCapture onClose={onCloseCapture} />}
+      {paletteOpen && <Palette onClose={onClosePalette} />}
+      <main className="main">
+        <Screen />
+      </main>
+      <BottomNav />
+      <TimeAsk />
+    </div>
+  );
+}
+
 export default function App() {
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncFile, setSyncFile] = useState<File | null>(null);
@@ -238,6 +290,7 @@ export default function App() {
     <StoreProvider>
       <AccountProvider>
         <AccountSync />
+        <AccentHost />
         <AutoRerun />
         <HaloHandoff />
         <OnboardingHost />
@@ -255,16 +308,7 @@ export default function App() {
           }}
         />
         {dragging && <div className="drop-overlay">Drop the .ics to import a calendar</div>}
-        <div className="app">
-          <TopBar onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} />
-          {captureOpen && <QuickCapture onClose={() => setCaptureOpen(false)} />}
-          {paletteOpen && <Palette onClose={() => setPaletteOpen(false)} />}
-          <main className="main">
-            <Screen />
-          </main>
-          <BottomNav />
-          <TimeAsk />
-        </div>
+        <Shell captureOpen={captureOpen} paletteOpen={paletteOpen} onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} onCloseCapture={() => setCaptureOpen(false)} onClosePalette={() => setPaletteOpen(false)} />
       </AccountProvider>
     </StoreProvider>
   );

@@ -4,16 +4,21 @@ import { bump } from './analytics/usage';
 /**
  * Five tabs: Now, Calendar, Classes, Inbox, You. Everything else is a screen reached from one of them and lights up
  * that tab. Old addresses keep working through the aliases so a bookmark from last month still lands somewhere.
+ * The bare root (no hash) is `home`: the landing page for a stranger, Now for everyone else. `start` opens the
+ * app with sign-up first; `login` is the sign-in screen on its own.
  */
-export type Route = 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'quiz' | 'class' | 'ingest' | 'tutor' | 'study' | 'ai' | 'admin' | 'looks';
-const ROUTES: Route[] = ['now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'quiz', 'class', 'ingest', 'tutor', 'study', 'ai', 'admin', 'looks'];
-const ALIASES: Record<string, Route> = { home: 'now', '': 'now', record: 'library', news: 'inbox', settings: 'you', plan: 'load' };
+export type Route = 'home' | 'start' | 'login' | 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'quiz' | 'class' | 'ingest' | 'tutor' | 'study' | 'ai' | 'admin' | 'looks';
+const ROUTES: Route[] = ['home', 'start', 'login', 'now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'quiz', 'class', 'ingest', 'tutor', 'study', 'ai', 'admin', 'looks'];
+const ALIASES: Record<string, Route> = { '': 'home', record: 'library', news: 'inbox', settings: 'you', plan: 'load', signin: 'login', signup: 'start' };
 
 export type Tab = 'now' | 'calendar' | 'classes' | 'inbox' | 'you';
 export const TABS: Tab[] = ['now', 'calendar', 'classes', 'inbox', 'you'];
 
 /** Which tab a screen belongs to, so the tab bar can show where you are. */
 export const TAB_OF: Record<Route, Tab> = {
+  home: 'now',
+  start: 'now',
+  login: 'you',
   now: 'now',
   calendar: 'calendar',
   classes: 'classes',
