@@ -272,7 +272,10 @@ export function Inbox() {
                     </p>
                   )}
                   <div className="settings-actions">
-                    {a.findings === null ? (
+                    {/* Read for what it asks (the ledger) is the answer; the per-post button is only for a post nobody has read. */}
+                    {st?.read && a.findings === null ? (
+                      <span className="hint">{(st.count ?? 0) > 0 ? `Read. ${st.count} thing${st.count === 1 ? '' : 's'} added to your planner from this post.` : 'Read. Nothing here changes your planner.'}</span>
+                    ) : a.findings === null ? (
                       <button type="button" className="btn small primary" disabled={!hasKey || busy === a.id} onClick={() => void read(a)}>
                         {busy === a.id ? 'Reading…' : 'What does this change?'}
                       </button>
@@ -283,7 +286,7 @@ export function Inbox() {
                         {a.findings.length} thing{a.findings.length === 1 ? '' : 's'} it changes
                       </button>
                     )}
-                    {!hasKey && a.findings === null && <span className="hint">Reading announcements is part of Pro.</span>}
+                    {!hasKey && a.findings === null && !st?.read && <span className="hint">Reading announcements is part of Pro.</span>}
                   </div>
                 </div>
               )}
@@ -309,7 +312,9 @@ export function Inbox() {
                 {states.get(openPost.id)?.count} thing{states.get(openPost.id)?.count === 1 ? '' : 's'} added to your planner from this post.
               </span>
             )}
-            {openPost.findings === null ? (
+            {openPost.findings === null && states.get(openPost.id)?.read ? (
+              (states.get(openPost.id)?.count ?? 0) === 0 ? <span className="hint">Read. Nothing here changes your planner.</span> : null
+            ) : openPost.findings === null ? (
               <button type="button" className="btn small" disabled={!hasKey || busy === openPost.id} onClick={() => void read(openPost)}>
                 {busy === openPost.id ? 'Reading…' : 'What does this change?'}
               </button>
