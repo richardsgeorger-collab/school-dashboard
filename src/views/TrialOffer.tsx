@@ -15,7 +15,7 @@ import { freshMax } from '../onboarding/maxState';
  * quiet line on You and on the plans. Always the same sentence: "Free for 5 days. No card. Nothing charges."
  * `card` is the payoff version; `line` is the quiet one.
  */
-export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card' | 'line' | 'button'; lead?: string; label?: string }) {
+export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card' | 'line' | 'button' | 'inline'; lead?: string; label?: string }) {
   const { auth, profile, reloadProfile } = useAccount();
   const { actions } = useStore();
   const [busy, setBusy] = useState(false);
@@ -41,6 +41,16 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
     </button>
   );
   if (variant === 'button') return button;
+  // Inline: a link-styled button inside a sentence (a heads-up line), with the note after it.
+  if (variant === 'inline')
+    return (
+      <>
+        <button type="button" className="hero-inline" disabled={busy || !auth.session} onClick={() => void go()}>
+          {busy ? 'Starting…' : (label ?? 'Try Max free')}
+        </button>
+        {note && <span className="hint"> {note}</span>}
+      </>
+    );
   if (variant === 'card') {
     return (
       <section className="card trial-offer" aria-label="Free trial">

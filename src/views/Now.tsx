@@ -42,7 +42,7 @@ import { ItemDetail } from './ItemDetail';
 import { useAccount } from '../auth/AccountContext';
 import { trialDaysLeft, trialState } from '../config/flags';
 import { receiptsLine } from '../domain/receipts';
-import { TrialReceipts, useReceipts } from './TrialOffer';
+import { TrialOffer, TrialReceipts, useReceipts } from './TrialOffer';
 import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
@@ -221,9 +221,10 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
  */
 export function Now() {
   const { data, schedule, derived, today, actions, progress, previewAward, calibrate, justDone } = useStore();
-  const { tier, profile } = useAccount();
+  const { tier, profile, auth } = useAccount();
   const trialDays = trialDaysLeft(profile);
   const onTrial = trialState(profile) === 'active';
+  const trialAvailable = auth.configured && trialState(profile) === 'available';
   const receipts = useReceipts();
   const tz = data.settings.timezone;
   const [open, setOpen] = useState<Item | null>(null);
@@ -359,7 +360,15 @@ export function Now() {
         'The record of what has been read could not be opened; nothing was read.'
       ) : reading.outcome.locked && !reading.outcome.noKey ? (
         <>
-          {reading.outcome.todo} announcement{reading.outcome.todo === 1 ? ' is' : 's are'} waiting to be read; reading them is part of Pro. <a href="#/inbox">Inbox</a>
+          {reading.outcome.todo} announcement{reading.outcome.todo === 1 ? ' is' : 's are'} waiting to be read.{' '}
+          {trialAvailable ? (
+            // The moment the product's promise is one tap away: the posts are on file, the reader is not on this plan.
+            <TrialOffer variant="inline" label={`Try Max free and it reads ${reading.outcome.todo === 1 ? 'it' : 'them'}`} />
+          ) : (
+            <>
+              Reading them is part of Pro. <a href="#/inbox">Inbox</a>
+            </>
+          )}
         </>
       ) : reading.outcome.noKey ? (
         `${reading.outcome.todo} announcement${reading.outcome.todo === 1 ? ' is' : 's are'} unread: this build has no AI connection.`
