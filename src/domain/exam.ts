@@ -85,7 +85,7 @@ export function examMode(
 
 /** One calm sentence for the pressure slot in exam mode, or null. */
 export function examPressure(plan: ExamPlan): string | null {
-  if (plan.shortfall > 0) return `${fmtMinutes(plan.shortfall)} of study will not fit before the exam at your current hours. Start today, or add study time in Settings.`;
+  if (plan.shortfall > 0) return `${fmtMinutes(plan.shortfall)} of study will not fit before the exam at your current hours. Start today, or add study hours under You, Study time.`;
   if (plan.mustDoBefore.length > 0) {
     const n = plan.mustDoBefore.length;
     return `${n} other thing${n === 1 ? ' is' : 's are'} due before the exam and still fit around it.`;

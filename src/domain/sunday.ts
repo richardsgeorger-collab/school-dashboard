@@ -22,7 +22,10 @@ export const switchedOn = (state: SundayReviewState | undefined): SundayReviewSt
 
 export interface WeekReview {
   done: Item[];
+  /** Went past its date in the last seven days and is still open. */
   slipped: Item[];
+  /** Still open from before last week: named once, not listed with buttons. */
+  older: Item[];
   coming: Item[];
   sentence: string;
 }
@@ -34,12 +37,14 @@ export function weekReview(items: Item[], schedule: Schedule, today: DateStr, tz
   const done = work.filter((i) => i.status === 'done' && i.completedAt && dateOf(i.completedAt, tz) >= weekAgo).sort((a, b) => (a.completedAt ?? '').localeCompare(b.completedAt ?? ''));
   const open = work.filter((i) => i.status !== 'done');
   const day = (i: Item) => schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz);
-  const slipped = open.filter((i) => day(i) < today).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  const past = open.filter((i) => day(i) < today).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  const slipped = past.filter((i) => day(i) >= weekAgo);
+  const older = past.filter((i) => day(i) < weekAgo);
   const end = addDays(today, 6);
   const coming = open.filter((i) => day(i) >= today && day(i) <= end).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const biggest = [...coming].sort((a, b) => b.points - a.points || a.dueAt.localeCompare(b.dueAt))[0];
-  const first = `Last week: ${done.length} done${slipped.length ? `, ${slipped.length} slipped` : ''}.`;
+  const first = `Last week: ${done.length} done${slipped.length ? `, ${slipped.length} slipped` : ''}${older.length ? `${slipped.length ? ';' : ','} ${older.length} older thing${older.length === 1 ? '' : 's'} still open` : ''}.`;
   const second = coming.length === 0 ? 'Nothing due this week.' : `This week: ${coming.length} coming${biggest && biggest.points >= 50 ? `, the biggest is ${biggest.label} on ${fmtDate(day(biggest), 'long').split(',')[0]}` : ''}.`;
-  return { done, slipped, coming, sentence: `${first} ${second}` };
+  return { done, slipped, older, coming, sentence: `${first} ${second}` };
 }
 

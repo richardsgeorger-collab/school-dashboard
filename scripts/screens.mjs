@@ -138,6 +138,19 @@ const SEEDED = [
   }],
   ['item-required', '#/classes', async (page) => { await page.click('.classes-list a'); await page.waitForTimeout(500); await page.click('.item-main:has-text("Chem Quiz 2")'); await page.waitForTimeout(500); }],
   ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
+  // The coach, opened from Now's side column (locked on this build, so the honest card with the trial shows).
+  ['coach', '#/now', async (page) => { await page.click('.coach-ask'); await page.waitForTimeout(500); }],
+  // Time travel (Playwright's clock): the Sunday review as it is offered on a Sunday morning, and Now in exam mode
+  // five days before Chem Exam 1. The clock is pinned before the page loads and released after the shot.
+  ['sunday', '#/now', async (page) => { await page.clock.install({ time: new Date('2026-09-27T17:00:00.000Z') }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(900); }],
+  ['exam-mode', '#/now', async (page) => {
+    // Tuesday Oct 27, 6 PM Phoenix, three days before Chem Exam 1. Not a Sunday, and not "back after days away".
+    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.sundayReview = { skips: 0, lastOffered: null, lastDone: null, off: true }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); localStorage.setItem('school-dashboard:last-seen', '2026-10-27'); });
+    await page.clock.install({ time: new Date('2026-10-28T01:00:00.000Z') });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+    await page.evaluate(() => localStorage.removeItem('school-dashboard:last-seen'));
+  }],
   // "Am I okay?": the one paragraph behind the status line.
   // Done from the hero: the toast with Undo, then Undo puts the card back.
   ['done-toast', '#/now', async (page) => { await page.click('.hero-actions button[aria-label="Mark done"]'); await page.waitForTimeout(900); }],

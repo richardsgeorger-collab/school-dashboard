@@ -15,6 +15,8 @@ export function SundayReview({ onClose, onDone, onOpen }: { onClose: () => void;
   const tz = data.settings.timezone;
   const r = weekReview(data.items, schedule, today, tz);
   const [showDone, setShowDone] = useState(false);
+  const [allSlipped, setAllSlipped] = useState(false);
+  const SHOWN = 6;
   const tomorrow = addDays(today, 1);
   const push = (i: Item) => actions.upsertItem({ ...i, snoozedUntil: tomorrow, startByOverride: tomorrow });
 
@@ -52,7 +54,7 @@ export function SundayReview({ onClose, onDone, onOpen }: { onClose: () => void;
             <p className="hint">Nothing slipped.</p>
           ) : (
             <ul className="item-list sunday-slipped">
-              {r.slipped.map((i) => (
+              {(allSlipped ? r.slipped : r.slipped.slice(0, SHOWN)).map((i) => (
                 <li key={i.id} className="sunday-row">
                   <ItemRow item={i} onOpen={onOpen ?? (() => undefined)} />
                   <span className="sunday-actions">
@@ -66,6 +68,19 @@ export function SundayReview({ onClose, onDone, onOpen }: { onClose: () => void;
                 </li>
               ))}
             </ul>
+          )}
+          {!allSlipped && r.slipped.length > SHOWN && (
+            <button type="button" className="then-all" onClick={() => setAllSlipped(true)}>
+              show all {r.slipped.length}
+            </button>
+          )}
+          {r.older.length > 0 && (
+            <p className="hint">
+              {r.older.length} older thing{r.older.length === 1 ? ' is' : 's are'} still open from before last week.{' '}
+              <a href="#/calendar" onClick={onClose}>
+                Calendar
+              </a>
+            </p>
           )}
         </section>
 
