@@ -17,6 +17,7 @@ import { skipLine } from '../domain/impact';
 import { bump } from '../analytics/usage';
 import { starterPrompt } from '../work/starter';
 import { PromptPanel } from './PromptPanel';
+import { Requirements } from './Requirements';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
 
 /**
@@ -251,6 +252,9 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
           ),
         )}
       </p>
+
+      {/* The product's promise, on the card itself: what the professor only said in an announcement, with the source one tap away. */}
+      {!done && (item.requirements ?? []).some((r) => !r.done) && <Requirements item={item} compact onMore={() => onOpen(item)} />}
 
       {ranOut && item.blocked && (
         <p className="hero-line" style={{ marginTop: 12 }}>

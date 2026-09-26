@@ -8,12 +8,14 @@ import { useStore } from '../storage/store';
  * The parts of an assignment that the assignment itself does not mention. Each carries its own deadline, its own tick,
  * and the sentence the professor wrote, because the whole reason this exists is that the description is silent.
  */
-export function Requirements({ item: passed }: { item: Item }) {
+export function Requirements({ item: passed, compact = false, onMore }: { item: Item; compact?: boolean; onMore?: () => void }) {
   const { data, actions, today } = useStore();
   const tz = data.settings.timezone;
   // The panel is opened with a copy of the item; ticking a part has to redraw against the live one.
   const item = data.items.find((i) => i.id === passed.id) ?? passed;
-  const list = item.requirements ?? [];
+  const all = item.requirements ?? [];
+  // Compact (the hero card): the open parts only, three at most, each with its source one tap away.
+  const list = compact ? all.filter((r) => !r.done).slice(0, 3) : all;
   if (list.length === 0) return null;
 
   const toggle = (r: Requirement) => {
@@ -22,11 +24,13 @@ export function Requirements({ item: passed }: { item: Item }) {
   };
   const open = gradedOpen(item);
 
+  const fromPosts = all.some((r) => r.source.kind === 'announcement');
+  const hidden = compact ? all.filter((r) => !r.done).length - list.length : 0;
   return (
-    <section className="reqs" aria-label="What this also requires">
+    <section className={compact ? 'reqs reqs-compact' : 'reqs'} aria-label="What this also requires">
       <p className="hint">
-        <b>Also required</b> <span className="mono muted">· {partsLine(item)}</span>
-        {open.length > 0 && item.status === 'done' && <span className="reqs-warn">not finished: {open.length} part{open.length === 1 ? '' : 's'} still open</span>}
+        <b>Also required</b> <span className="mono muted">· {compact && fromPosts ? `${all.length} part${all.length === 1 ? '' : 's'} from announcements` : partsLine(item)}</span>
+        {!compact && open.length > 0 && item.status === 'done' && <span className="reqs-warn">not finished: {open.length} part{open.length === 1 ? '' : 's'} still open</span>}
       </p>
       <ul className="reqs-list">
         {list.map((r) => {
@@ -37,16 +41,31 @@ export function Requirements({ item: passed }: { item: Item }) {
                 <input type="checkbox" checked={r.done} onChange={() => toggle(r)} />
                 <span className="reqs-text">{r.text}</span>
               </label>
-              <span className="hint mono reqs-meta">
-                {r.dueAt ? `${late ? 'was due ' : 'due '}${fmtDate(dateOf(r.dueAt, tz), 'short')} ${fmtTime(r.dueAt, tz)}` : 'with the assignment'}
-                {!r.gradedOn && ' · not graded'}
-                {r.redefinesDone && ' · changes what full credit means'}
-              </span>
-              <SourceLine source={r.source} />
+              {compact ? (
+                (r.dueAt || r.redefinesDone) && (
+                  <span className="hint mono reqs-meta">
+                    {r.dueAt ? `${late ? 'was due ' : 'due '}${fmtDate(dateOf(r.dueAt, tz), 'short')}` : ''}
+                    {r.dueAt && r.redefinesDone ? ' · ' : ''}
+                    {r.redefinesDone ? 'changes what full credit means' : ''}
+                  </span>
+                )
+              ) : (
+                <span className="hint mono reqs-meta">
+                  {r.dueAt ? `${late ? 'was due ' : 'due '}${fmtDate(dateOf(r.dueAt, tz), 'short')} ${fmtTime(r.dueAt, tz)}` : 'with the assignment'}
+                  {!r.gradedOn && ' · not graded'}
+                  {r.redefinesDone && ' · changes what full credit means'}
+                </span>
+              )}
+              <SourceLine source={r.source} compact={compact} />
             </li>
           );
         })}
       </ul>
+      {hidden > 0 && (
+        <button type="button" className="hero-inline" onClick={onMore}>
+          {hidden} more
+        </button>
+      )}
     </section>
   );
 }

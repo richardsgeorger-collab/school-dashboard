@@ -169,6 +169,31 @@
   color: var(--ink-2);
   padding: 0 12px;
 }
+/* Requirements on the hero: the professor's extra asks, open ones only, compact. */
+.hero .reqs-compact {
+  margin: var(--s-4) 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+}
+.hero .reqs-compact > .hint {
+  margin: 0 0 6px;
+}
+.hero .reqs-compact .reqs-list {
+  gap: 8px;
+}
+.hero .reqs-compact .reqs-text {
+  font: var(--t-body);
+  color: var(--ink);
+}
+.hero .reqs-compact .reqs-meta {
+  font-family: var(--font-body);
+}
+.hero .reqs-compact .part-source {
+  font: var(--t-small);
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .hero-details {
   margin-top: var(--s-4);
   padding-top: var(--s-4);

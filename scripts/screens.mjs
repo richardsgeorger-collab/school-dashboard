@@ -79,6 +79,64 @@ const SEEDED = [
   ['max-done', '#/now', async (page) => { await page.click('.max-welcome button:has-text("Take me to Now")'); await page.waitForTimeout(600); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.accent = 'gold'; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
   // The three tooltips on Now after onboarding, first stop.
   ['tour', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(900); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding.tourDoneAt = 'x'; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
+  // The core promise, as it looks once it has happened: announcements read, one requirement attached to a real
+  // assignment with the professor's words, the Inbox sorted into "Needs you". Posts arrive the normal way; the
+  // read stamps are set on the stored posts (the ledger heals itself from them) and the requirement is put on the
+  // item in local storage, so no model is called.
+  ['inbox-read', '#/now', async (page) => {
+    const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
+    const post = (n, title, body) => ({ id: `read-${n}`, forumId: 'f1', title, content: `<p>${body}</p>`, publishedAt: `2026-09-${String(10 + n).padStart(2, '0')}T15:00:00.000Z`, modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] });
+    const posts = [
+      post(1, 'Welcome to CHM-113', 'Welcome to General Chemistry. Office hours are Tuesdays 2–3 in the science building.'),
+      post(2, 'Lab goggles and Quiz 2', 'Starting this week you must bring your own splash goggles to lab. Also: Quiz 2 will now cover chapters 3 and 4, not just 3, and you need to show your work on the stoichiometry problems for credit.'),
+      post(3, 'Exam 1 room', 'Exam 1 is in Room 204, not our usual room. Bring a pencil and your calculator; no phones.'),
+      post(4, 'Attached', 'Attached'),
+    ];
+    const payload = { kind: 'halo-export', version: 1, build: 'shot', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1500);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    // Stamp the posts as read (the ledger heals from these) and attach the requirement to Chem Quiz 2.
+    await page.evaluate(async () => {
+      const at = new Date().toISOString();
+      const stamp = { 'read-1': ['Office hours Tuesdays 2–3, science building.', 0], 'read-2': ['Bring your own splash goggles to lab. Quiz 2 covers chapters 3 and 4; show your work on stoichiometry.', 2], 'read-3': ['Exam 1 is in Room 204. Pencil and calculator, no phones.', 1], 'read-4': [null, 0] };
+      await new Promise((res, rej) => { const r = indexedDB.open('school-dashboard-announcements', 3); r.onerror = () => rej(r.error); r.onsuccess = () => { const db = r.result; const t = db.transaction('posts', 'readwrite'); const st = t.objectStore('posts'); const all = st.getAll(); all.onsuccess = () => { for (const p of all.result) if (stamp[p.id]) { p.actionsAt = at; p.actionsModifiedAt = p.modifiedAt ?? null; p.actionsSummary = stamp[p.id][0]; p.actionCount = stamp[p.id][1]; p.readAt = p.id === 'read-4' ? null : at; st.put(p); } }; t.oncomplete = () => { db.close(); res(); }; t.onerror = () => rej(t.error); }; });
+      const d = JSON.parse(localStorage.getItem('school-dashboard:v1'));
+      const quiz = d.items.find((i) => /Chem Quiz 2/.test(i.label));
+      if (quiz) {
+        const source = { kind: 'announcement', id: 'read-2', title: 'Lab goggles and Quiz 2', at: '2026-09-12T15:00:00.000Z', quote: 'Quiz 2 will now cover chapters 3 and 4, not just 3, and you need to show your work on the stoichiometry problems for credit.' };
+        quiz.requirements = [
+          { id: 'req-1', text: 'Study chapters 3 and 4, not just 3', dueAt: null, done: false, doneAt: null, gradedOn: true, redefinesDone: true, scope: 'instance', source, addedAt: at },
+          { id: 'req-2', text: 'Show your work on the stoichiometry problems', dueAt: null, done: false, doneAt: null, gradedOn: true, scope: 'instance', source, addedAt: at },
+        ];
+        localStorage.setItem('school-dashboard:v1', JSON.stringify(d));
+      }
+    });
+    await page.goto(`${BASE}#/inbox`, { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    await page.click('.news-head').catch(() => undefined);
+    await page.waitForTimeout(400);
+  }],
+  ['hero-required', '#/now', async (page) => {
+    await page.evaluate(() => {
+      const label = document.querySelector('.hero-title')?.textContent?.trim();
+      const d = JSON.parse(localStorage.getItem('school-dashboard:v1'));
+      const it = d.items.find((i) => i.label === label);
+      if (it) {
+        const source = { kind: 'announcement', id: 'read-2', title: 'This week', at: '2026-09-22T15:00:00.000Z', quote: 'Your reflection must cite two sources from the library database, not the open web, and include a screenshot of each.' };
+        it.requirements = [
+          { id: 'hr-1', text: 'Cite two sources from the library database', dueAt: null, done: false, doneAt: null, gradedOn: true, scope: 'instance', source, addedAt: new Date().toISOString() },
+          { id: 'hr-2', text: 'Include a screenshot of each source', dueAt: null, done: false, doneAt: null, gradedOn: true, scope: 'instance', source, addedAt: new Date().toISOString() },
+        ];
+        localStorage.setItem('school-dashboard:v1', JSON.stringify(d));
+      }
+    });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+  }],
+  ['item-required', '#/classes', async (page) => { await page.click('.classes-list a'); await page.waitForTimeout(500); await page.click('.item-main:has-text("Chem Quiz 2")'); await page.waitForTimeout(500); }],
   ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
   // "Am I okay?": the one paragraph behind the status line.
   // Done from the hero: the toast with Undo, then Undo puts the card back.
