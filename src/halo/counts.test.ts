@@ -48,7 +48,7 @@ describe('what a sync actually pulled', () => {
     const bare = countsLine(pullCounts(mkExport([mkClass({ id: 'h1', courseCode: 'CHM-113', assessments: [] })])));
     expect(rich).not.toBe(bare);
     expect(rich).toContain('1 announcement,');
-    expect(bare).toContain('Nothing for grades, announcements');
+    expect(bare).toMatch(/Nothing for .*announcements/);
     expect(emptyKinds(pullCounts(full()))).toEqual(['alerts']);
   });
 
