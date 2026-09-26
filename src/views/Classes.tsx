@@ -3,7 +3,7 @@ import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { PALETTE } from '../data/courseDefaults';
 import { dateOf, diffDays, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
-import { courseGrade, letterFor } from '../domain/grades';
+import { courseGrade, letterFor, NOT_ENOUGH_GRADED } from '../domain/grades';
 import { newId } from '../domain/ids';
 import { isNoise } from '../domain/requirements';
 import type { Course } from '../domain/types';
@@ -31,7 +31,8 @@ function ClassCard({ course }: { course: Course }) {
   const color = useCourseColor(course);
   const items = data.items.filter((i) => i.courseId === course.id);
   const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
-  const next = [...open].filter((i) => dateOf(i.dueAt, tz) >= today).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
+  // Participation is attendance, not the next thing to do.
+  const next = [...open].filter((i) => i.type !== 'participation' && dateOf(i.dueAt, tz) >= today).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
   const overdue = open.filter((i) => dateOf(i.dueAt, tz) < today).length;
   const g = courseGrade(course.id, data.items);
   const letter = letterFor(g.pct, course.gradeScale);
@@ -41,7 +42,7 @@ function ClassCard({ course }: { course: Course }) {
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />
-          {g.pct !== null && <span className="class-card-grade mono">{`${g.pct}%${letter ? ` ${letter}` : ''}`}</span>}
+          {g.pct !== null ? <span className="class-card-grade mono">{`${g.pct}%${letter ? ` ${letter}` : ''}`}</span> : g.graded > 0 ? <span className="class-card-grade muted" title={NOT_ENOUGH_GRADED}>{NOT_ENOUGH_GRADED}</span> : null}
         </div>
         <h2 className="class-card-name">{course.name || 'Untitled class'}</h2>
         <p className="class-card-meta mono muted">{meetingSummary(course)}</p>

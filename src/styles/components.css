@@ -56,23 +56,27 @@ body {
   gap: 2px;
 }
 .topbar-gear {
-  width: 40px;
-  height: 40px;
+  text-decoration: none;
+  min-width: 40px;
+  height: 36px;
   margin: 0;
+  padding: 0 10px;
   border-radius: var(--r-pill);
   color: var(--ink-2);
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 6px;
+  font: 500 13px/1 var(--font-body);
+  position: relative;
 }
+/* The label is the button: an icon alone is a guess. */
 .topbar-gear .gear-label {
-  display: none;
+  display: inline;
 }
 .topbar-gear svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 .topbar-gear:hover {
   background: var(--surface-2);
@@ -124,7 +128,7 @@ body {
     max-width: var(--wide-max);
   }
   .topbar-gear .gear-label {
-    display: none;
+    display: inline;
   }
 }
 

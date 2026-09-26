@@ -1,5 +1,6 @@
+import { riskLine } from './pace';
 import { describe, expect, it } from 'vitest';
-import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine } from './now';
+import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine, todayDone } from './now';
 import { computeSchedule } from './schedule';
 import { DEFAULT_FLAGS, DEFAULT_SETTINGS, type Item } from './types';
 
@@ -219,5 +220,28 @@ describe('chunkSuggestion', () => {
     const big = item({ id: 'b', dueAt: '2026-09-20T23:59:00-07:00', estimatedMinutes: 420 });
     expect(chunkSuggestion(big, sched([big]), TODAY)?.chunk).toBe(60);
     expect(chunkSuggestion(item({ estimatedMinutes: 90 }), sched([]), TODAY)).toBeNull();
+  });
+});
+
+describe('the day is done only when it is', () => {
+  it('"Today\'s done" needs everything due today done and nothing overdue', () => {
+    const done = item({ id: 'a', dueAt: '2026-09-09T23:59:00-07:00', status: 'done', completedAt: '2026-09-09T10:00:00-07:00' });
+    const overdue = item({ id: 'b', dueAt: '2026-09-07T23:59:00-07:00' });
+    const tomorrowMorning = item({ id: 'c', dueAt: '2026-09-10T09:00:00-07:00', points: 100, estimatedMinutes: 120 });
+    expect(todayDone([done], TODAY, NOW, TZ)).toBe(true);
+    expect(todayDone([done, overdue], TODAY, NOW, TZ)).toBe(false);
+    expect(todayDone([], TODAY, NOW, TZ)).toBe(false);
+    // The 9 AM item is planned for today but due tomorrow: the day is done, and the risk line must agree.
+    const items = [done, tomorrowMorning];
+    const s = computeSchedule(items, DEFAULT_SETTINGS, TODAY, TERM, NOW);
+    expect(todayDone(items, TODAY, NOW, TZ)).toBe(true);
+    expect(riskLine(items, s, TODAY, TZ)).toBe('100 pts due tomorrow, not started.');
+  });
+  it('never calls a two-hour paper small', () => {
+    const paper = item({ id: 'p', dueAt: '2026-09-13T23:59:00-07:00', points: 100, estimatedMinutes: 120, blocks: ['q'] });
+    const gated = item({ id: 'q', dueAt: '2026-09-14T23:59:00-07:00', points: 100 });
+    expect(pickReason(paper, [paper, gated], sched([paper, gated]), TODAY, NOW, TZ, {})).toMatch(/^Picked because it gates bigger work\./);
+    const quick = item({ id: 's', dueAt: '2026-09-13T23:59:00-07:00', points: 5, estimatedMinutes: 20, blocks: ['q'] });
+    expect(pickReason(quick, [quick, gated], sched([quick, gated]), TODAY, NOW, TZ, {})).toMatch(/^Picked because it's small and it gates bigger work\./);
   });
 });

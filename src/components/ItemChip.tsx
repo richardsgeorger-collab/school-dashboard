@@ -4,6 +4,7 @@ import type { ScheduledItem } from '../domain/schedule';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useCourseColor } from './CourseChip';
+import { cellLabel } from '../views/calendar/MonthView';
 
 export type ChipState = 'overdue' | 'today' | 'soon' | 'at_risk' | 'normal' | 'done';
 
@@ -35,7 +36,7 @@ export function useChipState(item: Item): ChipState {
 
 export const isBig = (item: Item) => item.type === 'exam' || item.points >= 100;
 
-export function ItemChip({ item, onOpen, plain = false }: { item: Item; onOpen: (i: Item) => void; plain?: boolean }) {
+export function ItemChip({ item, onOpen, plain = false, short = false }: { item: Item; onOpen: (i: Item) => void; plain?: boolean; short?: boolean }) {
   const { courseById } = useStore();
   const course = courseById.get(item.courseId);
   const color = useCourseColor(course);
@@ -63,7 +64,7 @@ export function ItemChip({ item, onOpen, plain = false }: { item: Item; onOpen: 
           {glyph}
         </span>
       )}
-      <span className="txt">{item.label}</span>
+      <span className="txt">{short ? cellLabel(item.label) : item.label}</span>
     </button>
   );
 }

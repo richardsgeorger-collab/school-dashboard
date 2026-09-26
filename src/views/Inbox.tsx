@@ -7,7 +7,7 @@ import { EmptyState } from '../components/EmptyState';
 import { syncPress } from '../ui/presses';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course } from '../domain/types';
-import { announceDb, announceStores, bodyHash, readAnnouncement, readLedger, type ReadEntry, type StoredAnnouncement, type StoredMessage } from '../halo/announce';
+import { announceDb, announceStores, readAnnouncement, readLedger, readState, type ReadEntry, type StoredAnnouncement, type StoredMessage } from '../halo/announce';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { LectureReview, type Decision } from './LectureReview';
@@ -24,7 +24,8 @@ export function Inbox() {
   const only = params.get('c');
   const [list, setList] = useState<StoredAnnouncement[] | null>(null);
   const [messages, setMessages] = useState<StoredMessage[]>([]);
-  const [ledger, setLedger] = useState<Map<string, ReadEntry>>(new Map());
+  const [ledger, setLedger] = useState<Map<string, ReadEntry> | null>(null);
+  const [ledgerError, setLedgerError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(params.get('a'));
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -34,9 +35,18 @@ export function Inbox() {
   const hasKey = useAiAllowed('announcementAI');
 
   const refresh = useCallback(async () => {
-    setList(await announceDb.list().catch(() => []));
-    setMessages(await announceStores.messages().catch(() => []));
-    setLedger(await readLedger.all().catch(() => new Map()));
+    // The list and the ledger land together: a list next to a ledger that has not loaded reads as "all unread".
+    const [l, m] = await Promise.all([announceDb.list().catch(() => []), announceStores.messages().catch(() => [])]);
+    let led: Map<string, ReadEntry> | null = null;
+    try {
+      led = await readLedger.all();
+      setLedgerError(null);
+    } catch (e) {
+      setLedgerError(e instanceof Error ? e.message : String(e));
+    }
+    setList(l);
+    setMessages(m);
+    setLedger(led);
   }, []);
   useEffect(() => {
     void refresh();
@@ -81,8 +91,13 @@ export function Inbox() {
     await refresh();
   };
 
-  // Read for requirements means an entry in the ledger whose words still match the post. Nothing else counts.
-  const unreadForReqs = shown.filter((a) => ledger.get(a.id)?.hash !== bodyHash(a)).length;
+  // Read for requirements is one question with one answer per post, and the header count and each row's label are
+  // both read off it, so they cannot contradict each other. A stamped post the ledger has lost is healed here too.
+  const states = useMemo(() => new Map(ledger ? shown.map((a) => [a.id, readState(a, ledger)] as const) : []), [shown, ledger]);
+  useEffect(() => {
+    for (const s of states.values()) if (s.heal) void readLedger.put(s.heal).catch(() => undefined);
+  }, [states]);
+  const unreadForReqs = ledger ? [...states.values()].filter((s) => !s.read).length : 0;
   const course: Course | undefined = only ? courseById.get(only) : undefined;
 
   return (
@@ -97,7 +112,12 @@ export function Inbox() {
           <h1 className="page-title lib-class-title">
             {course && <CourseChip course={course} />} <span>Inbox</span>
           </h1>
-          {list !== null && shown.length > 0 && (
+          {list !== null && shown.length > 0 && ledgerError && (
+            <p className="hint" data-tone="danger">
+              {shown.length} on file. The record of what has been read could not be opened ({ledgerError}), so which ones still need reading is unknown.
+            </p>
+          )}
+          {list !== null && shown.length > 0 && ledger && (
             <p className="hint">
               {/* The only one that matters is whether they have been read for requirements. Whether the student has
                   personally opened one is a different thing and no longer shares a sentence with it. */}
@@ -177,11 +197,11 @@ export function Inbox() {
                 <span className="news-title">
                   {/* A list of 47 titles, many of them "Attached", is not scannable. What it asks for is. */}
                   {a.actionsSummary || a.title || '(untitled)'}
-                  {a.actionsAt && (a.actionCount ?? 0) === 0 && <span className="news-quiet"> · nothing to do</span>}
-                  {(a.actionCount ?? 0) > 0 && (
+                  {states.get(a.id)?.read && (states.get(a.id)?.count ?? 0) === 0 && <span className="news-quiet"> · nothing to do</span>}
+                  {states.get(a.id)?.read && (states.get(a.id)?.count ?? 0) > 0 && (
                     <span className="news-added">
                       {' '}
-                      · {a.actionCount} thing{a.actionCount === 1 ? '' : 's'} added
+                      · {states.get(a.id)?.count} thing{states.get(a.id)?.count === 1 ? '' : 's'} added
                     </span>
                   )}
                 </span>
@@ -219,7 +239,7 @@ export function Inbox() {
           );
         })}
       </ul>
-      {readAll && <ReadAll list={shown} ledger={ledger} onClose={() => setReadAll(false)} onDone={() => void refresh()} />}
+      {readAll && ledger && <ReadAll list={shown} ledger={ledger} onClose={() => setReadAll(false)} onDone={() => void refresh()} />}
       {review && courseById.get(review.courseId) && (
         <LectureReview
           title={review.title}

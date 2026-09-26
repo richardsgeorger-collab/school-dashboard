@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sync-shared.mjs && tsc --noEmit && vite build && node scripts/secrets.mjs",
+    "build": "node scripts/sync-shared.mjs && node scripts/check-icons.mjs && tsc --noEmit && vite build && node scripts/secrets.mjs",
+    "check:icons": "node scripts/check-icons.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "seed": "tsx scripts/seed.ts",

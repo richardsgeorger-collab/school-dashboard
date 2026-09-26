@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanAll, cleanRequirements, instanceParts, looksLikeRule, overlap, restatesItem, rulesFor } from './reqClean';
+import { cleanAll, cleanRequirements, instanceParts, looksLikeRule, overlap, restatesItem, rulesFor, hasDate, readingRefs, readingCovers, foldReadings, referenceParts } from './reqClean';
 import type { Item, Requirement } from './types';
 import { mkItem, TZ } from '../halo/fixtures';
 
@@ -134,5 +134,45 @@ describe('the whole pile the user actually had', () => {
       'Bring safety goggles to Thursday lab',
     ]);
     expect(rulesFor(after.items, 'c1').map((r) => r.text)).toEqual(['Submit one PDF only, no handwriting', 'Late work receives zero points']);
+  });
+});
+
+describe('what is a task, a note, or a rule', () => {
+  const on = (title: string, texts: string[]) => cleanRequirements({ title, requirements: texts.map((text, i) => ({ id: `r${i}`, text, dueAt: '2026-09-20T23:59:00-07:00', done: false, doneAt: null, gradedOn: true, source: { kind: 'announcement', id: 'a1', title: 'Week 3', quote: text, at: null }, addedAt: '2026-09-18T00:00:00.000Z' })) });
+  it('a negation or an exception is a note, never a checkbox', () => {
+    const r = on('Career Reflection', ['LopesWrite submission is NOT required for this assignment.', 'Cite two peer-reviewed sources.']);
+    expect(r.parts.map((p) => p.scope)).toEqual(['reference', 'instance']);
+    expect(r.parts[0].dueAt).toBeNull();
+    expect(instanceParts({ requirements: r.parts })).toHaveLength(1);
+    expect(referenceParts({ requirements: r.parts })).toHaveLength(1);
+  });
+  it('a part that restates the item with its points and week attached is dropped', () => {
+    const r = on('UNV Career Reflection', ['Complete the Career Reflection assignment (100 points) by the end of Topic 3.', 'Answer all four prompts in one document.']);
+    expect(r.dropped).toBe(1);
+    expect(r.parts.map((p) => p.text)).toEqual(['Answer all four prompts in one document.']);
+  });
+  it('a dated instruction is never a class rule, however many assignments it lands on', () => {
+    const dated = 'Submit Practice Quiz 1 by Sunday 09/20.';
+    expect(hasDate(dated)).toBe(true);
+    const items = ['Practice Quiz 1', 'Practice Quiz 2'].map((title, i) => ({ id: `i${i}`, courseId: 'c1', title, requirements: [{ id: `r${i}`, text: dated, dueAt: null, done: false, doneAt: null, gradedOn: true, source: { kind: 'announcement' as const, id: 'a1', title: 'Week 3', quote: dated, at: null }, addedAt: '2026-09-18T00:00:00.000Z' }] })) as unknown as Item[];
+    expect(rulesFor(cleanAll(items).items, 'c1')).toEqual([]);
+    // On Practice Quiz 1 itself it only restates the row; on Quiz 2 it is a real (odd) instruction.
+    expect(cleanAll(items).items[0].requirements).toEqual([]);
+    expect(cleanAll(items).items[1].requirements).toHaveLength(1);
+  });
+});
+
+describe('overlapping readings', () => {
+  it('reads chapter numbers, lists and ranges', () => {
+    expect([...readingRefs('Read Chapters 1, 2, and 3')!]).toEqual([1, 2, 3]);
+    expect([...readingRefs('Read Ch. 4-6 before class')!]).toEqual([4, 5, 6]);
+    expect(readingRefs('Chem Lab 3')).toBeNull();
+    expect(readingCovers('Read Chapters 1, 2, and 3', 'Read Chapter 3')).toBe(true);
+    expect(readingCovers('Read Chapter 3', 'Read Chapters 1, 2, and 3')).toBe(false);
+  });
+  it('folds "Read Chapter 3" and "Read Chapter 1" into "Read Chapters 1, 2, and 3"', () => {
+    const mk = (id: string, title: string) => ({ id, courseId: 'c1', title, dueAt: '2026-09-20T23:59:00-07:00', status: 'todo' });
+    const out = foldReadings([mk('a', 'Read Chapters 1, 2, and 3'), mk('b', 'Read Chapter 3'), mk('c', 'Read Chapter 1'), mk('d', 'Chem Lab 3')]);
+    expect(out.map((i) => i.id)).toEqual(['a', 'd']);
   });
 });

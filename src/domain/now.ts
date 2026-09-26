@@ -105,7 +105,8 @@ function lowerRel(name: string): string {
 
 export function pickReason(item: Item, items: Item[], schedule: Schedule, today: DateStr, now: string, tz: string, derived: Record<string, DerivedDeadline>): string {
   const gate = gatingLine(item, items, tz);
-  if (gate) return `Picked because it's small and it gates bigger work. ${gate}`;
+  // "Small" is a claim the chips can check: only a half-hour thing gets called small.
+  if (gate) return item.estimatedMinutes <= 30 ? `Picked because it's small and it gates bigger work. ${gate}` : `Picked because it gates bigger work. ${gate}`;
   if (ms(item.dueAt) < ms(now)) return `Picked because it was due ${WEEKDAY_LONG[weekdayOf(dateOf(item.dueAt, tz))]} and is still open.`;
   const due = dateOf(item.dueAt, tz);
   if (due === today) return "Picked because it's due today.";
@@ -123,6 +124,17 @@ export function pickReason(item: Item, items: Item[], schedule: Schedule, today:
   const alone = windowOpen && !items.some((o) => o.id !== item.id && o.status === 'todo' && (schedule.byItem[o.id]?.startBy ?? '9999') <= today);
   const tail = others > 0 ? `and ${others} other thing${others === 1 ? '' : 's'} land${others === 1 ? 's' : ''} that day` : alone ? "and it's the only thing in its start window" : windowOpen ? 'and its start window is open' : "and it's the next thing up";
   return `Picked because it's ~${fmtMinutes(item.estimatedMinutes)}, ${dueWord}, ${tail}.`;
+}
+
+/**
+ * "Today's done" is earned: everything due today is done and nothing is overdue. Any screen that says the day is
+ * done must use this, so a banner about work still open today can never sit under that title.
+ */
+export function todayDone(items: Item[], today: DateStr, now: string, tz: string): boolean {
+  const work = items.filter((i) => i.type !== 'participation' && !isNoise(i));
+  if (work.some((i) => i.status !== 'done' && ms(i.dueAt) < ms(now))) return false;
+  const due = work.filter((i) => dateOf(i.dueAt, tz) === today);
+  return due.length > 0 && due.every((i) => i.status === 'done');
 }
 
 export type NowMode = { mode: 'urgent' } | { mode: 'fine'; daysUntilNext: number } | { mode: 'enough' } | { mode: 'empty' };

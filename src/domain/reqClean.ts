@@ -18,16 +18,91 @@ export type ReqScope =
 
 const STOP = new Set(['the', 'a', 'an', 'your', 'you', 'to', 'of', 'in', 'on', 'by', 'for', 'and', 'or', 'is', 'are', 'be', 'must', 'should', 'will', 'please', 'make', 'sure', 'at', 'least', 'this', 'that', 'it', 'as', 'with', 'from', 'do', 'does', 'have', 'has']);
 
-/** Words that carry meaning, lowercased, stripped of punctuation and dates. */
+/** Words that carry meaning, lowercased, stripped of punctuation and dates. Chapter numbers are words too. */
 export function tokens(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/\(?\d{4}-\d{2}-\d{2}\)?/g, ' ')
+    .replace(/\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g, ' ')
     .replace(/\b(mon|tues|wednes|thurs|fri|satur|sun)day\b/g, ' ')
     .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s*\d{1,2}\b/g, ' ')
+    .replace(/\bchapters\b/g, 'chapter')
+    .replace(/\bch(?:s)?\.\s*/g, 'chapter ')
     .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter((w) => w.length > 1 && !STOP.has(w));
+    .filter((w) => (w.length > 1 || /^\d$/.test(w)) && !STOP.has(w));
+}
+
+/** A date inside an instruction. Whatever its wording, a dated instruction is a one-off, never a standing rule. */
+const DATE_SHAPES = [
+  /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/,
+  /\b\d{4}-\d{2}-\d{2}\b/,
+  /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}\b/i,
+  /\b(?:by|on|before|due|until|through)\s+(?:this\s+|next\s+)?(?:mon|tues|wednes|thurs|fri|satur|sun)day\b/i,
+  /\b(?:by|before)\s+(?:tonight|midnight|tomorrow|end of (?:the )?(?:day|week))\b/i,
+];
+export const hasDate = (text: string): boolean => DATE_SHAPES.some((re) => re.test(text));
+
+/**
+ * Phrasing that tells the student something rather than asking for something: a negation, an exception, a heads-up.
+ * "LopesWrite submission is NOT required" is worth knowing and is not a box to tick.
+ */
+const NOTE_SHAPES = [
+  /\b(?:is|are|was|were|be|being)\s+(?:not|no longer)\s+(?:required|needed|necessary|graded|mandatory|due|expected|accepted)\b/i,
+  /\bnot\s+(?:required|needed|necessary|mandatory|graded)\b/i,
+  /\bno\s+(?:need|submission|assignment|quiz|class|lab|dq|discussion|homework|meeting)\b/i,
+  /\b(?:is|are)\s+optional\b/i,
+  /\b(?:do|does|did|will|would|should)\s*n[o']t\s+(?:need|have to|count|require|be graded|expect)\b/i,
+  /\b(?:there is no|there's no|there will be no|has been cancel+ed|is cancel+ed|no class)\b/i,
+  /^\s*(?:note|fyi|reminder|heads[- ]up|just so you know|please note)\b/i,
+];
+export const looksLikeNote = (text: string): boolean => NOTE_SHAPES.some((re) => re.test(text));
+
+/** Chapter, section or unit numbers a reading names: "Read Chapters 1, 2, and 3" → {1, 2, 3}; "Ch. 4-6" → {4, 5, 6}. */
+export function readingRefs(text: string): Set<number> | null {
+  const m = /\b(?:chapters?|chs?\.?|sections?|units?|modules?|lessons?)\s*((?:\d+|[\s,&–-]|and|to)+)/i.exec(text);
+  if (!m || !/\d/.test(m[1]) || !/\b(?:read|review|study|skim|cover|complete|finish|go over|watch)\b/i.test(text)) return null;
+  const out = new Set<number>();
+  for (const part of m[1].split(/,|&|\band\b/)) {
+    const range = /(\d+)\s*(?:[-–]|to)\s*(\d+)/.exec(part);
+    if (range) {
+      const [a, b] = [Number(range[1]), Number(range[2])];
+      for (let k = a; k <= b && k < a + 50; k++) out.add(k);
+    } else {
+      const n = /\d+/.exec(part);
+      if (n) out.add(Number(n[0]));
+    }
+  }
+  return out.size ? out : null;
+}
+
+/** True when the first reading covers everything the second names. */
+export function readingCovers(whole: string, part: string): boolean {
+  const A = readingRefs(whole);
+  const B = readingRefs(part);
+  if (!A || !B) return false;
+  for (const n of B) if (!A.has(n)) return false;
+  return true;
+}
+
+/**
+ * "Read Chapter 3" next to "Read Chapters 1, 2, and 3" in the same class is one reading. The one that covers the
+ * others stays; the parts it already names are folded into it. Anything that is not a reading passes through.
+ */
+export function foldReadings<T extends { id: string; courseId: string; title: string; dueAt: string; status: string }>(items: T[]): T[] {
+  const folded = new Set<string>();
+  for (const a of items) {
+    if (!readingRefs(a.title)) continue;
+    for (const b of items) {
+      if (a.id === b.id || a.courseId !== b.courseId || folded.has(a.id)) continue;
+      if (b.status === 'done' || a.status === 'done') continue;
+      const covers = readingCovers(b.title, a.title);
+      const same = readingCovers(a.title, b.title);
+      // A proper subset folds into its superset; two identical readings keep the earlier one.
+      if (covers && (!same || b.id < a.id)) folded.add(a.id);
+    }
+  }
+  return items.filter((i) => !folded.has(i.id));
 }
 
 /** How much two instructions overlap, 0 to 1. Same meaning in different words still scores high. */
@@ -53,6 +128,7 @@ const RULE_SHAPES = [
   /\b\d+\s*[-–]\s*\d+\s*words\b/i,
   /\bon \d+ separate days\b/i,
   /\bthroughout the (term|semester|course)\b/i,
+  /\b(?:do not|don't|never)\s+(?:use|cite|copy|include|plagiari[sz]e|email|share)\b/i,
 ];
 
 export const looksLikeRule = (text: string): boolean => RULE_SHAPES.some((re) => re.test(text));
@@ -63,11 +139,16 @@ export const looksLikeRule = (text: string): boolean => RULE_SHAPES.some((re) =>
  */
 export function restatesItem(text: string, item: Pick<Item, 'title'>): boolean {
   const VERBS = new Set(['complete', 'submit', 'finish', 'turn', 'hand', 'post', 'upload', 'take', 'do', 'due', 'quiz', 'assignment', 'in']);
-  const left = tokens(text).filter((w) => !VERBS.has(w));
+  // Words that add nothing next to the item's own row: when it is due, what it is worth, where it sits in the term.
+  const FILLER = new Set(['week', 'weeks', 'topic', 'topics', 'module', 'points', 'pts', 'point', 'class', 'course', 'today', 'tonight', 'tomorrow', 'end', 'before', 'after', 'midnight', 'pm', 'am', 'day', 'days', 'time', 'date', 'deadline', 'graded', 'grade', 'worth', 'total', 'via', 'through', 'halo', 'lopeswrite', 'dropbox']);
+  // Points and term positions are not identity; "Quiz 1" against "Quiz 2" is. Strip the former before tokenising.
+  const stripped = text.replace(/\(\s*\d+\s*(?:points?|pts)?\s*\)/gi, ' ').replace(/\b\d+\s*(?:points?|pts|%)\b/gi, ' ').replace(/\b(?:topic|week|module|unit)\s*\d+\b/gi, ' ');
+  const left = tokens(stripped).filter((w) => !VERBS.has(w) && !FILLER.has(w));
   const title = new Set(tokens(item.title));
   if (left.length === 0) return true;
-  // Everything it says beyond the verbs is already the title.
-  return left.every((w) => title.has(w));
+  // Everything it says beyond the verbs is already the title, or nearly all of it is.
+  const shared = left.filter((w) => title.has(w)).length;
+  return shared === left.length || (left.length >= 3 && shared / left.length >= 0.8);
 }
 
 const allSources = (r: Requirement): ReqSource[] => (r.sources?.length ? r.sources : r.source ? [r.source] : []);
@@ -106,9 +187,11 @@ export function cleanRequirements(item: Pick<Item, 'title' | 'requirements'>, op
       dropped += 1;
       continue;
     }
-    const isRule = r.scope === 'rule' || (!r.scope && (looksLikeRule(r.text) || opts.ruleTexts?.has(tokens(r.text).join(' '))));
-    // A standing rule is true all term; a date on it turns a rule into a fake deadline.
-    const shaped: Requirement = { ...r, scope: isRule ? 'rule' : (r.scope ?? 'instance'), dueAt: isRule ? null : r.dueAt, sources: allSources(r) };
+    // A dated instruction is a one-off however it is phrased: "Submit Practice Quiz 1 by Sunday 09/20" is never a rule.
+    const isRule = !hasDate(r.text) && (r.scope === 'rule' || (!r.scope && (looksLikeRule(r.text) || opts.ruleTexts?.has(tokens(r.text).join(' ')))));
+    const isNote = !isRule && (r.scope === 'reference' || (!r.scope && looksLikeNote(r.text)));
+    // A standing rule is true all term, and a note is not a task: neither carries a date.
+    const shaped: Requirement = { ...r, scope: isRule ? 'rule' : isNote ? 'reference' : 'instance', dueAt: isRule || isNote ? null : r.dueAt, sources: allSources(r) };
     const hit = out.findIndex((x) => overlap(x.text, shaped.text) >= 0.6 && x.scope === shaped.scope);
     if (hit >= 0) {
       out[hit] = merge(out[hit], shaped);
@@ -128,6 +211,7 @@ export function classRuleTexts(items: Item[]): Set<string> {
   const count = new Map<string, Set<string>>();
   for (const i of items) {
     for (const r of i.requirements ?? []) {
+      if (hasDate(r.text)) continue;
       const k = tokens(r.text).join(' ');
       if (!k) continue;
       count.set(k, (count.get(k) ?? new Set()).add(i.id));
@@ -158,8 +242,11 @@ export function cleanAll(items: Item[]): { items: CleanedItem[]; merged: number;
   return { items: out, merged, dropped };
 }
 
-/** The parts that belong on a day: concrete things to do, not standing rules. */
+/** The parts that belong on a day: concrete things to do, not standing rules and not notes. */
 export const instanceParts = (i: Pick<Item, 'requirements'>): Requirement[] => (i.requirements ?? []).filter((r) => (r.scope ?? 'instance') === 'instance');
+
+/** Things worth knowing about an item that are not themselves work: shown as a note, never as a checkbox. */
+export const referenceParts = (i: Pick<Item, 'requirements'>): Requirement[] => (i.requirements ?? []).filter((r) => r.scope === 'reference');
 
 /** The class's standing rules, deduplicated across its assignments, for the class page and the item reference. */
 export function rulesFor(items: Item[], courseId: string): { text: string; sources: ReqSource[]; items: string[] }[] {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { saveAnnouncements, saveExtras } from '../halo/announce';
+import { healEntries, saveAnnouncements, saveExtras, type ReadEntry } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
 import { autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from '../halo/autoRead';
@@ -167,9 +167,21 @@ export function DiffReview({
     for (const a of await announceDb.list().catch(() => [])) byId.set(a.id, a);
     for (const a of fresh) byId.set(a.id, a);
     // What has been read lives in its own ledger, which a sync never rewrites. A post is read only when it has no
-    // entry there or its words no longer match the ones it was read with.
-    const ledger = await readLedger.all().catch(() => new Map());
+    // entry there or its words no longer match the ones it was read with. A ledger that cannot be opened is not an
+    // empty ledger: treating it as one would read, and pay for, every post on file.
+    let ledger: Map<string, ReadEntry>;
+    try {
+      ledger = await readLedger.all();
+    } catch (e) {
+      setAuto({ ...emptyOutcome(), ledgerError: e instanceof Error ? e.message : String(e) });
+      return;
+    }
     const onFile = [...byId.values()].filter((a) => ids.has(a.courseId));
+    // Posts stamped by an earlier build but missing from the ledger get their entries back before anything is read.
+    for (const h of healEntries(onFile, ledger)) {
+      await readLedger.put(h).catch(() => undefined);
+      ledger.set(h.id, h);
+    }
     const todo = needsRead(onFile, ids, ledger);
     if (todo.length === 0) return;
     // A large run, or one that would read most of what is on file, stops and asks first with the count and cost.

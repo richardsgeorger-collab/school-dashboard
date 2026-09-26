@@ -2,12 +2,12 @@ import { estimateMinutes } from '../domain/estimate';
 import { newId } from '../domain/ids';
 import { shortLabel } from '../domain/labels';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
-import { overlap } from '../domain/reqClean';
+import { overlap, readingCovers } from '../domain/reqClean';
 import { money } from './readCost';
 import type { Course, Item, ReqSource } from '../domain/types';
 import type { Action } from './actions';
 import { routeActions } from './actions';
-import { bodyHash, type ReadEntry, type StoredAnnouncement } from './announce';
+import { readState, type ReadEntry, type StoredAnnouncement } from './announce';
 
 /**
  * Announcements read themselves on every sync. Professors post new assignments in them constantly, so anything that
@@ -29,10 +29,7 @@ export function needsRead(list: StoredAnnouncement[], courseIds: Set<string>, le
   return list
     .filter((a) => courseIds.has(a.courseId))
     .filter((a) => {
-      if (ledger) {
-        const e = ledger.get(a.id);
-        return !e || e.hash !== bodyHash(a);
-      }
+      if (ledger) return !readState(a, ledger).read;
       return a.actionsAt == null || (a.modifiedAt ?? null) !== (a.actionsModifiedAt ?? null);
     })
     .sort((a, b) => String(a.publishedAt ?? '').localeCompare(String(b.publishedAt ?? '')));
@@ -67,6 +64,8 @@ const asSource = (a: Action): ReqSource => a.source;
  */
 export function sameWork(existing: Item, made: Item, postId: string | null): boolean {
   if (existing.origin?.id && postId && existing.origin.id === postId && overlap(existing.title, made.title) >= 0.5) return true;
+  // "Read Chapter 3" and "Read Chapters 1, 2, and 3" are one reading, not two.
+  if (readingCovers(existing.title, made.title) || readingCovers(made.title, existing.title)) return true;
   return overlap(existing.title, made.title) >= 0.75;
 }
 
@@ -159,6 +158,12 @@ export function planFromActions(args: { actions: Action[]; announcement: StoredA
           changes.push(`points`);
           next.points = created.points;
         }
+        // A post naming more chapters than the row already has widens the row rather than adding a second one.
+        if (readingCovers(created.title, hit.title) && !readingCovers(hit.title, created.title)) {
+          changes.push(`reading`);
+          next.title = created.title;
+          if (!hit.labelOverridden) next.label = created.label;
+        }
         // A second post describing the same work joins the first as a source rather than replacing it.
         if (!hit.origin) next.origin = created.origin;
         if (changes.length === 0) continue;
@@ -220,6 +225,8 @@ export interface AutoOutcome {
   failed: number;
   /** True when there was no API key, so nothing was even attempted. */
   noKey: boolean;
+  /** Set when the record of what has been read could not be opened. Nothing is read or spent in that case. */
+  ledgerError?: string | null;
   /** One entry per distinct cause, most common first. */
   failures: { message: string; count: number }[];
   /** What this pass cost, in dollars, from the usage the API reported. */
@@ -241,6 +248,9 @@ export function groupFailures(messages: string[]): { message: string; count: num
  * that found nothing. Silence is the same mistake, so a pass with posts waiting always says something.
  */
 export function autoResultLine(o: AutoOutcome): string | null {
+  if (o.ledgerError) {
+    return `The record of what has been read could not be opened (${o.ledgerError}), so no announcement was read this sync and nothing was spent. Reload and sync again; if it persists, export your data from You before anything else.`;
+  }
   if (o.todo === 0) return null;
   const posts = (v: number) => `${v} announcement${v === 1 ? '' : 's'}`;
 

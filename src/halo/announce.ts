@@ -172,6 +172,35 @@ export interface ReadEntry {
 }
 
 /**
+ * What the ledger says about one post. The Inbox header count and the "N things added" on a row both come from
+ * here, so they cannot disagree: a post is either read (and may carry a count) or unread (and carries none).
+ *
+ * A post that carries a read stamp from an earlier build but has no ledger entry, and whose Halo modified date is
+ * the one it was read with, was read; the ledger is what went missing, not the read. Its entry is rebuilt from the
+ * stamp (`heal`) so the next sync does not pay to read it again.
+ */
+export interface ReadState {
+  read: boolean;
+  count: number | null;
+  summary: string | null;
+  heal: ReadEntry | null;
+}
+export function readState(p: StoredAnnouncement, ledger: Map<string, ReadEntry>): ReadState {
+  const e = ledger.get(p.id);
+  if (e && e.hash === bodyHash(p)) return { read: true, count: e.count, summary: e.summary, heal: null };
+  if (!e && p.actionsAt && (p.actionsModifiedAt ?? null) === (p.modifiedAt ?? null)) {
+    const entry: ReadEntry = { id: p.id, hash: bodyHash(p), at: p.actionsAt, summary: p.actionsSummary ?? null, count: p.actionCount ?? 0 };
+    return { read: true, count: entry.count, summary: entry.summary, heal: entry };
+  }
+  return { read: false, count: null, summary: null, heal: null };
+}
+
+/** Ledger entries that stamped posts are missing. Written by whoever notices, so the repair is permanent. */
+export function healEntries(list: StoredAnnouncement[], ledger: Map<string, ReadEntry>): ReadEntry[] {
+  return list.map((p) => readState(p, ledger).heal).filter((e): e is ReadEntry => e !== null);
+}
+
+/**
  * The record of what has been read, kept apart from the posts themselves. A sync rewrites posts; it never touches
  * this, so a successful read can only be undone by the post's words actually changing.
  */

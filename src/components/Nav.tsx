@@ -55,6 +55,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
           </button>
           <a href="#/you" className="topbar-gear" title={syncTitle} aria-label={`You. ${syncTitle}`}>
             <IconYou />
+            <span className="gear-label">You</span>
             <span className="sync-dot" data-status={sync.status} />
           </a>
         </div>

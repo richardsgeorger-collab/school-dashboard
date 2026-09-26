@@ -53,3 +53,25 @@ describe('courseGrade', () => {
     expect(g.remaining).toBe(30);
   });
 });
+
+describe('when a percentage is allowed to show', () => {
+  it('needs three real graded items or a tenth of the points; 0-point posts and participation are not a grade', () => {
+    // ESG-162L: only 0-point intro posts graded. That is not 0%.
+    const intro = [item({ points: 0, score: 0, status: 'done' }), item({ points: 0, score: 0, status: 'done' }), item({ points: 250 }), item({ points: 250 })];
+    expect(courseGrade('c1', intro).pct).toBeNull();
+    expect(courseGrade('c1', intro).enough).toBe(false);
+    // ESG-162: one graded item out of a thousand points is not 54.7%.
+    const one = [item({ points: 20, score: 11, status: 'done' }), item({ points: 980 })];
+    expect(courseGrade('c1', one).pct).toBeNull();
+    // Participation scored 100% does not make it enough either.
+    const part = [...one, item({ type: 'participation', points: 10, score: 10, status: 'done' }), item({ type: 'participation', points: 10, score: 10, status: 'done' })];
+    expect(courseGrade('c1', part).pct).toBeNull();
+    // Three real graded items do.
+    const three = [item({ points: 20, score: 11, status: 'done' }), item({ points: 20, score: 20, status: 'done' }), item({ points: 20, score: 18, status: 'done' }), item({ points: 940 })];
+    expect(courseGrade('c1', three).pct).toBe(81.7);
+    expect(courseGrade('c1', three).graded).toBe(3);
+    // So does one item worth a tenth of the term.
+    const tenth = [item({ points: 100, score: 55, status: 'done' }), item({ points: 900 })];
+    expect(courseGrade('c1', tenth).pct).toBe(55);
+  });
+});

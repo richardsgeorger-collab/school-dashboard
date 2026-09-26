@@ -13,6 +13,12 @@ const MAX_CHIPS = 2;
 // Even in the narrow layout a day shows what it is, not only how much of it there is.
 const MIN_CHIPS = 1;
 
+/** Two or three words is what a month cell has room for: "Chem Lab 3", not "Chem Lab Connections Talk". */
+export const cellLabel = (label: string): string => {
+  const words = label.split(/\s+/).filter(Boolean);
+  return words.length <= 3 ? label : `${words.slice(0, 3).join(' ')}…`;
+};
+
 /** 0–4: how loaded a day is, from open items due and planned study against capacity. */
 function warmth(openCount: number, planned: number, capacity: number): number {
   const byCount = openCount >= 6 ? 4 : openCount >= 4 ? 3 : openCount >= 3 ? 2 : openCount >= 1 ? 1 : 0;
@@ -49,13 +55,15 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
         {cells.map((d) => {
           const dayItems = byDay.get(d) ?? [];
           const open = dayItems.filter((i) => i.status !== 'done');
+          // Today's cell always shows today, done or not: an empty box on the current day reads as "nothing due".
+          const listed = d === today ? dayItems : open;
           const other = !d.startsWith(month);
           const states = open.map((i) => chipState(i, schedule.byItem[i.id], today, tz));
           const marker = states.includes('overdue') ? 'overdue' : null;
           const level = other ? 0 : warmth(open.length, schedule.loadByDay[d] ?? 0, dayCapacity(data.settings, d));
           const big = open.some(isBig);
-          const shown = open.slice(0, wide ? MAX_CHIPS : MIN_CHIPS);
-          const rest = open.length - shown.length;
+          const shown = listed.slice(0, wide ? MAX_CHIPS : MIN_CHIPS);
+          const rest = listed.length - shown.length;
           return (
             <button
               type="button"
@@ -79,7 +87,7 @@ export function MonthView({ month, items, onOpen }: { month: string; items: Item
               {wide ? (
                 <span className="month-chips">
                   {shown.map((i) => (
-                    <ItemChip key={i.id} item={i} onOpen={onOpen} plain />
+                    <ItemChip key={i.id} item={i} onOpen={onOpen} plain short />
                   ))}
                   {rest > 0 && <span className="month-more">+{rest}</span>}
                 </span>

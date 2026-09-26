@@ -1,3 +1,4 @@
+import { looksLikeNote } from '../domain/reqClean';
 import { callTool, type ToolSpec } from '../ai/client';
 import { addDays, dateOf, makeIso } from '../domain/dates';
 import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from '../domain/types';
@@ -203,7 +204,9 @@ export function routeActions(actions: Action[], courseId: string, at: string): R
   const out: Routed = { requirements: [], notes: [], changes: [] };
   for (const a of actions) {
     if ((a.kind === 'requirement' || a.kind === 'note') && a.itemId) {
-      out.requirements.push({ itemId: a.itemId, req: { id: rid(at), text: a.text, dueAt: a.dueAt, done: false, doneAt: null, gradedOn: a.gradedOn, redefinesDone: a.redefinesDone, source: a.source, addedAt: at } });
+      // A note about an item, or a requirement phrased as a negation, is worth knowing and is not a box to tick.
+      const scope = a.kind === 'note' || looksLikeNote(a.text) ? 'reference' : undefined;
+      out.requirements.push({ itemId: a.itemId, req: { id: rid(at), text: a.text, dueAt: scope ? null : a.dueAt, done: false, doneAt: null, gradedOn: scope ? false : a.gradedOn, redefinesDone: a.redefinesDone, scope, source: a.source, addedAt: at } });
       continue;
     }
     if (a.kind === 'requirement' || a.kind === 'note') {

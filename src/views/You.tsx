@@ -16,7 +16,7 @@ import { subscriptionLine, type Interval, type Paid } from '../billing/subscript
 import { useSubscription } from '../billing/useSubscription';
 import { PALETTE } from '../data/courseDefaults';
 import { dateOf, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
-import { courseGrade, letterFor } from '../domain/grades';
+import { courseGrade, letterFor, NOT_ENOUGH_GRADED } from '../domain/grades';
 import { newId } from '../domain/ids';
 import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import type { Course } from '../domain/types';
@@ -361,7 +361,7 @@ export function You() {
                 return (
                   <li key={c.id}>
                     <CourseChip course={c} link />
-                    <span className="mono">{g.pct === null ? '—' : `${g.pct}%${letter ? ` ${letter}` : ''}`}</span>
+                    <span className="mono" title={g.pct === null && g.graded > 0 ? NOT_ENOUGH_GRADED : undefined}>{g.pct === null ? '—' : `${g.pct}%${letter ? ` ${letter}` : ''}`}</span>
                   </li>
                 );
               })}

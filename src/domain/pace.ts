@@ -1,4 +1,4 @@
-import { diffDays } from './dates';
+import { dateOf, diffDays } from './dates';
 import { isNoise } from './requirements';
 import { effectivePoints } from './gating';
 import type { Schedule } from './schedule';
@@ -35,13 +35,15 @@ export function paceFor(course: Course, items: Item[], schedule: Schedule, today
 }
 
 /** "200 pts due in 3 days, not started." for a big item inside its start window and untouched; rare. */
-export function riskLine(items: Item[], schedule: Schedule, today: DateStr): string | null {
+export function riskLine(items: Item[], schedule: Schedule, today: DateStr, tz: string): string | null {
   const big = items
     .filter((i) => i.status === 'todo' && !isNoise(i) && effectivePoints(i, items) >= 100 && (schedule.byItem[i.id]?.startBy ?? '9999') <= today && (schedule.byItem[i.id]?.deadlineDay ?? today) >= today)
     .sort((a, b) => (schedule.byItem[a.id]?.deadlineDay ?? '').localeCompare(schedule.byItem[b.id]?.deadlineDay ?? '') || effectivePoints(b, items) - effectivePoints(a, items));
   const i = big[0];
   if (!i) return null;
-  const days = diffDays(today, schedule.byItem[i.id]?.deadlineDay ?? today);
+  // The real due day, not the planner's deadline day: a 9 AM Friday item is planned for Thursday but is due Friday,
+  // and "due today" under a title that says the day is done is a contradiction.
+  const days = diffDays(today, dateOf(i.dueAt, tz));
   return `${effectivePoints(i, items)} pts due ${days <= 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}, not started.`;
 }
 

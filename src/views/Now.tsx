@@ -9,8 +9,6 @@ import { Ring } from '../components/Ring';
 import { dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
 import { nextClassPrep, nextMeeting } from '../domain/nextClass';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
-import { announceDb, unreadLine, type StoredAnnouncement } from '../halo/announce';
-import { SYNC_EVENT } from '../ingest/auto';
 import { staleness, stalenessLine } from '../halo/freshness';
 import { blockedLine, blockPhrase } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
@@ -30,7 +28,7 @@ import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '.
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
 import { WelcomeBack } from './WelcomeBack';
-import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, termProgress, todayLine } from '../domain/now';
+import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, termProgress, todayDone, todayLine } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
@@ -264,7 +262,7 @@ export function Now() {
   // Pace, not hours: one line, in place of any pressure.
   const paceText = useMemo(() => {
     const pace = paceLine(data.courses, work, schedule, today);
-    const risk = riskLine(work, schedule, today);
+    const risk = riskLine(work, schedule, today, tz);
     const pile = pileupAhead(work, schedule, today);
     const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz));
     const overdue = work.filter((i) => i.status !== 'done' && !isBlocked(i, today) && new Date(i.dueAt).getTime() < Date.now()).length;
@@ -273,25 +271,6 @@ export function Now() {
   }, [data.courses, work, schedule, today]);
   const heavy = useMemo(() => pileupAhead(work, schedule, today), [work, schedule, today]);
   const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
-  // Announcements carry the week's real instructions at GCU, so an unread one gets one quiet line and nothing more.
-  const [news, setNews] = useState<StoredAnnouncement[]>([]);
-  const [newsTick, setNewsTick] = useState(0);
-  useEffect(() => {
-    const again = () => setNewsTick((n) => n + 1);
-    window.addEventListener(SYNC_EVENT, again);
-    return () => window.removeEventListener(SYNC_EVENT, again);
-  }, []);
-  useEffect(() => {
-    let live = true;
-    announceDb
-      .list()
-      .then((l) => live && setNews(l.filter((a) => data.courses.some((c) => c.id === a.courseId))))
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [data.courses, today, newsTick]);
-  const unread = useMemo(() => unreadLine(news, data.courses, tz), [news, data.courses, tz]);
   const clean = useMemo(() => cleanAll(data.items).items, [data.items]);
   const stale = useMemo(() => stalenessLine(staleness(data.courses, data.settings, today), data.courses.length), [data.courses, data.settings, today]);
   const chase = useMemo(() => blockedLine(work, data.courses, schedule, today, tz), [work, data.courses, schedule, today, tz]);
@@ -335,7 +314,8 @@ export function Now() {
   const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date()));
   const daypart = hour < 5 ? 'night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
   const weekday = WEEKDAY_LONG[new Date(`${today}T12:00:00Z`).getUTCDay()];
-  const eveningWrap = (daypart === 'evening' || daypart === 'night') && dueToday.length > 0 && doneToday === dueToday.length;
+  // "Today's done" is earned (domain/now.ts todayDone): everything due today done and nothing overdue.
+  const eveningWrap = (daypart === 'evening' || daypart === 'night') && todayDone(clean, today, now, tz);
   const then = useMemo(() => ranked.filter((i) => i.id !== hero?.id && i.status !== 'done' && !isBlocked(i, today)).slice(0, 3), [ranked, hero?.id, today]);
 
   // "Not today" records a day, not just a skip: the item is pushed down until then and planned to start then.
@@ -535,13 +515,6 @@ export function Now() {
             </p>
           );
         })()}
-        {unread && (
-          <p className="note">
-            <span className="note-text">
-              <a href={`#/inbox?a=${unread.first.id}`}>{unread.text}</a>
-            </span>
-          </p>
-        )}
         {waiting.length > 0 && !chase && (
           <p className="note">
             <span className="note-text">
