@@ -66,7 +66,7 @@ export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items:
           </div>
           <ul className="item-list">
             {overdue.map((i) => (
-              <AgendaItem key={i.id} item={i} open={expanded === i.id} onToggle={() => toggle(i.id)} onOpen={onOpen} tz={tz} today={today} />
+              <AgendaItem key={i.id} item={i} open={expanded === i.id} onToggle={() => toggle(i.id)} onOpen={onOpen} tz={tz} today={today} dated />
             ))}
           </ul>
         </section>
@@ -126,7 +126,7 @@ export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items:
 }
 
 /** One collapsed row; open, it shows the parts to tick, the notes, and what it unlocks. */
-function AgendaItem({ item, open, onToggle, onOpen, tz, today }: { item: Item; open: boolean; onToggle: () => void; onOpen: (i: Item) => void; tz: string; today: DateStr }) {
+function AgendaItem({ item, open, onToggle, onOpen, tz, today, dated = false }: { item: Item; open: boolean; onToggle: () => void; onOpen: (i: Item) => void; tz: string; today: DateStr; /** Under Late the day heading is gone, so the row carries its own date. */ dated?: boolean }) {
   const { actions, data, schedule } = useStore();
   const parts = instanceParts(item);
   const notes = referenceParts(item);
@@ -139,7 +139,7 @@ function AgendaItem({ item, open, onToggle, onOpen, tz, today }: { item: Item; o
 
   return (
     <li className="agenda-item" data-open={open}>
-      <ItemRow item={item} onOpen={hasMore ? () => onToggle() : onOpen} dateless compact progress={parts.length > 0 ? { done: parts.length - todo.length, total: parts.length } : null} />
+      <ItemRow item={item} onOpen={hasMore ? () => onToggle() : onOpen} dateless={!dated} compact progress={parts.length > 0 ? { done: parts.length - todo.length, total: parts.length } : null} />
       {open && (
         <div className="agenda-detail">
           {todo.length > 0 && (
