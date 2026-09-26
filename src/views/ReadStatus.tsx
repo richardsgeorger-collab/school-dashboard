@@ -1,4 +1,5 @@
 import { useAccount } from '../auth/AccountContext';
+import { Locked } from '../config/Locked';
 import { dateOf, fmtDate } from '../domain/dates';
 import { autoResultLine } from '../halo/autoRead';
 import { readBacklog, useReadStatus } from '../halo/backgroundRead';
@@ -39,6 +40,18 @@ export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
   if (!o) return null;
   const line = autoResultLine(o);
   if (!line) return null;
+  // A plan without reading: the locked card says what reading does and carries the trial, once.
+  if (o.locked && !o.noKey) {
+    return compact ? (
+      <Locked feature="announcementAI" tier="free" compact>
+        {null}
+      </Locked>
+    ) : (
+      <p className="hint diff-gap" role="status">
+        {line}
+      </p>
+    );
+  }
   return (
     <p className={o.failed > 0 || o.noKey || o.ledgerError ? 'hint diff-gap' : 'hint pull-tally'} role="status">
       {line}

@@ -151,7 +151,7 @@ export function Inbox() {
             <p className="hint">
               {/* The only one that matters is whether they have been read for requirements. Whether the student has
                   personally opened one is a different thing and no longer shares a sentence with it. */}
-              {unreadForReqs === 0 ? `${shown.length} on file, all read for requirements.` : `${shown.length} on file. ${unreadForReqs} not yet read for requirements; your next sync reads ${unreadForReqs === 1 ? 'it' : 'them'}.`}
+              {unreadForReqs === 0 ? `${shown.length} on file, all read for what they ask.` : `${shown.length} on file, ${unreadForReqs} still to read for what ${unreadForReqs === 1 ? 'it asks' : 'they ask'}.`}
             </p>
           )}
         </div>
@@ -179,9 +179,9 @@ export function Inbox() {
       )}
       {note && <p className="hint news-note">{note}</p>}
       <ReadStatusLines compact />
-      {current === 'unread' && visible.length > 0 && !reading.running && (
+      {current === 'unread' && visible.length > 0 && !reading.running && hasKey && !reading.waiting && (
         <p className="hint news-note">
-          {visible.length} not read for requirements yet.{' '}
+          The next sync reads {visible.length === 1 ? 'it' : 'them'}, or{' '}
           <button type="button" className="btn small primary" onClick={readNow}>
             Read {visible.length} now
           </button>

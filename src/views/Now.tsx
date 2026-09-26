@@ -331,8 +331,22 @@ export function Now() {
         </>
       ),
     });
-  else if (reading.outcome && (reading.outcome.failed > 0 || reading.outcome.noKey || reading.outcome.ledgerError))
-    headsUp.push({ key: 'read-failed', tone: 'late', text: reading.outcome.ledgerError ? 'The record of what has been read could not be opened; nothing was read.' : reading.outcome.noKey ? `${reading.outcome.todo} announcements are unread: reading them is part of Pro.` : `${reading.outcome.failed} announcement${reading.outcome.failed === 1 ? '' : 's'} could not be read; the next sync tries again.` });
+  else if (reading.outcome && (reading.outcome.failed > 0 || reading.outcome.noKey || reading.outcome.locked || reading.outcome.ledgerError))
+    headsUp.push({
+      key: 'read-failed',
+      tone: reading.outcome.locked && !reading.outcome.noKey ? null : 'late',
+      text: reading.outcome.ledgerError ? (
+        'The record of what has been read could not be opened; nothing was read.'
+      ) : reading.outcome.locked && !reading.outcome.noKey ? (
+        <>
+          {reading.outcome.todo} announcement{reading.outcome.todo === 1 ? ' is' : 's are'} waiting to be read; reading them is part of Pro. <a href="#/inbox">Inbox</a>
+        </>
+      ) : reading.outcome.noKey ? (
+        `${reading.outcome.todo} announcement${reading.outcome.todo === 1 ? ' is' : 's are'} unread: this build has no AI connection.`
+      ) : (
+        `${reading.outcome.failed} announcement${reading.outcome.failed === 1 ? '' : 's'} could not be read; the next sync tries again.`
+      ),
+    });
   const missed = missedRequirement(clean, today, tz);
   if (sub.line) headsUp.push({ key: 'sub', tone: sub.level === 'alarm' ? 'late' : 'soon', text: sub.line });
   if (chase)

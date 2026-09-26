@@ -86,7 +86,7 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     return null;
   }
   if (!aiAvailable() || !can('announcementAI', args.tier)) {
-    const outcome = { ...emptyOutcome(), todo: todo.length, noKey: true };
+    const outcome = { ...emptyOutcome(), todo: todo.length, noKey: !aiAvailable(), locked: !can('announcementAI', args.tier) };
     set({ outcome, waiting: null, at: new Date().toISOString() });
     return outcome;
   }

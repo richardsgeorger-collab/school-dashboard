@@ -223,8 +223,10 @@ export interface AutoOutcome {
   todo: number;
   read: number;
   failed: number;
-  /** True when there was no API key, so nothing was even attempted. */
+  /** True when this build has no model to call, so nothing was even attempted. */
   noKey: boolean;
+  /** True when the plan does not include reading, so nothing was attempted; the posts wait for Pro or the trial. */
+  locked?: boolean;
   /** Set when the record of what has been read could not be opened. Nothing is read or spent in that case. */
   ledgerError?: string | null;
   /** One entry per distinct cause, most common first. */
@@ -254,8 +256,11 @@ export function autoResultLine(o: AutoOutcome): string | null {
   if (o.todo === 0) return null;
   const posts = (v: number) => `${v} announcement${v === 1 ? '' : 's'}`;
 
+  if (o.locked) {
+    return `${posts(o.todo)} ${o.todo === 1 ? 'is' : 'are'} waiting to be read. Reading announcements is part of Pro.`;
+  }
   if (o.noKey) {
-    return `${posts(o.todo)} came in and ${o.todo === 1 ? 'has' : 'have'} not been read: no Anthropic key is connected. Add one on Now and the next sync reads ${o.todo === 1 ? 'it' : 'them'}. Until then I do not know what ${o.todo === 1 ? 'it asks' : 'they ask'}.`;
+    return `${posts(o.todo)} came in and ${o.todo === 1 ? 'has' : 'have'} not been read: this build has no AI connection. Until then I do not know what ${o.todo === 1 ? 'it asks' : 'they ask'}.`;
   }
 
   const why = o.failures[0]?.message ? ` ${o.failures[0].message}` : '';

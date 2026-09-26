@@ -135,8 +135,12 @@ describe('when the automatic read fails', () => {
 
   it('says so plainly when there is no key, rather than saying nothing at all', () => {
     const line = autoResultLine({ ...base, noKey: true })!;
-    expect(line).toContain('no Anthropic key is connected');
-    expect(line).toContain('the next sync reads them');
+    expect(line).toContain('this build has no AI connection');
+    expect(line).not.toContain('Anthropic');
+    // A plan without reading is not a missing key: the posts wait for Pro or the trial, and the line says so.
+    const locked = autoResultLine({ ...base, locked: true })!;
+    expect(locked).toContain('part of Pro');
+    expect(locked).not.toContain('key');
     expect(line).not.toMatch(/nothing in/i);
   });
 
