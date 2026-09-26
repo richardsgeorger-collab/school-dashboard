@@ -4,7 +4,7 @@ import { TrialOffer } from '../views/TrialOffer';
 import { announceDb } from '../halo/announce';
 import { recordingsDb } from '../record/db';
 import { useStore } from '../storage/store';
-import { can, tierFor, trialState } from './flags';
+import { can, rank, tierFor, trialState } from './flags';
 import { FEATURE_LINES, TIER_NAMES, TRIAL, type Feature, type Tier } from './tiers';
 
 /**
@@ -49,7 +49,8 @@ export function Locked({ feature, tier, children, compact = false }: { feature: 
   const preview = usePreview(feature);
   if (can(feature, tier)) return <>{children}</>;
   const need = tierFor(feature);
-  const trial = auth.configured && trialState(profile) === 'available' && need === TRIAL.tier;
+  // The trial is Max, and Max has everything Pro has: offer it on any feature the trial tier covers.
+  const trial = auth.configured && trialState(profile) === 'available' && rank(TRIAL.tier) >= rank(need);
   return (
     <div className={`locked card${compact ? ' locked-compact' : ''}`} role="note" aria-label={`Included with ${TIER_NAMES[need]}`}>
       <p className="locked-line">{FEATURE_LINES[feature]}</p>
@@ -58,7 +59,7 @@ export function Locked({ feature, tier, children, compact = false }: { feature: 
         <span className="locked-tier">{TIER_NAMES[need]}</span>
         {trial ? (
           <span className="locked-trial">
-            <TrialOffer variant="button" />
+            <TrialOffer variant="button" label="Try Max free" />
             <span className="hint">{TRIAL.line}</span>
           </span>
         ) : (
