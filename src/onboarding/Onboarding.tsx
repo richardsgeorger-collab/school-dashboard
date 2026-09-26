@@ -12,6 +12,7 @@ import { useStore } from '../storage/store';
 import { BookmarkButton, SyncSteps } from '../views/SyncSheet';
 import { visibleSteps, type OnboardingState, type Step } from './state';
 import { pixel } from '../analytics/pixel';
+import { announceDb } from '../halo/announce';
 import { TrialOffer } from '../views/TrialOffer';
 import { track } from './track';
 
@@ -106,6 +107,20 @@ export function Onboarding() {
   const found = useCountUp(synced ? data.items.length : 0);
   const finds = announcementFinds(data.items);
   const foundPosts = useCountUp(synced ? finds : 0, 1600);
+  // How many announcements the sync brought: the honest, cheap number the trial card can quote when none has been read.
+  const [posts, setPosts] = useState(0);
+  useEffect(() => {
+    if (!synced) return;
+    let live = true;
+    const ids = new Set(data.courses.map((c) => c.id));
+    void announceDb
+      .list()
+      .then((l) => live && setPosts(l.filter((a) => ids.has(a.courseId)).length))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [synced, data.courses]);
   const n = Math.max(1, steps.indexOf(step) + 1);
   const hours = (min: number) => String(Math.round(min / 60));
 
@@ -251,7 +266,16 @@ export function Onboarding() {
                 First up: <b>{hero.label}</b>, due {fmtDate(dateOf(hero.dueAt, tz), 'short')}.
               </p>
             )}
-            <TrialOffer variant="card" lead={finds > 0 ? 'Max already found what your professors only said in announcements. Keep it reading, plan your studying, and ask what to do next.' : undefined} />
+            <TrialOffer
+              variant="card"
+              lead={
+                finds > 0
+                  ? 'Max already found what your professors only said in announcements. Keep it reading, plan your studying, and ask what to do next.'
+                  : posts > 0
+                    ? `Your professors have posted ${posts} announcement${posts === 1 ? '' : 's'}. Max reads every one for the requirements they only said there, plans your studying, and answers what to do next.`
+                    : undefined
+              }
+            />
             <div className="onboard-actions">
               <button type="button" className="btn primary" onClick={finish}>
                 Show me my day
