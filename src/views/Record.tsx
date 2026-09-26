@@ -4,6 +4,7 @@ import { InlineTitle } from '../components/InlineTitle';
 import { MoveSelect } from '../components/MoveSelect';
 import { LIBRARY_EVENT, moveMaterial, renameMaterial } from '../library/ingest';
 import { loadApiKey } from '../chat/key';
+import { useAiAllowed } from '../config/useCan';
 import { describeError } from '../chat/client';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { newId } from '../domain/ids';
@@ -70,6 +71,9 @@ export function Record({ embedded = false, courseId: onlyCourse, collapseOver }:
   const [sampleDecisions, setSampleDecisions] = useState<Record<string, Decision>>({});
   const liveRef = useRef<HTMLDivElement>(null);
   const apiKey = loadApiKey();
+  // Whether notes can be made: the plan has lectures and this build can reach a model. On production there is never
+  // a key in the browser; the call goes through the account. Gating on the key alone kept Extract disabled for everyone.
+  const canExtract = useAiAllowed('lectures');
 
   const refresh = useCallback(async () => {
     try {
@@ -519,9 +523,9 @@ export function Record({ embedded = false, courseId: onlyCourse, collapseOver }:
                         ) : (
                           <button
                             type="button"
-                            className={`btn small ${hasTranscript && apiKey ? 'primary' : ''}`}
-                            disabled={!apiKey || !hasTranscript || busyId === r.id}
-                            title={!hasTranscript ? 'Paste the transcript first' : apiKey ? 'Send the transcript to Claude for a summary and any dates it mentions' : 'Connect your Anthropic key in the coach on the Now tab first'}
+                            className={`btn small ${hasTranscript && canExtract ? 'primary' : ''}`}
+                            disabled={!canExtract || !hasTranscript || busyId === r.id}
+                            title={!hasTranscript ? 'Paste the transcript first' : canExtract ? 'Notes, a summary, and any dates it mentions' : 'Lecture notes are part of Max'}
                             onClick={() => void extract(r)}
                           >
                             {busyId === r.id ? 'Extracting…' : 'Extract'}
@@ -570,7 +574,7 @@ export function Record({ embedded = false, courseId: onlyCourse, collapseOver }:
             </div>
             );
           })}
-          {!apiKey && scoped.length > 0 && <p className="hint">Extracting summaries and dates runs on Claude with your own key, which is not set. Recording and transcripts never need it.</p>}
+          {!canExtract && scoped.length > 0 && <p className="hint">Turning a transcript into notes is part of Max. Recording and transcripts never need it.</p>}
           <div className="settings-actions" style={{ marginTop: 12 }}>
             <button type="button" className="btn" onClick={previewSample}>
               Preview the review flow with a sample lecture
