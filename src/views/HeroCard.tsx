@@ -13,6 +13,7 @@ import { decksForItem } from '../library/links';
 import { recordingsDb, type Recording } from '../record/db';
 import { useStore } from '../storage/store';
 import { itemTone, toneLabel } from '../domain/status';
+import { bump } from '../analytics/usage';
 import { starterPrompt } from '../work/starter';
 import { PromptPanel } from './PromptPanel';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
@@ -167,6 +168,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
   const start = () => actions.upsertItem({ ...item, status: 'in_progress', startedAt: now });
   const finish = () => {
     const mins = elapsedMinutes(item.startedAt, now);
+    bump('done');
     onDone(item);
     // The timer already knows how long it took: no question afterwards.
     if (mins >= 5) {
@@ -267,7 +269,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
               <button type="button" className="btn primary" onClick={start}>
                 Start
               </button>
-              <button type="button" className="btn" onClick={() => onDone(item)} aria-label="Mark done">
+              <button type="button" className="btn" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
                 <IconCheck />
               </button>
             </>

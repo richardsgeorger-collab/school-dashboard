@@ -25,6 +25,8 @@ const STEPS = ['welcome', 'account', 'halo', 'preferences'];
 export function Admin() {
   const { auth, profile } = useAccount();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [trials, setTrials] = useState<{ started: number; running: number; ended: number; converted: number } | null>(null);
+  const [usage, setUsage] = useState<{ key: string; n: number; people: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -34,6 +36,8 @@ export function Admin() {
       if (e) setError(e.message);
       else setStats(data as Stats);
     });
+    void c.rpc('admin_trials').then(({ data }) => data && setTrials(data as { started: number; running: number; ended: number; converted: number }));
+    void c.rpc('admin_usage').then(({ data }) => Array.isArray(data) && setUsage(data as { key: string; n: number; people: number }[]));
   }, [profile?.isAdmin, tick]);
 
   if (!auth.configured || !auth.session) return <EmptyState>Sign in first.</EmptyState>;
@@ -81,6 +85,42 @@ export function Admin() {
               </div>
             ))}
           </dl>
+        </section>
+        <section className="card settings-card">
+          <h2 className="section-title">Trials</h2>
+          {trials ? (
+            <p className="mono">
+              {trials.started} started · {trials.running} running · {trials.ended} ended · {trials.converted} went on to pay
+            </p>
+          ) : (
+            <p className="hint">Loading…</p>
+          )}
+          <p className="hint">One free five-day Max trial per account, started by the student, no card.</p>
+        </section>
+        <section className="card settings-card">
+          <h2 className="section-title">What gets used</h2>
+          {usage.length === 0 ? (
+            <p className="hint">Nothing counted yet. Screens and buttons, last 14 days, counts only.</p>
+          ) : (
+            <table className="sync-map">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Uses</th>
+                  <th>People</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage.slice(0, 40).map((u) => (
+                  <tr key={u.key}>
+                    <td className="mono">{u.key}</td>
+                    <td className="mono">{u.n}</td>
+                    <td className="mono">{u.people}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
         <section className="card settings-card">
           <h2 className="section-title">AI this month</h2>

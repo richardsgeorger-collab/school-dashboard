@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { bump } from './analytics/usage';
 
 /**
  * Five tabs: Now, Calendar, Classes, Inbox, You. Everything else is a screen reached from one of them and lights up
@@ -45,8 +46,19 @@ export function parseHash(hash: string): RouteState {
 
 const parse = (): RouteState => parseHash(window.location.hash);
 
+// Which screens get opened, counted and nothing more (analytics/usage.ts).
+let lastCounted: string | null = null;
+function countScreen(route: Route): void {
+  if (route === lastCounted) return;
+  lastCounted = route;
+  bump(`screen:${route}`);
+}
+
 export function useRoute(): RouteState & { navigate: (route: Route, params?: Record<string, string>) => void } {
   const [state, setState] = useState<RouteState>(parse);
+  useEffect(() => {
+    countScreen(state.route);
+  }, [state.route]);
   useEffect(() => {
     const onChange = () => setState(parse());
     window.addEventListener('hashchange', onChange);
