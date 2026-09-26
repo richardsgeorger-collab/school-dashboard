@@ -33,7 +33,8 @@ function usePreview(feature: Feature): string | null {
   }
   if ((feature === 'lectures' || feature === 'flashcards') && n !== null && n > 0) return `You have ${n} recording${n === 1 ? '' : 's'} Max would turn into notes and practice.`;
   if (feature === 'aiChat') {
-    const open = data.items.filter((i) => i.status !== 'done').length;
+    // Work, not attendance rows: "181 open things" was every participation entry in the term.
+    const open = data.items.filter((i) => i.status !== 'done' && i.type !== 'participation').length;
     return open > 0 ? `${open} open things to ask about: what first, what can wait, what a professor really wants.` : null;
   }
   return null;
