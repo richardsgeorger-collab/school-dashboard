@@ -2,6 +2,7 @@
 //   node scripts/screens.mjs <label>            → docs/screens/<label>/<screen>-<light|dark>.png  (iPhone 14)
 //   VIEWPORT=laptop node scripts/screens.mjs <label>   → the same at 1280×800
 //   VIEWPORT=desk node scripts/screens.mjs <label>     → the same at 1440×900
+//   VIEWPORT=tiny node scripts/screens.mjs <label>     → the same at 320×568 (the smallest phone)
 //   ONLY=now,landing node scripts/screens.mjs <label>  → just those screens
 // Populated screens use the sample term (#/now?seed=1); onboarding and empty states use a fresh profile.
 import { chromium, devices } from 'playwright-core';
@@ -76,7 +77,7 @@ const FRESH = [
 ];
 const only = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 const vp = process.env.VIEWPORT;
-const device = vp === 'desk' ? { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 } : vp === 'laptop' ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } : { ...devices['iPhone 14'], deviceScaleFactor: 2 };
+const device = vp === 'desk' ? { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 } : vp === 'laptop' ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 } : vp === 'tiny' ? { ...devices['iPhone SE'], viewport: { width: 320, height: 568 }, deviceScaleFactor: 2 } : { ...devices['iPhone 14'], deviceScaleFactor: 2 };
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const scheme of ['light', 'dark']) {
   for (const [group, list] of [['seeded', SEEDED], ['fresh', FRESH]]) {
@@ -98,6 +99,8 @@ for (const scheme of ['light', 'dark']) {
       if (act) await act(page);
       await page.waitForTimeout(300);
       await page.screenshot({ path: `${OUT}/${name}-${scheme}.png`, fullPage: !!full });
+      const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      if (wide > 2) console.log(`${name}-${scheme}: page overflows its width by ${wide}px`);
       // No icon may render over 48px: an unsized SVG once filled the Now screen. Rings and charts are not icons.
       const oversized = await page.evaluate(() => [...document.querySelectorAll('svg[data-icon]')].map((el) => { const r = el.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), where: el.parentElement?.className || el.parentElement?.tagName || '?' }; }).filter((x) => x.w > 48 || x.h > 48));
       if (oversized.length) throw new Error(`${name}-${scheme}: icon over 48px: ${oversized.map((x) => `${x.w}×${x.h} in ${x.where}`).join(', ')}`);
