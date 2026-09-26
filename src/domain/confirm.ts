@@ -1,4 +1,4 @@
-import { addDays, dateOf, diffDays, fmtDate } from './dates';
+import { addDays, dateOf } from './dates';
 import { isNoise } from './requirements';
 import type { DateStr, Item } from './types';
 
@@ -51,9 +51,8 @@ export function submissionCheck(items: Item[], today: DateStr, tz: string): Subm
   } else if (dueWeek.length && unconfirmed.length === 0) {
     line = `Halo shows all ${dueWeek.length} item${dueWeek.length === 1 ? '' : 's'} due this week submitted.`;
   } else if (dueWeek.length) {
-    const days = Math.min(...unconfirmed.map((i) => diffDays(due(i), today)));
-    // Plain words: a student reads this, not a log.
-    line = `${unconfirmed.length} thing${unconfirmed.length === 1 ? '' : 's'} you finished this week ${unconfirmed.length === 1 ? "isn't" : "aren't"} confirmed as submitted in Halo yet${days === 0 ? '' : ` (last checked ${fmtDate(due(unconfirmed[0]), 'short')})`}. Sync to check.`;
+    // Plain words, under fifteen of them, so the heads-up never cuts it mid-sentence.
+    line = `${unconfirmed.length} thing${unconfirmed.length === 1 ? '' : 's'} you finished this week ${unconfirmed.length === 1 ? "isn't" : "aren't"} confirmed submitted in Halo. Sync to check.`;
     level = 'amber';
   }
   return { mismatches, unconfirmed, confirmed, dueWeek, line, level };
