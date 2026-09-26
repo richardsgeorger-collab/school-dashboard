@@ -36,3 +36,4 @@ One line per change, newest last. Proposals that need George's approval are mark
 - 2026-09-26 · Loop 17 · Tooling for the bug lens: the capture script has a 320×568 mode and reports any screen that overflows its width (none did); scripts/a11y.mjs sweeps every screen for unnamed buttons, unlabelled inputs and bare images (none found). Tiny-screen shots in docs/screens/v5-gold-tiny.
 - 2026-09-26 · Loop 18 · Words: the account step said "Sign up." over a card titled "Sign in"; it now says "Create your account." with one line that the same form signs an existing account in.
 - 2026-09-26 · Loop 19 · An empty class no longer shouts "0 RECORDINGS · 0 SLIDE DECKS · NO SYLLABUS"; zero counts are dropped and a quiet "Nothing on file yet" hint says where to drop things. "AI plan (compare)" is "AI plan".
+- 2026-09-26 · Loop 20 · A brand-new account's Now said "Nothing open." above "Your day, from Halo"; with no classes at all it now says "Nothing here yet."

@@ -538,7 +538,7 @@ export function Now() {
           </p>
           <h1 className="now-title" data-tone={status.tone ?? undefined}>
             <button type="button" className="now-status-btn" onClick={() => okayPress.current?.()} title="Am I okay?">
-              {eveningWrap ? "Today's done." : status.text}
+              {eveningWrap ? "Today's done." : data.courses.length === 0 ? 'Nothing here yet.' : status.text}
             </button>
           </h1>
         </div>
