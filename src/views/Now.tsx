@@ -191,7 +191,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
   const tz = data.settings.timezone;
   const day = dateOf(item.dueAt, tz);
   const k = diffDays(today, day);
-  const when = k < 0 ? 'was due' : k === 0 ? 'today' : k === 1 ? 'tomorrow' : fmtDate(day, 'short');
+  const when = k < 0 ? `was due ${fmtDate(day, 'short')}` : k === 0 ? 'today' : k === 1 ? 'tomorrow' : fmtDate(day, 'short');
   return (
     <li>
       <button type="button" className="row" onClick={() => onOpen(item)} style={{ '--course': color } as React.CSSProperties}>
