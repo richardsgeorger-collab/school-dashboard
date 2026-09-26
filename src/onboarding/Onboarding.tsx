@@ -148,11 +148,11 @@ export function Onboarding() {
             <h1 className="onboard-title">Your day, from Halo.</h1>
             <p className="onboard-text">One screen says what to do right now: the due date, how long it takes, what it is worth. Every announcement read for you. Nothing you have to sort.</p>
             <div className="onboard-actions">
-              <button type="button" className="btn primary" onClick={() => go(auth.configured ? 'account' : 'halo')}>
-                {auth.configured ? 'Sign up' : 'Get started'}
+              <button type="button" className="btn primary" onClick={() => go(auth.configured && !auth.session ? 'account' : 'halo')}>
+                {auth.configured && !auth.session ? 'Sign up' : 'Get started'}
               </button>
             </div>
-            {auth.configured && (
+            {auth.configured && !auth.session && (
               <p className="hint">
                 Already have an account? <a href="#/login">Log in</a>
               </p>

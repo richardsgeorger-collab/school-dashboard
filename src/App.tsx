@@ -147,6 +147,8 @@ function OnboardingHost() {
     const s = initialState(data.settings, data.courses);
     if (!s) return;
     if (route === 'start' && s.step === 'welcome') s.step = auth.configured && !auth.session ? 'account' : 'halo';
+    // Back from Google or the email link with a brand-new account: the pitch and the sign-up are behind them.
+    else if (auth.session && s.step === 'welcome') s.step = 'halo';
     actions.updateSettings({ onboarding: s });
     track(s.step, 'enter');
     // eslint-disable-next-line react-hooks/exhaustive-deps
