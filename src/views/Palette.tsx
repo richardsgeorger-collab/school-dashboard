@@ -62,8 +62,9 @@ export function Palette({ onClose }: { onClose: () => void }) {
     if (matches('sync from halo', query)) out.push({ id: 'sync', kind: 'action', label: 'Sync from Halo', run: () => { onClose(); syncPress.current?.(); } });
     if (matches('switch theme dark light', query)) out.push({ id: 'theme', kind: 'action', label: 'Switch theme', run: () => { actions.updateSettings({ theme: document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark' }); onClose(); } });
     for (const c of data.courses) if (matches(`${c.code} ${c.name}`, query)) out.push({ id: `c:${c.id}`, kind: 'class', label: c.name, meta: c.code, course: c.id, run: go('class', { c: c.id }) });
+    // Work only: attendance rows are not something to jump to.
     const items = data.items
-      .filter((i) => i.status !== 'done' && matches(`${i.label} ${i.title} ${data.courses.find((c) => c.id === i.courseId)?.code ?? ''}`, query))
+      .filter((i) => i.status !== 'done' && i.type !== 'participation' && matches(`${i.label} ${i.title} ${data.courses.find((c) => c.id === i.courseId)?.code ?? ''}`, query))
       .sort((a, b) => a.dueAt.localeCompare(b.dueAt))
       .slice(0, 8);
     for (const i of items) out.push({ id: `i:${i.id}`, kind: 'item', label: i.label, meta: `due ${fmtDate(dateOf(i.dueAt, tz), 'short')}`, course: i.courseId, run: () => setOpen(i) });
