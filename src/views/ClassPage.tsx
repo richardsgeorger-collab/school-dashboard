@@ -197,12 +197,19 @@ export function ClassPage() {
       <section className="section">
         <h2 className="section-title">
           materials{' '}
-          {materials && (
+          {materials && (materials.recordings > 0 || materials.decks > 0 || materials.syllabus) && (
             <span className="count">
-              {materials.recordings} recording{materials.recordings === 1 ? '' : 's'} · {materials.decks} slide deck{materials.decks === 1 ? '' : 's'} · {materials.syllabus ? 'syllabus on file' : 'no syllabus'}
+              {[
+                materials.recordings > 0 ? `${materials.recordings} recording${materials.recordings === 1 ? '' : 's'}` : null,
+                materials.decks > 0 ? `${materials.decks} slide deck${materials.decks === 1 ? '' : 's'}` : null,
+                materials.syllabus ? 'syllabus' : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </span>
           )}
         </h2>
+        {materials && materials.recordings === 0 && materials.decks === 0 && !materials.syllabus && resources.length === 0 && <p className="hint">Nothing on file yet. Drop slides, a syllabus or a recording in the class library.</p>}
         {resources.length > 0 && (
           <ul className="diff-list class-resources">
             {resources.slice(0, 12).map((r) => (
@@ -227,7 +234,7 @@ export function ClassPage() {
             Study kit
           </a>{' '}
           <a className="btn small" href={`#/ingest?c=${course.id}`}>
-            {course.ingest === 'ai' ? (planStatus && planStatus.pending > 0 ? `AI plan · ${planStatus.pending} to review` : planStatus?.state === 'stale' ? 'AI plan · changed since' : 'AI plan') : 'AI plan (compare)'}
+            {course.ingest === 'ai' ? (planStatus && planStatus.pending > 0 ? `AI plan · ${planStatus.pending} to review` : planStatus?.state === 'stale' ? 'AI plan · changed since' : 'AI plan') : 'AI plan'}
           </a>{' '}
           <a className="btn small" href="#/you?s=classes">
             Edit class
