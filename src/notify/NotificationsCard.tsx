@@ -20,7 +20,7 @@ const MORNING = [
 
 function Toggle({ checked, label, onChange }: { checked: boolean; label: string; onChange: (v: boolean) => void }) {
   return (
-    <label className="field" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <label className="field field-check">
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>

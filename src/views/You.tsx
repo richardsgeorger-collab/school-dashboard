@@ -451,16 +451,16 @@ export function You() {
             </label>
           </div>
           <p className="hint">Hours a day of focused schoolwork outside class. Start-by dates and the workload view come from these.</p>
-          <label className="field" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <label className="field field-check">
             <input type="checkbox" checked={!!data.settings.eveningQuiet} onChange={(e) => actions.updateSettings({ eveningQuiet: e.target.checked })} />
             <span>Evening quiet: after 9 PM, Now stops nudging about pace unless something is overdue.</span>
           </label>
-          <label className="field" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <label className="field field-check">
             <input type="checkbox" checked={!!data.settings.dailyQuestion} onChange={(e) => actions.updateSettings({ dailyQuestion: e.target.checked })} />
             <span>One flashcard from your own study kit on a quiet day, on Now.</span>
           </label>
           <div className="settings-actions sunday-settings">
-            <span className="hint mono">
+            <span className="hint">
               Sunday review: {data.settings.sundayReview?.off ? 'off' : 'offered on Sundays'}
               {data.settings.sundayReview?.lastDone ? ` · last done ${data.settings.sundayReview.lastDone}` : ''}
             </span>

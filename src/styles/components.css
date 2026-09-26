@@ -356,6 +356,24 @@ textarea:focus-visible {
   min-height: 0;
   accent-color: var(--accent-text);
 }
+/* A checkbox and its sentence sit on one line, the box first; the sentence is body text, not a field label. */
+.field-check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.field-check input[type='checkbox'] {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+}
+.field-check > span,
+.field-check > span:first-child {
+  font: var(--t-body);
+  font-weight: 400;
+  color: var(--ink);
+  margin: 0;
+}
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

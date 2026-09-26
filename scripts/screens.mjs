@@ -27,6 +27,8 @@ const SEEDED = [
   ['you-halo', '#/you?s=halo'],
   ['you-study', '#/you?s=study'],
   ['you-advanced', '#/you?s=advanced'],
+  ['you-notifications', '#/you?s=notifications'],
+  ['you-display', '#/you?s=display'],
   ['palette', '#/now', async (page) => { await page.keyboard.press('Meta+KeyK'); await page.waitForTimeout(400); await page.keyboard.type('chem'); await page.waitForTimeout(400); }],
   // Announcements arrive the way a sync brings them: a Halo export posted to the window. The review sheet saves
   // them on mount; Escape closes it; the Inbox then has six posts to show in two panes.

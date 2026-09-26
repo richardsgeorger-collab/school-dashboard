@@ -100,9 +100,9 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
             <input type="date" value={draft.termEnd} onChange={(e) => set('termEnd', e.target.value)} required />
           </label>
         </div>
-        <label className="field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <label className="field field-check">
           <input type="checkbox" checked={draft.online} onChange={(e) => setDraft((d) => ({ ...d, online: e.target.checked, meetings: e.target.checked ? [] : d.meetings }))} />
-          <span style={{ fontWeight: 500, fontSize: 14 }}>Online class: no meeting times, no in-class items, no next-class prep</span>
+          <span>Online class: no meeting times, no in-class items, no next-class prep</span>
         </label>
         {!draft.online && (
           <div className="field">
