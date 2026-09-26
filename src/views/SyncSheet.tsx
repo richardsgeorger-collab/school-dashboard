@@ -122,7 +122,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
   const walled = useNeedsPlan();
   if (walled) {
     return (
-      <Modal title="Sync from Halo" onClose={onClose}>
+      <Modal title="Sync Halo" onClose={onClose}>
         <div className="modal-body sync-sheet">
           <PlanWall context="sync" />
         </div>
@@ -130,7 +130,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
     );
   }
   return (
-    <Modal title="Sync from Halo" onClose={onClose}>
+    <Modal title="Sync Halo" onClose={onClose}>
       <div className="modal-body sync-sheet">
         <p className="hint mono">{last ? `Last synced ${fmtDate(dateOf(last, tz), 'short')} ${fmtTime(last, tz)}.` : 'Not synced yet.'}</p>
         <p className="hint">

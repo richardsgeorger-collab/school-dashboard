@@ -55,7 +55,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
             <IconPlus />
             <span className="gear-label">Add</span>
           </button>
-          <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync from Halo" aria-label="Sync from Halo">
+          <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync Halo" aria-label="Sync Halo">
             <IconSync />
             <span className="gear-label">Sync</span>
           </button>

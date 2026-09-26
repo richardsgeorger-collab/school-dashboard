@@ -229,8 +229,8 @@ export function Onboarding() {
             <span className="wait-ring" aria-hidden>
               <HaloDraw size={72} />
             </span>
-            <h1 className="onboard-title">Open Halo and click Sync Halo.</h1>
-            <p className="onboard-text">Log in at halo.gcu.edu, then click the bookmark. This page fills in on its own the moment your classes arrive.</p>
+            <h1 className="onboard-title">Open Halo and {phone ? 'tap' : 'click'} Sync Halo.</h1>
+            <p className="onboard-text">Log in at halo.gcu.edu, then {phone ? 'open your bookmarks and tap Sync Halo' : 'click the bookmark'}. This page fills in on its own the moment your classes arrive.</p>
             <p className="hint">
               <a href="https://halo.gcu.edu" target="_blank" rel="noreferrer">
                 Open halo.gcu.edu

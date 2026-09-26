@@ -52,14 +52,14 @@ export function Palette({ onClose }: { onClose: () => void }) {
       onClose();
     };
     if (!query) {
-      out.push({ id: 'sync', kind: 'action', label: 'Sync from Halo', run: () => { onClose(); syncPress.current?.(); } });
+      out.push({ id: 'sync', kind: 'action', label: 'Sync Halo', run: () => { onClose(); syncPress.current?.(); } });
       out.push({ id: 'add', kind: 'action', label: 'Add something', meta: 'quick capture', run: () => setCapture('') });
       out.push({ id: 'theme', kind: 'action', label: 'Switch theme', run: () => { actions.updateSettings({ theme: document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark' }); onClose(); } });
       for (const s of SCREENS.slice(0, 5)) out.push({ id: `s:${s.route}`, kind: 'screen', label: s.label, run: go(s.route) });
       return out;
     }
     for (const s of SCREENS) if (matches(`${s.label} ${s.words}`, query)) out.push({ id: `s:${s.route}`, kind: 'screen', label: s.label, meta: 'screen', run: go(s.route) });
-    if (matches('sync from halo', query)) out.push({ id: 'sync', kind: 'action', label: 'Sync from Halo', run: () => { onClose(); syncPress.current?.(); } });
+    if (matches('sync halo from', query)) out.push({ id: 'sync', kind: 'action', label: 'Sync Halo', run: () => { onClose(); syncPress.current?.(); } });
     if (matches('switch theme dark light', query)) out.push({ id: 'theme', kind: 'action', label: 'Switch theme', run: () => { actions.updateSettings({ theme: document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark' }); onClose(); } });
     for (const c of data.courses) if (matches(`${c.code} ${c.name}`, query)) out.push({ id: `c:${c.id}`, kind: 'class', label: c.name, meta: c.code, course: c.id, run: go('class', { c: c.id }) });
     // Work only: attendance rows are not something to jump to.

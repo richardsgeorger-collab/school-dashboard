@@ -71,7 +71,7 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
               to your bookmarks bar.
             </li>
             <li>Open halo.gcu.edu and log in.</li>
-            <li>Click the bookmark. This site opens with the changes for you to approve.</li>
+            <li>Tap or click the bookmark. This site opens with the changes for you to approve.</li>
           </ol>
           <p className="hint">
             The bookmark runs on Halo&apos;s own page while you are logged in there and sends only your classes, assignments, grades and announcements here. It never sees your password.{' '}
