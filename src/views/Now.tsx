@@ -45,6 +45,7 @@ import { receiptsLine } from '../domain/receipts';
 import { TrialReceipts, useReceipts } from './TrialOffer';
 import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
+import { SyncedLine } from './SyncedLine';
 
 const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const approx = (min: number) => `~${fmtMinutes(min)}`;
@@ -390,18 +391,6 @@ export function Now() {
         </>
       ),
     });
-  if (stale && data.courses.length > 0)
-    headsUp.push({
-      key: 'stale',
-      text: (
-        <>
-          {stale}{' '}
-          <button type="button" className="hero-inline" onClick={() => syncPress.current?.()}>
-            Sync now
-          </button>
-        </>
-      ),
-    });
   // During the trial, one honest line on what Max did this week, from the student's own records.
   const maxLine = onTrial && receipts && receipts.announcementsRead + receipts.requirementsFound + receipts.lectureNotes + receipts.coachAnswers > 0 ? receiptsLine(receipts) : null;
   if (maxLine && !(trialDays !== null && trialDays <= 1)) headsUp.push({ key: 'max', text: `Max did this for you. ${maxLine.replace(/^Max this week: /, 'This week: ')}` });
@@ -578,6 +567,8 @@ export function Now() {
       {quiet && !eveningWrap && <DailyQuestion />}
 
       <aside className="now-side">
+        {/* The trust line, always: when what is on screen last matched Halo, or that it is out of date, with the one button. */}
+        {data.courses.length > 0 && <SyncedLine stale={stale} />}
         <HeadsUp lines={headsUp} />
         {data.courses.length > 0 && (
           <button type="button" className="coach-ask" onClick={() => setCoach(true)} aria-haspopup="dialog">

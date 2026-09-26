@@ -32,3 +32,4 @@ One line per change, newest last. Proposals that need George's approval are mark
 - 2026-09-26 · Loop 13 · Every screen but Now loads when first opened: the first-paint script dropped from 1.25 MB to 0.53 MB (plus shared chunks), so the landing page and Now arrive sooner on campus wifi and a phone.
 - 2026-09-26 · Loop 14 · A late row under Then said only "was due"; it now says "was due Sep 9".
 - 2026-09-26 · Loop 15 · While the account is being looked up at the root address the page showed nothing; it now shows the mark alone, centred, so the landing page or Now does not appear to jump in from a blank.
+- 2026-09-26 · Loop 16 · Peace of mind: the trust line ("Synced from Halo today 7:12 AM", or "Not synced yet · Sync now", or the stale warning) is on Now itself, at the top of the side column, instead of only on a class page; the separate stale heads-up line is folded into it.
