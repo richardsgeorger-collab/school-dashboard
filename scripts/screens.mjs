@@ -91,6 +91,8 @@ for (const scheme of ['light', 'dark']) {
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' });
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(500);
+      // A reload can restore the previous screen's scroll; every shot starts at the top.
+      await page.evaluate(() => window.scrollTo(0, 0));
       if (act) await act(page);
       await page.waitForTimeout(300);
       await page.screenshot({ path: `${OUT}/${name}-${scheme}.png`, fullPage: !!full });

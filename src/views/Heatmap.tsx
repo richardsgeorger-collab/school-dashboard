@@ -25,7 +25,7 @@ function CourseCell({ course, minutes, onClick }: { course: Course; minutes: num
   return (
     <button type="button" className="load-course" onClick={onClick} style={{ '--course': color } as React.CSSProperties} disabled={minutes === 0}>
       <CourseChip course={course} />
-      <span className="mono">{minutes ? fmtMinutes(minutes) : '·'}</span>
+      <span className="mono">{minutes ? fmtMinutes(minutes) : '0h'}</span>
     </button>
   );
 }
@@ -100,7 +100,7 @@ export function Heatmap() {
                   {(w.catchUp ?? 0) > 0 && <span className="load-catchup" style={{ width: `${Math.min(100, ((w.catchUp ?? 0) / maxCap) * 100)}%` }} />}
                 </span>
                 <span className="load-value mono">
-                  {w.total ? fmtMinutes(w.total) : '·'} <span className="muted">/ {fmtMinutes(w.capacity)}</span>
+                  {w.total ? fmtMinutes(w.total) : '0h'} <span className="muted">/ {fmtMinutes(w.capacity)}</span>
                   {(w.catchUp ?? 0) > 0 && <span className="load-catchup-note">{fmtMinutes(w.catchUp ?? 0)} catch-up</span>}
                 </span>
                 <span className="load-marks" aria-label={w.big.length ? `${w.big.length} big items` : undefined}>
