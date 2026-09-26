@@ -13,6 +13,7 @@ import { decksForItem } from '../library/links';
 import { recordingsDb, type Recording } from '../record/db';
 import { useStore } from '../storage/store';
 import { itemTone, toneLabel } from '../domain/status';
+import { skipLine } from '../domain/impact';
 import { bump } from '../analytics/usage';
 import { starterPrompt } from '../work/starter';
 import { PromptPanel } from './PromptPanel';
@@ -164,6 +165,8 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
   const realSources = sources.filter((s) => s.kind !== 'syllabus');
   const covered = realSources.length + material.decks.filter(deckShown).length + material.recs.length;
   const halo = haloLink(item, course?.code);
+  // What a zero here does to the class grade, once enough is graded for that to mean something.
+  const skip = !done && course ? skipLine(item, data.items, course.code) : null;
 
   const start = () => actions.upsertItem({ ...item, status: 'in_progress', startedAt: now });
   const finish = () => {
@@ -218,7 +221,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
     <span className="pill">Getting ahead</span>
   ) : null;
 
-  const hasDetails = !!asks || gates.length > 0 || prereqs.length > 0 || !!next || rubric.length > 0 || covered > 0 || material.flagged.length > 0 || !!shaky || !!link || !!fit;
+  const hasDetails = !!asks || gates.length > 0 || prereqs.length > 0 || !!next || rubric.length > 0 || covered > 0 || material.flagged.length > 0 || !!shaky || !!link || !!fit || !!skip;
 
   return (
     <section key={item.id} className="hero" data-state={done ? 'done' : 'work'} data-leaving={leaving} style={{ '--course': color } as React.CSSProperties} aria-label="Now">
@@ -286,6 +289,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
         <div className="hero-details">
           {asks && <p className="hero-asks">{asks}</p>}
           {fit && <p className="hero-line">{fit}</p>}
+          {skip && <p className="hero-line">{skip}</p>}
           {(gates.length > 0 || prereqs.length > 0) && (
             <p className="hero-line">
               <b>Needs first</b>{' '}

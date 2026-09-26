@@ -12,6 +12,7 @@ import type { BlockReason } from '../domain/types';
 import { Feedback, RubricBlock } from './Feedback';
 import { SourceBlock } from './SourceBlock';
 import { heroFacts } from '../domain/heroFacts';
+import { skipLine } from '../domain/impact';
 import { Requirements } from './Requirements';
 import { RulesOnItem } from './ClassRules';
 import { Sure } from './PlanReview';
@@ -187,6 +188,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             {sched && item.status !== 'done' && <span className="pill">start by {fmtDate(sched.startBy, 'short')}</span>}
           </p>
         )}
+        {!isNew && course && skipLine(item, data.items, course.code) && <p className="hint item-skip">{skipLine(item, data.items, course.code)}</p>}
         <div className="field">
           <span>Status</span>
           <SegmentedControl
