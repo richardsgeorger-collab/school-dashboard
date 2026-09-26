@@ -10,7 +10,13 @@ export function FeedbackCard() {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  if (!auth.configured) return null;
+  if (!auth.configured)
+    return (
+      <section className="card settings-card" aria-label="Feedback">
+        <h2 className="section-title">Feedback</h2>
+        <p className="hint">This build has no accounts, so there is nowhere to send feedback from here.</p>
+      </section>
+    );
 
   const send = async () => {
     const c = supabase();

@@ -150,7 +150,28 @@ function AccountCard({ tier }: { tier: Tier }) {
 function ReferralCard() {
   const { auth, profile } = useAccount();
   const [copied, setCopied] = useState(false);
-  if (!auth.configured || !auth.session || !profile?.referralCode) return null;
+  // Every state gets a card: an empty section reads as broken.
+  if (!auth.configured || !auth.session || !profile?.referralCode) {
+    return (
+      <section className="card settings-card" aria-label="Invite a friend">
+        <h2 className="section-title">Invite a friend</h2>
+        <p className="hint">
+          {!auth.configured
+            ? 'This build has no accounts, so there is no invite link.'
+            : !auth.session
+              ? `Sign in to get your invite link. You and a friend each get ${TIER_NAMES[REFERRAL.rewardTier]} for ${REFERRAL.days} days.`
+              : 'Getting your invite link…'}
+        </p>
+        {auth.configured && !auth.session && (
+          <div className="settings-actions">
+            <a className="btn small primary" href="#/login">
+              Log in
+            </a>
+          </div>
+        )}
+      </section>
+    );
+  }
   const link = `${window.location.origin}${import.meta.env.BASE_URL}#/now?ref=${profile.referralCode}`;
   const copy = async () => {
     try {
