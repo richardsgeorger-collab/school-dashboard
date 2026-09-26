@@ -8,9 +8,9 @@ specified. Research sources are at the end.
 | | Free | Plus $3.99 / $29 yr | Pro $6.99 / $49 yr | Max $9.99 / $69 yr |
 |---|---|---|---|---|
 | Halo sync (bookmark), month + agenda, Now, add anything by hand | ✓ | ✓ | ✓ | ✓ |
-| Auto-sync (extension schedule), Now ranks the whole term (Free: this week), reminders + push, heavy-day warnings, points/streaks/badges, calendar feed (.ics), accent themes | | ✓ | ✓ | ✓ |
+| Auto-sync (extension schedule), Now ranks the whole term (Free: this week), reminders + push, heavy-day warnings, points/streaks/badges, calendar feed (.ics) | | ✓ | ✓ | ✓ |
 | **Announcement reading** (hidden requirements onto assignments), syllabus/rubric reading, grade projection, **coach + tutor** (10 messages/day), exam study plans | | | ✓ | ✓ |
-| **Lecture transcripts → notes** (10/week), **flashcards + practice**, Sunday recap, early access; coach 30/day | | | | ✓ |
+| **Lecture transcripts → notes** (10/week), **flashcards + practice**, Sunday recap, accent colours (gold for everyone else), early access; coach 30/day | | | | ✓ |
 | Monthly AI ceiling | $0 | $0.75 | $2.50 | $4.00 |
 
 So today: a free plan exists in code and is what an account drops to; the "wow" AI features are split across Pro

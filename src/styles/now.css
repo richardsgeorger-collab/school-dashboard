@@ -23,6 +23,8 @@
   .now > .calm,
   .now > .then,
   .now > .welcome,
+  .now > .plan-wall,
+  .now > .trial-receipts,
   .now > .exam-hero {
     grid-column: 1;
   }

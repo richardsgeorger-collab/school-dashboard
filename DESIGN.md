@@ -261,3 +261,34 @@ closing the sheet lost it, and the next sync asked again. Now the reader runs in
 review; the guard only asks above about a dollar; a "Read now" button exists wherever posts are waiting. The replay
 (`docs/ai-compare/ledger-e2e-2026-09-25.txt`) reads 56 on the first sync, 0 on an identical second, 1 when one body
 changes, 0 again.
+
+## 8. Fifth pass: gold, the front door, and the Max welcome (2026-09-26)
+
+**The halo is the colour.** The cool blue is gone; the accent is a warm gold everywhere the accent was: the primary
+button, the active tab, progress, links, today, focus. Two golds per theme, because gold as a fill and gold as text
+are different jobs: `--accent` (#DFA321 light, #F2B84B dark) with dark text on it, and `--accent-text` (#946800
+light, #F2B84B dark), the deeper gold that clears 4.5:1 on white. Surfaces stay neutral; `--halo` is the brighter
+gold at the end of every ring and bar, so the ring on Now and the logo (gold ring, ink plus) read as a golden halo.
+The page wash and the hero glow are the same gold at 5–8%.
+
+**Presets.** Max accounts pick one of six accents (gold, blue, green, rose, violet, teal) under You → Display; the
+choice is `settings.accent` and is applied as `data-accent` on `<html>` only while the account has Max (or the Max
+trial). When Max ends, gold comes back and the choice is kept (`config/accents.ts`, `looks.css`). The preset
+selectors are not pinned to `:root`, so a preview box can wear one colour while the page wears another; the Max
+welcome uses that for a live copy of Now. Everyone else sees the swatches locked with "Try Max free".
+
+**The front door.** The root address is the landing page for a stranger (no account, nothing on the device) and Now
+for everyone else (`landing/useShowLanding.ts`). The picture on it is Now's own markup in the app's own tokens, so it
+can never drift from the product. Sign up opens onboarding at the account step (`#/start`); Log in is a screen of
+its own (`#/login`) with no onboarding, and onboarding now waits until a signed-in account's data has arrived, so a
+returning student on a new device is never greeted as new and their settings are never overwritten by a fresh
+welcome. The old `/landing/` address forwards.
+
+**The Max welcome.** The moment the trial starts: Welcome to Max (what is on, for how long, nothing charges); pick
+a colour on a live copy of Now; what Max already did with this student's own announcements (real counts, or an
+honest "reading now" / "next sync"); four tour cards on their own class codes (coach, prompt panel, study kits,
+transcripts). Then Now, in their colour. During the trial Now carries one "Max did this for you" line from the same
+receipts, and on the last day the receipts card sits at the top of Now.
+
+Screenshots: docs/screens/v5-gold (desktop) and v5-gold-phone.
+

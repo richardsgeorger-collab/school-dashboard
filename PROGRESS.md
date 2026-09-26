@@ -332,3 +332,12 @@ nav, styled controls, one-line heads-up items, no raw URLs or bare dashes, You a
 panes, Classes three across, the agenda with a week-at-a-glance column. The announcement reader now runs in the
 background (halo/backgroundRead.ts) and the large-run guard no longer blocks a first sync; the account's empty
 usage log was the proof that nothing had ever been read. DESIGN.md §7.
+
+## Fifth pass (2026-09-26): gold, the front door, the Max welcome
+
+Gold accent everywhere the blue was (deeper gold for text, gold fills, golden logo and rings), six accent presets for
+Max (gold for everyone else; the choice survives the trial's end), the landing page at the root address with Now's
+own markup as its picture, a sign-in screen of its own, onboarding that waits for the account's data, and a
+four-screen Max welcome (colour on a live copy of Now, real receipts, a tour on the student's own classes). Default
+theme follows the device. DESIGN.md §8; docs/REPORT-2026-09-25.md is the report on the pricing/trial brief.
+

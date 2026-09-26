@@ -417,6 +417,13 @@ export interface OnboardingState {
   tourDoneAt: string | null;
 }
 
+/** The Max welcome: four screens the first time Max is on (the trial), see src/onboarding/maxState.ts. */
+export interface MaxOnboardingState {
+  startedAt: string;
+  step: 'welcome' | 'colour' | 'receipts' | 'tour' | 'done';
+  doneAt: string | null;
+}
+
 /** Reminder preferences; the notification system (push) reads these. Times are HH:MM in the student's zone. */
 export interface ReminderPrefs {
   /** 'off' for no morning note. */
@@ -475,6 +482,7 @@ export interface Settings {
   /** What the last Halo sync actually brought back, kept so the answer outlives the review screen. */
   lastPull?: { at: string; build: string | null; counts: Record<string, number> };
   onboarding?: OnboardingState;
+  maxOnboarding?: MaxOnboardingState;
   reminders?: ReminderPrefs;
   updatedAt: string;
 }

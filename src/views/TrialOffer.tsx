@@ -7,6 +7,8 @@ import { announceDb, readLedger } from '../halo/announce';
 import { recordingsDb } from '../record/db';
 import { receiptsFrom, receiptsLine, type Receipts } from '../domain/receipts';
 import { pixel } from '../analytics/pixel';
+import { useStore } from '../storage/store';
+import { freshMax } from '../onboarding/maxState';
 
 /**
  * The trial, offered where it means something and nowhere else: the first-sync payoff, a locked Max feature, one
@@ -15,6 +17,7 @@ import { pixel } from '../analytics/pixel';
  */
 export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card' | 'line' | 'button'; lead?: string; label?: string }) {
   const { auth, profile, reloadProfile } = useAccount();
+  const { actions } = useStore();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   if (!auth.configured) return null;
@@ -27,6 +30,8 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
     if (r.ok) {
       pixel('StartTrial');
       reloadProfile();
+      // Welcome to Max: four screens, once, after any first-run screens still open.
+      actions.updateSettings({ maxOnboarding: freshMax() });
       setNote(`Max is on for ${TRIAL.days} days. Nothing charges.`);
     } else setNote(r.message);
   };

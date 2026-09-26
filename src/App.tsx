@@ -47,6 +47,8 @@ import { OkayCard, okayPress } from './views/Okay';
 import { NotificationPlanner } from './notify/NotificationPlanner';
 import { NowTour } from './onboarding/NowTour';
 import { Onboarding } from './onboarding/Onboarding';
+import { MaxWelcome } from './onboarding/MaxWelcome';
+import { maxOpen } from './onboarding/maxState';
 import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
@@ -149,6 +151,8 @@ function OnboardingHost() {
   const ob = data.settings.onboarding;
   if (front !== 'app' || route === 'login') return null;
   if (isOpen(ob)) return <Onboarding />;
+  // The Max welcome, once Max is on and the first-run screens are out of the way.
+  if (maxOpen(data.settings.maxOnboarding)) return <MaxWelcome />;
   if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;
   return null;
 }

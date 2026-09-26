@@ -51,6 +51,12 @@ const SEEDED = [
     await page.click('.news-head').catch(() => undefined);
     await page.waitForTimeout(400);
   }],
+  // The Max welcome, as it opens the moment the trial starts: four screens on the student's own classes.
+  ['max-welcome', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.maxOnboarding = { startedAt: 'x', step: 'welcome', doneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1200); }],
+  ['max-colour', '#/now', async (page) => { await page.click('.max-welcome button:has-text("Let\'s go")'); await page.waitForTimeout(400); await page.click('.accent-swatch[title="Violet"]'); await page.waitForTimeout(500); }],
+  ['max-receipts', '#/now', async (page) => { await page.click('.max-welcome button:has-text("Keep")'); await page.waitForTimeout(500); }],
+  ['max-tour', '#/now', async (page) => { await page.click('.max-welcome button:has-text("Next")'); await page.waitForTimeout(500); }],
+  ['max-done', '#/now', async (page) => { await page.click('.max-welcome button:has-text("Take me to Now")'); await page.waitForTimeout(600); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.accent = 'gold'; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
   ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
   ['levelup', '#/now', async (page) => { await page.evaluate(() => localStorage.setItem('school-dashboard:seen-level', '0')); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1400); await page.evaluate(() => localStorage.removeItem('school-dashboard:seen-level')); }],
   // Last: this one marks the day's items done in the seed, and every shot after it would see that.

@@ -40,7 +40,9 @@ import { DailyQuestion } from './DailyQuestion';
 import { HeroCard } from './HeroCard';
 import { ItemDetail } from './ItemDetail';
 import { useAccount } from '../auth/AccountContext';
-import { trialDaysLeft } from '../config/flags';
+import { trialDaysLeft, trialState } from '../config/flags';
+import { receiptsLine } from '../domain/receipts';
+import { TrialReceipts, useReceipts } from './TrialOffer';
 import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
 
@@ -219,6 +221,8 @@ export function Now() {
   const { data, schedule, derived, today, actions, progress, previewAward, calibrate } = useStore();
   const { tier, profile } = useAccount();
   const trialDays = trialDaysLeft(profile);
+  const onTrial = trialState(profile) === 'active';
+  const receipts = useReceipts();
   const tz = data.settings.timezone;
   const [open, setOpen] = useState<Item | null>(null);
   const [examSheet, setExamSheet] = useState(false);
@@ -384,6 +388,9 @@ export function Now() {
         </>
       ),
     });
+  // During the trial, one honest line on what Max did this week, from the student's own records.
+  const maxLine = onTrial && receipts && receipts.announcementsRead + receipts.requirementsFound + receipts.lectureNotes + receipts.coachAnswers > 0 ? receiptsLine(receipts) : null;
+  if (maxLine && !(trialDays !== null && trialDays <= 1)) headsUp.push({ key: 'max', text: `Max did this for you. ${maxLine.replace(/^Max this week: /, 'This week: ')}` });
   if (trialDays !== null && trialDays <= 3)
     headsUp.push({
       key: 'trial',
@@ -520,6 +527,7 @@ export function Now() {
   return (
     <div className="now">
       {walled && <PlanWall />}
+      {trialDays !== null && trialDays <= 1 && <TrialReceipts />}
       <header className="now-head">
         <div>
           <p className="eyebrow">

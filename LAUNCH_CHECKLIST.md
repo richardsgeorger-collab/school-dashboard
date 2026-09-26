@@ -57,7 +57,7 @@ Steps 1 to 7 done 2026-09-25 (project `kiacmspgvntzwngijibr`, us-west-1, free pl
    notices sharing a kind silently replaced each other in Notification Center (now tagged per notice, renotify).
 10. **Meta Pixel: skipped for now (2026-09-25).** The code is in place and does nothing until an id is set. When you
     run ads: create a pixel in Meta Events Manager (free), set `VITE_META_PIXEL_ID` as a repository variable (the
-    deploy already passes it), replace `META_PIXEL_ID_PLACEHOLDER` in `public/landing/index.html`, and confirm
+    deploy already passes it; the landing page is the app's own root screen now, so `initPixel` covers it), and confirm
     PageView, Lead, CompleteRegistration, HaloConnected and Subscribe in Events Manager.
 11. ~~AI before/after.~~ Done 2026-09-25 (`docs/ai-compare/`). Sonnet 4.6 15/15 at $0.064; Haiku 4.5 first run 14/15
     at $0.032 (put "before Monday" on the Tuesday); after a written-out calendar in the prompt, Haiku 15/15 at $0.033,
