@@ -536,6 +536,9 @@ textarea:focus-visible {
   background: var(--line-strong);
   margin: 4px auto 12px;
 }
+.modal:focus {
+  outline: none;
+}
 .modal-head {
   display: flex;
   align-items: center;
