@@ -176,11 +176,11 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         }}
       >
         <label className="field">
-          <span>Full name (from the syllabus)</span>
+          <span>Name</span>
           <input value={draft.title} onChange={(e) => set('title', e.target.value)} required autoComplete="off" />
         </label>
         <label className="field">
-          <span>Short label</span>
+          <span>Short name</span>
           <input
             value={draft.labelOverridden ? draft.label : suggestedLabel}
             onChange={(e) => {
@@ -199,7 +199,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
                 </button>
               </>
             ) : (
-              'Shown on the calendar and in lists; the full name stays as the subtitle.'
+              'Shown on Now, the calendar and in lists; the name stays as the subtitle.'
             )}
           </span>
         </label>
@@ -237,7 +237,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         </div>
         <div className="field-row">
           <label className="field">
-            <span>Opens (optional)</span>
+            <span>Opens</span>
             <input type="date" value={draft.opensDate} onChange={(e) => set('opensDate', e.target.value)} />
           </label>
           <label className="field">
@@ -247,7 +247,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         </div>
         <div className="field-row">
           <label className="field">
-            <span>Estimated minutes</span>
+            <span>Time it takes, minutes</span>
             <input
               type="number"
               min={0}
@@ -278,7 +278,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             </span>
           </label>
           <label className="field">
-            <span>Start by (override)</span>
+            <span>Start by</span>
             <input type="date" value={draft.startByOverride} onChange={(e) => set('startByOverride', e.target.value)} />
             {sched && (
               <span className="hint">
@@ -338,7 +338,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         )}
         <div className="field-row">
           <label className="field">
-            <span>Score (points earned)</span>
+            <span>Score</span>
             <input type="number" min={0} step={0.5} inputMode="decimal" value={draft.score} onChange={(e) => set('score', e.target.value)} placeholder="Not graded" />
           </label>
           <div className="field">
