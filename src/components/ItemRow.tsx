@@ -8,8 +8,8 @@ import { dueLabel, hours } from '../ui/format';
 import { CourseChip, useCourseColor } from './CourseChip';
 import { IconCheck } from './Icons';
 import { useChipState } from './ItemChip';
-import { RiskBadge } from './RiskBadge';
 import { haloSaysNotIn } from '../domain/confirm';
+import { itemTone, toneLabel } from '../domain/status';
 
 /** `dateless`: the row sits under a day header, so only the time is repeated. */
 export function ItemRow({ item, onOpen, showStart = false, compact = false, dateless = false }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean; dateless?: boolean }) {
@@ -26,9 +26,12 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
   const state = useChipState(item);
   const done = item.status === 'done';
   const showSubtitle = item.title !== item.label;
+  // One meaning per colour: the row's tone (late, due within a day and not started, or nothing) decides the pill.
+  const tone = itemTone(item, new Date().toISOString());
+  const toneText = toneLabel(tone, item, today, data.settings.timezone);
 
   return (
-    <li className="item-row" data-done={done} data-state={state} data-type={item.type} data-compact={compact} data-flash={!!burst} style={{ '--course': color } as React.CSSProperties}>
+    <li className="item-row" data-done={done} data-state={state} data-tone={tone ?? undefined} data-type={item.type} data-compact={compact} data-flash={!!burst} style={{ '--course': color } as React.CSSProperties}>
       <button
         type="button"
         className="check"
@@ -69,13 +72,16 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
           {item.flags.inClass && <span className="flag">in class</span>}
           {item.flags.group && <span className="flag">group</span>}
           {(item.blocks?.length ?? 0) > 0 && <span className="flag">unlocks {item.blocks!.length}</span>}
-          {item.haloLate && <span className="flag flag-late">Halo says late</span>}
           {done && haloSaysNotIn(item) && item.halo && item.halo.checkedAt > item.dueAt && <span className="flag flag-late">Halo says not submitted</span>}
           {showStart && sched && !done && !sched.risk && <span>start by {shortDate(sched.startBy)}</span>}
         </span>
       </button>
       <span className="item-side">
-        {done ? <span className="badge" data-risk="done">Done</span> : <RiskBadge risk={sched?.risk ?? null} />}
+        {tone && toneText && (
+          <span className="badge" data-tone={tone}>
+            {toneText}
+          </span>
+        )}
         {item.status === 'in_progress' && <span className="flag">in progress</span>}
       </span>
     </li>

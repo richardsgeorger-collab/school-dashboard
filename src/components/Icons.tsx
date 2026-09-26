@@ -124,11 +124,13 @@ export const IconYou = ({ size = 20 }: IconProps = {}) => (
     <path d="M5 19.5a7 7 0 0 1 14 0" />
   </svg>
 );
-/** The Halo+ mark: a ring with a plus sitting on it. */
+/**
+ * The Halo+ mark: a halo drawn as an open ring, and the plus that completes it, sitting in the gap in gold.
+ * The same drawing is public/icon.svg (the app icon) and the landing page's mark.
+ */
 export const IconHalo = ({ size = 24 }: IconProps = {}) => (
   <svg viewBox="0 0 24 24" fill="none" aria-hidden data-icon="" width={size} height={size}>
-    <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2.2" />
-    <circle cx="18" cy="6.5" r="4.6" fill="var(--halo)" />
-    <path d="M18 4.4v4.2M15.9 6.5h4.2" stroke="var(--halo-ink)" strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M19.73 9.93A8 8 0 1 1 14.07 4.27" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    <path d="M17.66 3.5v5.7M14.8 6.35h5.7" stroke="var(--halo)" strokeWidth="2.6" strokeLinecap="round" />
   </svg>
 );

@@ -10,7 +10,6 @@ const OUT = `docs/screens/${label}`;
 mkdirSync(OUT, { recursive: true });
 const SEEDED = [
   ['now', '#/now'],
-  ['now-done', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); for (const i of d.items) if (i.dueAt.slice(0, 10) <= today && i.status !== 'done') { i.status = 'done'; i.completedAt = new Date().toISOString(); } localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(500); }],
   ['calendar', '#/calendar'],
   ['calendar-month', '#/calendar?v=month'],
   ['classes', '#/classes'],
@@ -21,6 +20,8 @@ const SEEDED = [
   ['ai', '#/ai'],
   ['load', '#/load'],
   ['item', '#/now', async (page) => { await page.click('.hero-title-btn'); await page.waitForTimeout(500); }],
+  // Last: this one marks the day's items done in the seed, and every shot after it would see that.
+  ['now-done', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }); for (const i of d.items) if (i.dueAt.slice(0, 10) <= today && i.status !== 'done') { i.status = 'done'; i.completedAt = new Date().toISOString(); } localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(500); }],
 ];
 const FRESH = [
   ['onboarding-1', '#/now'],

@@ -86,6 +86,7 @@ Rules:
 - Set applies_to when the post is about one of the listed planner items. Match on what the post is talking about, not on a word appearing in both.
 - Pure news with nothing to act on, an office-hours move, a welcome, encouragement, produces a summary and no actions. That is a valid answer, but read carefully first: a single clause in a friendly post is often the only place a requirement appears.
 - Plain words. Say what to do.
+- Length: "what" is five to ten words, one instruction ("Reply to two classmates by Sunday"). The quote carries the detail; "what" is the checklist line. The summary is one sentence of at most eighteen words.
 
 Procedure, every time:
 1. Read the whole post once. Then go sentence by sentence and mark every sentence that tells students to do, bring, submit, read, reply, or prepare something, or that changes a date, a value, or what counts.
@@ -108,6 +109,18 @@ Answer only through the announcement_actions tool.`;
 const obj = (x: unknown): Record<string, unknown> => (x && typeof x === 'object' && !Array.isArray(x) ? (x as Record<string, unknown>) : {});
 const arr = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
 const str = (x: unknown, max: number): string => (typeof x === 'string' ? x.trim().slice(0, max) : '');
+
+/**
+ * The prompt asks for five to ten words; this is the check in code. A line that runs long is cut at the word limit
+ * with an ellipsis, and the quote (never cut) keeps the rest one tap away.
+ */
+export function capWords(text: string, max: number): string {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= max) return words.join(' ');
+  return `${words.slice(0, max).join(' ').replace(/[,;:]$/, '')}…`;
+}
+export const PART_WORDS = 10;
+export const SUMMARY_WORDS = 18;
 const KINDS: ActionKind[] = ['requirement', 'new_work', 'date_change', 'points_change', 'note'];
 
 /** The instant a date and time mean, or null. A bare date lands at 23:59 local, the way Halo's own deadlines do. */
@@ -127,7 +140,7 @@ export function actionsFromTool(raw: unknown, a: StoredAnnouncement, items: Item
   for (const e of arr(o.actions)) {
     const x = obj(e);
     const quote = str(x.quote, 600);
-    const text = str(x.what, 400);
+    const text = capWords(str(x.what, 400), PART_WORDS);
     // The quote is the whole guarantee that this came from the professor and not from the model.
     if (!quote || !text) continue;
     const kind = str(x.kind, 20) as ActionKind;
@@ -146,7 +159,7 @@ export function actionsFromTool(raw: unknown, a: StoredAnnouncement, items: Item
       source: { ...source, quote },
     });
   }
-  return { summary: str(o.summary, 400), actions: out.slice(0, 20) };
+  return { summary: capWords(str(o.summary, 400), SUMMARY_WORDS), actions: out.slice(0, 20) };
 }
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

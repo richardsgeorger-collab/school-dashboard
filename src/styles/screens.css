@@ -121,26 +121,20 @@
   border-radius: var(--r-pill);
   background: var(--surface-2);
   color: var(--ink-2);
-  font: 500 12px/1 var(--font-body);
+  font: 500 13px/1 var(--font-body);
   border: 0;
   white-space: nowrap;
 }
-.badge[data-risk='overdue'] {
+/* One meaning per colour: red is late, amber is due within a day and not started. Nothing else is a colour. */
+.badge[data-tone='late'],
+.pill[data-tone='late'] {
   background: var(--danger-soft);
   color: var(--danger);
 }
-.badge[data-risk='at_risk'],
-.badge[data-risk='start_today'] {
+.badge[data-tone='soon'],
+.pill[data-tone='soon'] {
   background: var(--warn-soft);
   color: var(--warn);
-}
-.badge[data-risk='due_soon'] {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.badge[data-risk='done'] {
-  background: var(--ok-soft);
-  color: var(--ok);
 }
 .flag-late {
   background: var(--danger-soft);
@@ -164,7 +158,7 @@
   left: 50%;
   top: -14px;
   transform: translateX(-50%);
-  font: 600 12px/1 var(--font-body);
+  font: 600 13px/1 var(--font-body);
   color: var(--ok);
   animation: xp-rise 1s var(--ease) forwards;
   pointer-events: none;
@@ -273,7 +267,7 @@
   padding: 0 2px;
 }
 .day-group-head b {
-  font: 600 12px/1.3 var(--font-body);
+  font: 600 13px/1.3 var(--font-body);
   letter-spacing: var(--track-caps);
   text-transform: uppercase;
   color: var(--ink-2);
@@ -339,7 +333,7 @@
 }
 .quiet-code {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
 }
 .done-fold {
   margin: 0;
@@ -646,7 +640,7 @@
   filter: none;
 }
 .badge-tile b {
-  font: 500 12px/1.2 var(--font-body);
+  font: 500 13px/1.2 var(--font-body);
   color: var(--ink-2);
 }
 .badge-tile .hint {
@@ -691,7 +685,7 @@
   margin: 0 0 4px;
 }
 .plan-badge {
-  font: 600 11px/1 var(--font-body);
+  font: 600 13px/1 var(--font-body);
   letter-spacing: var(--track-caps);
   text-transform: uppercase;
   background: var(--accent-soft);
@@ -971,7 +965,7 @@
 .month-count[data-bold='true'],
 .month-count[data-big='true'],
 .month-cell[data-level='4'] .month-count {
-  font: 500 11px/1 var(--font-body);
+  font: 500 13px/1 var(--font-body);
   font-variant-numeric: tabular-nums;
   background: var(--surface-2);
   color: var(--ink-2);
@@ -1082,7 +1076,7 @@
     padding: 2px 6px 2px 6px;
     border-left-width: 0;
     background: var(--surface-2);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.3;
   }
   .month-chips .chip-item .txt {
@@ -1104,4 +1098,72 @@
 .coach-fold > summary svg {
   width: 20px;
   height: 20px;
+}
+
+/* ---- #/looks: the direction switcher ---- */
+.looks-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-2);
+  margin: 0 0 var(--s-5);
+}
+.looks-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-decoration: none;
+  color: var(--ink-2);
+  font: var(--t-small);
+}
+.looks-tab b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.looks-tab[aria-selected='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+@media (max-width: 600px) {
+  .looks-bar {
+    grid-template-columns: 1fr;
+  }
+  .looks-tab span {
+    display: none;
+  }
+}
+
+/* The month chip is grey with the class dot; only late and due-soon carry a colour. */
+.month-chips .chip-item[data-state],
+.chip-item[data-plain='true'] {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-color: transparent;
+}
+.chip-item[data-plain='true'][data-tone='late'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.chip-item[data-plain='true'][data-tone='soon'] {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.chip-item[data-plain='true'] .glyph {
+  display: none;
+}
+/* Today in the agenda is the accent, as a word, not a gold pill. */
+.day-group-head[data-today='true'] b {
+  background: none;
+  color: var(--accent);
+  padding: 0;
+}
+/* The sync line is information, not a warning: grey, one link. */
+.synced,
+.synced[data-level='amber'],
+.synced[data-level='ok'] {
+  color: var(--ink-3);
+  font-family: var(--font-body);
 }

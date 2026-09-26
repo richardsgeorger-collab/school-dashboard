@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
  * Five tabs: Now, Calendar, Classes, Inbox, You. Everything else is a screen reached from one of them and lights up
  * that tab. Old addresses keep working through the aliases so a bookmark from last month still lands somewhere.
  */
-export type Route = 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'quiz' | 'class' | 'ingest' | 'tutor' | 'study' | 'ai' | 'admin';
-const ROUTES: Route[] = ['now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'quiz', 'class', 'ingest', 'tutor', 'study', 'ai', 'admin'];
+export type Route = 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'quiz' | 'class' | 'ingest' | 'tutor' | 'study' | 'ai' | 'admin' | 'looks';
+const ROUTES: Route[] = ['now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'quiz', 'class', 'ingest', 'tutor', 'study', 'ai', 'admin', 'looks'];
 const ALIASES: Record<string, Route> = { home: 'now', '': 'now', record: 'library', news: 'inbox', settings: 'you', plan: 'load' };
 
 export type Tab = 'now' | 'calendar' | 'classes' | 'inbox' | 'you';
@@ -28,6 +28,7 @@ export const TAB_OF: Record<Route, Tab> = {
   load: 'you',
   grades: 'you',
   admin: 'you',
+  looks: 'now',
 };
 
 export interface RouteState {

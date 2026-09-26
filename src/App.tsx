@@ -17,6 +17,7 @@ import './styles/base.css';
 import './styles/components.css';
 import './styles/now.css';
 import './styles/screens.css';
+import './styles/looks.css';
 import { Calendar } from './views/calendar/Calendar';
 import { Now } from './views/Now';
 import { Load } from './views/Load';
@@ -30,6 +31,7 @@ import { ClassPage } from './views/ClassPage';
 import { Classes } from './views/Classes';
 import { IngestView } from './views/IngestView';
 import { Inbox } from './views/Inbox';
+import { Looks } from './views/Looks';
 import { useAutoRerun } from './ingest/auto';
 import { OkayCard, okayPress } from './views/Okay';
 import { NotificationPlanner } from './notify/NotificationPlanner';
@@ -158,6 +160,15 @@ function AccountSync() {
 
 function Screen() {
   const { route } = useRoute();
+  // Keyed on the route so a tab change remounts the screen and its entrance plays.
+  return (
+    <div className="screen" key={route}>
+      <ScreenFor route={route} />
+    </div>
+  );
+}
+
+function ScreenFor({ route }: { route: ReturnType<typeof useRoute>['route'] }) {
   switch (route) {
     case 'calendar':
       return <Calendar />;
@@ -184,6 +195,8 @@ function Screen() {
       return <ClassPage />;
     case 'ingest':
       return <IngestView />;
+    case 'looks':
+      return <Looks />;
     default:
       return <Now />;
   }

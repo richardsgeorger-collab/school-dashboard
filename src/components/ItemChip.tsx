@@ -5,6 +5,7 @@ import type { Course, DateStr, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useCourseColor } from './CourseChip';
 import { cellLabel } from '../views/calendar/MonthView';
+import { itemTone } from '../domain/status';
 
 export type ChipState = 'overdue' | 'today' | 'soon' | 'at_risk' | 'normal' | 'done';
 
@@ -41,12 +42,14 @@ export function ItemChip({ item, onOpen, plain = false, short = false }: { item:
   const course = courseById.get(item.courseId);
   const color = useCourseColor(course);
   const state = useChipState(item);
+  const tone = itemTone(item, new Date().toISOString());
   const glyph = plain && state === 'today' ? undefined : GLYPH[state];
   return (
     <button
       type="button"
       className="chip-item"
       data-state={state}
+      data-tone={tone ?? undefined}
       data-type={item.type}
       data-plain={plain}
       data-big={plain && isBig(item)}

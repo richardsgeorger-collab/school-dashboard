@@ -140,3 +140,52 @@ Two things worth knowing when reading the shots:
 Rules that held throughout: one filled button per screen; two ink tones; status colour only for real status; sheets
 from the bottom; no colour, size or shadow defined outside `tokens.css`; every screen built from the components in
 `components.css`. Anything a screen needed that the system did not have was added to the system, not to the screen.
+
+## 5. Second pass: the look (2026-09-25)
+
+The review of the live app was right on two counts: every screen showed everything it knew at the same volume, and
+the result looked like a developer tool. Before designing, six products were looked at again for calm and polish,
+not layouts:
+
+- **Linear**: the page is not flat. A near-black surface with a faint gradient and grain, cards a few percent
+  lighter with a lit top edge, one accent that glows behind the thing that matters. Everything else is grey text in
+  two weights. Status is a small dot; colour never spreads across a row.
+- **Vercel**: the same discipline in light mode. Hairlines at 6–8%, one typeface used with real confidence in size
+  (big titles, tight tracking), and motion only when something changes state.
+- **Things 3**: the home screen is one list; everything else is a tap away. Checking something off is the best
+  moment in the app: the circle fills, the row fades, the list closes the gap. Headings are big and warm.
+- **Todoist**: rows are one line; the second line is metadata at normal contrast, not a whisper. Pills are rare.
+- **Sunsama**: a calm warm palette, a serif for the day's heading, and a single "what are you doing now" card. It
+  feels like a planner someone chose, not a dashboard.
+- **Notion Calendar**: the month fits a laptop screen; cells show two short labels and "+N"; today's date is the
+  only accent on the grid.
+
+**Three directions were built on the Now screen** (`#/looks`, screenshots in `docs/screens/looks/`):
+
+- **Ink**: dark and glowy. Geist display, indigo accent, the hero lit from behind, grain over a near-black page.
+- **Paper**: warm and editorial. Instrument Serif for titles and the hero, Inter for everything else, ink blue for
+  the one action, cream page with a slow warm gradient and grain, cards on a faint gradient with a lit edge.
+- **Pop**: bright and quick. Sora display, coral accent, big radii, soft colour blobs in the page.
+
+**Paper ships.** It is the only one that reads premium in both light and dark (Ink is dark-only, and dark mode is a
+Plus feature; Pop's coral glow behind a card reads as an alarm, which breaks the colour rule below). The serif does
+what the brief asked of typography: it carries the personality by itself, so the rest of the screen can be quiet.
+Ink and Pop stay at `#/looks?d=ink` and `#/looks?d=pop`; switching is one token file.
+
+**The system now (tokens.css):**
+
+- Type: Instrument Serif for the display line and page titles (40/30), Inter for everything else at three working
+  sizes: 15 body, 13 small, 13 caps labels. Nothing under 13px. Every text colour clears 4.5:1 on the page and on a
+  card (`--ink-3` was lifted from 3.6:1 to 5:1 for that).
+- Colour, one meaning each for status: the accent (ink blue) is the one primary action per screen and today's
+  date; red is late or broken; amber is due within a day and not started; everything else is grey. Class colours
+  are the dot beside a class code and nothing else. The accent, the gradient and the glow are brand, not status.
+  `domain/status.ts` is the single source of a row's tone, and every pill and chip reads it.
+- Depth: the page has a slow warm gradient (`--page-blobs`, 28s drift, off under reduced motion) and grain; cards
+  sit on a faint gradient with a lit top edge; the hero has a blurred accent glow behind it. One card style.
+- The mark: a halo drawn as an open ring, completed by a gold plus sitting in the gap.
+- Motion: a screen fades up on tab change (240ms); cards ease in with a 45ms stagger; the tick draws itself and the
+  circle settles; the hero slides out left when done and the next slides in from the right. All off under
+  reduced motion.
+- Model-written strings: checklist lines are five to ten words in the prompt and capped at ten in code; summaries
+  at eighteen. The quote keeps the full text one tap away.

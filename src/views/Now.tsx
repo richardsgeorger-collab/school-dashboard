@@ -336,7 +336,8 @@ export function Now() {
   const quiet = !back && !exam && (mode.mode === 'fine' || mode.mode === 'enough' || mode.mode === 'empty');
   const eveningQuiet = data.settings.eveningQuiet && hour >= 21 && !work.some((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now());
 
-  const heroCard = hero && <HeroCard item={hero} optional={mode.mode !== 'urgent'} why={why} leaving={leaving === hero.id} onOpen={setOpen} onSkip={skip} onDone={finish} />;
+  // Keyed on the item: when one is done the next slides in as a new card.
+  const heroCard = hero && <HeroCard key={hero.id} item={hero} optional={mode.mode !== 'urgent'} why={why} leaving={leaving === hero.id} onOpen={setOpen} onSkip={skip} onDone={finish} />;
 
   const calmEnough = (
     <section className="calm" data-tone="enough" aria-label="Done for today">

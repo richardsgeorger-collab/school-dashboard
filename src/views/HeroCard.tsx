@@ -12,6 +12,7 @@ import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
 import { recordingsDb, type Recording } from '../record/db';
 import { useStore } from '../storage/store';
+import { itemTone, toneLabel } from '../domain/status';
 import { starterPrompt } from '../work/starter';
 import { PromptPanel } from './PromptPanel';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
@@ -197,17 +198,19 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
     window.location.hash = `/tutor?c=${item.courseId}&i=${item.id}&starter=1`;
   };
 
+  // The pill follows the one colour rule: red late, amber due within a day and untouched, grey otherwise.
+  const tone = itemTone(item, new Date().toISOString());
   const status = done ? (
-    <span className="pill" data-tone="ok">
-      Done
-    </span>
+    <span className="pill">Done</span>
   ) : item.startedAt && elapsed ? (
-    <span className="pill" data-tone="accent">
-      {elapsed}
+    <span className="pill">{elapsed}</span>
+  ) : tone === 'late' || pastDate ? (
+    <span className="pill" data-tone="late">
+      Late
     </span>
-  ) : pastDate ? (
-    <span className="pill" data-tone="warn">
-      Past its date
+  ) : tone === 'soon' ? (
+    <span className="pill" data-tone="soon">
+      {toneLabel(tone, item, today, tz)}
     </span>
   ) : optional ? (
     <span className="pill">Getting ahead</span>

@@ -454,7 +454,7 @@ textarea:focus-visible {
   border-radius: var(--r-pill);
   background: var(--surface-2);
   color: var(--ink-2);
-  font: 500 12px/1 var(--font-body);
+  font: 500 13px/1 var(--font-body);
   white-space: nowrap;
 }
 .pill[data-tone='ok'] {
@@ -686,8 +686,103 @@ textarea:focus-visible {
 }
 .chip {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
   color: var(--ink-2);
+}
+
+/* ---- motion: fast, subtle, only on things that change. Reduced motion turns all of it off. ---- */
+.screen {
+  animation: screen-in var(--dur-2) var(--ease) both;
+}
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.screen :is(.card, .hero, .item-row, .row, .class-card, .news-item) {
+  animation: card-in 360ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.screen :is(.card, .hero, .item-row, .row, .class-card, .news-item):nth-child(2) { --i: 1; }
+.screen :is(.card, .hero, .item-row, .row, .class-card, .news-item):nth-child(3) { --i: 2; }
+.screen :is(.card, .hero, .item-row, .row, .class-card, .news-item):nth-child(4) { --i: 3; }
+.screen :is(.card, .hero, .item-row, .row, .class-card, .news-item):nth-child(5) { --i: 4; }
+.screen :is(.card, .hero, .item-row, .row, .class-card, .news-item):nth-child(6) { --i: 5; }
+.screen :is(.card, .hero, .item-row, .row, .class-card, .news-item):nth-child(n + 7) { --i: 6; }
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* The hero: in from the right when it arrives, out to the left when it is done. */
+.hero {
+  animation: hero-in 380ms var(--ease) both;
+}
+.hero[data-leaving='true'] {
+  animation: hero-out 320ms var(--ease) forwards;
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hero-out {
+  to {
+    opacity: 0;
+    transform: translateX(-36px) scale(0.98);
+  }
+}
+/* The tick draws itself, and the circle settles. */
+.check svg path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: tick-draw 280ms var(--ease) 40ms forwards;
+}
+.item-row[data-done='true'] .check {
+  animation: check-settle 340ms var(--ease);
+}
+@keyframes tick-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes check-settle {
+  0% {
+    transform: scale(0.9);
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen,
+  .screen *,
+  .hero,
+  .check svg path,
+  .item-row .check {
+    animation: none !important;
+  }
+  .check svg path {
+    stroke-dashoffset: 0;
+  }
 }
