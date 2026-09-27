@@ -13,13 +13,16 @@ const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type' } });
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-max-age': '86400' };
+const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
+// A 204 may not carry a body: `new Response('{}', { status: 204 })` throws, the runtime answers 500 with no CORS
+// headers, and every browser call dies at the preflight as "could not reach the server". This was the whole outage.
+const preflight = () => new Response(null, { status: 204, headers: CORS });
 
 const dayIn = (tz: string, d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return json(204, {});
+  if (req.method === 'OPTIONS') return preflight();
   if (req.method !== 'POST') return json(405, { error: { code: 'upstream', message: 'POST only' } });
   if (!ANTHROPIC_KEY) return json(500, { error: { code: 'upstream', message: 'The server has no model key configured.' } });
 
