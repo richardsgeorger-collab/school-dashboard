@@ -8,7 +8,7 @@ import { STRIPE_PRICE_IDS } from '../_shared/tiers.ts';
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
 
 Deno.serve(guard(async (req) => {
-  if (req.method === 'OPTIONS') return json(204, {});
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-max-age': '86400' } });
   if (req.method !== 'POST') return json(405, { error: 'POST only' });
   if (!Deno.env.get('STRIPE_SECRET_KEY')) return json(503, { error: 'Checkout is not switched on yet.' });
   const stripe = stripeClient();
