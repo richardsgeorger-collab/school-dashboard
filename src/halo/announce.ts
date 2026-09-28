@@ -123,9 +123,12 @@ export const announceDb = {
 /** What came out of a sync, merged with what is already stored: the body is refreshed, the reading is kept. */
 export function mergeAnnouncement(incoming: HaloAnnouncement, courseId: string, existing: StoredAnnouncement | null, now: string): StoredAnnouncement {
   const text = stripHtml(incoming.content, 20_000);
-  const changed = !!existing && (existing.text !== text || existing.title !== incoming.title);
+  // Halo's titles are the post's first line, markup and entities included ("Quiz 1 will cover topic 1&amp;2").
+  const title = stripHtml(incoming.title, 300).replace(/\n+/g, ' ');
+  const changed = !!existing && (existing.text !== text || existing.title !== title);
   return {
     ...incoming,
+    title,
     courseId,
     text,
     pulledAt: existing?.pulledAt ?? now,

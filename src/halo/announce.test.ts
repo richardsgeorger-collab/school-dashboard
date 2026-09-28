@@ -25,6 +25,15 @@ describe('announcements as they arrive', () => {
     expect(edited.findings).toBeNull();
     expect(edited.pulledAt).toBe(read.pulledAt);
   });
+  it('decodes the title too, since Halo makes it from the post’s first line, entities and all', () => {
+    const post = { id: 'p-amp', forumId: 'f', title: 'Hi All Quiz 1 will cover topic 1&amp;2 <b>tonight</b>', content: '<p>Hi All Quiz 1 will cover topic 1&amp;2</p>', publishedAt: '2026-09-16T15:00:00.000Z', modifiedAt: null, author: 'x', mustAcknowledge: false, acknowledged: false, resources: [] };
+    const stored = mergeAnnouncement(post, 'c1', null, '2026-09-16T16:00:00.000Z');
+    expect(stored.title).toBe('Hi All Quiz 1 will cover topic 1&2 tonight');
+    expect(stored.text).toBe('Hi All Quiz 1 will cover topic 1&2');
+    // The same post again is not a change.
+    expect(mergeAnnouncement(post, 'c1', { ...stored, readAt: 'r', processedAt: 'r' }, '2026-09-17T16:00:00.000Z').readAt).toBe('r');
+  });
+
   it('says one quiet line for what is unread, naming the newest', () => {
     const list = [stored({ id: 'a', title: 'Week 4 plan' }), stored({ id: 'b', title: 'Office hours', courseId: 'chm', publishedAt: '2026-09-15T15:00:00.000Z' }), stored({ id: 'c', readAt: 'x' })];
     expect(unreadLine(list, [eng, chm], TZ)?.text).toBe('ENG-105 posted "Week 4 plan" on Sep 16, and 1 more announcement you have not read.');

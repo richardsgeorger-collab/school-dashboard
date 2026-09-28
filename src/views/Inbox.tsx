@@ -22,6 +22,7 @@ import { TrialOffer } from './TrialOffer';
 type Group = 'needs' | 'info' | 'empty' | 'unread';
 const GROUP_LABEL: Record<Group, string> = { needs: 'Needs you', info: 'Info only', empty: 'Nothing in it', unread: 'Not read yet' };
 import { ReadAll } from './ReadAll';
+import { postLine } from '../domain/postLine';
 
 /**
  * The inbox: announcements, newest first. At GCU the week's real instructions often live here, so this is where they are read,
@@ -254,7 +255,7 @@ export function Inbox() {
               <button type="button" className="news-head" onClick={() => void toggle(a)} aria-expanded={isOpen}>
                 <span className="news-title">
                   {/* What the post asks leads; the professor's own title sits under it in small text. */}
-                  <span className="news-summary">{capWords(summary || a.title || '(untitled)', 12)}</span>
+                  <span className="news-summary">{capWords(postLine(a, summary), 12)}</span>
                   {summary && a.title && <span className="news-raw">{a.title}</span>}
                   {st?.read && (st.count ?? 0) > 0 && (
                     <span className="news-added">
@@ -316,7 +317,7 @@ export function Inbox() {
               {courseById.get(openPost.courseId) && <CourseChip course={courseById.get(openPost.courseId)!} />} {openPost.publishedAt ? fmtDate(dateOf(openPost.publishedAt, tz), 'long') : ''}
               {openPost.author ? ` · ${openPost.author}` : ''}
             </span>
-            <h2 className="news-detail-title">{openPost.title || '(untitled)'}</h2>
+            <h2 className="news-detail-title">{postLine(openPost)}</h2>
             {(states.get(openPost.id)?.summary || openPost.actionsSummary) && <p className="news-detail-summary">{states.get(openPost.id)?.summary || openPost.actionsSummary}</p>}
           </div>
           <p className="news-text">{openPost.text}</p>
