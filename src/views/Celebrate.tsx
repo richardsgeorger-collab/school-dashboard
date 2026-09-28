@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { HaloDraw } from '../components/HaloDraw';
 import { useStore } from '../storage/store';
+import { isOpen } from '../onboarding/state';
+import { maxOpen } from '../onboarding/maxState';
 
 const LEVEL_KEY = 'school-dashboard:seen-level';
 const STREAK_KEY = 'school-dashboard:seen-streak';
@@ -26,14 +28,17 @@ const write = (k: string, v: number) => {
  * and a streak growing (a small toast with the flame). Each shows once, on the device where it happened.
  */
 export function Celebrations() {
-  const { progress } = useStore();
+  const { progress, data } = useStore();
   const [level, setLevel] = useState<number | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
+  // A first sync imports a term of submitted work and the level jumps; that is history, not a moment, and the
+  // full-screen level-up would land on top of the payoff screen. The first-run screens own the screen.
+  const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding);
   useEffect(() => {
     const seen = read(LEVEL_KEY);
-    if (seen !== null && progress.level > seen) setLevel(progress.level);
+    if (seen !== null && progress.level > seen && !firstRun) setLevel(progress.level);
     write(LEVEL_KEY, progress.level);
-  }, [progress.level]);
+  }, [progress.level, firstRun]);
   useEffect(() => {
     const seen = read(STREAK_KEY) ?? 0;
     if (progress.dailyStreak >= 2 && progress.dailyStreak > seen) setStreak(progress.dailyStreak);
