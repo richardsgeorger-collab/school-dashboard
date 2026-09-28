@@ -55,11 +55,17 @@ export function briefFromTool(raw: unknown, at = new Date().toISOString()): Brie
 }
 
 /** The brief without a model: the description's first lines, no rubric, the usual steps. Honest and short. */
+/**
+ * Lines a GCU description opens with that describe the course, not the work: the learning objective, the benchmark
+ * blurb. They are not something to do, so they never lead the "what it asks for" list.
+ */
+const PREAMBLE = /^(?:objectives?|purpose|benchmark information|this benchmark assignment assesses|this assignment assesses|learning outcomes?|competenc(?:y|ies))\b/i;
+
 export function localBrief(args: BriefArgs, at = new Date().toISOString()): Brief {
   const lines = args.description
     .split(/\n+/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 20)
+    .filter((l) => l.length > 20 && !PREAMBLE.test(l))
     .slice(0, 4);
   return { asks: lines, rubric: [], steps: [], at, source: 'local' };
 }
