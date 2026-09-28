@@ -249,6 +249,25 @@
 .hero-menu[open] > summary {
   background: var(--surface-2);
 }
+/* Opens under More and to the right on a laptop; on a phone it takes the row's full width under the buttons. */
+.hero-more .hero-menu .menu-list {
+  left: 0;
+  right: auto;
+}
+@media (max-width: 600px) {
+  .hero-more {
+    position: relative;
+  }
+  .hero-more .hero-menu {
+    position: static;
+  }
+  .hero-more .hero-menu .menu-list {
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    min-width: 0;
+  }
+}
 .hero-details {
   margin-top: var(--s-4);
   padding-top: var(--s-4);

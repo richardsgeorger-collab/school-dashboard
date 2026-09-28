@@ -156,6 +156,7 @@ const SEEDED = [
   // The coach, opened from Now's side column (locked on this build, so the honest card with the trial shows).
   ['coach', '#/now', async (page) => { await page.click('.coach-ask'); await page.waitForTimeout(500); }],
   // "Am I okay?": the one paragraph behind the status line.
+  ['hero-menu', '#/now', async (page) => { await page.click('.hero-actions .btn.quiet'); await page.waitForTimeout(300); await page.click('.hero-menu > summary'); await page.waitForTimeout(300); }],
   // Done from the hero: the toast with Undo, then Undo puts the card back.
   ['done-toast', '#/now', async (page) => { await page.click('.hero-actions button[aria-label="Mark done"]'); await page.waitForTimeout(900); }],
   ['done-undone', '#/now', async (page) => { await page.click('.hero-actions button[aria-label="Mark done"]'); await page.waitForTimeout(900); await page.click('.time-ask-undo, .done-toast-undo'); await page.waitForTimeout(500); }],
@@ -196,6 +197,28 @@ const FRESH = [
   ['onboarding-1', '#/now'],
   ['onboarding-halo', '#/now', async (page) => { await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(400); }],
   ['onboarding-wait', '#/now', async (page) => { await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(250); await page.click('.onboard button:has-text("I dragged it"), .onboard button:has-text("I made the bookmark")'); await page.waitForTimeout(400); }],
+  // The first sync as it really happens: the export arrives while the wait screen is up, the review sheet opens on
+  // top, and approving it turns the wait screen into the payoff. Two assignments and one announcement.
+  ['onboarding-sync-arrives', '#/now', async (page) => {
+    await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(250);
+    await page.click('.onboard button:has-text("I dragged it"), .onboard button:has-text("I made the bookmark")'); await page.waitForTimeout(400);
+    const post = { id: 'first-1', forumId: 'f1', title: 'Welcome and lab goggles', content: '<p>Welcome to General Chemistry. Bring your own splash goggles to every lab; no goggles, no lab, no points.</p>', publishedAt: '2026-09-20T15:00:00.000Z', modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] };
+    const a = (n, title, due, pts) => ({ id: `first-a${n}`, title, dueDate: due, points: pts, type: 'ASSIGNMENT', status: null, score: null, description: '' });
+    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: 'h-first', slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: [{ name: 'Dr. Awad' }], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 4, assessments: [a(1, 'Lab 3 titration write-up', '2026-10-10T06:59:00.000Z', 50), a(2, 'Topic 4 Homework', '2026-10-06T06:59:00.000Z', 20)], announcements: [post], resources: [], discussions: [], messages: [] }] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1500);
+  }],
+  ['onboarding-first-payoff', '#/now', async (page) => {
+    await page.click('.onboard button:has-text("Get started")'); await page.waitForTimeout(250);
+    await page.click('.onboard button:has-text("I dragged it"), .onboard button:has-text("I made the bookmark")'); await page.waitForTimeout(400);
+    const post = { id: 'first-1', forumId: 'f1', title: 'Welcome and lab goggles', content: '<p>Welcome to General Chemistry. Bring your own splash goggles to every lab; no goggles, no lab, no points.</p>', publishedAt: '2026-09-20T15:00:00.000Z', modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] };
+    const a = (n, title, due, pts) => ({ id: `first-a${n}`, title, dueDate: due, points: pts, type: 'ASSIGNMENT', status: null, score: null, description: '' });
+    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: 'h-first', slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: [{ name: 'Dr. Awad' }], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 4, assessments: [a(1, 'Lab 3 titration write-up', '2026-10-10T06:59:00.000Z', 50), a(2, 'Topic 4 Homework', '2026-10-06T06:59:00.000Z', 20)], announcements: [post], resources: [], discussions: [], messages: [] }] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1500);
+    await page.locator('.modal-actions button').last().click(); await page.waitForTimeout(800);
+    await page.locator('.modal-actions button:has-text("Close")').click().catch(() => undefined); await page.waitForTimeout(1600);
+  }],
   ['now-empty', '#/now', async (page) => { await page.click('.onboard button:has-text("Skip for now")'); await page.waitForTimeout(400); }],
   ['landing', ''],
   ['landing-full', '', null, true],
