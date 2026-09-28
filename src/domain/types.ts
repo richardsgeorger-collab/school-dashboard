@@ -494,6 +494,8 @@ export interface Settings {
   lastPull?: { at: string; build: string | null; counts: Record<string, number> };
   onboarding?: OnboardingState;
   maxOnboarding?: MaxOnboardingState;
+  /** When a friend-link student was asked, once, what is confusing or broken (day 3). */
+  friendAskedAt?: string | null;
   reminders?: ReminderPrefs;
   updatedAt: string;
 }

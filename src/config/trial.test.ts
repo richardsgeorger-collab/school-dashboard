@@ -17,3 +17,19 @@ describe('the trial', () => {
     expect(syncAccess({ tier: 'free', trialEndsAt: '2026-09-30T00:00:00.000Z', trialStartedAt: '2026-09-23T00:00:00.000Z' }, NOW).allowed).toBe(true);
   });
 });
+
+describe('a friend link', () => {
+  const gift = { tier: 'free' as const, trialStartedAt: '2026-09-20T00:00:00.000Z', trialEndsAt: '2026-09-20T00:00:00.000Z', rewardTier: 'max' as const, rewardUntil: '2026-12-21T06:59:00.000Z', friendFrom: 'George' };
+  it('is Max from the friend through the date, with no trial talk and sync on', async () => {
+    const { effectiveTier, friendGift, syncAccess } = await import('./flags');
+    expect(friendGift(gift, NOW)).toEqual({ from: 'George', until: '2026-12-21T06:59:00.000Z' });
+    expect(effectiveTier(gift, NOW)).toBe('max');
+    expect(trialState(gift, NOW)).toBe('paid');
+    expect(syncAccess(gift, NOW).allowed).toBe(true);
+  });
+  it('ends at its date like any reward, and then the account is on its own plan', async () => {
+    const { friendGift } = await import('./flags');
+    expect(friendGift(gift, '2027-01-02T00:00:00.000Z')).toBeNull();
+    expect(syncAccess(gift, '2027-01-02T00:00:00.000Z').allowed).toBe(false);
+  });
+});

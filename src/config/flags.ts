@@ -21,6 +21,14 @@ export interface TierSource {
   rewardUntil?: string | null;
   /** An account that synced Halo on the free plan before 2026-09-28 keeps sync until this date (term end). */
   legacySyncUntil?: string | null;
+  /** A friend link's gift: who it is from (Max through rewardUntil). */
+  friendFrom?: string | null;
+}
+
+/** Max as a gift from a friend link, still running: no trial talk, no upgrade asks. */
+export function friendGift(p: TierSource | null | undefined, now = new Date().toISOString()): { from: string; until: string } | null {
+  if (!p?.friendFrom || p.rewardTier !== 'max' || !p.rewardUntil || p.rewardUntil <= now) return null;
+  return { from: p.friendFrom, until: p.rewardUntil };
 }
 
 /** The best of what is paid for, a live trial, and a live reward. */
@@ -53,7 +61,7 @@ export function trialDaysLeft(p: TierSource | null | undefined, now = new Date()
 export type TrialState = 'available' | 'active' | 'used' | 'paid';
 export function trialState(p: TierSource | null | undefined, now = new Date().toISOString()): TrialState {
   if (!p) return 'available';
-  if (p.tier === 'max') return 'paid';
+  if (p.tier === 'max' || friendGift(p, now)) return 'paid';
   if (p.trialEndsAt && p.trialEndsAt > now) return 'active';
   return p.trialStartedAt ? 'used' : 'available';
 }

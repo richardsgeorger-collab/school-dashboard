@@ -13,6 +13,9 @@ export interface Profile extends TierSource {
   onboardingDoneAt: string | null;
   isAdmin: boolean;
   timezone: string;
+  /** Set when the account came in through one of George's friend links: whose gift it is, and when. */
+  friendFrom?: string | null;
+  friendJoinedAt?: string | null;
   /** When the one-time "sync is now part of Plus" notice was seen. */
   legacyNoticeSeenAt?: string | null;
 }
@@ -21,7 +24,7 @@ export interface Profile extends TierSource {
  * A build with no backend has no account to check, so it fails closed: Free, with nothing paid unlocked. A missing
  * or broken config must never hand out a paid plan.
  */
-export const LOCAL_PROFILE: Profile = { userId: null, tier: 'free', trialEndsAt: null, trialStartedAt: null, graceUntil: null, rewardTier: null, rewardUntil: null, legacySyncUntil: null, legacyNoticeSeenAt: null, referralCode: null, referredBy: null, onboardingStep: null, onboardingDoneAt: null, isAdmin: false, timezone: 'America/Phoenix' };
+export const LOCAL_PROFILE: Profile = { userId: null, tier: 'free', trialEndsAt: null, trialStartedAt: null, graceUntil: null, rewardTier: null, rewardUntil: null, legacySyncUntil: null, legacyNoticeSeenAt: null, friendFrom: null, friendJoinedAt: null, referralCode: null, referredBy: null, onboardingStep: null, onboardingDoneAt: null, isAdmin: false, timezone: 'America/Phoenix' };
 
 interface Row {
   user_id: string;
@@ -30,6 +33,8 @@ interface Row {
   trial_started_at?: string | null;
   legacy_sync_until?: string | null;
   legacy_notice_seen_at?: string | null;
+  friend_from?: string | null;
+  friend_joined_at?: string | null;
   grace_until: string | null;
   referral_code: string | null;
   referred_by: string | null;
@@ -41,7 +46,7 @@ interface Row {
   timezone: string;
 }
 
-export const profileFromRow = (r: Row): Profile => ({ userId: r.user_id, tier: r.tier, trialEndsAt: r.trial_ends_at, trialStartedAt: r.trial_started_at ?? null, graceUntil: r.grace_until, rewardTier: r.reward_tier, rewardUntil: r.reward_until, legacySyncUntil: r.legacy_sync_until ?? null, legacyNoticeSeenAt: r.legacy_notice_seen_at ?? null, referralCode: r.referral_code, referredBy: r.referred_by, onboardingStep: r.onboarding_step, onboardingDoneAt: r.onboarding_done_at, isAdmin: r.is_admin, timezone: r.timezone });
+export const profileFromRow = (r: Row): Profile => ({ userId: r.user_id, tier: r.tier, trialEndsAt: r.trial_ends_at, trialStartedAt: r.trial_started_at ?? null, graceUntil: r.grace_until, rewardTier: r.reward_tier, rewardUntil: r.reward_until, legacySyncUntil: r.legacy_sync_until ?? null, legacyNoticeSeenAt: r.legacy_notice_seen_at ?? null, friendFrom: r.friend_from ?? null, friendJoinedAt: r.friend_joined_at ?? null, referralCode: r.referral_code, referredBy: r.referred_by, onboardingStep: r.onboarding_step, onboardingDoneAt: r.onboarding_done_at, isAdmin: r.is_admin, timezone: r.timezone });
 
 export interface ProfileState {
   profile: Profile | null;
@@ -69,7 +74,7 @@ export function useProfile(userId: string | null): ProfileState {
     setLoading(true);
     void c
       .from('profiles')
-      .select('user_id, tier, trial_ends_at, trial_started_at, legacy_sync_until, legacy_notice_seen_at, grace_until, referral_code, referred_by, reward_tier, reward_until, onboarding_step, onboarding_done_at, is_admin, timezone')
+      .select('user_id, tier, trial_ends_at, trial_started_at, legacy_sync_until, legacy_notice_seen_at, friend_from, friend_joined_at, grace_until, referral_code, referred_by, reward_tier, reward_until, onboarding_step, onboarding_done_at, is_admin, timezone')
       .eq('user_id', userId)
       .maybeSingle()
       .then(({ data }) => {

@@ -51,6 +51,7 @@ import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
 import { planOf } from '../config/tiers';
 import { AsOf } from './PlanWall';
+import { FriendAsk } from './FriendAsk';
 
 const HOME_NUDGE_KEY = 'school-dashboard:home-screen-nudge';
 const readNudge = (): boolean => {
@@ -625,6 +626,7 @@ export function Now() {
   return (
     <div className="now">
       {trialDays !== null && trialDays <= 1 && <TrialReceipts />}
+      <FriendAsk />
       <header className="now-head">
         <div>
           <p className="eyebrow">

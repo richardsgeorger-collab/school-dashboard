@@ -2426,3 +2426,52 @@
   padding-left: 18px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Friend links (admin) and the friend's one question. */
+.friend-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--s-3);
+  margin: var(--s-3) 0;
+}
+.friend-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--s-4) 0 0;
+  display: grid;
+  gap: var(--s-4);
+}
+.friend-list li[data-active='false'] {
+  opacity: 0.6;
+}
+.friend-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+.friend-members {
+  width: 100%;
+  margin-top: var(--s-2);
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.friend-members th,
+.friend-members td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.friend-members th {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.friend-ask {
+  margin-bottom: var(--s-4);
+}
+@media (max-width: 600px) {
+  .friend-members {
+    display: block;
+    overflow-x: auto;
+  }
+}

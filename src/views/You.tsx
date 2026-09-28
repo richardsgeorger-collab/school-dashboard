@@ -8,7 +8,7 @@ import { loadApiKey, saveApiKey } from '../chat/key';
 import { CourseChip } from '../components/CourseChip';
 import { ProgressCard } from '../components/ProgressCard';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { can, rewardDaysLeft, trialDaysLeft } from '../config/flags';
+import { can, friendGift, rewardDaysLeft, trialDaysLeft } from '../config/flags';
 import { DEFAULT_ACCENT } from '../config/accents';
 import { AccentPicker } from './AccentPicker';
 import { CANCEL_LINE, OFFERED_INTERVALS, PAID, PLAN_LINES, PRICES, REFERRAL, TIER_NAMES, TRIAL, type Tier } from '../config/tiers';
@@ -27,6 +27,7 @@ import { useRoute } from '../router';
 import { pixel } from '../analytics/pixel';
 import { NotificationsCard } from '../notify/NotificationsCard';
 import { FeedbackCard } from './FeedbackCard';
+import { FriendLinks } from './FriendLinks';
 import { TrialOffer, TrialReceipts } from './TrialOffer';
 import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
@@ -101,6 +102,7 @@ function AccountCard({ tier }: { tier: Tier }) {
   const tz = data.settings.timezone;
   const days = trialDaysLeft(profile);
   const reward = rewardDaysLeft(profile);
+  const gift = friendGift(profile);
   const line = subscriptionLine(sub, profile?.graceUntil ?? null, (iso) => fmtDate(dateOf(iso, tz), 'short'));
   const manage = async (flow?: 'cancel') => {
     const r = await openPortal(flow);
@@ -114,9 +116,15 @@ function AccountCard({ tier }: { tier: Tier }) {
       <p className="you-email">{auth.email}</p>
       {/* The plan and the trial are one quiet line, not a coloured badge. */}
       <p className="hint">
-        {TIER_NAMES[tier]}
-        {days !== null ? ` · ${days} day${days === 1 ? '' : 's'} left on your Max trial` : ''}
-        {reward !== null ? ` · Plus from a friend for ${reward} more day${reward === 1 ? '' : 's'}` : ''}
+        {gift ? (
+          `Max, free from ${gift.from} through ${fmtDate(dateOf(gift.until, tz), 'short')}`
+        ) : (
+          <>
+            {TIER_NAMES[tier]}
+            {days !== null ? ` · ${days} day${days === 1 ? '' : 's'} left on your Max trial` : ''}
+            {reward !== null ? ` · ${TIER_NAMES[profile?.rewardTier ?? 'plus']} from a friend for ${reward} more day${reward === 1 ? '' : 's'}` : ''}
+          </>
+        )}
       </p>
       {line && <p className="hint">{line}</p>}
       {note && (
@@ -137,7 +145,7 @@ function AccountCard({ tier }: { tier: Tier }) {
               </button>
             )}
           </>
-        ) : (
+        ) : gift ? null : (
           <a className="btn small primary" href="#/you?s=plan">
             See plans
           </a>
@@ -345,7 +353,8 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
 /** You: your account and plan, your progress, your grades, and every setting in its own group. */
 export function You() {
   const { data, today, actions } = useStore();
-  const { auth, tier } = useAccount();
+  const { auth, tier, profile } = useAccount();
+  const gifted = !!friendGift(profile);
   const { params } = useRoute();
   const section = (params.get('s') ?? null) as Section | null;
   const highlight = (params.get('to') ?? null) as Tier | null;
@@ -421,8 +430,10 @@ export function You() {
               <AccountCard tier={tier} />
               <TrialReceipts />
               <TrialOffer />
-              {(section === 'plan' || showPlans) && <Plans current={tier} highlight={highlight} />}
-              {section !== 'plan' && !showPlans && (
+              {profile?.isAdmin && <FriendLinks />}
+              {/* A friend's Max is a gift: no plans, no prices, nothing to sell. */}
+              {!gifted && (section === 'plan' || showPlans) && <Plans current={tier} highlight={highlight} />}
+              {!gifted && section !== 'plan' && !showPlans && (
                 <p className="hint">
                   <button type="button" className="hero-inline" onClick={() => setShowPlans(true)}>
                     See plans

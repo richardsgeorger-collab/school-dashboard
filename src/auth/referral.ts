@@ -45,3 +45,39 @@ export function rememberTier(tier: string): void {
     /* storage unavailable */
   }
 }
+
+const FRIEND_SLOT = 'school-dashboard:friend';
+
+/** A friend link is #/start?friend=CODE. Remembered until there is an account to claim it with. */
+export function captureFriend(hash: string = window.location.hash): void {
+  const m = /[?&]friend=([a-z0-9]+)/i.exec(hash);
+  if (!m) return;
+  try {
+    localStorage.setItem(FRIEND_SLOT, m[1].toLowerCase());
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function pendingFriend(): string | null {
+  try {
+    return localStorage.getItem(FRIEND_SLOT);
+  } catch {
+    return null;
+  }
+}
+
+/** Once, after sign-in: Max through the link's date. The code is forgotten whatever the answer. */
+export async function claimPendingFriend(): Promise<{ ok: boolean; why?: string } | null> {
+  const code = pendingFriend();
+  const c = supabase();
+  if (!code || !c) return null;
+  const { data, error } = await c.rpc('claim_friend_link', { p_code: code });
+  try {
+    localStorage.removeItem(FRIEND_SLOT);
+  } catch {
+    /* storage unavailable */
+  }
+  if (error) return { ok: false, why: error.message };
+  return (data as { ok: boolean; why?: string }) ?? { ok: false };
+}
