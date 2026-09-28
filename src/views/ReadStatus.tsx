@@ -1,5 +1,7 @@
 import { useAccount } from '../auth/AccountContext';
 import { Locked } from '../config/Locked';
+import { trialState } from '../config/flags';
+import { TrialOffer } from './TrialOffer';
 import { dateOf, fmtDate } from '../domain/dates';
 import { autoResultLine } from '../halo/autoRead';
 import { readBacklog, useReadStatus } from '../halo/backgroundRead';
@@ -16,6 +18,8 @@ export function useReadNow(): () => void {
 export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
   const s = useReadStatus();
   const { data } = useStore();
+  const { auth, profile } = useAccount();
+  const trialAvailable = auth.configured && trialState(profile) === 'available';
   const tz = data.settings.timezone;
   const readNow = useReadNow();
   if (s.running && s.progress) {
@@ -40,7 +44,8 @@ export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
   if (!o) return null;
   const line = autoResultLine(o);
   if (!line) return null;
-  // A plan without reading: the locked card says what reading does and carries the trial, once.
+  // A plan without reading: the locked card says what reading does and carries the trial, once. On the sync sheet
+  // the same offer sits inline, so the moment the posts arrive is the moment the trial is one tap away.
   if (o.locked && !o.noKey) {
     return compact ? (
       <Locked feature="announcementAI" tier="free" compact>
@@ -48,7 +53,13 @@ export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
       </Locked>
     ) : (
       <p className="hint diff-gap" role="status">
-        {line}
+        {trialAvailable ? (
+          <>
+            {o.todo} announcement{o.todo === 1 ? ' is' : 's are'} waiting to be read. <TrialOffer variant="inline" label={`Try Max free and it reads ${o.todo === 1 ? 'it' : 'them'}`} />
+          </>
+        ) : (
+          line
+        )}
       </p>
     );
   }
