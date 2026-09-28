@@ -5,6 +5,7 @@ import { derive, type DerivedDeadline, type Nudge } from '../domain/deadlines';
 import { DERIVED_DEADLINES } from '../domain/flags';
 import { estimateMinutes } from '../domain/estimate';
 import { shortLabel } from '../domain/labels';
+import { dedupeRequirements } from '../domain/requirements';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { applyHaloPlan, type HaloPlan } from '../halo/apply';
@@ -136,6 +137,8 @@ export function normalizeData(data: AppData): AppData {
         // Estimate rules get recalibrated over time; untouched parsed items follow the current table.
         estimatedMinutes: (i.source === 'parsed' || i.source === 'halo' || i.source === 'ics') && !raw.estimateOverridden ? estimateMinutes({ title: i.title, type: i.type, points: i.points, courseCode }) : i.estimatedMinutes,
         label: needsLabel ? shortLabel({ title: i.title, courseCode, type: i.type }) : raw.label,
+        // Two wordings of one part, attached before the merge could see they were the same, fold into one here.
+        requirements: raw.requirements && raw.requirements.length > 1 ? dedupeRequirements(raw.requirements) : raw.requirements,
         labelOverridden: raw.labelOverridden ?? false,
         award: raw.award ?? null,
       };

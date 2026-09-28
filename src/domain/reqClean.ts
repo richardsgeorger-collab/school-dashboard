@@ -105,10 +105,13 @@ export function foldReadings<T extends { id: string; courseId: string; title: st
   return items.filter((i) => !folded.has(i.id));
 }
 
+/** "using" and "use", "guides" and "guide", "attached" and "attach": one word for the overlap test. */
+export const stem = (w: string): string => (w.length > 4 ? w.replace(/(ing|ies|ed|es|s)$/, (m) => (m === 'ies' ? 'y' : '')) : w);
+
 /** How much two instructions overlap, 0 to 1. Same meaning in different words still scores high. */
 export function overlap(a: string, b: string): number {
-  const A = new Set(tokens(a));
-  const B = new Set(tokens(b));
+  const A = new Set(tokens(a).map(stem));
+  const B = new Set(tokens(b).map(stem));
   if (A.size === 0 || B.size === 0) return 0;
   let shared = 0;
   for (const w of A) if (B.has(w)) shared += 1;

@@ -18,9 +18,18 @@ const same = (a: Requirement, b: { text: string; source: ReqSource }) =>
   (!!a.source.quote && a.source.quote === b.source.quote && a.source.id === b.source.id) ||
   overlap(a.text, b.text) >= 0.6;
 
+/**
+ * The same list with near-duplicates folded together: a rewording that arrived by another path, or before the
+ * merge learned to see it, keeps the earlier part (and its tick) and gains the later one's sources.
+ */
+export function dedupeRequirements(list: Requirement[] | undefined): Requirement[] {
+  if (!list || list.length < 2) return list ?? [];
+  return mergeRequirements([], list);
+}
+
 /** Adds what is new and leaves what is there, so a re-read never loses a tick or duplicates a part. */
 export function mergeRequirements(existing: Requirement[] | undefined, incoming: Requirement[]): Requirement[] {
-  const out = [...(existing ?? [])];
+  const out = existing && existing.length > 1 ? mergeRequirements([], existing) : [...(existing ?? [])];
   for (const r of incoming) {
     const hit = out.findIndex((x) => same(x, r));
     if (hit < 0) {
@@ -36,7 +45,7 @@ export function mergeRequirements(existing: Requirement[] | undefined, incoming:
       seen.add(k);
       return true;
     });
-    out[hit] = { ...out[hit], dueAt: r.dueAt ?? out[hit].dueAt, gradedOn: out[hit].gradedOn || r.gradedOn, redefinesDone: out[hit].redefinesDone || r.redefinesDone, sources, source: out[hit].source.quote ? out[hit].source : r.source };
+    out[hit] = { ...out[hit], done: out[hit].done || r.done, doneAt: out[hit].doneAt ?? r.doneAt, dueAt: r.dueAt ?? out[hit].dueAt, gradedOn: out[hit].gradedOn || r.gradedOn, redefinesDone: out[hit].redefinesDone || r.redefinesDone, sources, source: out[hit].source.quote ? out[hit].source : r.source };
   }
   return out;
 }
