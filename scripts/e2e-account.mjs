@@ -8,10 +8,12 @@
 import { chromium } from 'playwright-core';
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
+import { currentBuild } from './lib/build.mjs';
 const keysPath = process.env.KEYS_ENV;
 if (!keysPath) { console.error('KEYS_ENV is required (a keys file outside the repo).'); process.exit(2); }
 const env = Object.fromEntries(readFileSync(keysPath, 'utf8').trim().split('\n').map((l) => l.split('=')));
 const BASE = process.env.BASE ?? 'http://localhost:4174/school-dashboard/';
+const BUILD = await currentBuild(BASE);
 const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];
 const admin = createClient(env.VITE_SUPABASE_URL, env.SERVICE_ROLE, { auth: { persistSession: false } });
 const email = `e2e-account-${Date.now()}@example.invalid`;
@@ -36,7 +38,7 @@ async function device(name, { seed, sync }) {
   await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3500);
   if (sync) {
     const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
-    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: chm.name, instructors: [], stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: [post], resources: [], discussions: [], messages: [] }] };
+    const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: chm.name, instructors: [], stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: [post], resources: [], discussions: [], messages: [] }] };
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1500); await page.keyboard.press('Escape');
   }

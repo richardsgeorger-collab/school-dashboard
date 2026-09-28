@@ -2,7 +2,9 @@
 // attach parts to the work they belong to, keep the one that fits no category as a class note, put a part with its own
 // deadline on the calendar, and say the thing on Now that would otherwise be missed.
 import puppeteer from 'puppeteer-core';
+import { currentBuild } from './lib/build.mjs';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
+const BUILD = await currentBuild(BASE);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const page = await browser.newPage();
@@ -76,7 +78,7 @@ await sleep(400);
 
 // Three announcements: two carry requirements, one is pure news.
 const payload = {
-  kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet',
+  kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet',
   classes: [{
     id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [],
     startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [],
@@ -148,7 +150,7 @@ console.log('bare participation has no parts:', (before.items.find((i) => i.id =
 // 7. AUTOMATIC: a second sync carrying three new posts must put their findings on the agenda without a button.
 const nBefore = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.length);
 const auto = {
-  kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet',
+  kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet',
   classes: [{
     id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [],
     startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [],

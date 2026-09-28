@@ -1,7 +1,9 @@
 // The prompt panel in the running app: an announcement that names the hero item is synced in, then "Prompt for this"
 // is opened and its text read, to prove the material reaches the prompt through the real async path.
 import puppeteer from 'puppeteer-core';
+import { currentBuild } from './lib/build.mjs';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
+const BUILD = await currentBuild(BASE);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const page = await browser.newPage();
@@ -22,7 +24,7 @@ const hero = await page.evaluate(() => {
 console.log('hero item:', hero?.code, hero?.title, `(${hero?.type})`);
 
 const post = { id: 'ann-prompt', forumId: 'f1', title: `${hero.title}: what to know`, content: `<p>${hero.title} covers Chapters 1 and 2. It is 20 questions in 30 minutes. A periodic table will be provided. Bring a calculator.</p>`, publishedAt: new Date(Date.now() - 86400000).toISOString(), modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] };
-const payload = { kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${hero.courseId}`, slugId: 'X', classCode: `${hero.code}-X`, courseCode: hero.code, name: hero.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: [post], resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${hero.courseId}`, slugId: 'X', classCode: `${hero.code}-X`, courseCode: hero.code, name: hero.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: [post], resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
 await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
 await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
 await sleep(900);

@@ -1,7 +1,9 @@
 // Two identical syncs in a row, then one with a single post's body changed. Counts model calls and logs what the
 // read stamp looked like before and after each sync, for three posts, so a re-read can be traced to its cause.
 import puppeteer from 'puppeteer-core';
+import { currentBuild } from './lib/build.mjs';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
+const BUILD = await currentBuild(BASE);
 const POSTS = Number(process.env.POSTS ?? 30);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
@@ -30,7 +32,7 @@ const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-da
 // Halo's real shape: every post carries a modifiedDate, and the same post comes back on every sync.
 const post = (n, body) => ({ id: `post-${n}`, forumId: 'f1', title: `Week ${n} note`, content: `<p>${body ?? `Reminder number ${n}.`}</p>`, publishedAt: '2026-09-10T15:00:00.000Z', modifiedAt: '2026-09-10T15:05:00.000Z', author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] });
 const payload = (posts) => ({
-  kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet',
+  kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet',
   classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }],
   alerts: [], problems: [],
 });

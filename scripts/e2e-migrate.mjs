@@ -2,7 +2,9 @@
 // read stamps on the post records, and no ledger. Opening the new build must carry those into the ledger, so the
 // first sync after the upgrade reads nothing.
 import puppeteer from 'puppeteer-core';
+import { currentBuild } from './lib/build.mjs';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
+const BUILD = await currentBuild(BASE);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const page = await browser.newPage();
@@ -68,7 +70,7 @@ console.log(`after opening the new build: version ${after.version}, ledger entri
 
 // First sync after the upgrade, carrying the same 30 posts.
 const posts = Array.from({ length: N }, (_, i) => ({ id: `post-${i + 1}`, forumId: 'f1', title: `Week ${i + 1} note`, content: `<p>Reminder number ${i + 1}.</p>`, publishedAt: '2026-09-10T15:00:00.000Z', modifiedAt: '2026-09-10T15:05:00.000Z', author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] }));
-const payload = { kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
 await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
 await page.waitForSelector('.modal .modal-actions', { timeout: 8000 });
 await sleep(2500);

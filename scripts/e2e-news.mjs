@@ -1,7 +1,9 @@
 // Announcements: the bookmark carries them, a sync stores them without approval, Now says one quiet line, the AI pass
 // turns one into findings that go through the same approval flow, and an unsynced class never looks clean.
 import puppeteer from 'puppeteer-core';
+import { currentBuild } from './lib/build.mjs';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
+const BUILD = await currentBuild(BASE);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const page = await browser.newPage();
@@ -166,7 +168,7 @@ await page2.goto(`${BASE}#/now`, { waitUntil: 'networkidle0' });
 const s2 = await page2.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')));
 const chm2 = s2.courses.find((c) => c.code === 'CHM-113');
 const quiet = {
-  kind: 'halo-export', version: 1, build: 'e2e', exportedAt: new Date().toISOString(), source: 'bookmarklet',
+  kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet',
   classes: [{
     id: `h-${chm2.id}`, slugId: `${chm2.code}-X`, classCode: `${chm2.code}-X`, courseCode: chm2.code, name: chm2.name,
     instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3,
