@@ -87,6 +87,8 @@ Rules:
 - Pure news with nothing to act on, an office-hours move, a welcome, encouragement, produces a summary and no actions. That is a valid answer, but read carefully first: a single clause in a friendly post is often the only place a requirement appears.
 - Plain words. Say what to do.
 - Length: "what" is five to ten words, one instruction ("Reply to two classmates by Sunday"). The quote carries the detail; "what" is the checklist line. The summary is one sentence of at most eighteen words.
+- "what" is the instruction and nothing else: never your reasoning, a correction, or a note to yourself. Work a date out before you write, then write only the result.
+- Some planner items carry "already noted": what earlier posts already asked for on that item. When this post asks the same thing in other words, do not add it again. Add it only when something changed: a new date, a new number, a new step.
 
 Procedure, every time:
 1. Read the whole post once. Then go sentence by sentence and mark every sentence that tells students to do, bring, submit, read, reply, or prepare something, or that changes a date, a value, or what counts.
@@ -121,6 +123,20 @@ export function capWords(text: string, max: number): string {
 }
 export const PART_WORDS = 10;
 export const SUMMARY_WORDS = 18;
+/** How many earlier parts an item shows the reader, and how long each may be, so the prompt stays small. */
+const NOTED_PARTS = 5;
+const NOTED_WORDS = 8;
+
+/**
+ * The model once wrote its own second thoughts into a checklist line ("Post your introduction by Wednesday,
+ * September 9 — wait, posted Sept 9, so Wednesday is…"). Anything after a marker of thinking aloud is cut; a line
+ * that was nothing but thinking is dropped by the caller.
+ */
+const THINKING = /\s*(?:[—–-]+\s*)?\b(?:wait|hmm|actually|let me|i think|i need to|i'll|so that means|no,|oh,)\b.*$/i;
+export function cleanWhat(text: string): string {
+  const cut = text.replace(THINKING, '').trim().replace(/[,;:—–-]+$/, '').trim();
+  return cut.split(/\s+/).filter(Boolean).length >= 3 ? cut : '';
+}
 const KINDS: ActionKind[] = ['requirement', 'new_work', 'date_change', 'points_change', 'note'];
 
 /** The instant a date and time mean, or null. A bare date lands at 23:59 local, the way Halo's own deadlines do. */
@@ -140,7 +156,7 @@ export function actionsFromTool(raw: unknown, a: StoredAnnouncement, items: Item
   for (const e of arr(o.actions)) {
     const x = obj(e);
     const quote = str(x.quote, 600);
-    const text = capWords(str(x.what, 400), PART_WORDS);
+    const text = capWords(cleanWhat(str(x.what, 400)), PART_WORDS);
     // The quote is the whole guarantee that this came from the professor and not from the model.
     if (!quote || !text) continue;
     const kind = str(x.kind, 20) as ActionKind;
@@ -177,12 +193,27 @@ export function calendarFrom(posted: DateStr): string {
   }).join('\n');
 }
 
+/**
+ * What earlier posts already put on an item, so the reader can tell a restatement from a change. Never this post's
+ * own parts: a re-read after an edit must not see its previous answer as "already noted" and drop everything.
+ */
+export function notedParts(i: Item, postId: string): string[] {
+  const own = (r: { source: { id: string | null }; sources?: { id: string | null }[] }) => r.source.id === postId || (r.sources ?? []).some((s) => s.id === postId);
+  return (i.requirements ?? [])
+    .filter((r) => !own(r) && r.text)
+    .slice(0, NOTED_PARTS)
+    .map((r) => `"${capWords(r.text, NOTED_WORDS)}"`);
+}
+
 export function buildActionsPrompt(a: StoredAnnouncement, course: Course, items: Item[], tz: string): { system: { text: string; cache?: boolean }[]; user: string } {
   const open = items
     .filter((i) => i.courseId === course.id)
     .sort((x, y) => x.dueAt.localeCompare(y.dueAt))
     .slice(0, 80)
-    .map((i) => `${i.id} · ${i.title} · ${i.type} · ${i.points} pts · due ${dayLabel(dateOf(i.dueAt, tz))}${i.status === 'done' ? ' · done' : ''}`)
+    .map((i) => {
+      const noted = i.status === 'done' ? [] : notedParts(i, a.id);
+      return `${i.id} · ${i.title} · ${i.type} · ${i.points} pts · due ${dayLabel(dateOf(i.dueAt, tz))}${i.status === 'done' ? ' · done' : ''}${noted.length ? ` · already noted: ${noted.join('; ')}` : ''}`;
+    })
     .join('\n');
   const posted = a.publishedAt ? dateOf(a.publishedAt, tz) : null;
   return {

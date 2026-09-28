@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { itemFinished, gradedOpen, isNoise, mergeRequirements, missedLine, missedRequirement, partsLine, requirementRows } from '../domain/requirements';
 import type { Requirement } from '../domain/types';
-import { actionsFromTool, buildActionsPrompt, calendarFrom, routeActions } from './actions';
+import { actionsFromTool, buildActionsPrompt, calendarFrom, cleanWhat, routeActions } from './actions';
 import { mkCourse, mkItem, TZ } from './fixtures';
 
 const post = {
@@ -87,6 +87,30 @@ describe('reading an announcement for anything actionable', () => {
     expect(p.user).toContain('i-dq · Topic 2 DQ 1 · discussion · 5 pts');
     expect(p.user).toContain('Posted: Monday 2026-09-14');
     expect(p.system[0].cache).toBe(true);
+  });
+
+  it('shows the model what earlier posts already put on an item, never its own parts, never a done item’s', () => {
+    const req = (id: string, text: string, postId: string) => ({ id, text, dueAt: null, done: false, doneAt: null, gradedOn: true, source: { kind: 'announcement' as const, id: postId, title: null, quote: null, at: null }, addedAt: 'x' });
+    const withParts = [
+      mkItem({ id: 'i-lab', courseId: 'c1', title: 'Lab 3', type: 'lab', points: 50, dueAt: '2026-09-25T06:59:00.000Z', requirements: [req('r1', 'Bring your own splash goggles to every lab session from now on', 'earlier'), req('r2', 'Use the APA template for the report', 'ann-1')] }),
+      mkItem({ id: 'i-old', courseId: 'c1', title: 'Lab 2', type: 'lab', points: 50, dueAt: '2026-09-11T06:59:00.000Z', status: 'done', requirements: [req('r3', 'Wear closed-toe shoes', 'earlier')] }),
+    ];
+    const p = buildActionsPrompt(post, mkCourse({ id: 'c1', code: 'UNV-106' }), withParts, TZ);
+    // Capped at eight words, so the prompt stays small; the quote is never sent.
+    expect(p.user).toContain('i-lab · Lab 3 · lab · 50 pts · due Thursday 2026-09-24 · already noted: "Bring your own splash goggles to every lab…"');
+    expect(p.user).not.toContain('APA template');
+    expect(p.user).toContain('i-old · Lab 2 · lab · 50 pts · due Thursday 2026-09-10 · done');
+    expect(p.user).not.toContain('closed-toe');
+    expect(p.system[0].text).toContain('already noted');
+  });
+
+  it('cuts a checklist line at the point the model started thinking aloud, and drops one that was only thinking', () => {
+    expect(cleanWhat('Post your introduction in the Introductions forum by Wednesday, September 9 — wait, posted Sept 9, so Wednesday is September 9, 2026.')).toBe('Post your introduction in the Introductions forum by Wednesday, September 9');
+    expect(cleanWhat('Bring a calculator to class on Friday')).toBe('Bring a calculator to class on Friday');
+    expect(cleanWhat('Hmm, let me check the date again')).toBe('');
+    const raw = { summary: 'x', actions: [{ kind: 'requirement', what: 'Actually, I think the post means Tuesday', quote: 'Bring it Tuesday.' }, { kind: 'requirement', what: 'Reply to two classmates by Sunday, wait no, by Friday', quote: 'Reply to two classmates by Friday.' }] };
+    const r = actionsFromTool(raw, post, items, TZ);
+    expect(r.actions.map((a) => a.text)).toEqual(['Reply to two classmates by Sunday']);
   });
 
   it('gives the model a written-out calendar so it looks weekdays up instead of counting', () => {
