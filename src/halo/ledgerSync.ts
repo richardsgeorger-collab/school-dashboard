@@ -17,18 +17,24 @@ interface Row {
 const toEntry = (r: Row): ReadEntry => ({ id: r.post_id, hash: r.hash, at: r.read_at, summary: r.summary, count: r.action_count });
 const toRow = (e: ReadEntry): Row => ({ post_id: e.id, hash: e.hash, read_at: e.at, summary: e.summary, action_count: e.count });
 
+/** Postgres answers "+00:00", the browser writes "Z": the same instant, compared as instants, never as strings. */
+const ms = (iso: string): number => {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? t : 0;
+};
+
 /** Which entries each side lacks. Same post on both sides: the newer read wins, and a tie changes nothing. */
 export function planLedgerSync(local: Map<string, ReadEntry>, remote: Row[]): { pull: ReadEntry[]; push: ReadEntry[] } {
   const pull: ReadEntry[] = [];
   const remoteById = new Map(remote.map((r) => [r.post_id, r]));
   for (const r of remote) {
     const have = local.get(r.post_id);
-    if (!have || (have.hash !== r.hash && r.read_at > have.at)) pull.push(toEntry(r));
+    if (!have || (have.hash !== r.hash && ms(r.read_at) > ms(have.at))) pull.push(toEntry(r));
   }
   const push: ReadEntry[] = [];
   for (const e of local.values()) {
     const there = remoteById.get(e.id);
-    if (!there || (there.hash !== e.hash && e.at > there.read_at)) push.push(e);
+    if (!there || (there.hash !== e.hash && ms(e.at) > ms(there.read_at))) push.push(e);
   }
   return { pull, push };
 }

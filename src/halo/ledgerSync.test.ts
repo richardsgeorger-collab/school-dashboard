@@ -23,6 +23,17 @@ describe('the ledger mirror', () => {
     expect(back.pull).toEqual([]);
     expect(back.push.map((x) => x.hash)).toEqual(['newer']);
   });
+  it('compares instants, not strings: Postgres says +00:00 where the browser wrote Z', () => {
+    // Same post, edited and re-read on the laptop a minute after the phone read the old body.
+    const local = new Map([['a', e('a', 'old', '2026-09-28T01:17:46.998Z')]]);
+    const remote = [r('a', 'new', '2026-09-28T01:18:46.998+00:00')];
+    expect(planLedgerSync(local, remote).pull.map((x) => x.hash)).toEqual(['new']);
+    // And the reverse: the local read is newer, so the account gets it, not the other way round.
+    const local2 = new Map([['a', e('a', 'newer', '2026-09-28T01:19:46.998Z')]]);
+    const plan = planLedgerSync(local2, remote);
+    expect(plan.pull).toEqual([]);
+    expect(plan.push.map((x) => x.hash)).toEqual(['newer']);
+  });
   it('nothing to do when both sides agree', () => {
     const local = new Map([['a', e('a', 'h1', '2026-09-27T10:00:00Z')]]);
     expect(planLedgerSync(local, [r('a', 'h1', '2026-09-27T10:00:00Z')])).toEqual({ pull: [], push: [] });
