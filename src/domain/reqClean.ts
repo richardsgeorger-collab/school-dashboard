@@ -252,14 +252,14 @@ export const instanceParts = (i: Pick<Item, 'requirements'>): Requirement[] => (
 export const referenceParts = (i: Pick<Item, 'requirements'>): Requirement[] => (i.requirements ?? []).filter((r) => r.scope === 'reference');
 
 /** The class's standing rules, deduplicated across its assignments, for the class page and the item reference. */
-export function rulesFor(items: Item[], courseId: string): { text: string; sources: ReqSource[]; items: string[] }[] {
-  const out = new Map<string, { text: string; sources: ReqSource[]; items: string[] }>();
+export function rulesFor(items: Item[], courseId: string): { text: string; detail?: string; sources: ReqSource[]; items: string[] }[] {
+  const out = new Map<string, { text: string; detail?: string; sources: ReqSource[]; items: string[] }>();
   for (const i of items) {
     if (i.courseId !== courseId) continue;
     for (const r of i.requirements ?? []) {
       if ((r.scope ?? 'instance') !== 'rule') continue;
       const k = tokens(r.text).join(' ');
-      const row = out.get(k) ?? { text: r.text, sources: [], items: [] };
+      const row = out.get(k) ?? { text: r.text, detail: r.detail, sources: [], items: [] };
       for (const s of allSources(r)) if (!row.sources.some((x) => x.id === s.id && x.quote === s.quote)) row.sources.push(s);
       if (!row.items.includes(i.title)) row.items.push(i.title);
       out.set(k, row);

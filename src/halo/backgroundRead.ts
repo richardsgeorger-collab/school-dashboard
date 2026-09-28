@@ -4,11 +4,11 @@ import { costOf, loadPrices, type ApiUsage } from '../ai/usage';
 import { useAccount } from '../auth/AccountContext';
 import { aiAvailable, loadApiKey } from '../chat/key';
 import { can } from '../config/flags';
-import type { Course, Item } from '../domain/types';
+import type { Course, Item, Requirement } from '../domain/types';
 import { SYNC_EVENT } from '../ingest/auto';
 import { ACCOUNT_SYNCED_EVENT, useStore } from '../storage/store';
-import { readActions } from './actions';
-import { announceDb, bodyHash, healEntries, readLedger, type ReadEntry, type StoredAnnouncement } from './announce';
+import { readActions, rewriteLines } from './actions';
+import { announceDb, bodyHash, healEntries, READER_VERSION, readLedger, readState, type ReadEntry, type StoredAnnouncement } from './announce';
 import { pushLedgerEntry, syncLedger } from './ledgerSync';
 import { syncPosts } from './postsSync';
 import { emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from './autoRead';
@@ -83,8 +83,10 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     ledger.set(h.id, h);
   }
   const todo = needsRead(onFile, ids, ledger);
+  // Posts an older reader read get their lines rewritten once (short line + explanation), after anything new.
   if (todo.length === 0) {
     set({ waiting: null });
+    if (can('announcementAI', args.tier) && aiAvailable()) await rewriteOld({ ...args, onFile, ledger });
     return null;
   }
   const guard = readGuard({ todo: todo.length, onFile: onFile.length, fresh: todo.filter((a) => !ledger.has(a.id)).length, edited: todo.filter((a) => ledger.has(a.id)).length });
@@ -130,7 +132,7 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
       try {
         if (!got.ok) throw got.e;
         const r = got.r;
-        const p = planFromActions({ actions: r.actions, announcement: a, course, items, courses, now: at });
+        const p = planFromActions({ actions: r.actions, announcement: a, course: courses.find((c) => c.id === a.courseId) ?? course, items, courses, now: at });
         for (const i of p.upserts) {
           args.upsertItem(i);
           items = [...items.filter((x) => x.id !== i.id), i];
@@ -155,7 +157,7 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
         }
         read += 1;
         // The ledger entry is what stops this post being read again; it is written only after a read succeeds.
-        const entry: ReadEntry = { id: a.id, hash: bodyHash(a), at, summary: r.summary, count: r.actions.length };
+        const entry: ReadEntry = { id: a.id, hash: bodyHash(a), at, summary: r.summary, count: r.actions.length, v: READER_VERSION };
         await readLedger.put(entry);
         void pushLedgerEntry(entry).catch(() => undefined);
         await announceDb.put({ ...a, actionsAt: at, actionsModifiedAt: a.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
@@ -171,6 +173,77 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(READ_EVENT));
   }
   return status.outcome;
+}
+
+/**
+ * Once per post an older reader read: the lines it produced are rewritten one for one as a short checklist line and a
+ * short explanation (actions.ts, rewriteLines). Rows keep their assignment, tick and sources. Only lines without an
+ * explanation are sent, so a second device, or a post whose lines were all rewritten already, costs nothing.
+ */
+async function rewriteOld(args: Args & { onFile: StoredAnnouncement[]; ledger: Map<string, ReadEntry> }): Promise<void> {
+  const old = args.onFile
+    .filter((a) => readState(a, args.ledger).read && (args.ledger.get(a.id)?.v ?? 1) < READER_VERSION)
+    .sort((a, b) => String(a.publishedAt ?? '').localeCompare(String(b.publishedAt ?? '')));
+  if (old.length === 0 || status.running) return;
+  const key = loadApiKey() || undefined;
+  let items = args.items;
+  let courses = args.courses;
+  const done = new Set<string>();
+  const from = (r: Requirement, id: string) => r.source.id === id || (r.sources ?? []).some((x) => x.id === id);
+  set({ running: true, progress: { done: 0, total: old.length, title: '', why: 'tidy' } });
+  try {
+    for (let n = 0; n < old.length; n++) {
+      const a = old[n];
+      const course = courses.find((c) => c.id === a.courseId);
+      set({ progress: { done: n + 1, total: old.length, title: a.title || '(untitled)', why: 'tidy' } });
+      if (!course) continue;
+      type Ref = { kind: 'req'; itemId: string; id: string; text: string } | { kind: 'note'; id: string; text: string };
+      const refs: Ref[] = [];
+      for (const i of items) {
+        if (i.courseId !== course.id) continue;
+        for (const r of i.requirements ?? []) if (!r.detail && !done.has(r.id) && from(r, a.id)) refs.push({ kind: 'req', itemId: i.id, id: r.id, text: r.text });
+      }
+      for (const nt of course.notes ?? []) if (!nt.detail && !done.has(nt.id) && nt.source.id === a.id) refs.push({ kind: 'note', id: nt.id, text: nt.text });
+      try {
+        if (refs.length) {
+          const r = await withRetry(() => rewriteLines({ apiKey: key, announcement: a, course, lines: refs.map((x) => x.text) }));
+          const byItem = new Map<string, Map<string, { text: string; detail: string }>>();
+          const notes = new Map<string, { text: string; detail: string }>();
+          refs.forEach((ref, k) => {
+            const got = r.lines[k];
+            if (!got) return;
+            done.add(ref.id);
+            if (ref.kind === 'note') notes.set(ref.id, got);
+            else byItem.set(ref.itemId, (byItem.get(ref.itemId) ?? new Map()).set(ref.id, got));
+          });
+          for (const [itemId, map] of byItem) {
+            const item = items.find((i) => i.id === itemId);
+            if (!item) continue;
+            const next = { ...item, requirements: (item.requirements ?? []).map((q) => (map.has(q.id) ? { ...q, text: map.get(q.id)!.text, detail: map.get(q.id)!.detail || undefined } : q)) };
+            args.upsertItem(next);
+            items = items.map((i) => (i.id === itemId ? next : i));
+          }
+          if (notes.size) {
+            const next = { ...course, notes: (course.notes ?? []).map((q) => (notes.has(q.id) ? { ...q, text: notes.get(q.id)!.text, detail: notes.get(q.id)!.detail || undefined } : q)) };
+            args.upsertCourse(next);
+            courses = courses.map((c) => (c.id === course.id ? next : c));
+          }
+        }
+        const prev = args.ledger.get(a.id);
+        if (prev) {
+          const entry: ReadEntry = { ...prev, v: READER_VERSION };
+          await readLedger.put(entry);
+          args.ledger.set(a.id, entry);
+          void pushLedgerEntry(entry).catch(() => undefined);
+        }
+      } catch {
+        // Left at the old version, so the next run tries this post again.
+      }
+    }
+  } finally {
+    set({ running: false, progress: null });
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(READ_EVENT));
+  }
 }
 
 /** Model calls in flight at once. Three keeps a 56-post first read to about a minute without racing the plans. */

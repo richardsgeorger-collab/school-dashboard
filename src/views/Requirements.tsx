@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { dateOf, fmtDate, fmtTime } from '../domain/dates';
+import { useId } from 'react';
 import { gradedOpen, partsLine } from '../domain/requirements';
+import { detailFor, shortLine } from '../domain/shortLine';
 import type { ClassNote, Course, Item, Requirement } from '../domain/types';
 import { useStore } from '../storage/store';
 
@@ -9,8 +10,7 @@ import { useStore } from '../storage/store';
  * and the sentence the professor wrote, because the whole reason this exists is that the description is silent.
  */
 export function Requirements({ item: passed, compact = false, onMore }: { item: Item; compact?: boolean; onMore?: () => void }) {
-  const { data, actions, today } = useStore();
-  const tz = data.settings.timezone;
+  const { data, actions } = useStore();
   // The panel is opened with a copy of the item; ticking a part has to redraw against the live one.
   const item = data.items.find((i) => i.id === passed.id) ?? passed;
   const all = item.requirements ?? [];
@@ -33,30 +33,11 @@ export function Requirements({ item: passed, compact = false, onMore }: { item: 
         {!compact && open.length > 0 && item.status === 'done' && <span className="reqs-warn">not finished: {open.length} part{open.length === 1 ? '' : 's'} still open</span>}
       </p>
       <ul className="reqs-list">
-        {list.map((r) => {
-          const late = !r.done && r.dueAt && dateOf(r.dueAt, tz) < today;
-          return (
-            <li key={r.id} data-done={r.done} data-late={!!late}>
-              <label className="reqs-row">
-                <input type="checkbox" checked={r.done} onChange={() => toggle(r)} />
-                <span className="reqs-text">{r.text}</span>
-              </label>
-              {compact ? (
-                // On the card the line is the line: no meta under it. A late own date is the one thing worth a word.
-                late && (
-                  <span className="hint mono reqs-meta">was due {fmtDate(dateOf(r.dueAt!, tz), 'short')}</span>
-                )
-              ) : (
-                <span className="hint mono reqs-meta">
-                  {r.dueAt ? `${late ? 'was due ' : 'due '}${fmtDate(dateOf(r.dueAt, tz), 'short')} ${fmtTime(r.dueAt, tz)}` : 'with the assignment'}
-                  {!r.gradedOn && ' · not graded'}
-                  {r.redefinesDone && ' · changes what full credit means'}
-                </span>
-              )}
-              <SourceLine source={r.source} compact={compact} />
-            </li>
-          );
-        })}
+        {list.map((r) => (
+          <li key={r.id} data-done={r.done}>
+            <ReqLine req={r} check={{ checked: r.done, onChange: () => toggle(r) }} />
+          </li>
+        ))}
       </ul>
       {hidden > 0 && (
         <button type="button" className="hero-inline" onClick={onMore}>
@@ -64,6 +45,36 @@ export function Requirements({ item: passed, compact = false, onMore }: { item: 
         </button>
       )}
     </section>
+  );
+}
+
+/**
+ * One requirement, readable at a glance: a single short to-do line. Tapping it opens two or three plain sentences
+ * (what exactly to do, and the date, count or place that matters) and a link to the full announcement. No file
+ * names, quotes or metadata under the line.
+ */
+export function ReqLine({ req, check, extra }: { req: Pick<Requirement, 'text' | 'detail' | 'dueAt' | 'source'>; check?: { checked: boolean; onChange: () => void }; extra?: string }) {
+  const { data } = useStore();
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const line = shortLine(req.text);
+  const detail = [detailFor(req, data.settings.timezone), extra].filter(Boolean).join(' ');
+  const post = req.source.kind === 'announcement' && req.source.id ? `#/inbox?a=${req.source.id}` : null;
+  return (
+    <div className="req-line" data-open={open}>
+      <div className="req-line-row">
+        {check && <input type="checkbox" checked={check.checked} onChange={check.onChange} aria-label={line} />}
+        <button type="button" className="req-line-text" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>
+          {line}
+        </button>
+      </div>
+      {open && (
+        <div className="req-line-detail" id={id}>
+          {detail && <p>{detail}</p>}
+          {post && <a href={post}>See full announcement</a>}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -120,8 +131,7 @@ export function ClassNotes({ course }: { course: Course }) {
       <ul className="reqs-list">
         {notes.map((n) => (
           <li key={n.id}>
-            <span className="reqs-text">{n.text}</span>
-            <SourceLine source={n.source} compact />
+            <ReqLine req={{ text: n.text, detail: n.detail, dueAt: null, source: n.source }} />
             <button type="button" className="muted reqs-dismiss" onClick={() => dismiss(n)}>
               Got it
             </button>

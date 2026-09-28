@@ -44,7 +44,7 @@ export function mergeRequirements(existing: Requirement[] | undefined, incoming:
       seen.add(k);
       return true;
     });
-    out[hit] = { ...out[hit], done: out[hit].done || r.done, doneAt: out[hit].doneAt ?? r.doneAt, dueAt: r.dueAt ?? out[hit].dueAt, gradedOn: out[hit].gradedOn || r.gradedOn, redefinesDone: out[hit].redefinesDone || r.redefinesDone, sources, source: out[hit].source.quote ? out[hit].source : r.source };
+    out[hit] = { ...out[hit], detail: out[hit].detail ?? r.detail, done: out[hit].done || r.done, doneAt: out[hit].doneAt ?? r.doneAt, dueAt: r.dueAt ?? out[hit].dueAt, gradedOn: out[hit].gradedOn || r.gradedOn, redefinesDone: out[hit].redefinesDone || r.redefinesDone, sources, source: out[hit].source.quote ? out[hit].source : r.source };
   }
   return out;
 }

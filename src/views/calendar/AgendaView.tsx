@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { EmptyState } from '../../components/EmptyState';
 import { ItemRow } from '../../components/ItemRow';
-import { addDays, dateOf, fmtDate, fmtMinutes, fmtTime } from '../../domain/dates';
+import { addDays, dateOf, fmtDate, fmtMinutes } from '../../domain/dates';
 import { unlocks } from '../../domain/gating';
 import { cleanAll, foldReadings, instanceParts, referenceParts } from '../../domain/reqClean';
 import { isNoise } from '../../domain/requirements';
 import type { DateStr, Item, Requirement } from '../../domain/types';
 import { useStore } from '../../storage/store';
+import { ReqLine } from '../Requirements';
 
 const WEEKS_SHOWN = 14;
 const LATER_DAYS = 60;
@@ -126,7 +127,7 @@ export function AgendaView({ from, items: raw, onOpen }: { from: DateStr; items:
 }
 
 /** One collapsed row; open, it shows the parts to tick, the notes, and what it unlocks. */
-function AgendaItem({ item, open, onToggle, onOpen, tz, today, dated = false }: { item: Item; open: boolean; onToggle: () => void; onOpen: (i: Item) => void; tz: string; today: DateStr; /** Under Late the day heading is gone, so the row carries its own date. */ dated?: boolean }) {
+function AgendaItem({ item, open, onToggle, onOpen, today, dated = false }: { item: Item; open: boolean; onToggle: () => void; onOpen: (i: Item) => void; tz: string; today: DateStr; /** Under Late the day heading is gone, so the row carries its own date. */ dated?: boolean }) {
   const { actions, data, schedule } = useStore();
   const parts = instanceParts(item);
   const notes = referenceParts(item);
@@ -144,35 +145,17 @@ function AgendaItem({ item, open, onToggle, onOpen, tz, today, dated = false }: 
         <div className="agenda-detail">
           {todo.length > 0 && (
             <ul className="part-list" aria-label="Parts">
-              {todo.map((r) => {
-                const own = r.dueAt && dateOf(r.dueAt, tz) !== dateOf(item.dueAt, tz);
-                const late = r.dueAt && dateOf(r.dueAt, tz) < today;
-                return (
-                  <li key={r.id} data-late={!!late}>
-                    <label className="part-row">
-                      <input type="checkbox" checked={false} onChange={() => tick(r)} />
-                      <span>{r.text}</span>
-                    </label>
-                    {own && (
-                      <span className="part-when">
-                        {late ? 'was due ' : 'due '}
-                        {fmtDate(dateOf(r.dueAt!, tz), 'short')} {fmtTime(r.dueAt!, tz)}
-                      </span>
-                    )}
-                    {r.source.quote && (
-                      <a className="part-source" href={r.source.kind === 'announcement' && r.source.id ? `#/inbox?a=${r.source.id}` : undefined} title={r.source.quote}>
-                        source
-                      </a>
-                    )}
-                  </li>
-                );
-              })}
+              {todo.map((r) => (
+                <li key={r.id}>
+                  <ReqLine req={r} check={{ checked: false, onChange: () => tick(r) }} />
+                </li>
+              ))}
             </ul>
           )}
           {notes.map((n) => (
-            <p key={n.id} className="part-note" title={n.source.quote ?? undefined}>
-              {n.text}
-            </p>
+            <div key={n.id} className="part-note">
+              <ReqLine req={n} />
+            </div>
           ))}
           {gated.length > 0 && <p className="part-note">Unlocks {gated.map((g) => g.label).join(', ')}.</p>}
           {startBy && startBy > today && <p className="part-note">Start by {fmtDate(startBy, 'short')}.</p>}

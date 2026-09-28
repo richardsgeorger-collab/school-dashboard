@@ -1,6 +1,8 @@
 import { cleanAll, instanceParts, rulesFor } from '../domain/reqClean';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
+import { shortLine } from '../domain/shortLine';
+import { ReqLine } from './Requirements';
 
 /**
  * Standing rules for a class: true all term, never a task for a particular day. They used to appear on the agenda
@@ -17,18 +19,7 @@ export function ClassRules({ course }: { course: Course }) {
       <ul className="rules-list">
         {rules.map((r, i) => (
           <li key={i}>
-            <span className="rules-text">{r.text}</span>
-            <span className="hint">
-              {r.items.length === 1 ? r.items[0] : `${r.items.length} assignments`}
-              {r.sources[0]?.quote && (
-                <>
-                  {' · '}
-                  <a className="part-source" href={r.sources[0].kind === 'announcement' && r.sources[0].id ? `#/inbox?a=${r.sources[0].id}` : undefined} title={r.sources[0].quote}>
-                    source
-                  </a>
-                </>
-              )}
-            </span>
+            <ReqLine req={{ text: r.text, detail: r.detail, dueAt: null, source: r.sources[0] ?? { kind: 'manual', id: null, title: null, quote: null, at: null } }} extra={r.items.length > 1 ? `Applies to ${r.items.length} assignments.` : r.items.length === 1 ? `Applies to ${r.items[0]}.` : undefined} />
           </li>
         ))}
       </ul>
@@ -46,7 +37,7 @@ export function RulesOnItem({ item }: { item: Item }) {
   void instanceParts;
   return (
     <p className="hint item-rules">
-      <b>Class rules that apply:</b> {rules.map((r) => r.text).join(' · ')}
+      <b>Class rules that apply:</b> {rules.map((r) => shortLine(r.text)).join(' · ')}
     </p>
   );
 }

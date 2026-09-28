@@ -2,13 +2,14 @@ import { useMemo, useRef, useState } from 'react';
 import { loadApiKey } from '../chat/key';
 import { useAiAllowed } from '../config/useCan';
 import { Modal } from '../components/Modal';
-import { dateOf, fmtDate } from '../domain/dates';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
 import type { Item } from '../domain/types';
 import { announceDb, readLedger, type ReadEntry, type StoredAnnouncement } from '../halo/announce';
 import { needsRead } from '../halo/autoRead';
 import { errorGroups, genuinelyNothing, readAllAnnouncements, readAllLine, stampRead, type ReadAllResult, type ReadProgress } from '../halo/readAll';
 import { useStore } from '../storage/store';
+import { ReqLine } from './Requirements';
+import type { ReqSource } from '../domain/types';
 
 /**
  * Reads the whole backlog of announcements at once. A class is run from these posts, so a requirement from week two
@@ -68,11 +69,11 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
 
   const byCourse = useMemo(() => {
     if (!result) return [];
-    const m = new Map<string, { code: string; rows: { post: StoredAnnouncement; text: string; quote: string | null; kind: string; due: string | null }[] }>();
+    const m = new Map<string, { code: string; rows: { post: StoredAnnouncement; text: string; detail?: string; source: ReqSource; kind: string; due: string | null }[] }>();
     for (const r of result.results) {
       for (const a of r.actions) {
         const row = m.get(r.course.id) ?? { code: r.course.code, rows: [] };
-        row.rows.push({ post: r.announcement, text: a.text, quote: a.source.quote, kind: a.kind, due: a.dueAt });
+        row.rows.push({ post: r.announcement, text: a.text, detail: a.detail, source: a.source, kind: a.kind, due: a.dueAt });
         m.set(r.course.id, row);
       }
     }
@@ -171,16 +172,7 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
                 <ul className="reqs-list">
                   {c.rows.map((r, i) => (
                     <li key={i}>
-                      <span className="reqs-text">{r.text}</span>
-                      <span className="hint mono">
-                        {r.kind.replace('_', ' ')}
-                        {r.due ? ` · due ${fmtDate(dateOf(r.due, tz), 'short')}` : ''}
-                      </span>
-                      {r.quote && (
-                        <span className="reqs-src hint">
-                          <q>{r.quote}</q> <a href={`#/inbox?a=${r.post.id}`}>read it</a>
-                        </span>
-                      )}
+                      <ReqLine req={{ text: r.text, detail: r.detail, dueAt: r.due, source: r.source }} />
                     </li>
                   ))}
                 </ul>

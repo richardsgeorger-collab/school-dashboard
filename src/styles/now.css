@@ -814,3 +814,43 @@
     opacity: 1;
   }
 }
+
+/* A requirement at a glance: one short line; a tap opens the explanation and the post. */
+.req-line-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.req-line-row input {
+  margin-top: 3px;
+  flex: none;
+}
+.req-line-text {
+  all: unset;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.req-line-text:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.req-line[data-open='true'] .req-line-text {
+  font-weight: 600;
+}
+.req-line-detail {
+  margin: 6px 0 4px 26px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.req-line-detail p {
+  margin: 0 0 4px;
+}
+.req-line-detail a {
+  color: var(--accent-text);
+  font-weight: 600;
+}

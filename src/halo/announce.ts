@@ -172,7 +172,15 @@ export interface ReadEntry {
   at: string;
   summary: string | null;
   count: number;
+  /** Which reader read it. Absent means the first one; a post read by an older reader is read once more. */
+  v?: number;
 }
+
+/**
+ * The reader's version. 2 (2026-09-28): every finding carries a ten-word checklist line and a two-to-three sentence
+ * explanation. Posts read by an earlier reader are read once more so every stored line gets both.
+ */
+export const READER_VERSION = 2;
 
 /**
  * What the ledger says about one post. The Inbox header count and the "N things added" on a row both come from

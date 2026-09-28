@@ -39,3 +39,15 @@ describe('the ledger mirror', () => {
     expect(planLedgerSync(local, [r('a', 'h1', '2026-09-27T10:00:00Z')])).toEqual({ pull: [], push: [] });
   });
 });
+
+describe('the reader version travels with the ledger', () => {
+  it('a re-read of the same words by a newer reader wins on either side', async () => {
+    const { planLedgerSync } = await import('./ledgerSync');
+    const local = new Map([['p1', { id: 'p1', hash: 'h', at: '2026-09-20T00:00:00Z', summary: null, count: 1, v: 2 }]]);
+    const remote = [{ post_id: 'p1', hash: 'h', read_at: '2026-09-21T00:00:00Z', summary: null, action_count: 1, reader_version: 1 }];
+    expect(planLedgerSync(local, remote).push.map((e) => e.v)).toEqual([2]);
+    expect(planLedgerSync(local, remote).pull).toEqual([]);
+    const old = new Map([['p1', { id: 'p1', hash: 'h', at: '2026-09-22T00:00:00Z', summary: null, count: 1 }]]);
+    expect(planLedgerSync(old, [{ ...remote[0], reader_version: 2 }]).pull.map((e) => e.v)).toEqual([2]);
+  });
+});

@@ -196,8 +196,10 @@ export interface ReqSource {
  */
 export interface Requirement {
   id: string;
-  /** What to do, in the imperative. */
+  /** What to do: one checklist line of about ten words. */
   text: string;
+  /** Two or three plain sentences shown on tap: exactly what to do, and the date, count or place that matters. */
+  detail?: string;
   /** Its own deadline when it has one, which is often not the assignment's. */
   dueAt: string | null;
   done: boolean;
@@ -221,6 +223,8 @@ export interface Requirement {
 export interface ClassNote {
   id: string;
   text: string;
+  /** Two or three plain sentences shown on tap. */
+  detail?: string;
   source: ReqSource;
   addedAt: string;
   seenAt?: string | null;

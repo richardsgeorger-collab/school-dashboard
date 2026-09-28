@@ -113,6 +113,14 @@ describe('reading an announcement for anything actionable', () => {
     expect(r.actions.map((a) => a.text)).toEqual(['Reply to two classmates by Sunday']);
   });
 
+  it('keeps the short line and the explanation, cleaned: no file names in the line, three sentences at most below it', () => {
+    const raw = { summary: 's', actions: [{ kind: 'requirement', applies_to: 'i-dq', what: "Use 'Connections_Essay_Guide.docx' for the essay", detail: 'Open the essay guide attached to the post. Follow its section order. Cite in APA. A fourth sentence that is cut.', quote: 'Use the attached guide.' }] };
+    const r = actionsFromTool(raw, post, items, TZ);
+    expect(r.actions[0].text).toBe('Use the file for the essay');
+    expect(r.actions[0].detail).toBe('Open the essay guide attached to the post. Follow its section order. Cite in APA.');
+    expect(routeActions(r.actions, 'c1', 'x').requirements[0].req.detail).toBe(r.actions[0].detail);
+  });
+
   it('gives the model a written-out calendar so it looks weekdays up instead of counting', () => {
     // Posted Friday Sep 25: "before Monday" is Monday Sep 28. Haiku, left to count, said Tuesday.
     const cal = calendarFrom('2026-09-25');

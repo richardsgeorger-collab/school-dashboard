@@ -107,13 +107,14 @@ export function itemFromAction(a: Action, course: Course, now: string): Item | n
  * Turns one post's findings into changes. Nothing here writes; the caller applies the plan, so the same logic is
  * testable without a store and the split between automatic and approved stays in one place.
  */
-export function planFromActions(args: { actions: Action[]; announcement: StoredAnnouncement; course: Course; items: Item[]; courses: Course[]; now: string }): AutoPlan {
+export function planFromActions(args: { actions: Action[]; announcement: StoredAnnouncement; course: Course; items: Item[]; courses: Course[]; now: string; rewrite?: boolean }): AutoPlan {
   const { actions, announcement, course, items, now } = args;
   const plan: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, updated: [], needsApproval: [] };
   const routed = routeActions(actions, course.id, now);
   const byId = new Map(items.map((i) => [i.id, i]));
   const edited = new Map<string, Item>();
   const take = (id: string) => edited.get(id) ?? byId.get(id);
+
 
   // Parts on work that already exists: immediate, the same as a rubric or a feedback comment.
   for (const { itemId, req } of routed.requirements) {

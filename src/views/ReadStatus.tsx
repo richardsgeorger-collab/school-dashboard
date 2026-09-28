@@ -25,7 +25,7 @@ export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
   if (s.running && s.progress) {
     return (
       <p className="hint pull-tally" role="status">
-        Reading {s.progress.why} announcement {s.progress.done} of {s.progress.total}
+        {s.progress.why === 'tidy' ? `Shortening checklist lines: announcement ${s.progress.done} of ${s.progress.total}` : `Reading ${s.progress.why} announcement ${s.progress.done} of ${s.progress.total}`}
         {compact ? '' : `: “${s.progress.title}”`}…
       </p>
     );

@@ -1,4 +1,5 @@
 import { looksLikeNote } from '../domain/reqClean';
+import { clampDetail, cleanLine, LINE_WORDS, shortLine, tooLong } from '../domain/shortLine';
 import { callTool, type ToolSpec } from '../ai/client';
 import { addDays, dateOf, makeIso } from '../domain/dates';
 import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from '../domain/types';
@@ -17,8 +18,10 @@ export interface Action {
   kind: ActionKind;
   /** The planner item it attaches to, when it is about one. */
   itemId: string | null;
-  /** What the student has to do, in the imperative. */
+  /** What the student has to do: one checklist line of about ten words. */
   text: string;
+  /** Two or three plain sentences: exactly what to do, and any date, count or place that matters. */
+  detail?: string;
   dueAt: string | null;
   points: number | null;
   /** Full credit depends on it. */
@@ -44,7 +47,7 @@ export const ACTIONS_TOOL: ToolSpec = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['kind', 'applies_to', 'what', 'due', 'time', 'points', 'graded', 'changes_what_done_means', 'quote', 'confidence'],
+          required: ['kind', 'applies_to', 'what', 'detail', 'due', 'time', 'points', 'graded', 'changes_what_done_means', 'quote', 'confidence'],
           properties: {
             kind: {
               type: 'string',
@@ -52,7 +55,8 @@ export const ACTIONS_TOOL: ToolSpec = {
                 'requirement: a step or rule attached to work already in the planner list. new_work: something to do that is not in the list at all. date_change: existing work moves. points_change: its value changes. note: anything else worth knowing, including anything that fits none of these. Never drop a finding because it has no category; use note.',
             },
             applies_to: { type: 'string', description: 'The planner item id from the list, when it is about one of them. Empty for anything that belongs to the class rather than one assignment.' },
-            what: { type: 'string', description: 'What the student has to do, in the imperative, specific enough to act on without reading the post again. Not a summary of the post.' },
+            what: { type: 'string', description: 'The checklist line: one plain to-do of at most ten words, like "Reply to 2 classmates on 2 different days" or "Submit as one PDF, no handwriting". No file names, no quotation, no "per the announcement". Put a date in it only when the step has its own date, written like "Sep 20" ("Claim your topic in the forum by Sep 20").' },
+            detail: { type: 'string', description: 'Two or three plain sentences that say exactly what to do and any detail that matters: the date, the count, where to find the file (by its name), what counts. Not a quotation.' },
             due: { type: 'string', description: 'YYYY-MM-DD when the post gives a date, resolved against the date it was posted. Empty when it does not. Never invent one.' },
             time: { type: 'string', description: 'HH:mm 24-hour when stated, else empty.' },
             points: { type: 'integer', description: 'Points when the post states them, else 0.' },
@@ -86,7 +90,9 @@ Rules:
 - Set applies_to when the post is about one of the listed planner items. Match on what the post is talking about, not on a word appearing in both.
 - Pure news with nothing to act on, an office-hours move, a welcome, encouragement, produces a summary and no actions. That is a valid answer, but read carefully first: a single clause in a friendly post is often the only place a requirement appears.
 - Plain words. Say what to do.
-- Length: "what" is five to ten words, one instruction ("Reply to two classmates by Sunday"). The quote carries the detail; "what" is the checklist line. The summary is one sentence of at most eighteen words.
+- "what" is the checklist line a student reads at a glance: one plain to-do of at most ten words ("Reply to 2 classmates on 2 different days", "Bring a calculator to the quiz", "Submit as one PDF, no handwriting", "Claim your topic in the forum by Sep 20"). No file names, no quotation, no brackets, no "per the announcement", no second sentence. Count the words; over ten is wrong.
+- "detail" is what the student reads after tapping the line: two or three plain sentences with exactly what to do and anything that matters (dates, counts, where the file is, by its name). Not a quotation; the quote field carries the professor's words.
+- The summary is one sentence of at most eighteen words.
 - "what" is the instruction and nothing else: never your reasoning, a correction, or a note to yourself. Work a date out before you write, then write only the result.
 - Some planner items carry "already noted": what earlier posts already asked for on that item. When this post asks the same thing in other words, do not add it again. Add it only when something changed: a new date, a new number, a new step.
 
@@ -102,8 +108,8 @@ Procedure, every time:
 Example. Post dated 2026-09-28 (a Monday) in CHM-113, planner has "Lab 3: Titration" (id i-lab3, due 2026-10-02):
 "Lab 3 will now be due Friday October 9 instead of the 2nd. Also, from this week bring your own splash goggles to lab. No goggles, no points."
 Actions:
-- kind date_change, applies_to i-lab3, what "Lab 3 is now due Friday, October 9", due 2026-10-09, quote "Lab 3 will now be due Friday October 9 instead of the 2nd."
-- kind requirement, applies_to i-lab3, what "Bring your own splash goggles to every lab; no goggles, no points", graded true, quote "from this week bring your own splash goggles to lab. No goggles, no points."
+- kind date_change, applies_to i-lab3, what "Lab 3 now due Oct 9", detail "Lab 3 moved from October 2 to Friday, October 9. Nothing else about it changed.", due 2026-10-09, quote "Lab 3 will now be due Friday October 9 instead of the 2nd."
+- kind requirement, applies_to i-lab3, what "Bring your own splash goggles to every lab", detail "Starting this week, bring your own splash goggles to each lab session. Without them you get no points for that lab.", graded true, quote "from this week bring your own splash goggles to lab. No goggles, no points."
 Summary: "Lab 3 moved to October 9; goggles are now required in lab."
 
 Answer only through the announcement_actions tool.`;
@@ -156,7 +162,9 @@ export function actionsFromTool(raw: unknown, a: StoredAnnouncement, items: Item
   for (const e of arr(o.actions)) {
     const x = obj(e);
     const quote = str(x.quote, 600);
-    const text = capWords(cleanWhat(str(x.what, 400)), PART_WORDS);
+    // Cleaned (files, brackets, filler out) but not cut: a line still too long is rewritten by the reader, not chopped.
+    const what = cleanWhat(str(x.what, 400));
+    const text = what ? cleanLine(what) : '';
     // The quote is the whole guarantee that this came from the professor and not from the model.
     if (!quote || !text) continue;
     const kind = str(x.kind, 20) as ActionKind;
@@ -167,6 +175,7 @@ export function actionsFromTool(raw: unknown, a: StoredAnnouncement, items: Item
       kind: KINDS.includes(kind) ? kind : 'note',
       itemId: ids.has(itemId) ? itemId : null,
       text,
+      detail: clampDetail(str(x.detail, 1200)),
       dueAt: when(str(x.due, 10), str(x.time, 5), tz),
       points: pts > 0 ? pts : null,
       gradedOn: x.graded !== false,
@@ -225,8 +234,34 @@ export function buildActionsPrompt(a: StoredAnnouncement, course: Course, items:
 export async function readActions(args: { apiKey?: string; fetch?: typeof globalThis.fetch; announcement: StoredAnnouncement; course: Course; items: Item[]; tz: string }): Promise<{ summary: string; actions: Action[]; usage?: unknown }> {
   const p = buildActionsPrompt(args.announcement, args.course, args.items, args.tz);
   const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'announcement', system: p.system, user: p.user, tool: ACTIONS_TOOL, maxTokens: 4000 });
-  return { ...actionsFromTool(r.input, args.announcement, args.items, args.tz), usage: r.usage };
+  const read = actionsFromTool(r.input, args.announcement, args.items, args.tz);
+  const usage = { ...(r.usage as Record<string, number>) };
+  // The length rule, enforced: anything still over ten words goes back once, all together, for a shorter line.
+  const long = read.actions.map((a, i) => ({ a, i })).filter(({ a }) => tooLong(a.text));
+  if (long.length) {
+    try {
+      const s = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'announcement', system: [{ text: SHORTEN_SYSTEM, cache: true }], user: long.map(({ a }, k) => `${k + 1}. ${a.text}`).join('\n'), tool: SHORTEN_TOOL, maxTokens: 600 });
+      const lines = arr(obj(s.input).lines).map((x) => (typeof x === 'string' ? cleanLine(x) : ''));
+      long.forEach(({ i }, k) => {
+        const got = lines[k];
+        if (got && !tooLong(got)) read.actions[i] = { ...read.actions[i], text: got };
+      });
+      for (const [key, v] of Object.entries(s.usage ?? {})) if (typeof v === 'number') usage[key] = (usage[key] ?? 0) + v;
+    } catch {
+      /* the fallback below still keeps every line short */
+    }
+  }
+  // Last resort: a line the rewrite could not fix is cut at a clause, never left long.
+  read.actions = read.actions.map((a) => (tooLong(a.text) ? { ...a, text: shortLine(a.text) } : a));
+  return { ...read, usage };
 }
+
+export const SHORTEN_SYSTEM = `Rewrite each numbered line as one plain to-do of at most ${LINE_WORDS} words, keeping its meaning and any date or number that matters. No file names, no quotation, no brackets. Answer only through the short_lines tool, one line per input line, in the same order.`;
+const SHORTEN_TOOL: ToolSpec = {
+  name: 'short_lines',
+  description: 'The same lines, each rewritten to at most ten words.',
+  input_schema: { type: 'object', additionalProperties: false, required: ['lines'], properties: { lines: { type: 'array', items: { type: 'string' }, description: 'One rewritten line per input line, same order.' } } },
+};
 
 let seq = 0;
 const rid = (at: string) => `rq-${at.slice(0, 10).replace(/-/g, '')}-${(seq += 1).toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -250,14 +285,54 @@ export function routeActions(actions: Action[], courseId: string, at: string): R
     if ((a.kind === 'requirement' || a.kind === 'note') && a.itemId) {
       // A note about an item, or a requirement phrased as a negation, is worth knowing and is not a box to tick.
       const scope = a.kind === 'note' || looksLikeNote(a.text) ? 'reference' : undefined;
-      out.requirements.push({ itemId: a.itemId, req: { id: rid(at), text: a.text, dueAt: scope ? null : a.dueAt, done: false, doneAt: null, gradedOn: scope ? false : a.gradedOn, redefinesDone: a.redefinesDone, scope, source: a.source, addedAt: at } });
+      out.requirements.push({ itemId: a.itemId, req: { id: rid(at), text: a.text, detail: a.detail || undefined, dueAt: scope ? null : a.dueAt, done: false, doneAt: null, gradedOn: scope ? false : a.gradedOn, redefinesDone: a.redefinesDone, scope, source: a.source, addedAt: at } });
       continue;
     }
     if (a.kind === 'requirement' || a.kind === 'note') {
-      out.notes.push({ courseId, note: { id: rid(at), text: a.text, source: a.source, addedAt: at, seenAt: null } });
+      out.notes.push({ courseId, note: { id: rid(at), text: a.text, detail: a.detail || undefined, source: a.source, addedAt: at, seenAt: null } });
       continue;
     }
     out.changes.push(a);
   }
   return out;
+}
+
+/**
+ * The one-time rewrite for posts an older reader read. Not a fresh extraction: a fresh reading files a finding under
+ * a different assignment now and then, or skips one it found last time, and matching old rows to new ones by wording
+ * drops real requirements. Instead the reader gets the lines it wrote from this post and rewrites each one, in order,
+ * as a short checklist line and a short explanation. Every row keeps its assignment, its tick and its source.
+ */
+export const REWRITE_SYSTEM = `You rewrite checklist lines a student sees for requirements taken from one college class announcement. For each numbered line, write:
+- "what": one plain to-do of at most ${LINE_WORDS} words, like "Reply to 2 classmates on 2 different days", "Bring a calculator to the quiz", "Submit as one PDF, no handwriting", "Claim your topic in the forum by Sep 20". No file names, no quotation, no brackets, no "per the announcement". Keep a date only when the step has its own, written like "Sep 20".
+- "detail": two or three plain sentences with exactly what to do and anything that matters from the post (dates, counts, where the file is, by its name). Not a quotation.
+Keep each line's meaning; do not merge, split, add or drop lines. Answer only through the rewritten_lines tool, one entry per input line, in the same order.`;
+
+const REWRITE_TOOL: ToolSpec = {
+  name: 'rewritten_lines',
+  description: 'Each input line rewritten as a short checklist line and a short explanation, same order.',
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['lines'],
+    properties: {
+      lines: {
+        type: 'array',
+        items: { type: 'object', additionalProperties: false, required: ['what', 'detail'], properties: { what: { type: 'string' }, detail: { type: 'string' } } },
+      },
+    },
+  },
+};
+
+export async function rewriteLines(args: { apiKey?: string; fetch?: typeof globalThis.fetch; announcement: StoredAnnouncement; course: Course; lines: string[] }): Promise<{ lines: ({ text: string; detail: string } | null)[]; usage?: unknown }> {
+  const user = `Class: ${args.course.code} ${args.course.name}\nPosted: ${args.announcement.publishedAt ?? 'unknown'}\n\nThe announcement:\n"""\n${args.announcement.text.slice(0, 20_000)}\n"""\n\nLines to rewrite:\n${args.lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
+  const r = await callTool({ apiKey: args.apiKey, fetch: args.fetch, kind: 'announcement', system: [{ text: REWRITE_SYSTEM, cache: true }], user, tool: REWRITE_TOOL, maxTokens: 3000 });
+  const got = arr(obj(r.input).lines);
+  const lines = args.lines.map((_, i) => {
+    const x = obj(got[i]);
+    const what = cleanLine(cleanWhat(str(x.what, 400)));
+    if (!what) return null;
+    return { text: tooLong(what) ? shortLine(what) : what, detail: clampDetail(str(x.detail, 1200)) };
+  });
+  return { lines, usage: r.usage };
 }
