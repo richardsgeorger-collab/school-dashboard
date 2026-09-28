@@ -65,7 +65,7 @@ export class SupabaseRepo implements Repository {
     if (rows.length === 0) return;
     const { error } = await this.client.from(table).upsert(
       rows.map((r) => ({ id: r.id, user_id: this.userId, data: r, updated_at: r.updatedAt, deleted_at: null })),
-      { onConflict: 'id' },
+      { onConflict: 'user_id,id' },
     );
     if (error) throw new Error(error.message);
   }
@@ -73,7 +73,7 @@ export class SupabaseRepo implements Repository {
   private async tombstone(table: string, id: string, deletedAt: string) {
     const { error } = await this.client
       .from(table)
-      .upsert({ id, user_id: this.userId, data: { id }, updated_at: deletedAt, deleted_at: deletedAt }, { onConflict: 'id' });
+      .upsert({ id, user_id: this.userId, data: { id }, updated_at: deletedAt, deleted_at: deletedAt }, { onConflict: 'user_id,id' });
     if (error) throw new Error(error.message);
   }
 
