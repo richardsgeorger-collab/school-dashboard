@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Action } from './actions';
-import { autoLine, autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome } from './autoRead';
+import { autoLine, autoResultLine, emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, readDoneLine } from './autoRead';
 import type { StoredAnnouncement } from './announce';
 import { mkCourse, mkItem, TZ } from './fixtures';
 
@@ -133,6 +133,13 @@ describe('when the automatic read fails', () => {
     expect(line).not.toBeNull();
   });
 
+  it('one short line for Now after a run that changed something, nothing after one that did not', () => {
+    const plan = { ...base.plan, added: [{ label: 'x' } as never], attached: 8 };
+    expect(readDoneLine({ ...base, read: 56, plan })).toBe('Read 56 announcements: 1 added, 8 requirements attached.');
+    expect(readDoneLine({ ...base, read: 56 })).toBeNull();
+    expect(readDoneLine({ ...base, read: 0, plan })).toBeNull();
+    expect(readDoneLine({ ...base, read: 3, plan, locked: true })).toBeNull();
+  });
   it('says so plainly when there is no key, rather than saying nothing at all', () => {
     const line = autoResultLine({ ...base, noKey: true })!;
     expect(line).toContain('this build has no AI connection');

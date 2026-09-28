@@ -9,6 +9,7 @@ import { HeadsUp, type HeadsUpLine } from './HeadsUp';
 import { HaloDraw } from '../components/HaloDraw';
 import { PlanWall, useNeedsPlan } from './PlanWall';
 import { useReadStatus } from '../halo/backgroundRead';
+import { readDoneLine } from '../halo/autoRead';
 import { useReadNow } from './ReadStatus';
 import { Ring } from '../components/Ring';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
@@ -438,6 +439,17 @@ export function Now() {
           <button type="button" className="hero-inline" onClick={() => setOpen(waiting[0])}>
             Open
           </button>
+        </>
+      ),
+    });
+  // After a run that changed something: what the reader just did, in one line, with the Inbox one tap away. The
+  // trial's weekly receipt covers the same ground, so it is not repeated there.
+  else if (reading.outcome && !onTrial && readDoneLine(reading.outcome))
+    headsUp.push({
+      key: 'read-done',
+      text: (
+        <>
+          {readDoneLine(reading.outcome)} <a href="#/inbox">Inbox</a>
         </>
       ),
     });

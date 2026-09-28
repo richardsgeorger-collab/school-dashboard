@@ -249,6 +249,20 @@ export function groupFailures(messages: string[]): { message: string; count: num
  * One sentence for the sync result. The rule this exists to keep: a read that failed is never reported as a read
  * that found nothing. Silence is the same mistake, so a pass with posts waiting always says something.
  */
+/** One short line for Now after a run that changed something: "Read 56 announcements: 3 added, 8 requirements attached." Null otherwise. */
+export function readDoneLine(o: AutoOutcome): string | null {
+  if (o.read === 0 || o.locked || o.noKey || o.ledgerError) return null;
+  const p = o.plan;
+  const parts: string[] = [];
+  if (p.added.length) parts.push(`${p.added.length} added`);
+  if (p.moved.length) parts.push(`${p.moved.length} date${p.moved.length === 1 ? '' : 's'} moved`);
+  if (p.attached) parts.push(`${p.attached} requirement${p.attached === 1 ? '' : 's'} attached`);
+  if (p.updated.length) parts.push(`${p.updated.length} updated`);
+  if (p.noted) parts.push(`${p.noted} class note${p.noted === 1 ? '' : 's'}`);
+  if (parts.length === 0) return null;
+  return `Read ${o.read} announcement${o.read === 1 ? '' : 's'}: ${parts.join(', ')}.`;
+}
+
 export function autoResultLine(o: AutoOutcome): string | null {
   if (o.ledgerError) {
     return `The record of what has been read could not be opened (${o.ledgerError}), so no announcement was read this sync and nothing was spent. Reload and sync again; if it persists, export your data from You before anything else.`;
