@@ -93,6 +93,8 @@ describe('Sunday review', () => {
   it('offers itself on Sundays only, once, and gives up after two waves', () => {
     expect(shouldOfferSunday(undefined, '2026-09-14')).toBe(false);
     expect(shouldOfferSunday(undefined, '2026-09-13')).toBe(true);
+    // A brand-new student with nothing on file has nothing to review, whatever the day.
+    expect(shouldOfferSunday(undefined, '2026-09-13', 0)).toBe(false);
     expect(shouldOfferSunday(offered(undefined, '2026-09-13'), '2026-09-13')).toBe(false);
     expect(shouldOfferSunday(offered(undefined, '2026-09-13'), '2026-09-20')).toBe(true);
     const once = skipped(undefined, '2026-09-13');

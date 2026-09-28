@@ -4,8 +4,9 @@ import type { DateStr, Item, SundayReviewState } from './types';
 
 export const MAX_SKIPS = 2;
 
-/** Sundays only, once a Sunday, never after it has been waved off twice or switched off. */
-export function shouldOfferSunday(state: SundayReviewState | undefined, today: DateStr): boolean {
+/** Sundays only, once a Sunday, never after it has been waved off twice or switched off, and never with nothing to review. */
+export function shouldOfferSunday(state: SundayReviewState | undefined, today: DateStr, openWork = 1): boolean {
+  if (openWork <= 0) return false;
   if (weekdayOf(today) !== 0) return false;
   if (state?.off) return false;
   if ((state?.skips ?? 0) >= MAX_SKIPS) return false;

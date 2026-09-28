@@ -31,6 +31,8 @@ import { QuizLink } from './Quiz';
 import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '../domain/away';
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
+import { isOpen } from '../onboarding/state';
+import { maxOpen } from '../onboarding/maxState';
 import { WelcomeBack } from './WelcomeBack';
 import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, statusLine, todayDone } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
@@ -282,15 +284,18 @@ export function Now() {
     if (!showWelcome) stampLastSeen(today);
   }, [showWelcome, today]);
   const back = useMemo(() => (showWelcome && lastSeen ? welcomeBack(work, schedule, lastSeen, today) : null), [showWelcome, lastSeen, work, schedule, today]);
-  // Sunday review: offered once a Sunday, waved off twice means off.
+  // Sunday review: offered once a Sunday, waved off twice means off. Never with nothing to review, and never
+  // under the first-run screens: its backdrop sits above them and a new student on a Sunday could not tap Sign up.
   const [sunday, setSunday] = useState(false);
+  const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding);
   useEffect(() => {
-    if (shouldOfferSunday(data.settings.sundayReview, today)) {
+    if (work.length === 0 || firstRun) return;
+    if (shouldOfferSunday(data.settings.sundayReview, today, work.length)) {
       actions.updateSettings({ sundayReview: sundayOffered(data.settings.sundayReview, today) });
       setSunday(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [today]);
+  }, [today, work.length === 0, firstRun]);
   // One sentence, one colour: "You're on track." or "2 things need you." (domain/now.ts statusLine).
   const status = statusLine(clean, today, now, tz);
   // An exam within a week reshapes the screen: exam hero, study sessions, one pressure line.
