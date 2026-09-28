@@ -434,6 +434,8 @@ export interface ReminderPrefs {
   heavyDay?: boolean;
   notStarted?: boolean;
   resync?: boolean;
+  /** Sunday at six: last week done and slipped, this week coming (Max). */
+  sunday?: boolean;
   /** The student turned push on from this app (the browser permission is checked separately). */
   pushEnabled?: boolean;
 }

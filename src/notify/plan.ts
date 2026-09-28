@@ -1,4 +1,5 @@
-import { addDays, dateOf, diffDays, fmtDate, makeIso } from '../domain/dates';
+import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
+import { weekReview } from '../domain/sunday';
 import { partsDueOn } from '../domain/reqClean';
 import { isNoise } from '../domain/requirements';
 import type { Schedule } from '../domain/schedule';
@@ -6,10 +7,11 @@ import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
 
 /**
  * What to tell the student, and when, for the next two days. Pure: the client computes it from the same schedule
- * the screens use and writes it to the server, which only sends what is due. Four kinds, each its own switch:
- * the morning note, the night-before heavy-day warning, the not-started nudge, and the re-sync reminder.
+ * the screens use and writes it to the server, which only sends what is due. Each kind has its own switch: the
+ * morning note, the night-before heavy-day warning, the not-started nudge, the re-sync reminder, and on Max the
+ * Sunday recap; the trial's one reminder has none.
  */
-export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends';
+export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday';
 
 export interface Notice {
   kind: NoticeKind;
@@ -33,9 +35,11 @@ export interface PlanInput {
   lastPull: string | null;
   /** When the Max trial ends, for the one reminder the day before. */
   trialEndsAt?: string | null;
+  /** The plan includes the Sunday recap (Max, or the trial). */
+  recap?: boolean;
 }
 
-export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true };
+export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync' | 'sunday'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true, sunday: true };
 
 export const RESYNC_AFTER_DAYS = 3;
 const HEAVY_DUE = 3;
@@ -117,6 +121,16 @@ export function planNotices(input: PlanInput): Notice[] {
       const sendAt = at(today, '10:00', tz);
       const day = sendAt > now ? today : tomorrow;
       push({ kind: 'resync', sendAt: at(day, '10:00', tz), title: 'Sync Halo', body: days === null ? 'Halo has not been synced yet. One tap and your week is in.' : `Halo was last synced ${days} days ago. Deadlines may have moved.`, url: '#/now?sync=1', key: `resync:${day}` });
+    }
+  }
+
+  // Sunday at six, on Max: last week done and slipped, this week coming, in the same sentence the Sunday review
+  // opens with. Planned when the coming Sunday is today or tomorrow, from the work as it stands now.
+  if (input.recap && p.sunday) {
+    const sunday = [today, tomorrow].find((d) => weekdayOf(d) === 0);
+    if (sunday) {
+      const sentence = weekReview(items, schedule, sunday, tz).sentence;
+      push({ kind: 'sunday', sendAt: at(sunday, '18:00', tz), title: 'Your week', body: sentence, url: '#/now', key: `sunday:${sunday}` });
     }
   }
 

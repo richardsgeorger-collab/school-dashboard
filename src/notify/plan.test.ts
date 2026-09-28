@@ -24,6 +24,18 @@ describe('what to send and when', () => {
     const n = planNotices({ items: [dq], courses: [course], schedule: schedule(), prefs: { morningTime: '07:30' }, tz: TZ, today: TODAY, now: NOW, lastPull: NOW });
     expect(n.find((x) => x.kind === 'morning')?.body).toBe('1 due today. First: DQ 3: Post your initial reply (CHM-113).');
   });
+  it('the Sunday recap at six, on Max, when the coming Sunday is today or tomorrow; nothing without Max or off a Sunday', () => {
+    // 2026-09-27 is a Sunday. Planned on Sunday itself (today) and on Saturday (tomorrow), never on a Wednesday.
+    const base = { items: [item('Lab 3', '2026-09-30', 50)], courses: [course], schedule: schedule(), prefs: { morningTime: 'off' as const }, tz: TZ, lastPull: NOW, recap: true };
+    const onSunday = planNotices({ ...base, today: '2026-09-27', now: '2026-09-27T13:00:00.000Z' }).filter((x) => x.kind === 'sunday');
+    expect(onSunday).toHaveLength(1);
+    expect(onSunday[0].sendAt).toBe('2026-09-28T01:00:00.000Z');
+    expect(onSunday[0].body).toBe('Last week: 0 done. This week: 1 coming, the biggest is Lab 3 on Wed.');
+    expect(planNotices({ ...base, today: '2026-09-26', now: '2026-09-26T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(1);
+    expect(planNotices({ ...base, today: '2026-09-23', now: '2026-09-23T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(0);
+    expect(planNotices({ ...base, recap: false, today: '2026-09-27', now: '2026-09-27T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(0);
+    expect(planNotices({ ...base, prefs: { morningTime: 'off', sunday: false }, today: '2026-09-27', now: '2026-09-27T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(0);
+  });
   it('no morning note when it is off, no notes at all when every switch is off', () => {
     const items = [item('x', TODAY, 50)];
     expect(planNotices({ items, courses: [course], schedule: schedule(), prefs: { morningTime: 'off' }, tz: TZ, today: TODAY, now: NOW, lastPull: NOW }).some((x) => x.kind === 'morning')).toBe(false);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Locked } from '../config/Locked';
+import { can } from '../config/flags';
 import type { ReminderPrefs } from '../domain/types';
 import { useStore } from '../storage/store';
 import { DEFAULT_PREFS } from './plan';
@@ -104,6 +105,7 @@ export function NotificationsCard() {
         <Toggle checked={prefs.heavyDay !== false} label="A heads-up the night before a heavy day" onChange={(v) => set({ heavyDay: v })} />
         <Toggle checked={prefs.notStarted !== false} label="A nudge when big work is still untouched two days out" onChange={(v) => set({ notStarted: v })} />
         <Toggle checked={prefs.resync !== false} label="A reminder when Halo has not been synced for three days" onChange={(v) => set({ resync: v })} />
+        <Toggle checked={prefs.sunday !== false} label={`Sunday at six: last week done and slipped, this week coming${can('weeklyRecap', tier) ? '' : ' (part of Max)'}`} onChange={(v) => set({ sunday: v })} />
         <div className="field-row">
           <label className="field">
             <span>Quiet from</span>
