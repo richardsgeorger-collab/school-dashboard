@@ -293,6 +293,22 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   syncPress.current = () => setSyncOpen(true);
   useEffect(() => initPixel(), []);
+  // The small ⋯ / More menus are <details>: they close on Escape and on a tap anywhere outside, like any menu.
+  useEffect(() => {
+    const closeAll = (except?: Element | null) => {
+      for (const d of document.querySelectorAll<HTMLDetailsElement>('details.menu[open]')) if (d !== except) d.open = false;
+    };
+    const onDown = (e: PointerEvent) => closeAll((e.target as Element | null)?.closest('details.menu'));
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeAll();
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
