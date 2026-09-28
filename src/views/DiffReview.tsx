@@ -48,6 +48,8 @@ function Section({
   onAll?: () => void;
   onNone?: () => void;
 }) {
+  // An empty section is a row of zeros a first-time student has to read past; the summary line already says it.
+  if (count === 0) return null;
   return (
     <section className="diff-section">
       <h3>
