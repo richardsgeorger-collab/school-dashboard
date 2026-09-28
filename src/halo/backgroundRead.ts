@@ -108,14 +108,28 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
   const why: string[] = [];
   let items = args.items;
   let courses = args.courses;
+  // The model calls overlap, a few at a time; the plans apply strictly in order, so two posts that touch the same
+  // assignment never race. A prefetched call that fails is caught here and counted when its turn comes.
+  type Got = { ok: true; r: Awaited<ReturnType<typeof readActions>> } | { ok: false; e: unknown };
+  const pending = new Map<number, Promise<Got | null>>();
+  const start = (n: number) => {
+    if (n >= todo.length || pending.has(n)) return;
+    const a = todo[n];
+    const course = courses.find((c) => c.id === a.courseId);
+    pending.set(n, course ? withRetry(() => readActions({ apiKey: key, announcement: a, course, items, tz: args.tz })).then((r): Got => ({ ok: true, r }), (e: unknown): Got => ({ ok: false, e })) : Promise.resolve(null));
+  };
   try {
     for (let n = 0; n < todo.length; n++) {
+      for (let k = n; k < Math.min(todo.length, n + LOOKAHEAD); k++) start(k);
       const a = todo[n];
       const course = courses.find((c) => c.id === a.courseId);
-      if (!course) continue;
+      const got = await pending.get(n);
+      pending.delete(n);
+      if (!course || !got) continue;
       set({ progress: { done: n + 1, total: todo.length, title: a.title || '(untitled)', why: readReason(a) } });
       try {
-        const r = await withRetry(() => readActions({ apiKey: key, announcement: a, course, items, tz: args.tz }));
+        if (!got.ok) throw got.e;
+        const r = got.r;
         const p = planFromActions({ actions: r.actions, announcement: a, course, items, courses, now: at });
         for (const i of p.upserts) {
           args.upsertItem(i);
@@ -158,6 +172,9 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
   }
   return status.outcome;
 }
+
+/** Model calls in flight at once. Three keeps a 56-post first read to about a minute without racing the plans. */
+const LOOKAHEAD = 3;
 
 const SETTLE_MS = 900;
 const FIRST_MS = 1500;
