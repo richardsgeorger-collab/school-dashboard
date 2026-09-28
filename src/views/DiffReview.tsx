@@ -17,6 +17,8 @@ import { diffHalo, type FieldChange } from '../halo/diff';
 import type { BareDateMode, SyncSource } from '../halo/normalize';
 import type { HaloClass, HaloExport } from '../halo/types';
 import { useStore } from '../storage/store';
+import { useAccount } from '../auth/AccountContext';
+import { REFERRAL, TIER_NAMES } from '../config/tiers';
 
 type Group = keyof Selection;
 const cityOf = (tz: string) => tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
@@ -98,6 +100,7 @@ export function DiffReview({
   onClose: () => void;
 }) {
   const { data, actions, undo } = useStore();
+  const { auth, profile } = useAccount();
   const tz = data.settings.timezone;
   const [bareAs, setBareAs] = useState<BareDateMode>('utc');
   const [includeZero, setIncludeZero] = useState(false);
@@ -219,6 +222,15 @@ export function DiffReview({
               {referenceLine(kept)}{' '}
               <a className="diff-toggle" href="#/inbox">
                 read them
+              </a>
+            </li>
+          )}
+          {/* The moment a sync lands is the moment a student thinks of the friend in the same section. One line. */}
+          {source === 'halo' && auth.session && profile?.referralCode && (
+            <li className="diff-invite">
+              Someone in your section would want this too. Invite them: you both get {TIER_NAMES[REFERRAL.rewardTier]} for {REFERRAL.days} days.{' '}
+              <a className="diff-toggle" href="#/you?s=invite">
+                Invite a friend
               </a>
             </li>
           )}
