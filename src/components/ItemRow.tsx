@@ -11,6 +11,7 @@ import { useChipState } from './ItemChip';
 import { haloSaysNotIn } from '../domain/confirm';
 import { itemTone, toneLabel } from '../domain/status';
 import { shareLine } from '../domain/share';
+import { AsOf } from '../views/PlanWall';
 
 /** `dateless`: the row sits under a day header, so only the time is repeated. */
 export function ItemRow({ item, onOpen, showStart = false, compact = false, dateless = false, progress = null }: { item: Item; onOpen: (item: Item) => void; showStart?: boolean; compact?: boolean; dateless?: boolean; progress?: { done: number; total: number } | null }) {
@@ -63,6 +64,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
           <CourseChip course={course} />
           <span>
             {dateless ? fmtTime(item.dueAt, data.settings.timezone) : `due ${dueLabel(item, data.settings.timezone, today)}`}
+            <AsOf item={item} />
             {/* An announcement moved this. The date it moved from stays visible for a few days so the move is seen. */}
             {movedRecently(item, today, data.settings.timezone) && <s className="item-was"> was {fmtDate(dateOf(item.dateChange!.from, data.settings.timezone), 'short')}</s>}
           </span>

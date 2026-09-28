@@ -8,6 +8,7 @@ import type { Course, Item, ReqSource } from '../domain/types';
 import type { Action } from './actions';
 import { routeActions } from './actions';
 import { readState, type ReadEntry, type StoredAnnouncement } from './announce';
+import { planOf } from '../config/tiers';
 
 /**
  * Announcements read themselves on every sync. Professors post new assignments in them constantly, so anything that
@@ -272,7 +273,7 @@ export function autoResultLine(o: AutoOutcome): string | null {
   const posts = (v: number) => `${v} announcement${v === 1 ? '' : 's'}`;
 
   if (o.locked) {
-    return `${posts(o.todo)} ${o.todo === 1 ? 'is' : 'are'} waiting to be read. Reading announcements is part of Pro.`;
+    return `${posts(o.todo)} ${o.todo === 1 ? 'is' : 'are'} waiting to be read. Reading announcements is part of ${planOf('announcementAI')}.`;
   }
   if (o.noKey) {
     return `${posts(o.todo)} came in and ${o.todo === 1 ? 'has' : 'have'} not been read: this build has no AI connection. Until then I do not know what ${o.todo === 1 ? 'it asks' : 'they ask'}.`;

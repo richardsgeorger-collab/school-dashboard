@@ -19,6 +19,7 @@ import { starterPrompt } from '../work/starter';
 import { PromptPanel } from './PromptPanel';
 import { Requirements } from './Requirements';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
+import { AsOf } from './PlanWall';
 
 /**
  * The one thing on Now. What it is, why it is the one, how long, how much, and Start. Everything a student might
@@ -252,6 +253,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
           ) : (
             <span key={i} className="pill">
               {f.text}
+              {f.text.startsWith('due ') && <AsOf item={item} />}
             </span>
           ),
         )}

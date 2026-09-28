@@ -146,7 +146,7 @@ describe('when the automatic read fails', () => {
     expect(line).not.toContain('Anthropic');
     // A plan without reading is not a missing key: the posts wait for Pro or the trial, and the line says so.
     const locked = autoResultLine({ ...base, locked: true })!;
-    expect(locked).toContain('part of Pro');
+    expect(locked).toContain('part of Plus');
     expect(locked).not.toContain('key');
     expect(line).not.toMatch(/nothing in/i);
   });

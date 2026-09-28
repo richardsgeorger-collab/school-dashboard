@@ -2414,3 +2414,15 @@
   padding-top: 6px;
   font-weight: 600;
 }
+
+/* The first-day study plan on the onboarding payoff. */
+.onboard-plan {
+  text-align: left;
+  padding: 14px 16px;
+  margin: 12px 0;
+}
+.onboard-plan-days {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-variant-numeric: tabular-nums;
+}

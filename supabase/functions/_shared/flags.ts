@@ -20,6 +20,8 @@ export interface TierSource {
   /** A referral reward: this tier until this time, on top of whatever is paid for. */
   rewardTier?: Tier | null;
   rewardUntil?: string | null;
+  /** An account that synced Halo on the free plan before 2026-09-28 keeps sync until this date (term end). */
+  legacySyncUntil?: string | null;
 }
 
 /** The best of what is paid for, a live trial, and a live reward. */
@@ -57,14 +59,29 @@ export function trialState(p: TierSource | null | undefined, now = new Date().to
   return p.trialStartedAt ? 'used' : 'available';
 }
 
+export interface SyncAccess {
+  /** Halo sync may run: Plus or Max, a live trial, or an account kept on it until its term ends. */
+  allowed: boolean;
+  /** Why it is allowed, or 'none'. */
+  via: 'plan' | 'trial' | 'legacy' | 'none';
+  /** When it stopped, for "Halo sync paused since Oct 3": the trial's end, or the legacy date. Null if it never ran. */
+  pausedSince: string | null;
+  /** Set while an account is kept on sync from before the change: the date it ends. */
+  legacyUntil: string | null;
+}
+
 /**
- * With the free plan off, an account whose trial has been used and ended, and that pays for nothing, is asked to
- * pick a plan before it syncs again. Their data stays. Everyone else, including an account that has never started
- * the trial, uses the planner freely.
+ * Whether Halo sync may run for this account (2026-09-28: sync is part of Plus). Pure, so every screen asks the same
+ * question: the sync sheet, the bookmark's arrival, the frozen banner, the "as of" on due dates.
  */
-export function needsPlan(p: TierSource | null | undefined, freePlanEnabled: boolean, now = new Date().toISOString()): boolean {
-  if (freePlanEnabled || !p) return false;
-  return effectiveTier(p, now) === 'free' && trialState(p, now) === 'used';
+export function syncAccess(p: TierSource | null | undefined, now = new Date().toISOString()): SyncAccess {
+  if (!p) return { allowed: false, via: 'none', pausedSince: null, legacyUntil: null };
+  const tier = effectiveTier(p, now);
+  const legacy = p.legacySyncUntil && p.legacySyncUntil > now ? p.legacySyncUntil : null;
+  if (can('haloManualSync', tier)) return { allowed: true, via: p.trialEndsAt && p.trialEndsAt > now && rank(p.tier) < rank('plus') ? 'trial' : 'plan', pausedSince: null, legacyUntil: legacy };
+  if (legacy) return { allowed: true, via: 'legacy', pausedSince: null, legacyUntil: legacy };
+  const ended = [p.trialEndsAt, p.legacySyncUntil, p.rewardUntil, p.graceUntil].filter((x): x is string => !!x && x <= now).sort();
+  return { allowed: false, via: 'none', pausedSince: ended.length ? ended[ended.length - 1] : null, legacyUntil: null };
 }
 
 /** How far ahead Now may suggest work, in days, or null for the whole term. */

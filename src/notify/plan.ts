@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
+import { TRIAL } from '../config/tiers';
 import { weekReview } from '../domain/sunday';
 import { partsDueOn } from '../domain/reqClean';
 import { isNoise } from '../domain/requirements';
@@ -137,10 +138,14 @@ export function planNotices(input: PlanInput): Notice[] {
   // The trial: one reminder, the evening before it ends, with what it did (the app fills the receipts in when
   // the note is tapped). Never more than once.
   if (input.trialEndsAt && input.trialEndsAt > now) {
+    // Day 5 of the 7: one reminder, with the recap (the app fills the receipts in when it is tapped), while two days
+    // are still left to decide. The trial started the day the account was made, so day 5 is four days after that.
     const endDay = dateOf(input.trialEndsAt, tz);
-    const dayBefore = addDays(endDay, -1);
-    if (dayBefore >= today) {
-      push({ kind: 'trial_ends', sendAt: at(dayBefore, '18:00', tz), title: 'Your Max trial ends tomorrow', body: "Here's what it has done for you, and one button if you want to keep it. Nothing charges on its own.", url: '#/you', key: `trial_ends:${endDay}` });
+    const left = TRIAL.days - TRIAL.reminderDay;
+    // It ends at the signup's clock time seven days on, which is day 8's date: day 5 is three dates before that.
+    const day5 = addDays(endDay, -(left + 1));
+    if (day5 >= today) {
+      push({ kind: 'trial_ends', sendAt: at(day5, '18:00', tz), title: `Day ${TRIAL.reminderDay} of your Max trial`, body: `Here's what Max has done for you so far. ${left} days left; after that Halo sync pauses unless you pick a plan. Nothing charges on its own.`, url: '#/you?s=plan', key: `trial_ends:${endDay}` });
     }
   }
 

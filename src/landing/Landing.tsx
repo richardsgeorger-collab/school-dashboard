@@ -1,7 +1,7 @@
 import { pixel } from '../analytics/pixel';
 import { HaloDraw } from '../components/HaloDraw';
 import { IconCheck, IconHalo } from '../components/Icons';
-import { PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
+import { PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
 
 /**
  * The front door, at the root address, for a GCU student who has never seen Halo+. One line on what it does, the
@@ -9,11 +9,10 @@ import { PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
  * the plans from the one config file, four questions, and the line that it is not from GCU. Anyone signed in never
  * sees this: the root goes straight to Now for them.
  */
-const PLANS: { tier: keyof typeof PRICES | 'free'; lines: string[] }[] = [
-  { tier: 'free', lines: ['Halo sync with the bookmark', 'Now, agenda and month', 'Add anything Halo does not have'] },
-  { tier: 'plus', lines: ['Sync on its own when you open Halo', 'Reminders and heavy-day warnings', 'Points, streaks, calendar feed'] },
-  { tier: 'pro', lines: ['Reads every announcement and syllabus', 'Grade projection and what-if', 'The coach and the tutor'] },
-  { tier: 'max', lines: ['Lecture notes from a recording', 'Flashcards and practice from your material', 'The Sunday recap, your colour'] },
+const PLANS: { tier: 'free' | 'plus' | 'max'; lines: string[] }[] = [
+  { tier: 'free', lines: PLAN_LINES.free },
+  { tier: 'plus', lines: PLAN_LINES.plus },
+  { tier: 'max', lines: PLAN_LINES.max },
 ];
 
 export function Landing() {
@@ -53,7 +52,7 @@ export function Landing() {
               Log in
             </a>
           </div>
-          <p className="hint">Try Max free for {TRIAL.days} days. No card. Nothing charges.</p>
+          <p className="hint">Max free for your first {TRIAL.days} days, from the moment you sign up. No card. Nothing charges.</p>
         </div>
 
         {/* The picture is the app: the same classes and tokens Now uses, so the landing wears whatever gold the app wears. */}
@@ -171,7 +170,7 @@ export function Landing() {
           <li>Open halo.gcu.edu and log in as you always do.</li>
           <li>Click the bookmark. Your classes, assignments, grades and announcements arrive here, and you approve them before anything changes.</li>
         </ol>
-        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. On Plus, a small Chrome extension syncs on its own whenever you open Halo.</p>
+        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and your first {TRIAL.days} days are free; on Plus a small Chrome extension also syncs on its own whenever you open Halo.</p>
       </section>
 
       <section className="landing-section" aria-label="Plans">
@@ -182,7 +181,7 @@ export function Landing() {
               <p className="landing-plan-name">{TIER_NAMES[p.tier]}</p>
               <p className="landing-plan-price">
                 {p.tier === 'free' ? '$0' : `$${PRICES[p.tier].month.toFixed(2)}`}
-                {p.tier !== 'free' && <small> a month, or ${PRICES[p.tier].year} a year</small>}
+                {p.tier !== 'free' && <small> a month, or ${PRICES[p.tier].semester.toFixed(2)} a semester</small>}
               </p>
               <ul>
                 {p.lines.map((l) => (
@@ -194,7 +193,7 @@ export function Landing() {
         </div>
         <p className="landing-trial">
           <HaloDraw size={28} />
-          <span>Try Max free for {TRIAL.days} days. No card. Nothing charges. Invite a friend and you both get a month of Plus.</span>
+          <span>Every new account starts with Max free for {TRIAL.days} days, on its own. No card. Nothing charges. After that, keep syncing Halo with Plus, or stay on Free with your syllabus classes. Invite a friend and you both get a month of Plus.</span>
         </p>
       </section>
 

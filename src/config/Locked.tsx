@@ -6,6 +6,7 @@ import { recordingsDb } from '../record/db';
 import { useStore } from '../storage/store';
 import { can, rank, tierFor, trialState } from './flags';
 import { FEATURE_LINES, TIER_NAMES, TRIAL, type Feature, type Tier } from './tiers';
+import { UpgradeButton } from '../views/PlanWall';
 
 /**
  * What a locked feature would do with THIS student's data, from cheap real counts. Never a guess: a count of posts
@@ -65,9 +66,12 @@ export function Locked({ feature, tier, children, compact = false, line, quiet =
             <span className="hint">{TRIAL.line}</span>
           </span>
         ) : (
-          <a className="btn small primary" href={`#/you?s=plan&to=${need}&for=${feature}`}>
-            See {TIER_NAMES[need]}
-          </a>
+          <span className="locked-trial">
+            <UpgradeButton tier={need === 'max' ? 'max' : 'plus'} />
+            <a className="hero-inline" href={`#/you?s=plan&to=${need}&for=${feature}`}>
+              See plans
+            </a>
+          </span>
         )}
       </div>
     </div>

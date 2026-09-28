@@ -19,6 +19,7 @@ import { useStore } from '../storage/store';
 import { ItemDetail } from './ItemDetail';
 import { DateAudit } from './DateAudit';
 import { PlanReview, Sure } from './PlanReview';
+import { planOf } from '../config/tiers';
 
 /**
  * The compare screen for one class: what the rule-based parser says next to what the AI pass reasoned, one row per
@@ -144,7 +145,7 @@ export function IngestView() {
       <DateAudit course={course} />
 
       <section className="card ingest-status">
-        {!hasKey && <p className="hint">The AI read is part of Pro and Max. Until then start dates and time estimates come from the built-in read of the syllabus and each description.</p>}
+        {!hasKey && <p className="hint">The AI read is part of {planOf('syllabusAI')}. Until then start dates and time estimates come from the built-in read of the syllabus and each description.</p>}
         {ctx?.syllabusInfo && (
           <p className="hint mono" data-full={ctx.syllabusInfo.dropped.length === 0 && !ctx.syllabusInfo.storedTruncated}>
             Syllabus: {ctx.syllabusInfo.sent.toLocaleString()} of {ctx.syllabusInfo.stored.toLocaleString()} stored characters go to the model

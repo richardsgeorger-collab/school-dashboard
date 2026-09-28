@@ -281,7 +281,7 @@ export function useBackgroundRead(): void {
     };
   }, []);
   // The profile lands after the first run on a slow connection, and a run that saw Free left the backlog marked
-  // "part of Pro" until the next Halo sync. When the plan turns out to read, run again.
+  // "part of Plus" until the next Halo sync. When the plan turns out to read, run again.
   const canRead = can('announcementAI', tier);
   useEffect(() => {
     if (!canRead) return;

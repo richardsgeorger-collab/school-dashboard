@@ -1,4 +1,4 @@
-// The service worker. On a schedule (Plus and up) or on the popup's button (anyone), it opens Halo in a background
+// The service worker. On a schedule or when Halo opens (plans that sync: Plus and up), or on the popup's button, it opens Halo in a background
 // tab, runs the same sync script the bookmark runs, carries the export to the dashboard tab, and closes what it
 // opened. If Halo is not logged in, the sync script says so and nothing is sent.
 import { DASH_ORIGIN, DASH_URL, PERIOD_MINUTES } from './config.js';
@@ -26,9 +26,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     if (state.pending) state.pending(msg.payload);
     reply({ ok: true });
   } else if (msg.kind === 'sync-now') {
-    // From the popup (by hand) or from the Halo page itself when it was just opened (auto). Sync-on-open is for
-    // everyone: it is the bookmark, without the bookmark. The timed schedule stays with the plans that have it.
-    void runSync({ auto: !!msg.auto }).then(() => reply({ ok: true }));
+    // From the popup (by hand) or from the Halo page itself when it was just opened (auto). Halo sync is part of Plus
+    // (2026-09-28): sync-on-open runs only on a plan that syncs; by hand it runs, and the app explains a paused plan.
+    void chrome.storage.local.get('tier').then(({ tier }) => {
+      if (msg.auto && !PAID.includes(tier)) return reply({ ok: false, why: 'plan' });
+      return runSync({ auto: !!msg.auto }).then(() => reply({ ok: true }));
+    });
     return true;
   }
 });

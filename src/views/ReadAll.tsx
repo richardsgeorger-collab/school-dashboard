@@ -10,6 +10,7 @@ import { errorGroups, genuinelyNothing, readAllAnnouncements, readAllLine, stamp
 import { useStore } from '../storage/store';
 import { ReqLine } from './Requirements';
 import type { ReqSource } from '../domain/types';
+import { planOf } from '../config/tiers';
 
 /**
  * Reads the whole backlog of announcements at once. A class is run from these posts, so a requirement from week two
@@ -92,7 +93,7 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
             <p className="hint mono">
               {todo.length} to read{already > 0 ? ` · ${already} already read` : ''}
             </p>
-            {!hasKey && <p className="hint">Reading announcements needs a Pro or Max plan.</p>}
+            {!hasKey && <p className="hint">Reading announcements is part of {planOf('announcementAI')}.</p>}
             {progress && (
               <p className="hint mono" role="status">
                 Reading {progress.done} of {progress.total}: {progress.course} “{progress.title}”

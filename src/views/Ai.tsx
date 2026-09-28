@@ -5,7 +5,7 @@ import { useAccount } from '../auth/AccountContext';
 import { ChatCard } from '../chat/ChatCard';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Locked } from '../config/Locked';
-import { LIMITS, TIER_NAMES } from '../config/tiers';
+import { LIMITS, TIER_NAMES, planOf } from '../config/tiers';
 import { useRoute, type Route } from '../router';
 import { Quiz } from './Quiz';
 import { StudyKit } from './StudyKit';
@@ -25,7 +25,7 @@ export function Ai() {
   const [m, setM] = useState<Meter | null>(latestMeter());
   useEffect(() => onMeter(setM), []);
   const cap = LIMITS.aiMessagesPerDay[tier];
-  const meterLine = cap === 0 ? `AI chat is part of Pro and Max.` : m ? `${m.messagesToday} of ${cap} messages today · $${m.monthCostUsd.toFixed(2)} of $${m.ceilingUsd.toFixed(2)} this month` : `${cap} messages a day on ${TIER_NAMES[tier]}.`;
+  const meterLine = cap === 0 ? `AI chat is part of ${planOf('aiChat')}.` : m ? `${m.messagesToday} of ${cap} messages today · $${m.monthCostUsd.toFixed(2)} of $${m.ceilingUsd.toFixed(2)} this month` : `${cap} messages a day on ${TIER_NAMES[tier]}.`;
 
   const go = (next: Mode) => {
     const keep: Record<string, string> = { m: next };

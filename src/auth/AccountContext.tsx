@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import type { Tier } from '../config/tiers';
+import { syncAccess } from '../config/flags';
 import { pixelOnce } from '../analytics/pixel';
 import { captureRef, claimPendingRef, rememberTier } from './referral';
 import { useAuth, type AuthState } from './useAuth';
@@ -21,7 +22,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const p = useProfile(auth.userId);
   // The plan on this device, for the extension (auto-sync is Plus) and nothing else.
-  useEffect(() => rememberTier(p.tier), [p.tier]);
+  // A free account kept on sync until its term ends counts as Plus for the extension, which only knows tiers.
+  const syncTier = p.tier === 'free' && syncAccess(p.profile).allowed ? 'plus' : p.tier;
+  useEffect(() => rememberTier(syncTier), [syncTier]);
   // An invite link is remembered on arrival and claimed once there is an account to claim it with.
   useEffect(() => captureRef(), []);
   useEffect(() => {

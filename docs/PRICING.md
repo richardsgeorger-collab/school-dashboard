@@ -83,3 +83,20 @@ education help; Structured, Motion, Amie, Power Planner, iStudiez pages; Revenue
 2026* (overall and Education), RevenueCat trial-length and reverse-trial posts; ChartMogul SaaS conversion 2026;
 First Page Sage trial benchmarks; Amplitude on reverse trials. Full list in the research transcript
 (`docs/PRICING-sources.md`).
+
+## Decided 2026-09-28 (George)
+
+- **Free $0:** syllabus PDF drop and items added by hand; Now, Calendar and Classes built from them. No Halo sync,
+  no announcements, no AI.
+- **Plus $3.99 a month or $14.99 a semester:** Halo sync (bookmark and auto-sync extension), Halo's real grades and
+  every announcement, announcements read for you, every notification and the Sunday preview.
+- **Max $7.99 a month or $29.99 a semester:** everything in Plus; coach, tutor, prompt panel, study worksheets, quiz
+  me, exam study plans, lecture transcripts, the colour picker.
+- **Pro is retired.** Not sold; an old Pro row keeps Plus.
+- **Trial:** 7 days of Max, started by the signup itself (migration 0010), once per account; recap reminder on day 5.
+- **After the trial with nothing paid:** sync pauses, data stays, every screen shows "Halo sync paused since …" and
+  "as of …" on Halo's due dates; a bookmark that arrives is not applied; one tap to Stripe restores sync, grades and
+  the colour. Free features keep working.
+- **Existing free syncers** keep sync to their term's end (profiles.legacy_sync_until) and see one notice.
+- "Semester equivalent" was read as one payment every 4 months at a little under four months' price. Sandbox (test
+  mode) prices only; live prices wait for George.

@@ -12,6 +12,7 @@ import { useStore } from '../storage/store';
 import { askTutor, BEHIND, citedSources, STUCK, tutorSituation } from '../tutor/tutor';
 import { starterAsk } from '../work/starter';
 import { STARTER_SLOT } from './HeroCard';
+import { planOf } from '../config/tiers';
 
 interface Msg extends Turn {
   at: string;
@@ -153,7 +154,7 @@ export function Tutor() {
             </button>
           </div>
         </div>
-        {!hasKey && <p className="hint">The tutor needs a Pro or Max plan.</p>}
+        {!hasKey && <p className="hint">The tutor is part of {planOf('aiChat')}.</p>}
         {situation && situation.upcoming.length > 0 && (
           <p className="hint mono">
             Coming up: {situation.upcoming.map((u) => `${u.label} in ${Math.max(0, Math.round((new Date(`${u.due}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()) / 86_400_000))} days`).join(' · ')}

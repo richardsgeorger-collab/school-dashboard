@@ -36,6 +36,16 @@ describe('what to send and when', () => {
     expect(planNotices({ ...base, recap: false, today: '2026-09-27', now: '2026-09-27T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(0);
     expect(planNotices({ ...base, prefs: { morningTime: 'off', sunday: false }, today: '2026-09-27', now: '2026-09-27T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(0);
   });
+  it('the trial reminder goes once, on day 5 of 7, with two days left', () => {
+    // Signed up Sep 28 (day 1); the trial ends Oct 5, so day 5 is Oct 2.
+    const base = { items: [], courses: [course], schedule: schedule(), prefs: { morningTime: 'off' as const }, tz: TZ, lastPull: NOW, trialEndsAt: '2026-10-06T01:00:00.000Z' };
+    const t = planNotices({ ...base, today: '2026-10-01', now: '2026-10-01T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends');
+    expect(t).toHaveLength(1);
+    expect(t[0].sendAt).toBe('2026-10-03T01:00:00.000Z');
+    expect(t[0].title).toBe('Day 5 of your Max trial');
+    expect(t[0].body).toContain('2 days left; after that Halo sync pauses');
+    expect(planNotices({ ...base, today: '2026-10-03', now: '2026-10-03T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends')).toHaveLength(0);
+  });
   it('no morning note when it is off, no notes at all when every switch is off', () => {
     const items = [item('x', TODAY, 50)];
     expect(planNotices({ items, courses: [course], schedule: schedule(), prefs: { morningTime: 'off' }, tz: TZ, today: TODAY, now: NOW, lastPull: NOW }).some((x) => x.kind === 'morning')).toBe(false);

@@ -854,3 +854,75 @@
   color: var(--accent-text);
   font-weight: 600;
 }
+
+/* Sync paused: the banner on every screen, and "as of" on every date Halo gave. Never looks current. */
+.frozen-banner,
+.legacy-notice {
+  margin: 0 0 var(--s-4, 16px);
+  padding: 12px 16px;
+  border-radius: var(--r-md, 12px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  font-size: 14px;
+}
+.frozen-banner {
+  /* Pinned under the top bar: scrolling never hides that the dates below may be stale. Opaque, so rows never show through. */
+  position: sticky;
+  top: 72px;
+  z-index: 15;
+  box-shadow: 0 0 0 6px var(--bg);
+  background: color-mix(in srgb, var(--risk) 12%, var(--surface));
+  border: 1px solid var(--risk);
+  color: var(--ink);
+}
+.frozen-banner p,
+.legacy-notice p {
+  margin: 0;
+  flex: 1 1 320px;
+}
+.frozen-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.legacy-notice {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.as-of {
+  margin-left: 0.35em;
+  font-weight: 600;
+  color: var(--risk);
+  white-space: nowrap;
+}
+.plan-lines {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.frozen-short {
+  display: none;
+}
+@media (max-width: 700px) {
+  /* One line on a phone, with the button: always visible, never a wall. */
+  .frozen-banner {
+    top: 64px;
+    padding: 8px 12px;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .frozen-banner p {
+    flex: 1 1 100%;
+  }
+  .frozen-long,
+  .frozen-actions .hero-inline {
+    display: none;
+  }
+  .frozen-short {
+    display: inline;
+  }
+}

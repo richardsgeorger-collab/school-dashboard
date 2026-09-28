@@ -7,7 +7,6 @@ import { EmptyState } from '../components/EmptyState';
 import { IconCheck, IconNow } from '../components/Icons';
 import { HeadsUp, type HeadsUpLine } from './HeadsUp';
 import { HaloDraw } from '../components/HaloDraw';
-import { PlanWall, useNeedsPlan } from './PlanWall';
 import { useReadStatus } from '../halo/backgroundRead';
 import { readDoneLine } from '../halo/autoRead';
 import { useReadNow } from './ReadStatus';
@@ -50,6 +49,8 @@ import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
+import { planOf } from '../config/tiers';
+import { AsOf } from './PlanWall';
 
 const HOME_NUDGE_KEY = 'school-dashboard:home-screen-nudge';
 const readNudge = (): boolean => {
@@ -216,7 +217,8 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
             {item.label}
           </span>
           <span className="row-meta">
-            {course?.code} · {when} · {approx(item.estimatedMinutes)}
+            {course?.code} · {when}
+            <AsOf item={item} /> · {approx(item.estimatedMinutes)}
             {item.points > 0 ? ` · ${item.points} pts` : ''}
             {(item.requirements ?? []).some((r) => !r.done) ? ` · ${(item.requirements ?? []).filter((r) => !r.done).length} part${(item.requirements ?? []).filter((r) => !r.done).length === 1 ? '' : 's'} from announcements` : ''}
           </span>
@@ -388,7 +390,7 @@ export function Now() {
             <TrialOffer variant="inline" label={`Try Max free and it reads ${reading.outcome.todo === 1 ? 'it' : 'them'}`} />
           ) : (
             <>
-              Reading them is part of Pro. <a href="#/inbox">Inbox</a>
+              Reading them is part of {planOf('announcementAI')}. <a href="#/inbox">Inbox</a>
             </>
           )}
         </>
@@ -599,7 +601,6 @@ export function Now() {
     heroCard
   ) : null;
 
-  const walled = useNeedsPlan();
   // Keyboard on Now: d done, n not today, s start, o open. Only when no field or sheet has focus.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -623,7 +624,6 @@ export function Now() {
   }, [hero?.id, today, justFinished]);
   return (
     <div className="now">
-      {walled && <PlanWall />}
       {trialDays !== null && trialDays <= 1 && <TrialReceipts />}
       <header className="now-head">
         <div>

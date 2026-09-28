@@ -6,53 +6,70 @@
  * Money is in dollars. Time is in days unless the name says otherwise.
  */
 
+/**
+ * The plans, as set by George on 2026-09-28. Free: the syllabus PDF drop and items added by hand, and Now, Calendar
+ * and Classes built from them; no Halo sync, no announcements, no AI. Plus: Halo sync, Halo's real grades, every
+ * announcement read for you, all notifications and the Sunday preview. Max: everything in Plus and every AI study
+ * tool, plus the colour picker. `pro` is retired: it is no longer sold and has nothing of its own; it stays in the
+ * list only so an old row still reads (it ranks above Plus, so it keeps Plus).
+ */
 export const TIERS = ['free', 'plus', 'pro', 'max'] as const;
 export type Tier = (typeof TIERS)[number];
+/** The plans that are sold. */
+export type Paid = 'plus' | 'max';
+export const PAID: readonly Paid[] = ['plus', 'max'];
 
-export const TIER_NAMES: Record<Tier, string> = { free: 'Free', plus: 'Plus', pro: 'Pro', max: 'Max' };
+export const TIER_NAMES: Record<Tier, string> = { free: 'Free', plus: 'Plus', pro: 'Plus', max: 'Max' };
 
-/** Monthly and annual prices. Annual is framed as "2 months free" in the UI; the numbers here are the truth. */
-export const PRICES: Record<Exclude<Tier, 'free'>, { month: number; year: number }> = {
-  plus: { month: 3.99, year: 29 },
-  pro: { month: 6.99, year: 49 },
-  max: { month: 9.99, year: 69 },
+/** A month, or a semester paid in one go (billed every four months, a little under four months' price). */
+export type Interval = 'month' | 'semester';
+export const PRICES: Record<Paid, Record<Interval, number>> = {
+  plus: { month: 3.99, semester: 14.99 },
+  max: { month: 7.99, semester: 29.99 },
 };
 
 /**
- * Stripe price ids, per environment. Sandbox (test) ids, created 2026-09-25 in the School-Dashboard sandbox. At launch, replace with the live
- * ids; the checkout function refuses to run while a placeholder is in use.
+ * Stripe price ids. Sandbox (test mode) ids, created 2026-09-28 in the School-Dashboard sandbox; the semester price
+ * recurs every 4 months. At launch, replace with the live ids; the checkout function refuses a placeholder.
  */
-export const STRIPE_PRICE_IDS: Record<Exclude<Tier, 'free'>, { month: string; year: string }> = {
-  plus: { month: 'price_1UJPwl02Mu8IT856d8uZS8PC', year: 'price_1UJPwm02Mu8IT856Eb3nwA2d' },
-  pro: { month: 'price_1UJPwn02Mu8IT856KmnOWttp', year: 'price_1UJPwn02Mu8IT856L2DuH6t0' },
-  max: { month: 'price_1UJPwp02Mu8IT8564INq2yEE', year: 'price_1UJPwp02Mu8IT856WwAw4KUl' },
+export const STRIPE_PRICE_IDS: Record<Paid, Record<Interval, string>> = {
+  plus: { month: 'price_1UKnhi02Mu8IT856sbzY0nNw', semester: 'price_1UKnhj02Mu8IT856cgQOZCPQ' },
+  max: { month: 'price_1UKnhj02Mu8IT8560rhi1cqG', semester: 'price_1UKnhk02Mu8IT8562vcNgnpi' },
+};
+
+/** Sandbox prices from before 2026-09-28, so a subscription made on one still maps to a plan. Never offered. */
+export const LEGACY_PRICE_IDS: Record<string, { tier: Tier; interval: Interval }> = {
+  price_1UJPwl02Mu8IT856d8uZS8PC: { tier: 'plus', interval: 'month' },
+  price_1UJPwm02Mu8IT856Eb3nwA2d: { tier: 'plus', interval: 'semester' },
+  price_1UJPwn02Mu8IT856KmnOWttp: { tier: 'pro', interval: 'month' },
+  price_1UJPwn02Mu8IT856L2DuH6t0: { tier: 'pro', interval: 'semester' },
+  price_1UJPwp02Mu8IT8564INq2yEE: { tier: 'max', interval: 'month' },
+  price_1UJPwp02Mu8IT856WwAw4KUl: { tier: 'max', interval: 'semester' },
 };
 
 /**
- * The trial: five days of Max, started on purpose (at the first-sync payoff, on a locked Max feature, or from
- * You), once per account, tracked server-side. No card, nothing charges, ever, unless they choose a plan. The
- * sentence is used everywhere the trial is mentioned, so it never drifts.
+ * The trial: seven days of Max, started automatically when the account is made (no button, no card), once per
+ * account, tracked server-side. The recap reminder goes on day 5. The sentence is used everywhere the trial is
+ * mentioned, so it never drifts.
  */
-export const TRIAL = { tier: 'max' as Tier, days: 5, cardRequired: false, line: 'Free for 5 days. No card. Nothing charges.' };
+export const TRIAL = { tier: 'max' as Tier, days: 7, reminderDay: 5, cardRequired: false, line: 'Max free for 7 days. No card. Nothing charges.' };
 
 /**
- * The free plan switch. ON: an account with no plan keeps the planner (Halo sync, calendar, Now) for ever, with
- * every AI feature shown as a soft, honest preview. OFF: the same account can sync and use the planner until its
- * trial has been used and ended; after that the planner keeps their data but asks them to pick a plan before it
- * syncs again. OFF until the pricing decision is made (docs/PRICING.md).
+ * Accounts that were already syncing Halo on the free plan before 2026-09-28 keep sync until the end of the current
+ * term (profiles.legacy_sync_until, set by migration 0010), then follow the plans above. They are told once.
  */
-export const FREE_PLAN_ENABLED = false;
+export const LEGACY_SYNC_NOTE = 'Halo sync is now part of Plus. You were already syncing, so it stays on for you until';
 
 /** After a failed payment the tier is kept this long before dropping to Free. */
 export const GRACE_DAYS = 7;
 
-/** Invite a friend: both get Plus for a month. */
+/** Invite a friend: both get Plus for a month (Plus is what syncs Halo). */
 export const REFERRAL = { rewardTier: 'plus' as Tier, days: 30, both: true };
 
 /** Per-day and per-week caps. `null` means unlimited. */
 export const LIMITS = {
-  /** AI chat messages a day (the coach). Pro 10, Max 30, as set on 2026-09-24. */
-  aiMessagesPerDay: { free: 0, plus: 0, pro: 10, max: 30 } as Record<Tier, number>,
+  /** AI chat messages a day (the coach): Max only, 30. */
+  aiMessagesPerDay: { free: 0, plus: 0, pro: 0, max: 30 } as Record<Tier, number>,
   /** Lectures processed a week (transcript → notes). */
   lecturesPerWeek: { free: 0, plus: 0, pro: 0, max: 10 } as Record<Tier, number>,
   /** How far ahead Now's smart suggestions look. Free sees this week only. */
@@ -64,7 +81,7 @@ export const LIMITS = {
  * AI_WARN_AT they get a heads-up; at 100% AI features pause until the first of next month. No student ever costs more
  * in AI than they pay.
  */
-export const AI_CEILING_USD: Record<Tier, number> = { free: 0, plus: 0.75, pro: 2.5, max: 4.0 };
+export const AI_CEILING_USD: Record<Tier, number> = { free: 0, plus: 0.75, pro: 0.75, max: 4.0 };
 export const AI_WARN_AT = 0.8;
 
 /**
@@ -114,57 +131,72 @@ export const AI_KIND_FEATURE: Record<AiKind, Feature> = {
 /** Kinds that count against the daily message cap. */
 export const MESSAGE_KINDS: readonly AiKind[] = ['coach', 'tutor', 'brief', 'draft', 'method', 'other'];
 
-/** The lowest tier that has each feature. */
+/** The lowest tier that has each feature. Nothing is Pro any more (see TIERS). */
 export const FEATURES = {
-  // Free
-  haloManualSync: 'free',
+  // Free: what a syllabus and your own hands can build.
+  syllabusDrop: 'free',
+  manualItems: 'free',
   monthView: 'free',
   agendaView: 'free',
   nowBasic: 'free',
-  manualItems: 'free',
-  // Plus
+  // Plus: Halo, its grades and announcements, and every reminder.
+  haloManualSync: 'plus',
   haloAutoSync: 'plus',
+  haloGrades: 'plus',
+  announcementAI: 'plus',
   nowSmart: 'plus',
   reminders: 'plus',
   heavyDayWarnings: 'plus',
+  weeklyRecap: 'plus',
+  gradeProjection: 'plus',
   gamification: 'plus',
   icsFeed: 'plus',
-  // Pro
-  announcementAI: 'pro',
-  syllabusAI: 'pro',
-  gradeProjection: 'pro',
-  aiChat: 'pro',
-  examPlans: 'pro',
-  // Max
-  lectures: 'max',
+  // Max: every AI study tool, and your colour.
+  aiChat: 'max',
+  promptPanel: 'max',
   flashcards: 'max',
-  weeklyRecap: 'max',
-  earlyAccess: 'max',
+  examPlans: 'max',
+  lectures: 'max',
+  syllabusAI: 'max',
   themes: 'max',
+  earlyAccess: 'max',
 } as const satisfies Record<string, Tier>;
 export type Feature = keyof typeof FEATURES;
 
 /** One line per feature for the upgrade sheet. What it does, not what it is called. */
 export const FEATURE_LINES: Record<Feature, string> = {
-  haloManualSync: 'Pull your assignments and grades from Halo with one tap.',
+  syllabusDrop: 'Drop a syllabus PDF and every assignment lands on your calendar.',
+  manualItems: 'Add anything by hand.',
   monthView: 'See the month at a glance.',
   agendaView: 'Your work, day by day.',
   nowBasic: 'What to do right now.',
-  manualItems: 'Add anything Halo does not have.',
-  haloAutoSync: 'Halo syncs on its own while your browser is open. Nothing to tap.',
+  haloManualSync: 'Sync Halo: classes, assignments and due dates, with one bookmark.',
+  haloAutoSync: 'Halo syncs on its own whenever you open it (the Chrome extension).',
+  haloGrades: "Halo's real grades, exactly as Halo shows them.",
+  announcementAI: 'Every announcement read for you, with what it asks put on the assignment.',
   nowSmart: 'Now ranks everything by due date, time it takes, and points, all term long.',
   reminders: 'A morning note with your day, and a nudge before something slips.',
   heavyDayWarnings: 'A heads-up the night before a heavy day, while there is still time.',
+  weeklyRecap: 'Sunday: what you finished, what is coming, where you are behind.',
+  gradeProjection: 'What you need on the rest of the term.',
   gamification: 'Points, streaks, and a bar that shows the term filling in.',
   icsFeed: 'Your deadlines in Google or Apple Calendar, live.',
+  aiChat: 'A coach and a tutor that know your classes.',
+  promptPanel: 'A ready-made prompt for any assignment, built from its rubric and announcements.',
+  flashcards: 'Quiz me and study worksheets from your own material.',
+  examPlans: 'A study plan for your next quiz or exam, spread over the days before it.',
+  lectures: 'Paste or record a lecture, get notes and the key points.',
+  syllabusAI: 'Reads syllabi and rubrics into real start dates and prep steps.',
   themes: 'Your colour: pick the accent the whole app wears.',
-  announcementAI: 'Reads every Halo announcement and puts the real requirements on your assignments.',
-  syllabusAI: 'Reads syllabi and rubrics into assignments, real start dates, and prep steps.',
-  gradeProjection: 'Your grade so far, and what you need on the final.',
-  aiChat: 'Ask what to work on next. It knows your classes.',
-  examPlans: 'Studying spread over the days before a test, not the night before.',
-  lectures: 'Record a lecture, get notes, a summary, and the key points.',
-  flashcards: 'Flashcards and practice questions from your own lectures.',
-  weeklyRecap: 'Sunday: what you finished, what is coming, where you are behind.',
   earlyAccess: 'New features first.',
 };
+
+/** What each paid plan is, in the words every price card, locked message and the landing page share. */
+export const PLAN_LINES: Record<'free' | Paid, string[]> = {
+  free: ['Syllabus PDF drop and items you add', 'Now, Calendar and Classes built from them', 'No Halo sync, no announcements, no AI'],
+  plus: ['Halo sync: the bookmark and the auto-sync extension', "Halo's real grades and every announcement", 'Announcements read for you', 'Every notification and the Sunday preview'],
+  max: ['Everything in Plus', 'Coach, tutor, prompt panel and study worksheets', 'Quiz me and exam study plans', 'Lecture transcripts and your own colour'],
+};
+
+/** "part of Plus": the plan a feature is in, for every locked line, so no message ever names a plan by hand. */
+export const planOf = (feature: Feature): string => TIER_NAMES[FEATURES[feature]];

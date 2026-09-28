@@ -11,7 +11,7 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { can, rewardDaysLeft, trialDaysLeft } from '../config/flags';
 import { DEFAULT_ACCENT } from '../config/accents';
 import { AccentPicker } from './AccentPicker';
-import { FEATURE_LINES, FEATURES, PRICES, REFERRAL, TIER_NAMES, TIERS, TRIAL, type Feature, type Tier } from '../config/tiers';
+import { PAID, PLAN_LINES, PRICES, REFERRAL, TIER_NAMES, TRIAL, type Tier } from '../config/tiers';
 import { openPortal, startCheckout } from '../billing/client';
 import { subscriptionLine, type Interval, type Paid } from '../billing/subscription';
 import { useSubscription } from '../billing/useSubscription';
@@ -267,7 +267,7 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
   const [interval, setInterval_] = useState<Interval>('month');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const paid = TIERS.filter((t): t is Paid => t !== 'free');
+  const paid = PAID;
   const ready = auth.configured && !!auth.session;
   const choose = async (t: Paid) => {
     setBusy(t);
@@ -282,20 +282,20 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
   return (
     <section className="card settings-card" id="you-plan" aria-label="Plans">
       <h2 className="section-title">Plans</h2>
-      <p className="hint">Each plan adds to the one before it. Change or cancel any time.</p>
+      <p className="hint">Free keeps your syllabus classes and anything you add. Plus syncs Halo. Max adds every AI study tool. Change or cancel any time.</p>
       <TrialOffer lead={`Not sure? Try Max free for ${TRIAL.days} days.`} />
       <SegmentedControl
         label="Billing"
         value={interval}
         options={[
           { value: 'month', label: 'Monthly' },
-          { value: 'year', label: 'Yearly, two months free' },
+          { value: 'semester', label: 'By the semester' },
         ]}
         onChange={(v) => setInterval_(v)}
       />
       <div className="plans">
         {paid.map((t) => {
-          const adds = (Object.keys(FEATURES) as Feature[]).filter((f) => FEATURES[f] === t);
+          const adds = PLAN_LINES[t];
           return (
             <div key={t} className="plan card" data-current={current === t} data-highlight={highlight === t}>
               <div className="grade-head">
@@ -307,12 +307,12 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
                 )}
               </div>
               <p className="plan-price">
-                {interval === 'month' ? `$${PRICES[t].month.toFixed(2)}` : `$${PRICES[t].year}`}
-                <small> {interval === 'month' ? 'a month' : 'a year'}</small>
+                {`$${PRICES[t][interval].toFixed(2)}`}
+                <small> {interval === 'month' ? 'a month' : 'a semester (every 4 months)'}</small>
               </p>
               <ul>
-                {adds.map((f) => (
-                  <li key={f}>{FEATURE_LINES[f]}</li>
+                {adds.map((l) => (
+                  <li key={l}>{l}</li>
                 ))}
               </ul>
               {ready ? (

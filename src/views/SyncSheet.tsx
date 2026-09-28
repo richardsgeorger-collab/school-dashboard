@@ -3,7 +3,7 @@ import { Modal } from '../components/Modal';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
-import { PlanWall, useNeedsPlan } from './PlanWall';
+import { PlanWall, useSyncAccess } from './PlanWall';
 import { HaloImport } from './HaloImport';
 import { SyncAssignments } from './SyncAssignments';
 import { BookmarkButton, useBookmarkHref } from './BookmarkButton';
@@ -94,7 +94,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
   const tz = data.settings.timezone;
   const [note, setNote] = useState<string | null>(null);
   const last = data.settings.lastPull?.at ?? loadLastSync()?.at ?? null;
-  const walled = useNeedsPlan();
+  const walled = !useSyncAccess().allowed;
   if (walled) {
     return (
       <Modal title="Sync Halo" onClose={onClose}>

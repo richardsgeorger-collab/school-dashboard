@@ -45,11 +45,14 @@ export function examMode(
   settings: Settings,
   today: DateStr,
   minutesFor: (i: Item) => number = (i) => i.estimatedMinutes,
+  /** Which kinds of test, and how far ahead: the defaults are exam mode's; the first-day plan asks for the next quiz too. */
+  opts: { types?: Item['type'][]; days?: number } = {},
 ): ExamPlan | null {
   const tz = settings.timezone;
-  const horizon = addDays(today, EXAM_WINDOW_DAYS);
+  const types = opts.types ?? ['exam'];
+  const horizon = addDays(today, opts.days ?? EXAM_WINDOW_DAYS);
   const exam = items
-    .filter((i) => i.type === 'exam' && i.status !== 'done' && dateOf(i.dueAt, tz) >= today && dateOf(i.dueAt, tz) <= horizon)
+    .filter((i) => types.includes(i.type) && i.status !== 'done' && dateOf(i.dueAt, tz) >= today && dateOf(i.dueAt, tz) <= horizon)
     .sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
   if (!exam) return null;
   const examDay = dateOf(exam.dueAt, tz);
@@ -93,3 +96,7 @@ export function examPressure(plan: ExamPlan): string | null {
   if (plan.suppressed.length > 0) return `${plan.suppressed.length} other thing${plan.suppressed.length === 1 ? '' : 's'} due in the two weeks after wait until the exam is over.`;
   return null;
 }
+
+/** The first-day plan: the next quiz or exam in three weeks, its study spread over the days before it. */
+export const nextTestPlan = (items: Item[], schedule: Schedule, settings: Settings, today: DateStr): ExamPlan | null =>
+  examMode(items, schedule, settings, today, (i) => i.estimatedMinutes, { types: ['quiz', 'exam'], days: 21 });

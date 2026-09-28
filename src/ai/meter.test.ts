@@ -19,17 +19,18 @@ describe('the meter', () => {
   it('refuses a kind the tier does not have', () => {
     expect(allowance('coach', meter([], 'free', TODAY))).toMatchObject({ ok: false, reason: 'tier' });
     expect(allowance('coach', meter([], 'plus', TODAY))).toMatchObject({ ok: false, reason: 'tier' });
-    expect(allowance('lecture', meter([], 'pro', TODAY))).toMatchObject({ ok: false, reason: 'tier' });
-    expect(allowance('coach', meter([], 'pro', TODAY)).ok).toBe(true);
+    expect(allowance('coach', meter([], 'pro', TODAY))).toMatchObject({ ok: false, reason: 'tier' });
+    expect(allowance('announcement', meter([], 'plus', TODAY)).ok).toBe(true);
+    expect(allowance('coach', meter([], 'max', TODAY)).ok).toBe(true);
   });
 
   it('stops at the daily message cap, per tier, from config', () => {
-    const cap = LIMITS.aiMessagesPerDay.pro;
+    const cap = LIMITS.aiMessagesPerDay.max;
     const rows = Array.from({ length: cap }, () => row(TODAY, 'coach', 0.01));
-    expect(allowance('coach', meter(rows.slice(0, cap - 1), 'pro', TODAY)).ok).toBe(true);
-    expect(allowance('coach', meter(rows, 'pro', TODAY))).toMatchObject({ ok: false, reason: 'daily' });
+    expect(allowance('coach', meter(rows.slice(0, cap - 1), 'max', TODAY)).ok).toBe(true);
+    expect(allowance('coach', meter(rows, 'max', TODAY))).toMatchObject({ ok: false, reason: 'daily' });
     // Announcements are not messages; they do not count against it.
-    expect(allowance('announcement', meter(rows, 'pro', TODAY)).ok).toBe(true);
+    expect(allowance('announcement', meter(rows, 'max', TODAY)).ok).toBe(true);
   });
 
   it('warns at 80% of the monthly ceiling and pauses at 100%', () => {

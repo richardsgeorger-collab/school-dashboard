@@ -4,7 +4,7 @@ import { SignIn } from '../auth/SignIn';
 import { CourseChip } from '../components/CourseChip';
 import { HaloDraw } from '../components/HaloDraw';
 import { SegmentedControl } from '../components/SegmentedControl';
-import { dateOf, fmtDate } from '../domain/dates';
+import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
 import { rankItems } from '../domain/now';
 import type { Item } from '../domain/types';
 import { useRoute } from '../router';
@@ -13,7 +13,10 @@ import { BookmarkButton, SyncSteps } from '../views/SyncSheet';
 import { visibleSteps, type OnboardingState, type Step } from './state';
 import { pixel } from '../analytics/pixel';
 import { announceDb } from '../halo/announce';
-import { TrialOffer } from '../views/TrialOffer';
+import { nextTestPlan } from '../domain/exam';
+import { freshMax } from './maxState';
+import { trialState } from '../config/flags';
+import { TRIAL } from '../config/tiers';
 import { track } from './track';
 
 const HOURS = ['1', '2', '3', '4'] as const;
@@ -64,7 +67,7 @@ export function announcementFinds(items: Item[]): number {
  */
 export function Onboarding() {
   const { data, schedule, actions, today } = useStore();
-  const { auth } = useAccount();
+  const { auth, profile } = useAccount();
   const { navigate } = useRoute();
   const tz = data.settings.timezone;
   const ob = data.settings.onboarding as OnboardingState;
@@ -89,10 +92,13 @@ export function Onboarding() {
     track(step, 'skip');
     set({ skippedAt: new Date().toISOString() });
   };
+  const onTrial = trialState(profile) === 'active';
   const finish = () => {
     track(step, 'complete');
     pixel('CompleteRegistration');
     set({ step: 'done', doneAt: new Date().toISOString() });
+    // The trial started with the account; its welcome (colour, receipts, the tour) opens once the first day is set up.
+    if (onTrial && !data.settings.maxOnboarding) actions.updateSettings({ maxOnboarding: freshMax() });
     navigate('now');
   };
 
@@ -103,6 +109,7 @@ export function Onboarding() {
   }, [step, auth.configured, auth.session]);
 
   const synced = data.courses.length > 0;
+  const testPlan = useMemo(() => (synced ? nextTestPlan(data.items, schedule, data.settings, today) : null), [synced, data.items, schedule, data.settings, today]);
   const hero = useMemo(() => (synced ? (rankItems(data.items.filter((i) => i.type !== 'participation'), schedule, new Date().toISOString(), tz)[0] ?? null) : null), [synced, data.items, schedule, tz]);
   const found = useCountUp(synced ? data.items.length : 0);
   const finds = announcementFinds(data.items);
@@ -164,7 +171,7 @@ export function Onboarding() {
         {step === 'account' && (
           <section className="onboard-step" aria-label="Sign up">
             <h1 className="onboard-title">Create your account.</h1>
-            <p className="onboard-text">Your classes and work follow you between your phone and laptop. Email link or Google; no password to invent. Already have one? The same form signs you in.</p>
+            <p className="onboard-text">Your classes and work follow you between your phone and laptop, and signing up starts Max free for {TRIAL.days} days, on its own: no card, nothing charges. Email link or Google; no password to invent. Already have one? The same form signs you in.</p>
             <SignIn auth={auth} title="Your account" />
             <div className="onboard-actions">
               <button type="button" className="btn" onClick={() => skipStep('halo')}>
@@ -271,16 +278,26 @@ export function Onboarding() {
                 First up: <b>{hero.label}</b>, {dateOf(hero.dueAt, tz) < today ? 'was due' : 'due'} {fmtDate(dateOf(hero.dueAt, tz), 'short')}.
               </p>
             )}
-            <TrialOffer
-              variant="card"
-              lead={
-                finds > 0
-                  ? 'Max already found what your professors only said in announcements. Keep it reading, plan your studying, and ask what to do next.'
-                  : posts > 0
-                    ? `Your professors have posted ${posts} announcement${posts === 1 ? '' : 's'}. Max reads every one for the requirements they only said there, plans your studying, and answers what to do next.`
-                    : undefined
-              }
-            />
+            {/* Day one has to deliver: what the announcements asked for, and a plan for the next test. */}
+            {finds === 0 && posts > 0 && (
+              <p className="onboard-text">
+                Max is reading your {posts} announcement{posts === 1 ? '' : 's'} now for what your professors only said there. It lands on each assignment as it goes.
+              </p>
+            )}
+            {testPlan && (
+              <div className="onboard-plan card">
+                <p className="eyebrow">Your study plan for {testPlan.exam.label}</p>
+                <p className="onboard-text">
+                  {testPlan.exam.type === 'exam' ? 'Exam' : 'Quiz'} on {fmtDate(testPlan.examDay, 'long')}. About {fmtMinutes(testPlan.remainingMinutes)} of study, spread so it fits your week:
+                </p>
+                <ul className="onboard-plan-days">
+                  {testPlan.sessions.map((x) => (
+                    <li key={x.day}>{x.label}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {onTrial && <p className="hint">Max is on for your first {TRIAL.days} days. No card. Nothing charges.</p>}
             <div className="onboard-actions">
               <button type="button" className="btn primary" onClick={finish}>
                 Show me my day

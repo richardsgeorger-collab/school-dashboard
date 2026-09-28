@@ -56,6 +56,8 @@ import { maxOpen } from './onboarding/maxState';
 import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
+import { FrozenBanner, LegacyNotice, PlanWall, useSyncAccess } from './views/PlanWall';
+import { Modal } from './components/Modal';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
 function HaloHandoff() {
@@ -63,6 +65,7 @@ function HaloHandoff() {
   const [waiting, setWaiting] = useState(false);
   const { params } = useRoute();
   const expecting = params.get('halo') === '1';
+  const access = useSyncAccess();
   useHaloHandoff(useCallback((p: HaloExport) => setPayload(p), []));
   useEffect(() => {
     if (!expecting || payload) {
@@ -91,7 +94,16 @@ function HaloHandoff() {
             </div>
           )}
         >
-          <HaloImport payload={payload} onClose={() => setPayload(null)} />
+          {access.allowed ? (
+            <HaloImport payload={payload} onClose={() => setPayload(null)} />
+          ) : (
+            // Sync is off: the bookmark's data is not applied, and the student is told why, with the one-tap way back.
+            <Modal title="Halo sync is paused" onClose={() => setPayload(null)}>
+              <div className="modal-body">
+                <PlanWall context="sync" />
+              </div>
+            </Modal>
+          )}
         </ErrorBoundary>
       )}
     </>
@@ -287,6 +299,9 @@ function Shell({ captureOpen, paletteOpen, onSync, onCapture, onCloseCapture, on
       {captureOpen && <QuickCapture onClose={onCloseCapture} />}
       {paletteOpen && <Palette onClose={onClosePalette} />}
       <main className="main">
+        {/* Inside the page, under the fixed top bar on a phone: sync paused, or kept on until term end. */}
+        <FrozenBanner />
+        <LegacyNotice />
         <Screen />
       </main>
       <BottomNav />

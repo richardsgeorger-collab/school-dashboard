@@ -17,7 +17,7 @@ Deno.serve(guard(async (req) => {
 
   const body = (await req.json().catch(() => ({}))) as { tier?: string; interval?: string; returnTo?: string };
   const tier = body.tier as keyof typeof STRIPE_PRICE_IDS;
-  const interval = body.interval === 'year' ? 'year' : 'month';
+  const interval = body.interval === 'semester' ? 'semester' : 'month';
   const price = STRIPE_PRICE_IDS[tier]?.[interval];
   if (!price) return json(400, { error: 'No such plan.' });
   if (price.includes('PLACEHOLDER')) return json(503, { error: 'Checkout is not switched on yet.' });
