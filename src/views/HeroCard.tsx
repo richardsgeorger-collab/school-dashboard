@@ -195,6 +195,10 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
       // Clipboard blocked: the tutor button still carries it.
     }
   };
+  const closeMenu = (e: React.MouseEvent<HTMLElement>) => {
+    const d = e.currentTarget.closest('details');
+    if (d) d.open = false;
+  };
   const openTutor = () => {
     try {
       sessionStorage.setItem(STARTER_SLOT(item.id), starter);
@@ -295,20 +299,28 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
           {fit && <p className="hero-line">{fit}</p>}
           {skip && <p className="hero-line">{skip}</p>}
           {(gates.length > 0 || prereqs.length > 0) && (
-            <p className="hero-line">
-              <b>Needs first</b>{' '}
-              {gates.map((g) => (
-                <button key={g.id} type="button" className="hero-inline" onClick={() => onOpen(g)}>
-                  {g.label}
-                </button>
-              ))}
-              {prereqs.map((p, i) => (
-                <span key={i}>
-                  {p.text}
-                  {p.source ? <span className="muted"> ({p.source})</span> : null}
-                </span>
-              ))}
-            </p>
+            <div className="hero-needs">
+              <b>Needs first</b>
+              <ul>
+                {gates.map((g) => (
+                  <li key={g.id}>
+                    <button type="button" className="hero-inline" onClick={() => onOpen(g)}>
+                      {g.label}
+                    </button>
+                  </li>
+                ))}
+                {prereqs.map((p, i) => (
+                  <li key={i}>
+                    {p.text}
+                    {p.source ? (
+                      <span className="hero-src" title={p.source}>
+                        source
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           {next && (
             <div className="hero-first">
@@ -371,7 +383,10 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
           )}
           {material.flagged.length > 0 && (
             <p className="hero-line">
-              <b>Your professor flagged</b> “{material.flagged[0].point}” <span className="muted">({material.flagged[0].where})</span>
+              <b>Your professor flagged</b> “{material.flagged[0].point}”{' '}
+              <a className="hero-src" href={`#/library?c=${item.courseId}`} title={material.flagged[0].where}>
+                source
+              </a>
             </p>
           )}
           {shaky && (
@@ -389,6 +404,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
               <b>Same idea as</b> {link.other.code} {link.topic}: {link.note}
             </p>
           )}
+          {/* Two actions in view (go do it; get a prompt for it); the rest behind More. */}
           <div className="hero-more">
             <a className="btn small" href={halo.href} target="_blank" rel="noreferrer">
               {halo.label} ↗
@@ -398,22 +414,29 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
                 Prompt for this
               </button>
             )}
-            {course && (
-              <button type="button" className="btn small" onClick={openTutor}>
-                Ask the tutor
-              </button>
-            )}
-            {course && (
-              <button type="button" className="btn small" onClick={() => void copy()}>
-                {copied ? 'Copied' : 'Copy a short prompt'}
-              </button>
-            )}
-            <button type="button" className="btn small" onClick={() => setChoosing((c) => (c === 'block' ? null : 'block'))}>
-              Can't do this yet
-            </button>
-            <button type="button" className="btn small" onClick={() => setChoosing((c) => (c === 'snooze' ? null : 'snooze'))}>
-              Not today
-            </button>
+            <details className="menu hero-menu">
+              <summary className="btn small" aria-label="More actions">
+                More
+              </summary>
+              <div className="menu-list">
+                {course && (
+                  <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); openTutor(); }}>
+                    Ask the tutor
+                  </button>
+                )}
+                {course && (
+                  <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); void copy(); }}>
+                    {copied ? 'Copied' : 'Copy a short prompt'}
+                  </button>
+                )}
+                <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); setChoosing((c) => (c === 'block' ? null : 'block')); }}>
+                  Can't do this yet
+                </button>
+                <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); setChoosing((c) => (c === 'snooze' ? null : 'snooze')); }}>
+                  Not today
+                </button>
+              </div>
+            </details>
           </div>
           {choosing === 'block' && <BlockChooser onPick={block} onClose={() => setChoosing(null)} />}
           {choosing === 'snooze' && (

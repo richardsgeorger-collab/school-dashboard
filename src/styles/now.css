@@ -188,11 +188,66 @@
 .hero .reqs-compact .reqs-meta {
   font-family: var(--font-body);
 }
+.hero .reqs-compact .reqs-list li {
+  position: relative;
+}
+/* The source link shows on hover (or keyboard focus) only; the sheet carries the full quote. */
 .hero .reqs-compact .part-source {
+  position: absolute;
+  right: 0;
+  top: 2px;
   font: var(--t-small);
   color: var(--ink-3);
   text-decoration: underline;
   text-underline-offset: 3px;
+  opacity: 0;
+  transition: opacity var(--dur-1) var(--ease);
+}
+.hero .reqs-compact .reqs-list li:hover .part-source,
+.hero .reqs-compact .reqs-list li:focus-within .part-source,
+.hero .reqs-compact .part-source:focus-visible {
+  opacity: 1;
+}
+.hero .reqs-compact .reqs-row {
+  padding-right: 56px;
+}
+/* Needs first: a short list, one line each, the source behind a small link. */
+.hero-needs {
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.hero-needs b {
+  color: var(--ink);
+}
+.hero-needs ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hero-src {
+  margin-left: 6px;
+  font: var(--t-small);
+  color: var(--ink-3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: help;
+}
+.hero-menu {
+  position: relative;
+}
+.hero-more .hero-menu > summary {
+  list-style: none;
+  display: inline-flex;
+  width: auto;
+  height: auto;
+}
+.hero-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.hero-menu[open] > summary {
+  background: var(--surface-2);
 }
 .hero-details {
   margin-top: var(--s-4);
