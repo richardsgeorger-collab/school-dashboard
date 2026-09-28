@@ -11,6 +11,10 @@ const label = process.argv[2] ?? 'after';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 const OUT = `docs/screens/${label}`;
 mkdirSync(OUT, { recursive: true });
+// The build stamp a current bookmark carries, read off the served sync script so these fixtures never go stale
+// themselves (a payload stamped with an older build is held on the review screen with a reinstall).
+const BUILD = ((await (await fetch(`${BASE}halo-sync.js`)).text()).match(/build (\S+)\./) ?? [])[1] ?? 'unknown';
+const OLD_BUILD = '2026-09-24a';
 const SEEDED = [
   ['now', '#/now'],
   ['calendar', '#/calendar'],
@@ -53,16 +57,33 @@ const SEEDED = [
     const post = (n, title, body) => ({ id: `rev-${n}`, forumId: 'f1', title, content: `<p>${body}</p>`, publishedAt: `2026-09-${String(10 + n).padStart(2, '0')}T15:00:00.000Z`, modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] });
     const assess = (n, title, due, pts) => ({ id: `a-${n}`, title, dueDate: due, points: pts, type: 'ASSIGNMENT', status: null, score: null, description: '' });
     // A normal sync: the current bookmark, Halo's real 11:59 PM Phoenix deadlines (06:59Z).
-    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', pulls: ['assessments', 'grades', 'instructors', 'announcements', 'class facts', 'instructor feedback', 'rubrics', 'class resources', 'discussions', 'quiz results', 'alerts', 'inbox'], classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [assess(1, 'Chem Lab 4 report', '2026-10-10T06:59:00.000Z', 50), assess(2, 'Chem Quiz 3', '2026-10-13T06:59:00.000Z', 20)], announcements: [post(1, 'Lab 3 goggles', 'Bring your own splash goggles to lab from now on.')], resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', pulls: ['assessments', 'grades', 'instructors', 'announcements', 'class facts', 'instructor feedback', 'rubrics', 'class resources', 'discussions', 'quiz results', 'alerts', 'inbox'], classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [assess(1, 'Chem Lab 4 report', '2026-10-10T06:59:00.000Z', 50), assess(2, 'Chem Quiz 3', '2026-10-13T06:59:00.000Z', 20)], announcements: [post(1, 'Lab 3 goggles', 'Bring your own splash goggles to lab from now on.')], resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1800);
+  }],
+  // The same sync from a bookmark saved before the current build: held at the top with a one-click reinstall, nothing
+  // applied until the student reinstalls or waves it through; then the reinstall step opened.
+  ['sync-stale', '#/now', async (page) => {
+    const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
+    const assess = (n, title, due, pts) => ({ id: `a-${n}`, title, dueDate: due, points: pts, type: 'ASSIGNMENT', status: null, score: null, description: '' });
+    const payload = { kind: 'halo-export', version: 1, build: OLD_BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', pulls: ['assessments', 'grades', 'instructors', 'announcements', 'class facts', 'instructor feedback', 'rubrics', 'class resources', 'discussions', 'quiz results', 'alerts', 'inbox'], classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [assess(1, 'Chem Lab 4 report', '2026-10-10T06:59:00.000Z', 50), assess(2, 'Chem Quiz 3', '2026-10-13T06:59:00.000Z', 20)], announcements: [], resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1500);
+  }],
+  ['sync-stale-reinstall', '#/now', async (page) => {
+    const chm = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.find((c) => c.code === 'CHM-113'));
+    const payload = { kind: 'halo-export', version: 1, build: OLD_BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', pulls: ['assessments', 'grades'], classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: [], resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
+    await page.waitForTimeout(1200);
+    await page.click('.diff-stale button:has-text("Reinstall the bookmark")');
+    await page.waitForTimeout(500);
   }],
   // A sync from the current bookmark where Halo refused one class's announcements: the honest "not everything" path.
   ['sync-partial', '#/now', async (page) => {
     const cs = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses.filter((c) => c.code === 'CHM-113' || c.code === 'ENG-105'));
     const cls = (c, posts) => ({ id: `h-${c.id}`, slugId: 'X', classCode: `${c.code}-X`, courseCode: c.code, name: c.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] });
     const post = { id: 'sp-1', forumId: 'f1', title: 'Office hours moved', content: '<p>Office hours are Thursdays 1–2 this week only.</p>', publishedAt: '2026-09-24T15:00:00.000Z', modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] };
-    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [cls(cs[0], [post]), cls(cs[1], undefined)], alerts: [], problems: [{ klass: 'ENG-105', kind: 'announcements', message: 'Internal server error', op: 'getForums', status: 500 }], pulls: ['assessments', 'grades', 'instructors', 'announcements', 'class facts', 'instructor feedback', 'rubrics', 'class resources', 'discussions', 'quiz results', 'alerts', 'inbox'] };
+    const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [cls(cs[0], [post]), cls(cs[1], undefined)], alerts: [], problems: [{ klass: 'ENG-105', kind: 'announcements', message: 'Internal server error', op: 'getForums', status: 500 }], pulls: ['assessments', 'grades', 'instructors', 'announcements', 'class facts', 'instructor feedback', 'rubrics', 'class resources', 'discussions', 'quiz results', 'alerts', 'inbox'] };
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1800);
   }],
@@ -77,7 +98,7 @@ const SEEDED = [
       post(5, 'Attached', 'Attached'),
       post(6, 'Reading for next week', 'Read chapters 5 and 6 before Monday. We will start with limiting reagents.'),
     ];
-    const payload = { kind: 'halo-export', version: 1, build: 'shot', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1800);
     await page.keyboard.press('Escape');
@@ -108,7 +129,7 @@ const SEEDED = [
       post(3, 'Exam 1 room', 'Exam 1 is in Room 204, not our usual room. Bring a pencil and your calculator; no phones.'),
       post(4, 'Attached', 'Attached'),
     ];
-    const payload = { kind: 'halo-export', version: 1, build: 'shot', exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
+    const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', classes: [{ id: `h-${chm.id}`, slugId: 'X', classCode: `${chm.code}-X`, courseCode: chm.code, name: chm.name, instructors: [], startDate: null, endDate: null, stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [], announcements: posts, resources: [], discussions: [], messages: [] }], alerts: [], problems: [] };
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1500);
     await page.keyboard.press('Escape');
@@ -205,7 +226,7 @@ const FRESH = [
     await page.click('.onboard button:has-text("I dragged it"), .onboard button:has-text("I made the bookmark")'); await page.waitForTimeout(400);
     const post = { id: 'first-1', forumId: 'f1', title: 'Welcome and lab goggles', content: '<p>Welcome to General Chemistry. Bring your own splash goggles to every lab; no goggles, no lab, no points.</p>', publishedAt: '2026-09-20T15:00:00.000Z', modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] };
     const a = (n, title, due, pts) => ({ id: `first-a${n}`, title, dueDate: due, points: pts, type: 'ASSIGNMENT', status: null, score: null, description: '' });
-    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: 'h-first', slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: [{ name: 'Dr. Awad' }], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 4, assessments: [a(1, 'Lab 3 titration write-up', '2026-10-10T06:59:00.000Z', 50), a(2, 'Topic 4 Homework', '2026-10-06T06:59:00.000Z', 20)], announcements: [post], resources: [], discussions: [], messages: [] }] };
+    const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: 'h-first', slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: [{ name: 'Dr. Awad' }], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 4, assessments: [a(1, 'Lab 3 titration write-up', '2026-10-10T06:59:00.000Z', 50), a(2, 'Topic 4 Homework', '2026-10-06T06:59:00.000Z', 20)], announcements: [post], resources: [], discussions: [], messages: [] }] };
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1500);
   }],
@@ -214,7 +235,7 @@ const FRESH = [
     await page.click('.onboard button:has-text("I dragged it"), .onboard button:has-text("I made the bookmark")'); await page.waitForTimeout(400);
     const post = { id: 'first-1', forumId: 'f1', title: 'Welcome and lab goggles', content: '<p>Welcome to General Chemistry. Bring your own splash goggles to every lab; no goggles, no lab, no points.</p>', publishedAt: '2026-09-20T15:00:00.000Z', modifiedAt: null, author: 'Dr. Awad', mustAcknowledge: false, acknowledged: false, resources: [] };
     const a = (n, title, due, pts) => ({ id: `first-a${n}`, title, dueDate: due, points: pts, type: 'ASSIGNMENT', status: null, score: null, description: '' });
-    const payload = { kind: 'halo-export', version: 1, build: '2026-09-24a', exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: 'h-first', slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: [{ name: 'Dr. Awad' }], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 4, assessments: [a(1, 'Lab 3 titration write-up', '2026-10-10T06:59:00.000Z', 50), a(2, 'Topic 4 Homework', '2026-10-06T06:59:00.000Z', 20)], announcements: [post], resources: [], discussions: [], messages: [] }] };
+    const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'announcements'], classes: [{ id: 'h-first', slugId: 'X', classCode: 'CHM-113-X', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: [{ name: 'Dr. Awad' }], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 4, assessments: [a(1, 'Lab 3 titration write-up', '2026-10-10T06:59:00.000Z', 50), a(2, 'Topic 4 Homework', '2026-10-06T06:59:00.000Z', 20)], announcements: [post], resources: [], discussions: [], messages: [] }] };
     await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
     await page.waitForTimeout(1500);
     await page.locator('.modal-actions button').last().click(); await page.waitForTimeout(800);

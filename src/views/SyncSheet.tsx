@@ -1,41 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
-import { bookmarkletHref } from '../halo/bookmarklet';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
 import { PlanWall, useNeedsPlan } from './PlanWall';
 import { HaloImport } from './HaloImport';
 import { SyncAssignments } from './SyncAssignments';
+import { BookmarkButton, useBookmarkHref } from './BookmarkButton';
 
-/** Where the bookmark sends its export: Now, with the flag that tells the shell to wait for it. */
-export const HANDOFF_PATH = '#/now?halo=1';
-
-export function useBookmarkHref(): string {
-  return useMemo(() => bookmarkletHref({ dashOrigin: window.location.origin, dashPath: `${import.meta.env.BASE_URL}${HANDOFF_PATH}` }), []);
-}
-
-/** The draggable Sync Halo button. React refuses javascript: hrefs as props, so the address is set on the element. */
-export function BookmarkButton({ onClickNote }: { onClickNote: (note: string) => void }) {
-  const href = useBookmarkHref();
-  const link = useRef<HTMLAnchorElement>(null);
-  useEffect(() => {
-    link.current?.setAttribute('href', href);
-  }, [href]);
-  return (
-    <a
-      ref={link}
-      className="btn primary halo-drag"
-      draggable
-      onClick={(e) => {
-        e.preventDefault();
-        onClickNote('Drag this button to your bookmarks bar. Clicking it here does nothing; clicking it on Halo does everything.');
-      }}
-    >
-      Sync Halo
-    </a>
-  );
-}
+export { HANDOFF_PATH } from '../halo/handoff';
+export { BookmarkButton, useBookmarkHref } from './BookmarkButton';
 
 const isPhone = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || /iPhone|iPad|Android/i.test(navigator.userAgent));
 

@@ -3,7 +3,8 @@ export interface HaloExport {
   kind: 'halo-export';
   version: 1;
   exportedAt: string;
-  source: 'bookmarklet' | 'paste' | 'ics';
+  /** 'extension' when the Chrome extension ran the same script and carried the export over. */
+  source: 'bookmarklet' | 'extension' | 'paste' | 'ics';
   classes: HaloClass[];
   /** Halo's own alert feed, account-wide rather than per class. */
   alerts?: HaloAlert[];

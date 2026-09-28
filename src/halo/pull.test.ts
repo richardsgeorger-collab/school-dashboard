@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mkClass, mkCourse, mkExport, mkItem, TZ } from './fixtures';
-import { problemLine, pullsFrom, staleBookmarkLine, staleness } from './freshness';
+import { bookmarkAge, problemLine, pullsFrom, staleness } from './freshness';
 import { haloSaysIn, haloSaysNotIn, postedIn } from '../domain/confirm';
 import { letterFor } from '../domain/grades';
 import { quizShare, topicScores } from '../domain/concepts';
@@ -100,11 +100,20 @@ describe('a half-working sync says so', () => {
 });
 
 describe('a bookmark saved before today', () => {
-  it('names the stale bookmark rather than blaming the queries', () => {
-    expect(staleBookmarkLine({ build: '2026-09-18c', pulls: ['a'] }, '2026-09-18c')).toBeNull();
-    expect(staleBookmarkLine({}, '2026-09-18c')).toBe(
-      'This came from an older copy of the Halo bookmark, saved before builds were stamped. It pulled assignments and grades only. Open You, Halo connection, and drag the bookmark to your bar again to replace it, then sync once more.',
-    );
-    expect(staleBookmarkLine({ build: '2026-09-01', pulls: ['assessments', 'grades', 'instructors'] }, '2026-09-18c')).toContain('built 2026-09-01. It pulled only 3 kinds of data');
+  it('names the stale bookmark rather than blaming the queries, and tells a stale tab from a stale bookmark', () => {
+    expect(bookmarkAge({ build: '2026-09-18c', pulls: ['a'] }, '2026-09-18c')).toBeNull();
+    expect(bookmarkAge({}, '2026-09-18c')).toEqual({
+      kind: 'older',
+      line: 'This came from an older copy of the Sync Halo bookmark, saved before builds were stamped; the current build is 2026-09-18c. It pulled assignments and grades only, so it may have missed or misread things Halo has changed since.',
+    });
+    expect(bookmarkAge({ build: '2026-09-01', pulls: ['assessments', 'grades', 'instructors'] }, '2026-09-18c')?.line).toContain('built 2026-09-01; the current build is 2026-09-18c. It pulled only 3 kinds of data');
+    // A copy that asked for every kind is merely older, not narrower.
+    expect(bookmarkAge({ build: '2026-09-24a', pulls: Array.from({ length: 12 }, () => 'k') }, '2026-09-27a')?.line).toContain('built 2026-09-24a; the current build is 2026-09-27a. It ran the sync as it was that day, so it may have');
+    // The extension updates itself from the store, so the fix is different.
+    expect(bookmarkAge({ build: '2026-09-01', pulls: ['a'], source: 'extension' }, '2026-09-18c')?.line).toContain('Update the extension');
+    // A payload from a newer build than this tab: the tab is what is old.
+    const newer = bookmarkAge({ build: '2026-09-27a', pulls: ['a'] }, '2026-09-18c');
+    expect(newer?.kind).toBe('newer');
+    expect(newer?.line).toBe('This sync came from a newer Sync Halo bookmark (2026-09-27a) than the Halo+ this tab is running (2026-09-18c). Reload Halo+ and sync again.');
   });
 });

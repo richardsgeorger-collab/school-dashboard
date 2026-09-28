@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
 import { referenceLine, referencePlan, referenceTotal, type ReferenceCounts } from '../halo/reference';
-import { problemGroups, problemLine, pullsFrom, staleBookmarkLine } from '../halo/freshness';
+import { bookmarkAge, problemGroups, problemLine, pullsFrom } from '../halo/freshness';
 import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
+import { BookmarkButton, useBookmarkHref } from './BookmarkButton';
 import { SYNC_EVENT } from '../ingest/auto';
 import { ReadStatusLines } from './ReadStatus';
 import { normCode } from '../halo/normalize';
@@ -104,6 +105,18 @@ export function DiffReview({
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [confirmZone, setConfirmZone] = useState(false);
   const [applied, setApplied] = useState<AppliedSummary | null>(null);
+  // A sync from an older bookmark is held: nothing is written until the student reinstalls or says to use it anyway.
+  const age = useMemo(() => (source === 'halo' ? bookmarkAge(payload, BOOKMARKLET_BUILD) : null), [payload, source]);
+  const [override, setOverride] = useState(false);
+  const held = age?.kind === 'older' && !override;
+  const [reinstall, setReinstall] = useState(false);
+  const [dragNote, setDragNote] = useState<string | null>(null);
+  const [hrefCopied, setHrefCopied] = useState(false);
+  const bookmarkHref = useBookmarkHref();
+  const reinstallNow = () => {
+    setReinstall(true);
+    navigator.clipboard?.writeText(bookmarkHref).then(() => setHrefCopied(true)).catch(() => setHrefCopied(false));
+  };
   // Frozen per payload so the diff does not drift while it is on screen.
   const now = useMemo(() => new Date().toISOString(), [payload]); // eslint-disable-line react-hooks/exhaustive-deps
   const diff = useMemo(
@@ -119,7 +132,7 @@ export function DiffReview({
   // whose assignment list happens to be unchanged must not be able to discard 47 announcements on Cancel.
   const savedFor = useRef<HaloExport | null>(null);
   useEffect(() => {
-    if (source !== 'halo' || savedFor.current === payload) return;
+    if (source !== 'halo' || held || savedFor.current === payload) return;
     savedFor.current = payload;
     void (async () => {
       const at = new Date().toISOString();
@@ -142,7 +155,7 @@ export function DiffReview({
     })();
     // The diff is derived from the payload, and the payload is what this is keyed on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payload, source]);
+  }, [payload, source, held]);
 
   const when = (iso: string) => `${fmtDate(dateOf(iso, tz), 'short')} ${fmtTime(iso, tz)}`;
   const toggle = (group: Group, key: string) =>
@@ -156,7 +169,6 @@ export function DiffReview({
   const setAll = (group: Group, keys: string[]) => setSel((s) => (s ? { ...s, [group]: new Set(keys) } : s));
   const flip = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const gaps = useMemo(() => problemLine(payload), [payload]);
-  const stale = useMemo(() => (source === 'halo' ? staleBookmarkLine(payload, BOOKMARKLET_BUILD) : null), [payload, source]);
   const groups = useMemo(() => problemGroups(payload), [payload]);
   const counts = useMemo(() => pullCounts(payload), [payload]);
   const [copied, setCopied] = useState(false);
@@ -200,7 +212,7 @@ export function DiffReview({
           <li>{applied.removed} removed</li>
           <li>{applied.linked} linked with nothing else touched</li>
           {source === 'halo' && <li className="pull-tally">Pulled: {countsLine(counts)}</li>}
-          {stale && <li className="diff-gap">{stale}</li>}
+          {age && <li className="diff-gap">{age.line}</li>}
           {gaps && <li className="diff-gap">{gaps}</li>}
           {kept && referenceLine(kept) && (
             <li>
@@ -244,13 +256,44 @@ export function DiffReview({
         {payload.classes.length} class{payload.classes.length === 1 ? '' : 'es'} · {source === 'ics' ? 'exported' : 'read'} {when(payload.exportedAt)}
         {diff.courses.created.length > 0 && ` · new classes: ${diff.courses.created.map((c) => c.code).join(', ')}`}
       </p>
-      {stale && (
+      {age?.kind === 'older' && (
+        <div className="diff-stale" role="alert">
+          <p>
+            <b>Your {payload.source === 'extension' ? 'Halo+ extension' : 'Sync Halo bookmark'} is out of date.</b> {age.line}
+            {held ? ' Nothing from this sync has been applied.' : ''}
+          </p>
+          <div className="diff-stale-actions">
+            {payload.source !== 'extension' && (
+              <button type="button" className="btn primary" onClick={reinstallNow}>
+                Reinstall the bookmark
+              </button>
+            )}
+            {held && (
+              <button type="button" className="btn" onClick={() => setOverride(true)}>
+                Use this sync anyway
+              </button>
+            )}
+          </div>
+          {reinstall && (
+            <div className="diff-stale-install">
+              <p className="hint">
+                {hrefCopied ? 'The new address is on your clipboard. ' : ''}Drag <BookmarkButton onClickNote={setDragNote} /> to your bookmarks bar and delete the old one, or right-click the old Sync Halo bookmark, choose Edit, and paste the new address over the old one. Then click it on Halo once more. The new bookmark fetches the current sync every time, so this is the last reinstall.
+              </p>
+              {dragNote && <p className="hint">{dragNote}</p>}
+            </div>
+          )}
+        </div>
+      )}
+      {age?.kind === 'newer' && (
         <p className="hint diff-gap" role="alert">
-          {stale}
+          {age.line}{' '}
+          <button type="button" className="hero-inline" onClick={() => window.location.reload()}>
+            Reload
+          </button>
         </p>
       )}
       <ReadStatusLines />
-      {source === 'halo' && (
+      {source === 'halo' && !held && (
         <p className="hint pull-tally">
           <b>{gaps ? 'Not everything came through.' : 'Everything in Halo is in Halo+.'}</b> {countsLine(counts)}
           {kept && referenceLine(kept) ? (
@@ -470,17 +513,18 @@ export function DiffReview({
         <span className="spacer" />
         <button
           type="button"
-          className={confirmZone ? 'btn danger' : 'btn primary'}
+          className={confirmZone ? 'btn danger' : held ? 'btn' : 'btn primary'}
           onClick={() => {
             if (diff.zoneWarning && !confirmZone) {
               setConfirmZone(true);
               return;
             }
+            if (held) setOverride(true);
             apply();
           }}
           disabled={n === 0 && diff.unchanged.length === 0 && diff.courses.created.length === 0}
         >
-          {confirmZone ? 'Apply anyway, dates may be wrong' : n > 0 ? `Apply ${n} change${n === 1 ? '' : 's'}` : diff.unchanged.length > 0 ? 'Link items, nothing else changes' : kept && referenceTotal(kept) > 0 ? 'Done, nothing needs approving' : 'Nothing to apply'}
+          {confirmZone ? 'Apply anyway, dates may be wrong' : held ? `Apply anyway, from the old ${payload.source === 'extension' ? 'extension' : 'bookmark'}` : n > 0 ? `Apply ${n} change${n === 1 ? '' : 's'}` : diff.unchanged.length > 0 ? 'Link items, nothing else changes' : kept && referenceTotal(kept) > 0 ? 'Done, nothing needs approving' : 'Nothing to apply'}
         </button>
       </div>
     </>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookmarkletSource } from './bookmarklet';
+import { BOOKMARKLET_BUILD, bookmarkletSource } from './bookmarklet';
 import { problemGroups } from './freshness';
 import { runBookmarklet, type Halo, type Reply } from './bookmarkletHarness';
 
@@ -186,6 +186,26 @@ describe('the bookmarklet, actually run', () => {
  * A structural guard for the thing that actually went wrong: the request was inside a try and the code that read the
  * result was not. Every catch either records the loss or is one of the three that genuinely has nothing to say.
  */
+describe('the bookmark as a loader', () => {
+  it('loads the site’s current script and that copy, not the bookmark, does the sync and posts to the site it came from', async () => {
+    const r = await runBookmarklet(good, { loader: 'serve' });
+    expect(r.loaded).toHaveLength(1);
+    expect(r.loaded[0]).toMatch(/^https:\/\/richardsgeorger-collab\.github\.io\/school-dashboard\/halo-sync\.js\?v=\d+$/);
+    expect(r.failed).toBeNull();
+    expect(r.payload?.kind).toBe('halo-export');
+    expect(r.payload?.build).toBe(BOOKMARKLET_BUILD);
+    expect(r.opened).toBe(1);
+    expect(r.asked).toContain('AllAssessmentGrades');
+  });
+  it('when the script cannot load, the sync embedded in the bookmark runs instead, so a click still syncs', async () => {
+    const r = await runBookmarklet(good, { loader: 'fail' });
+    expect(r.loaded).toHaveLength(1);
+    expect(r.failed).toBeNull();
+    expect(r.payload?.kind).toBe('halo-export');
+    expect(r.opened).toBe(1);
+  });
+});
+
 describe('the guards themselves', () => {
   const src = bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' });
   /** Bodies of every catch block, brace-balanced rather than regex-truncated. */

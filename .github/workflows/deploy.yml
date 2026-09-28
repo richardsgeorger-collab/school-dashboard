@@ -36,9 +36,11 @@ jobs:
         with:
           path: dist
 
-  # The deployed Edge Functions, as a browser sees them. Runs beside the build; a red run here means the Inbox
-  # reader, the coach and checkout are dark in production even though the site itself deploys fine.
+  # The deployed Edge Functions and the served sync script, as a browser sees them. Runs after the deploy; a red
+  # run here means the Inbox reader, the coach, checkout or the Sync Halo bookmark are dark in production even
+  # though the site itself deployed fine.
   live-check:
+    needs: deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

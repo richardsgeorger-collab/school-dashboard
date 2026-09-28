@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { dateOf, diffDays, fmtDate, fmtTime } from '../domain/dates';
-import { bookmarkletHref } from '../halo/bookmarklet';
 import { COUNT_WORDS, countsLine, type PullCounts } from '../halo/counts';
 import { cleanAll, rulesFor } from '../domain/reqClean';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
+import { useBookmarkHref } from './BookmarkButton';
 
 /** The connection to Halo as one line, and the one button that sets it up. Everything else is in Advanced. */
 export function HaloPanel({ onPaste }: { onPaste: () => void }) {
@@ -14,7 +14,7 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
   const link = useRef<HTMLAnchorElement>(null);
   const [note, setNote] = useState<string | null>(null);
   const [install, setInstall] = useState(false);
-  const href = useMemo(() => bookmarkletHref({ dashOrigin: window.location.origin, dashPath: `${import.meta.env.BASE_URL}#/now?halo=1` }), []);
+  const href = useBookmarkHref();
   // React refuses javascript: hrefs as props; the bookmark link is set on the element directly.
   useEffect(() => {
     link.current?.setAttribute('href', href);

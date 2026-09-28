@@ -14,7 +14,14 @@ export interface BookmarkletConfig {
    * extension): post to Halo's own window, where the extension's content script picks it up and carries it over.
    */
   deliver?: 'open' | 'message';
+  /**
+   * The copy the site serves as halo-sync.js: the dashboard origin is read from the script's own URL at run time,
+   * so one file serves whatever domain the site is on. `dashOrigin` is ignored.
+   */
+  originFromScript?: boolean;
 }
+
+import { SYNC_SCRIPT } from './handoff';
 
 export const HALO_HOST = 'halo.gcu.edu';
 export const GATEWAY = 'https://gateway.halo.gcu.edu/';
@@ -67,7 +74,7 @@ const Q_GRADES =
  * deploying new code does not update it. Stamping the payload is the only way the app can tell the user their
  * bookmark is old rather than quietly showing them three queries' worth of data and calling it eleven.
  */
-export const BOOKMARKLET_BUILD = '2026-09-24a';
+export const BOOKMARKLET_BUILD = '2026-09-27a';
 
 /**
  * Asked only when something already failed. If the gateway allows introspection this settles every remaining
@@ -92,12 +99,12 @@ const MAX_RUBRIC_FILES = 10;
  * call broke must never look the same in the app.
  */
 export function bookmarkletSource(cfg: BookmarkletConfig): string {
-  const D = JSON.stringify(cfg.dashOrigin);
-  const P = JSON.stringify(cfg.dashOrigin + cfg.dashPath);
+  const D = cfg.originFromScript ? '(document.currentScript&&document.currentScript.src)?new URL(document.currentScript.src).origin:null' : JSON.stringify(cfg.dashOrigin);
   const code = `
 (async function(){
-var D=${D},P=${P};
+var D=${D},P=D+${JSON.stringify(cfg.dashPath)};
 if(location.hostname!==${JSON.stringify(HALO_HOST)}){alert('Open halo.gcu.edu first, then click this bookmark.');return;}
+if(!D){alert('Halo+ could not tell where to send your data. Reinstall the Sync Halo bookmark from Halo+.');return;}
 var box=document.createElement('div');
 box.style.cssText='position:fixed;top:16px;right:16px;z-index:2147483647;background:#171b21;color:#e8ecf0;font:14px/1.4 system-ui,sans-serif;padding:12px 32px 12px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:380px';
 var msg=document.createElement('div');msg.textContent='Reading Halo\\u2026';box.appendChild(msg);
@@ -326,7 +333,36 @@ else{var why=MODE==='message'?'The extension did not pick up the export.':openEr
   return code.replace(/\s*\n\s*/g, ' ').trim();
 }
 
+/** The address the bookmark loads the current sync script from: the site's own copy, beside the app. */
+export function syncScriptUrl(cfg: Pick<BookmarkletConfig, 'dashOrigin' | 'dashPath'>): string {
+  return cfg.dashOrigin + cfg.dashPath.split('#')[0] + SYNC_SCRIPT;
+}
+
+/**
+ * What the bookmark itself holds. A bookmark is frozen the moment it is saved, and every Halo change or fix used to
+ * mean asking the student to drag it again (it bit George twice). So the bookmark is a loader: on each click it
+ * fetches the site's current sync script and runs that. Halo's page sends no Content-Security-Policy, so the
+ * script loads; if it ever cannot (offline, a policy appears), the full sync as of the day the bookmark was saved
+ * is embedded and runs instead, stamped with its own build, and the review screen then says the bookmark is old.
+ */
+export function bookmarkletLoader(cfg: BookmarkletConfig): string {
+  const code = `
+(function(){
+if(location.hostname!==${JSON.stringify(HALO_HOST)}){alert('Open halo.gcu.edu first, then click this bookmark.');return;}
+var s=document.createElement('script');
+s.src=${JSON.stringify(syncScriptUrl(cfg))}+'?v='+Date.now();
+s.onerror=function(){s.remove();${bookmarkletSource(cfg)}};
+(document.head||document.documentElement).appendChild(s);
+})();`;
+  return code.replace(/\s*\n\s*/g, ' ').trim();
+}
+
+/** The file the site serves as halo-sync.js: the whole sync, taking the dashboard origin from its own URL. */
+export function syncScriptSource(dashPath: string): string {
+  return `/* Halo+ sync script, build ${BOOKMARKLET_BUILD}. The Sync Halo bookmark loads this from the site on every click, so a saved bookmark never goes stale. Generated from src/halo/bookmarklet.ts at build time; it reads only the Halo session of the page it runs on and sends assignment data to the site it came from. */\n${bookmarkletSource({ dashOrigin: '', dashPath, originFromScript: true })}\n`;
+}
+
 /** The `javascript:` URL to bookmark. */
 export function bookmarkletHref(cfg: BookmarkletConfig): string {
-  return `javascript:${encodeURIComponent(bookmarkletSource(cfg))}`;
+  return `javascript:${encodeURIComponent(bookmarkletLoader(cfg))}`;
 }

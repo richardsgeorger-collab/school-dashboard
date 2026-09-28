@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookmarkletHref, bookmarkletSource, GATEWAY, HALO_HOST } from './bookmarklet';
+import { BOOKMARKLET_BUILD, bookmarkletHref, bookmarkletLoader, bookmarkletSource, GATEWAY, HALO_HOST, syncScriptSource, syncScriptUrl } from './bookmarklet';
 
 const cfg = { dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' };
 
@@ -42,6 +42,32 @@ describe('bookmarklet', () => {
     const href = bookmarkletHref(cfg);
     expect(href.startsWith('javascript:')).toBe(true);
     expect(href.slice(11).includes('#')).toBe(false);
-    expect(decodeURIComponent(href.slice(11))).toBe(src);
+    expect(decodeURIComponent(href.slice(11))).toBe(bookmarkletLoader(cfg));
+  });
+});
+
+describe('the bookmark is a loader, so it never goes stale', () => {
+  const loader = bookmarkletLoader(cfg);
+  it('is one line of valid JavaScript that loads the site’s sync script, cache-busted, and only on Halo', () => {
+    expect(loader.includes('\n')).toBe(false);
+    expect(() => new Function(loader)).not.toThrow();
+    expect(syncScriptUrl(cfg)).toBe('https://richardsgeorger-collab.github.io/school-dashboard/halo-sync.js');
+    expect(loader).toContain(`s.src="${syncScriptUrl(cfg)}"+'?v='+Date.now()`);
+    expect(loader).toContain(`location.hostname!=="${HALO_HOST}"`);
+  });
+  it('carries the whole sync as of today as its fallback, run only when the script cannot load', () => {
+    expect(loader).toContain('s.onerror=function(){s.remove();' + bookmarkletSource(cfg));
+    expect(loader).toContain(`build:"${BOOKMARKLET_BUILD}"`);
+  });
+  it('the served script takes the dashboard origin from its own address and never from the page', () => {
+    const served = syncScriptSource('/school-dashboard/#/now?halo=1');
+    expect(served.startsWith(`/* Halo+ sync script, build ${BOOKMARKLET_BUILD}.`)).toBe(true);
+    expect(served).toContain('var D=(document.currentScript&&document.currentScript.src)?new URL(document.currentScript.src).origin:null,P=D+"/school-dashboard/#/now?halo=1"');
+    expect(served).toContain("if(!D){alert('Halo+ could not tell where to send your data.");
+    expect(served).not.toMatch(/postMessage\([^)]*['"]\*['"]/);
+    expect(() => new Function(served)).not.toThrow();
+    // Nothing in it names a dashboard host: the same file serves whatever domain the site lives on.
+    const hosts = [...served.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)].map((m) => m[1]);
+    expect(new Set(hosts)).toEqual(new Set(['gateway.halo.gcu.edu']));
   });
 });

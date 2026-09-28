@@ -1,6 +1,30 @@
 /// <reference types="vitest/config" />
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { syncScriptSource } from './src/halo/bookmarklet';
+import { HANDOFF_PATH, SYNC_SCRIPT } from './src/halo/handoff';
+
+/**
+ * The site serves the current Halo sync script beside the app (halo-sync.js). The Sync Halo bookmark is only a
+ * loader for it, so a bookmark saved in September still runs December's code. Emitted on build; served in dev.
+ */
+function haloSyncScript(base: string): Plugin {
+  const body = () => syncScriptSource(`${base}${HANDOFF_PATH}`);
+  return {
+    name: 'halo-sync-script',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: SYNC_SCRIPT, source: body() });
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if ((req.url ?? '').split('?')[0] !== `${base}${SYNC_SCRIPT}`) return next();
+        res.setHeader('Content-Type', 'text/javascript; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(body());
+      });
+    },
+  };
+}
 
 /**
  * Every VITE_ variable is public: it ships in the bundle. These five are the only ones the app reads, and none of
@@ -33,7 +57,7 @@ export default defineConfig(({ mode }) => {
   if (problems.length && mode !== 'test') throw new Error(`Refusing to build:\n- ${problems.join('\n- ')}`);
   return {
     base: '/school-dashboard/',
-    plugins: [react()],
+    plugins: [react(), haloSyncScript('/school-dashboard/')],
     build: { target: 'es2022' },
     test: {
       environment: 'node',

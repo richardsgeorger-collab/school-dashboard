@@ -5312,6 +5312,29 @@ a.hero-chip:hover {
   margin-bottom: 8px;
 }
 
+/* A sync from an old bookmark is held at the top of the review until it is reinstalled or waved through. */
+.diff-stale {
+  border: 1px solid var(--risk);
+  background: var(--risk-soft);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  margin: 8px 0 12px;
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+}
+.diff-stale p {
+  margin: 0;
+}
+.diff-stale-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.diff-stale-install .halo-drag {
+  vertical-align: middle;
+}
+
 /* A sync that half worked says so, in the same quiet register as everything else. */
 .diff-gap {
   border-left: 2px solid var(--warn, #c8a23a);

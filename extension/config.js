@@ -2,4 +2,4 @@
 export const DASH_ORIGIN = "https://richardsgeorger-collab.github.io";
 export const DASH_URL = "https://richardsgeorger-collab.github.io/school-dashboard/#/now?halo=1";
 export const PERIOD_MINUTES = 180;
-export const BUILD = "2026-09-24a";
+export const BUILD = "2026-09-27a";

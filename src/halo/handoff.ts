@@ -1,6 +1,10 @@
 import type { HaloExport } from './types';
 
 export const HALO_ORIGIN = 'https://halo.gcu.edu';
+/** Where the bookmark sends its export: Now, with the flag that tells the shell to wait for it. */
+export const HANDOFF_PATH = '#/now?halo=1';
+/** The sync script the site serves; the bookmark loads it fresh on every click so it never goes stale. */
+export const SYNC_SCRIPT = 'halo-sync.js';
 
 export function isHaloExport(x: unknown): x is HaloExport {
   if (!x || typeof x !== 'object') return false;

@@ -92,18 +92,41 @@ export function problemLine(payload: Pick<HaloExport, 'problems'>): string | nul
   return `Halo would not give up ${list(parts)}. Everything else came through, and this is still missing rather than empty.`;
 }
 
-/**
- * A bookmarklet is a URL frozen in the bookmarks bar the moment it was saved. Deploying new code does not update it,
- * so an old bookmark quietly pulls the three queries it knew about and the payload simply has no room for the rest.
- * That is indistinguishable from eleven failures unless the build is stamped, which is why it is.
- */
-export function staleBookmarkLine(payload: Pick<HaloExport, 'build' | 'pulls'>, current: string): string | null {
-  if (payload.build === current) return null;
-  const known = payload.pulls?.length ?? 0;
-  const had = payload.build ? `built ${payload.build}` : 'saved before builds were stamped';
-  return `This came from an older copy of the Halo bookmark, ${had}. It pulled ${known > 0 ? `only ${known} kinds of data` : 'assignments and grades only'}. Open You, Halo connection, and drag the bookmark to your bar again to replace it, then sync once more.`;
+/** How many kinds of data the current sync asks for (the `pulls` list the bookmarklet stamps). */
+export const FULL_PULLS = 12;
+
+export interface BookmarkAge {
+  /** 'older': the sync ran from a copy behind the app. 'newer': this tab is running an older app than the sync. */
+  kind: 'older' | 'newer';
+  line: string;
 }
 
+/**
+ * A bookmark is a URL frozen in the bookmarks bar the moment it is saved. Deploying new code does not update it, so
+ * an old bookmark quietly pulls the queries it knew about and the payload simply has no room for the rest. That is
+ * indistinguishable from eleven failures unless the build is stamped, which is why it is. Builds are date-stamped
+ * ('2026-09-27a'), so string order is age order; a payload newer than the app means the tab itself is stale.
+ */
+export function bookmarkAge(payload: Pick<HaloExport, 'build' | 'pulls'> & { source?: HaloExport['source'] }, current: string): BookmarkAge | null {
+  const build = payload.build ?? null;
+  if (build === current) return null;
+  const ext = payload.source === 'extension';
+  const what = ext ? 'Halo+ extension' : 'Sync Halo bookmark';
+  if (build && build > current) {
+    return { kind: 'newer', line: `This sync came from a newer ${what} (${build}) than the Halo+ this tab is running (${current}). Reload Halo+ and sync again.` };
+  }
+  const known = payload.pulls?.length ?? 0;
+  const had = build ? `built ${build}` : 'saved before builds were stamped';
+  // A copy that asked for every kind it knew of still ran the sync as it was that day; a copy that asked for fewer
+  // kinds is missing whole kinds of data.
+  const did = known >= FULL_PULLS ? 'It ran the sync as it was that day' : known > 0 ? `It pulled only ${known} kinds of data` : 'It pulled assignments and grades only';
+  return {
+    kind: 'older',
+    line: ext
+      ? `This came from an older copy of the ${what}, ${had}; the current build is ${current}. ${did}. Update the extension (chrome://extensions, Update), then sync again.`
+      : `This came from an older copy of the ${what}, ${had}; the current build is ${current}. ${did}, so it may have missed or misread things Halo has changed since.`,
+  };
+}
 
 export interface ProblemGroup {
   /** The distinct failure: one operation, one status, one set of messages. */

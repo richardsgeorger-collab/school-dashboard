@@ -1,4 +1,4 @@
-import { bookmarkletSource } from './bookmarklet';
+import { bookmarkletLoader, bookmarkletSource, syncScriptSource } from './bookmarklet';
 
 /**
  * Runs the real bookmarklet string against a fake Halo, in a fake page. The point is that the code under test is the
@@ -19,6 +19,8 @@ export interface RunResult {
   asked: string[];
   /** How many times the page tried to open the dashboard tab. Zero in the extension's delivery mode. */
   opened: number;
+  /** Script addresses the loader asked the page for, in order. */
+  loaded: string[];
 }
 
 const el = (tag: string): any => {
@@ -40,9 +42,19 @@ const el = (tag: string): any => {
 };
 
 /** Runs the bookmarklet. `halo` answers GraphQL; anything it throws or returns is what the code has to survive. */
-export async function runBookmarklet(halo: Halo, opts: { download?: () => unknown; nextData?: unknown; source?: string } = {}): Promise<RunResult> {
+export async function runBookmarklet(
+  halo: Halo,
+  opts: {
+    download?: () => unknown;
+    nextData?: unknown;
+    source?: string;
+    /** Run the bookmark's loader instead: 'fail' makes the site's script unreachable, 'serve' loads the served copy. */
+    loader?: 'fail' | 'serve';
+  } = {},
+): Promise<RunResult> {
   const said: string[] = [];
   const asked: string[] = [];
+  const loaded: string[] = [];
   let payload: any = null;
   let failed: string | null = null;
   let opened = 0;
@@ -154,23 +166,43 @@ export async function runBookmarklet(halo: Halo, opts: { download?: () => unknow
     },
   };
 
-  const src = opts.source ?? bookmarkletSource({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' });
-  const fn = new Function('location', 'document', 'window', 'fetch', 'crypto', 'alert', 'navigator', 'setInterval', 'clearInterval', 'setTimeout', src);
-  fn(
-    { hostname: 'halo.gcu.edu', origin: 'https://halo.gcu.edu' },
-    doc,
-    window,
-    fetchImpl,
-    { randomUUID: () => 'test-uuid' },
-    () => {},
-    {},
-    spin,
-    (h: any) => {
-      if (h) h.stopped = true;
+  const cfg = { dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' };
+  const alerts: string[] = [];
+  const run = (code: string, currentScript: { src: string } | null) => {
+    const fn = new Function('location', 'document', 'window', 'fetch', 'crypto', 'alert', 'navigator', 'setInterval', 'clearInterval', 'setTimeout', code);
+    fn(
+      { hostname: 'halo.gcu.edu', origin: 'https://halo.gcu.edu' },
+      { ...doc, currentScript },
+      window,
+      fetchImpl,
+      { randomUUID: () => 'test-uuid' },
+      (m: string) => {
+        alerts.push(m);
+        say('Halo sync failed: ' + m);
+      },
+      {},
+      spin,
+      (h: any) => {
+        if (h) h.stopped = true;
+      },
+      (f: any) => queueMicrotask(f),
+    );
+  };
+  // The loader appends a <script>; the page either cannot load it (the fallback runs) or loads the served copy,
+  // which sees its own address as document.currentScript, the way a browser would give it.
+  doc.head = {
+    appendChild(node: any) {
+      loaded.push(String(node.src));
+      queueMicrotask(() => {
+        if (opts.loader === 'fail') node.onerror?.();
+        else run(syncScriptSource(cfg.dashPath), { src: String(node.src) });
+      });
+      return node;
     },
-    (f: any) => queueMicrotask(f),
-  );
+  };
+  const src = opts.source ?? (opts.loader ? bookmarkletLoader(cfg) : bookmarkletSource(cfg));
+  run(src, null);
 
   await Promise.race([done, new Promise<void>((r) => setTimeout(r, 4000))]);
-  return { payload, failed, said, asked, opened };
+  return { payload, failed, said, asked, opened, loaded };
 }
