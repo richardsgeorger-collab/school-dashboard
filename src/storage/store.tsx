@@ -148,7 +148,10 @@ export function normalizeData(data: AppData): AppData {
 
 function initialData(): AppData {
   const cached = localCache.load();
-  if (cached) {
+  // Development and the e2e scripts: a fresh browser opened at #/now?seed=1 loads the sample term. An empty cache
+  // (the landing page was visited first) does not count as data and yields to the seed.
+  const wantSeed = typeof window !== 'undefined' && window.location.hash.includes('seed=1');
+  if (cached && !(wantSeed && cached.courses.length === 0 && cached.items.length === 0)) {
     const settings = { ...DEFAULT_SETTINGS, ...cached.settings };
     if (!settings.supabaseUrl && env('VITE_SUPABASE_URL')) {
       settings.supabaseUrl = env('VITE_SUPABASE_URL');
@@ -156,8 +159,7 @@ function initialData(): AppData {
     }
     return normalizeData({ ...cached, settings });
   }
-  // Development and the e2e scripts: a fresh browser opened at #/now?seed=1 loads the sample term.
-  if (typeof window !== 'undefined' && window.location.hash.includes('seed=1')) return seedData();
+  if (wantSeed) return seedData();
   return emptyData();
 }
 
