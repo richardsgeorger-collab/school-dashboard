@@ -1062,6 +1062,12 @@
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
+/* Four stats in one row squeeze on a phone ("On pace" wrapped); two by two reads whole. */
+@media (max-width: 600px) {
+  .class-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .section {
   margin-top: var(--s-5);
   display: flex;
