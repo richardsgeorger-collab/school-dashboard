@@ -18,8 +18,9 @@ const isPhone = () => typeof window !== 'undefined' && (window.matchMedia?.('(po
  * export, import a calendar file) behind "Having trouble?". Used by the Sync sheet and by onboarding.
  */
 export function SyncSteps({ onNote }: { onNote: (note: string) => void }) {
-  const href = useBookmarkHref();
   const [phone, setPhone] = useState(isPhone);
+  // A phone pastes the address by hand, so it gets the short loader; a computer drags the full one.
+  const href = useBookmarkHref(phone ? 'short' : 'full');
   const [modal, setModal] = useState<'paste' | 'ics' | null>(null);
 
   const copy = async () => {
@@ -58,7 +59,7 @@ export function SyncSteps({ onNote }: { onNote: (note: string) => void }) {
             </button>
           </li>
           <li>Bookmark this page: Share, then Add Bookmark.</li>
-          <li>Open your bookmarks, edit the one you just made, and replace its address with what you copied. Name it Sync Halo.</li>
+          <li>Open your bookmarks, edit the one you just made, and replace its address with what you copied (it is short). Name it Sync Halo.</li>
           <li>Go to halo.gcu.edu, log in, open your bookmarks and tap Sync Halo. Come back here to approve the changes.</li>
         </ol>
       )}

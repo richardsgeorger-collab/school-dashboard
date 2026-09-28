@@ -345,13 +345,17 @@ export function syncScriptUrl(cfg: Pick<BookmarkletConfig, 'dashOrigin' | 'dashP
  * script loads; if it ever cannot (offline, a policy appears), the full sync as of the day the bookmark was saved
  * is embedded and runs instead, stamped with its own build, and the review screen then says the bookmark is old.
  */
-export function bookmarkletLoader(cfg: BookmarkletConfig): string {
+export function bookmarkletLoader(cfg: BookmarkletConfig, opts: { embed?: boolean } = {}): string {
+  const url = syncScriptUrl(cfg);
+  // On a phone the address is pasted into a bookmark by hand, so the short form carries no fallback: a phone on
+  // Halo is online, and if the script still cannot load it says so instead of running an old copy.
+  const onError = opts.embed === false ? `alert('Halo+ could not load its sync from '+${JSON.stringify(url)}+'. Check your connection, then tap the bookmark again.');` : bookmarkletSource(cfg);
   const code = `
 (function(){
 if(location.hostname!==${JSON.stringify(HALO_HOST)}){alert('Open halo.gcu.edu first, then click this bookmark.');return;}
 var s=document.createElement('script');
-s.src=${JSON.stringify(syncScriptUrl(cfg))}+'?v='+Date.now();
-s.onerror=function(){s.remove();${bookmarkletSource(cfg)}};
+s.src=${JSON.stringify(url)}+'?v='+Date.now();
+s.onerror=function(){s.remove();${onError}};
 (document.head||document.documentElement).appendChild(s);
 })();`;
   return code.replace(/\s*\n\s*/g, ' ').trim();
@@ -362,7 +366,7 @@ export function syncScriptSource(dashPath: string): string {
   return `/* Halo+ sync script, build ${BOOKMARKLET_BUILD}. The Sync Halo bookmark loads this from the site on every click, so a saved bookmark never goes stale. Generated from src/halo/bookmarklet.ts at build time; it reads only the Halo session of the page it runs on and sends assignment data to the site it came from. */\n${bookmarkletSource({ dashOrigin: '', dashPath, originFromScript: true })}\n`;
 }
 
-/** The `javascript:` URL to bookmark. */
-export function bookmarkletHref(cfg: BookmarkletConfig): string {
-  return `javascript:${encodeURIComponent(bookmarkletLoader(cfg))}`;
+/** The `javascript:` URL to bookmark: the loader with the full sync embedded, or the short loader alone for phones. */
+export function bookmarkletHref(cfg: BookmarkletConfig, opts: { embed?: boolean } = {}): string {
+  return `javascript:${encodeURIComponent(bookmarkletLoader(cfg, opts))}`;
 }

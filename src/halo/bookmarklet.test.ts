@@ -59,6 +59,16 @@ describe('the bookmark is a loader, so it never goes stale', () => {
     expect(loader).toContain('s.onerror=function(){s.remove();' + bookmarkletSource(cfg));
     expect(loader).toContain(`build:"${BOOKMARKLET_BUILD}"`);
   });
+  it('the short form for phones is the loader alone, a few hundred characters, and says so when it cannot load', () => {
+    const short = bookmarkletLoader(cfg, { embed: false });
+    expect(short.length).toBeLessThan(600);
+    expect(short).not.toContain('halo-export');
+    expect(short).toContain(`s.src="${syncScriptUrl(cfg)}"+'?v='+Date.now()`);
+    expect(short).toContain("alert('Halo+ could not load its sync from '");
+    expect(() => new Function(short)).not.toThrow();
+    expect(bookmarkletHref(cfg, { embed: false }).length).toBeLessThan(900);
+    expect(bookmarkletHref(cfg).length).toBeGreaterThan(20000);
+  });
   it('the served script takes the dashboard origin from its own address and never from the page', () => {
     const served = syncScriptSource('/school-dashboard/#/now?halo=1');
     expect(served.startsWith(`/* Halo+ sync script, build ${BOOKMARKLET_BUILD}.`)).toBe(true);
