@@ -19,6 +19,11 @@ describe('what to send and when', () => {
     expect(morning[0].body).toBe('2 due today. First: Lab 3 (CHM-113, 50 pts).');
     expect(morning[1].body).toContain('Nothing due today');
   });
+  it('a part with its own date counts as due that day: the Wednesday initial post inside a Sunday discussion', () => {
+    const dq = { ...item('DQ 3', '2026-09-27', 10), requirements: [{ id: 'r1', text: 'Post your initial reply.', dueAt: `${TODAY}T23:59:00-07:00`, done: false, doneAt: null, gradedOn: true, scope: 'instance' as const, source: { kind: 'announcement' as const, id: 'p', title: null, quote: 'q', at: null }, addedAt: NOW }] };
+    const n = planNotices({ items: [dq], courses: [course], schedule: schedule(), prefs: { morningTime: '07:30' }, tz: TZ, today: TODAY, now: NOW, lastPull: NOW });
+    expect(n.find((x) => x.kind === 'morning')?.body).toBe('1 due today. First: DQ 3: Post your initial reply (CHM-113).');
+  });
   it('no morning note when it is off, no notes at all when every switch is off', () => {
     const items = [item('x', TODAY, 50)];
     expect(planNotices({ items, courses: [course], schedule: schedule(), prefs: { morningTime: 'off' }, tz: TZ, today: TODAY, now: NOW, lastPull: NOW }).some((x) => x.kind === 'morning')).toBe(false);

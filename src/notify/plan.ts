@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, fmtDate, makeIso } from '../domain/dates';
+import { partsDueOn } from '../domain/reqClean';
 import { isNoise } from '../domain/requirements';
 import type { Schedule } from '../domain/schedule';
 import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
@@ -62,6 +63,8 @@ export function planNotices(input: PlanInput): Notice[] {
   const { items, courses, schedule, tz, today, now, lastPull } = input;
   const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
   const dueOn = (day: DateStr) => open.filter((i) => dateOf(i.dueAt, tz) === day).sort((a, b) => b.points - a.points);
+  // A part with its own date (a discussion's Wednesday initial post inside a Sunday assignment) is due that day too.
+  const partsOn = (day: DateStr) => open.flatMap((i) => (dateOf(i.dueAt, tz) === day ? [] : partsDueOn(i, day, tz).filter((r) => r.dueAt).map((r) => ({ item: i, req: r }))));
   const out: Notice[] = [];
   const push = (n: Notice) => {
     const sendAt = outsideQuiet(n.sendAt, tz, p.quietFrom, p.quietTo);
@@ -72,8 +75,11 @@ export function planNotices(input: PlanInput): Notice[] {
   if (p.morning && p.morningTime && p.morningTime !== 'off') {
     for (const day of [today, tomorrow]) {
       const due = dueOn(day);
+      const parts = partsOn(day);
+      const n = due.length + parts.length;
       const next = open.filter((i) => dateOf(i.dueAt, tz) > day).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
-      const body = due.length === 0 ? (next ? `Nothing due today. Next: ${next.label}, due ${fmtDate(dateOf(next.dueAt, tz), 'short')}.` : 'Nothing due today.') : `${due.length} due today. First: ${due[0].label} (${codeOf(courses, due[0].courseId)}, ${due[0].points} pts).`;
+      const first = due[0] ? `${due[0].label} (${codeOf(courses, due[0].courseId)}, ${due[0].points} pts)` : `${parts[0]?.item.label}: ${parts[0]?.req.text.replace(/\s*[.!]$/, '')} (${codeOf(courses, parts[0]?.item.courseId ?? '')})`;
+      const body = n === 0 ? (next ? `Nothing due today. Next: ${next.label}, due ${fmtDate(dateOf(next.dueAt, tz), 'short')}.` : 'Nothing due today.') : `${n} due today. First: ${first}.`;
       push({ kind: 'morning', sendAt: at(day, p.morningTime, tz), title: day === today ? 'Today' : 'Today', body, url: '#/now', key: `morning:${day}` });
     }
   }
