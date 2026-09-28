@@ -5,7 +5,7 @@ import { useAccount } from '../auth/AccountContext';
 import { LockTag } from '../config/Locked';
 import { useCan } from '../config/useCan';
 import { dateOf, fmtDate } from '../domain/dates';
-import { courseGrade, letterFor, NOT_ENOUGH_GRADED } from '../domain/grades';
+import { basedOn, courseGrade, letterFor, NOT_GRADED } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { WhatIf } from './WhatIf';
@@ -66,7 +66,11 @@ function CourseCard({ course }: { course: Course }) {
             </a>
           </h2>
         </div>
-        <div className="grade-pct mono">{g.pct === null ? <span className="muted grade-none">{g.graded > 0 ? NOT_ENOUGH_GRADED : 'Not graded yet'}</span> : `${g.pct}%`}{letterFor(g.pct, course.gradeScale) ? <span className="grade-letter"> {letterFor(g.pct, course.gradeScale)}</span> : null}</div>
+        <div className="grade-pct mono">
+          {g.pct === null ? <span className="muted grade-none">{NOT_GRADED}</span> : `${g.pct}%`}
+          {letterFor(g.pct, course.gradeScale) ? <span className="grade-letter"> {letterFor(g.pct, course.gradeScale)}</span> : null}
+          {g.pct !== null && <span className="grade-basis">{basedOn(g)}</span>}
+        </div>
       </header>
       <div className="grade-bar" aria-hidden>
         <span className="earned" style={{ width: `${g.totalPossible ? (g.earned / g.totalPossible) * 100 : 0}%` }} />
@@ -75,10 +79,6 @@ function CourseCard({ course }: { course: Course }) {
       {g.possibleGraded === 0 ? (
         <p className="grade-empty mono">
           No scores entered yet · {g.totalPossible} pts across {items.length} item{items.length === 1 ? '' : 's'}
-        </p>
-      ) : !g.enough ? (
-        <p className="grade-empty mono">
-          {NOT_ENOUGH_GRADED} · {g.graded} graded item{g.graded === 1 ? '' : 's'}, {g.possibleGraded} of {g.totalPossible} pts
         </p>
       ) : (
         <dl className="grade-stats mono">

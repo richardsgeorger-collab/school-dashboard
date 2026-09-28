@@ -3,24 +3,25 @@ import type { Item } from './types';
 export interface GradeSummary {
   earned: number;
   possibleGraded: number;
-  /** Null until enough is graded to mean something (see `enough`). */
+  /** Null until one real item is scored. */
   pct: number | null;
   remaining: number;
   totalPossible: number;
   projected: number | null;
   /** Graded items that carry points. Participation and 0-point posts are not a grade. */
   graded: number;
-  /** Three real graded items, or a tenth of the term's points. Below that a percentage is noise, and an F from one
-   * intro post is worse than noise. */
+  /** One real scored item is enough to show the percentage; what it rests on is said next to it (`basedOn`). */
   enough: boolean;
 }
 
-export const MIN_GRADED_ITEMS = 3;
-export const MIN_GRADED_SHARE = 0.1;
-export const NOT_ENOUGH_GRADED = 'Not enough graded yet';
+export const NOT_GRADED = 'Not graded yet';
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/**
+ * The grade as Halo's gradebook has it so far. Any real scored item shows a percentage; the count it rests on is
+ * always written beside it, so one 98% from a 20-point warm-up reads as what it is rather than as the term.
+ */
 export function courseGrade(courseId: string, items: Item[]): GradeSummary {
   let earned = 0;
   let possibleGraded = 0;
@@ -38,11 +39,16 @@ export function courseGrade(courseId: string, items: Item[]): GradeSummary {
       remaining += it.points;
     }
   }
-  const enough = graded > 0 && (graded >= MIN_GRADED_ITEMS || (totalPossible > 0 && possibleGraded / totalPossible >= MIN_GRADED_SHARE));
-  const pct = enough && possibleGraded > 0 ? round1((earned / possibleGraded) * 100) : null;
+  const enough = graded > 0 && possibleGraded > 0;
+  const pct = enough ? round1((earned / possibleGraded) * 100) : null;
   const projected =
     pct !== null && totalPossible > 0 ? round1(((earned + (remaining * pct) / 100) / totalPossible) * 100) : null;
   return { earned, possibleGraded, pct, remaining, totalPossible, projected, graded, enough };
+}
+
+/** "based on 3 items": what the percentage rests on, written under it wherever it shows. */
+export function basedOn(g: Pick<GradeSummary, 'graded'>): string {
+  return `based on ${g.graded} item${g.graded === 1 ? '' : 's'}`;
 }
 
 /** The letter for a percentage on one class's own scale, when Halo gave us one. */

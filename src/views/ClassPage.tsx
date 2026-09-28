@@ -6,7 +6,7 @@ import { ClassRules } from './ClassRules';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { ItemRow } from '../components/ItemRow';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes } from '../domain/dates';
-import { courseGrade } from '../domain/grades';
+import { basedOn, courseGrade, NOT_GRADED } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
@@ -134,7 +134,10 @@ export function ClassPage() {
         <dl className="grade-stats mono class-stats">
           <div>
             <dt>Grade</dt>
-            <dd>{grade.pct === null ? 'not yet' : `${grade.pct}%`}</dd>
+            <dd>
+              {grade.pct === null ? NOT_GRADED : `${grade.pct}%`}
+              {grade.pct !== null && <span className="grade-basis"> {basedOn(grade)}</span>}
+            </dd>
           </div>
           <div>
             <dt>Pace</dt>

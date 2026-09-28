@@ -3,7 +3,7 @@ import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { PALETTE } from '../data/courseDefaults';
 import { dateOf, diffDays, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
-import { courseGrade, letterFor, NOT_ENOUGH_GRADED } from '../domain/grades';
+import { basedOn, courseGrade, letterFor, NOT_GRADED } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import { Ring } from '../components/Ring';
 import { newId } from '../domain/ids';
@@ -48,11 +48,12 @@ function ClassCard({ course }: { course: Course }) {
         <div className="class-card-head">
           <CourseChip course={course} />
           {g.pct !== null ? (
-            <span className="class-card-grade" title={`${g.pct}%${letter ? ` ${letter}` : ''}`}>
-              <Ring value={g.pct} max={100} size={40} text={`${Math.round(g.pct)}`} label={`${g.pct}%${letter ? ` ${letter}` : ''}`} />
+            <span className="class-card-grade" title={`${g.pct}%${letter ? ` ${letter}` : ''}, ${basedOn(g)}`}>
+              <Ring value={g.pct} max={100} size={40} text={`${Math.round(g.pct)}`} label={`${g.pct}%${letter ? ` ${letter}` : ''}, ${basedOn(g)}`} />
+              <span className="class-card-basis">{basedOn(g)}</span>
             </span>
           ) : (
-            <span className="class-card-grade class-card-nograde">{g.graded > 0 ? NOT_ENOUGH_GRADED : 'Not graded yet'}</span>
+            <span className="class-card-grade class-card-nograde">{NOT_GRADED}</span>
           )}
         </div>
         <h2 className="class-card-name">{course.name || 'Untitled class'}</h2>

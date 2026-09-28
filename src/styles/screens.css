@@ -1933,6 +1933,30 @@
   font: var(--t-small);
   color: var(--ink-3);
 }
+/* What a percentage rests on, in the same small quiet type wherever the percentage shows. */
+.class-card-grade {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.class-card-basis,
+.grade-basis,
+.you-grade-basis {
+  font: var(--t-small);
+  font-weight: 400;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.grade-pct .grade-basis {
+  display: block;
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+.you-grade {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+}
 
 /* ---- inbox: two panes on a wide screen; the row is one line ---- */
 .news-summary {
