@@ -323,7 +323,7 @@ export function DiffReview({
                 onChange={(v) => setBareAs(v as BareDateMode)}
               />
             </div>
-          ) : (
+          ) : diff.zoneWarning ? null : (
             <p className="hint" style={{ margin: 0 }}>
               These timestamps carry their own time zone, so no reading is needed.
             </p>
