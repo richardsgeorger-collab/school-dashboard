@@ -15,6 +15,9 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { capWords } from '../halo/actions';
 import { READ_EVENT, useReadStatus } from '../halo/backgroundRead';
 import { ReadStatusLines, useReadNow } from './ReadStatus';
+import { useAccount } from '../auth/AccountContext';
+import { trialState } from '../config/flags';
+import { TrialOffer } from './TrialOffer';
 
 type Group = 'needs' | 'info' | 'empty' | 'unread';
 const GROUP_LABEL: Record<Group, string> = { needs: 'Needs you', info: 'Info only', empty: 'Nothing in it', unread: 'Not read yet' };
@@ -41,6 +44,8 @@ export function Inbox() {
   const [filter, setFilter] = useState<string>('all');
   const [group, setGroup] = useState<Group | null>(null);
   const hasKey = useAiAllowed('announcementAI');
+  const { auth, profile } = useAccount();
+  const trialAvailable = auth.configured && trialState(profile) === 'available';
 
   const refresh = useCallback(async () => {
     // The list and the ledger land together: a list next to a ledger that has not loaded reads as "all unread".
@@ -286,7 +291,17 @@ export function Inbox() {
                         {a.findings.length} thing{a.findings.length === 1 ? '' : 's'} it changes
                       </button>
                     )}
-                    {!hasKey && a.findings === null && !st?.read && <span className="hint">Reading announcements is part of Pro.</span>}
+                    {!hasKey && a.findings === null && !st?.read && (
+                      <span className="hint">
+                        {trialAvailable ? (
+                          <>
+                            Max reads this for what it asks. <TrialOffer variant="inline" label="Try Max free" />
+                          </>
+                        ) : (
+                          'Reading announcements is part of Pro.'
+                        )}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
