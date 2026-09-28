@@ -36,6 +36,19 @@ jobs:
         with:
           path: dist
 
+  # The deployed Edge Functions, as a browser sees them. Runs beside the build; a red run here means the Inbox
+  # reader, the coach and checkout are dark in production even though the site itself deploys fine.
+  live-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/live-check.mjs
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
