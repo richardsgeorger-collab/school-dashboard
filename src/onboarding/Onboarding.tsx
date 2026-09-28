@@ -63,7 +63,7 @@ export function announcementFinds(items: Item[]): number {
  * click it, then the payoff: how much was found, counted up, and the real first assignment. Extras come later.
  */
 export function Onboarding() {
-  const { data, schedule, actions } = useStore();
+  const { data, schedule, actions, today } = useStore();
   const { auth } = useAccount();
   const { navigate } = useRoute();
   const tz = data.settings.timezone;
@@ -268,7 +268,7 @@ export function Onboarding() {
             </p>
             {hero && (
               <p className="onboard-text">
-                First up: <b>{hero.label}</b>, due {fmtDate(dateOf(hero.dueAt, tz), 'short')}.
+                First up: <b>{hero.label}</b>, {dateOf(hero.dueAt, tz) < today ? 'was due' : 'due'} {fmtDate(dateOf(hero.dueAt, tz), 'short')}.
               </p>
             )}
             <TrialOffer
