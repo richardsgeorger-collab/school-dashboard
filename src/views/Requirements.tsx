@@ -42,12 +42,9 @@ export function Requirements({ item: passed, compact = false, onMore }: { item: 
                 <span className="reqs-text">{r.text}</span>
               </label>
               {compact ? (
-                (r.dueAt || r.redefinesDone) && (
-                  <span className="hint mono reqs-meta">
-                    {r.dueAt ? `${late ? 'was due ' : 'due '}${fmtDate(dateOf(r.dueAt, tz), 'short')}` : ''}
-                    {r.dueAt && r.redefinesDone ? ' · ' : ''}
-                    {r.redefinesDone ? 'changes what full credit means' : ''}
-                  </span>
+                // On the card the line is the line: no meta under it. A late own date is the one thing worth a word.
+                late && (
+                  <span className="hint mono reqs-meta">was due {fmtDate(dateOf(r.dueAt!, tz), 'short')}</span>
                 )
               ) : (
                 <span className="hint mono reqs-meta">
