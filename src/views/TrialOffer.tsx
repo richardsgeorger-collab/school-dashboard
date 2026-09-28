@@ -22,7 +22,8 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
   const [note, setNote] = useState<string | null>(null);
   if (!auth.configured) return null;
   const state = trialState(profile);
-  if (state !== 'available') return null;
+  // Just started from this very card: the profile now says active and the card would vanish mid-tap. Say it happened.
+  if (state !== 'available') return note ? <p className="hint trial-line" role="status">{note}</p> : null;
   const go = async () => {
     setBusy(true);
     const r = await startTrial();
