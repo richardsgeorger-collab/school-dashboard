@@ -176,10 +176,10 @@ export function Onboarding() {
 
         {step === 'halo' && !synced && phase === 'install' && (
           <section className="onboard-step" aria-label="Connect Halo">
-            <h1 className="onboard-title">Drag this to your bookmarks bar.</h1>
+            <h1 className="onboard-title">{phone ? 'Make the Sync Halo bookmark.' : 'Drag this to your bookmarks bar.'}</h1>
             {phone ? (
               <>
-                <p className="onboard-text">On a phone the bookmark is made by hand. Four short steps.</p>
+                <p className="onboard-text">On a phone the bookmark is made by hand. Four short steps, and the address is short.</p>
                 <SyncSteps onNote={setNote} />
               </>
             ) : (
