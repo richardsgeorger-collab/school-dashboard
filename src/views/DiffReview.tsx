@@ -295,7 +295,8 @@ export function DiffReview({
           </details>
         </div>
       )}
-      {sample && (
+      {/* How Halo's times are read, only when that is in question: a calendar export, bare timestamps, or an odd hour. */}
+      {sample && (source === 'ics' || diff.bareDates || diff.zoneWarning) && (
         <div className="diff-zone" data-warn={diff.zoneWarning ? 'true' : 'false'} role={diff.zoneWarning ? 'alert' : undefined}>
           <div className="diff-zone-grid">
             <span className="diff-zone-k">{source === 'ics' ? 'Export says' : 'Halo says'}</span>
