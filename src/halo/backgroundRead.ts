@@ -10,6 +10,7 @@ import { useStore } from '../storage/store';
 import { readActions } from './actions';
 import { announceDb, bodyHash, healEntries, readLedger, type ReadEntry, type StoredAnnouncement } from './announce';
 import { pushLedgerEntry, syncLedger } from './ledgerSync';
+import { syncPosts } from './postsSync';
 import { emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from './autoRead';
 import { withRetry } from './readAll';
 import { readGuard } from './readCost';
@@ -63,9 +64,12 @@ interface Args {
 export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
   if (status.running) return null;
   const ids = new Set(args.courses.map((c) => c.id));
-  const onFile = (await announceDb.list().catch(() => [] as StoredAnnouncement[])).filter((a) => ids.has(a.courseId));
-  // What the account already read on another device counts here too, so the phone never re-reads the laptop's posts.
+  // The account's posts and its read ledger come here first, so the phone shows the laptop's Inbox without a sync of
+  // its own and never re-reads what the laptop read.
+  const arrived = await syncPosts(ids).catch(() => 0);
   await syncLedger().catch(() => 0);
+  if (arrived > 0 && typeof window !== 'undefined') window.dispatchEvent(new Event(READ_EVENT));
+  const onFile = (await announceDb.list().catch(() => [] as StoredAnnouncement[])).filter((a) => ids.has(a.courseId));
   let ledger: Map<string, ReadEntry>;
   try {
     ledger = await readLedger.all();
