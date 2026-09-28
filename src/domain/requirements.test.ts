@@ -23,6 +23,11 @@ describe('one part, two wordings', () => {
     const out = dedupeRequirements([req('1', 'Attach the lab guides and use the template'), req('2', 'Using the template, the lab guide must be attached')]);
     expect(out).toHaveLength(1);
   });
+  it('two different parts quoted from the same sentence of the same post stay apart', () => {
+    const quote = 'Bring your own goggles and post your pre-lab questions in the forum.';
+    const out = dedupeRequirements([req('1', 'Bring your own splash goggles to lab', quote), req('2', 'Post your pre-lab questions in the forum', quote)]);
+    expect(out).toHaveLength(2);
+  });
   it('genuinely different parts stay apart', () => {
     const out = dedupeRequirements([req('1', 'Cite two peer-reviewed sources'), req('2', 'Bring your own splash goggles to lab')]);
     expect(out).toHaveLength(2);

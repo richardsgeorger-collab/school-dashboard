@@ -13,10 +13,9 @@ import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from '.
  * identical sentence twice, so this matches on meaning with the same similarity check that collapsed the four
  * Chemistry Connections claims.
  */
-const same = (a: Requirement, b: { text: string; source: ReqSource }) =>
-  a.text.trim().toLowerCase() === b.text.trim().toLowerCase() ||
-  (!!a.source.quote && a.source.quote === b.source.quote && a.source.id === b.source.id) ||
-  overlap(a.text, b.text) >= 0.6;
+// The words decide. One professor sentence can yield two parts ("bring goggles" and "post your questions"), so a
+// shared quote is not a shared part; a rewording of the same instruction is.
+const same = (a: Requirement, b: { text: string; source: ReqSource }) => a.text.trim().toLowerCase() === b.text.trim().toLowerCase() || overlap(a.text, b.text) >= 0.6;
 
 /**
  * The same list with near-duplicates folded together: a rewording that arrived by another path, or before the
