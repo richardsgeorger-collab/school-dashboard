@@ -8,3 +8,4 @@ supabase/functions/.env
 .supabase
 supabase/.temp
 dist-e2e
+dist-before

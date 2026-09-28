@@ -199,6 +199,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localCache.save(data);
   }, [data]);
+  // Another tab changed the cache: take its newer rows and keep ours, the same rule the account mirror uses.
+  useEffect(
+    () =>
+      localCache.onChange((other) => {
+        const local = dataRef.current;
+        const result = mergeData(local, { courses: other.courses, items: other.items, settings: other.settings });
+        const merged = normalizeData(result.merged);
+        merged.settings = { ...merged.settings, supabaseUrl: local.settings.supabaseUrl, supabaseAnonKey: local.settings.supabaseAnonKey };
+        dataRef.current = merged;
+        setData(merged);
+      }),
+    [],
+  );
   useEffect(() => {
     const ledger = ledgerWith(data.items, data.settings.timings);
     if (ledger !== (data.settings.timings ?? ledger)) setData((d) => ({ ...d, settings: { ...d.settings, timings: ledger } }));
