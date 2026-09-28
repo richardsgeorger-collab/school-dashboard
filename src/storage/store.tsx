@@ -118,9 +118,20 @@ export function seedData(): AppData {
 }
 
 /** A brand-new student starts with nothing: the first sync or the first class is theirs. */
+/** The device's zone on a first run, so an online student in Ohio sees Ohio times; Phoenix when the browser will not say. */
+export function deviceTimezone(fallback = DEFAULT_SETTINGS.timezone): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && tz !== 'UTC' && tz !== 'Etc/UTC' && tz.includes('/')) return tz;
+  } catch {
+    /* an old browser: the fallback is a fine answer */
+  }
+  return fallback;
+}
+
 export function emptyData(): AppData {
   const now = nowIso();
-  return { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, supabaseUrl: env('VITE_SUPABASE_URL'), supabaseAnonKey: env('VITE_SUPABASE_ANON_KEY'), updatedAt: now } };
+  return { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, timezone: deviceTimezone(), supabaseUrl: env('VITE_SUPABASE_URL'), supabaseAnonKey: env('VITE_SUPABASE_ANON_KEY'), updatedAt: now } };
 }
 
 /** Fill fields added after a row was written (older caches, other devices, imports). */
