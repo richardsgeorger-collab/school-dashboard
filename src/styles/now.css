@@ -161,8 +161,8 @@
   margin-top: var(--s-4);
 }
 .hero-actions .btn.primary {
-  flex: 1;
   min-height: 48px;
+  padding: 0 28px;
   font-size: 16px;
 }
 .hero-actions .btn.quiet {
