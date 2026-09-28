@@ -49,7 +49,9 @@ export function submissionCheck(items: Item[], today: DateStr, tz: string): Subm
     line = `Halo shows ${m.label} unsubmitted${more}. You marked it done here. Check it in Halo.`;
     level = 'alarm';
   } else if (dueWeek.length && unconfirmed.length === 0) {
-    line = `Halo shows all ${dueWeek.length} item${dueWeek.length === 1 ? '' : 's'} due this week submitted.`;
+    // Counts what was finished, not what is due: "all 13 items due this week submitted" read as "the week is done"
+    // right above an item due today and not started.
+    line = dueWeek.length === 1 ? `The 1 thing you finished this past week is confirmed submitted in Halo.` : `All ${dueWeek.length} things you finished this past week are confirmed submitted in Halo.`;
   } else if (dueWeek.length) {
     // Plain words, under fifteen of them, so the heads-up never cuts it mid-sentence.
     line = `${unconfirmed.length} thing${unconfirmed.length === 1 ? '' : 's'} you finished this week ${unconfirmed.length === 1 ? "isn't" : "aren't"} confirmed submitted in Halo. Sync to check.`;

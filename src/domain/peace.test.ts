@@ -20,7 +20,7 @@ describe('submission confirmation from Halo', () => {
   const done = (id: string, due: string, halo: { status: string; submittedAt: string | null } | null) => mkItem({ id, courseId: 'c1', title: id, label: id, status: 'done', completedAt: at(due), dueAt: at(due), halo: halo ? { ...halo, checkedAt: checked } : null });
   it('says all clear when every item due this week is in, names the ones not asked about, and shouts about a mismatch', () => {
     const clear = submissionCheck([done('a', '2026-09-10', { status: 'SUBMITTED', submittedAt: at('2026-09-10') }), done('b', '2026-09-12', { status: 'PUBLISHED', submittedAt: null })], today, TZ);
-    expect(clear.line).toBe('Halo shows all 2 items due this week submitted.');
+    expect(clear.line).toBe('All 2 things you finished this past week are confirmed submitted in Halo.');
     expect(clear.level).toBe('quiet');
     const part = submissionCheck([done('a', '2026-09-10', { status: 'SUBMITTED', submittedAt: at('2026-09-10') }), done('b', '2026-09-12', null)], today, TZ);
     expect(part.line).toBe("1 thing you finished this week isn't confirmed submitted in Halo. Sync to check.");
