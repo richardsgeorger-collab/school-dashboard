@@ -62,6 +62,11 @@ export interface HaloClass {
   resources?: HaloResource[];
   /** The letter scale this class is graded on. */
   gradeScale?: HaloGradeEntry[];
+  /**
+   * Halo's own class grade (GradeOverview.finalGrade). Undefined when the call failed or the bookmark predates it;
+   * null when Halo answered with no grade for this class.
+   */
+  finalGrade?: HaloFinalGrade | null;
   /** Days the class does not meet. */
   holidays?: HaloHoliday[];
   /** How many days and posts participation asks for. */
@@ -225,4 +230,12 @@ export interface HaloQuizResult {
   submittedAt: string | null;
   /** The questions as asked, with what the student picked. Correctness per question is not exposed to students. */
   questions: { id: string; type: string | null; content: string; chosen: string[] }[];
+}
+
+/** The class grade exactly as Halo keeps it: the letter it shows and the points behind the percent. */
+export interface HaloFinalGrade {
+  letter: string | null;
+  points: number | null;
+  maxPoints: number | null;
+  published: boolean;
 }

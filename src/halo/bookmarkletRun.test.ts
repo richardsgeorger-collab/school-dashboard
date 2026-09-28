@@ -35,6 +35,11 @@ const OK: Record<string, unknown> = {
     { id: 'g1', status: 'SUBMITTED', dueDate: '2026-09-19 06:59:00', accommodatedDueDate: null, assessment: { id: A1 }, assignmentSubmission: { submissionDate: '2026-09-18T20:00:00Z' }, history: [{ status: 'PUBLISHED', points: 7 }] },
     { id: 'g2', status: 'ACTIVE', dueDate: '2026-09-18 06:59:00', accommodatedDueDate: null, assessment: { id: A2 }, assignmentSubmission: null, history: [] },
   ] }] },
+  // Halo's student gradebook call, as its bundle sends it: the class grade and each item's published points.
+  GradeOverview: { gradeOverview: [{ finalGrade: { id: 'fg1', finalPoints: 57.6, gradeValue: 'A', isPublished: false, maxPoints: 60 }, grades: [
+    { assessment: { id: A1 }, finalPoints: 9.5, status: 'PUBLISHED' },
+    { assessment: { id: A2 }, finalPoints: 4, status: 'ACTIVE' },
+  ] }] },
   ClassFacts: { currentClass: {
     id: 'C1',
     gradeScale: { entries: [{ label: 'A', minPercent: 90, maxPercent: 100 }, { label: 'B', minPercent: 80, maxPercent: 89.99 }] },
@@ -78,15 +83,15 @@ const good: Halo = (op, _v, query) => {
 const MODES: Record<string, (op: string) => Reply> = {
   'null data': () => ({ data: null }),
   'field missing': () => ({ data: {} }),
-  'wrong types': () => ({ data: { getUserAlerts: 1, getInboxLeftPanel: 'nope', assessmentGrades: 'nope', currentClass: 7, courseClassResources: 0, allDQForCourseClass: 'nope', announcements: 'nope', assessmentRubric: true, userQuiz: 'nope', userQuizResults: false, getCourseClassesForUser: 5 } }),
-  'nested nulls': () => ({ data: { getUserAlerts: { alerts: [null] }, getInboxLeftPanel: [null], assessmentGrades: [{ grades: [null, { assessment: null }] }], currentClass: { units: [null, { assessments: [null, {}] }], gradeScale: { entries: [null] }, holidays: [null], participationPolicy: {} }, courseClassResources: { resources: [null], units: [null] }, allDQForCourseClass: [null], announcements: [null, { posts: [null, { createdBy: 'x', resources: [null], postFlagAcknowledgements: [null] }] }], assessmentRubric: { rubric: { criteria: [null, { achievementLevels: [null] }] } }, userQuiz: { userQuestions: [null, {}] }, userQuizResults: {}, getCourseClassesForUser: { courseClasses: [null] } } }),
+  'wrong types': () => ({ data: { gradeOverview: 'nope', getUserAlerts: 1, getInboxLeftPanel: 'nope', assessmentGrades: 'nope', currentClass: 7, courseClassResources: 0, allDQForCourseClass: 'nope', announcements: 'nope', assessmentRubric: true, userQuiz: 'nope', userQuizResults: false, getCourseClassesForUser: 5 } }),
+  'nested nulls': () => ({ data: { gradeOverview: [{ finalGrade: null, grades: [null, { assessment: null }] }], getUserAlerts: { alerts: [null] }, getInboxLeftPanel: [null], assessmentGrades: [{ grades: [null, { assessment: null }] }], currentClass: { units: [null, { assessments: [null, {}] }], gradeScale: { entries: [null] }, holidays: [null], participationPolicy: {} }, courseClassResources: { resources: [null], units: [null] }, allDQForCourseClass: [null], announcements: [null, { posts: [null, { createdBy: 'x', resources: [null], postFlagAcknowledgements: [null] }] }], assessmentRubric: { rubric: { criteria: [null, { achievementLevels: [null] }] } }, userQuiz: { userQuestions: [null, {}] }, userQuizResults: {}, getCourseClassesForUser: { courseClasses: [null] } } }),
   'graphql error': () => ({ errors: [{ message: 'Cannot query field "wat"' }] }),
   'network throw': () => {
     throw new Error('Failed to fetch');
   },
 };
 
-const BREAKABLE = ['GetUserAlerts', 'GetInboxLeftPanel', 'AllAssessmentGrades', 'ClassFacts', 'AssessmentFeedback', 'courseClassResources', 'AllDQForCourseClass', 'GetForumNotifications', 'getDiscussionForumPosts', 'AssessmentRubric', 'GetQuizResult'];
+const BREAKABLE = ['GetUserAlerts', 'GetInboxLeftPanel', 'AllAssessmentGrades', 'GradeOverview', 'ClassFacts', 'AssessmentFeedback', 'courseClassResources', 'AllDQForCourseClass', 'GetForumNotifications', 'getDiscussionForumPosts', 'AssessmentRubric', 'GetQuizResult'];
 
 /** `good`, except one operation answers badly. Instructor names share an operation name, so break by query text. */
 const breaking = (op: string, mode: keyof typeof MODES): Halo => (o, v, q) => {
@@ -122,6 +127,19 @@ describe('the bookmarklet, actually run', () => {
     expect(c.messages[0].fromInstructor).toBe(true);
     expect(c.discussions[0].totalPosts).toBe(24);
     expect(r.payload.alerts[0].title).toBe('Lab Safety Quiz');
+    // Halo's own class grade, and each item's points from the gradebook: published only, which beats the history.
+    expect(c.finalGrade).toEqual({ letter: 'A', points: 57.6, maxPoints: 60, published: false });
+    expect(c.assessments.find((a: any) => a.id === A1).score).toBe(9.5);
+    expect(c.assessments.find((a: any) => a.id === A2).score).toBeNull();
+    expect(r.asked).toContain('GradeOverview');
+  });
+
+  it('a class grade Halo will not give up costs the class grade only; scores fall back to the history', async () => {
+    const r = await runBookmarklet(breaking('GradeOverview', 'graphql error'), { download: () => ({ downloadUrl: 'https://x/y' }) });
+    const c = r.payload.classes[0];
+    expect(c.finalGrade).toBeUndefined();
+    expect(c.assessments.find((a: any) => a.id === A1).score).toBe(7);
+    expect(r.payload.problems.map((p: any) => p.kind)).toEqual(['class grade']);
   });
 
   for (const op of BREAKABLE) {
@@ -223,7 +241,7 @@ describe('the guards themselves', () => {
 
   it('every query result is parsed inside the guard that caught its request', () => {
     // One try per gql call site, plus the per-class guard, plus the incidental ones.
-    expect((src.match(/await gql\(/g) ?? []).length).toBe(16);
+    expect((src.match(/await gql\(/g) ?? []).length).toBe(17);
     for (const m of src.matchAll(/await gql\(/g)) {
       const before = src.slice(0, m.index);
       const opens = (before.match(/try\s*\{/g) ?? []).length;

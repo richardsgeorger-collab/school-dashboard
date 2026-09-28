@@ -3,6 +3,7 @@ import { dateOf, diffDays, fmtDate, fmtTime } from '../domain/dates';
 import { COUNT_WORDS, countsLine, type PullCounts } from '../halo/counts';
 import { cleanAll, rulesFor } from '../domain/reqClean';
 import { loadLastSync } from '../halo/handoff';
+import { courseGrade, gradeMismatch } from '../domain/grades';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
 import { useBookmarkHref } from './BookmarkButton';
@@ -106,7 +107,9 @@ export function HaloDiagnostics() {
   const after = cleaned.items.reduce((n, i) => n + (i.requirements?.length ?? 0), 0);
   const rules = data.courses.reduce((n, c) => n + rulesFor(cleaned.items, c.id).length, 0);
   const onAgenda = after - cleaned.items.reduce((n, i) => n + (i.requirements ?? []).filter((r) => r.scope === 'rule').length, 0);
-  if (!pull && !last && before === 0) return null;
+  // Halo's class grade is what the app shows; where the per-item working does not add up to it, say so here.
+  const mismatches = data.courses.map((c) => ({ code: c.code, line: gradeMismatch(courseGrade(c.id, data.items, c)) })).filter((m) => m.line);
+  if (!pull && !last && before === 0 && mismatches.length === 0) return null;
   return (
     <div className="halo-diagnostics">
       <h3 className="section-title">Sync diagnostics</h3>
@@ -122,6 +125,12 @@ export function HaloDiagnostics() {
       {last && (
         <p className="hint">
           Last Halo sync {fmtDate(dateOf(last.at, tz), 'short')} {fmtTime(last.at, tz)} · {last.added} added · {last.changed} changed · {last.completed} done · {last.removed} removed
+        </p>
+      )}
+      {mismatches.length > 0 && (
+        <p className="hint">
+          <b>Grades that do not add up</b> Halo&apos;s own grade is what every screen shows.{' '}
+          {mismatches.map((m) => `${m.code}: ${m.line}`).join(' ')} Usually a score Halo has published that has not synced yet; the next sync brings it.
         </p>
       )}
       {before > 0 && (

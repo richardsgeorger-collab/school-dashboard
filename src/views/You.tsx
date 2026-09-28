@@ -18,7 +18,7 @@ import { useSubscription } from '../billing/useSubscription';
 import { PALETTE } from '../data/courseDefaults';
 import { addDays, dateOf, fmtClock, fmtDate, hhmmToMinutes, weekStart } from '../domain/dates';
 import { dayCapacity } from '../domain/schedule';
-import { basedOn, courseGrade, letterFor, NOT_GRADED } from '../domain/grades';
+import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import { newId } from '../domain/ids';
 import { finished as sundayFinished, switchedOn } from '../domain/sunday';
 import type { Course, DateStr } from '../domain/types';
@@ -443,17 +443,16 @@ export function You() {
           ) : (
             <ul className="you-grades">
               {data.courses.map((c) => {
-                const g = courseGrade(c.id, data.items);
-                const letter = letterFor(g.pct, c.gradeScale);
+                const g = courseGrade(c.id, data.items, c);
                 return (
                   <li key={c.id}>
                     <CourseChip course={c} link />
-                    {g.pct === null ? (
+                    {g.pct === null && !g.letter ? (
                       <span className="muted">{NOT_GRADED}</span>
                     ) : (
                       <span className="you-grade">
-                        <span className="mono">{`${g.pct}%${letter ? ` ${letter}` : ''}`}</span>
-                        <span className="you-grade-basis">{basedOn(g)}</span>
+                        <span className="mono">{gradeLine(g, c.gradeScale)}</span>
+                        {basedOn(g) && <span className="you-grade-basis">{basedOn(g)}</span>}
                       </span>
                     )}
                   </li>

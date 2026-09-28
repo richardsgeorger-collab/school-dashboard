@@ -5,7 +5,7 @@ import { useAccount } from '../auth/AccountContext';
 import { LockTag } from '../config/Locked';
 import { useCan } from '../config/useCan';
 import { dateOf, fmtDate } from '../domain/dates';
-import { basedOn, courseGrade, letterFor, NOT_GRADED } from '../domain/grades';
+import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { WhatIf } from './WhatIf';
@@ -47,7 +47,7 @@ function CourseCard({ course }: { course: Course }) {
   const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, data.settings.timezone).filter((w) => w.courseId === course.id), 6);
   const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, data.settings.timezone);
   const floor = gradeFloor(course.id, data.items);
-  const g = courseGrade(course.id, data.items);
+  const g = courseGrade(course.id, data.items, course);
   const [expanded, setExpanded] = useState(false);
   const [whatIf, setWhatIf] = useState(false);
   const canProject = useCan('gradeProjection');
@@ -67,9 +67,8 @@ function CourseCard({ course }: { course: Course }) {
           </h2>
         </div>
         <div className="grade-pct mono">
-          {g.pct === null ? <span className="muted grade-none">{NOT_GRADED}</span> : `${g.pct}%`}
-          {letterFor(g.pct, course.gradeScale) ? <span className="grade-letter"> {letterFor(g.pct, course.gradeScale)}</span> : null}
-          {g.pct !== null && <span className="grade-basis">{basedOn(g)}</span>}
+          {g.pct === null && !g.letter ? <span className="muted grade-none">{NOT_GRADED}</span> : gradeLine(g, course.gradeScale)}
+          {basedOn(g) && <span className="grade-basis">{basedOn(g)}</span>}
         </div>
       </header>
       <div className="grade-bar" aria-hidden>

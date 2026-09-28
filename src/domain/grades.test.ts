@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { basedOn, courseGrade } from './grades';
+import { basedOn, courseGrade, gradeLine, gradeMismatch, gradeText } from './grades';
 import { DEFAULT_FLAGS, type Item } from './types';
 
 function item(over: Partial<Item>): Item {
@@ -54,25 +54,41 @@ describe('courseGrade', () => {
   });
 });
 
-describe('when a percentage is allowed to show', () => {
-  it('one real scored item is enough; 0-point posts and participation are not a grade', () => {
-    // ESG-162L: only 0-point intro posts graded. That is not 0%.
-    const intro = [item({ points: 0, score: 0, status: 'done' }), item({ points: 0, score: 0, status: 'done' }), item({ points: 250 }), item({ points: 250 })];
+describe('the class grade', () => {
+  it('counts every scored item with points, participation included, the way Halo does; 0-point posts are not a grade', () => {
+    const intro = [item({ points: 0, score: 0, status: 'done' }), item({ points: 250 })];
     expect(courseGrade('c1', intro).pct).toBeNull();
-    expect(courseGrade('c1', intro).enough).toBe(false);
-    expect(courseGrade('c1', intro).graded).toBe(0);
-    // ESG-162: one graded item out of a thousand points shows, as 54.7% based on 1 item.
-    const one = [item({ points: 20, score: 11, status: 'done' }), item({ points: 980 })];
-    expect(courseGrade('c1', one).pct).toBe(55);
-    expect(courseGrade('c1', one).graded).toBe(1);
-    expect(basedOn(courseGrade('c1', one))).toBe('based on 1 item');
-    // Participation scored 0/10 is attendance, not a grade: the class stays "not graded yet".
-    const part = [item({ type: 'participation', points: 10, score: 0, status: 'done' }), item({ points: 990 })];
-    expect(courseGrade('c1', part).pct).toBeNull();
-    expect(courseGrade('c1', part).graded).toBe(0);
-    // Three real graded items, as before.
-    const three = [item({ points: 20, score: 11, status: 'done' }), item({ points: 20, score: 20, status: 'done' }), item({ points: 20, score: 18, status: 'done' }), item({ points: 940 })];
-    expect(courseGrade('c1', three).pct).toBe(81.7);
-    expect(basedOn(courseGrade('c1', three))).toBe('based on 3 items');
+    expect(courseGrade('c1', intro).source).toBe('none');
+    // ESG-162L: participation scored 10/10 is a grade.
+    const part = [item({ type: 'participation', points: 10, score: 10, status: 'done' }), item({ points: 990 })];
+    expect(courseGrade('c1', part).pct).toBe(100);
+    expect(basedOn(courseGrade('c1', part))).toBe('based on 1 item');
+  });
+
+  it('shows Halo’s own grade whenever the sync carried it, letter and percent as Halo shows them, with no footnote', () => {
+    // ESG-162: Halo says A (95.6%) while only one review is scored here.
+    const items = [item({ points: 25, score: 13.67, status: 'done' }), item({ points: 975 })];
+    const g = courseGrade('c1', items, { haloGrade: { letter: 'A', points: 172.1, maxPoints: 180, percent: (172.1 / 180) * 100, at: 'x' } });
+    expect(g.source).toBe('halo');
+    expect(gradeText(g)).toBe('A (95.6%)');
+    expect(gradeLine(g, [{ label: 'F', minPercent: 0, maxPercent: 59.99 }])).toBe('A (95.6%)');
+    expect(basedOn(g)).toBeNull();
+    expect(g.earned).toBe(172.1);
+    // The items do not add up to Halo's number: flagged for Advanced, never shown instead of it.
+    expect(gradeMismatch(g)).toBe('Halo says 95.6%; the items here add up to 54.7%.');
+  });
+
+  it('matches Halo’s one-decimal format for every one of George’s classes', () => {
+    const cases: [string, number, number, string][] = [
+      ['B-', 81.3, 100, 'B- (81.3%)'],
+      ['A', 96, 100, 'A (96.0%)'],
+      ['D', 62.5, 100, 'D (62.5%)'],
+      ['A', 95.6, 100, 'A (95.6%)'],
+      ['A', 100, 100, 'A (100.0%)'],
+    ];
+    for (const [letter, points, maxPoints, want] of cases) {
+      expect(gradeText(courseGrade('c1', [], { haloGrade: { letter, points, maxPoints, percent: (points / maxPoints) * 100, at: 'x' } }))).toBe(want);
+    }
+    expect(gradeMismatch(courseGrade('c1', [item({ points: 100, score: 96, status: 'done' })], { haloGrade: { letter: 'A', points: 96, maxPoints: 100, percent: 96, at: 'x' } }))).toBeNull();
   });
 });

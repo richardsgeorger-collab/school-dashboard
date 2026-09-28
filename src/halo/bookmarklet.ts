@@ -70,11 +70,21 @@ const Q_GRADES =
   'query AllAssessmentGrades($courseClassSlugId: String!, $courseUnitId: String) { assessmentGrades: getAllClassGrades(courseClassSlugId: $courseClassSlugId, courseUnitId: $courseUnitId) { grades { id status dueDate accommodatedDueDate assessment { id } assignmentSubmission { submissionDate } history { status points } } } }';
 
 /**
+ * Halo's own class grade, the "A (96.0%)" it shows: `finalGrade` on getAllClassGrades, read verbatim from Halo's
+ * student gradebook bundle (operation GradeOverview, which sends only the slug). `gradeValue` is the letter; the
+ * percent is finalPoints / maxPoints. Each grade's `finalPoints` is what that item counts for, participation
+ * included; the gradebook counts it only once the grade is PUBLISHED. Its own call, so a failure costs the class
+ * grade and nothing else.
+ */
+const Q_OVERVIEW =
+  'query GradeOverview($courseClassSlugId: String!) { gradeOverview: getAllClassGrades(courseClassSlugId: $courseClassSlugId) { finalGrade { id finalPoints gradeValue isPublished maxPoints } grades { assessment { id } finalPoints status } } }';
+
+/**
  * The build this bookmarklet came from. A bookmarklet is a URL frozen in the bookmarks bar the moment it is saved;
  * deploying new code does not update it. Stamping the payload is the only way the app can tell the user their
  * bookmark is old rather than quietly showing them three queries' worth of data and calling it eleven.
  */
-export const BOOKMARKLET_BUILD = '2026-09-27a';
+export const BOOKMARKLET_BUILD = '2026-09-28a';
 
 /**
  * Asked only when something already failed. If the gateway allows introspection this settles every remaining
@@ -143,6 +153,7 @@ return j.data;};
 var noField=function(op,field){var E=new Error('Halo returned no '+field+' field');E.op=op;E.missingField=field;return E;};
 var Q1=${JSON.stringify(Q_CLASSES)};
 var Q2=${JSON.stringify(Q_GRADES)};
+var QG=${JSON.stringify(Q_OVERVIEW)};
 var Q3=${JSON.stringify(Q_INSTRUCTORS)};
 var Q4=${JSON.stringify(Q_ANNOUNCEMENTS)};
 var Q4b=${JSON.stringify(Q_FORUM_NOTIFS)};
@@ -187,10 +198,15 @@ for(var i=0;i<cls.length;i++){var c=cls[i];
 if(!c||!c.id){continue;}
 var code=c.courseCode||c.classCode||'a class';
 say('Reading '+code+' ('+(i+1)+' of '+cls.length+')\\u2026');
-var grades=[],cur=null,fb={},res,dqs,anns,rubricOf={},attachOf={},rubrics={},quizzes={},out=[],okRub=false,okFb=false,okQz=false;
+var grades=[],cur=null,fin=undefined,pub=null,fb={},res,dqs,anns,rubricOf={},attachOf={},rubrics={},quizzes={},out=[],okRub=false,okFb=false,okQz=false;
 try{
 try{var g=await gql('AllAssessmentGrades',Q2,{courseClassSlugId:c.slugId,courseUnitId:null});if(!g||g.assessmentGrades===undefined){throw noField('AllAssessmentGrades','assessmentGrades');}
 grades=((g.assessmentGrades&&g.assessmentGrades[0]&&g.assessmentGrades[0].grades)||[]);}catch(e){grades=[];prob(code,'grades',e);}
+try{var GO=await gql('GradeOverview',QG,{courseClassSlugId:c.slugId});if(!GO||GO.gradeOverview===undefined){throw noField('GradeOverview','gradeOverview');}
+var go0=(GO.gradeOverview&&GO.gradeOverview[0])||null;var F=go0&&go0.finalGrade;
+fin=F?{letter:F.gradeValue==null?null:String(F.gradeValue),points:F.finalPoints==null?null:F.finalPoints,maxPoints:F.maxPoints==null?null:F.maxPoints,published:!!F.isPublished}:null;
+pub={};var GR=(go0&&go0.grades)||[];for(var gi5=0;gi5<GR.length;gi5++){var G5=GR[gi5];if(G5&&G5.assessment&&G5.assessment.id){pub[G5.assessment.id]={status:G5.status||null,points:G5.finalPoints==null?null:G5.finalPoints};}}
+}catch(e){fin=undefined;pub=null;prob(code,'class grade',e);}
 try{var CC=await gql('ClassFacts',Q5,{slugId:c.slugId});if(!CC||CC.currentClass===undefined){throw noField('ClassFacts','currentClass');}cur=CC.currentClass||null;}catch(e){cur=null;prob(code,'class facts',e);}
 try{var fg=await gql('AssessmentFeedback',Q6,{courseClassSlugId:c.slugId,courseUnitId:null});if(!fg||fg.assessmentGrades===undefined){throw noField('AssessmentFeedback','assessmentGrades');}
 var fr=((fg.assessmentGrades&&fg.assessmentGrades[0]&&fg.assessmentGrades[0].grades)||[]);
@@ -278,14 +294,14 @@ for(var u=0;u<units.length;u++){var un=units[u];if(!un)continue;var as=un.assess
 for(var a=0;a<as.length;a++){var t=as[a];if(!t||!t.id)continue;var gg=byId[t.id];
 var hist=((gg&&gg.history)||[]).filter(function(h){return h&&h.points!=null;});
 var personal=gg&&(gg.accommodatedDueDate||gg.dueDate);
-out.push({id:t.id,title:t.title,description:t.description||null,unit:un.title||null,unitSequence:un.sequence==null?null:un.sequence,sequence:t.sequence==null?null:t.sequence,startDate:t.startDate||null,dueDate:personal||t.dueDate||null,classDueDate:t.dueDate||null,points:t.points==null?null:t.points,type:t.type||'ASSIGNMENT',tags:t.tags||[],inPerson:!!t.inPerson,isGroupEnabled:!!t.isGroupEnabled,requiresLopesWrite:!!t.requiresLopesWrite,status:(gg&&gg.status)||null,submittedAt:(gg&&gg.assignmentSubmission&&gg.assignmentSubmission.submissionDate)||null,score:hist.length?hist[hist.length-1].points:null,
+out.push({id:t.id,title:t.title,description:t.description||null,unit:un.title||null,unitSequence:un.sequence==null?null:un.sequence,sequence:t.sequence==null?null:t.sequence,startDate:t.startDate||null,dueDate:personal||t.dueDate||null,classDueDate:t.dueDate||null,points:t.points==null?null:t.points,type:t.type||'ASSIGNMENT',tags:t.tags||[],inPerson:!!t.inPerson,isGroupEnabled:!!t.isGroupEnabled,requiresLopesWrite:!!t.requiresLopesWrite,status:(gg&&gg.status)||null,submittedAt:(gg&&gg.assignmentSubmission&&gg.assignmentSubmission.submissionDate)||null,score:pub?((pub[t.id]&&pub[t.id].status==='PUBLISHED'&&pub[t.id].points!=null)?pub[t.id].points:null):(hist.length?hist[hist.length-1].points:null),
 rubric:okRub?(rubrics[t.id]||null):undefined,
 attachments:attachOf[t.id]||[],
 quiz:okQz?(quizzes[t.id]||null):undefined,
 feedback:okFb?feedbackOf(fb[t.id]):undefined});}}
 }catch(e){prob(code,'this class',e);}
 var who=(names[c.id]||[]).map(function(x){var u=x&&x.user;return u?((u.preferredFirstName||u.firstName||'')+' '+(u.lastName||'')).trim():'';}).filter(Boolean);
-classes.push({id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',instructors:who,startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out,announcements:anns,resources:res,discussions:dqs,
+classes.push({finalGrade:fin,id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',instructors:who,startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out,announcements:anns,resources:res,discussions:dqs,
 gradeScale:(cur&&cur.gradeScale&&cur.gradeScale.entries)?cur.gradeScale.entries.filter(Boolean).map(function(E){return{label:E.label||'',minPercent:E.minPercent==null?null:E.minPercent,maxPercent:E.maxPercent==null?null:E.maxPercent};}):undefined,
 holidays:(cur&&cur.holidays)?cur.holidays.filter(function(H){return H&&H.active!==false;}).map(function(H){return{title:H.title||'',description:H.description||null,startDate:H.startDate||null,duration:H.duration==null?null:H.duration};}):undefined,
 participation:(cur&&cur.participationPolicy)?{description:cur.participationPolicy.description||null,days:cur.participationPolicy.numDays==null?null:cur.participationPolicy.numDays,posts:cur.participationPolicy.numPosts==null?null:cur.participationPolicy.numPosts}:undefined,
@@ -315,7 +331,7 @@ var probeTypes=['CourseClass','UserAlertsInputGQL','FilterInputGQL','Post'];
 for(var ti=0;ti<probeTypes.length;ti++){try{var TR=await gql('HaloTypeProbe',QT,{name:probeTypes[ti]});var T=(TR||{}).__type;
 if(T){var fl=[];var ff2=T.fields||T.inputFields||[];for(var fi3=0;fi3<ff2.length;fi3++){if(ff2[fi3]){fl.push(ff2[fi3].name);}}schema.types[probeTypes[ti]]=fl.sort();}}catch(e){schema.types[probeTypes[ti]]='could not read: '+((e&&e.message)||e);}}
 }catch(e){schema={introspection:'refused',why:(e&&e.message)?String(e.message).slice(0,300):String(e)};prob(null,'schema probe',e);}}
-var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:MODE==='open'?'bookmarklet':'extension',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
+var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:MODE==='open'?'bookmarklet':'extension',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','class grade','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
 var n=0;for(var q=0;q<classes.length;q++){n+=(classes[q].assessments||[]).length;}
 say('Read '+n+' assignment'+(n===1?'':'s')+' in '+classes.length+' class'+(classes.length===1?'':'es')+(problems.length?', '+problems.length+' thing'+(problems.length===1?'':'s')+' Halo would not give up':'')+'. Sending to the dashboard\\u2026');
 var ackOrigin=MODE==='open'?D:location.origin;var got=false,ticks=0;var onMsg=function(e){if(e.origin===ackOrigin&&e.data&&e.data.kind==='halo-received'){got=true;}};

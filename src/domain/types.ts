@@ -40,6 +40,11 @@ export interface Course {
   /** Set when the class is linked to Halo. */
   haloSlugId?: string | null;
   haloClassId?: string | null;
+  /**
+   * Halo's own class grade as of the last sync that carried it: the source of truth for what the class grade is.
+   * `percent` is finalPoints / maxPoints × 100, the way Halo computes it.
+   */
+  haloGrade?: { letter: string | null; points: number | null; maxPoints: number | null; percent: number | null; at: string } | null;
   /** The letter scale this class is graded on, from Halo. */
   gradeScale?: { label: string; minPercent: number | null; maxPercent: number | null }[];
   /** Days the class does not meet, from Halo. */

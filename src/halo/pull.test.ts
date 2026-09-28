@@ -108,7 +108,7 @@ describe('a bookmark saved before today', () => {
     });
     expect(bookmarkAge({ build: '2026-09-01', pulls: ['assessments', 'grades', 'instructors'] }, '2026-09-18c')?.line).toContain('built 2026-09-01; the current build is 2026-09-18c. It pulled only 3 kinds of data');
     // A copy that asked for every kind is merely older, not narrower.
-    expect(bookmarkAge({ build: '2026-09-24a', pulls: Array.from({ length: 12 }, () => 'k') }, '2026-09-27a')?.line).toContain('built 2026-09-24a; the current build is 2026-09-27a. It ran the sync as it was that day, so it may have');
+    expect(bookmarkAge({ build: '2026-09-24a', pulls: Array.from({ length: 13 }, () => 'k') }, '2026-09-27a')?.line).toContain('built 2026-09-24a; the current build is 2026-09-27a. It ran the sync as it was that day, so it may have');
     // The extension updates itself from the store, so the fix is different.
     expect(bookmarkAge({ build: '2026-09-01', pulls: ['a'], source: 'extension' }, '2026-09-18c')?.line).toContain('Update the extension');
     // A payload from a newer build than this tab: the tab is what is old.

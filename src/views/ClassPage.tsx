@@ -6,7 +6,7 @@ import { ClassRules } from './ClassRules';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { ItemRow } from '../components/ItemRow';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes } from '../domain/dates';
-import { basedOn, courseGrade, NOT_GRADED } from '../domain/grades';
+import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
@@ -78,7 +78,7 @@ export function ClassPage() {
   const next = openItems.find((i) => dateOf(i.dueAt, tz) >= today) ?? openItems[0] ?? null;
   const overdue = openItems.filter((i) => (schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz)) < today);
   const week = openItems.filter((i) => dateOf(i.dueAt, tz) >= today && dateOf(i.dueAt, tz) <= addDays(today, 6));
-  const grade = courseGrade(course.id, data.items);
+  const grade = courseGrade(course.id, data.items, course);
   const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz).filter((w) => w.courseId === course.id), 6);
   const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, tz);
   const pace = paceFor(course, data.items, schedule, today);
@@ -135,8 +135,8 @@ export function ClassPage() {
           <div>
             <dt>Grade</dt>
             <dd>
-              {grade.pct === null ? NOT_GRADED : `${grade.pct}%`}
-              {grade.pct !== null && <span className="grade-basis"> {basedOn(grade)}</span>}
+              {grade.pct === null && !grade.letter ? NOT_GRADED : gradeLine(grade, course.gradeScale)}
+              {basedOn(grade) && <span className="grade-basis"> {basedOn(grade)}</span>}
             </dd>
           </div>
           <div>
@@ -152,6 +152,7 @@ export function ClassPage() {
             <dd>{pulled ? fmtDate(dateOf(pulled, tz), 'short') : 'not yet'}</dd>
           </div>
         </dl>
+        <GradeBreakdown courseId={course.id} items={data.items} total={grade} />
         {weak && <p className="hint">{weak}</p>}
       </section>
 
@@ -271,5 +272,41 @@ export function ClassPage() {
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
       {paste && <PasteTranscript course={course} onClose={() => setPaste(false)} />}
     </>
+  );
+}
+
+/**
+ * Every graded item Halo counts, participation included, and what they add up to. Halo's own grade stays the headline
+ * above; this is the working. When the two disagree the headline is still Halo's (the flag lives in Advanced).
+ */
+function GradeBreakdown({ courseId, items, total }: { courseId: string; items: Item[]; total: ReturnType<typeof courseGrade> }) {
+  const counted = items.filter((i) => i.courseId === courseId && i.score !== null && i.points > 0).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  if (counted.length === 0) return null;
+  const earned = counted.reduce((n, i) => n + (i.score ?? 0), 0);
+  const possible = counted.reduce((n, i) => n + i.points, 0);
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return (
+    <details className="grade-breakdown">
+      <summary className="diff-toggle">
+        {counted.length} graded item{counted.length === 1 ? '' : 's'}: {r2(earned)} of {possible} pts
+        {total.source === 'halo' && total.pct !== null ? ` · Halo's grade ${total.pct.toFixed(1)}%` : ''}
+      </summary>
+      <ul className="score-list">
+        {counted.map((i) => (
+          <li key={i.id}>
+            <span className="score-title">{i.label || i.title}</span>
+            <span className="mono">
+              {r2(i.score ?? 0)} / {i.points}
+            </span>
+          </li>
+        ))}
+        <li className="grade-breakdown-total">
+          <span className="score-title">Total</span>
+          <span className="mono">
+            {r2(earned)} / {possible} = {((earned / possible) * 100).toFixed(1)}%
+          </span>
+        </li>
+      </ul>
+    </details>
   );
 }

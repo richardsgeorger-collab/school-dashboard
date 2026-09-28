@@ -145,3 +145,14 @@ describe('time zones, defensively', () => {
     expect(oddDueTime('2026-09-14T23:59:00-07:00', TZ)).toBeNull();
   });
 });
+
+describe('Halo’s own class grade on the course', () => {
+  it('keeps the letter and the points, and computes the percent the way Halo does', async () => {
+    const { haloGradeFrom } = await import('./normalize');
+    expect(haloGradeFrom({ letter: 'B-', points: 81.3, maxPoints: 100, published: false }, 'now')).toEqual({ letter: 'B-', points: 81.3, maxPoints: 100, percent: 81.3, at: 'now' });
+    expect(haloGradeFrom({ letter: ' A ', points: 0, maxPoints: 0, published: false }, 'now')).toEqual({ letter: 'A', points: 0, maxPoints: 0, percent: null, at: 'now' });
+    // Nothing graded in Halo yet: no grade, rather than a 0%.
+    expect(haloGradeFrom({ letter: null, points: null, maxPoints: null, published: false }, 'now')).toBeNull();
+    expect(haloGradeFrom(null, 'now')).toBeNull();
+  });
+});

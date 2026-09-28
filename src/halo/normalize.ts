@@ -5,7 +5,7 @@ import { estimateMinutes } from '../domain/estimate';
 import { stableId } from '../domain/ids';
 import { shortLabel } from '../domain/labels';
 import type { Course, Item, ItemFlags, ItemType } from '../domain/types';
-import type { HaloAssessment, HaloClass } from './types';
+import type { HaloAssessment, HaloClass, HaloFinalGrade } from './types';
 
 /** How to read a Halo date string that carries no time zone. */
 export type BareDateMode = 'utc' | 'local';
@@ -71,6 +71,17 @@ export const normTitle = (t: string): string =>
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', '#39': "'" };
 function decodeEntities(s: string): string {
   return s.replace(/&(#?\w+);/g, (m, e: string) => ENTITIES[e] ?? (e.startsWith('#') ? String.fromCharCode(Number(e.slice(1))) || m : m));
+}
+
+/** Halo's class grade as stored on the course: its letter, its points, and the percent the way Halo computes it. */
+export function haloGradeFrom(f: HaloFinalGrade | null, at: string): Course['haloGrade'] {
+  if (!f) return null;
+  const pts = typeof f.points === 'number' && Number.isFinite(f.points) ? f.points : null;
+  const max = typeof f.maxPoints === 'number' && Number.isFinite(f.maxPoints) ? f.maxPoints : null;
+  const letter = typeof f.letter === 'string' && f.letter.trim() ? f.letter.trim() : null;
+  const percent = pts !== null && max !== null && max > 0 ? (pts / max) * 100 : null;
+  if (letter === null && percent === null) return null;
+  return { letter, points: pts, maxPoints: max, percent, at };
 }
 
 /** Halo descriptions are HTML. Keep the words, drop the markup. */
@@ -213,6 +224,7 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
       ...(c.gradeScale?.length ? { gradeScale: c.gradeScale } : {}),
       ...(c.holidays?.length ? { holidays: c.holidays } : {}),
       ...(c.participation ? { participation: c.participation } : {}),
+      ...(c.finalGrade !== undefined ? { haloGrade: haloGradeFrom(c.finalGrade, opts.now) } : {}),
       updatedAt: opts.now,
     };
   }
@@ -235,6 +247,7 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     ...(c.gradeScale?.length ? { gradeScale: c.gradeScale } : {}),
     ...(c.holidays?.length ? { holidays: c.holidays } : {}),
     ...(c.participation ? { participation: c.participation } : {}),
+    ...(c.finalGrade !== undefined ? { haloGrade: haloGradeFrom(c.finalGrade, opts.now) } : {}),
     termStart,
     termEnd,
     updatedAt: opts.now,

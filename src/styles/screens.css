@@ -2401,3 +2401,16 @@
 .item-edit[open] > summary {
   margin-bottom: var(--s-2);
 }
+
+/* The working behind a class grade: every graded item Halo counts, and the total. */
+.grade-breakdown {
+  margin-top: var(--s-3);
+}
+.grade-breakdown .score-list {
+  margin-top: var(--s-2);
+}
+.grade-breakdown-total {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  font-weight: 600;
+}

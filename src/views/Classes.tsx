@@ -3,7 +3,7 @@ import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
 import { PALETTE } from '../data/courseDefaults';
 import { dateOf, diffDays, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
-import { basedOn, courseGrade, letterFor, NOT_GRADED } from '../domain/grades';
+import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import { Ring } from '../components/Ring';
 import { newId } from '../domain/ids';
@@ -36,8 +36,9 @@ function ClassCard({ course }: { course: Course }) {
   // Participation is attendance, not the next thing to do.
   const next = [...open].filter((i) => i.type !== 'participation' && dateOf(i.dueAt, tz) >= today).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
   const overdue = open.filter((i) => dateOf(i.dueAt, tz) < today).length;
-  const g = courseGrade(course.id, data.items);
-  const letter = letterFor(g.pct, course.gradeScale);
+  const g = courseGrade(course.id, data.items, course);
+  const line = gradeLine(g, course.gradeScale);
+  const basis = basedOn(g);
   const nextLine = next ? `${next.label} · ${diffDays(today, dateOf(next.dueAt, tz)) === 0 ? 'today' : diffDays(today, dateOf(next.dueAt, tz)) === 1 ? 'tomorrow' : fmtDate(dateOf(next.dueAt, tz), 'short')}` : open.length === 0 ? 'Nothing open' : null;
   // One pace line per class: late counts as late; otherwise on pace or ahead.
   const pace = paceFor(course, data.items, schedule, today);
@@ -48,9 +49,9 @@ function ClassCard({ course }: { course: Course }) {
         <div className="class-card-head">
           <CourseChip course={course} />
           {g.pct !== null ? (
-            <span className="class-card-grade" title={`${g.pct}%${letter ? ` ${letter}` : ''}, ${basedOn(g)}`}>
-              <Ring value={g.pct} max={100} size={40} text={`${Math.round(g.pct)}`} label={`${g.pct}%${letter ? ` ${letter}` : ''}, ${basedOn(g)}`} />
-              <span className="class-card-basis">{basedOn(g)}</span>
+            <span className="class-card-grade" title={basis ? `${line}, ${basis}` : line}>
+              <Ring value={g.pct} max={100} size={40} text={g.letter ?? `${Math.round(g.pct)}`} label={basis ? `${line}, ${basis}` : line} />
+              <span className="class-card-basis">{basis ?? line}</span>
             </span>
           ) : (
             <span className="class-card-grade class-card-nograde">{NOT_GRADED}</span>

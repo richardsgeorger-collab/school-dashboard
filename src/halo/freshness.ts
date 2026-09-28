@@ -93,7 +93,7 @@ export function problemLine(payload: Pick<HaloExport, 'problems'>): string | nul
 }
 
 /** How many kinds of data the current sync asks for (the `pulls` list the bookmarklet stamps). */
-export const FULL_PULLS = 12;
+export const FULL_PULLS = 13;
 
 export interface BookmarkAge {
   /** 'older': the sync ran from a copy behind the app. 'newer': this tab is running an older app than the sync. */
