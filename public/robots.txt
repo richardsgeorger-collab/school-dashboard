@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://richardsgeorger-collab.github.io/school-dashboard/sitemap.xml
