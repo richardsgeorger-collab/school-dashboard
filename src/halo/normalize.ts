@@ -195,7 +195,11 @@ export function findCourse(courses: Course[], c: HaloClass): Course | undefined 
 
 export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz: string; now: string; index: number; stampHalo?: boolean }): Course {
   const stamp = opts.stampHalo !== false;
-  const names = (c.instructors ?? []).map((n) => n.trim()).filter(Boolean);
+  // Strings from the bookmark; an older or foreign export may send objects or junk, and a name is still a name.
+  const names = (Array.isArray(c.instructors) ? c.instructors : [])
+    .map((n: unknown) => (typeof n === 'string' ? n : n && typeof n === 'object' && typeof (n as { name?: unknown }).name === 'string' ? (n as { name: string }).name : ''))
+    .map((n) => n.trim())
+    .filter(Boolean);
   if (existing) {
     if (!stamp) return existing;
     const instructors = existing.instructors.length === 0 && names.length ? names.map((name) => ({ name, email: '' })) : existing.instructors;

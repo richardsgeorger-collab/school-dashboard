@@ -33,6 +33,7 @@ const cases = {
   'class with no fields': { ...base, classes: [{ id: 'x' }] },
   'broken assessments': { ...base, classes: [cls(0, [{ id: 'a1', title: 'Broken' }, { id: 'a2', title: 'Half', dueDate: 'not-a-date', points: 'ten' }])] },
   'future version': { ...base, version: 9, classes: [] },
+  'instructors as objects': { ...base, classes: [{ ...cls(7, []), instructors: [{ name: 'Dr. Awad' }, null, 7] }] },
   'huge export': { ...base, classes: Array.from({ length: 12 }, (_, k) => cls(k, Array.from({ length: 80 }, (_, j) => ({ id: `a${k}-${j}`, title: `Item ${j}`, dueDate: `2026-1${(j % 2)}-${String((j % 28) + 1).padStart(2, '0')}T23:59:00.000Z`, points: 10, type: 'ASSIGNMENT', status: null, score: null, description: '' })))) },
 };
 for (const [name, p] of Object.entries(cases)) {

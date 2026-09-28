@@ -396,3 +396,20 @@
   height: 40px;
 }
 
+/* ---- the last resort: the app could not draw ---- */
+.app-failed {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--s-4);
+}
+.app-failed-card {
+  max-width: 480px;
+  padding: var(--s-5);
+  display: grid;
+  gap: var(--s-3);
+}
+.app-failed-card .calm-title {
+  margin: 0;
+}
+

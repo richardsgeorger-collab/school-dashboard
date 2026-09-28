@@ -27,6 +27,7 @@ import { accentToShow, applyAccent } from './config/accents';
 import { can } from './config/flags';
 import { useAccount } from './auth/AccountContext';
 import { IconHalo } from './components/Icons';
+import { AppFailed, ErrorBoundary } from './components/ErrorBoundary';
 import { Now } from './views/Now';
 import { initPixel } from './analytics/pixel';
 // Every screen but Now (and the landing page) loads when first opened, so a stranger's first paint and Now's are
@@ -79,7 +80,20 @@ function HaloHandoff() {
           Waiting for Halo. Keep this tab open. If nothing arrives, open You, Halo, and paste the export.
         </div>
       )}
-      {payload && <HaloImport payload={payload} onClose={() => setPayload(null)} />}
+      {payload && (
+        <ErrorBoundary
+          fallback={(err, reset) => (
+            <div className="halo-banner" role="alert">
+              Halo sent something this build could not read ({err.message}). Sync again, or paste the export under You, Halo connection.{' '}
+              <button type="button" className="hero-inline" onClick={() => { reset(); setPayload(null); }}>
+                Dismiss
+              </button>
+            </div>
+          )}
+        >
+          <HaloImport payload={payload} onClose={() => setPayload(null)} />
+        </ErrorBoundary>
+      )}
     </>
   );
 }
@@ -323,6 +337,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
   return (
+    <ErrorBoundary fallback={(err) => <AppFailed error={err} />}>
     <StoreProvider>
       <AccountProvider>
         <AccountSync />
@@ -347,5 +362,6 @@ export default function App() {
         <Shell captureOpen={captureOpen} paletteOpen={paletteOpen} onSync={() => setSyncOpen(true)} onCapture={() => setCaptureOpen(true)} onCloseCapture={() => setCaptureOpen(false)} onClosePalette={() => setPaletteOpen(false)} />
       </AccountProvider>
     </StoreProvider>
+    </ErrorBoundary>
   );
 }

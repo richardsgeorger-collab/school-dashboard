@@ -102,6 +102,10 @@ describe('courses', () => {
     expect(c.name).toBe('CHM-113');
     expect(c.id).toBe('c1');
   });
+  it('instructor names survive an export that sends objects or junk instead of strings; nothing crashes', () => {
+    const c = toCourse(mkClass({ id: 'h', courseCode: 'PHY-111', name: 'Physics', instructors: [{ name: 'Dr. Lee' }, null, 7, '  Dr. Kim '] as never }), undefined, { tz: TZ, now: NOW, index: 0 });
+    expect(c.instructors.map((i) => i.name)).toEqual(['Dr. Lee', 'Dr. Kim']);
+  });
   it('creates a new course from Halo with known defaults', () => {
     const c = toCourse(mkClass({ id: 'h', courseCode: 'ESG-162', name: 'Intro to Engineering', modality: 'ONLINE' }), undefined, { tz: TZ, now: NOW, index: 0 });
     expect(c.code).toBe('ESG-162');
