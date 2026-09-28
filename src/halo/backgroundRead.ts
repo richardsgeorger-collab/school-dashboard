@@ -9,6 +9,7 @@ import { SYNC_EVENT } from '../ingest/auto';
 import { useStore } from '../storage/store';
 import { readActions } from './actions';
 import { announceDb, bodyHash, healEntries, readLedger, type ReadEntry, type StoredAnnouncement } from './announce';
+import { pushLedgerEntry, syncLedger } from './ledgerSync';
 import { emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from './autoRead';
 import { withRetry } from './readAll';
 import { readGuard } from './readCost';
@@ -63,6 +64,8 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
   if (status.running) return null;
   const ids = new Set(args.courses.map((c) => c.id));
   const onFile = (await announceDb.list().catch(() => [] as StoredAnnouncement[])).filter((a) => ids.has(a.courseId));
+  // What the account already read on another device counts here too, so the phone never re-reads the laptop's posts.
+  await syncLedger().catch(() => 0);
   let ledger: Map<string, ReadEntry>;
   try {
     ledger = await readLedger.all();
@@ -134,7 +137,9 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
         }
         read += 1;
         // The ledger entry is what stops this post being read again; it is written only after a read succeeds.
-        await readLedger.put({ id: a.id, hash: bodyHash(a), at, summary: r.summary, count: r.actions.length });
+        const entry: ReadEntry = { id: a.id, hash: bodyHash(a), at, summary: r.summary, count: r.actions.length };
+        await readLedger.put(entry);
+        void pushLedgerEntry(entry).catch(() => undefined);
         await announceDb.put({ ...a, actionsAt: at, actionsModifiedAt: a.modifiedAt ?? null, actionsSummary: r.summary, actionCount: r.actions.length });
       } catch (e) {
         // A post that could not be read is left unstamped, so the next run tries it again.
