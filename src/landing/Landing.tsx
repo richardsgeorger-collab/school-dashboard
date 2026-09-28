@@ -202,7 +202,7 @@ export function Landing() {
         <h2 className="landing-h2">Questions</h2>
         <dl>
           <dt>Does it need my GCU password?</dt>
-          <dd>No, and it never asks. The bookmark works because you are already logged in to Halo in that browser.</dd>
+          <dd>No, and it never asks. The bookmark works because you are already logged in to Halo in that browser. The code is public on GitHub, so anyone can check.</dd>
           <dt>Is this from GCU?</dt>
           <dd>No. Halo+ is an independent planner made by a student. It is not affiliated with, endorsed by, or connected to Grand Canyon University. Halo is GCU's learning platform.</dd>
           <dt>What happens to my data?</dt>
@@ -215,7 +215,7 @@ export function Landing() {
       <footer className="landing-foot">
         <p>Halo+ is an independent planner and is not affiliated with Grand Canyon University. Halo is GCU's learning platform. No GCU marks are used.</p>
         <nav>
-          <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="#/login">Log in</a>
+          <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="https://github.com/richardsgeorger-collab/school-dashboard" rel="noopener">Code</a> · <a href="#/login">Log in</a>
         </nav>
       </footer>
     </div>
