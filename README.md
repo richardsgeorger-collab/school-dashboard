@@ -1,51 +1,68 @@
-# School Dashboard
+# Halo+
 
-A phone-friendly planner built from GCU syllabus PDFs. It extracts every assignment, quiz, exam, lab, and project, estimates how long each will take, and works backward from your available study hours to tell you when to start. Data lives in your browser and syncs across devices through Supabase when you sign in.
+**The planner built for Halo.** All of Halo, read for you, even the announcements. Then the one thing to do next.
 
-Live app: https://richardsgeorger-collab.github.io/school-dashboard/
+**Use it:** https://richardsgeorger-collab.github.io/school-dashboard/
+
+![Halo+: all of Halo, read for you, even the announcements](public/og.png)
+
+Halo+ is an independent planner for GCU students. One bookmark syncs your classes, assignments, grades and every
+announcement out of Halo, and one screen says what to do right now: the due date, how long it takes, what it is
+worth. It never asks for your GCU password. It is not affiliated with, endorsed by, or connected to Grand Canyon
+University; Halo is GCU's learning platform.
 
 ## What it does
 
-- **Calendar** is the home screen. It opens on the current week with a level bar, risk counts, and a "Do next" list (overdue, at risk, start today, due soon) above month, week, and agenda views. Items show as state-aware chips: overdue is red, due today is solid class color, due soon is bold, at risk carries an amber bar, done is struck through. Heavy days get a tinted cell and a count badge; overflow collapses into a course-colored bar instead of "+N more."
-- **Short labels** like "Chem Quiz 1" or "Eng Math HW 3" are generated from each syllabus title (`src/domain/labels.ts`) and used everywhere; the full syllabus name stays as subtitle and tooltip, and each label is editable in the item editor.
-- **Plan** shows the week as a time budget (planned hours per class stacked against your capacity), hours by class, and your progress: level and XP, daily streak, clean-week streak, badges, and last week's recap.
-- **Points**: finishing an item earns its point value × 1.5 if done by its start-by date, × 1 by the due time, × 0.5 late, then × your score once graded. Awards lock at first completion, so undoing and redoing never re-awards. Badges: Early Bird (5 early finishes), Survived the Week (a full-capacity week cleared on time), Clean Sweep (every item one class had due in a week, on time). A recap card appears on Sundays.
-- **Load** is a heatmap of planned study hours per class per week for the whole term, so heavy weeks are visible in advance. Weeks over capacity turn red.
-- **Grades** tracks points earned over points graded per class. The syllabi publish no category weights, so it is points-based.
-- **Settings** holds sync, study-hour capacity, class colors and meeting times, syllabus import, and backup.
+- **Now.** One card for the one thing to do next, with why it was picked, what it is worth, how long it takes and
+  the professor's own instructions from announcements. Then the short list of what comes after.
+- **Announcements, read for you.** The "due Friday" a professor only posted in an announcement lands on the
+  assignment it belongs to, as a checklist line quoting the post. Standing rules ("150 to 200 words, every week")
+  live with the class. Every post arrives in the Inbox with a one-line summary. (Reading is part of Max; five days
+  free, no card.)
+- **Grades.** Points earned over points graded per class, from Halo's gradebook, with what the number rests on
+  ("based on 3 items"), what you need on the rest, and what skipping one thing would do.
+- **Calendar, Load, Classes.** Week and month views, a heatmap of heavy weeks for the whole term, and a page per
+  class with the next deadline, pace, rules and notes.
+- **Reminders.** A morning note, a heads-up the night before a heavy day, a nudge when big work is untouched, a
+  re-sync reminder, and on Max a Sunday recap. Push only, no email.
+- **Phone or laptop.** Add it to your Home Screen and it works like an app. Your data follows you between devices
+  when you sign in.
 
-## How the schedule works
+<p align="center"><img src="docs/screens/v5-gold-phone/now-light.png" alt="The Now screen on a phone: one thing needs you, with the card for it" width="300"></p>
 
-Every item gets an estimate in minutes from rules in `src/domain/estimate.ts` (type, points, and title keywords). You can override any estimate in the item editor.
+## How the sync works
 
-The scheduler in `src/domain/schedule.ts` walks items from the latest deadline to the earliest and fills each one's minutes into the latest free days before it is due, aiming to finish one day early (two days for anything over four hours). Days have a capacity from Settings (default 3 h weekdays, 5 h weekends). The first day an item touches is its start-by date. Marking something done frees its days and everything else recomputes.
+The **Sync Halo** bookmark runs on Halo's own page while you are logged in there. It asks Halo for your classes,
+assignments, grades and announcements the same way Halo's own app does, and hands the result to your Halo+ tab.
+You approve every change before it applies. Tokens exist in the bookmark's local variables for the seconds it runs
+and are never stored or sent anywhere else. The bookmark loads the current sync script from this site on every
+click, so it never goes stale. Details: [docs/halo-sync.md](docs/halo-sync.md).
 
-Flags: **Overdue** is past due. **At risk** means the item cannot fit in the remaining capacity, or its latest feasible start has passed. **Due soon** is within 48 hours. **Start today** means the start-by date is today or earlier.
+A Chrome extension makes opening Halo the sync (no bookmark to click); it can be loaded unpacked from
+[extension/](extension/) until it is on the Web Store. [docs/EXTENSION.md](docs/EXTENSION.md).
 
-Items due before 6 PM are treated as due the night before, so an 8 AM in-class quiz is studied for the previous day.
+## Privacy
 
-## Sync with Supabase
+- Never your GCU password, and it never sees it.
+- Your data is yours: export everything as one file any time, or delete the account and all of it in one tap.
+- AI features send only the text they need to the model, through a server that logs cost per call and enforces
+  monthly ceilings per plan. Nothing is kept by the model provider.
+- [Privacy](https://richardsgeorger-collab.github.io/school-dashboard/privacy.html) ·
+  [Terms](https://richardsgeorger-collab.github.io/school-dashboard/terms.html)
 
-1. Create a free project at supabase.com. In Authentication settings, turn off email confirmation so you can sign in immediately.
-2. Open the SQL editor, paste `supabase/schema.sql`, and run it once.
-3. In the app, open Settings, paste the Project URL and anon public key, save, then create an account and sign in. Repeat the sign-in on your other device.
-
-Without Supabase the app works fully on one device using browser storage. To bake the connection into the deployed build, set repository variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in GitHub (Settings → Secrets and variables → Actions → Variables).
-
-## Importing a syllabus
-
-Settings → Import syllabus PDF. Download the syllabus from the class page in Halo and drop it in. The parser (`src/parser/gcuSyllabus.ts`) reads the course header, instructors, topics, and every assessment row, then classifies and estimates each item. Re-importing a class you already have offers a merge that keeps your scores and done marks.
-
-## Development
+## Develop
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173/school-dashboard/
 npm test           # vitest
-npm run build      # type-check + production build
-npm run seed       # regenerate src/data/seed.json from syllabi/*.pdf (or the text fixtures)
+npm run build      # type-check, build, secrets check
+npm run preview    # serve the build; then node scripts/screens.mjs <label> for screenshots
 ```
 
-Put syllabus PDFs in `syllabi/` and run `npm run seed` to rebuild the bundled starting data. Debug a PDF with `npx tsx scripts/parsepdf.ts path/to/file.pdf`.
+React 19, Vite, TypeScript, Vitest. Accounts and sync use Supabase (migrations in `supabase/migrations/`, Edge
+Functions in `supabase/functions/`); without it the app works fully on one device in browser storage. Every AI
+call goes through the `ai` Edge Function on Claude Haiku. Deploys run from `main` to GitHub Pages; a post-deploy
+job probes the live functions and the served sync script (`scripts/live-check.mjs`).
 
-Deploys happen automatically from `main` via GitHub Actions to GitHub Pages.
+The running log of every change is [LOOP_LOG.md](LOOP_LOG.md); the design notes are [DESIGN.md](DESIGN.md).
