@@ -2,7 +2,7 @@
 // ids refuse to run at all. The browser only ever gets the Checkout URL.
 import Stripe from 'npm:stripe@18';
 import { admin, json, guard, userFromRequest } from '../_shared/admin.ts';
-import { STRIPE_PRICE_IDS } from '../_shared/tiers.ts';
+import { OFFERED_INTERVALS, STRIPE_PRICE_IDS, type Interval } from '../_shared/tiers.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
@@ -17,7 +17,8 @@ Deno.serve(guard(async (req) => {
 
   const body = (await req.json().catch(() => ({}))) as { tier?: string; interval?: string; returnTo?: string };
   const tier = body.tier as keyof typeof STRIPE_PRICE_IDS;
-  const interval = body.interval === 'semester' ? 'semester' : 'month';
+  // Only an interval that is offered can be bought (monthly, today).
+  const interval: Interval = (OFFERED_INTERVALS as string[]).includes(body.interval ?? '') ? (body.interval as Interval) : 'month';
   const price = STRIPE_PRICE_IDS[tier]?.[interval];
   if (!price) return json(400, { error: 'No such plan.' });
   if (price.includes('PLACEHOLDER')) return json(503, { error: 'Checkout is not switched on yet.' });

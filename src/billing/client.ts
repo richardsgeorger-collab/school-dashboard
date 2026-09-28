@@ -28,5 +28,5 @@ const returnTo = () => `${window.location.origin}${import.meta.env.BASE_URL}`;
 /** Stripe Checkout for a plan. On success the browser leaves for Stripe and comes back to You. */
 export const startCheckout = (tier: Paid, interval: Interval): Promise<Result> => call('stripe-checkout', { tier, interval, returnTo: returnTo() });
 
-/** Stripe's customer portal: change the card, switch plans, cancel. */
-export const openPortal = (): Promise<Result> => call('stripe-portal', { returnTo: returnTo() });
+/** Stripe's customer portal: the card and invoices, or with 'cancel' straight to the cancel confirmation for the plan. */
+export const openPortal = (flow?: 'cancel'): Promise<Result> => call('stripe-portal', { returnTo: returnTo(), flow });

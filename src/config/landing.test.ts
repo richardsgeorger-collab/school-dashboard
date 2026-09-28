@@ -11,7 +11,8 @@ describe('landing page', () => {
   it('takes its prices and trial length from the config, never from a literal', () => {
     expect(src).toContain("from '../config/tiers'");
     expect(src).toMatch(/PRICES\[p\.tier\]\.month\.toFixed\(2\)/);
-    expect(src).toMatch(/PRICES\[p\.tier\]\.semester\.toFixed\(2\)/);
+    expect(src).toContain('a month · {CANCEL_LINE}');
+    expect(src).not.toMatch(/semester|a year/);
     expect(src).toContain('{TRIAL.days} days, from the moment you sign up. No card. Nothing charges.');
     expect(src).toContain('PLAN_LINES');
     expect(src).not.toMatch(/\$\d+\.\d\d/);

@@ -3,7 +3,7 @@ import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { startCheckout } from '../billing/client';
 import { syncAccess, type SyncAccess } from '../config/flags';
-import { PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
+import { CANCEL_LINE, PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
 import { dateOf, fmtDate } from '../domain/dates';
 import { receiptsLine } from '../domain/receipts';
 import { useStore } from '../storage/store';
@@ -25,12 +25,14 @@ export function useSyncAccess(): SyncAccess {
  * never miss a moved due date because the app looked up to date. `since` is when sync stopped; `asOf` is the day the
  * data was last true (the last sync).
  */
-export function useFrozen(): { frozen: boolean; since: string | null; asOf: string | null } {
+export function useFrozen(): { frozen: boolean; asOf: string | null } {
   const access = useSyncAccess();
   const { data } = useStore();
   const fromHalo = data.courses.some((c) => c.haloClassId) || !!data.settings.lastPull;
-  if (access.allowed || !fromHalo) return { frozen: false, since: null, asOf: null };
-  return { frozen: true, since: access.pausedSince, asOf: data.settings.lastPull?.at ?? access.pausedSince };
+  if (access.allowed || !fromHalo) return { frozen: false, asOf: null };
+  // One date everywhere: the last sync that succeeded, which is the day the dates on screen were last true. The day
+  // the plan ended is only a fallback for a device that never synced itself.
+  return { frozen: true, asOf: data.settings.lastPull?.at ?? access.pausedSince };
 }
 
 /** "Oct 3", in the student's own zone. */
@@ -40,7 +42,7 @@ export function useShortDate(): (iso: string | null) => string | null {
 }
 
 /** One tap to Stripe for a plan, monthly. Coming back, the webhook has set the plan and sync, grades and colour return. */
-export function UpgradeButton({ tier = 'plus', label, primary = true }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean }) {
+export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const go = async () => {
@@ -58,6 +60,7 @@ export function UpgradeButton({ tier = 'plus', label, primary = true }: { tier?:
       <button type="button" className={primary ? 'btn small primary' : 'btn small'} disabled={busy} onClick={() => void go()}>
         {busy ? 'Opening checkout…' : (label ?? `Get ${TIER_NAMES[tier]}, $${PRICES[tier].month.toFixed(2)} a month`)}
       </button>
+      {cancelNote && <span className="cancel-note">{CANCEL_LINE}</span>}
       {err && <span className="hint">{err}</span>}
     </>
   );
@@ -65,14 +68,14 @@ export function UpgradeButton({ tier = 'plus', label, primary = true }: { tier?:
 
 /** The banner on every screen while sync is paused. Not dismissible: it is the only thing standing between a frozen date and a missed one. */
 export function FrozenBanner() {
-  const { frozen, since, asOf } = useFrozen();
+  const { frozen, asOf } = useFrozen();
   const short = useShortDate();
   if (!frozen) return null;
-  const when = short(since ?? asOf);
+  const when = short(asOf);
   return (
     <div className="frozen-banner" role="alert">
       <p>
-        <b>Halo sync paused{when ? ` since ${when}` : ''}.</b> <span className="frozen-long">Your dates may be out of date: anything your professors moved or added since {short(asOf) ?? 'then'} is not here.</span>
+        <b>Halo sync paused{when ? ` since ${when}` : ''}.</b> <span className="frozen-long">Your dates may be out of date: anything your professors moved or added since then is not here.</span>
         <span className="frozen-short">Dates may be out of date.</span>
       </p>
       <div className="frozen-actions">
@@ -115,7 +118,7 @@ export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
         ))}
       </ul>
       <p className="hint">
-        ${PRICES.plus.month.toFixed(2)} a month or ${PRICES.plus.semester.toFixed(2)} a semester. Cancel any time; a cancelled plan runs to the end of what was paid for.
+        ${PRICES.plus.month.toFixed(2)} a month. {CANCEL_LINE}, in one click from You; a cancelled plan runs to the end of the month paid for.
         {access.pausedSince ? '' : ` New accounts get ${TRIAL.line.toLowerCase()}`}
       </p>
       <div className="settings-actions">
@@ -144,7 +147,7 @@ export function LegacyNotice() {
   return (
     <div className="legacy-notice" role="status">
       <p>
-        <b>Halo sync is now part of Plus.</b> You were already syncing, so it stays on for you until {short(access.legacyUntil)}, the end of this term. After that, Plus keeps it going for ${PRICES.plus.month.toFixed(2)} a month; your syllabus classes and anything you add stay free.
+        <b>Halo sync is now part of Plus.</b> You were already syncing, so it stays on for you until {short(access.legacyUntil)}, the end of this term. After that, Plus keeps it going for ${PRICES.plus.month.toFixed(2)} a month ({CANCEL_LINE.toLowerCase()}); your syllabus classes and anything you add stay free.
       </p>
       <button type="button" className="btn small" onClick={() => void seen()}>
         Got it

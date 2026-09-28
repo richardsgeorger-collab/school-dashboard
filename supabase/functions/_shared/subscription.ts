@@ -19,12 +19,18 @@ export type { Interval, Paid };
 export function tierForPrice(priceId: string | null): { tier: Tier; interval: Interval } | null {
   if (!priceId) return null;
   for (const tier of PAID) {
-    for (const interval of ['month', 'semester'] as Interval[]) {
-      if (STRIPE_PRICE_IDS[tier][interval] === priceId) return { tier, interval };
+    for (const [interval, id] of Object.entries(STRIPE_PRICE_IDS[tier]) as [Interval, string][]) {
+      if (id === priceId) return { tier, interval };
     }
   }
   return LEGACY_PRICE_IDS[priceId] ?? null;
 }
+
+/**
+ * Whether the plan is set to end rather than renew. Stripe's portal (2026 API) records a cancel at the period end as
+ * `cancel_at`, a date, and leaves the old `cancel_at_period_end` flag false; either one means it ends.
+ */
+export const cancelScheduled = (s: { cancel_at_period_end?: boolean | null; cancel_at?: number | null }): boolean => !!s.cancel_at_period_end || !!s.cancel_at;
 
 const addDays = (iso: string, days: number) => new Date(new Date(iso).getTime() + days * 86_400_000).toISOString();
 

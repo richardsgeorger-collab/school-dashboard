@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { startTrial } from '../auth/trial';
 import { trialDaysLeft, trialState } from '../config/flags';
-import { TRIAL } from '../config/tiers';
+import { CANCEL_LINE, PRICES, TRIAL } from '../config/tiers';
 import { announceDb, readLedger } from '../halo/announce';
 import { recordingsDb } from '../record/db';
 import { receiptsFrom, receiptsLine, type Receipts } from '../domain/receipts';
@@ -114,11 +114,12 @@ export function TrialReceipts() {
     <section className="card trial-receipts" aria-label="Your Max trial">
       <p className="eyebrow">{days <= 1 ? 'Your Max trial ends tomorrow' : `Max trial · ${days} day${days === 1 ? '' : 's'} left`}</p>
       <p className="trial-lead">{line ?? 'Max is on. Sync Halo and it starts reading your announcements.'}</p>
-      <p className="hint">Nothing charges when it ends. Everything you have stays; Max features pause until you choose a plan.</p>
+      <p className="hint">Nothing charges when it ends. Everything you have stays; Halo sync and Max features pause until you choose a plan.</p>
       <div className="settings-actions">
         <a className="btn small primary" href="#/you?s=plan&to=max">
-          Keep Max
+          Keep Max, ${PRICES.max.month.toFixed(2)} a month
         </a>
+        <span className="cancel-note">{CANCEL_LINE}</span>
       </div>
     </section>
   );

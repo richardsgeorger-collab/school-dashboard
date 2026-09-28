@@ -3,7 +3,7 @@
 // uses (_shared/subscription.ts), so both sides agree on what "past due" means.
 import Stripe from 'npm:stripe@18';
 import { admin, json, guard } from '../_shared/admin.ts';
-import { profilePatch, subscriptionRow } from '../_shared/subscription.ts';
+import { profilePatch, subscriptionRow, cancelScheduled } from '../_shared/subscription.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
@@ -24,7 +24,7 @@ async function apply(db: ReturnType<typeof admin>, sub: Stripe.Subscription, now
     status: sub.status,
     priceId: item?.price?.id ?? null,
     currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000).toISOString() : sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
-    cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    cancelAtPeriodEnd: cancelScheduled(sub),
   };
   const patch = profilePatch(facts, now);
   await db.from('profiles').update({ tier: patch.tier, grace_until: patch.grace_until }).eq('user_id', userId);

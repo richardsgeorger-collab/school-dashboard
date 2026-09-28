@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { can, effectiveTier, tierFor, trialDaysLeft, syncAccess } from './flags';
-import { FEATURES, PRICES, REFERRAL, STRIPE_PRICE_IDS, TIERS, TRIAL, PAID } from './tiers';
+import { FEATURES, PRICES, REFERRAL, STRIPE_PRICE_IDS, TIERS, TRIAL, PAID, OFFERED_INTERVALS } from './tiers';
 
 describe('feature flags', () => {
   it('each tier has everything below it and nothing above it', () => {
@@ -41,22 +41,16 @@ describe('feature flags', () => {
     expect(sql2).toContain(`interval '${REFERRAL.days} days'`);
   });
 
-  it('config is complete: every sold plan has both prices and price ids, every feature names a real tier', () => {
+  it('config is complete: every sold plan has a price and a price id for every offered interval, every feature names a real tier', () => {
+    expect(OFFERED_INTERVALS).toEqual(['month']);
     for (const t of PAID) {
-      expect(PRICES[t].month).toBeGreaterThan(0);
-      expect(STRIPE_PRICE_IDS[t].month).toMatch(/^price_/);
-      expect(STRIPE_PRICE_IDS[t].semester).toMatch(/^price_/);
+      for (const i of OFFERED_INTERVALS) {
+        expect(PRICES[t][i]).toBeGreaterThan(0);
+        expect(STRIPE_PRICE_IDS[t][i]).toMatch(/^price_/);
+      }
     }
     for (const tier of Object.values(FEATURES)) expect(TIERS).toContain(tier);
-    // Nothing is sold as Pro any more, and no feature is Pro's alone.
     expect(Object.values(FEATURES)).not.toContain('pro');
-  });
-
-  it('a semester costs a little under four months', () => {
-    for (const t of PAID) {
-      expect(PRICES[t].semester).toBeLessThan(PRICES[t].month * 4);
-      expect(PRICES[t].semester).toBeGreaterThan(PRICES[t].month * 3.5);
-    }
   });
 
   it('the plans are what George set on 2026-09-28', () => {

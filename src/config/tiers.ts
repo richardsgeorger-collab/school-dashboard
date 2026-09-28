@@ -21,20 +21,25 @@ export const PAID: readonly Paid[] = ['plus', 'max'];
 
 export const TIER_NAMES: Record<Tier, string> = { free: 'Free', plus: 'Plus', pro: 'Plus', max: 'Max' };
 
-/** A month, or a semester paid in one go (billed every four months, a little under four months' price). */
+/**
+ * Billing intervals. Only what is in OFFERED_INTERVALS is shown or sold: monthly, as set by George on 2026-09-28. To
+ * offer a semester again, add 'semester' to OFFERED_INTERVALS with its price below and its Stripe price id; the
+ * checkout function, the webhook mapping and the plans card already take any offered interval.
+ */
 export type Interval = 'month' | 'semester';
-export const PRICES: Record<Paid, Record<Interval, number>> = {
-  plus: { month: 3.99, semester: 14.99 },
-  max: { month: 7.99, semester: 29.99 },
+export const OFFERED_INTERVALS: readonly Interval[] = ['month'];
+export const PRICES: Record<Paid, { month: number } & Partial<Record<Interval, number>>> = {
+  plus: { month: 3.99 },
+  max: { month: 7.99 },
 };
 
-/**
- * Stripe price ids. Sandbox (test mode) ids, created 2026-09-28 in the School-Dashboard sandbox; the semester price
- * recurs every 4 months. At launch, replace with the live ids; the checkout function refuses a placeholder.
- */
-export const STRIPE_PRICE_IDS: Record<Paid, Record<Interval, string>> = {
-  plus: { month: 'price_1UKnhi02Mu8IT856sbzY0nNw', semester: 'price_1UKnhj02Mu8IT856cgQOZCPQ' },
-  max: { month: 'price_1UKnhj02Mu8IT8560rhi1cqG', semester: 'price_1UKnhk02Mu8IT8562vcNgnpi' },
+/** Said right beside every price. */
+export const CANCEL_LINE = 'Cancel anytime';
+
+/** Stripe price ids (sandbox, test mode, created 2026-09-28). At launch, replace with the live ids. */
+export const STRIPE_PRICE_IDS: Record<Paid, { month: string } & Partial<Record<Interval, string>>> = {
+  plus: { month: 'price_1UKnhi02Mu8IT856sbzY0nNw' },
+  max: { month: 'price_1UKnhj02Mu8IT8560rhi1cqG' },
 };
 
 /** Sandbox prices from before 2026-09-28, so a subscription made on one still maps to a plan. Never offered. */
@@ -45,6 +50,9 @@ export const LEGACY_PRICE_IDS: Record<string, { tier: Tier; interval: Interval }
   price_1UJPwn02Mu8IT856L2DuH6t0: { tier: 'pro', interval: 'semester' },
   price_1UJPwp02Mu8IT8564INq2yEE: { tier: 'max', interval: 'month' },
   price_1UJPwp02Mu8IT856WwAw4KUl: { tier: 'max', interval: 'semester' },
+  // The semester prices of 2026-09-28, archived the same day when semester billing was dropped.
+  price_1UKnhj02Mu8IT856cgQOZCPQ: { tier: 'plus', interval: 'semester' },
+  price_1UKnhk02Mu8IT8562vcNgnpi: { tier: 'max', interval: 'semester' },
 };
 
 /**

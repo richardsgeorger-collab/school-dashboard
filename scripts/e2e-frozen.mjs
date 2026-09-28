@@ -62,6 +62,10 @@ try {
       if (first) {
         check(!!banner && /Halo sync paused since/.test(banner) && /may be out of date/.test(banner), `banner on Now: ${banner?.slice(0, 120)}`);
         check(asOf > 0, `"as of" on ${asOf} due dates on Now`);
+        // One date everywhere: the banner's "since" is the last sync, the same day every "as of" names.
+        const sinceDay = banner?.match(/paused since ([A-Z][a-z]{2} \d+)/)?.[1];
+        const asOfDays = await page.$$eval('.as-of', (els) => [...new Set(els.map((e) => e.textContent.replace(/.*as of /, '').trim()))]);
+        check(!!sinceDay && asOfDays.length === 1 && asOfDays[0] === sinceDay, `banner and every "as of" name the same day, the last sync: ${sinceDay} / ${asOfDays.join(', ')}`);
       }
       await page.screenshot({ path: `${OUT}/now-${vp}-${scheme}.png` });
       if (vp === 'desk') {

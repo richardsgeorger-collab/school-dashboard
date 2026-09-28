@@ -926,3 +926,10 @@
     display: inline;
   }
 }
+
+/* "Cancel anytime", right beside every price and upgrade button. */
+.cancel-note {
+  font-size: 13px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}

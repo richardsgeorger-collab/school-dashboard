@@ -11,7 +11,7 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { can, rewardDaysLeft, trialDaysLeft } from '../config/flags';
 import { DEFAULT_ACCENT } from '../config/accents';
 import { AccentPicker } from './AccentPicker';
-import { PAID, PLAN_LINES, PRICES, REFERRAL, TIER_NAMES, TRIAL, type Tier } from '../config/tiers';
+import { CANCEL_LINE, OFFERED_INTERVALS, PAID, PLAN_LINES, PRICES, REFERRAL, TIER_NAMES, TRIAL, type Tier } from '../config/tiers';
 import { openPortal, startCheckout } from '../billing/client';
 import { subscriptionLine, type Interval, type Paid } from '../billing/subscription';
 import { useSubscription } from '../billing/useSubscription';
@@ -102,11 +102,12 @@ function AccountCard({ tier }: { tier: Tier }) {
   const days = trialDaysLeft(profile);
   const reward = rewardDaysLeft(profile);
   const line = subscriptionLine(sub, profile?.graceUntil ?? null, (iso) => fmtDate(dateOf(iso, tz), 'short'));
-  const manage = async () => {
-    const r = await openPortal();
+  const manage = async (flow?: 'cancel') => {
+    const r = await openPortal(flow);
     if (r.ok) window.location.assign(r.url);
     else setNote(r.error);
   };
+  const cancellable = !!sub && (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due') && !sub.cancel_at_period_end;
   return (
     <section className="card settings-card" aria-label="Account">
       <h2 className="section-title">Account</h2>
@@ -125,9 +126,17 @@ function AccountCard({ tier }: { tier: Tier }) {
       )}
       <div className="settings-actions">
         {sub ? (
-          <button type="button" className="btn small primary" onClick={() => void manage()}>
-            Manage plan
-          </button>
+          <>
+            <button type="button" className="btn small primary" onClick={() => void manage()}>
+              Manage plan
+            </button>
+            {/* One click: straight to Stripe's cancel confirmation for this plan. No survey, no retention screens. */}
+            {cancellable && (
+              <button type="button" className="btn small" onClick={() => void manage('cancel')}>
+                Cancel plan
+              </button>
+            )}
+          </>
         ) : (
           <a className="btn small primary" href="#/you?s=plan">
             See plans
@@ -284,15 +293,10 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
       <h2 className="section-title">Plans</h2>
       <p className="hint">Free keeps your syllabus classes and anything you add. Plus syncs Halo. Max adds every AI study tool. Change or cancel any time.</p>
       <TrialOffer lead={`Not sure? Try Max free for ${TRIAL.days} days.`} />
-      <SegmentedControl
-        label="Billing"
-        value={interval}
-        options={[
-          { value: 'month', label: 'Monthly' },
-          { value: 'semester', label: 'By the semester' },
-        ]}
-        onChange={(v) => setInterval_(v)}
-      />
+      {/* One interval is offered (config/tiers.ts OFFERED_INTERVALS); a choice appears here only when there are two. */}
+      {OFFERED_INTERVALS.length > 1 && (
+        <SegmentedControl label="Billing" value={interval} options={OFFERED_INTERVALS.map((i) => ({ value: i, label: i === 'month' ? 'Monthly' : 'By the semester' }))} onChange={(v) => setInterval_(v)} />
+      )}
       <div className="plans">
         {paid.map((t) => {
           const adds = PLAN_LINES[t];
@@ -307,8 +311,8 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
                 )}
               </div>
               <p className="plan-price">
-                {`$${PRICES[t][interval].toFixed(2)}`}
-                <small> {interval === 'month' ? 'a month' : 'a semester (every 4 months)'}</small>
+                {`$${(PRICES[t][interval] ?? PRICES[t].month).toFixed(2)}`}
+                <small> {interval === 'month' ? 'a month' : 'a semester'} · {CANCEL_LINE}</small>
               </p>
               <ul>
                 {adds.map((l) => (
@@ -333,7 +337,7 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
           {error}
         </p>
       )}
-      <p className="hint">Payments go through Stripe. Change or cancel any time from Manage plan; a cancelled plan runs to the end of what was paid for.</p>
+      <p className="hint">Payments go through Stripe. Cancel in one click from Account, above; a cancelled plan runs to the end of the month paid for.</p>
     </section>
   );
 }

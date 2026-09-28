@@ -1,7 +1,7 @@
 import { pixel } from '../analytics/pixel';
 import { HaloDraw } from '../components/HaloDraw';
 import { IconCheck, IconHalo } from '../components/Icons';
-import { PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
+import { CANCEL_LINE, PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
 
 /**
  * The front door, at the root address, for a GCU student who has never seen Halo+. One line on what it does, the
@@ -181,7 +181,7 @@ export function Landing() {
               <p className="landing-plan-name">{TIER_NAMES[p.tier]}</p>
               <p className="landing-plan-price">
                 {p.tier === 'free' ? '$0' : `$${PRICES[p.tier].month.toFixed(2)}`}
-                {p.tier !== 'free' && <small> a month, or ${PRICES[p.tier].semester.toFixed(2)} a semester</small>}
+                {p.tier !== 'free' && <small> a month · {CANCEL_LINE}</small>}
               </p>
               <ul>
                 {p.lines.map((l) => (
