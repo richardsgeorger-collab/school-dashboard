@@ -50,6 +50,9 @@ jobs:
       - run: node scripts/live-check.mjs
         env:
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      # Tell IndexNow's engines the pages changed. Best effort: a refusal here never fails the deploy.
+      - run: node scripts/indexnow.mjs
+        continue-on-error: true
 
   deploy:
     needs: build

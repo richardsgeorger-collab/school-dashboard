@@ -34,12 +34,18 @@ describe('share and search metadata', () => {
     expect(png.readUInt32BE(16)).toBe(1200);
     expect(png.readUInt32BE(20)).toBe(630);
   });
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
   it('structured data names the product and says it is independent', () => {
-    const ld = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1] ?? '{}';
-    const data = JSON.parse(ld);
-    expect(data['@type']).toBe('SoftwareApplication');
-    expect(data.name).toBe('Halo+');
-    expect(data.description).toContain('not affiliated with Grand Canyon University');
+    const app = blocks.find((b) => b['@type'] === 'SoftwareApplication');
+    expect(app?.name).toBe('Halo+');
+    expect(app?.description).toContain('not affiliated with Grand Canyon University');
+  });
+  it('the FAQ structured data is the landing page’s Questions, word for word', () => {
+    const faq = blocks.find((b) => b['@type'] === 'FAQPage');
+    const landing = readFileSync('src/landing/Landing.tsx', 'utf8');
+    const qs = [...landing.matchAll(/<dt>([^<]+)<\/dt>\s*<dd>([^<]+)<\/dd>/g)].map((m) => [m[1].trim(), m[2].trim()]);
+    expect(qs.length).toBeGreaterThanOrEqual(4);
+    expect(faq?.mainEntity.map((q: { name: string; acceptedAnswer: { text: string } }) => [q.name, q.acceptedAnswer.text])).toEqual(qs.map(([q, a]) => [q, a.replace(/&apos;/g, "'")]));
   });
   it('robots and the sitemap ship and agree with the site address', () => {
     expect(readFileSync('public/robots.txt', 'utf8')).toContain(`Sitemap: ${SITE}sitemap.xml`);
