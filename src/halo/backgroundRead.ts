@@ -6,7 +6,7 @@ import { aiAvailable, loadApiKey } from '../chat/key';
 import { can } from '../config/flags';
 import type { Course, Item } from '../domain/types';
 import { SYNC_EVENT } from '../ingest/auto';
-import { useStore } from '../storage/store';
+import { ACCOUNT_SYNCED_EVENT, useStore } from '../storage/store';
 import { readActions } from './actions';
 import { announceDb, bodyHash, healEntries, readLedger, type ReadEntry, type StoredAnnouncement } from './announce';
 import { pushLedgerEntry, syncLedger } from './ledgerSync';
@@ -181,10 +181,23 @@ export function useBackgroundRead(): void {
     };
     const onSync = () => later(SETTLE_MS);
     window.addEventListener(SYNC_EVENT, onSync);
+    // A fresh device: the on-open run fires before the account's classes have arrived, so it runs again once they have.
+    window.addEventListener(ACCOUNT_SYNCED_EVENT, onSync);
     later(FIRST_MS);
     return () => {
       window.removeEventListener(SYNC_EVENT, onSync);
+      window.removeEventListener(ACCOUNT_SYNCED_EVENT, onSync);
       if (timer) window.clearTimeout(timer);
     };
   }, []);
+  // The profile lands after the first run on a slow connection, and a run that saw Free left the backlog marked
+  // "part of Pro" until the next Halo sync. When the plan turns out to read, run again.
+  const canRead = can('announcementAI', tier);
+  useEffect(() => {
+    if (!canRead) return;
+    const { data: d, actions: a, tier: t } = latest.current;
+    if (d.courses.length === 0) return;
+    const timer = window.setTimeout(() => void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse }), SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [canRead]);
 }

@@ -185,6 +185,9 @@ function termOf(courses: Course[], today: DateStr): { start: DateStr; end: DateS
   return { start, end };
 }
 
+/** Fired after the account's rows have been merged into this device. */
+export const ACCOUNT_SYNCED_EVENT = 'account-synced';
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(initialData);
   const [today, setToday] = useState<DateStr>(() => todayStr(data.settings.timezone));
@@ -339,6 +342,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (result.pushItems.length) await repo.saveItems(result.pushItems);
       if (result.pushSettings) await repo.saveSettings(result.merged.settings);
       setSync((s) => ({ ...s, status: 'synced', lastSync: nowIso(), error: null }));
+      // The account's rows are here now; anything that waits for them (the announcement reader) may go.
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event(ACCOUNT_SYNCED_EVENT));
     } catch (e) {
       setSync((s) => ({ ...s, status: 'error', error: e instanceof Error ? e.message : String(e) }));
     }
