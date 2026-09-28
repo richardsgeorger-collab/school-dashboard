@@ -184,7 +184,8 @@ export function Inbox() {
         </div>
       )}
       {note && <p className="hint news-note">{note}</p>}
-      <ReadStatusLines compact />
+      {/* The waiting line counts every class; under a class filter the header's own count is the honest one. */}
+      {filter === 'all' && <ReadStatusLines compact />}
       {current === 'unread' && visible.length > 0 && !reading.running && hasKey && !reading.waiting && (
         <p className="hint news-note">
           The next sync reads {visible.length === 1 ? 'it' : 'them'}, or{' '}
