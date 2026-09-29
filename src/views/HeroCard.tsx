@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { IconCheck } from '../components/Icons';
-import { BLOCK_REASONS, BLOCK_WORDS, blockPhrase, blockRanOut, makeBlock } from '../domain/blocked';
+import { BLOCK_REASONS, BLOCK_WORDS, blockPhrase, blockRanOut } from '../domain/blocked';
 import { itemTopics, topicKey, weakConcepts } from '../domain/concepts';
-import { addDays, dateOf, fmtDate, weekdayOf } from '../domain/dates';
+import { addDays, dateOf, fmtDate } from '../domain/dates';
 import { gatedBy } from '../domain/gating';
 import { elapsedLine, elapsedMinutes, fitLine, haloLink, heroFacts } from '../domain/heroFacts';
-import { TYPE_LABELS, type BlockReason, type DateStr, type Item } from '../domain/types';
+import { TYPE_LABELS, type BlockReason, type Item } from '../domain/types';
 import { linksFor } from '../ingest/links';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
@@ -32,12 +32,15 @@ export interface HeroProps {
   optional: boolean;
   /** One plain sentence on why this is the one. */
   why?: string | null;
-  /** Set by the screen while the card animates out after Done. */
-  leaving?: boolean;
+  /** Set by the screen while the card animates out: after Done, or sliding aside for Not now. */
+  leaving?: boolean | 'slide';
   onOpen: (i: Item) => void;
-  onSkip: (i: Item, day: DateStr) => void;
+  /** Not now: not today, can't start yet (with what it is waiting on), or show me something else. */
+  onNotNow: (i: Item, choice: NotNow) => void;
   onDone: (i: Item) => void;
 }
+
+export type NotNow = { kind: 'today' } | { kind: 'pass' } | { kind: 'block'; reason: BlockReason };
 
 interface Material {
   decks: Deck[];
@@ -72,58 +75,56 @@ function useMaterial(item: Item, tz: string): Material {
   return m;
 }
 
-function BlockChooser({ onPick, onClose }: { onPick: (reason: BlockReason, note: string) => void; onClose: () => void }) {
-  const [note, setNote] = useState('');
+/** The small menu behind "Not now": three plain choices, and one quick question for "Can't start yet". */
+function NotNowMenu({ onPick, onClose }: { onPick: (c: NotNow) => void; onClose: () => void }) {
+  const [asking, setAsking] = useState(false);
+  const first = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    first.current?.focus();
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [asking, onClose]);
   return (
-    <div className="hero-chooser" role="group" aria-label="What is in the way">
-      <span className="hint">I can't yet because I'm</span>
-      {BLOCK_REASONS.map((r) => (
-        <button key={r} type="button" className="btn small" onClick={() => onPick(r, note)}>
-          {BLOCK_WORDS[r].label.toLowerCase()}
-        </button>
-      ))}
-      <input className="hero-chooser-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="a word on why, if you like" aria-label="Why" />
-      <button type="button" className="hero-skip" onClick={onClose}>
-        never mind
-      </button>
-    </div>
+    <>
+      <button type="button" className="notnow-scrim" aria-label="Close" onClick={onClose} />
+      <div className="notnow-pop" role="menu" aria-label={asking ? 'Waiting on what?' : 'Not now'}>
+        {!asking ? (
+          <>
+            <button ref={first} type="button" role="menuitem" className="notnow-item" onClick={() => onPick({ kind: 'today' })}>
+              <b>Not today</b>
+              <span>Hides it until tomorrow</span>
+            </button>
+            <button type="button" role="menuitem" className="notnow-item" onClick={() => setAsking(true)}>
+              <b>Can't start yet</b>
+              <span>Comes back when it can</span>
+            </button>
+            <button type="button" role="menuitem" className="notnow-item" onClick={() => onPick({ kind: 'pass' })}>
+              <b>Show me something else</b>
+              <span>Just the next thing</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="notnow-q">Waiting on what?</p>
+            <div className="notnow-reasons">
+              {BLOCK_REASONS.map((r, i) => (
+                <button key={r} ref={i === 0 ? first : undefined} type="button" role="menuitem" className="notnow-reason" onClick={() => onPick({ kind: 'block', reason: r })}>
+                  {BLOCK_WORDS[r].label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="hero-inline notnow-back" onClick={() => setAsking(false)}>
+              Back
+            </button>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
-/** "Not today" → pick when instead. The choice sets both the snooze and the start-by day, so the plan moves with it. */
-function SnoozeChooser({ today, deadlineDay, onPick, onClose }: { today: DateStr; deadlineDay: DateStr; onPick: (day: DateStr) => void; onClose: () => void }) {
-  const [custom, setCustom] = useState('');
-  const options: { day: DateStr; label: string }[] = [];
-  const tomorrow = addDays(today, 1);
-  options.push({ day: tomorrow, label: 'Tomorrow' });
-  for (let k = 2; k <= 7; k++) {
-    const d = addDays(today, k);
-    const wd = weekdayOf(d);
-    if (wd === 6 || wd === 0) options.push({ day: d, label: wd === 6 ? 'Saturday' : 'Sunday' });
-    if (options.length >= 3) break;
-  }
-  const usable = options.filter((o) => o.day < deadlineDay);
-  return (
-    <div className="hero-chooser" role="group" aria-label="When instead">
-      <span className="hint">Do it</span>
-      {usable.map((o) => (
-        <button key={o.day} type="button" className="btn small" onClick={() => onPick(o.day)}>
-          {o.label}
-        </button>
-      ))}
-      {usable.length > 0 ? (
-        <input type="date" className="hero-chooser-note" value={custom} min={tomorrow} max={addDays(deadlineDay, -1)} aria-label="Pick a day" onChange={(e) => { setCustom(e.target.value); if (e.target.value && e.target.value < deadlineDay) onPick(e.target.value); }} />
-      ) : (
-        <span className="hint">It is due too soon to push.</span>
-      )}
-      <button type="button" className="hero-skip" onClick={onClose}>
-        never mind
-      </button>
-    </div>
-  );
-}
-
-export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip, onDone }: HeroProps) {
+export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNow, onDone }: HeroProps) {
   const { courseById, schedule, data, today, actions, calibrate, derived } = useStore();
   const tz = data.settings.timezone;
   const cal = calibrate(item);
@@ -131,7 +132,10 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
   const color = useCourseColor(course);
   const done = item.status === 'done';
   const material = useMaterial(item, tz);
-  const [choosing, setChoosing] = useState<'block' | 'snooze' | null>(null);
+  const [notNow, setNotNow] = useState(false);
+  // On a phone, swiping the card left opens the same menu.
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const [drag, setDrag] = useState(0);
   const [details, setDetails] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
@@ -160,7 +164,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
   const ranOut = blockRanOut(item, today);
   const elapsed = elapsedLine(item.startedAt, now);
   const pastDate = new Date(item.dueAt).getTime() < Date.now();
-  const deadlineDay = schedule.byItem[item.id]?.deadlineDay ?? dateOf(item.dueAt, tz);
   const deckShown = (d: Deck) => !sources.some((s) => s.label.toLowerCase().includes(d.title.toLowerCase()));
   // Slides, readings, and lecture stretches are places to go. "the syllabus" on its own is not, so it never shows alone.
   const realSources = sources.filter((s) => s.kind !== 'syllabus');
@@ -181,9 +184,9 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
     }
   };
   const toggleStep = (id: string) => actions.upsertItem({ ...item, steps: steps.map((s) => (s.id === id ? { ...s, done: !s.done } : s)) });
-  const block = (reason: BlockReason, note: string) => {
-    actions.upsertItem({ ...item, blocked: makeBlock(reason, item, course, today, tz, note), startedAt: null });
-    setChoosing(null);
+  const pick = (c: NotNow) => {
+    setNotNow(false);
+    onNotNow(item, c);
   };
   const starter = course ? starterPrompt({ item, course, sources: [...sources.map((s) => s.label), ...material.decks.filter(deckShown).map((d) => d.title)], nextStep: next?.label ?? null, flagged: material.flagged.map((f) => f.point) }) : '';
   const copy = async () => {
@@ -194,10 +197,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
     } catch {
       // Clipboard blocked: the tutor button still carries it.
     }
-  };
-  const closeMenu = (e: React.MouseEvent<HTMLElement>) => {
-    const d = e.currentTarget.closest('details');
-    if (d) d.open = false;
   };
   // Get help: Ask, scoped to this assignment, with its opening question already asked.
   const openAsk = () => {
@@ -225,7 +224,28 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
   const hasDetails = !!asks || gates.length > 0 || prereqs.length > 0 || !!next || rubric.length > 0 || covered > 0 || material.flagged.length > 0 || !!shaky || !!link || !!fit || !!skip;
 
   return (
-    <section key={item.id} className="hero" data-state={done ? 'done' : 'work'} data-leaving={leaving} style={{ '--course': color } as React.CSSProperties} aria-label="Now">
+    <section
+      key={item.id}
+      className="hero"
+      data-state={done ? 'done' : 'work'}
+      data-leaving={leaving}
+      style={{ '--course': color, ...(drag ? { transform: `translateX(${drag}px)`, transition: 'none' } : {}) } as React.CSSProperties}
+      aria-label="Now"
+      onTouchStart={(e) => { if (!done) swipe.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+      onTouchMove={(e) => {
+        const s0 = swipe.current;
+        if (!s0) return;
+        const dx = e.touches[0].clientX - s0.x;
+        const dy = e.touches[0].clientY - s0.y;
+        if (Math.abs(dy) > 30 && Math.abs(dy) > Math.abs(dx)) { swipe.current = null; setDrag(0); return; }
+        setDrag(Math.min(0, Math.max(-90, dx)));
+      }}
+      onTouchEnd={() => {
+        if (swipe.current && drag <= -60) setNotNow(true);
+        swipe.current = null;
+        setDrag(0);
+      }}
+    >
       <div className="hero-top">
         <span className="hero-eyebrow">
           <CourseChip course={course} />
@@ -260,7 +280,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
       {ranOut && item.blocked && (
         <p className="hero-line" style={{ marginTop: 12 }}>
           You were {blockPhrase(item, tz)}. Still stuck?{' '}
-          <button type="button" className="hero-inline" onClick={() => block(item.blocked!.reason, item.blocked!.note)}>
+          <button type="button" className="hero-inline" onClick={() => onNotNow(item, { kind: 'block', reason: item.blocked!.reason })}>
             still blocked
           </button>
         </p>
@@ -287,6 +307,12 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
               {details ? 'Less' : 'Details'}
             </button>
           )}
+          <span className="notnow-anchor">
+            <button type="button" className="hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>
+              Not now
+            </button>
+            {notNow && <NotNowMenu onPick={pick} onClose={() => setNotNow(false)} />}
+          </span>
           {/* The one study button on every card: a test gets Practice, everything else gets help with it. */}
           {course && isTest(item) && (
             <a className="btn hero-study" href={`#/practice?i=${item.id}`}>
@@ -422,37 +448,12 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
                 Get a prompt
               </button>
             )}
-            <details className="menu hero-menu">
-              <summary className="btn small" aria-label="More actions">
-                More
-              </summary>
-              <div className="menu-list">
-                {course && (
-                  <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); void copy(); }}>
-                    {copied ? 'Copied' : 'Copy a short prompt'}
-                  </button>
-                )}
-                <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); setChoosing((c) => (c === 'block' ? null : 'block')); }}>
-                  Can't do this yet
-                </button>
-                <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); setChoosing((c) => (c === 'snooze' ? null : 'snooze')); }}>
-                  Not today
-                </button>
-              </div>
-            </details>
+            {course && (
+              <button type="button" className="hero-inline hero-copy" onClick={() => void copy()}>
+                {copied ? 'Copied' : 'Copy a short prompt'}
+              </button>
+            )}
           </div>
-          {choosing === 'block' && <BlockChooser onPick={block} onClose={() => setChoosing(null)} />}
-          {choosing === 'snooze' && (
-            <SnoozeChooser
-              today={today}
-              deadlineDay={deadlineDay}
-              onPick={(day) => {
-                onSkip(item, day);
-                setChoosing(null);
-              }}
-              onClose={() => setChoosing(null)}
-            />
-          )}
         </div>
       )}
       {panel && course && <PromptPanel item={item} course={course} onClose={() => setPanel(false)} />}

@@ -14,7 +14,7 @@ import { Ring } from '../components/Ring';
 import { addDays, dateOf, diffDays, fmtDate, fmtMinutes, fmtTime } from '../domain/dates';
 import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { staleness, stalenessLine } from '../halo/freshness';
-import { blockedLine, blockPhrase } from '../domain/blocked';
+import { blockedLine, blockPhrase, makeBlock } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { missedLine, missedRequirement } from '../domain/requirements';
 import { cleanAll } from '../domain/reqClean';
@@ -35,11 +35,11 @@ import { isOpen } from '../onboarding/state';
 import { maxOpen } from '../onboarding/maxState';
 import { WelcomeBack } from './WelcomeBack';
 import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, statusLine, todayDone } from '../domain/now';
-import type { Course, DateStr, Item } from '../domain/types';
+import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
 import { DailyQuestion } from './DailyQuestion';
-import { HeroCard } from './HeroCard';
+import { HeroCard, type NotNow } from './HeroCard';
 import { ItemDetail } from './ItemDetail';
 import { useAccount } from '../auth/AccountContext';
 import { trialDaysLeft, trialState } from '../config/flags';
@@ -68,6 +68,8 @@ const WEEKDAY_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 const approx = (min: number) => `~${fmtMinutes(min)}`;
 /** How long the Done animation runs before the item actually leaves. Matches --dur-3. */
 const LEAVE_MS = 400;
+/** The card slides aside quicker for Not now than it leaves for Done. */
+const SKIP_MS = 220;
 
 function sourceTag(item: Item, course: Course | undefined): string {
   if (item.source === 'ics') return 'from ICS export';
@@ -250,6 +252,7 @@ export function Now() {
   const [finished, setFinished] = useState<{ xp: number; label: string } | null>(null);
   const [showAnyway, setShowAnyway] = useState(false);
   const [leaving, setLeaving] = useState<string | null>(null);
+  const [sliding, setSliding] = useState(false);
   // A tab left open: the clock moves without a touch, so a thing that becomes due, late, or "today" shows as such.
   const [, tick] = useState(0);
   useEffect(() => {
@@ -261,7 +264,28 @@ export function Now() {
 
   // Participation is attendance, not work: it stays in the calendar and grades, never here.
   const work = useMemo(() => data.items.filter((i) => i.type !== 'participation'), [data.items]);
-  const ranked = useMemo(() => rankItems(work, schedule, now, tz), [work, schedule, tz, minuteKey]);
+  // "Show me something else" passes over an item for the rest of today, on this device only.
+  const passKey = `school-dashboard:passed:${today}`;
+  const [passed, setPassed] = useState<string[]>(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(passKey) ?? '[]') as string[];
+    } catch {
+      return [];
+    }
+  });
+  const savePassed = (ids: string[]) => {
+    setPassed(ids);
+    try {
+      sessionStorage.setItem(passKey, JSON.stringify(ids));
+    } catch {
+      /* storage unavailable: it still holds for this visit */
+    }
+  };
+  const ranked = useMemo(() => {
+    const all = rankItems(work, schedule, now, tz);
+    const rest = all.filter((i) => !passed.includes(i.id));
+    return rest.length > 0 ? rest : all;
+  }, [work, schedule, tz, minuteKey, passed]);
   const top = useLinger(ranked.slice(0, 2), work);
   const hero = top[0];
   const counts = useMemo(() => openCountByDay(work, schedule, today), [work, schedule, today]);
@@ -326,8 +350,42 @@ export function Now() {
   const eveningWrap = (daypart === 'evening' || daypart === 'night') && todayDone(clean, today, now, tz);
   const then = useMemo(() => ranked.filter((i) => i.id !== hero?.id && i.status !== 'done' && !isBlocked(i, today)).slice(0, 3), [ranked, hero?.id, today]);
 
-  // "Not today" records a day, not just a skip: the item is pushed down until then and planned to start then.
-  const skip = (i: Item, day: DateStr) => actions.upsertItem({ ...i, snoozedUntil: day, startByOverride: day });
+  // Not now. "Not today" pushes it to tomorrow (and plans it to start then), "Can't start yet" blocks it until what it
+  // waits on likely clears, "Show me something else" passes over it for today. The card slides away first, and
+  // Undo puts the item back exactly as it was for a few seconds.
+  const [skipped, setSkipped] = useState<{ before: Item; line: string; pass: boolean } | null>(null);
+  const notNow = (i: Item, c: NotNow) => {
+    setLeaving(i.id);
+    setSliding(true);
+    const course = data.courses.find((x) => x.id === i.courseId);
+    setTimeout(() => {
+      if (c.kind === 'today') {
+        const tomorrow = addDays(today, 1);
+        actions.upsertItem({ ...i, snoozedUntil: tomorrow, startByOverride: tomorrow });
+        setSkipped({ before: i, line: `${i.label}: back tomorrow`, pass: false });
+      } else if (c.kind === 'block') {
+        const blocked = makeBlock(c.reason, i, course, today, tz);
+        actions.upsertItem({ ...i, blocked, startedAt: null });
+        setSkipped({ before: i, line: `${i.label}: back ${blocked.until === addDays(today, 1) ? 'tomorrow' : fmtDate(blocked.until, 'short')}`, pass: false });
+      } else {
+        savePassed([...passed, i.id]);
+        setSkipped({ before: i, line: `Skipped ${i.label} for now`, pass: true });
+      }
+      setLeaving(null);
+      setSliding(false);
+    }, SKIP_MS);
+  };
+  const undoSkip = () => {
+    if (!skipped) return;
+    if (skipped.pass) savePassed(passed.filter((id) => id !== skipped.before.id));
+    else actions.upsertItem(skipped.before);
+    setSkipped(null);
+  };
+  useEffect(() => {
+    if (!skipped) return;
+    const t = setTimeout(() => setSkipped(null), 6000);
+    return () => clearTimeout(t);
+  }, [skipped]);
   // Done: the card leaves first, then the item does. The check is the reward; nothing else moves. A mis-tap (or a
   // stray d key) is one tap from undone for a few seconds: the item as it was is put back whole.
   const [justFinished, setJustFinished] = useState<Item | null>(null);
@@ -494,7 +552,7 @@ export function Now() {
   // Keyed on the item: when one is done the next slides in as a new card.
   // Keyed apart from the item sheet: both used to carry the bare item id, and when the sheet opened for the hero
   // itself React saw two siblings with one key and left a second, third, fourth copy of the card behind.
-  const heroCard = hero && <HeroCard key={`hero-${hero.id}`} item={hero} optional={mode.mode !== 'urgent'} why={why} leaving={leaving === hero.id} onOpen={setOpen} onSkip={skip} onDone={finish} />;
+  const heroCard = hero && <HeroCard key={`hero-${hero.id}`} item={hero} optional={mode.mode !== 'urgent'} why={why} leaving={leaving === hero.id ? (sliding ? 'slide' : true) : false} onOpen={setOpen} onNotNow={notNow} onDone={finish} />;
 
   const calmEnough = (
     <section className="calm" data-tone="enough" aria-label="Done for today">
@@ -610,9 +668,10 @@ export function Now() {
       // Anything on top of Now takes the keyboard: a sheet, onboarding, the Max welcome, the palette, a level-up.
       if (document.querySelector('.modal-backdrop, [role="dialog"], .onboard, .levelup, .palette')) return;
       const k = e.key.toLowerCase();
-      if (k === 'z' && justFinished) undoFinish();
+      if (k === 'z' && skipped) undoSkip();
+      else if (k === 'z' && justFinished) undoFinish();
       else if (k === 'd') finish(hero);
-      else if (k === 'n') skip(hero, addDays(today, 1));
+      else if (k === 'n') notNow(hero, { kind: 'today' });
       else if (k === 's') actions.upsertItem({ ...hero, startedAt: hero.startedAt ?? new Date().toISOString(), status: hero.status === 'done' ? hero.status : 'in_progress' });
       else if (k === 'o') setOpen(hero);
       else return;
@@ -621,7 +680,7 @@ export function Now() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hero?.id, today, justFinished]);
+  }, [hero?.id, today, justFinished, skipped]);
   return (
     <div className="now">
       <FinishSetup where="now" />
@@ -705,6 +764,14 @@ export function Now() {
         />
       )}
       {/* The time question carries its own undo while it is up; this toast covers the case where it is not. */}
+      {skipped && (
+        <div className="done-toast" role="status">
+          <span className="done-toast-text">{skipped.line}</span>
+          <button type="button" className="done-toast-undo" onClick={undoSkip}>
+            Undo
+          </button>
+        </div>
+      )}
       {justFinished && !justDone && (
         <div className="done-toast" role="status">
           <span className="done-toast-text">Done: {justFinished.label}</span>

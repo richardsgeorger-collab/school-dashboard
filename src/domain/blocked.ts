@@ -8,14 +8,16 @@ import type { Block, BlockReason, Course, DateStr, Item } from './types';
  * or when the student says so. When its deadline closes in while it is still blocked, that is its own thing.
  */
 export const BLOCK_WORDS: Record<BlockReason, { label: string; waiting: string; chase: string }> = {
+  class: { label: "Lab or class hasn't happened", waiting: 'waiting on class', chase: 'start with what you have from class' },
   partner: { label: 'Waiting on a partner', waiting: 'waiting on your partner', chase: 'time to chase your partner' },
   feedback: { label: 'Waiting on feedback', waiting: 'waiting on feedback', chase: 'ask for the feedback today' },
-  materials: { label: 'Waiting on materials', waiting: 'waiting on materials', chase: 'find another way to get what you need' },
-  instructor: { label: 'Need to ask the instructor', waiting: 'waiting on the instructor', chase: 'ask the instructor today' },
-  other: { label: 'Something else', waiting: 'waiting on something', chase: 'see what is still holding it' },
+  materials: { label: 'Need materials', waiting: 'waiting on materials', chase: 'find another way to get what you need' },
+  instructor: { label: 'Waiting on the professor', waiting: 'waiting on the professor', chase: 'ask the instructor today' },
+  other: { label: 'Other', waiting: 'waiting on something', chase: 'see what is still holding it' },
 };
 
-export const BLOCK_REASONS: BlockReason[] = ['partner', 'feedback', 'materials', 'instructor', 'other'];
+/** The answers to "Waiting on what?", in the order they are offered (feedback stays for blocks saved before). */
+export const BLOCK_REASONS: BlockReason[] = ['class', 'partner', 'materials', 'instructor', 'other'];
 
 /** Words for a reason, with a stored block from an older shape falling back to "something else" rather than crashing. */
 export const wordsFor = (reason: BlockReason | string | undefined): (typeof BLOCK_WORDS)[BlockReason] => BLOCK_WORDS[(reason ?? 'other') as BlockReason] ?? BLOCK_WORDS.other;
@@ -31,15 +33,16 @@ export function nextMeetingDay(course: Course | undefined, today: DateStr): Date
 }
 
 /**
- * When a blocker plausibly clears: the next class meeting when the instructor is the blocker, three days for
- * feedback, two for a partner or materials. Never past the day before it is due, and never before tomorrow.
+ * When a blocker plausibly clears: the next class meeting when it is waiting on class or a lab, or on the professor;
+ * three days for feedback or anything else, two for a partner or materials. Never later than two days before it is
+ * due (George, 2026-09-29), and never before tomorrow.
  */
 export function blockUntil(reason: BlockReason, item: Item, course: Course | undefined, today: DateStr, tz: string): DateStr {
   const days = reason === 'feedback' ? 3 : reason === 'other' ? 3 : 2;
   let until = addDays(today, days);
-  if (reason === 'instructor') until = nextMeetingDay(course, today) ?? until;
-  const dayBefore = addDays(dateOf(item.dueAt, tz), -1);
-  if (until > dayBefore) until = dayBefore;
+  if (reason === 'instructor' || reason === 'class') until = nextMeetingDay(course, today) ?? until;
+  const latest = addDays(dateOf(item.dueAt, tz), -2);
+  if (until > latest) until = latest;
   const tomorrow = addDays(today, 1);
   return until < tomorrow ? tomorrow : until;
 }
@@ -88,4 +91,16 @@ export function blockedLine(items: Item[], courses: Course[], _schedule: Schedul
   const words = wordsFor(i.blocked!.reason);
   const action = `${words.chase.charAt(0).toUpperCase()}${words.chase.slice(1)}.`;
   return { item: i, text: `${code ? `${code} ` : ''}${i.label} is blocked (${words.waiting}) and due ${when} — ${words.chase}.`, action };
+}
+
+/** The small note an item carries on the agenda while it is skipped: "Can't start yet: waiting on lab". */
+export function skipNote(item: Item, course: Course | undefined, today: DateStr): string | null {
+  if (item.status === 'done') return null;
+  if (isBlocked(item, today)) {
+    const w = wordsFor(item.blocked!.reason).waiting;
+    const lab = item.blocked!.reason === 'class' && (item.type === 'lab' || /L$/.test(course?.code ?? '') || /\blab\b/i.test(item.title));
+    return `Can't start yet: ${lab ? 'waiting on lab' : w}`;
+  }
+  if (item.snoozedUntil && item.snoozedUntil > today) return `Not today: back ${item.snoozedUntil === addDays(today, 1) ? 'tomorrow' : fmtDate(item.snoozedUntil, 'short')}`;
+  return null;
 }

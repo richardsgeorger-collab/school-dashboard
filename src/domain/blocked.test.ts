@@ -74,3 +74,20 @@ describe('starting a thing keeps it on Now', () => {
     expect(rankItems([paper, dq], s, `${today}T16:00:00.000Z`, TZ).map((i) => i.id)).toEqual(['paper', 'dq']);
   });
 });
+
+describe('Not now (2026-09-29)', () => {
+  it('"Lab or class hasn’t happened" comes back on the next class day, never later than two days before it is due', () => {
+    expect(blockUntil('class', far, esgl, today, TZ)).toBe('2026-09-22');
+    const dueWed = { ...far, dueAt: at('2026-09-23') };
+    expect(blockUntil('class', dueWed, esgl, today, TZ)).toBe('2026-09-21');
+    expect(blockUntil('other', dueWed, eng, today, TZ)).toBe('2026-09-20');
+  });
+  it('leaves a small note on the agenda', async () => {
+    const { skipNote } = await import('./blocked');
+    const blocked = { ...lab, dueAt: at('2026-09-30'), blocked: makeBlock('class', lab, esgl, today, TZ) };
+    expect(skipNote(blocked, esgl, today)).toBe("Can't start yet: waiting on lab");
+    expect(skipNote({ ...far, blocked: makeBlock('partner', far, eng, today, TZ) }, eng, today)).toBe("Can't start yet: waiting on your partner");
+    expect(skipNote({ ...far, snoozedUntil: '2026-09-18' }, eng, today)).toBe('Not today: back tomorrow');
+    expect(skipNote(far, eng, today)).toBeNull();
+  });
+});

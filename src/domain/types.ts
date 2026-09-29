@@ -348,7 +348,7 @@ export interface TopicLink {
 }
 
 
-export type BlockReason = 'partner' | 'feedback' | 'materials' | 'instructor' | 'other';
+export type BlockReason = 'class' | 'partner' | 'feedback' | 'materials' | 'instructor' | 'other';
 
 /** Cannot be done yet, for a reason outside the student: not a snooze, not a skip. It leaves Now until the blocker plausibly clears. */
 export interface Block {

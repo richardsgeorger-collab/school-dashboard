@@ -1,4 +1,4 @@
-import { isBlocked } from '../domain/blocked';
+import { skipNote } from '../domain/blocked';
 import { movedRecently } from '../domain/requirements';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { useEffect, useState } from 'react';
@@ -81,7 +81,8 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
               {(item.requirements ?? []).filter((r) => !r.done).length} part{(item.requirements ?? []).filter((r) => !r.done).length === 1 ? '' : 's'} from announcements
             </span>
           )}
-          {isBlocked(item, today) && <span className="flag flag-wait">waiting</span>}
+          {/* Skipped from Now ("Can't start yet: waiting on lab", "Not today: back tomorrow"): it stays here, with why. */}
+          {skipNote(item, course, today) && <span className="flag flag-wait">{skipNote(item, course, today)}</span>}
           {item.flags.inClass && <span className="flag">in class</span>}
           {item.flags.group && <span className="flag">group</span>}
           {done && haloSaysNotIn(item) && item.halo && item.halo.checkedAt > item.dueAt && <span className="flag flag-late">Halo says not submitted</span>}

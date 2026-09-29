@@ -967,3 +967,118 @@
 .now {
   overflow-x: clip;
 }
+
+/* ---- Not now: a quiet link on the card, a small menu over everything, a slide aside (2026-09-29) --------------- */
+.hero[data-leaving='slide'] {
+  transform: translateX(-56px);
+  opacity: 0;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+.notnow-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.hero-notnow {
+  border: 0;
+  background: none;
+  padding: 6px 4px;
+  color: var(--ink-3);
+  font: 500 14px/1 var(--font-body);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.hero-notnow:hover,
+.hero-notnow[aria-expanded='true'] {
+  color: var(--ink-2);
+}
+.notnow-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+.notnow-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 901;
+  width: max-content;
+  min-width: 230px;
+  max-width: min(300px, 80vw);
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-3, var(--shadow-2));
+}
+.notnow-item {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.notnow-item b {
+  font-weight: 600;
+  font-size: 14px;
+}
+.notnow-item span {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.notnow-item:hover,
+.notnow-item:focus-visible,
+.notnow-reason:hover,
+.notnow-reason:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+.notnow-q {
+  margin: 4px 8px 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.notnow-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 6px 6px;
+}
+.notnow-reason {
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+.notnow-back {
+  justify-self: start;
+  margin: 2px 8px 4px;
+  font-size: 13px;
+}
+.hero-copy {
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero[data-leaving='slide'] {
+    transform: none;
+  }
+}
+/* The card is its own layer (isolation, transform), so a menu opening from it has to lift the whole card above the
+   rows after it, or they paint over the menu. */
+.hero:has(.notnow-pop, details[open]) {
+  z-index: 30;
+}
