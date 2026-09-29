@@ -2579,16 +2579,19 @@
   gap: 4px;
 }
 .cook-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  display: inline-grid;
+  justify-items: stretch;
+  gap: 3px;
   padding: 4px 2px;
   border: 0;
   background: none;
   color: var(--ink-3);
-  font: 600 11px/1 var(--font-body);
+  font: 500 10px/1 var(--font-body);
   letter-spacing: 0.02em;
   cursor: pointer;
+}
+.cook-label {
+  text-align: left;
 }
 .cook-btn:focus-visible {
   outline: 2px solid var(--accent);
@@ -2597,29 +2600,22 @@
 }
 .cook-track {
   position: relative;
-  width: 72px;
-  height: 6px;
-  border-radius: 3px;
+  width: 88px;
+  height: 4px;
+  border-radius: 2px;
   background: var(--line);
   overflow: hidden;
 }
 .cook[data-size='page'] .cook-track {
-  width: 120px;
-  height: 8px;
-  border-radius: 4px;
+  width: 140px;
+  height: 5px;
+  border-radius: 3px;
 }
 .cook-fill {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: inherit;
-  background: var(--accent);
-  transition: width 0.4s ease;
-}
-.cook[data-level='Cooked'] .cook-fill {
-  background: var(--overdue);
-}
-.cook[data-level='Cooked'] .cook-label {
-  color: var(--overdue);
+  transition: width 0.4s ease, background 0.4s ease;
 }
 .cook-why {
   margin: 0;

@@ -1,5 +1,5 @@
-// The Cook meter (2026-09-28): a small bar on each class card and on the class page, gold until Cooked (red), and a
-// tap shows one line on why. Sample data on the preview build; light and dark, desk and phone.
+// The Cooked meter (2026-09-29): a thin bar on each class card and the class page, "Cooked meter" under it, no level
+// words, colour shifting from green to red as it fills; a tap shows one line on why. Sample data on the preview build; light and dark, desk and phone.
 //   BASE=http://localhost:4173/school-dashboard/ node scripts/e2e-cook.mjs
 import { mkdirSync } from 'node:fs';
 import { chromium, devices } from 'playwright-core';
@@ -17,16 +17,15 @@ for (const scheme of ['light', 'dark']) {
     await p.waitForTimeout(1500);
     await p.goto(`${BASE}#/classes`, { waitUntil: 'load' });
     await p.waitForSelector('.class-card-wrap .cook', { timeout: 10000 }).catch(() => undefined);
-    const meters = await p.$$eval('.class-card-wrap .cook', (els) => els.map((e) => ({ level: e.dataset.level, fill: e.querySelector('.cook-fill').style.width, color: getComputedStyle(e.querySelector('.cook-fill')).backgroundColor })));
+    const meters = await p.$$eval('.class-card-wrap .cook', (els) => els.map((e) => ({ label: e.querySelector('.cook-btn').innerText.trim(), fill: parseFloat(e.querySelector('.cook-fill').style.width), rgb: getComputedStyle(e.querySelector('.cook-fill')).backgroundColor.match(/\d+/g).map(Number) })));
     await p.click('.class-card-wrap .cook-btn >> nth=0');
     await p.waitForTimeout(300);
     await p.screenshot({ path: `${OUT}/classes-${name}-${scheme}.png`, fullPage: name === 'phone' });
     const why = await p.$eval('.cook-why', (e) => e.innerText).catch(() => '');
     if (scheme === 'light' && name === 'desk') {
-      check(meters.length >= 3 && meters.every((m) => ['Chillin', 'Warm', 'Cooking', 'Cooked'].includes(m.level)), `every class card has a meter: ${meters.map((m) => `${m.level} ${m.fill}`).join(', ')}`);
-      const cooked = meters.filter((m) => m.level === 'Cooked');
-      const gold = meters.filter((m) => m.level !== 'Cooked');
-      check(cooked.every((m) => m.color !== gold[0]?.color) && new Set(gold.map((m) => m.color)).size <= 1, 'gold for Chillin, Warm and Cooking; red only at Cooked');
+      check(meters.length >= 3 && meters.every((m) => m.label === 'Cooked meter'), `every class card has the bar with "Cooked meter" under it and no level words (${meters.map((m) => `${m.fill}%`).join(', ')})`);
+      const [lo, hi] = [...meters].sort((a, b) => a.fill - b.fill).filter((m, i, a) => i === 0 || i === a.length - 1);
+      check(hi.fill > lo.fill && hi.rgb[0] - hi.rgb[1] > lo.rgb[0] - lo.rgb[1], `a fuller bar is redder: ${lo.fill}% rgb(${lo.rgb}) vs ${hi.fill}% rgb(${hi.rgb})`);
       check(/\.$/.test(why) && why.length > 10, `a tap shows why: "${why}"`);
       check(/#\/classes$/.test(p.url()), 'tapping the meter does not open the class');
     }

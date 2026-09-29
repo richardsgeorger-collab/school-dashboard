@@ -10,7 +10,7 @@ import type { DateStr, Item, ItemType } from './types';
  */
 export type CookLevel = 'Chillin' | 'Warm' | 'Cooking' | 'Cooked';
 
-const WEIGHT: Record<ItemType, number> = { discussion: 1, participation: 0, homework: 2, other: 1.5, lab: 3, quiz: 3.5, paper: 5, project: 5, exam: 6 };
+const WEIGHT: Record<ItemType, number> = { discussion: 1, participation: 0, homework: 2, other: 1.5, lab: 3, quiz: 5, paper: 5, project: 5, exam: 6 };
 /** What each kind is called in the why line. */
 const NOUN: Record<ItemType, [string, string]> = {
   paper: ['essay', 'essays'],
