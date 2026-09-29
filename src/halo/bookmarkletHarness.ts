@@ -21,6 +21,10 @@ export interface RunResult {
   opened: number;
   /** Script addresses the loader asked the page for, in order. */
   loaded: string[];
+  /** Bodies posted to the server path (sync-drop), in order. */
+  dropped: any[];
+  /** Where the page sent itself (location.href), when it did. */
+  navigated: string | null;
 }
 
 const el = (tag: string): any => {
@@ -50,6 +54,16 @@ export async function runBookmarklet(
     source?: string;
     /** Run the bookmark's loader instead: 'fail' makes the site's script unreachable, 'serve' loads the served copy. */
     loader?: 'fail' | 'serve';
+    /** The device: a user agent and touch points (an iPad in desktop mode says Macintosh with 5 touch points). */
+    ua?: string;
+    touchPoints?: number;
+    /** A bookmark carrying its owner's sync key, and the server path's address. */
+    key?: string;
+    dropUrl?: string;
+    /** What the server path answers; throwing is a network failure. */
+    drop?: (body: any) => any;
+    /** False: the Halo+ tab never answers (it was closed, or it replaced the Halo tab). */
+    tabAnswers?: boolean;
   } = {},
 ): Promise<RunResult> {
   const said: string[] = [];
@@ -58,6 +72,8 @@ export async function runBookmarklet(
   let payload: any = null;
   let failed: string | null = null;
   let opened = 0;
+  const dropped: any[] = [];
+  let navigated: string | null = null;
   let settle: () => void = () => {};
   const done = new Promise<void>((r) => {
     settle = r;
@@ -77,8 +93,9 @@ export async function runBookmarklet(
   void origAppend;
 
   const win: any = {
-    closed: false,
+    closed: opts.tabAnswers === false,
     postMessage(p: any) {
+      if (opts.tabAnswers === false) return;
       payload = p;
       for (const fn of [...listeners]) fn({ origin: 'https://richardsgeorger-collab.github.io', data: { kind: 'halo-received' } });
       settle();
@@ -103,6 +120,12 @@ export async function runBookmarklet(
   };
 
   const fetchImpl = async (url: string, init?: any) => {
+    if (opts.dropUrl && String(url) === opts.dropUrl) {
+      const body = JSON.parse(init.body);
+      dropped.push(body);
+      const r = opts.drop ? opts.drop(body) : { ok: true, id: 'x' };
+      return { status: 200, json: async () => r };
+    }
     if (String(url).endsWith('/api/auth/session')) return { status: 200, json: async () => ({ authToken: 'A', contextToken: 'C' }) };
     if (String(url).includes('downloadUrl/')) {
       if (!opts.download) throw new Error('no download');
@@ -166,12 +189,21 @@ export async function runBookmarklet(
     },
   };
 
-  const cfg = { dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1' };
+  const cfg = { dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/you?halo=1', syncKey: opts.key, dropUrl: opts.dropUrl };
+  const loc: any = { hostname: 'halo.gcu.edu', origin: 'https://halo.gcu.edu' };
+  Object.defineProperty(loc, 'href', {
+    get: () => 'https://halo.gcu.edu/',
+    set: (v: string) => {
+      navigated = v;
+      settle();
+    },
+  });
+  const nav = { userAgent: opts.ua ?? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130 Safari/537.36', maxTouchPoints: opts.touchPoints ?? 0 };
   const alerts: string[] = [];
   const run = (code: string, currentScript: { src: string } | null) => {
     const fn = new Function('location', 'document', 'window', 'fetch', 'crypto', 'alert', 'navigator', 'setInterval', 'clearInterval', 'setTimeout', code);
     fn(
-      { hostname: 'halo.gcu.edu', origin: 'https://halo.gcu.edu' },
+      loc,
       { ...doc, currentScript },
       window,
       fetchImpl,
@@ -180,7 +212,7 @@ export async function runBookmarklet(
         alerts.push(m);
         say('Halo sync failed: ' + m);
       },
-      {},
+      nav,
       spin,
       (h: any) => {
         if (h) h.stopped = true;
@@ -195,7 +227,7 @@ export async function runBookmarklet(
       loaded.push(String(node.src));
       queueMicrotask(() => {
         if (opts.loader === 'fail') node.onerror?.();
-        else run(syncScriptSource(cfg.dashPath), { src: String(node.src) });
+        else run(syncScriptSource(cfg.dashPath, opts.dropUrl ?? ''), { src: String(node.src) });
       });
       return node;
     },
@@ -204,5 +236,5 @@ export async function runBookmarklet(
   run(src, null);
 
   await Promise.race([done, new Promise<void>((r) => setTimeout(r, 4000))]);
-  return { payload, failed, said, asked, opened, loaded };
+  return { payload, failed, said, asked, opened, loaded, dropped, navigated };
 }

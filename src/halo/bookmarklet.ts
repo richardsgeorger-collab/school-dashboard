@@ -19,6 +19,15 @@ export interface BookmarkletConfig {
    * so one file serves whatever domain the site is on. `dashOrigin` is ignored.
    */
   originFromScript?: boolean;
+  /**
+   * The student's own sync key (2026-09-28), put in a bookmark only while the server path is on for their account.
+   * With it the export can also go straight to their pending slot on the server (`dropUrl`): first on iPad and
+   * phones, where opening Halo+ replaces the Halo tab; on a computer only if the tab never answers. Without it the
+   * bookmark behaves exactly as it always has. The served copy reads it from its own URL (`?k=`).
+   */
+  syncKey?: string;
+  /** The sync-drop function's address. Without it there is no server path at all. */
+  dropUrl?: string;
 }
 
 import { SYNC_SCRIPT } from './handoff';
@@ -110,9 +119,14 @@ const MAX_RUBRIC_FILES = 10;
  */
 export function bookmarkletSource(cfg: BookmarkletConfig): string {
   const D = cfg.originFromScript ? '(document.currentScript&&document.currentScript.src)?new URL(document.currentScript.src).origin:null' : JSON.stringify(cfg.dashOrigin);
+  // Read while the script is still the current one (before the first await), like D.
+  const K = cfg.originFromScript ? "(function(){try{return new URL(document.currentScript.src).searchParams.get('k')||'';}catch(e){return '';}})()" : JSON.stringify(cfg.syncKey ?? '');
   const code = `
 (async function(){
 var D=${D},P=D+${JSON.stringify(cfg.dashPath)};
+var K=${K},DROP=${JSON.stringify(cfg.dropUrl ?? '')};
+var UA=navigator.userAgent||'';var TOUCH=/iPhone|iPad|iPod|Android/i.test(UA)||(/Macintosh/.test(UA)&&navigator.maxTouchPoints>1);
+var SRV=!!(K&&DROP&&TOUCH&&${JSON.stringify(cfg.deliver ?? 'open')}==='open');
 if(location.hostname!==${JSON.stringify(HALO_HOST)}){alert('Open halo.gcu.edu first, then click this bookmark.');return;}
 if(!D){alert('Halo+ could not tell where to send your data. Reinstall the Sync Halo bookmark from Halo+.');return;}
 var box=document.createElement('div');
@@ -127,8 +141,12 @@ var prob=function(where,kind,e){var m=(e&&e.message)?String(e.message):String(e)
 var list=(e&&e.errors&&e.errors.length)?e.errors.map(function(x){return String(x).slice(0,400);}):[m.slice(0,400)];
 problems.push({klass:where||null,kind:kind,message:m.slice(0,400),op:(e&&e.op)||null,status:(e&&e.status)==null?null:e.status,errors:list,sent:(e&&e.vars)?JSON.stringify(e.vars).slice(0,200):null,missingField:(e&&e.missingField)||null,got:(e&&e.shape)||null});};
 var MODE=${JSON.stringify(cfg.deliver ?? 'open')};
-var win=null,openErr=null;if(MODE==='open'){try{win=window.open(P,'school-dashboard');}catch(e){openErr=e;}
+var win=null,openErr=null;if(MODE==='open'&&!SRV){try{win=window.open(P,'school-dashboard');}catch(e){openErr=e;}
 if(!win){openErr=openErr||new Error('blocked');}}
+var PEND=P.split('#')[0]+'#/now?pending=1';
+var drop=async function(p){try{var r=await fetch(DROP,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:K,payload:p})});var j=null;try{j=await r.json();}catch(e){j=null;}
+if(!j){return {ok:false,why:'Halo+ answered '+r.status+'.'};}return j;}catch(e){return {ok:false,why:'Could not reach Halo+ ('+((e&&e.message)||e)+'). Check your connection.'};}};
+var goLink=function(t){var a=document.createElement('a');a.href=PEND;a.textContent=t;a.style.cssText='display:inline-block;margin-top:8px;padding:8px 14px;border-radius:8px;background:#f2b84b;color:#1b1400;font-weight:700;text-decoration:none';box.appendChild(a);};
 var fallback=function(json,why){
 say(why+' Copy this, then paste it in the dashboard: Sync, Having trouble, Paste the export.');
 var ta=document.createElement('textarea');ta.value=json;ta.readOnly=true;
@@ -334,6 +352,9 @@ if(T){var fl=[];var ff2=T.fields||T.inputFields||[];for(var fi3=0;fi3<ff2.length
 var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:MODE==='open'?'bookmarklet':'extension',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','class grade','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
 var n=0;for(var q=0;q<classes.length;q++){n+=(classes[q].assessments||[]).length;}
 say('Read '+n+' assignment'+(n===1?'':'s')+' in '+classes.length+' class'+(classes.length===1?'':'es')+(problems.length?', '+problems.length+' thing'+(problems.length===1?'':'s')+' Halo would not give up':'')+'. Sending to the dashboard\\u2026');
+if(SRV){say('Sending to your Halo+ account\u2026');var dr=await drop(payload);
+if(dr&&dr.ok){say('Sent. Opening Halo+ to review it\u2026');location.href=PEND;return;}
+fallback(JSON.stringify(payload),(dr&&dr.why?dr.why:'Halo+ could not take it.')+' Your sync is not lost.');goLink('Open Halo+');return;}
 var ackOrigin=MODE==='open'?D:location.origin;var got=false,ticks=0;var onMsg=function(e){if(e.origin===ackOrigin&&e.data&&e.data.kind==='halo-received'){got=true;}};
 window.addEventListener('message',onMsg);
 var t0=Date.now();
@@ -343,6 +364,7 @@ await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||D
 else if(MODE==='message'){await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||Date.now()-t0>5000){clearInterval(iv);res2();return;}try{window.postMessage(payload,location.origin);}catch(e){}},400);});}
 window.removeEventListener('message',onMsg);
 if(got){say('Sent to the dashboard. Review the changes there.');setTimeout(function(){box.remove();},4000);}
+else if(K&&DROP&&MODE==='open'&&(await drop(payload)).ok){say('Sent to your Halo+ account. Open Halo+ and it is waiting for you to review.');goLink('Open Halo+');}
 else{var why=MODE==='message'?'The extension did not pick up the export.':openErr?'Your browser blocked the dashboard tab from opening. Allow pop-ups for halo.gcu.edu, or open '+P+' yourself first.':(win&&win.closed)?'The dashboard tab was closed before the export arrived.':'The dashboard tab at '+P+' did not answer in 30 seconds. It has to be that exact address, and it has to finish loading.';fallback(JSON.stringify(payload),why);}
 }catch(e){say('Halo sync failed: '+(e&&e.message?e.message:e));}
 })();`;
@@ -370,7 +392,7 @@ export function bookmarkletLoader(cfg: BookmarkletConfig, opts: { embed?: boolea
 (function(){
 if(location.hostname!==${JSON.stringify(HALO_HOST)}){alert('Open halo.gcu.edu first, then click this bookmark.');return;}
 var s=document.createElement('script');
-s.src=${JSON.stringify(url)}+'?v='+Date.now();
+s.src=${JSON.stringify(url)}+'?v='+Date.now()${cfg.syncKey ? `+'&k='+${JSON.stringify(cfg.syncKey)}` : ''};
 s.onerror=function(){s.remove();${onError}};
 (document.head||document.documentElement).appendChild(s);
 })();`;
@@ -378,8 +400,8 @@ s.onerror=function(){s.remove();${onError}};
 }
 
 /** The file the site serves as halo-sync.js: the whole sync, taking the dashboard origin from its own URL. */
-export function syncScriptSource(dashPath: string): string {
-  return `/* Halo+ sync script, build ${BOOKMARKLET_BUILD}. The Sync Halo bookmark loads this from the site on every click, so a saved bookmark never goes stale. Generated from src/halo/bookmarklet.ts at build time; it reads only the Halo session of the page it runs on and sends assignment data to the site it came from. */\n${bookmarkletSource({ dashOrigin: '', dashPath, originFromScript: true })}\n`;
+export function syncScriptSource(dashPath: string, dropUrl = ''): string {
+  return `/* Halo+ sync script, build ${BOOKMARKLET_BUILD}. The Sync Halo bookmark loads this from the site on every click, so a saved bookmark never goes stale. Generated from src/halo/bookmarklet.ts at build time; it reads only the Halo session of the page it runs on and sends assignment data to the site it came from (and, only for a bookmark that carries its owner's sync key, to that owner's pending slot on the Halo+ server). */\n${bookmarkletSource({ dashOrigin: '', dashPath, originFromScript: true, dropUrl })}\n`;
 }
 
 /** The `javascript:` URL to bookmark: the loader with the full sync embedded, or the short loader alone for phones. */

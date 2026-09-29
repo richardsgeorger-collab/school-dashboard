@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { dropUrl, useSyncKey } from '../halo/serverSync';
 import { bookmarkletHref } from '../halo/bookmarklet';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { HANDOFF_PATH } from '../halo/handoff';
@@ -9,7 +10,10 @@ import { HANDOFF_PATH } from '../halo/handoff';
  * characters, for pasting into a bookmark on a phone.
  */
 export function useBookmarkHref(kind: 'full' | 'short' = 'full'): string {
-  return useMemo(() => bookmarkletHref({ dashOrigin: window.location.origin, dashPath: `${import.meta.env.BASE_URL}${HANDOFF_PATH}` }, { embed: kind === 'full' }), [kind]);
+  // The owner's sync key goes in only while the server path is on for them; otherwise the bookmark is exactly today's.
+  const sk = useSyncKey();
+  const key = sk?.enabled ? sk.key : undefined;
+  return useMemo(() => bookmarkletHref({ dashOrigin: window.location.origin, dashPath: `${import.meta.env.BASE_URL}${HANDOFF_PATH}`, ...(key ? { syncKey: key, dropUrl: dropUrl() } : {}) }, { embed: kind === 'full' }), [kind, key]);
 }
 
 /** The draggable 😇 Sync Halo button; its text becomes the bookmark's name. React refuses javascript: hrefs as props, so the address is set on the element. */

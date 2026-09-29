@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOOKMARKLET_BUILD, bookmarkletSource } from './bookmarklet';
+import { BOOKMARKLET_BUILD, bookmarkletLoader, bookmarkletSource } from './bookmarklet';
 import { problemGroups } from './freshness';
 import { runBookmarklet, type Halo, type Reply } from './bookmarkletHarness';
 
@@ -256,7 +256,9 @@ describe('the guards themselves', () => {
     // The gql body's own json parse (it rethrows on the next line), the clipboard fallback, and the postMessage
     // inside each of the two delivery loops (tab, extension), retried every tick until it lands. Opening the tab
     // keeps its own error so the failure message can tell a blocked pop-up from a tab that never answered.
-    expect(silent).toEqual(['openErr=e;', '', '', '', '']);
+    // The server path (2026-09-28) adds two, neither silent in effect: an unreadable reply becomes "Halo+ answered
+    // <status>" on the next line, and a network failure is returned as the reason the student sees.
+    expect(silent).toEqual(['openErr=e;', 'j=null;', "return {ok:false,why:'Could not reach Halo+ ('+((e&&e.message)||e)+'). Check your connection.'};", '', '', '', '']);
   });
 
   it('the per-class body is wrapped, so one bad class cannot end the run', () => {
@@ -439,5 +441,84 @@ describe('extension delivery', () => {
     expect(r.opened).toBe(0);
     expect(r.payload?.source).toBe('extension');
     expect(r.said.at(-1)).toContain('Sent to the dashboard');
+  });
+});
+
+/**
+ * The server path (2026-09-28): iPad and phones open Halo+ in place of the Halo tab, so the tabs never talk. A
+ * bookmark that carries its owner's sync key drops the export on the server instead. Everything else must behave
+ * exactly as before.
+ */
+describe('the server path', () => {
+  const DROP = 'https://kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop';
+  const KEY = 'a'.repeat(48);
+  const IPAD_AS_MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0 Mobile/15E148 Safari/604.1';
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  const ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
+
+  it('a bookmark without a key behaves exactly as before, on any device: opens the tab, posts, never calls the server', async () => {
+    for (const ua of [undefined, IPHONE, IPAD_AS_MAC]) {
+      const r = await runBookmarklet(good, { ua, touchPoints: ua ? 5 : 0, dropUrl: DROP });
+      expect(r.opened).toBe(1);
+      expect(r.payload?.kind).toBe('halo-export');
+      expect(r.dropped).toHaveLength(0);
+      expect(r.navigated).toBeNull();
+    }
+  });
+  it('a keyed bookmark on a computer still hands over by tab first, and the server is never called when the tab answers', async () => {
+    const r = await runBookmarklet(good, { key: KEY, dropUrl: DROP });
+    expect(r.opened).toBe(1);
+    expect(r.payload?.kind).toBe('halo-export');
+    expect(r.dropped).toHaveLength(0);
+  });
+  it('on a computer, only when the tab never answers, the keyed bookmark drops it on the server and says where it went', async () => {
+    const r = await runBookmarklet(good, { key: KEY, dropUrl: DROP, tabAnswers: false });
+    await new Promise((res) => setTimeout(res, 50));
+    expect(r.opened).toBe(1);
+    expect(r.dropped).toHaveLength(1);
+    expect(r.dropped[0].key).toBe(KEY);
+    expect(r.dropped[0].payload.kind).toBe('halo-export');
+  });
+  for (const [name, ua, touch] of [['an iPad that says it is a Mac', IPAD_AS_MAC, 5], ['an iPhone', IPHONE, 5], ['an Android phone', ANDROID, 5]] as const) {
+    it(`on ${name}: no tab opened first, the export goes to the server, and only then Halo+ opens`, async () => {
+      const r = await runBookmarklet(good, { key: KEY, dropUrl: DROP, ua, touchPoints: touch });
+      expect(r.opened).toBe(0);
+      expect(r.dropped).toHaveLength(1);
+      expect(r.navigated).toBe('https://richardsgeorger-collab.github.io/school-dashboard/#/now?pending=1');
+    });
+  }
+  it('a Mac with no touch screen is a computer, not an iPad', async () => {
+    const r = await runBookmarklet(good, { key: KEY, dropUrl: DROP, ua: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15', touchPoints: 0 });
+    expect(r.opened).toBe(1);
+    expect(r.dropped).toHaveLength(0);
+  });
+  it('when the upload fails it says so on Halo, keeps the copy box, and never opens Halo+ on a promise', async () => {
+    const r = await runBookmarklet(good, { key: KEY, dropUrl: DROP, ua: IPHONE, touchPoints: 5, drop: () => ({ ok: false, why: 'Too many syncs in the last hour.' }) });
+    expect(r.navigated).toBeNull();
+    expect(r.said.some((t) => t.includes('Too many syncs in the last hour.') && t.includes('Copy this'))).toBe(true);
+    expect(r.payload?.kind).toBe('halo-export');
+  });
+  it('when the switch is off for the account (or the kill switch is on) it falls back to Copy, with the reason', async () => {
+    const r = await runBookmarklet(good, { key: KEY, dropUrl: DROP, ua: IPHONE, touchPoints: 5, drop: () => ({ ok: false, off: true, why: 'Sending straight to your account is not switched on.' }) });
+    expect(r.navigated).toBeNull();
+    expect(r.payload?.kind).toBe('halo-export');
+    expect(r.said.some((t) => t.includes('not switched on'))).toBe(true);
+  });
+  it('a network failure is a message, not silence', async () => {
+    const r = await runBookmarklet(good, { key: KEY, dropUrl: DROP, ua: IPHONE, touchPoints: 5, drop: () => { throw new Error('offline'); } });
+    expect(r.navigated).toBeNull();
+    expect(r.said.some((t) => /Could not reach Halo\+ \(offline\)/.test(t))).toBe(true);
+  });
+  it('the keyed loader passes the key to the served script, and the embedded copy carries it too', async () => {
+    const served = await runBookmarklet(good, { loader: 'serve', key: KEY, dropUrl: DROP, ua: IPHONE, touchPoints: 5 });
+    expect(served.loaded[0]).toMatch(new RegExp(`halo-sync\\.js\\?v=\\d+&k=${KEY}$`));
+    expect(served.dropped[0]?.key).toBe(KEY);
+    const embedded = await runBookmarklet(good, { loader: 'fail', key: KEY, dropUrl: DROP, ua: IPHONE, touchPoints: 5 });
+    expect(embedded.dropped[0]?.key).toBe(KEY);
+  });
+  it('the keyless loader is byte-for-byte what it was: no key anywhere in it', () => {
+    const plain = bookmarkletLoader({ dashOrigin: 'https://richardsgeorger-collab.github.io', dashPath: '/school-dashboard/#/now?halo=1' });
+    expect(plain).not.toContain('&k=');
+    expect(plain).toContain("s.src=\"https://richardsgeorger-collab.github.io/school-dashboard/halo-sync.js\"+'?v='+Date.now();");
   });
 });

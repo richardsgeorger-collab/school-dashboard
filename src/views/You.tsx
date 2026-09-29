@@ -28,6 +28,8 @@ import { pixel } from '../analytics/pixel';
 import { NotificationsCard } from '../notify/NotificationsCard';
 import { FeedbackCard } from './FeedbackCard';
 import { FriendLinks } from './FriendLinks';
+import { ServerSyncAdmin } from './ServerSyncAdmin';
+import { SyncKeyCard } from './SyncKeyCard';
 import { TrialOffer, TrialReceipts } from './TrialOffer';
 import { FinishSetup } from '../onboarding/FinishSetup';
 import { fresh as freshOnboarding } from '../onboarding/state';
@@ -433,6 +435,7 @@ export function You() {
               <TrialReceipts />
               <TrialOffer />
               {profile?.isAdmin && <FriendLinks />}
+              {profile?.isAdmin && <ServerSyncAdmin />}
               {/* A friend's Max is a gift: no plans, no prices, nothing to sell. */}
               {!gifted && (section === 'plan' || showPlans) && <Plans current={tier} highlight={highlight} />}
               {!gifted && section !== 'plan' && !showPlans && (
@@ -481,6 +484,7 @@ export function You() {
           )}
           {active === 'workload' && <WorkloadSection />}
           {active === 'halo' && <HaloPanel onPaste={() => setHalo(true)} />}
+          {active === 'halo' && <SyncKeyCard />}
           {active === 'study' && (
             <section className="card settings-card" aria-label="Study time">
               <h2 className="section-title">Study time</h2>

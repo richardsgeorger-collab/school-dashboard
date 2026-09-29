@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HaloDraw } from '../components/HaloDraw';
 import { ACCENTS, DEFAULT_ACCENT, type AccentId } from '../config/accents';
-import { EXTENSION_URL } from '../config/extension';
+import { EXTENSION_URL as STORE_URL } from '../config/extension';
+import { isIOSDevice, isTouchDevice } from '../ui/device';
+/** No Chrome extensions on an iPad or a phone: never offered there. */
+const EXTENSION_URL = isTouchDevice() ? null : STORE_URL;
 import { rank } from '../config/flags';
 import type { Tier } from '../config/tiers';
 import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
@@ -127,7 +130,7 @@ function PlusScreens({ i, next }: { i: number; next: () => void }) {
     <section className="onboard-step" aria-label="Two taps">
       <h1 className="onboard-title">{EXTENSION_URL ? 'Two things, one tap each.' : 'One more tap.'}</h1>
       <div className="upgrade-rows">
-        <div>
+        {!isTouchDevice() && <div>
           <b>Sync on its own.</b>{' '}
           {EXTENSION_URL ? (
             <>
@@ -139,10 +142,10 @@ function PlusScreens({ i, next }: { i: number; next: () => void }) {
           ) : (
             <span className="hint">The Chrome extension is on its way to the Web Store. Until then the bookmark takes one click.</span>
           )}
-        </div>
+        </div>}
         <div>
           <b>Notifications.</b> A morning note with your day.{' '}
-          {pushSupported() || /iPhone|iPad/.test(navigator.userAgent) ? (
+          {pushSupported() || isIOSDevice() ? (
             <button type="button" className="btn small" onClick={() => void turnOnPush()}>
               Turn on
             </button>

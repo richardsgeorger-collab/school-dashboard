@@ -6,6 +6,7 @@ import { BottomNav, TopBar } from './components/Nav';
 import { TimeAsk } from './components/TimeAsk';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
+import { takePending } from './halo/serverSync';
 import { HaloImport } from './views/HaloImport';
 import { QuickCapture } from './views/QuickCapture';
 import { Palette } from './views/Palette';
@@ -79,12 +80,27 @@ function HaloHandoff() {
   const first = useRef(firstNow);
   first.current = firstNow;
   const [firstSync, setFirstSync] = useState(false);
-  useHaloHandoff(
-    useCallback((p: HaloExport) => {
-      setFirstSync(first.current);
-      setPayload(p);
-    }, []),
-  );
+  const receive = useCallback((p: HaloExport) => {
+    setFirstSync(first.current);
+    setPayload(p);
+  }, []);
+  useHaloHandoff(receive);
+  // A sync the bookmark dropped on the server (iPad, phones): picked up on load, when the tab comes back, and when the
+  // bookmark sends the student here with ?pending=1. Only ever there when the server path is on for them.
+  const pendingParam = params.get('pending') === '1';
+  const { auth: account } = useAccount();
+  useEffect(() => {
+    if (!account.session) return;
+    let live = true;
+    const look = () => void takePending().then((p) => live && p && receive(p)).catch(() => undefined);
+    look();
+    const onShow = () => document.visibilityState === 'visible' && look();
+    document.addEventListener('visibilitychange', onShow);
+    return () => {
+      live = false;
+      document.removeEventListener('visibilitychange', onShow);
+    };
+  }, [account.session, pendingParam, receive]);
   useEffect(() => {
     if (!expecting || payload) {
       setWaiting(false);

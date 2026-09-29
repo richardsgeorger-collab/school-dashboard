@@ -8,8 +8,10 @@ import { HANDOFF_PATH, SYNC_SCRIPT } from './src/halo/handoff';
  * The site serves the current Halo sync script beside the app (halo-sync.js). The Sync Halo bookmark is only a
  * loader for it, so a bookmark saved in September still runs December's code. Emitted on build; served in dev.
  */
-function haloSyncScript(base: string): Plugin {
-  const body = () => syncScriptSource(`${base}${HANDOFF_PATH}`);
+function haloSyncScript(base: string, supabaseUrl: string): Plugin {
+  // The server path's address, from the public Supabase URL; empty on a build without accounts (no server path).
+  const dropUrl = supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/sync-drop` : '';
+  const body = () => syncScriptSource(`${base}${HANDOFF_PATH}`, dropUrl);
   return {
     name: 'halo-sync-script',
     generateBundle() {
@@ -53,11 +55,12 @@ export function checkPublicEnv(env: Record<string, string>): string[] {
 }
 
 export default defineConfig(({ mode }) => {
-  const problems = checkPublicEnv({ ...loadEnv(mode, process.cwd(), 'VITE_'), ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('VITE_')) as [string, string][]) });
+  const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('VITE_')) as [string, string][]) };
+  const problems = checkPublicEnv(env);
   if (problems.length && mode !== 'test') throw new Error(`Refusing to build:\n- ${problems.join('\n- ')}`);
   return {
     base: '/school-dashboard/',
-    plugins: [react(), haloSyncScript('/school-dashboard/')],
+    plugins: [react(), haloSyncScript('/school-dashboard/', env.VITE_SUPABASE_URL ?? '')],
     build: { target: 'es2022' },
     test: {
       environment: 'node',

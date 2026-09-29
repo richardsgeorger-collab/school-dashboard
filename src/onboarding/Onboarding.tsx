@@ -21,6 +21,8 @@ import { type OnboardingState, type Step } from './state';
 import { Compare, Offer } from './PlanChoice';
 import { ChromeMenuPicture, HaloBarPicture, ShortcutKeyboard } from './Keyboard';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
+import { TouchPicture, type TouchBrowser } from './TouchPictures';
+import { isChromeIOS, isIOSDevice, isIPad, isMacComputer, isTouchDevice } from '../ui/device';
 import { ImportSyllabus } from '../views/ImportSyllabus';
 import { can } from '../config/flags';
 import { track } from './track';
@@ -42,10 +44,13 @@ const PHONE: Screen[] = ['p-copy', 'p-save', 'p-edit', 'p-open', 'p-wait'];
 export const WAIT_MS = 60_000;
 
 const ua = () => (typeof navigator === 'undefined' ? '' : navigator.userAgent);
-export const isPhoneDevice = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || /iPhone|iPad|Android/i.test(ua()));
-export const isIOS = () => /iPhone|iPad|iPod/i.test(ua());
+/** Phones and iPads (an iPad can say it is a Mac; ui/device.ts tells them apart by the touch screen). */
+export const isPhoneDevice = () => isTouchDevice();
+export const isIOS = () => isIOSDevice();
 export const isSafari = () => /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua());
-const isMac = () => /Mac/i.test(typeof navigator === 'undefined' ? '' : navigator.platform || ua());
+const isMac = () => isMacComputer();
+/** Which touch browser's steps and pictures to show. */
+const touchBrowser = (): TouchBrowser => (isChromeIOS() ? 'chrome-ios' : isIOSDevice() ? 'safari' : 'android');
 
 /**
  * Whether the bookmarks bar is showing, from the height of the browser's own chrome around the page: tabs and toolbar
@@ -396,7 +401,8 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
 
 function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void }) {
   const href = useBookmarkHref('short');
-  const ios = isIOS();
+  const browser = touchBrowser();
+  const ipad = isIPad();
   const [err, setErr] = useState<string | null>(null);
   const copy = async () => {
     try {
@@ -411,12 +417,10 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
       {screen === 'p-copy' && (
         <section className="onboard-step" aria-label="Copy the bookmark">
           <h1 className="onboard-title">Copy the {BOOKMARK_NAME} bookmark.</h1>
-          <p className="onboard-text">On a phone you make the bookmark by hand, once. Four quick steps.</p>
-          <div className="onboard-actions">
-            <button type="button" className="btn primary" onClick={() => void copy()}>
-              Copy it
-            </button>
-          </div>
+          <p className="onboard-text">On {ipad ? 'an iPad' : 'a phone'} you make the bookmark by hand, once, with a few taps. No keyboard shortcuts, nothing to drag.</p>
+          <button type="button" className="btn primary block onboard-big" onClick={() => void copy()}>
+            Copy it
+          </button>
           {err && (
             <>
               <p className="hint" role="alert">
@@ -428,25 +432,36 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
               </button>
             </>
           )}
-          <p className="hint">
-            Easier on a computer? Set it up there once and your phone gets everything through your account.{' '}
-            <button type="button" className="hero-inline" onClick={switchPath}>
-              Show the computer steps
-            </button>
-          </p>
+          {!ipad && (
+            <p className="hint">
+              Easier on a computer? Set it up there once and your phone gets everything through your account.{' '}
+              <button type="button" className="hero-inline" onClick={switchPath}>
+                Show the computer steps
+              </button>
+            </p>
+          )}
         </section>
       )}
       {screen === 'p-save' && (
         <section className="onboard-step" aria-label="Bookmark this page">
           <h1 className="onboard-title">Bookmark this page.</h1>
           <ol className="phone-steps">
-            {ios ? (
+            {browser === 'safari' ? (
               <>
                 <li>
-                  Tap <b>Share</b> <span aria-hidden>(the square with an arrow)</span>.
+                  Tap <b>Share</b> <span aria-hidden>(the square with an arrow{ipad ? ', top right' : ''})</span>.
                 </li>
                 <li>
                   Tap <b>Add Bookmark</b>, then <b>Save</b>.
+                </li>
+              </>
+            ) : browser === 'chrome-ios' ? (
+              <>
+                <li>
+                  Tap <b>⋯</b> <span aria-hidden>({ipad ? 'top right' : 'bottom right'})</span>.
+                </li>
+                <li>
+                  Tap <b>Add to Bookmarks</b>.
                 </li>
               </>
             ) : (
@@ -460,18 +475,17 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
               </>
             )}
           </ol>
-          <div className="onboard-actions">
-            <button type="button" className="btn primary" onClick={() => show('p-edit')}>
-              Done
-            </button>
-          </div>
+          <TouchPicture browser={browser} shot="add" />
+          <button type="button" className="btn primary block onboard-big" onClick={() => show('p-edit')}>
+            Done
+          </button>
         </section>
       )}
       {screen === 'p-edit' && (
         <section className="onboard-step" aria-label="Paste the address">
           <h1 className="onboard-title">Swap its address for the one you copied.</h1>
           <ol className="phone-steps">
-            {ios ? (
+            {browser === 'safari' ? (
               <>
                 <li>
                   Open <b>Bookmarks</b> <span aria-hidden>(the open book)</span> and tap <b>Edit</b>.
@@ -479,6 +493,18 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
                 <li>Tap the bookmark you just made.</li>
                 <li>
                   Name it <b>{BOOKMARK_NAME}</b> (or just Sync Halo). Clear the address and paste.
+                </li>
+              </>
+            ) : browser === 'chrome-ios' ? (
+              <>
+                <li>
+                  Tap <b>⋯</b>, then <b>Bookmarks</b>.
+                </li>
+                <li>
+                  Press and hold the new bookmark, tap <b>Edit Bookmark</b>.
+                </li>
+                <li>
+                  Name it <b>{BOOKMARK_NAME}</b> (or just Sync Halo). Clear the URL and paste.
                 </li>
               </>
             ) : (
@@ -495,11 +521,10 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
               </>
             )}
           </ol>
-          <div className="onboard-actions">
-            <button type="button" className="btn primary" onClick={() => show('p-open')}>
-              Done
-            </button>
-          </div>
+          <TouchPicture browser={browser} shot="edit" />
+          <button type="button" className="btn primary block onboard-big" onClick={() => show('p-open')}>
+            Done
+          </button>
           <p className="hint">
             <button type="button" className="hero-inline" onClick={() => show('p-copy')}>
               Copy it again
@@ -511,18 +536,16 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
         <section className="onboard-step" aria-label="Open Halo">
           <h1 className="onboard-title">Open Halo and log in.</h1>
           <p className="onboard-text">Then tap {BOOKMARK_NAME} from your bookmarks. This page shows you how.</p>
-          <div className="onboard-actions">
-            <button
-              type="button"
-              className="btn primary"
-              onClick={() => {
-                window.open('https://halo.gcu.edu/', '_blank', 'noopener');
-                show('p-wait');
-              }}
-            >
-              Open Halo
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn primary block onboard-big"
+            onClick={() => {
+              window.open('https://halo.gcu.edu/', '_blank', 'noopener');
+              show('p-wait');
+            }}
+          >
+            Open Halo
+          </button>
         </section>
       )}
       {screen === 'p-wait' && <Waiting phone show={show} onPaste={onPaste} />}
@@ -556,8 +579,9 @@ function Waiting({ phone, show, onPaste }: { phone: boolean; show: (s: Screen) =
           <span className="wait-ring" aria-hidden>
             <HaloDraw size={64} />
           </span>
-          <h1 className="onboard-title">{ios ? `In Halo, open Bookmarks and tap ${BOOKMARK_NAME}.` : `In Halo, type "Sync Halo" in the address bar and tap the ${BOOKMARK_NAME} bookmark.`}</h1>
-          <p className="onboard-text">Do it in the Halo tab. This page fills in by itself when your classes arrive, usually within 20 seconds.</p>
+          <h1 className="onboard-title">{touchBrowser() === 'chrome-ios' ? `In Halo, tap ⋯, then Bookmarks, then ${BOOKMARK_NAME}.` : ios ? `In Halo, open Bookmarks and tap ${BOOKMARK_NAME}.` : `In Halo, type "Sync Halo" in the address bar and tap the ${BOOKMARK_NAME} bookmark.`}</h1>
+          <TouchPicture browser={touchBrowser()} shot="run" />
+          <p className="onboard-text">Do it in the Halo tab. Halo+ opens by itself with your classes, usually within 20 seconds.</p>
         </>
       ) : (
         <>
