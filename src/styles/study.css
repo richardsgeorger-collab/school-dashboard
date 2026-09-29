@@ -146,16 +146,15 @@ a.quiz-chip {
   color: var(--ink-2);
 }
 
-/* Practice */
-.practice .segmented {
-  overflow-x: auto;
-  scrollbar-width: none;
+/* Practice: five tabs. On a phone they wrap to two rows rather than scroll off the edge (the fifth was hidden). */
+.practice .segmented,
+.check-card .segmented {
+  flex-wrap: wrap;
 }
-.practice .segmented::-webkit-scrollbar {
-  display: none;
-}
-.practice .segmented button {
+.practice .segmented button,
+.check-card .segmented button {
   white-space: nowrap;
+  flex: 1 1 auto;
 }
 .practice-plan {
   display: grid;

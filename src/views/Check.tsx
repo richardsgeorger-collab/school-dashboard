@@ -69,7 +69,7 @@ export function Check() {
         </section>
       )}
       {item && course && (
-        <Locked feature="aiChat" tier={tier} line="Check my work is part of Max: your draft against the rubric, your problem set against the class's method.">
+        <Locked feature="aiChat" tier={tier} line="Check my work is part of Max: your draft against the rubric, your problem set against the class's method." quiet>
           <Checker key={item.id} item={item} course={course} />
         </Locked>
       )}
