@@ -9,7 +9,10 @@ import { LIMITS, TIER_NAMES, TRIAL } from '../config/tiers';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
+import { materialLine } from '../study/material';
 import { checkableWork, inDays, upcomingTests } from '../study/upcoming';
+import { libraryDb, type Deck } from '../library/db';
+import { recordingsDb, type Recording } from '../record/db';
 import { UpgradeButton } from './PlanWall';
 import { TrialOffer } from './TrialOffer';
 
@@ -27,6 +30,21 @@ export function Study() {
   const [q, setQ] = useState('');
   const [m, setM] = useState<Meter | null>(latestMeter());
   useEffect(() => onMeter(setM), []);
+  // What Practice has to build from, said before the student picks a test.
+  const [decks, setDecks] = useState<Deck[] | null>(null);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
+  useEffect(() => {
+    let live = true;
+    Promise.all([libraryDb.listDecks().catch(() => [] as Deck[]), recordingsDb.list().catch(() => [] as Recording[])]).then(([d, r]) => {
+      if (!live) return;
+      setDecks(d);
+      setRecordings(r);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const material = decks ? materialLine(data.courses, decks, recordings) : null;
   const ask = (text: string) => {
     const t = text.trim();
     if (!t) return;
@@ -95,6 +113,16 @@ export function Study() {
             </a>
           ))}
         </p>
+        {material && material.text && (
+          <p className="hint mono study-material">
+            {material.text}{' '}
+            {material.empty.length > 0 && (
+              <a className="diff-toggle" href={`#/library${material.empty.length === data.courses.length ? '' : `?c=${material.empty[0].id}`}`}>
+                Add slides
+              </a>
+            )}
+          </p>
+        )}
       </section>
 
       <section className="card study-block" aria-label="Ask">

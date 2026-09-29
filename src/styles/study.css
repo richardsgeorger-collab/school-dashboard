@@ -76,6 +76,9 @@
 .study-chips .hint {
   margin: 0 4px 0 0;
 }
+.study-material {
+  margin: 0;
+}
 a.quiz-chip {
   text-decoration: none;
 }
