@@ -4,7 +4,7 @@ import { addDays, dateOf, todayStr } from '../domain/dates';
 import { derive, type DerivedDeadline, type Nudge } from '../domain/deadlines';
 import { DERIVED_DEADLINES } from '../domain/flags';
 import { estimateMinutes } from '../domain/estimate';
-import { shortLabel } from '../domain/labels';
+import { labelCarriesSection, shortLabel } from '../domain/labels';
 import { dedupeRequirements } from '../domain/requirements';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
@@ -141,8 +141,9 @@ export function normalizeData(data: AppData): AppData {
     ...data,
     items: data.items.map((i) => {
       const raw = i as Partial<Item> & Item;
-      const needsLabel = !raw.label;
       const courseCode = codeById.get(i.courseId) ?? '';
+      // A label made while the course code still carried its section ("ENG-105-ONL4 DQ 5.2") is made again.
+      const needsLabel = !raw.label || (!raw.labelOverridden && labelCarriesSection(raw.label, courseCode));
       return {
         ...i,
         // Estimate rules get recalibrated over time; untouched parsed items follow the current table.

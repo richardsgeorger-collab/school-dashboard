@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { classifyItem } from './classify';
-import { courseShortName, shortLabel } from './labels';
+import { courseShortName, labelCarriesSection, shortLabel } from './labels';
 
 const label = (title: string, courseCode: string) => shortLabel({ title, courseCode, type: classifyItem(title, courseCode) });
 
@@ -77,5 +77,15 @@ describe('courseShortName', () => {
     expect(courseShortName('ESG-162L')).toBe('Eng Math Lab');
     expect(courseShortName('MAT-154')).toBe('MAT');
     expect(courseShortName('BIO-181L')).toBe('BIO Lab');
+  });
+  it('ignores a section on the end of the code, which Halo puts there for some classes', () => {
+    // George's English class arrived as ENG-105-ONL4; its items read "ENG-105-ONL4 DQ 5.2" until this.
+    expect(courseShortName('ENG-105-ONL4')).toBe('English');
+    expect(courseShortName('CHM-113L-O500')).toBe('Chem Lab');
+    expect(courseShortName('MAT-154-TR12')).toBe('MAT');
+    expect(shortLabel({ title: 'APA Quiz 2', courseCode: 'ENG-105-ONL4', type: 'quiz' })).toBe('English APA Quiz 2');
+    expect(labelCarriesSection('ENG-105-ONL4 DQ 5.2', 'ENG-105-ONL4')).toBe(true);
+    expect(labelCarriesSection('English DQ 5.2', 'ENG-105-ONL4')).toBe(false);
+    expect(labelCarriesSection('CHM-113 HW 1', 'CHM-113')).toBe(false);
   });
 });

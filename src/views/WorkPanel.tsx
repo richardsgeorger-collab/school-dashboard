@@ -6,6 +6,7 @@ import type { Brief, Course, Item, Step } from '../domain/types';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
 import { useStore } from '../storage/store';
+import { isTest } from '../study/upcoming';
 import { briefItem, localBrief } from '../work/brief';
 import { isMilestoneWork, makeSteps, stepProgress, stepsFor } from '../work/steps';
 
@@ -128,7 +129,7 @@ export function WorkPanel({ item: given, course }: { item: Item; course: Course 
         </details>
       )}
 
-      {brief && item.status !== 'done' && (
+      {brief && item.status !== 'done' && !isTest(item) && (
         <p className="hint work-check-link">
           <a className="diff-toggle" href={`#/check?i=${item.id}`}>
             Check my work against this

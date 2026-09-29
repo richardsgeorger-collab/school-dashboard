@@ -13,8 +13,19 @@ const COURSE_WORDS: Record<string, string> = {
 const STOP = new Set(['and', 'of', 'in', 'the', 'a', 'an', 'for', 'to', 'with', 'on', 'chemical', 'chemistry', 'understanding']);
 const CLC_WORDS: Record<string, string> = { mathematical: 'Math', materials: 'Materials', sensor: 'Sensor' };
 
+/**
+ * The course code without its section: Halo hands some classes their code with the section on the end
+ * ("ENG-105-ONL4"), and George's English items were labelled "ENG-105-ONL4 DQ 5.2" for a month because of it.
+ */
+export function baseCode(code: string): string {
+  return code.trim().toUpperCase().replace(/^([A-Z]{2,4}-\d+[A-Z]?)-[A-Z0-9]+$/, '$1');
+}
+
+/** Whether a stored label still carries a sectioned code in front: the sign it was made before baseCode existed. */
+export const labelCarriesSection = (label: string, courseCode: string): boolean => baseCode(courseCode) !== courseCode.trim().toUpperCase() && label.toUpperCase().startsWith(`${courseCode.trim().toUpperCase()} `);
+
 export function courseShortName(code: string): string {
-  const c = code.trim().toUpperCase();
+  const c = baseCode(code);
   if (COURSE_WORDS[c]) return COURSE_WORDS[c];
   const m = /^([A-Z]{2,4})-?\d*([A-Z]?)$/.exec(c);
   if (!m) return code.trim();
