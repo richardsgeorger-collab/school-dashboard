@@ -3,6 +3,7 @@ import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { EmptyState } from '../components/EmptyState';
 import { TIER_NAMES, TIERS, type Tier } from '../config/tiers';
+import { ResetEmailAdmin } from './ResetEmailAdmin';
 
 interface Stats {
   users: number;
@@ -163,6 +164,7 @@ export function Admin() {
           </p>
           <p className="hint">Phone-only students run the bookmark by hand every time. If that number grows, the phone flow needs to get shorter.</p>
         </section>
+        <ResetEmailAdmin />
         <section className="card settings-card">
           <h2 className="section-title">Open feedback</h2>
           {stats.feedback_open.length === 0 ? (

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AccountProvider } from './auth/AccountContext';
+import { SetNewPassword } from './auth/SignIn';
 import { useAccountSync } from './auth/useAccountSync';
 import { BottomNav, TopBar } from './components/Nav';
 import { TimeAsk } from './components/TimeAsk';
@@ -211,6 +212,12 @@ function OnboardingHost() {
   return null;
 }
 
+/** Back from a password-reset email: ask for the new password over whatever is open. */
+function RecoveryHost() {
+  const { auth } = useAccount();
+  return <SetNewPassword auth={auth} />;
+}
+
 /** The accent the account may wear: the chosen preset with Max (or the trial), gold otherwise. */
 function AccentHost() {
   const { data } = useStore();
@@ -388,6 +395,7 @@ export default function App() {
     <StoreProvider>
       <AccountProvider>
         <AccountSync />
+        <RecoveryHost />
         <AccentHost />
         <AutoRerun />
         <HaloHandoff />

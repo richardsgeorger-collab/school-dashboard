@@ -24,11 +24,18 @@ export function supabaseConfig(): SupabaseConfig | null {
 export const isConfigured = (): boolean => supabaseConfig() !== null;
 
 let client: SupabaseClient | null = null;
+/**
+ * Arrived from a password-reset email. The client reads the link's tokens from the address as it starts, before any
+ * screen is listening for its one-off PASSWORD_RECOVERY event, so the address is checked here first.
+ */
+let recoveryFromUrl = false;
+export const arrivedForRecovery = (): boolean => recoveryFromUrl;
 
 export function supabase(): SupabaseClient | null {
   if (client) return client;
   const cfg = supabaseConfig();
   if (!cfg) return null;
+  if (typeof window !== 'undefined' && /(^|[#&?])type=recovery(&|$)/.test(window.location.hash + window.location.search)) recoveryFromUrl = true;
   client = createClient(cfg.url, cfg.anonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   return client;
 }

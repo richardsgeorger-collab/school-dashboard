@@ -99,7 +99,7 @@ function AccountCard({ tier }: { tier: Tier }) {
       </section>
     );
   }
-  if (!auth.session) return <SignIn auth={auth} note="Your classes and work follow you to your phone and laptop, and nothing is lost if this browser is cleared." />;
+  if (!auth.session) return <SignIn auth={auth} title="Save your planner to an account" note="Your classes and work follow you to your phone and laptop, and nothing is lost if this browser is cleared." />;
   const tz = data.settings.timezone;
   const days = trialDaysLeft(profile);
   const reward = rewardDaysLeft(profile);
