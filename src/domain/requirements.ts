@@ -105,7 +105,15 @@ export function missedRequirement(items: Item[], today: DateStr, tz: string, wit
   );
 }
 
-/** What that line says, naming the source, because the point is that the assignment does not say it. */
+/** The missed requirement in one heads-up line: "Lab Safety Waiver: print and sign it, due tomorrow." */
+export function missedShort(row: RequirementRow, today: DateStr): string {
+  const days = diffDays(today, row.when);
+  const when = days <= 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
+  const said = row.req.text.replace(/\s*[.!]$/, '');
+  return `${row.item.label}: ${said.charAt(0).toLowerCase()}${said.slice(1)}, due ${when}.`;
+}
+
+/** What that line says in full, naming the source, because the point is that the assignment does not say it. */
 export function missedLine(row: RequirementRow, courses: Course[], today: DateStr): string {
   const code = courses.find((c) => c.id === row.item.courseId)?.code ?? '';
   const days = diffDays(today, row.when);

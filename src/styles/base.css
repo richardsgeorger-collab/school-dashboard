@@ -80,9 +80,8 @@ button {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* Solid in both themes: see-through, the page scrolled up under Now, Calendar and Study and showed through. */
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 

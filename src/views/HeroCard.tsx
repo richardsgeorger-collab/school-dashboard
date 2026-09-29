@@ -8,6 +8,7 @@ import { gatedBy } from '../domain/gating';
 import { elapsedLine, elapsedMinutes, fitLine, haloLink, heroFacts } from '../domain/heroFacts';
 import { TYPE_LABELS, type BlockReason, type Item } from '../domain/types';
 import { linksFor } from '../ingest/links';
+import { overlap } from '../domain/reqClean';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
 import { recordingsDb, type Recording } from '../record/db';
@@ -153,9 +154,10 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
   const facts = heroFacts(item, data.items, cal.minutes, tz, today, derived[item.id]?.deadlineAt ?? null);
   const fit = done ? null : fitLine(item, cal.minutes, schedule, data.courses, today, now, tz);
   const gates = done ? [] : gatedBy(item, data.items);
-  const prereqs = item.plan?.prerequisites.filter((p) => !p.itemId) ?? [];
   const steps = !done && isMilestoneWork(item) ? stepsFor(item) : (item.steps ?? []);
   const next = nextStep(steps);
+  // Each thing once: a prerequisite that is also the first step shows as the step (it has the tick), not twice.
+  const prereqs = (item.plan?.prerequisites.filter((p) => !p.itemId) ?? []).filter((p) => !next || overlap(p.text, next.label) < 0.75);
   const sources = item.plan?.sources ?? [];
   const weak = useMemo(() => weakConcepts(item.courseId, data.items, data.settings.quizStats), [item.courseId, data.items, data.settings.quizStats]);
   const shaky = weak.find((w) => itemTopics(item).some((t) => topicKey(t) === w.key || topicKey(t).includes(w.key) || w.key.includes(topicKey(t)))) ?? null;

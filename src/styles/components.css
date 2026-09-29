@@ -23,7 +23,7 @@ body {
   box-sizing: border-box;
 }
 .topbar {
-  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 .topbar-inner {
@@ -976,4 +976,18 @@ input[type='range']::-webkit-slider-thumb {
   background: var(--ink);
   color: var(--bg);
   font: 600 13px/1 var(--font-body);
+}
+
+/* ---- Every dropdown and popover opens above everything else (2026-09-29) --------------------------------------
+   Cards and rows here make their own layers (transforms for hover and entry, isolation for the glow), so a menu with
+   a high z-index inside one still paints under the next card. While a popover is open, the card or row that holds
+   it is lifted above its neighbours, and the popover itself sits above the page. */
+:is(.hero, .card, .item-row, .row, .class-card-wrap, .then, .inbox-post, li, article, section):has(> details.menu[open], .notnow-pop, .cook-why, details.menu[open] > .menu-list) {
+  position: relative;
+  z-index: 40;
+}
+.menu-list,
+.notnow-pop,
+.cook-why {
+  z-index: 1000;
 }

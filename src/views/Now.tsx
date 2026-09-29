@@ -16,7 +16,7 @@ import { examMode, examPressure, type ExamPlan } from '../domain/exam';
 import { staleness, stalenessLine } from '../halo/freshness';
 import { blockedLine, blockPhrase, makeBlock } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
-import { missedLine, missedRequirement } from '../domain/requirements';
+import { missedLine, missedRequirement, missedShort } from '../domain/requirements';
 import { cleanAll } from '../domain/reqClean';
 import { isNoise } from '../domain/requirements';
 import { paceLine, riskLine } from '../domain/pace';
@@ -429,38 +429,35 @@ export function Now() {
     headsUp.push({
       key: 'read-waiting',
       tone: 'soon',
-      text: (
-        <>
-          {reading.waiting.count} announcements are waiting to be read.{' '}
-          <button type="button" className="hero-inline" onClick={readNow}>
-            Read them now
-          </button>
-        </>
+      text: `${reading.waiting.count} announcements are waiting to be read.`,
+      action: (
+        <button type="button" className="hero-inline" onClick={readNow}>
+          Read them now
+        </button>
       ),
     });
   else if (reading.outcome && (reading.outcome.failed > 0 || reading.outcome.noKey || reading.outcome.locked || reading.outcome.ledgerError))
     headsUp.push({
       key: 'read-failed',
       tone: reading.outcome.locked && !reading.outcome.noKey ? null : 'late',
-      text: reading.outcome.ledgerError ? (
-        'The record of what has been read could not be opened; nothing was read.'
-      ) : reading.outcome.locked && !reading.outcome.noKey ? (
-        <>
-          {reading.outcome.todo} announcement{reading.outcome.todo === 1 ? ' is' : 's are'} waiting to be read.{' '}
-          {trialAvailable ? (
+      text: reading.outcome.ledgerError
+        ? 'The record of what has been read could not be opened; nothing was read.'
+        : reading.outcome.locked && !reading.outcome.noKey
+          ? `${reading.outcome.todo} announcement${reading.outcome.todo === 1 ? ' is' : 's are'} waiting to be read.`
+          : reading.outcome.noKey
+            ? `${reading.outcome.todo} announcement${reading.outcome.todo === 1 ? ' is' : 's are'} unread: this build has no AI connection.`
+            : `${reading.outcome.failed} announcement${reading.outcome.failed === 1 ? '' : 's'} could not be read; the next sync tries again.`,
+      action:
+        reading.outcome.locked && !reading.outcome.noKey && !reading.outcome.ledgerError ? (
+          trialAvailable ? (
             // The moment the product's promise is one tap away: the posts are on file, the reader is not on this plan.
             <TrialOffer variant="inline" label={`Try it free and it reads ${reading.outcome.todo === 1 ? 'it' : 'them'}`} />
           ) : (
             <>
               Reading them is part of {planOf('announcementAI')}. <a href="#/inbox">Inbox</a>
             </>
-          )}
-        </>
-      ) : reading.outcome.noKey ? (
-        `${reading.outcome.todo} announcement${reading.outcome.todo === 1 ? ' is' : 's are'} unread: this build has no AI connection.`
-      ) : (
-        `${reading.outcome.failed} announcement${reading.outcome.failed === 1 ? '' : 's'} could not be read; the next sync tries again.`
-      ),
+          )
+        ) : undefined,
     });
   const missed = missedRequirement(clean, today, tz);
   if (sub.line) headsUp.push({ key: 'sub', tone: sub.level === 'alarm' ? 'late' : 'soon', text: sub.line });
@@ -468,10 +465,11 @@ export function Now() {
     headsUp.push({
       key: 'chase',
       tone: 'soon',
-      text: (
+      text: chase.text,
+      action: (
         <>
           <button type="button" className="hero-inline" onClick={() => setOpen(chase.item)}>
-            {chase.text}
+            Open
           </button>{' '}
           <button type="button" className="hero-inline" onClick={() => unblock(chase.item)}>
             It's unblocked now
@@ -483,13 +481,12 @@ export function Now() {
   if (missed && missed.item.id !== hero?.id)
     headsUp.push({
       key: 'missed',
-      text: (
-        <>
-          {missedLine(missed, data.courses, today)}{' '}
-          <button type="button" className="hero-inline" onClick={() => setOpen(missed.item)}>
-            Open it
-          </button>
-        </>
+      text: missedShort(missed, today),
+      detail: missedLine(missed, data.courses, today),
+      action: (
+        <button type="button" className="hero-inline" onClick={() => setOpen(missed.item)}>
+          Open it
+        </button>
       ),
     });
   if (heavy && !exam && !back) headsUp.push({ key: 'heavy', text: heavy.line });
@@ -497,13 +494,11 @@ export function Now() {
   if (waiting.length > 0 && !chase)
     headsUp.push({
       key: 'waiting',
-      text: (
-        <>
-          {waiting.length === 1 ? `${waiting[0].label} is ${blockPhrase(waiting[0], tz)}; back ${fmtDate(waiting[0].blocked!.until, 'short')}.` : `${waiting.length} things are waiting on someone else; the first is back ${fmtDate([...waiting].sort((a, b) => a.blocked!.until.localeCompare(b.blocked!.until))[0].blocked!.until, 'short')}.`}{' '}
-          <button type="button" className="hero-inline" onClick={() => setOpen(waiting[0])}>
-            Open
-          </button>
-        </>
+      text: waiting.length === 1 ? `${waiting[0].label} is ${blockPhrase(waiting[0], tz)}; back ${fmtDate(waiting[0].blocked!.until, 'short')}.` : `${waiting.length} things are waiting on someone else; the first is back ${fmtDate([...waiting].sort((a, b) => a.blocked!.until.localeCompare(b.blocked!.until))[0].blocked!.until, 'short')}.`,
+      action: (
+        <button type="button" className="hero-inline" onClick={() => setOpen(waiting[0])}>
+          Open
+        </button>
       ),
     });
   // After a run that changed something: what the reader just did, in one line, with the Inbox one tap away. The
@@ -511,11 +506,8 @@ export function Now() {
   else if (reading.outcome && !onTrial && readDoneLine(reading.outcome))
     headsUp.push({
       key: 'read-done',
-      text: (
-        <>
-          {readDoneLine(reading.outcome)} <a href="#/inbox">Inbox</a>
-        </>
-      ),
+      text: readDoneLine(reading.outcome) ?? '',
+      action: <a href="#/inbox">Inbox</a>,
     });
   // During the trial, one honest line on what Max did this week, from the student's own records.
   const maxLine = onTrial && receipts && receipts.announcementsRead + receipts.requirementsFound + receipts.lectureNotes + receipts.coachAnswers > 0 ? receiptsLine(receipts) : null;
@@ -528,9 +520,8 @@ export function Now() {
   if (homeNudge)
     headsUp.push({
       key: 'home-screen',
-      text: (
-        <>
-          Add Halo+ to your Home Screen for notifications: Share, then Add to Home Screen.{' '}
+      text: 'Add Halo+ to your Home Screen for notifications: Share, then Add to Home Screen.',
+      action: (
           <button
             type="button"
             className="hero-inline"
@@ -545,7 +536,6 @@ export function Now() {
           >
             Got it
           </button>
-        </>
       ),
     });
 
