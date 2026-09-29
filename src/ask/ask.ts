@@ -104,6 +104,11 @@ export function appSteps(scope: AskScope, answer: string, items: Item[], today: 
     const a = answer.toLowerCase();
     const named = upcomingTests(items, today, tz).find((t) => a.includes(t.label.toLowerCase()));
     if (named) out.push({ label: `Practice for ${named.label}`, href: `#/practice?i=${named.id}` });
+    // "Start with Eng Math Lab CLC Math 2 tonight": the first open assignment the answer names opens in one tap.
+    const mentioned = items
+      .filter((i) => i.status !== 'done' && !isTest(i) && i.type !== 'participation' && i.label.length >= 6 && a.includes(i.label.toLowerCase()))
+      .sort((x, y) => a.indexOf(x.label.toLowerCase()) - a.indexOf(y.label.toLowerCase()))[0];
+    if (mentioned) out.push({ label: `Open ${mentioned.label}`, href: `#/class?c=${mentioned.courseId}&i=${mentioned.id}` });
   }
   if (scope.item && scope.course) out.push({ label: `Open ${scope.item.label}`, href: `#/class?c=${scope.course.id}&i=${scope.item.id}` });
   return out.slice(0, 2);

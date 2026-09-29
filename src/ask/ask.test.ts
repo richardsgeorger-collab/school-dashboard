@@ -34,9 +34,10 @@ describe('what the app adds under an answer', () => {
     ]);
     expect(appSteps({ course: eng, item: essay }, 'x', [quiz, essay], today, tz)[0]).toEqual({ label: 'Check my work', href: '#/check?i=e1' });
   });
-  it('an unscoped answer that names a coming test gets Practice for it', () => {
+  it('an unscoped answer that names a coming test gets Practice for it, and a named assignment opens', () => {
     expect(appSteps({ course: null, item: null }, 'Start with Chem Quiz 2: it is Friday.', [quiz, essay], today, tz)).toEqual([{ label: 'Practice for Chem Quiz 2', href: '#/practice?i=q2' }]);
     expect(appSteps({ course: null, item: null }, 'Do the reply first.', [quiz, essay], today, tz)).toEqual([]);
+    expect(appSteps({ course: null, item: null }, 'Start with English Rhetorical tonight: 210 points, due Friday.', [quiz, essay], today, tz)).toEqual([{ label: 'Open English Rhetorical', href: '#/class?c=eng&i=e1' }]);
   });
 });
 
