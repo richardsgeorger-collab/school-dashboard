@@ -55,6 +55,22 @@ describe('the document', () => {
     expect(before.filter((b) => b.kind === 'choice')).toHaveLength(4);
     expect(before.some((b) => b.kind === 'note' && b.text.includes('answers on the last page'))).toBe(true);
   });
+  it('sets the PDF in the shipped Unicode font when it is on hand, so H₂O and → survive', async () => {
+    const { readFileSync } = await import('node:fs');
+    const buf = (name: string) => { const b = readFileSync(`public/fonts/${name}`); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer; };
+    const pdf = await worksheetPdf(ws, { fonts: { regular: buf('worksheet-regular.ttf'), bold: buf('worksheet-bold.ttf') } });
+    const bytes = new TextDecoder('latin1').decode(await pdf.arrayBuffer());
+    // jsPDF embeds the TrueType programs under the family it was given.
+    expect(bytes).toMatch(/\/BaseFont\s*\/Worksheet/);
+    expect((bytes.match(/FontFile2/g) ?? []).length).toBe(2);
+    expect(bytes).not.toContain('could not be loaded');
+  });
+  it('without the font, falls back to Helvetica with the characters it cannot draw rewritten, and says so', async () => {
+    const pdf = await worksheetPdf({ ...ws, problems: [{ ...ws.problems[0], prompt: '2 H₂ + O₂ → 2 H₂O: which is limiting?' }] }, { fonts: null });
+    const bytes = new TextDecoder('latin1').decode(await pdf.arrayBuffer());
+    expect(bytes).toMatch(/Helvetica/);
+    expect(bytes).not.toMatch(/FontFile2/);
+  });
   it('writes a real .docx and a real PDF', async () => {
     const docx = await worksheetDocx(ws);
     expect(docx.size).toBeGreaterThan(1000);

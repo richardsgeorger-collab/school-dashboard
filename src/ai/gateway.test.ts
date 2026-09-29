@@ -69,6 +69,12 @@ describe('the gateway', () => {
     expect((err as GatewayError).message).toBe('That is 10 messages for today. More tomorrow.');
   });
 
+  it('gives up on a request that never answers, with one plain sentence, instead of spinning for ever', async () => {
+    // A worksheet once sat on "Writing about ten problems…" for two minutes with nothing to press.
+    const never = ((_url: string, init: { signal?: AbortSignal }) => new Promise<Response>((_, reject) => init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))))) as never;
+    await expect(callGateway({ kind: 'study', system: [], messages: [] }, { apiKey: 'k', fetch: never, timeoutMs: 40 })).rejects.toThrow(/took too long/);
+  });
+
   it('with no backend configured and no key it says so instead of failing silently', async () => {
     const err = await callGateway({ kind: 'coach', system: [], messages: [] }, {}).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(GatewayError);

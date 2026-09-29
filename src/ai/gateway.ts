@@ -65,6 +65,29 @@ export interface GatewayOptions {
   apiKey?: string;
   /** A session token to send instead of looking one up (tests, the extension). */
   token?: string;
+  /** How long to wait for an answer before giving up with a plain message. */
+  timeoutMs?: number;
+}
+
+/**
+ * Every call has a deadline. A worksheet request once sat on "Writing about ten problems…" for over two minutes
+ * with nothing to press, because nothing below had one. The function itself is cut off at 150 seconds.
+ */
+export const GATEWAY_TIMEOUT_MS = 120_000;
+export const TIMED_OUT = 'That took too long and I stopped waiting. Your connection is probably fine; try again.';
+
+/** A fetch with the deadline attached: aborted, it becomes the one plain sentence. */
+async function fetchWithDeadline(fetchImpl: typeof globalThis.fetch, url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetchImpl(url, { ...init, signal: ctrl.signal });
+  } catch (e) {
+    if (ctrl.signal.aborted) throw new GatewayError('network', TIMED_OUT);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Whether this build may send a browser key straight to Anthropic (development, tests, or the transition flag). */
@@ -115,7 +138,7 @@ function publish(m: Meter | undefined) {
 }
 
 export async function callGateway(req: GatewayRequest, opts: GatewayOptions = {}): Promise<GatewayResponse> {
-  if (DIRECT_ALLOWED && opts.apiKey) return direct(req, opts.apiKey, opts.fetch ?? globalThis.fetch);
+  if (DIRECT_ALLOWED && opts.apiKey) return direct(req, opts.apiKey, opts.fetch ?? globalThis.fetch, opts.timeoutMs);
   return viaServer(req, opts);
 }
 
@@ -127,12 +150,13 @@ async function viaServer(req: GatewayRequest, opts: GatewayOptions): Promise<Gat
   const fetchImpl = opts.fetch ?? globalThis.fetch;
   let res: Response;
   try {
-    res = await fetchImpl(`${cfg.url}/functions/v1/ai`, {
+    res = await fetchWithDeadline(fetchImpl, `${cfg.url}/functions/v1/ai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: cfg.anonKey },
       body: JSON.stringify({ kind: req.kind, request: toWire(req) }),
-    });
-  } catch {
+    }, opts.timeoutMs ?? GATEWAY_TIMEOUT_MS);
+  } catch (e) {
+    if (e instanceof GatewayError) throw e;
     throw new GatewayError('network', 'Could not reach the server. Check your connection.');
   }
   const body = (await res.json().catch(() => ({}))) as { error?: { code?: GatewayError['code']; message?: string }; response?: GatewayResponse; meter?: Meter };
@@ -144,15 +168,16 @@ async function viaServer(req: GatewayRequest, opts: GatewayOptions): Promise<Gat
 }
 
 /** Dev only: the same wire request, straight to Anthropic, with the key from this browser. */
-async function direct(req: GatewayRequest, apiKey: string, fetchImpl: typeof globalThis.fetch): Promise<GatewayResponse> {
+async function direct(req: GatewayRequest, apiKey: string, fetchImpl: typeof globalThis.fetch, timeoutMs = GATEWAY_TIMEOUT_MS): Promise<GatewayResponse> {
   let res: Response;
   try {
-    res = await fetchImpl('https://api.anthropic.com/v1/messages', {
+    res = await fetchWithDeadline(fetchImpl, 'https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify(toWire(req)),
-    });
-  } catch {
+    }, timeoutMs);
+  } catch (e) {
+    if (e instanceof GatewayError) throw e;
     throw new GatewayError('network', 'Could not reach Anthropic. Check your connection.');
   }
   const body = (await res.json().catch(() => ({}))) as { error?: { message?: string }; content?: Anthropic.ContentBlock[]; stop_reason?: string; usage?: Anthropic.Usage; model?: string };

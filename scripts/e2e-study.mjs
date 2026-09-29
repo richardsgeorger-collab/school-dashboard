@@ -86,7 +86,7 @@ const run = async (name, device, scheme) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   const shot = async (label, full = false) => { n += 1; await page.waitForTimeout(400); await page.screenshot({ path: `${OUT}/${String(n).padStart(2, '0')}-${label}.png`, fullPage: full }); };
-  const go = async (hash) => { await page.goto(`${BASE}${hash}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700); };
+  const go = async (hash) => { await page.goto(`${BASE}${hash}`, { waitUntil: 'load' }); await page.waitForTimeout(900); };
   const text = (sel) => page.$eval(sel, (e) => e.innerText.replace(/\s+/g, ' ').trim()).catch(() => '');
   const wide = async (label) => { const w = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); if (w > 2) console.log(`${name}-${scheme} ${label}: page overflows its width by ${w}px`); };
   const u = await newUser();
@@ -95,15 +95,15 @@ const run = async (name, device, scheme) => {
   await go('#/now?seed=1');
   await settle(page);
   await seedMaterial(page);
-  await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2500);
+  await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(2500);
   // Skipping the Max welcome is the first change, which is what writes the seeded term into the cache.
   await page.click('.upgrade button:has-text("Skip")', { timeout: 3000 }).catch(() => undefined);
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem('school-dashboard:v1') || '{}').items || []).length > 0, null, { timeout: 15000 });
   // Chem Quiz 2 moves to Friday, four days out, so Now has a test within five days and Practice has a plan to make.
   await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const q = d.items.find((i) => i.label === 'Chem Quiz 2'); const t = new Date(); t.setDate(t.getDate() + 4); q.dueAt = t.toISOString().slice(0, 10) + 'T15:00:00.000Z'; q.updatedAt = new Date().toISOString(); localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
   // A hash change alone keeps the in-memory term; the edit needs a reload to be read (the newer updatedAt wins the merge).
-  await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle' });
-  await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2500);
+  await page.goto(`${BASE}#/now`, { waitUntil: 'load' });
+  await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(2500);
 
   // ---- Now: the Study tab in the bar, the nudge for the quiz on Friday, the one button on the card.
   await shot('now'); await wide('now');
@@ -135,7 +135,7 @@ const run = async (name, device, scheme) => {
     await page.waitForTimeout(300);
     const busyLabel = await text('.kit-setup .btn.primary');
     say(/Writing about ten problems from your CHM-113 material/.test(busyLabel), `the loading state says what is happening: "${busyLabel}"`);
-    await page.waitForSelector('.ws-doc', { timeout: 120000 }).catch(() => undefined);
+    await page.waitForSelector('.ws-doc, .kit-setup .hint[style]', { timeout: 150000 }).catch(() => undefined);
     await shot('practice-worksheet', true);
     const ws = await text('.ws-doc');
     const problems = await page.$$eval('.ws-problem', (els) => els.length);
@@ -146,11 +146,15 @@ const run = async (name, device, scheme) => {
     say(!!dl && /\.docx$/.test(dl.suggestedFilename()), `Download .docx hands over a file: ${dl?.suggestedFilename()}`);
     const [pdf] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }).catch(() => null), page.click('.kit-setup .btn:has-text("Download PDF")')]);
     say(!!pdf && /\.pdf$/.test(pdf.suggestedFilename()), `Download PDF hands over a file: ${pdf?.suggestedFilename()}`);
+    // The sheet is set in the shipped Unicode font (H₂O, →, Δ survive), fetched from the site itself.
+    const pdfPath = pdf ? await pdf.path().catch(() => null) : null;
+    const pdfBytes = pdfPath ? readFileSync(pdfPath, 'latin1') : '';
+    say(/\/BaseFont\s*\/Worksheet/.test(pdfBytes) && !/could not be loaded/.test(pdfBytes), `the PDF carries the worksheet font (${Math.round(pdfBytes.length / 1024)} KB)`);
     // Quiz me: one question at a time.
     await page.click('.practice-next .btn:has-text("Quiz me on these")'); await page.waitForTimeout(500);
     await shot('practice-quiz-setup');
     await page.click('.quiz-setup .btn.primary');
-    await page.waitForSelector('.quiz-q', { timeout: 120000 }).catch(() => undefined);
+    await page.waitForSelector('.quiz-q, .quiz-setup .hint[style]', { timeout: 150000 }).catch(() => undefined);
     await shot('practice-quiz-question');
     say(!!(await page.$('.quiz-q')) && (await page.$$eval('.quiz-q', (e) => e.length)) === 1, 'Quiz me shows one question at a time');
     const choice = await page.$('.quiz-choice');
@@ -160,7 +164,7 @@ const run = async (name, device, scheme) => {
     // Flashcards.
     await page.click('.practice .segmented button:has-text("Flashcards")'); await page.waitForTimeout(500);
     await page.click('.kit-setup .btn.primary');
-    await page.waitForSelector('.kit-cards', { timeout: 120000 }).catch(() => undefined);
+    await page.waitForSelector('.kit-cards, .kit-setup .hint[style]', { timeout: 150000 }).catch(() => undefined);
     await page.click('.kit-card >> nth=0').catch(() => undefined);
     await shot('practice-cards', true);
     say((await page.$$eval('.kit-card', (e) => e.length)) >= 8, 'flashcards come from the material');
@@ -241,12 +245,12 @@ const run = async (name, device, scheme) => {
   const f = await newUser(true);
   const ctx2 = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });
   const p2 = await ctx2.newPage();
-  await p2.goto(`${BASE}#/now`, { waitUntil: 'networkidle' });
+  await p2.goto(`${BASE}#/now`, { waitUntil: 'load' });
   await p2.evaluate(({ s, key }) => localStorage.setItem(key, JSON.stringify(s)), { s: f.session, key: `sb-${ref}-auth-token` });
-  await p2.goto(`${BASE}#/now?seed=1`, { waitUntil: 'networkidle' }); await p2.waitForTimeout(600);
+  await p2.goto(`${BASE}#/now?seed=1`, { waitUntil: 'load' }); await p2.waitForTimeout(600);
   await settle(p2);
-  await p2.reload({ waitUntil: 'networkidle' }); await p2.waitForTimeout(2500);
-  await p2.goto(`${BASE}#/study`, { waitUntil: 'networkidle' }); await p2.waitForTimeout(1500);
+  await p2.reload({ waitUntil: 'load' }); await p2.waitForTimeout(2500);
+  await p2.goto(`${BASE}#/study`, { waitUntil: 'load' }); await p2.waitForTimeout(1500);
   n += 1; await p2.screenshot({ path: `${OUT}/${String(n).padStart(2, '0')}-free-study.png` });
   const lock = await p2.$eval('.study-lock', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '');
   say(/part of Max/.test(lock) && /Practice for/.test(lock), `Free sees the Study tab with its own quiz named and one way in: "${lock.slice(0, 120)}"`);

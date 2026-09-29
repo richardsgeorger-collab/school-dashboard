@@ -60,8 +60,10 @@ One home (`#/study`, in the main navigation) and three tools, each with one name
   pointed at the named test (`practice/plan.ts`, `planForTest`), a few real sessions, the test's own topics first then
   the weak ones (`domain/examTopics.ts`). Worksheet (`practice/worksheet.ts`, kind `worksheet`): about ten problems
   from the class's material with the answers and working, one document model rendered on screen, as `.docx`
-  (`practice/docx.ts`, the `docx` package, loaded on demand) and as PDF (`practice/pdf.ts`, `jspdf`, on demand),
-  answers always on their own last page; cached in `aiDb` by its sources. Quiz me: `views/QuizRunner.tsx`, one
+  (`practice/docx.ts`, the `docx` package, loaded on demand) and as PDF (`practice/pdf.ts`, `jspdf`, on demand, set
+  in a subset of DejaVu Sans shipped at `public/fonts` so H₂O, → and Δ draw; without the font it falls back to
+  Helvetica with those characters written out, `practice/pdfText.ts`), answers always on their own last page;
+  cached in `aiDb` by its sources. Quiz me: `views/QuizRunner.tsx`, one
   question at a time, misses recorded per topic. Flashcards and the one-pager / formula sheet: `study/kits.ts`.
 - **Check** `#/check?i=` (`views/Check.tsx`, `check/extract.ts`): paste or drop `.docx` / `.pdf` / `.txt`; writing is
   checked against the rubric (`work/brief.ts`, `checkDraft`, the brief made first if the item has none), problem sets
