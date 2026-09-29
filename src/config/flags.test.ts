@@ -54,7 +54,7 @@ describe('feature flags', () => {
   });
 
   it('the plans are what George set on 2026-09-28', () => {
-    expect(PRICES.plus.month).toBe(3.99);
+    expect(PRICES.plus.month).toBe(4.99);
     expect(PRICES.max.month).toBe(7.99);
     expect(TRIAL.days).toBe(7);
     for (const f of ['syllabusDrop', 'manualItems', 'monthView', 'agendaView', 'nowBasic'] as const) expect(FEATURES[f]).toBe('free');

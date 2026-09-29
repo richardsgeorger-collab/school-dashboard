@@ -29,16 +29,16 @@ export const TIER_NAMES: Record<Tier, string> = { free: 'Free', plus: 'Plus', pr
 export type Interval = 'month' | 'semester';
 export const OFFERED_INTERVALS: readonly Interval[] = ['month'];
 export const PRICES: Record<Paid, { month: number } & Partial<Record<Interval, number>>> = {
-  plus: { month: 3.99 },
+  plus: { month: 4.99 },
   max: { month: 7.99 },
 };
 
 /** Said right beside every price. */
 export const CANCEL_LINE = 'Cancel anytime';
 
-/** Stripe price ids (sandbox, test mode, created 2026-09-28). At launch, replace with the live ids. */
+/** Stripe price ids (sandbox, test mode; Max created 2026-09-28, Plus $4.99 on 2026-09-29). At launch, replace with the live ids. */
 export const STRIPE_PRICE_IDS: Record<Paid, { month: string } & Partial<Record<Interval, string>>> = {
-  plus: { month: 'price_1UKnhi02Mu8IT856sbzY0nNw' },
+  plus: { month: 'price_1UKvq702Mu8IT856LfKkvowe' },
   max: { month: 'price_1UKnhj02Mu8IT8560rhi1cqG' },
 };
 
@@ -53,6 +53,8 @@ export const LEGACY_PRICE_IDS: Record<string, { tier: Tier; interval: Interval }
   // The semester prices of 2026-09-28, archived the same day when semester billing was dropped.
   price_1UKnhj02Mu8IT856cgQOZCPQ: { tier: 'plus', interval: 'semester' },
   price_1UKnhk02Mu8IT8562vcNgnpi: { tier: 'max', interval: 'semester' },
+  // Plus at $3.99 a month, archived 2026-09-29 when Plus became $4.99.
+  price_1UKnhi02Mu8IT856sbzY0nNw: { tier: 'plus', interval: 'month' },
 };
 
 /**

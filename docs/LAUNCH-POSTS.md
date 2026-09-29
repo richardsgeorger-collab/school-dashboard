@@ -45,7 +45,7 @@ buried in one
 > - Works on a phone from the Home Screen.
 >
 > It's independent, not from GCU, and I'm one student. The Halo sync and the announcement reading are Plus
-> ($3.99 a month, cancel anytime); a Study tab that practices for your quizzes from your own slides and checks your
+> ($4.99 a month, cancel anytime); a Study tab that practices for your quizzes from your own slides and checks your
 > work against the rubric is Max ($7.99). Every account starts with a week of Max free, no card, and the syllabus
 > planner stays free. Your data is yours: export it or delete the account in one tap.
 >

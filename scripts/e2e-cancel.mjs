@@ -25,7 +25,7 @@ try {
   const pm = stripe(['payment_methods', 'attach', 'pm_card_visa', '--customer', customer.id]);
   stripe(['customers', 'update', customer.id, '-d', `invoice_settings[default_payment_method]=${pm.id}`]);
   const sub = stripe(['subscriptions', 'create', '--customer', customer.id, '-d', `items[0][price]=${PLUS_MONTH}`]);
-  check(sub.status === 'active' && sub.items.data[0].price.unit_amount === 399, `sandbox subscription: ${sub.id} ${sub.status} $${(sub.items.data[0].price.unit_amount / 100).toFixed(2)}/${sub.items.data[0].price.recurring.interval}`);
+  check(sub.status === 'active' && sub.items.data[0].price.unit_amount === 499, `sandbox subscription: ${sub.id} ${sub.status} $${(sub.items.data[0].price.unit_amount / 100).toFixed(2)}/${sub.items.data[0].price.recurring.interval}`);
   // What the webhook writes, written here so the check does not depend on webhook delivery to this machine.
   await admin.from('profiles').update({ stripe_customer_id: customer.id, tier: 'plus' }).eq('user_id', userId);
   const periodEnd = sub.items.data[0].current_period_end ?? sub.current_period_end;
@@ -37,6 +37,10 @@ try {
   await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' });
   await page.evaluate(({ s, key }) => { localStorage.setItem(key, JSON.stringify(s)); const d = JSON.parse(localStorage.getItem('school-dashboard:v1') ?? 'null'); if (d) { d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); } }, { s: s.session, key: `sb-${ref}-auth-token` });
   await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3000);
+  // The one-time welcome to the new plan comes first for a student who just paid.
+  await page.click('.upgrade button:has-text("Skip"), .upgrade button:has-text("Maybe later"), .upgrade button:has-text("Later")', { timeout: 4000 }).catch(() => undefined);
+  await page.waitForTimeout(800);
+  await page.goto(`${BASE}#/you`, { waitUntil: 'load' }); await page.waitForTimeout(1500);
   const btn = await page.$('button:has-text("Cancel plan")');
   check(!!btn, 'You shows "Cancel plan" beside Manage plan');
   await page.screenshot({ path: 'docs/screens/frozen/you-cancel.png' });
@@ -44,7 +48,7 @@ try {
   check(!!url, `one click opens Stripe's portal: ${url?.slice(0, 60)}`);
   await page.waitForTimeout(4000);
   const text = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ')).catch(() => '');
-  check(/cancel/i.test(text) && /3\.99/.test(text), `it opens on the cancel confirmation for Plus ($3.99): ${text.slice(0, 140)}`);
+  check(/cancel/i.test(text) && /4\.99/.test(text), `it opens on the cancel confirmation for Plus ($4.99): ${text.slice(0, 140)}`);
   const confirm = await page.$('button:has-text("Cancel subscription"), button:has-text("Cancel plan"), [data-testid="confirm"]');
   if (confirm) {
     await confirm.click();
