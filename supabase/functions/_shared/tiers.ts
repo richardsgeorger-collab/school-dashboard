@@ -60,7 +60,7 @@ export const LEGACY_PRICE_IDS: Record<string, { tier: Tier; interval: Interval }
 
 /**
  * The trial (George, 2026-09-28, second version): new accounts start on Free. Seven days of Max, no card, once per
- * account, started only when the student chooses it (onboarding's offer, or any "Try Max free" button later).
+ * account, started only when the student chooses it (onboarding's offer, or any "Try everything free" button later). It is Max, which covers everything in Plus.
  * Reminders go two days before it ends and the morning of the last day. Every sentence about the trial comes from
  * here so the offer, the chip, the reminders and the ending never say different things.
  */
@@ -70,12 +70,18 @@ export const TRIAL = {
   /** Days before the end on which a reminder goes: two days before, and the last day itself (0). */
   remindDaysBefore: [2, 0] as const,
   cardRequired: false,
-  /** The offer, word for word, wherever a student who has not tried it sees Max. */
-  offer: 'Try Max free for 7 days. No card.',
+  /** The offer, word for word, wherever a student who has not tried it sees a locked feature (George, 2026-09-29). */
+  offer: 'Try everything free for 7 days. No card.',
+  /** The trial screen's headline and the bold line right under it. */
+  headline: 'Try everything free for 7 days.',
+  promise: 'No card. Nothing to cancel. Nothing charges.',
   /** The one honest line under every button that starts it. */
-  after: "After 7 days you go back to Free. Nothing charges. We'll remind you before it ends.",
+  after: 'After 7 days you go back to Free and choose if you want to keep anything.',
   /** Short form beside small buttons. */
-  line: 'Max free for 7 days. No card. Nothing charges.',
+  line: 'Everything free for 7 days. No card. Nothing charges.',
+  /** What a button that starts it says. */
+  button: 'Try everything free for 7 days',
+  buttonShort: 'Try it free',
 };
 
 /**

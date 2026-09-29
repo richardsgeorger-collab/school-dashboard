@@ -41,8 +41,8 @@ describe('what to send and when', () => {
     const base = { items: [], courses: [course], schedule: schedule(), prefs: { morningTime: 'off' as const }, tz: TZ, lastPull: NOW, trialEndsAt: '2026-10-06T01:00:00.000Z', trialRecap: 'Max during your trial: read 12 announcements, found 3 hidden requirements.' };
     const t = planNotices({ ...base, today: '2026-10-01', now: '2026-10-01T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends');
     expect(t.map((x) => [x.sendAt, x.title])).toEqual([
-      ['2026-10-04T01:00:00.000Z', 'Your Max trial ends in 2 days'],
-      ['2026-10-05T15:00:00.000Z', 'Last day of your Max trial'],
+      ['2026-10-04T01:00:00.000Z', 'Your free trial ends in 2 days'],
+      ['2026-10-05T15:00:00.000Z', 'Last day of your free trial'],
     ]);
     expect(t[0].body).toBe('Max during your trial: read 12 announcements, found 3 hidden requirements. After that you go back to Free: Halo sync pauses and the study tools lock. Nothing charges.');
     expect(t[1].body).toContain('Tomorrow you go back to Free');
