@@ -5,6 +5,9 @@ import { BOOKMARK_NAME } from '../halo/bookmarkName';
  * two taps), in the same drawn style as the keyboard. HTML, so it follows light and dark. Based on iPadOS 18's
  * Safari and Chrome for iOS; the words beside each picture carry the iPadOS 17 variant where it differs.
  */
+/** The address the student is on, as their own address bar shows it. */
+const SITE_HOST = typeof window === 'undefined' ? 'haloplus.app' : window.location.host;
+
 export type IPadShot = 'settings' | 'safari-add' | 'safari-edit' | 'chrome-add' | 'chrome-edit' | 'name' | 'address' | 'safari-run' | 'chrome-run';
 
 const Hot = ({ n, children, pill }: { n?: number; children: React.ReactNode; pill?: boolean }) => (
@@ -64,7 +67,7 @@ export function IPadPicture({ shot }: { shot: IPadShot }) {
       )}
       {shot === 'safari-add' && (
         <>
-          <Toolbar share={1} url="richardsgeorger-collab.github.io" />
+          <Toolbar share={1} url={SITE_HOST} />
           <div className="ip-body">
             <ul className="ip-sheet ip-right">
               <li>Copy</li>
@@ -95,7 +98,7 @@ export function IPadPicture({ shot }: { shot: IPadShot }) {
       )}
       {shot === 'chrome-add' && (
         <>
-          <Toolbar chrome dots={1} url="richardsgeorger-collab.github.io" />
+          <Toolbar chrome dots={1} url={SITE_HOST} />
           <div className="ip-body">
             <ul className="ip-sheet ip-right">
               <li>New Tab</li>
@@ -133,7 +136,7 @@ export function IPadPicture({ shot }: { shot: IPadShot }) {
           </p>
           <p className="ip-field">
             <small>Address</small>
-            {shot === 'address' ? <Hot pill>javascript:(function(){'{'}…  ← paste</Hot> : 'https://richardsgeorger-collab.github.io/…'}
+            {shot === 'address' ? <Hot pill>javascript:(function(){'{'}…  ← paste</Hot> : `https://${SITE_HOST}/…`}
           </p>
           <p className="ip-form-done">Done</p>
         </div>

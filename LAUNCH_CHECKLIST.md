@@ -13,7 +13,7 @@ been bought or enabled. The app is built to run on free tiers until the day you 
 | **Google Cloud OAuth client** | "Continue with Google". | Free. | Configured in the Supabase dashboard, no code placeholder |
 | **Web Push (VAPID keys)** | Push notifications for the morning brief, heavy-day warnings, nudges, re-sync reminders. Generate a pair once; no vendor. | Free. | `VITE_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` |
 | **Meta Pixel** | Measure the ad → sign-up → connect Halo → upgrade funnel. | Free (ad spend is separate). | `VITE_META_PIXEL_ID` |
-| **Domain** | A real address for the landing page and the app instead of github.io. | ~$12/yr. | none |
+| **Domain** | Bought 2026-09-29: haloplus.app (Cloudflare). Setup steps in docs/DOMAIN_MOVE.md. | bought | none |
 | **Chrome Web Store developer account** | Publishing the Plus auto-sync extension. | $5 one-time. | none |
 | **Email provider** (later) | Not needed at launch; reminders are push-only. The notification system has a slot for email when wanted. | $0 now; Resend or Postmark free tiers cover thousands of emails a month. | `notification_prefs.email` column exists, no sender wired |
 

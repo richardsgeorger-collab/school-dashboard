@@ -30,6 +30,7 @@ export interface BookmarkletConfig {
   dropUrl?: string;
 }
 
+import { KNOWN_ORIGINS } from '../config/site';
 import { SYNC_SCRIPT } from './handoff';
 
 export const HALO_HOST = 'halo.gcu.edu';
@@ -124,6 +125,7 @@ export function bookmarkletSource(cfg: BookmarkletConfig): string {
   const code = `
 (async function(){
 var D=${D},P=D+${JSON.stringify(cfg.dashPath)};
+var DS=[D].concat(${JSON.stringify([...KNOWN_ORIGINS])}).filter(function(o,i,a){return o&&a.indexOf(o)===i;});
 var K=${K},DROP=${JSON.stringify(cfg.dropUrl ?? '')};
 var UA=navigator.userAgent||'';var TOUCH=/iPhone|iPad|iPod|Android/i.test(UA)||(/Macintosh/.test(UA)&&navigator.maxTouchPoints>1);
 var SRV=!!(K&&DROP&&TOUCH&&${JSON.stringify(cfg.deliver ?? 'open')}==='open');
@@ -355,11 +357,11 @@ say('Read '+n+' assignment'+(n===1?'':'s')+' in '+classes.length+' class'+(class
 if(SRV){say('Sending to your Halo+ account\u2026');var dr=await drop(payload);
 if(dr&&dr.ok){say('Sent. Opening Halo+ to review it\u2026');location.href=PEND;return;}
 fallback(JSON.stringify(payload),(dr&&dr.why?dr.why:'Halo+ could not take it.')+' Your sync is not lost.');goLink('Open Halo+');return;}
-var ackOrigin=MODE==='open'?D:location.origin;var got=false,ticks=0;var onMsg=function(e){if(e.origin===ackOrigin&&e.data&&e.data.kind==='halo-received'){got=true;}};
+var got=false,ticks=0;var onMsg=function(e){var okFrom=MODE==='open'?DS.indexOf(e.origin)>=0:e.origin===location.origin;if(okFrom&&e.data&&e.data.kind==='halo-received'){got=true;}};
 window.addEventListener('message',onMsg);
 var t0=Date.now();
 if(win){
-await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||Date.now()-t0>30000||win.closed){clearInterval(iv);res2();return;}try{win.postMessage(payload,D);}catch(e){}},400);});
+await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||Date.now()-t0>30000||win.closed){clearInterval(iv);res2();return;}for(var di=0;di<DS.length;di++){try{win.postMessage(payload,DS[di]);}catch(e){}}},400);});
 }
 else if(MODE==='message'){await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||Date.now()-t0>5000){clearInterval(iv);res2();return;}try{window.postMessage(payload,location.origin);}catch(e){}},400);});}
 window.removeEventListener('message',onMsg);

@@ -54,13 +54,17 @@ export function checkPublicEnv(env: Record<string, string>): string[] {
   return problems;
 }
 
+const SITE_BASE = process.env.SITE_BASE ?? '/school-dashboard/';
+
 export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('VITE_')) as [string, string][]) };
   const problems = checkPublicEnv(env);
   if (problems.length && mode !== 'test') throw new Error(`Refusing to build:\n- ${problems.join('\n- ')}`);
   return {
-    base: '/school-dashboard/',
-    plugins: [react(), haloSyncScript('/school-dashboard/', env.VITE_SUPABASE_URL ?? '')],
+    // Two sites from one build step (2026-09-29): haloplus.app at the root (SITE_BASE=/), and the old github.io
+    // address under /school-dashboard/, which keeps serving the sync script old bookmarks load and moves students over.
+    base: SITE_BASE,
+    plugins: [react(), haloSyncScript(SITE_BASE, env.VITE_SUPABASE_URL ?? '')],
     build: { target: 'es2022' },
     test: {
       environment: 'node',

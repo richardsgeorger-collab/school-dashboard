@@ -32,6 +32,30 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
           VITE_META_PIXEL_ID: ${{ vars.VITE_META_PIXEL_ID }}
+      # haloplus.app (2026-09-29): the same app at the domain's root, pushed to the repo whose Pages serve the domain.
+      # The github.io build above stays: it serves the sync script every older bookmark loads and moves students over.
+      - run: npx vite build --outDir dist-site
+        env:
+          SITE_BASE: /
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
+          VITE_META_PIXEL_ID: ${{ vars.VITE_META_PIXEL_ID }}
+      - name: Publish haloplus.app
+        env:
+          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
+        run: |
+          echo "haloplus.app" > dist-site/CNAME
+          touch dist-site/.nojekyll
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SITE_DEPLOY_KEY" > ~/.ssh/site_key
+          chmod 600 ~/.ssh/site_key
+          cd dist-site
+          git init -q -b main
+          git add -A
+          git -c user.name="Halo+ deploy" -c user.email="deploy@haloplus.app" commit -qm "Deploy ${GITHUB_SHA}"
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/site_key -o StrictHostKeyChecking=accept-new" git push -qf git@github.com:richardsgeorger-collab/haloplus.app.git main
+          rm -f ~/.ssh/site_key
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

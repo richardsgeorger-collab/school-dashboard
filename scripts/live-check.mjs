@@ -4,7 +4,7 @@
 //   node scripts/live-check.mjs            (SUPABASE_URL defaults to the project)
 import process from 'node:process';
 const url = (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'https://kiacmspgvntzwngijibr.supabase.co').replace(/\/$/, '');
-const origin = 'https://richardsgeorger-collab.github.io';
+const origin = 'https://haloplus.app';
 let failed = 0;
 const check = (ok, line) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${line}`); if (!ok) failed++; };
 for (const fn of ['ai', 'stripe-checkout', 'stripe-portal']) {
@@ -18,23 +18,28 @@ for (const fn of ['ai', 'stripe-checkout', 'stripe-portal']) {
   check(post.status === 401 && body.includes('authorization'), `${fn} no-auth POST: ${post.status} ${body.slice(0, 80)}`);
 }
 // The Sync Halo bookmark is a loader for the site's halo-sync.js; if that file stops being served, every bookmark
-// silently falls back to the copy embedded the day it was saved.
-const site = `${origin}/school-dashboard/halo-sync.js`;
-const probe = () => fetch(`${site}?v=${Date.now()}`).then(async (r) => ({ status: r.status, type: r.headers.get('content-type') ?? '', text: await r.text() })).catch((e) => ({ status: 0, type: '', text: String(e) }));
-let script = await probe();
-// Right after a deploy the CDN can still answer with the previous site for a minute; give it three chances.
-for (let i = 0; i < 3 && script.status !== 200; i++) {
-  await new Promise((r) => setTimeout(r, 20000));
-  script = await probe();
-}
-const build = (script.text.match(/^\/\* Halo\+ sync script, build (\S+)\./) ?? [])[1];
-let parses = false;
-try {
-  new Function(script.text);
-  parses = true;
-} catch {
-  /* reported below */
-}
-check(script.status === 200 && script.type.includes('javascript') && !!build && parses && script.text.includes("kind:'halo-export'"), `halo-sync.js: ${script.status} ${script.type || '-'} build=${build ?? '-'} ${parses ? 'parses' : 'does not parse'}`);
+// silently falls back to the copy embedded the day it was saved. Every bookmark saved before 2026-09-29 loads it from
+// the old github.io address, so that one must always answer; haloplus.app is checked once it is live.
+const probe = (site) => fetch(`${site}?v=${Date.now()}`).then(async (r) => ({ status: r.status, type: r.headers.get('content-type') ?? '', text: await r.text() })).catch((e) => ({ status: 0, type: '', text: String(e) }));
+const scriptCheck = async (site, required) => {
+  let script = await probe(site);
+  // Right after a deploy the CDN can still answer with the previous site for a minute; give it three chances.
+  for (let i = 0; i < 3 && script.status !== 200 && required; i++) {
+    await new Promise((r) => setTimeout(r, 20000));
+    script = await probe(site);
+  }
+  if (!required && script.status === 0) return console.log(`note ${site}: not reachable yet (DNS or HTTPS not set up); not a failure until it is`);
+  const build = (script.text.match(/^\/\* Halo\+ sync script, build (\S+)\./) ?? [])[1];
+  let parses = false;
+  try {
+    new Function(script.text);
+    parses = true;
+  } catch {
+    /* reported below */
+  }
+  check(script.status === 200 && script.type.includes('javascript') && !!build && parses && script.text.includes("kind:'halo-export'") && script.text.includes('https://haloplus.app'), `${site}: ${script.status} ${script.type || '-'} build=${build ?? '-'} ${parses ? 'parses' : 'does not parse'}, hands off to haloplus.app`);
+};
+await scriptCheck('https://richardsgeorger-collab.github.io/school-dashboard/halo-sync.js', true);
+await scriptCheck('https://haloplus.app/halo-sync.js', false);
 console.log(failed ? `${failed} check(s) failed` : 'live functions reachable from a browser, sync script served');
 process.exit(failed ? 1 : 0);

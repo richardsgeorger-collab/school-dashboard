@@ -9,3 +9,4 @@ supabase/functions/.env
 supabase/.temp
 dist-e2e
 dist-before
+dist-site

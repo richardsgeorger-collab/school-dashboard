@@ -2,7 +2,7 @@
 
 **The planner built for Halo.** All of Halo, read for you, even the announcements. Then the one thing to do next.
 
-**Use it:** https://richardsgeorger-collab.github.io/school-dashboard/
+**Use it:** https://haloplus.app/
 
 ![Halo+: all of Halo, read for you, even the announcements](public/og.png)
 
@@ -51,8 +51,8 @@ A Chrome extension makes opening Halo the sync (no bookmark to click); it can be
 - Your data is yours: export everything as one file any time, or delete the account and all of it in one tap.
 - AI features send only the text they need to the model, through a server that logs cost per call and enforces
   monthly ceilings per plan. Nothing is kept by the model provider.
-- [Privacy](https://richardsgeorger-collab.github.io/school-dashboard/privacy.html) ·
-  [Terms](https://richardsgeorger-collab.github.io/school-dashboard/terms.html)
+- [Privacy](https://haloplus.app/privacy.html) ·
+  [Terms](https://haloplus.app/terms.html)
 
 ## Develop
 

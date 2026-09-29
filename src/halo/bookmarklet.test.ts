@@ -13,11 +13,13 @@ describe('bookmarklet', () => {
   });
   it('targets the dashboard origin explicitly and never "*"', () => {
     expect(src).toContain(`var D="${cfg.dashOrigin}"`);
-    expect(src).toMatch(/win\.postMessage\(payload,D\)/);
+    // Sent to the dashboard's own origin and the two Halo+ addresses (a tab moved to haloplus.app still gets it), and
+    // the browser delivers it only to the one the tab is on. Never "*".
+    expect(src).toContain('var DS=[D].concat(["https://haloplus.app","https://richardsgeorger-collab.github.io"])');
+    expect(src).toContain('win.postMessage(payload,DS[di])');
     expect(src).not.toMatch(/postMessage\([^)]*['"]\*['"]/);
-    // The ack is accepted only from the dashboard (bookmark) or from Halo's own window (extension), never anywhere.
-    expect(src).toMatch(/e\.origin===ackOrigin/);
-    expect(src).toContain("ackOrigin=MODE==='open'?D:location.origin");
+    // The ack is accepted only from those (bookmark) or from Halo's own window (extension), never anywhere.
+    expect(src).toContain("var okFrom=MODE==='open'?DS.indexOf(e.origin)>=0:e.origin===location.origin");
   });
   it('the extension mode never opens a tab and posts to Halo’s own window only', () => {
     const ext = bookmarkletSource({ ...cfg, deliver: 'message' });
@@ -32,7 +34,7 @@ describe('bookmarklet', () => {
     expect(src).toContain(`fetch("${GATEWAY}"`);
     expect(src).toContain("fetch('/api/auth/session',{credentials:'include'})");
     const hosts = [...src.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)].map((m) => m[1]);
-    expect(new Set(hosts)).toEqual(new Set(['gateway.halo.gcu.edu', 'richardsgeorger-collab.github.io']));
+    expect(new Set(hosts)).toEqual(new Set(['gateway.halo.gcu.edu', 'richardsgeorger-collab.github.io', 'haloplus.app']));
   });
   it('contains no token, key, or storage write', () => {
     expect(src).not.toMatch(/Bearer [A-Za-z0-9._-]{20,}/);
@@ -76,8 +78,8 @@ describe('the bookmark is a loader, so it never goes stale', () => {
     expect(served).toContain("if(!D){alert('Halo+ could not tell where to send your data.");
     expect(served).not.toMatch(/postMessage\([^)]*['"]\*['"]/);
     expect(() => new Function(served)).not.toThrow();
-    // Nothing in it names a dashboard host: the same file serves whatever domain the site lives on.
+    // The only dashboard hosts it names are the two Halo+ addresses it may hand off to; D still comes from its own URL.
     const hosts = [...served.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)].map((m) => m[1]);
-    expect(new Set(hosts)).toEqual(new Set(['gateway.halo.gcu.edu']));
+    expect(new Set(hosts)).toEqual(new Set(['gateway.halo.gcu.edu', 'haloplus.app', 'richardsgeorger-collab.github.io']));
   });
 });

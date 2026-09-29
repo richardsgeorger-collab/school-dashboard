@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
  * React, because link crawlers never run the app; this keeps them present, consistent, and pointing at files that ship.
  */
 const html = readFileSync('index.html', 'utf8');
-const SITE = 'https://richardsgeorger-collab.github.io/school-dashboard/';
+const SITE = 'https://haloplus.app/';
 const meta = (attr: 'name' | 'property', key: string) => html.match(new RegExp(`<meta ${attr}="${key}" content="([^"]*)"`))?.[1] ?? null;
 
 describe('share and search metadata', () => {

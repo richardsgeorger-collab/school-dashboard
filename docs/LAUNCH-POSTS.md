@@ -3,7 +3,7 @@
 Every post below is written to be true today. Nothing claims users, ratings or endorsements. Each one says who made
 it, that it is not from GCU, and that it never asks for a password, because those are the first three questions.
 Post as yourself; a student telling other students what he built is the whole pitch. Link every time:
-https://richardsgeorger-collab.github.io/school-dashboard/
+https://haloplus.app/
 
 Where, in order of likely payoff: your own class group chats (the ESG-162L Discord already exists), the GCU
 subreddit, the GCU class-of-2030 Instagram and Discord groups, a text to five friends. One post per place; answer
@@ -14,14 +14,14 @@ every reply the same day.
 > I built a thing for Halo. One bookmark pulls your classes, assignments, grades and every announcement, then it
 > shows you the one thing to do next. It reads the announcements so the "due Friday" a professor only posts there
 > lands on the assignment. Never asks for your password. Try it and tell me what's wrong with it:
-> https://richardsgeorger-collab.github.io/school-dashboard/
+> https://haloplus.app/
 
 ## Class Discord / GroupMe (short)
 
 > Made a planner for Halo over the last few weeks. It syncs your classes, grades and announcements with one
 > bookmark (no password, it runs while you're already logged in) and puts the one thing to do next on one screen.
 > The part I wanted: it reads announcements and pins what the professor asks for onto the assignment. Free to try,
-> I'm a freshman here, not GCU. Link: https://richardsgeorger-collab.github.io/school-dashboard/
+> I'm a freshman here, not GCU. Link: https://haloplus.app/
 > Tell me what breaks.
 
 ## r/GCU (longer, with the honest framing)
@@ -49,7 +49,7 @@ buried in one
 > work against the rubric is Max ($7.99). Every account starts with a week of Max free, no card, and the syllabus
 > planner stays free. Your data is yours: export it or delete the account in one tap.
 >
-> https://richardsgeorger-collab.github.io/school-dashboard/
+> https://haloplus.app/
 >
 > I'd rather hear what's wrong with it than what's right. Which class of yours has the messiest announcements?
 

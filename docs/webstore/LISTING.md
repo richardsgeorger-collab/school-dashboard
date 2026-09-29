@@ -49,8 +49,9 @@ Syncs the signed-in student's own GCU Halo classes, assignments, grades and anno
 **Permission justifications (paste one per permission):**
 - `host_permissions https://halo.gcu.edu/*`: run the sync on Halo's page while the student is logged in; the data
   is read through Halo's own API with the session that tab already holds.
-- `host_permissions https://richardsgeorger-collab.github.io/*`: hand the export to the Halo+ tab and learn which
-  plan the student is on.
+- `host_permissions https://haloplus.app/*`: hand the export to the Halo+ tab and learn which plan the student is on.
+- `host_permissions https://richardsgeorger-collab.github.io/*`: Halo+'s previous address, kept while students move
+  over to haloplus.app; the same use as above.
 - `scripting`: inject the sync script into the Halo tab when a sync is due.
 - `tabs`: find or open the Halo and Halo+ tabs so the export has somewhere to go.
 - `alarms`: the timed schedule (every three hours while Chrome is open) for plans that include it.
@@ -64,8 +65,8 @@ Syncs the signed-in student's own GCU Halo classes, assignments, grades and anno
   never collects credentials; select only Website content.
 - Data is not sold, not used for purposes unrelated to the single purpose, not used for creditworthiness.
 
-**Privacy policy URL:** https://richardsgeorger-collab.github.io/school-dashboard/privacy.html
-**Homepage URL:** https://richardsgeorger-collab.github.io/school-dashboard/
+**Privacy policy URL:** https://haloplus.app/privacy.html
+**Homepage URL:** https://haloplus.app/
 **Support:** richards.georger@gmail.com (the same address on the privacy and terms pages)
 
 ## Screenshots (1280×800)
