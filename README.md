@@ -36,7 +36,7 @@ University; Halo is GCU's learning platform.
 
 ## How the sync works
 
-The **Sync Halo** bookmark runs on Halo's own page while you are logged in there. It asks Halo for your classes,
+The **😇 Sync Halo** bookmark runs on Halo's own page while you are logged in there. It asks Halo for your classes,
 assignments, grades and announcements the same way Halo's own app does, and hands the result to your Halo+ tab.
 You approve every change before it applies. Tokens exist in the bookmark's local variables for the seconds it runs
 and are never stored or sent anywhere else. The bookmark loads the current sync script from this site on every

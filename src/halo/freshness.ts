@@ -1,6 +1,7 @@
 import { dateOf, diffDays } from '../domain/dates';
 import type { Course, DateStr, HaloPull, Settings } from '../domain/types';
 import type { HaloExport } from './types';
+import { BOOKMARK_NAME } from './bookmarkName';
 
 /**
  * One click is the whole ritual, so the app has to know what that click actually brought back. A class with no pull
@@ -113,7 +114,7 @@ export function bookmarkAge(payload: Pick<HaloExport, 'build' | 'pulls'> & { sou
   const build = payload.build ?? null;
   if (build === current) return null;
   const ext = payload.source === 'extension';
-  const what = ext ? 'Halo+ extension' : 'Sync Halo bookmark';
+  const what = ext ? 'Halo+ extension' : `${BOOKMARK_NAME} bookmark`;
   if (build && build > current) {
     return { kind: 'newer', line: `This sync came from a newer ${what} (${build}) than the Halo+ this tab is running (${current}). Reload Halo+ and sync again.` };
   }

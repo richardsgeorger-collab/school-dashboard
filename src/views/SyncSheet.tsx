@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../components/Modal';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { loadLastSync } from '../halo/handoff';
+import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { useStore } from '../storage/store';
 import { PlanWall, useSyncAccess } from './PlanWall';
 import { HaloImport } from './HaloImport';
@@ -59,8 +60,8 @@ export function SyncSteps({ onNote }: { onNote: (note: string) => void }) {
             </button>
           </li>
           <li>Bookmark this page: Share, then Add Bookmark.</li>
-          <li>Open your bookmarks, edit the one you just made, and replace its address with what you copied (it is short). Name it Sync Halo.</li>
-          <li>Go to halo.gcu.edu, log in, open your bookmarks and tap Sync Halo. Come back here to approve the changes.</li>
+          <li>Open your bookmarks, edit the one you just made, and replace its address with what you copied (it is short). Name it {BOOKMARK_NAME}.</li>
+          <li>Go to halo.gcu.edu, log in, open your bookmarks and tap {BOOKMARK_NAME}. Come back here to approve the changes.</li>
         </ol>
       )}
 
@@ -109,7 +110,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
       <div className="modal-body sync-sheet">
         <p className="hint mono">{last ? `Last synced ${fmtDate(dateOf(last, tz), 'short')} ${fmtTime(last, tz)}.` : 'Not synced yet.'}</p>
         <p className="hint">
-          The <b>Sync Halo</b> bookmark runs on Halo&apos;s own page while you are logged in there and sends your classes, assignments, grades and announcements here. It never sees your password. You approve every change before it applies.
+          The <b>{BOOKMARK_NAME}</b> bookmark runs on Halo&apos;s own page while you are logged in there and sends your classes, assignments, grades and announcements here. It never sees your password. You approve every change before it applies.
         </p>
         <SyncSteps onNote={setNote} />
         {note && (

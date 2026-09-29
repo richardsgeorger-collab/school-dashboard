@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../components/Modal';
 import { parseHaloExport, saveLastSync } from '../halo/handoff';
+import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import type { HaloExport } from '../halo/types';
 import { pixelOnce } from '../analytics/pixel';
 import { track } from '../onboarding/track';
@@ -48,7 +49,7 @@ export function HaloImport({ payload: initial = null, onClose, auto = false }: {
       <div className="modal-body">
         {!payload ? (
           <>
-            <p className="hint">Click the Sync Halo bookmark while you are on halo.gcu.edu. If this tab did not pick it up on its own, paste the export here. It contains assignment data only, never your login.</p>
+            <p className="hint">Click the {BOOKMARK_NAME} bookmark while you are on halo.gcu.edu. If this tab did not pick it up on its own, paste the export here. It contains assignment data only, never your login.</p>
             <textarea className="halo-paste" value={text} onChange={(e) => setText(e.target.value)} placeholder='{"kind":"halo-export", …}' rows={6} spellCheck={false} />
             {error && (
               <p className="hint" style={{ color: 'var(--overdue)' }}>

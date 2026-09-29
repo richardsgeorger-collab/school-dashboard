@@ -1,3 +1,5 @@
+import { BOOKMARK_NAME } from '../halo/bookmarkName';
+
 /**
  * The bookmarks-bar shortcut, drawn: the bottom-left of a keyboard with the three keys in gold and labelled, pressing
  * down together on a loop (still under reduced motion). A Mac shows ⌘ Command, Shift, B; Windows shows Ctrl, Shift, B.
@@ -47,6 +49,48 @@ export function ChromeMenuPicture() {
           <li data-hot="true">Show bookmarks bar</li>
           <li>Bookmark manager</li>
         </ul>
+      </div>
+    </figure>
+  );
+}
+
+/**
+ * Halo with the bookmark in the bar, drawn: Halo's page under the browser's toolbar, and 😇 Sync Halo in the bookmarks
+ * bar circled in gold, with a pointer that moves to it and taps, on a loop (it rests on the bookmark under reduced
+ * motion). The same drawing sits on the screen before Halo opens and on the waiting screen after, so the student sees
+ * the one thing to do both times.
+ */
+export function HaloBarPicture() {
+  return (
+    <figure className="hb" role="img" aria-label={`Halo in the browser, with ${BOOKMARK_NAME} in the bookmarks bar circled and a pointer clicking it`}>
+      <div className="hb-toolbar">
+        <span className="hb-dot" />
+        <span className="hb-dot" />
+        <span className="hb-dot" />
+        <span className="hb-url">halo.gcu.edu</span>
+      </div>
+      <div className="hb-bar">
+        <span className="hb-bm" />
+        <span className="hb-bm" />
+        <span className="hb-target">
+          <b>{BOOKMARK_NAME}</b>
+          <span className="hb-ring" aria-hidden />
+          <svg className="hb-pointer" viewBox="0 0 24 24" width="26" height="26" aria-hidden>
+            <path d="M5 2.5 L5 19 L9.3 15 L12.2 21.4 L15 20.2 L12.2 13.9 L18 13.6 Z" />
+          </svg>
+        </span>
+        <span className="hb-bm hb-bm-short" />
+      </div>
+      <div className="hb-page">
+        <div className="hb-head">
+          <span className="hb-logo">Halo</span>
+          <span className="hb-line" />
+        </div>
+        <div className="hb-cards">
+          <span className="hb-card" />
+          <span className="hb-card" />
+          <span className="hb-card" />
+        </div>
       </div>
     </figure>
   );

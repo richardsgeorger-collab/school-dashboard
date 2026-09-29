@@ -19,7 +19,8 @@ import { HaloImport } from '../views/HaloImport';
 import { BookmarkButton, useBookmarkHref } from '../views/BookmarkButton';
 import { type OnboardingState, type Step } from './state';
 import { Compare, Offer } from './PlanChoice';
-import { ChromeMenuPicture, ShortcutKeyboard } from './Keyboard';
+import { ChromeMenuPicture, HaloBarPicture, ShortcutKeyboard } from './Keyboard';
+import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { ImportSyllabus } from '../views/ImportSyllabus';
 import { can } from '../config/flags';
 import { track } from './track';
@@ -266,7 +267,7 @@ function SyllabusStep({ onTrial, canTry }: { onTrial: () => void; canTry: boolea
 }
 
 /** The mini browser the demos draw in: three dots, an address, optionally the bookmarks bar. */
-function MiniBrowser({ bar, children, label, slot = true }: { bar: boolean; children?: React.ReactNode; label: string; /** Show Sync Halo already in the bar. */ slot?: boolean }) {
+function MiniBrowser({ bar, children, label, slot = true }: { bar: boolean; children?: React.ReactNode; label: string; /** Show the bookmark already in the bar. */ slot?: boolean }) {
   return (
     <div className="drag-demo" role="img" aria-label={label}>
       <div className="demo-chrome">
@@ -281,7 +282,7 @@ function MiniBrowser({ bar, children, label, slot = true }: { bar: boolean; chil
           <span className="demo-bm" />
           {slot && (
             <span className="demo-slot">
-              <i>Sync Halo</i>
+              <i>{BOOKMARK_NAME}</i>
             </span>
           )}
         </div>
@@ -343,8 +344,8 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
       {screen === 'drag' && (
         <section className="onboard-step" aria-label="Drag the bookmark">
           <h1 className="onboard-title">Drag this button up to your bookmarks bar.</h1>
-          <MiniBrowser bar label="The Sync Halo button being dragged up into the bookmarks bar.">
-            <span className="demo-pill">Sync Halo</span>
+          <MiniBrowser bar label={`The ${BOOKMARK_NAME} button being dragged up into the bookmarks bar.`}>
+            <span className="demo-pill">{BOOKMARK_NAME}</span>
             <span className="demo-cursor" />
           </MiniBrowser>
           <p className="onboard-drag">
@@ -374,7 +375,8 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
 
       {screen === 'open' && (
         <section className="onboard-step" aria-label="Open Halo">
-          <h1 className="onboard-title">It's in your bar. Now open Halo.</h1>
+          <HaloBarPicture />
+          <h1 className="onboard-title">On Halo, click {BOOKMARK_NAME} in your bookmarks bar.</h1>
           <p className="onboard-text">Halo opens in a new tab. Log in there if it asks.</p>
           <button type="button" className="btn primary block onboard-big" onClick={openHalo}>
             Open Halo
@@ -408,7 +410,7 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
     <>
       {screen === 'p-copy' && (
         <section className="onboard-step" aria-label="Copy the bookmark">
-          <h1 className="onboard-title">Copy the Sync Halo bookmark.</h1>
+          <h1 className="onboard-title">Copy the {BOOKMARK_NAME} bookmark.</h1>
           <p className="onboard-text">On a phone you make the bookmark by hand, once. Four quick steps.</p>
           <div className="onboard-actions">
             <button type="button" className="btn primary" onClick={() => void copy()}>
@@ -476,7 +478,7 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
                 </li>
                 <li>Tap the bookmark you just made.</li>
                 <li>
-                  Name it <b>Sync Halo</b>. Clear the address and paste.
+                  Name it <b>{BOOKMARK_NAME}</b> (or just Sync Halo). Clear the address and paste.
                 </li>
               </>
             ) : (
@@ -488,7 +490,7 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
                   Press and hold the new bookmark, tap <b>Edit</b>.
                 </li>
                 <li>
-                  Name it <b>Sync Halo</b>. Clear the URL and paste.
+                  Name it <b>{BOOKMARK_NAME}</b> (or just Sync Halo). Clear the URL and paste.
                 </li>
               </>
             )}
@@ -508,7 +510,7 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
       {screen === 'p-open' && (
         <section className="onboard-step" aria-label="Open Halo">
           <h1 className="onboard-title">Open Halo and log in.</h1>
-          <p className="onboard-text">Then run the bookmark from there. This page shows you how.</p>
+          <p className="onboard-text">Then tap {BOOKMARK_NAME} from your bookmarks. This page shows you how.</p>
           <div className="onboard-actions">
             <button
               type="button"
@@ -549,17 +551,28 @@ function Waiting({ phone, show, onPaste }: { phone: boolean; show: (s: Screen) =
   const halo = () => window.open('https://halo.gcu.edu/', '_blank', 'noopener');
   return (
     <section className="onboard-step onboard-wait" aria-label="Waiting for Halo">
-      <span className="wait-ring" aria-hidden>
-        <HaloDraw size={64} />
-      </span>
-      <h1 className="onboard-title">{phone ? (ios ? 'In Halo, open Bookmarks and tap Sync Halo.' : 'In Halo, type "Sync Halo" in the address bar and tap the bookmark.') : 'Now click Sync Halo in your bookmarks bar.'}</h1>
-      <p className="onboard-text">Do it in the Halo tab. This page fills in by itself when your classes arrive, usually within 20 seconds.</p>
+      {phone ? (
+        <>
+          <span className="wait-ring" aria-hidden>
+            <HaloDraw size={64} />
+          </span>
+          <h1 className="onboard-title">{ios ? `In Halo, open Bookmarks and tap ${BOOKMARK_NAME}.` : `In Halo, type "Sync Halo" in the address bar and tap the ${BOOKMARK_NAME} bookmark.`}</h1>
+          <p className="onboard-text">Do it in the Halo tab. This page fills in by itself when your classes arrive, usually within 20 seconds.</p>
+        </>
+      ) : (
+        <>
+          <HaloBarPicture />
+          <h1 className="onboard-title wait-title">Waiting for your sync…</h1>
+          <p className="onboard-text">Go to your Halo tab and click {BOOKMARK_NAME}.</p>
+          <p className="hint">This page moves on by itself when your classes arrive, usually within 20 seconds.</p>
+        </>
+      )}
       {late && (
         <div className="fixes" role="status">
           <p className="fixes-head">Nothing yet? One of these is usually it:</p>
           <ul>
             <li>
-              <b>Not logged in to Halo.</b> Log in at halo.gcu.edu, then {phone ? 'tap' : 'click'} Sync Halo again.{' '}
+              <b>Not logged in to Halo.</b> Log in at halo.gcu.edu, then {phone ? 'tap' : 'click'} {BOOKMARK_NAME} again.{' '}
               <button type="button" className="hero-inline" onClick={halo}>
                 Open Halo
               </button>
@@ -574,7 +587,7 @@ function Waiting({ phone, show, onPaste }: { phone: boolean; show: (s: Screen) =
                 </li>
                 {!ios && (
                   <li>
-                    <b>Nothing happens from the bookmarks list.</b> On Android, run it from the address bar: type Sync Halo and tap the bookmark.
+                    <b>Nothing happens from the bookmarks list.</b> On Android, run it from the address bar: type Sync Halo and tap the {BOOKMARK_NAME} bookmark.
                   </li>
                 )}
                 <li>
@@ -584,13 +597,13 @@ function Waiting({ phone, show, onPaste }: { phone: boolean; show: (s: Screen) =
             ) : (
               <>
                 <li>
-                  <b>Sync Halo isn't in your bookmarks bar.</b>{' '}
+                  <b>{BOOKMARK_NAME} isn't in your bookmarks bar.</b>{' '}
                   <button type="button" className="hero-inline" onClick={() => show('drag')}>
                     Drag it again
                   </button>
                 </li>
                 <li>
-                  <b>A pop-up was blocked.</b> Click the blocked-window icon at the right end of Halo's address bar, choose Always allow, click Sync Halo again.
+                  <b>A pop-up was blocked.</b> Click the blocked-window icon at the right end of Halo's address bar, choose Always allow, click {BOOKMARK_NAME} again.
                 </li>
                 <li>
                   <b>Using Safari?</b> It blocks what the bookmark opens. Use Chrome or Edge, or allow pop-ups for halo.gcu.edu in Safari Settings, Websites.

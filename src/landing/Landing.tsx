@@ -1,4 +1,5 @@
 import { pixel } from '../analytics/pixel';
+import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { HaloDraw } from '../components/HaloDraw';
 import { IconCheck, IconHalo } from '../components/Icons';
 import { CANCEL_LINE, PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
@@ -166,7 +167,7 @@ export function Landing() {
       <section className="landing-section" aria-label="How the sync works">
         <h2 className="landing-h2">How the sync works</h2>
         <ol className="landing-steps">
-          <li>Drag the Sync Halo bookmark to your bookmarks bar. On a phone, the app walks you through it.</li>
+          <li>Drag the {BOOKMARK_NAME} bookmark to your bookmarks bar. On a phone, the app walks you through it.</li>
           <li>Open halo.gcu.edu and log in as you always do.</li>
           <li>Click the bookmark. Your classes, assignments, grades and announcements arrive here, and you approve them before anything changes.</li>
         </ol>

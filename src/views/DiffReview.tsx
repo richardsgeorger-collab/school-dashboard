@@ -17,6 +17,7 @@ import { diffHalo, type FieldChange } from '../halo/diff';
 import type { BareDateMode, SyncSource } from '../halo/normalize';
 import type { HaloClass, HaloExport } from '../halo/types';
 import { useStore } from '../storage/store';
+import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { useAccount } from '../auth/AccountContext';
 import { REFERRAL, TIER_NAMES } from '../config/tiers';
 
@@ -286,7 +287,7 @@ export function DiffReview({
       {age?.kind === 'older' && (
         <div className="diff-stale" role="alert">
           <p>
-            <b>Your {payload.source === 'extension' ? 'Halo+ extension' : 'Sync Halo bookmark'} is out of date.</b> {age.line}
+            <b>Your {payload.source === 'extension' ? 'Halo+ extension' : `${BOOKMARK_NAME} bookmark`} is out of date.</b> {age.line}
             {held ? ' Nothing from this sync has been applied.' : ''}
           </p>
           <div className="diff-stale-actions">

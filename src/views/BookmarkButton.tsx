@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { bookmarkletHref } from '../halo/bookmarklet';
+import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { HANDOFF_PATH } from '../halo/handoff';
 
 /**
@@ -11,7 +12,7 @@ export function useBookmarkHref(kind: 'full' | 'short' = 'full'): string {
   return useMemo(() => bookmarkletHref({ dashOrigin: window.location.origin, dashPath: `${import.meta.env.BASE_URL}${HANDOFF_PATH}` }, { embed: kind === 'full' }), [kind]);
 }
 
-/** The draggable Sync Halo button. React refuses javascript: hrefs as props, so the address is set on the element. */
+/** The draggable 😇 Sync Halo button; its text becomes the bookmark's name. React refuses javascript: hrefs as props, so the address is set on the element. */
 export function BookmarkButton({ onClickNote, onDropped }: { onClickNote: (note: string) => void; /** A drag that ended on something that took it (the bookmarks bar). */ onDropped?: () => void }) {
   const href = useBookmarkHref();
   const link = useRef<HTMLAnchorElement>(null);
@@ -34,7 +35,7 @@ export function BookmarkButton({ onClickNote, onDropped }: { onClickNote: (note:
         onClickNote('Drag this button to your bookmarks bar. Clicking it here does nothing; clicking it on Halo does everything.');
       }}
     >
-      Sync Halo
+      {BOOKMARK_NAME}
     </a>
   );
 }

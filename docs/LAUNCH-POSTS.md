@@ -70,7 +70,7 @@ buried in one
 
 ## A 30-second demo, if you record one
 
-1. Halo open, logged in. Click the Sync Halo bookmark. (3 s)
+1. Halo open, logged in. Click the 😇 Sync Halo bookmark. (3 s)
 2. Halo+ opens with "What Halo sent": classes, assignments, announcements counted. Press Apply. (7 s)
 3. Now: "3 things need you." The card, its checklist line quoting the professor, "Open in Halo". (10 s)
 4. Grades: "88.6% B+, based on 3 items". (5 s)

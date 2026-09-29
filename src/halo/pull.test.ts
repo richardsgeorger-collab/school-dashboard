@@ -104,7 +104,7 @@ describe('a bookmark saved before today', () => {
     expect(bookmarkAge({ build: '2026-09-18c', pulls: ['a'] }, '2026-09-18c')).toBeNull();
     expect(bookmarkAge({}, '2026-09-18c')).toEqual({
       kind: 'older',
-      line: 'This came from an older copy of the Sync Halo bookmark, saved before builds were stamped; the current build is 2026-09-18c. It pulled assignments and grades only, so it may have missed or misread things Halo has changed since.',
+      line: 'This came from an older copy of the 😇 Sync Halo bookmark, saved before builds were stamped; the current build is 2026-09-18c. It pulled assignments and grades only, so it may have missed or misread things Halo has changed since.',
     });
     expect(bookmarkAge({ build: '2026-09-01', pulls: ['assessments', 'grades', 'instructors'] }, '2026-09-18c')?.line).toContain('built 2026-09-01; the current build is 2026-09-18c. It pulled only 3 kinds of data');
     // A copy that asked for every kind is merely older, not narrower.
@@ -114,7 +114,7 @@ describe('a bookmark saved before today', () => {
     // A payload from a newer build than this tab: the tab is what is old.
     const newer = bookmarkAge({ build: '2026-09-27a', pulls: ['a'] }, '2026-09-18c');
     expect(newer?.kind).toBe('newer');
-    expect(newer?.line).toBe('This sync came from a newer Sync Halo bookmark (2026-09-27a) than the Halo+ this tab is running (2026-09-18c). Reload Halo+ and sync again.');
+    expect(newer?.line).toBe('This sync came from a newer 😇 Sync Halo bookmark (2026-09-27a) than the Halo+ this tab is running (2026-09-18c). Reload Halo+ and sync again.');
   });
 });
 
