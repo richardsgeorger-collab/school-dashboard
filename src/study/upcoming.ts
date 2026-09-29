@@ -1,8 +1,11 @@
 import { dateOf, diffDays } from '../domain/dates';
 import type { DateStr, Item } from '../domain/types';
 
-/** A quiz or an exam: the things Practice is for. */
-export const isTest = (i: Pick<Item, 'type'>): boolean => i.type === 'quiz' || i.type === 'exam';
+/**
+ * A quiz or an exam worth points: the things Practice is for. Halo types completion rows like "Complete Week-3
+ * post-lab" as quizzes at 0 points; on George's real term that row was the first thing Study offered to practice for.
+ */
+export const isTest = (i: Pick<Item, 'type' | 'points'>): boolean => (i.type === 'quiz' || i.type === 'exam') && i.points > 0;
 
 /**
  * The quizzes and exams ahead, nearest first: everything within `days` (three weeks), or, when nothing is that
