@@ -82,6 +82,7 @@ const run = async (name, device, scheme) => {
   const say = (ok, line) => scheme === 'light' && name === 'desk' ? check(ok, line) : ok || console.log(`note ${name}-${scheme}: ${line}`);
   let n = 0;
   const ctx = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce', acceptDownloads: true });
+  await ctx.addInitScript(() => { window.print = () => undefined; });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -150,6 +151,14 @@ const run = async (name, device, scheme) => {
     const pdfPath = pdf ? await pdf.path().catch(() => null) : null;
     const pdfBytes = pdfPath ? readFileSync(pdfPath, 'latin1') : '';
     say(/\/BaseFont\s*\/Worksheet/.test(pdfBytes) && !/could not be loaded/.test(pdfBytes), `the PDF carries the worksheet font (${Math.round(pdfBytes.length / 1024)} KB)`);
+    // Print: the answers page must be open when the print dialog comes up (a closed <details> prints only its summary).
+    await page.click('.kit-setup .btn:has-text("Print")');
+    await page.waitForTimeout(400);
+    await page.emulateMedia({ media: 'print' });
+    const answersOpen = await page.$eval('.ws-answers', (e) => e.open && e.querySelectorAll('.ws-answer').length);
+    const setupHidden = await page.$eval('.kit-setup', (e) => getComputedStyle(e).display === 'none');
+    await page.emulateMedia({ media: null });
+    say(!!answersOpen && setupHidden, `Print opens the answers page (${answersOpen} answers) and hides the controls`);
     // Quiz me: one question at a time.
     await page.click('.practice-next .btn:has-text("Quiz me on these")'); await page.waitForTimeout(500);
     await shot('practice-quiz-setup');

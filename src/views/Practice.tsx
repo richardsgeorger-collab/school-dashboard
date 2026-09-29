@@ -250,6 +250,17 @@ function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, 
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState<'docx' | 'pdf' | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // A closed <details> prints nothing but its summary, so Print opens the answers first and closes them after.
+  const [answersOpen, setAnswersOpen] = useState(false);
+  useEffect(() => {
+    const after = () => setAnswersOpen(false);
+    window.addEventListener('afterprint', after);
+    return () => window.removeEventListener('afterprint', after);
+  }, []);
+  const print = () => {
+    setAnswersOpen(true);
+    setTimeout(() => window.print(), 80);
+  };
   const topics = useMemo(() => (test ? testTopics(test) : topic ? [topic] : []), [test, topic]);
   const hash = useMemo(() => worksheetHash(test, topics, weak, sources), [test, topics, weak, sources]);
   const key = worksheetKey(course.id, test?.id ?? null, topic);
@@ -319,7 +330,7 @@ function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, 
               <button type="button" className="btn" disabled={!!saving} onClick={() => void saveAs('pdf')}>
                 {saving === 'pdf' ? 'Making the PDF…' : 'Download PDF'}
               </button>
-              <button type="button" className="btn" onClick={() => window.print()}>
+              <button type="button" className="btn" onClick={print}>
                 Print
               </button>
             </>
@@ -331,7 +342,7 @@ function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, 
           {front.map((b, i) => (
             <Block key={i} b={b} />
           ))}
-          <details className="ws-answers">
+          <details className="ws-answers" open={answersOpen} onToggle={(e) => setAnswersOpen((e.currentTarget as HTMLDetailsElement).open)}>
             <summary className="hint">Answers (the last page)</summary>
             {back.map((b, i) => (
               <Block key={i} b={b} />

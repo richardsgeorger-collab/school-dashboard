@@ -30,6 +30,7 @@ What you get in Halo+:
 • Announcements read for you: the "due Friday" a professor only posted in an announcement lands on the assignment.
 • Grades from the gradebook, with what you need on the rest of the term.
 • Reminders as push notifications; works on a phone from the Home Screen.
+• A Study tab (Max): practice for any quiz or exam from your own slides, ask anything about your classes, check your work against the rubric.
 
 Privacy: the extension runs only on halo.gcu.edu and on the Halo+ site. It never asks for, reads or stores your
 password; it uses the session you already have in that tab. Nothing is sent anywhere except to your own Halo+
