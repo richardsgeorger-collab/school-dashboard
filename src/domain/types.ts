@@ -420,7 +420,8 @@ export interface SundayReviewState {
 /** Where a new student is in the first five minutes; see src/onboarding/state.ts. */
 export interface OnboardingState {
   startedAt: string;
-  step: 'welcome' | 'account' | 'halo' | 'preferences' | 'done';
+  /** compare and offer: Free beside Max, then the trial offer (2026-09-28). syllabus: the Free path's first step. */
+  step: 'welcome' | 'account' | 'compare' | 'offer' | 'syllabus' | 'halo' | 'preferences' | 'done';
   /** Where inside the Halo step they are (bar, drag, open, wait; or the phone's copy, save, edit, open), to resume exactly. */
   screen?: string | null;
   /** Which path: a computer's bookmarks bar, or a phone's bookmarks menu. Chosen once, changeable. */
@@ -500,6 +501,8 @@ export interface Settings {
   maxOnboarding?: MaxOnboardingState;
   /** When each upgrade welcome was shown, so neither ever shows twice (onboarding/Upgrade.tsx). */
   upgradeSeen?: { plus?: string | null; max?: string | null };
+  /** When the "Your Max trial ended" screen was seen (once, the first open after the trial). */
+  trialEndSeen?: string | null;
   /** When a friend-link student was asked, once, what is confusing or broken (day 3). */
   friendAskedAt?: string | null;
   reminders?: ReminderPrefs;

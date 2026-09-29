@@ -111,6 +111,20 @@ export const IconClasses = ({ size = 20 }: IconProps = {}) => (
     <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h4.5a1.5 1.5 0 0 0 1.5-1.5z" />
   </svg>
 );
+/** Ask: a speech bubble. */
+export const IconAsk = ({ size = 20 }: IconProps = {}) => (
+  <svg {...base} width={size} height={size}>
+    <path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 16h-8l-4.5 3.5V16H5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 5 5z" />
+    <path d="M8 9.5h8M8 12.5h5" />
+  </svg>
+);
+/** Colour: a swatch drop. */
+export const IconColour = ({ size = 20 }: IconProps = {}) => (
+  <svg {...base} width={size} height={size}>
+    <path d="M12 3.5s6 6.2 6 10.5a6 6 0 0 1-12 0c0-4.3 6-10.5 6-10.5z" />
+    <path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5" />
+  </svg>
+);
 /** Study: a mortarboard. */
 export const IconStudy = ({ size = 20 }: IconProps = {}) => (
   <svg {...base} width={size} height={size}>

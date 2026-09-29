@@ -1,0 +1,375 @@
+/* ---- The trial by choice (2026-09-28): the Free/Max example, the offer, the chip, the ending ------------------- */
+.onboard-inner:has(.plan-compare) {
+  max-width: 860px;
+}
+.plan-toggle {
+  justify-self: start;
+}
+.plan-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+  align-items: start;
+}
+.plan-example {
+  margin: 0;
+  text-align: center;
+}
+@media (min-width: 720px) {
+  .plan-toggle {
+    display: none;
+  }
+}
+@media (max-width: 719px) {
+  .plan-sides {
+    grid-template-columns: 1fr;
+  }
+  .plan-sides[data-side='max'] .mock-now[data-kind='free'],
+  .plan-sides[data-side='free'] .mock-now[data-kind='max'] {
+    display: none;
+  }
+}
+.mock-now {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.mock-cap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--t-heading);
+}
+.mock-now[data-kind='max'] .mock-cap b {
+  color: var(--accent-text);
+}
+.mock-example {
+  font: var(--t-micro);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+  color: var(--ink-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  padding: 1px 8px;
+}
+.mock-screen {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-height: 300px;
+  box-shadow: var(--shadow-2);
+}
+.mock-now[data-kind='max'] .mock-screen {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-2);
+}
+.mock-now[data-kind='free'] .mock-screen {
+  background: var(--bg);
+  box-shadow: none;
+}
+.mock-status {
+  margin: 0;
+  font: 700 18px/1.2 var(--font-display);
+  letter-spacing: var(--track-tight);
+}
+.mock-hero {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, var(--accent-soft), var(--surface) 80%);
+  border: 1px solid var(--line);
+}
+.mock-meta {
+  font: var(--t-micro);
+  font-size: 11px;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.mock-title {
+  font: 700 16px/1.2 var(--font-display);
+}
+.mock-pills,
+.mock-sessions,
+.mock-grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.mock-pills i,
+.mock-sessions i,
+.mock-grades i {
+  font-style: normal;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.mock-grades i {
+  font-weight: 600;
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+.mock-req {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.mock-req em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--accent-text);
+}
+.mock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.mock-plain {
+  background: var(--surface);
+}
+.mock-faint {
+  color: var(--ink-3);
+}
+.mock-foot {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.mock-empty {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+.mock-empty span {
+  font-size: 12px;
+  color: var(--ink-3);
+  padding: 8px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-sm);
+}
+
+.onboard-big {
+  min-height: 52px;
+  font-size: 17px;
+  width: 100%;
+  justify-content: center;
+}
+.offer-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.offer-lines li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: var(--t-body);
+  font-size: 16px;
+}
+.offer-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.offer-after {
+  margin: -4px 0 0;
+  text-align: center;
+}
+.offer-free {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* The chip in the top bar during the trial, and the sheet it opens. */
+.trial-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  margin-left: 6px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font: 600 13px/1 var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.trial-chip[data-urgent='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.trial-sheet {
+  display: grid;
+  gap: 12px;
+}
+.trial-sheet h3 {
+  font: var(--t-heading);
+  margin: 6px 0 0;
+}
+.trial-sheet ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+.plan-choices {
+  display: grid;
+  gap: 8px;
+}
+.plan-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.plan-choice[data-best='true'] {
+  border-color: var(--accent);
+}
+.plan-choice-name {
+  display: grid;
+  gap: 2px;
+}
+.plan-choice-name b {
+  font: var(--t-heading);
+}
+.plan-choice-name span {
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+
+/* "Max" / "Plus" on what goes away when the trial ends. */
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  font: 700 10px/1 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.nav-bottom .plan-badge {
+  position: absolute;
+  top: 4px;
+  margin-left: 20px;
+  font-size: 9px;
+  padding: 2px 4px;
+}
+.nav-bottom .nav-link {
+  position: relative;
+}
+
+/* The one screen after the trial ends. */
+.trial-ended .ended-numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+.ended-number {
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 2px;
+}
+.ended-number b {
+  font: 700 26px/1 var(--font-display);
+}
+.ended-number span {
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.ended-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: var(--ink-2);
+}
+.trial-quiet {
+  margin: 0 0 var(--s-3);
+}
+@media (max-width: 639px) {
+  .trial-chip {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+}
+
+/* The top bar's labelled buttons size to their label (a fixed 36px let "Sync" run under the trial chip), and the
+   Plus badge on Sync sits on its corner instead of on the next icon. */
+.topbar-gear.topbar-sync {
+  width: auto;
+}
+.topbar-sync .plan-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  margin: 0;
+  font-size: 8px;
+  padding: 2px 4px;
+}
+.topbar-date .trial-chip {
+  margin-right: 6px;
+}
+
+.trial-chip .chip-short {
+  display: none;
+}
+@media (max-width: 639px) {
+  .trial-chip .chip-long {
+    display: none;
+  }
+  .trial-chip .chip-short {
+    display: inline;
+  }
+  .topbar-date .trial-chip {
+    margin: 0 2px 0 0;
+    padding: 0 7px;
+    font-size: 11px;
+    min-height: 26px;
+  }
+}

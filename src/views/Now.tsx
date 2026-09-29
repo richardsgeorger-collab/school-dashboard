@@ -43,7 +43,9 @@ import { ItemDetail } from './ItemDetail';
 import { useAccount } from '../auth/AccountContext';
 import { trialDaysLeft, trialState } from '../config/flags';
 import { receiptsLine } from '../domain/receipts';
-import { TrialOffer, TrialReceipts, useReceipts } from './TrialOffer';
+import { TRIAL } from '../config/tiers';
+import { TrialOffer, useReceipts } from './TrialOffer';
+import { TrialReminder } from './TrialStatus';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
@@ -458,15 +460,6 @@ export function Now() {
   // During the trial, one honest line on what Max did this week, from the student's own records.
   const maxLine = onTrial && receipts && receipts.announcementsRead + receipts.requirementsFound + receipts.lectureNotes + receipts.coachAnswers > 0 ? receiptsLine(receipts) : null;
   if (maxLine && !(trialDays !== null && trialDays <= 1)) headsUp.push({ key: 'max', text: `Max did this for you. ${maxLine.replace(/^Max this week: /, 'This week: ')}` });
-  if (trialDays !== null && trialDays <= 3)
-    headsUp.push({
-      key: 'trial',
-      text: (
-        <>
-          Your Max trial ends {trialDays === 0 ? 'today' : `in ${trialDays} day${trialDays === 1 ? '' : 's'}`}. <a href="#/you?s=plan">See plans</a>
-        </>
-      ),
-    });
 
   // iPhone in Safari, classes on file, not yet on the Home Screen: one line, once, because notifications and the
   // full-screen app both need it and nothing else in the app says so until the Notifications card.
@@ -629,7 +622,12 @@ export function Now() {
   }, [hero?.id, today, justFinished]);
   return (
     <div className="now">
-      {trialDays !== null && trialDays <= 1 && <TrialReceipts />}
+      <TrialReminder />
+      {trialAvailable && !headsUp.some((h) => h.key === 'read-failed') && data.courses.length > 0 && (
+        <p className="hint trial-quiet">
+          {TRIAL.offer} <TrialOffer variant="inline" label="Start my free week" />
+        </p>
+      )}
       <FriendAsk />
       <header className="now-head">
         <div>

@@ -3,8 +3,11 @@ import { TAB_OF, TABS, useRoute, type Tab } from '../router';
 import { useStore } from '../storage/store';
 import { IconCalendar, IconClasses, IconHalo, IconInbox, IconMoon, IconNow, IconPlus, IconStudy, IconSun, IconSync, IconYou } from './Icons';
 import { useAccount } from '../auth/AccountContext';
+import { PlanBadge, TrialChip } from '../views/TrialStatus';
 
 const LABEL: Record<Tab, string> = { now: 'Now', calendar: 'Calendar', study: 'Study', classes: 'Classes', inbox: 'Inbox', you: 'You' };
+/** During the trial: what each tab needs to stay (Study is Max; the Inbox's reading is Plus). */
+const BADGE: Partial<Record<Tab, 'max' | 'plus'>> = { study: 'max', inbox: 'plus' };
 const ICON: Record<Tab, () => ReactElement> = { now: IconNow, calendar: IconCalendar, study: IconStudy, classes: IconClasses, inbox: IconInbox, you: IconYou };
 
 function Links({ current }: { current: Tab }) {
@@ -16,6 +19,7 @@ function Links({ current }: { current: Tab }) {
           <a key={tab} className="nav-link" href={`#/${tab}`} aria-current={current === tab ? 'page' : undefined}>
             <Icon />
             <span className="nav-label">{LABEL[tab]}</span>
+            {BADGE[tab] && <PlanBadge plan={BADGE[tab]!} />}
           </a>
         );
       })}
@@ -55,9 +59,11 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
             <IconPlus />
             <span className="gear-label">Add</span>
           </button>
+          <TrialChip />
           <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync Halo" aria-label="Sync Halo">
             <IconSync />
             <span className="gear-label">Sync</span>
+            <PlanBadge plan="plus" />
           </button>
           <button type="button" className="topbar-gear topbar-icon" onClick={flipTheme} title={dark ? 'Switch to light' : 'Switch to dark'} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>
             {dark ? <IconSun /> : <IconMoon />}

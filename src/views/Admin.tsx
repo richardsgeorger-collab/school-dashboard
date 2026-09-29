@@ -19,7 +19,7 @@ interface Stats {
   feedback_open: { id: string; kind: string; screen: string | null; text: string; screenshot_path: string | null; created_at: string }[];
 }
 
-const STEPS = ['welcome', 'account', 'halo', 'preferences'];
+const STEPS = ['welcome', 'account', 'compare', 'offer', 'syllabus', 'halo', 'preferences'];
 
 /** For admins only: who is here, what they pay, what AI costs, where new students drop off, how phone-only users sync. */
 export function Admin() {

@@ -21,6 +21,7 @@ import './styles/screens.css';
 import './styles/looks.css';
 import './styles/landing.css';
 import './styles/study.css';
+import './styles/trial.css';
 import { Landing } from './landing/Landing';
 import { Login } from './landing/Login';
 import { useFront } from './landing/useShowLanding';
@@ -56,6 +57,7 @@ import { NotificationPlanner } from './notify/NotificationPlanner';
 import { NowTour } from './onboarding/NowTour';
 import { Onboarding } from './onboarding/Onboarding';
 import { Upgrade, upgradeDue } from './onboarding/Upgrade';
+import { TrialEnded } from './views/TrialStatus';
 import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
@@ -187,9 +189,10 @@ function OnboardingHost() {
     if (front !== 'app' || route === 'login' || !settled) return;
     const s = initialState(data.settings, data.courses);
     if (!s) return;
-    if (route === 'start' && s.step === 'welcome') s.step = auth.configured && !auth.session ? 'account' : 'halo';
-    // Back from Google or the email link with a brand-new account: the pitch and the sign-up are behind them.
-    else if (auth.session && s.step === 'welcome') s.step = 'halo';
+    if (route === 'start' && s.step === 'welcome') s.step = auth.configured && !auth.session ? 'account' : auth.configured ? 'compare' : 'halo';
+    // Back from Google or the email link with a brand-new account: the pitch and the sign-up are behind them; the
+    // plan choice is next (it passes itself when there is nothing to choose).
+    else if (auth.session && s.step === 'welcome') s.step = 'compare';
     actions.updateSettings({ onboarding: s });
     track(s.step, 'enter');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -203,6 +206,8 @@ function OnboardingHost() {
   // Never on a plan still loading: the free tier it reads for a moment is not a downgrade, and the welcome waits.
   const due = loading ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
   if (due) return <Upgrade kind={due} />;
+  // The first open after a trial ends: one clear screen (it renders nothing unless that is now).
+  if (!loading) return <TrialEnded />;
   return null;
 }
 

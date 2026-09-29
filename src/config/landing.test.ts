@@ -13,7 +13,9 @@ describe('landing page', () => {
     expect(src).toMatch(/PRICES\[p\.tier\]\.month\.toFixed\(2\)/);
     expect(src).toContain('a month · {CANCEL_LINE}');
     expect(src).not.toMatch(/semester|a year/);
-    expect(src).toContain('{TRIAL.days} days, from the moment you sign up. No card. Nothing charges.');
+    // The trial is chosen, not automatic (2026-09-28): the offer sentence comes from the config.
+    expect(src).toContain('{TRIAL.offer}');
+    expect(src).not.toMatch(/from the moment you sign up|starts .*on its own/);
     expect(src).toContain('PLAN_LINES');
     expect(src).not.toMatch(/\$\d+\.\d\d/);
   });

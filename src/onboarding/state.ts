@@ -6,7 +6,7 @@ export type { OnboardingState };
  * Where a new student is in the first five minutes. Kept in settings so it follows the account, and so a build
  * without accounts still remembers. The tour is the set of tooltips on Now after the last step.
  */
-export const STEPS = ['welcome', 'account', 'halo', 'preferences', 'done'] as const;
+export const STEPS = ['welcome', 'account', 'compare', 'offer', 'syllabus', 'halo', 'preferences', 'done'] as const;
 export type Step = (typeof STEPS)[number];
 
 export const stepIndex = (s: Step): number => STEPS.indexOf(s);

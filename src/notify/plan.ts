@@ -1,5 +1,5 @@
 import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
-import { TRIAL } from '../config/tiers';
+import { trialCalendar } from '../config/trialCalendar';
 import { weekReview } from '../domain/sunday';
 import { partsDueOn } from '../domain/reqClean';
 import { isNoise } from '../domain/requirements';
@@ -34,8 +34,10 @@ export interface PlanInput {
   today: DateStr;
   now: string;
   lastPull: string | null;
-  /** When the Max trial ends, for the one reminder the day before. */
+  /** When the Max trial ends, for its two reminders. */
   trialEndsAt?: string | null;
+  /** What Max did during the trial, one line ("Max during your trial: read 23 announcements, …"), for those reminders. */
+  trialRecap?: string | null;
   /** The plan includes the Sunday recap (Max, or the trial). */
   recap?: boolean;
 }
@@ -135,17 +137,22 @@ export function planNotices(input: PlanInput): Notice[] {
     }
   }
 
-  // The trial: one reminder, the evening before it ends, with what it did (the app fills the receipts in when
-  // the note is tapped). Never more than once.
+  // The trial: two reminders, two days before it ends (the evening) and the morning of the last day, each with what
+  // Max actually did (the recap line is filled in by the app from the student's own records).
   if (input.trialEndsAt && input.trialEndsAt > now) {
-    // Day 5 of the 7: one reminder, with the recap (the app fills the receipts in when it is tapped), while two days
-    // are still left to decide. The trial started the day the account was made, so day 5 is four days after that.
-    const endDay = dateOf(input.trialEndsAt, tz);
-    const left = TRIAL.days - TRIAL.reminderDay;
-    // It ends at the signup's clock time seven days on, which is day 8's date: day 5 is three dates before that.
-    const day5 = addDays(endDay, -(left + 1));
-    if (day5 >= today) {
-      push({ kind: 'trial_ends', sendAt: at(day5, '18:00', tz), title: `Day ${TRIAL.reminderDay} of your Max trial`, body: `Here's what Max has done for you so far. ${left} days left; after that Halo sync pauses unless you pick a plan. Nothing charges on its own.`, url: '#/you?s=plan', key: `trial_ends:${endDay}` });
+    const cal = trialCalendar(input.trialEndsAt, tz, now);
+    const recap = input.trialRecap ? ` ${input.trialRecap}` : '';
+    for (const r of cal.reminders) {
+      if (r.sendAt <= now) continue;
+      const last = r.daysBefore === 0;
+      push({
+        kind: 'trial_ends',
+        sendAt: r.sendAt,
+        title: last ? 'Last day of your Max trial' : 'Your Max trial ends in 2 days',
+        body: `${recap.trim() ? `${recap.trim()} ` : ''}${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses and the study tools lock. Nothing charges.`,
+        url: '#/you?s=plan',
+        key: `trial_ends:${cal.lastDay}:${r.daysBefore}`,
+      });
     }
   }
 

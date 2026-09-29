@@ -70,6 +70,13 @@ const run = async (name, device, scheme) => {
   // Coming back from the email link: the session lands, onboarding resumes where it was.
   await page.evaluate(({ s, key }) => localStorage.setItem(key, JSON.stringify(s)), { s: u.session, key: `sb-${ref}-auth-token` });
   await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2500);
+  // Since 2026-09-28 the trial is chosen: Free beside Max, then the offer; this student takes the free week.
+  await page.waitForSelector('.plan-compare', { timeout: 10000 }).catch(() => undefined);
+  await shot(page, 'plan-compare');
+  await page.click('.plan-compare .btn.primary').catch(() => undefined);
+  await shot(page, 'plan-offer');
+  await page.click('.plan-offer button:has-text("Start my free week")').catch(() => undefined);
+  await page.waitForTimeout(2500);
   const phone = name === 'phone';
   if (!phone) {
     const bar = await page.$('.onboard [aria-label="Show your bookmarks bar"]');

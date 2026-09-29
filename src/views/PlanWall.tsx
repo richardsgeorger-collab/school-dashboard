@@ -7,7 +7,7 @@ import { CANCEL_LINE, PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/ti
 import { dateOf, fmtDate } from '../domain/dates';
 import { receiptsLine } from '../domain/receipts';
 import { useStore } from '../storage/store';
-import { useReceipts } from './TrialOffer';
+import { TrialOffer, useReceipts } from './TrialOffer';
 
 /**
  * Halo sync is part of Plus (2026-09-28). A build with no accounts (a demo or the preview) has no plan to check and
@@ -102,7 +102,6 @@ export function AsOf({ item }: { item?: { haloId?: string | null; source?: strin
  */
 export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
   const { profile } = useAccount();
-  const access = useSyncAccess();
   const short = useShortDate();
   const receipts = useReceipts(profile?.trialStartedAt ?? undefined);
   const did = receipts ? receiptsLine(receipts, 'during your trial') : null;
@@ -119,8 +118,8 @@ export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
       </ul>
       <p className="hint">
         ${PRICES.plus.month.toFixed(2)} a month. {CANCEL_LINE}, in one click from You; a cancelled plan runs to the end of the month paid for.
-        {access.pausedSince ? '' : ` New accounts get ${TRIAL.line.toLowerCase()}`}
       </p>
+      {!trialEnded && <TrialOffer lead={TRIAL.offer} label="Start my free week" />}
       <div className="settings-actions">
         <UpgradeButton />
         <a className="btn small" href="#/you?s=plan">

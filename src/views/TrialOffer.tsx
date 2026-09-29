@@ -33,12 +33,12 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
       reloadProfile();
       // Welcome to Max: four screens, once, after any first-run screens still open.
       actions.updateSettings({ maxOnboarding: freshMax() });
-      setNote(`Max is on for ${TRIAL.days} days. Nothing charges.`);
+      setNote(`Your free week of Max is on. ${TRIAL.after}`);
     } else setNote(r.message);
   };
   const button = (
     <button type="button" className={`btn ${variant === 'card' ? 'primary' : 'small primary'}`} disabled={busy || !auth.session} onClick={() => void go()}>
-      {busy ? 'Starting…' : (label ?? 'Start the free trial')}
+      {busy ? 'Starting…' : (label ?? 'Start my free week')}
     </button>
   );
   if (variant === 'button') return button;
@@ -66,7 +66,8 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
   }
   return (
     <p className="hint trial-line">
-      {lead ?? `Try Max free for ${TRIAL.days} days.`} {TRIAL.line} {button}
+      {lead ?? TRIAL.offer} {button}
+      <span className="trial-after"> {TRIAL.after}</span>
       {note && <span> {note}</span>}
     </p>
   );

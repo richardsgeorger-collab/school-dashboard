@@ -300,7 +300,7 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
     <section className="card settings-card" id="you-plan" aria-label="Plans">
       <h2 className="section-title">Plans</h2>
       <p className="hint">Free keeps your syllabus classes and anything you add. Plus syncs Halo. Max adds every AI study tool. Change or cancel any time.</p>
-      <TrialOffer lead={`Not sure? Try Max free for ${TRIAL.days} days.`} />
+      <TrialOffer lead={TRIAL.offer} />
       {/* One interval is offered (config/tiers.ts OFFERED_INTERVALS); a choice appears here only when there are two. */}
       {OFFERED_INTERVALS.length > 1 && (
         <SegmentedControl label="Billing" value={interval} options={OFFERED_INTERVALS.map((i) => ({ value: i, label: i === 'month' ? 'Monthly' : 'By the semester' }))} onChange={(v) => setInterval_(v)} />

@@ -36,15 +36,19 @@ describe('what to send and when', () => {
     expect(planNotices({ ...base, recap: false, today: '2026-09-27', now: '2026-09-27T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(0);
     expect(planNotices({ ...base, prefs: { morningTime: 'off', sunday: false }, today: '2026-09-27', now: '2026-09-27T13:00:00.000Z' }).filter((x) => x.kind === 'sunday')).toHaveLength(0);
   });
-  it('the trial reminder goes once, on day 5 of 7, with two days left', () => {
-    // Signed up Sep 28 (day 1); the trial ends Oct 5, so day 5 is Oct 2.
-    const base = { items: [], courses: [course], schedule: schedule(), prefs: { morningTime: 'off' as const }, tz: TZ, lastPull: NOW, trialEndsAt: '2026-10-06T01:00:00.000Z' };
+  it('the trial reminds twice: two days before it ends, and the morning of the last day, each with the recap', () => {
+    // Started Sep 28 at 6 PM Phoenix; ends Oct 5 at 6 PM, the last day.
+    const base = { items: [], courses: [course], schedule: schedule(), prefs: { morningTime: 'off' as const }, tz: TZ, lastPull: NOW, trialEndsAt: '2026-10-06T01:00:00.000Z', trialRecap: 'Max during your trial: read 12 announcements, found 3 hidden requirements.' };
     const t = planNotices({ ...base, today: '2026-10-01', now: '2026-10-01T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends');
-    expect(t).toHaveLength(1);
-    expect(t[0].sendAt).toBe('2026-10-03T01:00:00.000Z');
-    expect(t[0].title).toBe('Day 5 of your Max trial');
-    expect(t[0].body).toContain('2 days left; after that Halo sync pauses');
-    expect(planNotices({ ...base, today: '2026-10-03', now: '2026-10-03T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends')).toHaveLength(0);
+    expect(t.map((x) => [x.sendAt, x.title])).toEqual([
+      ['2026-10-04T01:00:00.000Z', 'Your Max trial ends in 2 days'],
+      ['2026-10-05T15:00:00.000Z', 'Last day of your Max trial'],
+    ]);
+    expect(t[0].body).toBe('Max during your trial: read 12 announcements, found 3 hidden requirements. After that you go back to Free: Halo sync pauses and the study tools lock. Nothing charges.');
+    expect(t[1].body).toContain('Tomorrow you go back to Free');
+    // After the first has gone, only the last-day one is planned; after the end, none.
+    expect(planNotices({ ...base, today: '2026-10-04', now: '2026-10-04T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends')).toHaveLength(1);
+    expect(planNotices({ ...base, today: '2026-10-06', now: '2026-10-06T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends')).toHaveLength(0);
   });
   it('no morning note when it is off, no notes at all when every switch is off', () => {
     const items = [item('x', TODAY, 50)];

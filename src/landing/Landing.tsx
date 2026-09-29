@@ -52,7 +52,7 @@ export function Landing() {
               Log in
             </a>
           </div>
-          <p className="hint">Max free for your first {TRIAL.days} days, from the moment you sign up. No card. Nothing charges.</p>
+          <p className="hint">{TRIAL.offer} You choose when it starts; after it, you're back on Free and nothing charges.</p>
         </div>
 
         {/* The picture is the app: the same classes and tokens Now uses, so the landing wears whatever gold the app wears. */}
@@ -170,7 +170,7 @@ export function Landing() {
           <li>Open halo.gcu.edu and log in as you always do.</li>
           <li>Click the bookmark. Your classes, assignments, grades and announcements arrive here, and you approve them before anything changes.</li>
         </ol>
-        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and your first {TRIAL.days} days are free; on Plus a small Chrome extension also syncs on its own whenever you open Halo.</p>
+        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and the free week of Max includes it; on Plus a small Chrome extension also syncs by itself whenever you open Halo.</p>
       </section>
 
       <section className="landing-section" aria-label="Plans">
@@ -193,7 +193,7 @@ export function Landing() {
         </div>
         <p className="landing-trial">
           <HaloDraw size={28} />
-          <span>Every new account starts with Max free for {TRIAL.days} days, on its own. No card. Nothing charges. After that, keep syncing Halo with Plus, or stay on Free with your syllabus classes. Invite a friend and you both get a month of Plus.</span>
+          <span>Every account starts on Free. {TRIAL.offer} Start it when you're ready; after {TRIAL.days} days you're back on Free unless you choose Plus or Max, and nothing ever charges without you choosing it. Invite a friend and you both get a month of Plus.</span>
         </p>
       </section>
 

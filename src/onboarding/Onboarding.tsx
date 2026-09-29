@@ -18,6 +18,9 @@ import { useStore } from '../storage/store';
 import { HaloImport } from '../views/HaloImport';
 import { BookmarkButton, useBookmarkHref } from '../views/BookmarkButton';
 import { type OnboardingState, type Step } from './state';
+import { Compare, Offer } from './PlanChoice';
+import { ImportSyllabus } from '../views/ImportSyllabus';
+import { can } from '../config/flags';
 import { track } from './track';
 
 /**
@@ -94,7 +97,7 @@ export function nextBig(items: Item[], today: string, tz: string): Item | null {
 
 export function Onboarding() {
   const { data, schedule, actions, today } = useStore();
-  const { auth, profile } = useAccount();
+  const { auth, profile, tier, loading } = useAccount();
   const { navigate } = useRoute();
   const tz = data.settings.timezone;
   const ob = data.settings.onboarding as OnboardingState;
@@ -131,11 +134,19 @@ export function Onboarding() {
     navigate('now');
   };
 
+  // The plan choice is for someone who can still take the trial: signed in, never had it, not a friend's guest.
+  const choosing = auth.configured && !!auth.session && !gift && !pendingFriend() && trialState(profile) === 'available';
   // The account step passes itself the moment someone is signed in (including coming back from the email link).
   useEffect(() => {
-    if (step === 'account' && (!auth.configured || auth.session)) set({ step: 'halo' });
+    if (step === 'account' && (!auth.configured || auth.session)) set({ step: 'compare' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, auth.configured, auth.session]);
+  // Nothing to choose (a friend's link, a trial already used or running, a paid plan, no accounts on this build):
+  // straight on to Halo. Waits for the profile, so a new account is never sent past its own offer.
+  useEffect(() => {
+    if ((step === 'compare' || step === 'offer') && !loading && !choosing) set({ step: 'halo' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, loading, choosing]);
 
   const synced = data.courses.length > 0;
   // Record the arrival once, so the admin screen sees who got as far as their own classes.
@@ -147,9 +158,12 @@ export function Onboarding() {
     }
   }, [synced, step]);
 
-  const progress = step === 'welcome' ? 0 : step === 'account' ? 1 : synced ? 3 : 2;
-  const labels = auth.configured ? ['Welcome', 'Account', 'Connect Halo', 'Your classes'] : ['Welcome', 'Connect Halo', 'Your classes'];
-  const at = auth.configured ? progress : Math.max(0, progress - 1);
+  // The free path adds classes from syllabi; everyone else connects Halo.
+  const freePath = step === 'syllabus' || (synced && !can('haloManualSync', tier) && !ob.path);
+  const labels = auth.configured ? ['Welcome', 'Account', 'Your plan', freePath ? 'Syllabi' : 'Connect Halo', 'Your classes'] : ['Welcome', 'Connect Halo', 'Your classes'];
+  const at = auth.configured
+    ? synced ? 4 : step === 'welcome' ? 0 : step === 'account' ? 1 : step === 'compare' || step === 'offer' ? 2 : 3
+    : synced ? 2 : step === 'welcome' ? 0 : 1;
 
   return (
     <div className="onboard" role="dialog" aria-modal="true" aria-label="Welcome">
@@ -170,7 +184,7 @@ export function Onboarding() {
           )}
         </header>
 
-        {step === 'welcome' && !synced && <Welcome onStart={() => go(auth.configured && !auth.session ? 'account' : 'halo')} signedOut={auth.configured && !auth.session} />}
+        {step === 'welcome' && !synced && <Welcome onStart={() => go(auth.configured && !auth.session ? 'account' : auth.configured ? 'compare' : 'halo')} signedOut={auth.configured && !auth.session} />}
 
         {step === 'account' && !synced && (
           <section className="onboard-step" aria-label="Sign up">
@@ -185,13 +199,17 @@ export function Onboarding() {
           </section>
         )}
 
+        {step === 'compare' && !synced && choosing && <Compare onNext={() => go('offer')} />}
+        {step === 'offer' && !synced && choosing && <Offer onStarted={() => go('halo')} onFree={() => go('syllabus')} />}
+        {step === 'syllabus' && !synced && <SyllabusStep onTrial={() => go('offer')} canTry={choosing || trialState(profile) === 'available'} />}
+
         {step === 'halo' && !synced && path === 'desktop' && (
           <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />
         )}
         {step === 'halo' && !synced && path === 'phone' && <PhoneHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />}
 
         {/* A sync that lands on any screen (a student who clicked the bookmark early) goes straight to the payoff. */}
-        {synced && <Payoff onStart={finish} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} />}
+        {synced && <Payoff onStart={finish} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} />}
       </div>
       {paste && <HaloImport onClose={() => setPaste(false)} />}
     </div>
@@ -217,6 +235,30 @@ function Welcome({ onStart, signedOut }: { onStart: () => void; signedOut: boole
         </p>
       )}
       <p className="hint onboard-foot">Not affiliated with Grand Canyon University.</p>
+    </section>
+  );
+}
+
+/** The Free path: classes come from their syllabus PDFs. One button, and the trial one tap away if they change their mind. */
+function SyllabusStep({ onTrial, canTry }: { onTrial: () => void; canTry: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="onboard-step" aria-label="Upload a syllabus">
+      <h1 className="onboard-title">Add your classes from their syllabi.</h1>
+      <p className="onboard-text">Download each class's syllabus PDF from Halo and drop it in. Every assignment in it lands on your calendar.</p>
+      <button type="button" className="btn primary block onboard-big" onClick={() => setOpen(true)}>
+        Upload a syllabus
+      </button>
+      <p className="hint">You're on Free. Nothing is synced from Halo and nothing charges.</p>
+      {canTry && (
+        <p className="hint">
+          Changed your mind?{' '}
+          <button type="button" className="hero-inline" onClick={onTrial}>
+            {TRIAL.offer}
+          </button>
+        </p>
+      )}
+      {open && <ImportSyllabus onClose={() => setOpen(false)} />}
     </section>
   );
 }
@@ -580,7 +622,7 @@ function Waiting({ phone, show, onPaste }: { phone: boolean; show: (s: Screen) =
  * The payoff: what arrived, counted up; what the announcements asked that the assignments don't say (live, while the
  * reader works); the next big deadline; and one button, Start here, that lands on Now.
  */
-function Payoff({ onStart, schedule, today, tz, gift, onTrial }: { onStart: () => void; schedule: ReturnType<typeof useStore>['schedule']; today: string; tz: string; gift: { from: string; until: string } | null; onTrial: boolean }) {
+function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads }: { onStart: () => void; schedule: ReturnType<typeof useStore>['schedule']; today: string; tz: string; gift: { from: string; until: string } | null; onTrial: boolean; reads: boolean }) {
   const { data, courseById } = useStore();
   const reading = useReadStatus();
   const found = useCountUp(data.items.length);
@@ -620,7 +662,7 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial }: { onStart: () =
         ))}
       </p>
 
-      <div className="payoff-block">
+      {reads && <div className="payoff-block">
         <p className="eyebrow">What your professors only said in announcements</p>
         {finds.length > 0 ? (
           <ul className="payoff-finds">
@@ -642,7 +684,7 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial }: { onStart: () =
                   ? 'No announcements yet. When your professors post, Halo+ reads them for you.'
                   : 'Each one is on its assignment.'}
         </p>
-      </div>
+      </div>}
 
       {big && (
         <div className="payoff-block">
@@ -666,7 +708,7 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial }: { onStart: () =
           Start here
         </button>
       </div>
-      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Max is on for your first {TRIAL.days} days. No card. Nothing charges.</p> : null}
+      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free week of Max is on. {TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync, announcements and the study tools are Max; try it free for 7 days any time from You.</p> : null}
     </section>
   );
 }

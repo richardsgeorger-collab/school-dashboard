@@ -56,11 +56,24 @@ export const LEGACY_PRICE_IDS: Record<string, { tier: Tier; interval: Interval }
 };
 
 /**
- * The trial: seven days of Max, started automatically when the account is made (no button, no card), once per
- * account, tracked server-side. The recap reminder goes on day 5. The sentence is used everywhere the trial is
- * mentioned, so it never drifts.
+ * The trial (George, 2026-09-28, second version): new accounts start on Free. Seven days of Max, no card, once per
+ * account, started only when the student chooses it (onboarding's offer, or any "Try Max free" button later).
+ * Reminders go two days before it ends and the morning of the last day. Every sentence about the trial comes from
+ * here so the offer, the chip, the reminders and the ending never say different things.
  */
-export const TRIAL = { tier: 'max' as Tier, days: 7, reminderDay: 5, cardRequired: false, line: 'Max free for 7 days. No card. Nothing charges.' };
+export const TRIAL = {
+  tier: 'max' as Tier,
+  days: 7,
+  /** Days before the end on which a reminder goes: two days before, and the last day itself (0). */
+  remindDaysBefore: [2, 0] as const,
+  cardRequired: false,
+  /** The offer, word for word, wherever a student who has not tried it sees Max. */
+  offer: 'Try Max free for 7 days. No card.',
+  /** The one honest line under every button that starts it. */
+  after: "After 7 days you go back to Free. Nothing charges. We'll remind you before it ends.",
+  /** Short form beside small buttons. */
+  line: 'Max free for 7 days. No card. Nothing charges.',
+};
 
 /**
  * Accounts that were already syncing Halo on the free plan before 2026-09-28 keep sync until the end of the current

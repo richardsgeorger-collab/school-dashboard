@@ -95,7 +95,7 @@ First Page Sage trial benchmarks; Amplitude on reverse trials. Full list in the 
   a one-pager, for any quiz or exam), Check my work (against the rubric or the class's method); the prompt panel,
   lecture transcripts, the colour picker.
 - **Pro is retired.** Not sold; an old Pro row keeps Plus.
-- **Trial:** 7 days of Max, started by the signup itself (migration 0010), once per account; recap reminder on day 5.
+- **Trial (changed 2026-09-28, loop 122):** new accounts start on Free. 7 days of Max, no card, once per account, started only when the student chooses it (onboarding's offer or any "Try Max free" button; migration 0012). Reminders two days before it ends and the morning of the last day, in the app and by push, each with a recap. The first open after it ends shows one screen with the three choices. Friend links unchanged.
 - **After the trial with nothing paid:** sync pauses, data stays, every screen shows "Halo sync paused since …" and
   "as of …" on Halo's due dates; a bookmark that arrives is not applied; one tap to Stripe restores sync, grades and
   the colour. Free features keep working.

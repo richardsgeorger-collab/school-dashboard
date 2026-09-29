@@ -4,6 +4,8 @@ import { supabase } from '../auth/client';
 import { can } from '../config/flags';
 import { useStore } from '../storage/store';
 import { planNotices } from './plan';
+import { receiptsLine } from '../domain/receipts';
+import { useReceipts } from '../views/TrialOffer';
 import { registerSw } from './push';
 
 /**
@@ -14,6 +16,8 @@ import { registerSw } from './push';
 export function NotificationPlanner() {
   const { data, schedule, today } = useStore();
   const { auth, tier, profile } = useAccount();
+  // What Max did during the trial, for its reminders (counted from the trial's start).
+  const recap = useReceipts(profile?.trialStartedAt ?? undefined);
   useEffect(() => {
     void registerSw();
   }, []);
@@ -27,7 +31,7 @@ export function NotificationPlanner() {
     const userId = auth.userId;
     const t = setTimeout(async () => {
       const now = new Date().toISOString();
-      const notices = planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialEndsAt: profile?.trialEndsAt ?? null, recap: can('weeklyRecap', tier) });
+      const notices = planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialEndsAt: profile?.trialEndsAt ?? null, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier) });
       // Upsert by each notice's key (one "morning note for Sep 25" per student, enforced by a unique index), then drop
       // unsent rows that are no longer planned. Overlapping runs converge instead of stacking duplicates, and a note
       // that was already sent keeps its sent_at, so it is never sent twice.
@@ -48,6 +52,6 @@ export function NotificationPlanner() {
       });
     }, 3000);
     return () => clearTimeout(t);
-  }, [auth.session, auth.userId, tier, prefs, data.items, data.courses, tz, lastPull, schedule, today]);
+  }, [auth.session, auth.userId, tier, prefs, data.items, data.courses, tz, lastPull, schedule, today, recap, profile?.trialEndsAt]);
   return null;
 }
