@@ -453,6 +453,8 @@ export interface ReminderPrefs {
   resync?: boolean;
   /** Sunday at six: last week done and slipped, this week coming (Max). */
   sunday?: boolean;
+  /** Saturday at nine when participation is still open this week. */
+  participation?: boolean;
   /** The student turned push on from this app (the browser permission is checked separately). */
   pushEnabled?: boolean;
 }

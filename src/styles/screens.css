@@ -2713,3 +2713,56 @@
   background: var(--accent-soft);
   border-radius: 6px;
 }
+
+/* ---- Participation this week: Now's last line and each class's checklist (2026-09-29) ------------------------ */
+.pw {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.pw-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: 600 13px/1.3 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.pw[data-done='true'] .pw-head {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.pw-caret {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.pw-body {
+  display: grid;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+.pw-class-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.pw-class-head .mono {
+  margin-left: auto;
+  font-size: 11px;
+}
+.pw-class[data-done='true'] .pw-class-head span:not(.mono) {
+  color: var(--ink-3);
+}
+.pw-list {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}

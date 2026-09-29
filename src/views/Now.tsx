@@ -1,3 +1,4 @@
+import { ParticipationWeek } from './ParticipationWeek';
 import { useEffect, useMemo, useState } from 'react';
 import { ItemRow } from '../components/ItemRow';
 import { Modal } from '../components/Modal';
@@ -684,6 +685,7 @@ export function Now() {
             <span>Ask anything about your classes</span>
           </a>
         )}
+        <ParticipationWeek />
       </aside>
 
       {sunday && (

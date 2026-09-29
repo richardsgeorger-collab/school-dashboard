@@ -1,3 +1,4 @@
+import { participationThisWeek } from '../domain/participationWeek';
 import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
 import { trialCalendar } from '../config/trialCalendar';
 import { weekReview } from '../domain/sunday';
@@ -12,7 +13,7 @@ import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
  * morning note, the night-before heavy-day warning, the not-started nudge, the re-sync reminder, and on Max the
  * Sunday recap; the trial's one reminder has none.
  */
-export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday';
+export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation';
 
 export interface Notice {
   kind: NoticeKind;
@@ -42,7 +43,7 @@ export interface PlanInput {
   recap?: boolean;
 }
 
-export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync' | 'sunday'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true, sunday: true };
+export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync' | 'sunday' | 'participation'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true, sunday: true, participation: true };
 
 export const RESYNC_AFTER_DAYS = 3;
 const HEAVY_DUE = 3;
@@ -124,6 +125,20 @@ export function planNotices(input: PlanInput): Notice[] {
       const sendAt = at(today, '10:00', tz);
       const day = sendAt > now ? today : tomorrow;
       push({ kind: 'resync', sendAt: at(day, '10:00', tz), title: 'Sync Halo', body: days === null ? 'Halo has not been synced yet. One tap and your week is in.' : `Halo was last synced ${days} days ago. Deadlines may have moved.`, url: '#/now?sync=1', key: `resync:${day}` });
+    }
+  }
+
+  // Saturday at nine: participation still open this week, class by class. Planned when Saturday is today or tomorrow.
+  if (p.participation) {
+    const saturday = [today, tomorrow].find((d) => weekdayOf(d) === 6);
+    if (saturday) {
+      const week = participationThisWeek(items, input.courses, saturday, tz, now).filter((e) => e.left > 0);
+      const left = week.reduce((s, e) => s + e.left, 0);
+      const sendAt = at(saturday, '09:00', tz);
+      if (left > 0 && sendAt > now) {
+        const codes = week.map((e) => e.course?.code ?? e.item.label).slice(0, 3).join(', ');
+        push({ kind: 'participation', sendAt, title: 'Participation still open', body: `${left} thing${left === 1 ? '' : 's'} left this week in ${codes}${week.length > 3 ? ` and ${week.length - 3} more` : ''}. Open the list on Now.`, url: '#/now?pw=1', key: `participation:${saturday}` });
+      }
     }
   }
 

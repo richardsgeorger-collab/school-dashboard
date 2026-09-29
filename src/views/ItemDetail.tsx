@@ -1,3 +1,4 @@
+import { ParticipationChecklist } from './ParticipationWeek';
 import { useEffect, useMemo, useState } from 'react';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
@@ -663,7 +664,16 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         )}
         {!isNew && <Feedback item={item} />}
         {!isNew && <RubricBlock item={item} />}
-        {!isNew && <Requirements item={item} />}
+        {!isNew && item.type === 'participation' ? (
+          <section className="reqs" aria-label="What earns the points">
+            <p className="hint">
+              <b>What earns the points</b>
+            </p>
+            <ParticipationChecklist item={item} />
+          </section>
+        ) : (
+          !isNew && <Requirements item={item} />
+        )}
         {!isNew && <RulesOnItem item={item} />}
         {!isNew && course && <WorkPanel item={item} course={course} />}
         {!isNew && (

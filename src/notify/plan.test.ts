@@ -92,3 +92,18 @@ describe('what to send and when', () => {
     expect(n.filter((x) => x.kind === 'morning')).toHaveLength(1);
   });
 });
+
+describe('the Saturday participation reminder', () => {
+  const part = (status: string) => ({ ...item('Week 4 Participation', '2026-09-27', 10, status, 'participation'), requirements: [] }) as Item;
+  const base = { courses: [course], schedule: schedule(), prefs: { morningTime: 'off' }, tz: TZ, lastPull: NOW };
+  it('goes out Saturday at nine when participation is still open, and not when it is done or switched off', () => {
+    const fri = { ...base, today: '2026-09-25', now: '2026-09-25T20:00:00.000Z' };
+    const n = planNotices({ ...fri, items: [part('todo')] }).filter((x) => x.kind === 'participation');
+    expect(n).toHaveLength(1);
+    expect(n[0].sendAt).toBe('2026-09-26T16:00:00.000Z');
+    expect(n[0].body).toBe('1 thing left this week in CHM-113. Open the list on Now.');
+    expect(planNotices({ ...fri, items: [part('done')] }).filter((x) => x.kind === 'participation')).toHaveLength(0);
+    expect(planNotices({ ...fri, items: [part('todo')], prefs: { morningTime: 'off', participation: false } }).filter((x) => x.kind === 'participation')).toHaveLength(0);
+    expect(planNotices({ ...base, today: '2026-09-23', now: '2026-09-23T20:00:00.000Z', items: [part('todo')] }).filter((x) => x.kind === 'participation')).toHaveLength(0);
+  });
+});
