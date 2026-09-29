@@ -25,4 +25,4 @@ export const isTouchDevice = (d: DeviceInfo = read()): boolean => isIOSDevice(d)
 /** Chrome on an iPhone or iPad (it runs on Safari's engine and names itself CriOS). */
 export const isChromeIOS = (d: DeviceInfo = read()): boolean => isIOSDevice(d) && /CriOS/.test(d.ua);
 /** A real Mac: Mac OS and no touch screen. */
-export const isMacComputer = (d: DeviceInfo = read()): boolean => (/Mac/.test(d.platform) || /Macintosh/.test(d.ua)) && !isIPad(d);
+export const isMacComputer = (d: DeviceInfo = read()): boolean => (d.platform ? /^Mac/.test(d.platform) : /Macintosh/.test(d.ua)) && !isIPad(d);

@@ -8,6 +8,8 @@ import { PlanWall, useSyncAccess } from './PlanWall';
 import { HaloImport } from './HaloImport';
 import { SyncAssignments } from './SyncAssignments';
 import { BookmarkButton, useBookmarkHref } from './BookmarkButton';
+import { HowYouSync } from './HowYouSync';
+import { isChromeIOS, isIPad } from '../ui/device';
 
 export { HANDOFF_PATH } from '../halo/handoff';
 export { BookmarkButton, useBookmarkHref } from './BookmarkButton';
@@ -40,7 +42,7 @@ export function SyncSteps({ onNote }: { onNote: (note: string) => void }) {
           Computer
         </button>
         <button type="button" role="tab" className="btn small" aria-selected={phone} onClick={() => setPhone(true)}>
-          Phone
+          {isIPad() ? 'iPad' : 'Phone'}
         </button>
       </div>
 
@@ -59,9 +61,26 @@ export function SyncSteps({ onNote }: { onNote: (note: string) => void }) {
               Copy bookmark address
             </button>
           </li>
-          <li>Bookmark this page: Share, then Add Bookmark.</li>
-          <li>Open your bookmarks, edit the one you just made, and replace its address with what you copied (it is short). Name it {BOOKMARK_NAME}.</li>
-          <li>Go to halo.gcu.edu, log in, open your bookmarks and tap {BOOKMARK_NAME}. Come back here to approve the changes.</li>
+          {isIPad() && !isChromeIOS() ? (
+            <>
+              <li>Settings app, Apps, Safari: turn on Show Favorites Bar.</li>
+              <li>Here in Safari: Share, then Add to Favorites, then Save.</li>
+              <li>Sidebar, Bookmarks, Favorites, Edit: tap it, name it {BOOKMARK_NAME}, clear the address, paste, Done.</li>
+              <li>On Halo, tap {BOOKMARK_NAME} in the Favorites Bar.</li>
+            </>
+          ) : isIPad() ? (
+            <>
+              <li>Here in Chrome: ⋯, then Add to Bookmarks.</li>
+              <li>⋯, Bookmarks, press and hold it, Edit Bookmark: name it {BOOKMARK_NAME}, clear the URL, paste, Done.</li>
+              <li>On Halo, tap the address bar, type Sync Halo, and tap the bookmark.</li>
+            </>
+          ) : (
+            <>
+              <li>Bookmark this page: Share, then Add Bookmark.</li>
+              <li>Open your bookmarks, edit the one you just made, and replace its address with what you copied (it is short). Name it {BOOKMARK_NAME}.</li>
+              <li>Go to halo.gcu.edu, log in, open your bookmarks and tap {BOOKMARK_NAME}. Come back here to approve the changes.</li>
+            </>
+          )}
         </ol>
       )}
 
@@ -109,6 +128,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
     <Modal title="Sync Halo" onClose={onClose}>
       <div className="modal-body sync-sheet">
         <p className="hint mono">{last ? `Last synced ${fmtDate(dateOf(last, tz), 'short')} ${fmtTime(last, tz)}.` : 'Not synced yet.'}</p>
+        <HowYouSync />
         <p className="hint">
           The <b>{BOOKMARK_NAME}</b> bookmark runs on Halo&apos;s own page while you are logged in there and sends your classes, assignments, grades and announcements here. It never sees your password. You approve every change before it applies.
         </p>

@@ -1,3 +1,4 @@
+import { HowYouSync } from './HowYouSync';
 import { useEffect, useRef, useState } from 'react';
 import { dateOf, diffDays, fmtDate, fmtTime } from '../domain/dates';
 import { COUNT_WORDS, countsLine, type PullCounts } from '../halo/counts';
@@ -34,6 +35,7 @@ export function HaloPanel({ onPaste }: { onPaste: () => void }) {
     <section className="card settings-card" aria-label="Halo">
       <h2 className="section-title">Halo</h2>
       <p className="halo-status">{when ? `Connected. Last synced ${when}.` : 'Not connected yet.'}</p>
+      <HowYouSync />
       {/* The last sync's changes can be put back whole until the next sync replaces them. */}
       {undo && (
         <p className="hint">

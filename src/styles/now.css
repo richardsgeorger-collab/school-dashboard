@@ -963,3 +963,7 @@
     flex-wrap: wrap;
   }
 }
+/* The hero's glow reaches past its edge on purpose; on a tablet that made the whole page scroll sideways. */
+.now {
+  overflow-x: clip;
+}

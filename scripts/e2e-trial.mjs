@@ -42,9 +42,12 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const run = async (name, device, scheme) => {
   const OUT = `docs/screens/trial/${name}-${scheme}`;
   mkdirSync(OUT, { recursive: true });
-  const say = (ok, line) => (name === 'desk' && scheme === 'light' ? check(ok, line) : ok || console.log(`note ${name}-${scheme}: ${line}`));
+  const say = (ok, line) => ((name === 'desk' || name.startsWith('ipad')) && scheme === 'light' ? check(ok, line) : ok || console.log(`note ${name}-${scheme}: ${line}`));
+  // An iPad reports itself as a Mac with a touch screen (Safari) or as an iPad (Chrome).
+  const prep = (c) => (name.startsWith('ipad') ? c.addInitScript(() => { Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5 }); Object.defineProperty(navigator, 'platform', { get: () => (/CriOS/.test(navigator.userAgent) ? 'iPad' : 'MacIntel') }); }) : null);
   let n = 0;
   const ctx = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });
+  await prep(ctx);
   await ctx.addInitScript(() => { window.open = () => null; });
   const page = await ctx.newPage();
   const errors = [];
@@ -92,7 +95,7 @@ const run = async (name, device, scheme) => {
   await page.waitForTimeout(2500);
   const p1 = await profile(u.id);
   say(!!p1.trial_started_at && new Date(p1.trial_ends_at).getTime() - new Date(p1.trial_started_at).getTime() > 6.9 * 86_400_000, 'Start my free week starts a 7-day trial on the server');
-  say(!!(await page.$('.onboard [aria-label="Show your bookmarks bar"], .onboard [aria-label="Drag the bookmark"], .onboard [aria-label="Copy the bookmark"]')), 'and goes straight into connecting Halo');
+  say(!!(await page.$('.onboard [aria-label="Show your bookmarks bar"], .onboard [aria-label="Drag the bookmark"], .onboard [aria-label="Copy the bookmark"], .onboard .ipad-step')), `and goes straight into connecting Halo${name.startsWith('ipad') ? ' (the iPad’s own steps)' : ''}`);
   await shot('connect-halo');
   await page.evaluate((pl) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: pl, source: window })), payload());
   await page.waitForSelector('.onboard-payoff', { timeout: 15000 }).catch(() => undefined);
@@ -108,7 +111,7 @@ const run = async (name, device, scheme) => {
   await page.waitForTimeout(1000);
   await shot('now-trial');
   const chip = await text('.trial-chip');
-  say(name === 'phone' ? /^Trial · 7 days$/.test(chip) : /^Free trial · 7 days left$/.test(chip), `the chip in the top bar: "${chip}"`);
+  say(/^(Free trial · 7 days left|Trial · 7 days)$/.test(chip) && (name !== 'desk' || /^Free trial/.test(chip)), `the chip in the top bar: "${chip}"`);
   const wide = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   say(wide <= 2, `the top bar with the chip fits the screen (overflow ${wide}px)`);
   say(!!(await page.$('.plan-badge')), 'Max-only and Plus things carry a badge during the trial');
@@ -161,6 +164,7 @@ const run = async (name, device, scheme) => {
   // ---- 2. A new student who picks Free.
   const f = await newUser();
   const ctx2 = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });
+  await prep(ctx2);
   await ctx2.addInitScript(() => { window.open = () => null; });
   const p2 = await ctx2.newPage();
   await signIn(p2, f);
@@ -202,6 +206,7 @@ const run = async (name, device, scheme) => {
 
   // ---- The landing.
   const ctx3 = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });
+  await prep(ctx3);
   const p3 = await ctx3.newPage();
   await p3.goto(BASE, { waitUntil: 'load' });
   await p3.waitForTimeout(1500);
@@ -211,7 +216,10 @@ const run = async (name, device, scheme) => {
   if (errors.length) say(false, `page errors: ${errors.slice(0, 2).join(' | ')}`);
 };
 try {
-  const combos = [['desk', { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }], ['phone', { ...devices['iPhone 14'], deviceScaleFactor: 2 }]];
+  const IPAD_SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
+  const IPAD_CHROME = 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1';
+  const ipad = (ua) => ({ ...devices['iPad Pro 11'], userAgent: ua, viewport: { width: 834, height: 1194 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  const combos = [['desk', { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }], ['phone', { ...devices['iPhone 14'], deviceScaleFactor: 2 }], ['ipad-safari', ipad(IPAD_SAFARI)], ['ipad-chrome', ipad(IPAD_CHROME)]];
   for (const [name, device] of combos) for (const scheme of ['light', 'dark']) if (!ONLY || ONLY.includes(`${name}-${scheme}`)) { console.log(`--- ${name}-${scheme}`); await run(name, device, scheme); }
 } finally {
   await browser.close();

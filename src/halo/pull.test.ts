@@ -123,6 +123,6 @@ describe('the stale-sync line', () => {
     const { stalenessLine } = await import('./freshness');
     const course = { code: 'CHM-113' } as never;
     expect(stalenessLine({ never: [], stale: [{ kind: 'resources', courses: [course], days: 0 }] }, 1)).toBeNull();
-    expect(stalenessLine({ never: [], stale: [{ kind: 'assessments', courses: [course], days: 4 }] }, 1)).toBe('Last Halo sync was 4 days ago. Sync now.');
+    expect(stalenessLine({ never: [], stale: [{ kind: 'assessments', courses: [course], days: 4 }] }, 1)).toBe('Last Halo sync was 4 days ago.');
   });
 });

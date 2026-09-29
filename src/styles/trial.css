@@ -933,3 +933,298 @@
   margin-top: 18px;
   font-size: 13px;
 }
+
+/* ---- iPad steps: one drawn picture per step, the thing to tap circled in gold (2026-09-29) --------------------- */
+.ip {
+  margin: 0;
+  max-width: 520px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  overflow: hidden;
+  font-size: 13px;
+  box-shadow: var(--shadow-1);
+}
+.ip-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+.ip-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-3);
+  text-align: center;
+}
+.ip-typed {
+  color: var(--ink);
+  text-align: left;
+}
+.ip-ico {
+  color: var(--ink-2);
+  font-weight: 700;
+  min-width: 22px;
+  text-align: center;
+}
+.ip-body {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px 14px;
+  min-height: 150px;
+}
+.ip-sheet {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  min-width: 220px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+.ip-sheet li {
+  padding: 7px 14px;
+  color: var(--ink-2);
+  position: relative;
+}
+.ip-suggest {
+  margin: 10px 12px 14px;
+  min-width: 0;
+}
+.ip-strong {
+  font-weight: 700;
+  color: var(--ink) !important;
+}
+.ip-faint {
+  color: var(--ink-3) !important;
+}
+.ip-menu {
+  margin-left: 24px;
+}
+.ip-settings,
+.ip-split {
+  display: grid;
+  grid-template-columns: 42% 1fr;
+  min-height: 180px;
+}
+.ip-side {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+  background: var(--surface-2);
+  border-right: 1px solid var(--line);
+}
+.ip-side li {
+  padding: 7px 12px;
+  color: var(--ink-2);
+}
+.ip-foot {
+  margin-top: 8px;
+}
+.ip-pane {
+  padding: 12px 14px;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+.ip-pane-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.ip-row {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+.ip-row span {
+  color: var(--ink-3);
+}
+.ip-toggle {
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--line-strong);
+  position: relative;
+}
+.ip-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+.ip-toggle-on {
+  background: var(--ok);
+}
+.ip-toggle-on::after {
+  left: 18px;
+}
+.ip-form {
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 8px;
+}
+.ip-form-title {
+  margin: 0;
+  font-weight: 700;
+  text-align: center;
+}
+.ip-field {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ip-field small {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.ip-form-done {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+  color: var(--accent-text);
+}
+.ip-favbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+.ip-bm {
+  width: 50px;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--line);
+}
+.ip-bm-target {
+  position: relative;
+}
+.ip-halo {
+  padding: 16px 14px 40px;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.ip-hot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  outline: 2.5px solid var(--accent);
+  outline-offset: 4px;
+  animation: ip-pulse 2.4s ease-in-out infinite;
+}
+.ip-hot-pill {
+  padding: 1px 6px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.ip-n {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 700 11px/1 var(--font-body);
+  font-style: normal;
+}
+.ip-finger {
+  position: absolute;
+  right: -18px;
+  bottom: -26px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 25%, transparent);
+  border: 2px solid var(--surface);
+  animation: ip-tap 2.4s ease-in-out infinite;
+}
+@keyframes ip-pulse {
+  0%, 60%, 100% {
+    outline-color: var(--accent);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  70% {
+    box-shadow: 0 0 0 8px var(--accent-soft);
+  }
+}
+@keyframes ip-tap {
+  0%, 40% {
+    transform: translate(18px, 18px) scale(1);
+    opacity: 0;
+  }
+  55% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  62% {
+    transform: translate(0, 0) scale(0.75);
+  }
+  75%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ip-hot,
+  .ip-finger {
+    animation: none;
+  }
+}
+.ipad-copied {
+  background: var(--ok) !important;
+  border-color: var(--ok) !important;
+  color: #fff !important;
+}
+.ipad-safari {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+}
+.ipad-safari p {
+  margin: 0;
+}
+/* Tablets and small laptops: the top bar also holds the tabs, so the chip takes its short form there too. */
+@media (max-width: 1099px) {
+  .trial-chip .chip-long {
+    display: none;
+  }
+  .trial-chip .chip-short {
+    display: inline;
+  }
+}

@@ -421,14 +421,17 @@ export interface SundayReviewState {
 }
 
 /** Where a new student is in the first five minutes; see src/onboarding/state.ts. */
+/** How a student runs the 😇 Sync Halo bookmark. */
+export type SyncHow = 'desktop' | 'ipad-safari' | 'ipad-chrome' | 'iphone-safari' | 'iphone-chrome' | 'android';
+
 export interface OnboardingState {
   startedAt: string;
   /** compare and offer: Free beside Max, then the trial offer (2026-09-28). syllabus: the Free path's first step. */
   step: 'welcome' | 'account' | 'compare' | 'offer' | 'syllabus' | 'halo' | 'preferences' | 'done';
   /** Where inside the Halo step they are (bar, drag, open, wait; or the phone's copy, save, edit, open), to resume exactly. */
   screen?: string | null;
-  /** Which path: a computer's bookmarks bar, or a phone's bookmarks menu. Chosen once, changeable. */
-  path?: 'desktop' | 'phone' | null;
+  /** Which path: a computer's bookmarks bar, a phone's bookmarks menu, or the iPad's own steps (2026-09-29). */
+  path?: 'desktop' | 'phone' | 'ipad' | null;
   doneAt: string | null;
   skippedAt: string | null;
   tourDoneAt: string | null;
@@ -502,6 +505,8 @@ export interface Settings {
   haloPulls?: Record<string, HaloPull>;
   /** What the last Halo sync actually brought back, kept so the answer outlives the review screen. */
   lastPull?: { at: string; build: string | null; counts: Record<string, number> };
+  /** How this student runs the bookmark, set when they set it up, so every sync hint shows their own steps. */
+  syncHow?: SyncHow | null;
   onboarding?: OnboardingState;
   maxOnboarding?: MaxOnboardingState;
   /** When each upgrade welcome was shown, so neither ever shows twice (onboarding/Upgrade.tsx). */

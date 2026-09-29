@@ -2,6 +2,7 @@ import { dateOf, diffDays, fmtDate, fmtTime } from '../domain/dates';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
+import { HowYouSync } from './HowYouSync';
 
 /**
  * The trust line: when what is on screen last matched Halo, or that it never has. Always present, always one line,
@@ -19,7 +20,7 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
   if (!at) {
     return (
       <p className="synced mono" data-level="amber">
-        <span>Not synced from Halo yet.</span> {sync}
+        <span>Not synced from Halo yet.</span> {sync} <HowYouSync bare />
       </p>
     );
   }
@@ -29,7 +30,7 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
   if (stale) {
     return (
       <p className="synced mono" data-level="amber">
-        <span>{stale}</span> {sync}
+        <span>{stale}</span> {sync} <HowYouSync bare />
       </p>
     );
   }

@@ -75,7 +75,7 @@ export function stalenessLine(s: Staleness, total: number): string | null {
   const days = Math.max(...s.stale.map((x) => x.days));
   // A kind that has simply never come (a class with no resources) is not a stale sync: never "0 days ago. Sync now".
   if (days < 1) return null;
-  return `Last Halo sync was ${days === 1 ? 'a day' : `${days} days`} ago. Sync now.`;
+  return `Last Halo sync was ${days === 1 ? 'a day' : `${days} days`} ago.`;
 }
 
 /**

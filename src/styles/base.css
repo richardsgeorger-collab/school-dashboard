@@ -257,13 +257,17 @@ button {
   color: var(--ink-3);
 }
 
-@media (min-width: 768px) {
+/* The tabs move to the top from 1000px. Below that (phones, and tablets such as an iPad in portrait) they sit at the
+   bottom: the top bar holds Add, Sync, the trial chip and the account, and there was no room for all six tabs too. */
+@media (min-width: 1000px) {
   .nav-top {
     display: flex;
   }
   .nav-bottom {
     display: none;
   }
+}
+@media (min-width: 768px) {
   .main {
     padding: var(--s-5) var(--s-5) var(--s-7);
   }

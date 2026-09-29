@@ -2766,3 +2766,19 @@
   gap: 4px;
   justify-items: start;
 }
+
+/* ---- How this student syncs, wherever a sync hint shows (2026-09-29) ------------------------------------------ */
+.how-you-sync {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 6px;
+  font-size: 14px;
+}
+.synced-how {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-body);
+  color: var(--ink-3);
+}

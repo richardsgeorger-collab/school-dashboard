@@ -21,6 +21,8 @@ import { type OnboardingState, type Step } from './state';
 import { Compare, Offer } from './PlanChoice';
 import { ChromeMenuPicture, HaloBarPicture, ShortcutKeyboard } from './Keyboard';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
+import { deviceSyncHow } from '../halo/syncHow';
+import { IPadHalo, ipadScreens, type IPadScreen } from './IPadHalo';
 import { TouchPicture, type TouchBrowser } from './TouchPictures';
 import { isChromeIOS, isIOSDevice, isIPad, isMacComputer, isTouchDevice } from '../ui/device';
 import { ImportSyllabus } from '../views/ImportSyllabus';
@@ -37,7 +39,7 @@ import { track } from './track';
  * with the likely fixes after a minute). A phone gets its own path, since a phone has no bookmarks bar to drag to.
  */
 
-type Screen = 'bar' | 'drag' | 'open' | 'wait' | 'p-copy' | 'p-save' | 'p-edit' | 'p-open' | 'p-wait';
+type Screen = 'bar' | 'drag' | 'open' | 'wait' | 'p-copy' | 'p-save' | 'p-edit' | 'p-open' | 'p-wait' | IPadScreen;
 const DESKTOP: Screen[] = ['bar', 'drag', 'open', 'wait'];
 const PHONE: Screen[] = ['p-copy', 'p-save', 'p-edit', 'p-open', 'p-wait'];
 /** A minute with nothing arriving is when a student starts to wonder; that is when the fixes show. */
@@ -109,8 +111,9 @@ export function Onboarding() {
   const tz = data.settings.timezone;
   const ob = data.settings.onboarding as OnboardingState;
   const step = ob.step;
-  const path = ob.path ?? (isPhoneDevice() ? 'phone' : 'desktop');
-  const screens = path === 'phone' ? PHONE : DESKTOP;
+  // An iPad gets its own setup and stays on the iPad (2026-09-29); an iPad that started on the phone steps keeps them.
+  const path = ob.path ?? (isIPad() ? 'ipad' : isPhoneDevice() ? 'phone' : 'desktop');
+  const screens: Screen[] = path === 'ipad' ? ipadScreens() : path === 'phone' ? PHONE : DESKTOP;
   const screen = (screens as string[]).includes(ob.screen ?? '') ? (ob.screen as Screen) : screens[0];
   const [paste, setPaste] = useState(false);
 
@@ -215,6 +218,7 @@ export function Onboarding() {
           <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />
         )}
         {step === 'halo' && !synced && path === 'phone' && <PhoneHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />}
+        {step === 'halo' && !synced && path === 'ipad' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
 
         {/* A sync that lands on any screen (a student who clicked the bookmark early) goes straight to the payoff. */}
         {synced && <Payoff onStart={finish} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} />}
@@ -321,7 +325,9 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
 
+  const { actions } = useStore();
   const openHalo = () => {
+    actions.updateSettings({ syncHow: 'desktop' });
     window.open('https://halo.gcu.edu/', '_blank', 'noopener');
     show('wait');
   };
@@ -400,6 +406,7 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
 }
 
 function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void }) {
+  const { actions } = useStore();
   const href = useBookmarkHref('short');
   const browser = touchBrowser();
   const ipad = isIPad();
@@ -540,6 +547,7 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
             type="button"
             className="btn primary block onboard-big"
             onClick={() => {
+              actions.updateSettings({ syncHow: deviceSyncHow() });
               window.open('https://halo.gcu.edu/', '_blank', 'noopener');
               show('p-wait');
             }}
