@@ -12,7 +12,7 @@ export function useBookmarkHref(kind: 'full' | 'short' = 'full'): string {
 }
 
 /** The draggable Sync Halo button. React refuses javascript: hrefs as props, so the address is set on the element. */
-export function BookmarkButton({ onClickNote }: { onClickNote: (note: string) => void }) {
+export function BookmarkButton({ onClickNote, onDropped }: { onClickNote: (note: string) => void; /** A drag that ended on something that took it (the bookmarks bar). */ onDropped?: () => void }) {
   const href = useBookmarkHref();
   const link = useRef<HTMLAnchorElement>(null);
   useEffect(() => {
@@ -23,6 +23,12 @@ export function BookmarkButton({ onClickNote }: { onClickNote: (note: string) =>
       ref={link}
       className="btn primary halo-drag"
       draggable
+      // A drop the browser accepted (the bookmarks bar takes it as a link) ends with a drop effect; a drag let go
+      // anywhere else ends with none.
+      onDragEnd={(e) => {
+        if (e.dataTransfer.dropEffect !== 'none') onDropped?.();
+        else onClickNote('Almost: let go of it on the bookmarks bar, just under the address bar.');
+      }}
       onClick={(e) => {
         e.preventDefault();
         onClickNote('Drag this button to your bookmarks bar. Clicking it here does nothing; clicking it on Halo does everything.');

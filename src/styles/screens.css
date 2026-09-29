@@ -2475,3 +2475,88 @@
     overflow-x: auto;
   }
 }
+
+/* Onboarding, rebuilt 2026-09-28: keycaps for the bookmarks-bar shortcut, the real drag button under the demo, the
+   phone's numbered steps, the fixes after a minute, and the payoff's blocks. */
+.keycaps {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.keycaps kbd {
+  font: 600 18px/1 var(--font-body);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong, var(--line));
+  box-shadow: 0 3px 0 var(--line-strong, var(--line));
+  color: var(--ink);
+}
+.onboard-drag {
+  display: flex;
+  justify-content: center;
+  margin: var(--s-2) 0;
+}
+.onboard-drag .halo-drag {
+  font-size: 17px;
+  padding: 12px 22px;
+  cursor: grab;
+}
+.phone-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 10px;
+  font-size: 17px;
+  line-height: 1.45;
+}
+.fixes {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  padding: 12px 14px;
+  text-align: left;
+}
+.fixes-head {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.fixes ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.payoff-block {
+  text-align: left;
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-3);
+}
+.payoff-block .eyebrow {
+  margin: 0 0 6px;
+}
+.payoff-finds {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 16px;
+}
+.payoff-finds .mono {
+  margin-right: 6px;
+}
+/* The payoff's one action stays in reach on a phone: pinned to the bottom, over the page. */
+@media (max-width: 700px) {
+  .onboard-payoff > .onboard-actions {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+    /* The scroller's own bottom padding sits below the button; paint it too, so nothing shows under it. */
+    box-shadow: 0 48px 0 var(--bg);
+  }
+}

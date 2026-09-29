@@ -254,7 +254,11 @@ const scale = Number(process.env.SCALE ?? 2);
 const device = vp === 'desk' ? { viewport: { width: 1440, height: 900 }, deviceScaleFactor: scale } : vp === 'laptop' ? { viewport: { width: 1280, height: 800 }, deviceScaleFactor: scale } : vp === 'tiny' ? { ...devices['iPhone SE'], viewport: { width: 320, height: 568 }, deviceScaleFactor: 2 } : { ...devices['iPhone 14'], deviceScaleFactor: 2 };
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const scheme of ['light', 'dark']) {
-  for (const [group, list] of [['seeded', SEEDED], ['timed', TIMED], ['fresh', FRESH]]) {
+  // The onboarding and upgrade welcomes are captured on the real backend by scripts/e2e-onboarding.mjs (they need an
+  // account); the old four-screen Max welcome and the old onboarding scenes are retired here.
+  const RETIRED = /^(onboarding-|max-|tour$)/;
+  for (const [group, full] of [['seeded', SEEDED], ['timed', TIMED], ['fresh', FRESH]]) {
+    const list = full.filter(([name]) => !RETIRED.test(name));
     const ctx = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });
     const page = await ctx.newPage();
     if (group !== 'fresh') {

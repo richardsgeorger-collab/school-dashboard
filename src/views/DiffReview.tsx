@@ -90,6 +90,7 @@ export function DiffReview({
   missingLabel = 'No longer in Halo',
   onApplied,
   onClose,
+  autoApply = false,
 }: {
   payload: HaloExport;
   source: SyncSource;
@@ -98,6 +99,8 @@ export function DiffReview({
   missingLabel?: string;
   onApplied?: (s: AppliedSummary) => void;
   onClose: () => void;
+  /** The first sync ever (an empty planner): nothing to compare or lose, so it applies itself and closes. */
+  autoApply?: boolean;
 }) {
   const { data, actions, undo } = useStore();
   const { auth, profile } = useAccount();
@@ -139,7 +142,10 @@ export function DiffReview({
     savedFor.current = payload;
     void (async () => {
       const at = new Date().toISOString();
-      const courseIdOf = (classId: string, code: string) => data.courses.find((c) => c.haloClassId === classId)?.id ?? data.courses.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
+      // A class this sync is creating counts too: its announcements are kept under the id it is about to get, or a
+      // new student's first sync (every class new) would lose every announcement and the reader would have nothing.
+      const known = [...data.courses, ...diff.courses.created];
+      const courseIdOf = (classId: string, code: string) => known.find((c) => c.haloClassId === classId)?.id ?? known.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
       const plan = referencePlan(diff, data);
       if (plan.facts.length > 0 || plan.courses.length > 0) actions.applyHaloSync(plan);
       let ann: Awaited<ReturnType<typeof saveAnnouncements>> = { saved: 0, fresh: 0, records: [] };
@@ -190,6 +196,15 @@ export function DiffReview({
     // Announcements live in their own store, which no React state watches; this is what tells Now to look again.
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(SYNC_EVENT));
   };
+
+  // First sync: once the announcements and class facts are saved and the selection exists, apply everything and close.
+  const autoDone = useRef(false);
+  useEffect(() => {
+    if (!autoApply || autoDone.current || !sel || (source === 'halo' && !kept)) return;
+    autoDone.current = true;
+    void apply().then(() => onClose());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoApply, sel, kept]);
 
   const ChangeLine = ({ c }: { c: FieldChange }) => {
     const label = c.field === 'dueAt' ? 'Due' : c.field === 'points' ? 'Points' : 'Title';

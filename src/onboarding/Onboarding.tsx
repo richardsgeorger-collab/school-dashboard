@@ -1,34 +1,59 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
+import { pendingFriend } from '../auth/referral';
 import { CourseChip } from '../components/CourseChip';
 import { HaloDraw } from '../components/HaloDraw';
-import { SegmentedControl } from '../components/SegmentedControl';
-import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
-import { rankItems } from '../domain/now';
+import { friendGift, trialState } from '../config/flags';
+import { TRIAL } from '../config/tiers';
+import { dateOf, diffDays, fmtDate, fmtMinutes } from '../domain/dates';
+import { nextTestPlan } from '../domain/exam';
+import { shortLine } from '../domain/shortLine';
 import type { Item } from '../domain/types';
+import { useReadStatus } from '../halo/backgroundRead';
+import { announceDb } from '../halo/announce';
+import { pixel } from '../analytics/pixel';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
-import { BookmarkButton, SyncSteps } from '../views/SyncSheet';
-import { visibleSteps, type OnboardingState, type Step } from './state';
-import { pixel } from '../analytics/pixel';
-import { announceDb } from '../halo/announce';
-import { nextTestPlan } from '../domain/exam';
-import { freshMax } from './maxState';
-import { trialState } from '../config/flags';
-import { TRIAL } from '../config/tiers';
+import { HaloImport } from '../views/HaloImport';
+import { BookmarkButton, useBookmarkHref } from '../views/BookmarkButton';
+import { type OnboardingState, type Step } from './state';
 import { track } from './track';
 
-const HOURS = ['1', '2', '3', '4'] as const;
-const WEEKEND = ['2', '4', '6', '8'] as const;
-const MORNING = [
-  { value: '07:00', label: '7:00' },
-  { value: '07:30', label: '7:30' },
-  { value: '08:00', label: '8:00' },
-  { value: 'off', label: 'No note' },
-] as const;
+/**
+ * The first two minutes. Goal: a GCU student who has never seen the app sees their own real assignments without
+ * asking anyone. One action per screen, short words, a progress line, and every screen saved so a student who leaves
+ * comes back exactly where they were. Nothing is asked that Halo already knows (classes, times, the time zone).
+ *
+ * The bookmark is the hard part, so it is split into single moves: show the bookmarks bar (detected), drag the button
+ * (the drop is detected), open Halo (a button that opens it), click the bookmark (the sync is detected by its arrival,
+ * with the likely fixes after a minute). A phone gets its own path, since a phone has no bookmarks bar to drag to.
+ */
 
-const isPhone = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || /iPhone|iPad|Android/i.test(navigator.userAgent));
+type Screen = 'bar' | 'drag' | 'open' | 'wait' | 'p-copy' | 'p-save' | 'p-edit' | 'p-open' | 'p-wait';
+const DESKTOP: Screen[] = ['bar', 'drag', 'open', 'wait'];
+const PHONE: Screen[] = ['p-copy', 'p-save', 'p-edit', 'p-open', 'p-wait'];
+/** A minute with nothing arriving is when a student starts to wonder; that is when the fixes show. */
+export const WAIT_MS = 60_000;
+
+const ua = () => (typeof navigator === 'undefined' ? '' : navigator.userAgent);
+export const isPhoneDevice = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || /iPhone|iPad|Android/i.test(ua()));
+export const isIOS = () => /iPhone|iPad|iPod/i.test(ua());
+export const isSafari = () => /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua());
+const isMac = () => /Mac/i.test(typeof navigator === 'undefined' ? '' : navigator.platform || ua());
+
+/**
+ * Whether the bookmarks bar is showing, from the height of the browser's own chrome around the page: tabs and toolbar
+ * alone are about 80px; with the bookmarks bar about 110. Unknown in full screen or a window too odd to tell.
+ */
+export function barGuess(outer: number, inner: number): 'shown' | 'hidden' | 'unknown' {
+  const chrome = outer - inner;
+  if (chrome < 50 || chrome > 220) return 'unknown';
+  return chrome >= 100 ? 'shown' : 'hidden';
+}
+
+/** The bar appearing shrinks the page by about 25 to 40px while the window keeps its size. */
+export const barAppeared = (before: { outer: number; inner: number }, after: { outer: number; inner: number }) => Math.abs(after.outer - before.outer) <= 2 && before.inner - after.inner >= 18 && before.inner - after.inner <= 60;
 
 /** A number that counts up to its target over about a second, easing out. Reduced motion lands immediately. */
 function useCountUp(target: number, ms = 1300): number {
@@ -61,10 +86,12 @@ export function announcementFinds(items: Item[]): number {
   return n;
 }
 
-/**
- * The first two minutes, one question per screen: sign up, drag the bookmark (shown, not described), open Halo and
- * click it, then the payoff: how much was found, counted up, and the real first assignment. Extras come later.
- */
+/** The next big deadline: the most points due in the next two weeks, the soonest on a tie. */
+export function nextBig(items: Item[], today: string, tz: string): Item | null {
+  const soon = items.filter((i) => i.status !== 'done' && i.points > 0 && i.type !== 'participation' && dateOf(i.dueAt, tz) >= today && diffDays(today, dateOf(i.dueAt, tz)) <= 14);
+  return soon.sort((a, b) => b.points - a.points || a.dueAt.localeCompare(b.dueAt))[0] ?? null;
+}
+
 export function Onboarding() {
   const { data, schedule, actions, today } = useStore();
   const { auth, profile } = useAccount();
@@ -72,10 +99,10 @@ export function Onboarding() {
   const tz = data.settings.timezone;
   const ob = data.settings.onboarding as OnboardingState;
   const step = ob.step;
-  const steps = visibleSteps(auth.configured);
-  const [phase, setPhase] = useState<'install' | 'sync'>('install');
-  const [note, setNote] = useState<string | null>(null);
-  const phone = useMemo(isPhone, []);
+  const path = ob.path ?? (isPhoneDevice() ? 'phone' : 'desktop');
+  const screens = path === 'phone' ? PHONE : DESKTOP;
+  const screen = (screens as string[]).includes(ob.screen ?? '') ? (ob.screen as Screen) : screens[0];
+  const [paste, setPaste] = useState(false);
 
   const set = (patch: Partial<OnboardingState>) => actions.updateSettings({ onboarding: { ...ob, ...patch } });
   const go = (next: Step) => {
@@ -83,41 +110,492 @@ export function Onboarding() {
     track(next, 'enter');
     set({ step: next });
   };
-  const skipStep = (next: Step) => {
-    track(step, 'skip');
-    track(next, 'enter');
-    set({ step: next });
+  const show = (s: Screen) => {
+    track(`halo:${screen}`, 'complete');
+    track(`halo:${s}`, 'enter');
+    set({ screen: s, path });
   };
+  const switchPath = () => set({ path: path === 'phone' ? 'desktop' : 'phone', screen: null });
   const skipAll = () => {
     track(step, 'skip');
     set({ skippedAt: new Date().toISOString() });
   };
   const onTrial = trialState(profile) === 'active';
+  const gift = friendGift(profile);
   const finish = () => {
-    track(step, 'complete');
+    track('payoff', 'complete');
     pixel('CompleteRegistration');
-    set({ step: 'done', doneAt: new Date().toISOString() });
-    // The trial started with the account; its welcome (colour, receipts, the tour) opens once the first day is set up.
-    if (onTrial && !data.settings.maxOnboarding) actions.updateSettings({ maxOnboarding: freshMax() });
+    const now = new Date().toISOString();
+    set({ step: 'done', doneAt: now });
+    // The welcome for Max (colour, study plan) follows the tour on its own; see onboarding/Upgrade.tsx.
     navigate('now');
   };
 
-  // The account step only exists on a build with accounts, and passes itself the moment someone is signed in.
+  // The account step passes itself the moment someone is signed in (including coming back from the email link).
   useEffect(() => {
     if (step === 'account' && (!auth.configured || auth.session)) set({ step: 'halo' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, auth.configured, auth.session]);
 
   const synced = data.courses.length > 0;
-  const testPlan = useMemo(() => (synced ? nextTestPlan(data.items, schedule, data.settings, today) : null), [synced, data.items, schedule, data.settings, today]);
-  const hero = useMemo(() => (synced ? (rankItems(data.items.filter((i) => i.type !== 'participation'), schedule, new Date().toISOString(), tz)[0] ?? null) : null), [synced, data.items, schedule, tz]);
-  const found = useCountUp(synced ? data.items.length : 0);
-  const finds = announcementFinds(data.items);
-  const foundPosts = useCountUp(synced ? finds : 0, 1600);
-  // How many announcements the sync brought: the honest, cheap number the trial card can quote when none has been read.
+  // Record the arrival once, so the admin screen sees who got as far as their own classes.
+  const logged = useRef(false);
+  useEffect(() => {
+    if (synced && step === 'halo' && !logged.current) {
+      logged.current = true;
+      track('payoff', 'enter');
+    }
+  }, [synced, step]);
+
+  const progress = step === 'welcome' ? 0 : step === 'account' ? 1 : synced ? 3 : 2;
+  const labels = auth.configured ? ['Welcome', 'Account', 'Connect Halo', 'Your classes'] : ['Welcome', 'Connect Halo', 'Your classes'];
+  const at = auth.configured ? progress : Math.max(0, progress - 1);
+
+  return (
+    <div className="onboard" role="dialog" aria-modal="true" aria-label="Welcome">
+      <div className="onboard-inner">
+        <header className="onboard-head">
+          <span className="onboard-count">
+            Step {at + 1} of {labels.length}: {labels[at]}
+          </span>
+          <span className="onboard-progress" aria-hidden>
+            {labels.map((s, i) => (
+              <i key={s} data-done={i < at} data-current={i === at} />
+            ))}
+          </span>
+          {!synced && (
+            <button type="button" className="diff-toggle" onClick={skipAll}>
+              Skip for now
+            </button>
+          )}
+        </header>
+
+        {step === 'welcome' && !synced && <Welcome onStart={() => go(auth.configured && !auth.session ? 'account' : 'halo')} signedOut={auth.configured && !auth.session} />}
+
+        {step === 'account' && !synced && (
+          <section className="onboard-step" aria-label="Sign up">
+            <h1 className="onboard-title">Make your account.</h1>
+            <p className="onboard-text">{pendingFriend() ? 'Your friend link gives you Max free. No card.' : `Max is free for your first ${TRIAL.days} days. No card.`} We'll email you a link: no password to invent.</p>
+            <SignIn auth={auth} title="Sign up with" />
+            <p className="hint">
+              <button type="button" className="hero-inline" onClick={() => go('halo')}>
+                Not now, keep everything on this device
+              </button>
+            </p>
+          </section>
+        )}
+
+        {step === 'halo' && !synced && path === 'desktop' && (
+          <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />
+        )}
+        {step === 'halo' && !synced && path === 'phone' && <PhoneHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />}
+
+        {/* A sync that lands on any screen (a student who clicked the bookmark early) goes straight to the payoff. */}
+        {synced && <Payoff onStart={finish} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} />}
+      </div>
+      {paste && <HaloImport onClose={() => setPaste(false)} />}
+    </div>
+  );
+}
+
+function Welcome({ onStart, signedOut }: { onStart: () => void; signedOut: boolean }) {
+  const friend = pendingFriend();
+  return (
+    <section className="onboard-step" aria-label="Welcome">
+      <HaloDraw size={72} />
+      <p className="eyebrow">{friend ? 'A friend sent you Halo+' : 'The planner built for Halo'}</p>
+      <h1 className="onboard-title">See your real assignments in about two minutes.</h1>
+      <p className="onboard-text">Halo+ pulls your classes, due dates and announcements from Halo and shows the one thing to do next. It never asks for your GCU password.</p>
+      <div className="onboard-actions">
+        <button type="button" className="btn primary" onClick={onStart}>
+          Start
+        </button>
+      </div>
+      {signedOut && (
+        <p className="hint">
+          Already have an account? <a href="#/login">Log in</a>
+        </p>
+      )}
+      <p className="hint onboard-foot">Not affiliated with Grand Canyon University.</p>
+    </section>
+  );
+}
+
+/** The mini browser the demos draw in: three dots, an address, optionally the bookmarks bar. */
+function MiniBrowser({ bar, children, label, slot = true }: { bar: boolean; children?: React.ReactNode; label: string; /** Show Sync Halo already in the bar. */ slot?: boolean }) {
+  return (
+    <div className="drag-demo" role="img" aria-label={label}>
+      <div className="demo-chrome">
+        <span className="demo-dot" />
+        <span className="demo-dot" />
+        <span className="demo-dot" />
+        <span className="demo-url">halo-plus</span>
+      </div>
+      {bar && (
+        <div className="demo-bar">
+          <span className="demo-bm" />
+          <span className="demo-bm" />
+          {slot && (
+            <span className="demo-slot">
+              <i>Sync Halo</i>
+            </span>
+          )}
+        </div>
+      )}
+      <div className="demo-page">{children}</div>
+    </div>
+  );
+}
+
+function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void }) {
+  const [note, setNote] = useState<string | null>(null);
+  const keys = isMac() ? '⌘ Command + Shift + B' : 'Ctrl + Shift + B';
+  const safari = isSafari();
+
+  // The bar step: skipped on its own when the bar already shows; advanced on its own when it appears.
+  const base = useRef({ outer: typeof window === 'undefined' ? 0 : window.outerHeight, inner: typeof window === 'undefined' ? 0 : window.innerHeight });
+  useEffect(() => {
+    if (screen !== 'bar') return;
+    if (barGuess(window.outerHeight, window.innerHeight) === 'shown') {
+      show('drag');
+      return;
+    }
+    base.current = { outer: window.outerHeight, inner: window.innerHeight };
+    const onResize = () => {
+      const now = { outer: window.outerHeight, inner: window.innerHeight };
+      if (barAppeared(base.current, now) || barGuess(now.outer, now.inner) === 'shown') show('drag');
+      else base.current = now;
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
+
+  const openHalo = () => {
+    window.open('https://halo.gcu.edu/', '_blank', 'noopener');
+    show('wait');
+  };
+
+  return (
+    <>
+      {screen === 'bar' && (
+        <section className="onboard-step" aria-label="Show your bookmarks bar">
+          <h1 className="onboard-title">Show your bookmarks bar.</h1>
+          <p className="onboard-text">Press these three keys together:</p>
+          <p className="keycaps" aria-label={keys}>
+            {(isMac() ? ['⌘', 'Shift', 'B'] : ['Ctrl', 'Shift', 'B']).map((k) => (
+              <kbd key={k}>{k}</kbd>
+            ))}
+          </p>
+          <MiniBrowser bar slot={false} label="The bookmarks bar appears under the address bar." />
+          <p className="hint">This page moves on by itself when the bar appears.</p>
+          <p className="hint">
+            <button type="button" className="hero-inline" onClick={() => show('drag')}>
+              My bookmarks bar is already showing
+            </button>
+          </p>
+        </section>
+      )}
+
+      {screen === 'drag' && (
+        <section className="onboard-step" aria-label="Drag the bookmark">
+          <h1 className="onboard-title">Drag this button up to your bookmarks bar.</h1>
+          <MiniBrowser bar label="The Sync Halo button being dragged up into the bookmarks bar.">
+            <span className="demo-pill">Sync Halo</span>
+            <span className="demo-cursor" />
+          </MiniBrowser>
+          <p className="onboard-drag">
+            <BookmarkButton onClickNote={setNote} onDropped={() => show('open')} />
+          </p>
+          {note && (
+            <p className="hint" role="status">
+              {note}
+            </p>
+          )}
+          {safari && <p className="hint">In Safari, drag it to the Favorites bar. Chrome or Edge is easier if you have one.</p>}
+          <p className="hint">
+            <button type="button" className="hero-inline" onClick={() => show('open')}>
+              I already have it in my bar
+            </button>
+          </p>
+          <p className="hint">
+            <button type="button" className="hero-inline" onClick={() => show('bar')}>
+              I can't see my bookmarks bar
+            </button>
+          </p>
+          <p className="hint">
+            <button type="button" className="hero-inline" onClick={switchPath}>
+              On a phone? Use the phone steps
+            </button>
+          </p>
+        </section>
+      )}
+
+      {screen === 'open' && (
+        <section className="onboard-step" aria-label="Open Halo">
+          <h1 className="onboard-title">It's in your bar. Now open Halo.</h1>
+          <p className="onboard-text">Halo opens in a new tab. Log in there if it asks.</p>
+          <div className="onboard-actions">
+            <button type="button" className="btn primary" onClick={openHalo}>
+              Open Halo
+            </button>
+          </div>
+          <p className="hint">
+            <button type="button" className="hero-inline" onClick={() => show('drag')}>
+              Back
+            </button>
+          </p>
+        </section>
+      )}
+
+      {screen === 'wait' && <Waiting phone={false} show={show} onPaste={onPaste} />}
+    </>
+  );
+}
+
+function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void }) {
+  const href = useBookmarkHref('short');
+  const ios = isIOS();
+  const [err, setErr] = useState<string | null>(null);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(href);
+      show('p-save');
+    } catch {
+      setErr('Your phone did not allow copying. Press and hold the box below, Select All, Copy.');
+    }
+  };
+  return (
+    <>
+      {screen === 'p-copy' && (
+        <section className="onboard-step" aria-label="Copy the bookmark">
+          <h1 className="onboard-title">Copy the Sync Halo bookmark.</h1>
+          <p className="onboard-text">On a phone you make the bookmark by hand, once. Four quick steps.</p>
+          <div className="onboard-actions">
+            <button type="button" className="btn primary" onClick={() => void copy()}>
+              Copy it
+            </button>
+          </div>
+          {err && (
+            <>
+              <p className="hint" role="alert">
+                {err}
+              </p>
+              <textarea className="halo-paste" readOnly value={href} rows={4} onFocus={(e) => e.currentTarget.select()} />
+              <button type="button" className="btn small" onClick={() => show('p-save')}>
+                I copied it
+              </button>
+            </>
+          )}
+          <p className="hint">
+            Easier on a computer? Set it up there once and your phone gets everything through your account.{' '}
+            <button type="button" className="hero-inline" onClick={switchPath}>
+              Show the computer steps
+            </button>
+          </p>
+        </section>
+      )}
+      {screen === 'p-save' && (
+        <section className="onboard-step" aria-label="Bookmark this page">
+          <h1 className="onboard-title">Bookmark this page.</h1>
+          <ol className="phone-steps">
+            {ios ? (
+              <>
+                <li>
+                  Tap <b>Share</b> <span aria-hidden>(the square with an arrow)</span>.
+                </li>
+                <li>
+                  Tap <b>Add Bookmark</b>, then <b>Save</b>.
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  Tap <b>⋮</b> at the top right.
+                </li>
+                <li>
+                  Tap the <b>☆ star</b>.
+                </li>
+              </>
+            )}
+          </ol>
+          <div className="onboard-actions">
+            <button type="button" className="btn primary" onClick={() => show('p-edit')}>
+              Done
+            </button>
+          </div>
+        </section>
+      )}
+      {screen === 'p-edit' && (
+        <section className="onboard-step" aria-label="Paste the address">
+          <h1 className="onboard-title">Swap its address for the one you copied.</h1>
+          <ol className="phone-steps">
+            {ios ? (
+              <>
+                <li>
+                  Open <b>Bookmarks</b> <span aria-hidden>(the open book)</span> and tap <b>Edit</b>.
+                </li>
+                <li>Tap the bookmark you just made.</li>
+                <li>
+                  Name it <b>Sync Halo</b>. Clear the address and paste.
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  Tap <b>⋮</b>, then <b>Bookmarks</b>.
+                </li>
+                <li>
+                  Press and hold the new bookmark, tap <b>Edit</b>.
+                </li>
+                <li>
+                  Name it <b>Sync Halo</b>. Clear the URL and paste.
+                </li>
+              </>
+            )}
+          </ol>
+          <div className="onboard-actions">
+            <button type="button" className="btn primary" onClick={() => show('p-open')}>
+              Done
+            </button>
+          </div>
+          <p className="hint">
+            <button type="button" className="hero-inline" onClick={() => show('p-copy')}>
+              Copy it again
+            </button>
+          </p>
+        </section>
+      )}
+      {screen === 'p-open' && (
+        <section className="onboard-step" aria-label="Open Halo">
+          <h1 className="onboard-title">Open Halo and log in.</h1>
+          <p className="onboard-text">Then run the bookmark from there. This page shows you how.</p>
+          <div className="onboard-actions">
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => {
+                window.open('https://halo.gcu.edu/', '_blank', 'noopener');
+                show('p-wait');
+              }}
+            >
+              Open Halo
+            </button>
+          </div>
+        </section>
+      )}
+      {screen === 'p-wait' && <Waiting phone show={show} onPaste={onPaste} />}
+    </>
+  );
+}
+
+/**
+ * Waiting for the sync to arrive. Nothing to press: the tab notices the classes when they come (the bookmark returns to
+ * this very tab). After a minute, the likely fixes, each one line.
+ */
+function Waiting({ phone, show, onPaste }: { phone: boolean; show: (s: Screen) => void; onPaste: () => void }) {
+  const [late, setLate] = useState(false);
+  useEffect(() => {
+    // The screenshot script shortens the minute through local storage; nothing else sets it.
+    let ms = WAIT_MS;
+    try {
+      ms = Number(localStorage.getItem('school-dashboard:onboard-wait-ms')) || WAIT_MS;
+    } catch {
+      /* storage unavailable */
+    }
+    const t = setTimeout(() => setLate(true), ms);
+    return () => clearTimeout(t);
+  }, []);
+  const ios = isIOS();
+  const halo = () => window.open('https://halo.gcu.edu/', '_blank', 'noopener');
+  return (
+    <section className="onboard-step onboard-wait" aria-label="Waiting for Halo">
+      <span className="wait-ring" aria-hidden>
+        <HaloDraw size={64} />
+      </span>
+      <h1 className="onboard-title">{phone ? (ios ? 'In Halo, open Bookmarks and tap Sync Halo.' : 'In Halo, type "Sync Halo" in the address bar and tap the bookmark.') : 'Now click Sync Halo in your bookmarks bar.'}</h1>
+      <p className="onboard-text">Do it in the Halo tab. This page fills in by itself when your classes arrive, usually within 20 seconds.</p>
+      {late && (
+        <div className="fixes" role="status">
+          <p className="fixes-head">Nothing yet? One of these is usually it:</p>
+          <ul>
+            <li>
+              <b>Not logged in to Halo.</b> Log in at halo.gcu.edu, then {phone ? 'tap' : 'click'} Sync Halo again.{' '}
+              <button type="button" className="hero-inline" onClick={halo}>
+                Open Halo
+              </button>
+            </li>
+            {phone ? (
+              <>
+                <li>
+                  <b>It just opened this page.</b> The address wasn't swapped.{' '}
+                  <button type="button" className="hero-inline" onClick={() => show('p-copy')}>
+                    Redo the bookmark
+                  </button>
+                </li>
+                {!ios && (
+                  <li>
+                    <b>Nothing happens from the bookmarks list.</b> On Android, run it from the address bar: type Sync Halo and tap the bookmark.
+                  </li>
+                )}
+                <li>
+                  <b>A pop-up was blocked.</b> {ios ? 'Settings, Safari, turn off Block Pop-ups, then tap it again.' : 'Allow pop-ups for halo.gcu.edu when Chrome asks, then tap it again.'}
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <b>Sync Halo isn't in your bookmarks bar.</b>{' '}
+                  <button type="button" className="hero-inline" onClick={() => show('drag')}>
+                    Drag it again
+                  </button>
+                </li>
+                <li>
+                  <b>A pop-up was blocked.</b> Click the blocked-window icon at the right end of Halo's address bar, choose Always allow, click Sync Halo again.
+                </li>
+                <li>
+                  <b>Using Safari?</b> It blocks what the bookmark opens. Use Chrome or Edge, or allow pop-ups for halo.gcu.edu in Safari Settings, Websites.
+                </li>
+              </>
+            )}
+            <li>
+              <b>Halo showed a box with a Copy button.</b> Copy it, then{' '}
+              <button type="button" className="hero-inline" onClick={onPaste}>
+                paste it here
+              </button>
+            </li>
+          </ul>
+        </div>
+      )}
+      <p className="hint">
+        <button type="button" className="hero-inline" onClick={() => show(phone ? 'p-open' : 'open')}>
+          Back
+        </button>
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The payoff: what arrived, counted up; what the announcements asked that the assignments don't say (live, while the
+ * reader works); the next big deadline; and one button, Start here, that lands on Now.
+ */
+function Payoff({ onStart, schedule, today, tz, gift, onTrial }: { onStart: () => void; schedule: ReturnType<typeof useStore>['schedule']; today: string; tz: string; gift: { from: string; until: string } | null; onTrial: boolean }) {
+  const { data, courseById } = useStore();
+  const reading = useReadStatus();
+  const found = useCountUp(data.items.length);
+  const finds = useMemo(
+    () =>
+      data.items
+        .flatMap((i) => (i.requirements ?? []).filter((r) => r.source?.kind === 'announcement' && !r.done).map((r) => ({ id: r.id, text: shortLine(r.text), code: courseById.get(i.courseId)?.code ?? '' })))
+        .slice(0, 3),
+    [data.items, courseById],
+  );
+  const total = announcementFinds(data.items);
+  const big = useMemo(() => nextBig(data.items, today, tz), [data.items, today, tz]);
+  const plan = useMemo(() => nextTestPlan(data.items, schedule, data.settings, today), [data.items, schedule, data.settings, today]);
   const [posts, setPosts] = useState(0);
   useEffect(() => {
-    if (!synced) return;
     let live = true;
     const ids = new Set(data.courses.map((c) => c.id));
     void announceDb
@@ -127,209 +605,68 @@ export function Onboarding() {
     return () => {
       live = false;
     };
-  }, [synced, data.courses]);
-  const n = Math.max(1, steps.indexOf(step) + 1);
-  const hours = (min: number) => String(Math.round(min / 60));
+  }, [data.courses]);
+  const progress = reading.running && reading.progress ? reading.progress : null;
 
   return (
-    <div className="onboard" role="dialog" aria-modal="true" aria-label="Welcome">
-      <div className="onboard-inner">
-        <header className="onboard-head">
-          <span className="onboard-count">
-            {n} of {steps.length}
-          </span>
-          <span className="onboard-progress" aria-hidden>
-            {steps.map((s, i) => (
-              <i key={s} data-done={i < n - 1} data-current={i === n - 1} />
+    <section className="onboard-step onboard-payoff" aria-label="Your classes are here">
+      <HaloDraw size={72} />
+      <h1 className="onboard-title">
+        <span className="payoff-num">{found}</span> assignments from {data.courses.length} class{data.courses.length === 1 ? '' : 'es'}.
+      </h1>
+      <p className="onboard-chips">
+        {data.courses.map((c) => (
+          <CourseChip key={c.id} course={c} />
+        ))}
+      </p>
+
+      <div className="payoff-block">
+        <p className="eyebrow">What your professors only said in announcements</p>
+        {finds.length > 0 ? (
+          <ul className="payoff-finds">
+            {finds.map((f) => (
+              <li key={f.id}>
+                <span className="mono muted">{f.code}</span> {f.text}
+              </li>
             ))}
-          </span>
-          <button type="button" className="diff-toggle" onClick={skipAll}>
-            Skip for now
-          </button>
-        </header>
-
-        {step === 'welcome' && (
-          <section className="onboard-step" aria-label="Welcome">
-            <HaloDraw size={72} />
-            <p className="eyebrow">The planner built for Halo</p>
-            <h1 className="onboard-title">Your day, from Halo.</h1>
-            <p className="onboard-text">One screen says what to do right now: the due date, how long it takes, what it is worth. Every announcement read for you. Nothing you have to sort.</p>
-            <div className="onboard-actions">
-              <button type="button" className="btn primary" onClick={() => go(auth.configured && !auth.session ? 'account' : 'halo')}>
-                {auth.configured && !auth.session ? 'Sign up' : 'Get started'}
-              </button>
-            </div>
-            {auth.configured && !auth.session && (
-              <p className="hint">
-                Already have an account? <a href="#/login">Log in</a>
-              </p>
-            )}
-            <p className="hint onboard-foot">Not affiliated with Grand Canyon University. Never asks for your GCU password.</p>
-          </section>
-        )}
-
-        {step === 'account' && (
-          <section className="onboard-step" aria-label="Sign up">
-            <h1 className="onboard-title">Create your account.</h1>
-            <p className="onboard-text">Your classes and work follow you between your phone and laptop, and signing up starts Max free for {TRIAL.days} days, on its own: no card, nothing charges. Email link or Google; no password to invent. Already have one? The same form signs you in.</p>
-            <SignIn auth={auth} title="Your account" />
-            <div className="onboard-actions">
-              <button type="button" className="btn" onClick={() => skipStep('halo')}>
-                Not now, keep it on this device
-              </button>
-            </div>
-          </section>
-        )}
-
-        {step === 'halo' && !synced && phase === 'install' && (
-          <section className="onboard-step" aria-label="Connect Halo">
-            <h1 className="onboard-title">{phone ? 'Make the Sync Halo bookmark.' : 'Drag this to your bookmarks bar.'}</h1>
-            {phone ? (
-              <>
-                <p className="onboard-text">On a phone the bookmark is made by hand. Four short steps, and the address is short.</p>
-                <SyncSteps onNote={setNote} />
-              </>
-            ) : (
-              <>
-                <div className="drag-demo" aria-hidden>
-                  <div className="demo-chrome">
-                    <span className="demo-dot" />
-                    <span className="demo-dot" />
-                    <span className="demo-dot" />
-                    <span className="demo-url">halo.gcu.edu</span>
-                  </div>
-                  <div className="demo-bar">
-                    <span className="demo-bm" />
-                    <span className="demo-bm" />
-                    <span className="demo-slot">
-                      <i>Sync Halo</i>
-                    </span>
-                  </div>
-                  <div className="demo-page">
-                    <span className="demo-pill">Sync Halo</span>
-                    <span className="demo-cursor" />
-                  </div>
-                </div>
-                <p className="onboard-text">
-                  Drag <BookmarkButton onClickNote={setNote} /> up to the bookmarks bar. (Hidden bar: ⌘⇧B on Mac, Ctrl+Shift+B on Windows.) It reads Halo while you are logged in there and never sees your password.
-                </p>
-              </>
-            )}
-            {note && (
-              <p className="hint" role="status">
-                {note}
-              </p>
-            )}
-            <div className="onboard-actions">
-              <button type="button" className="btn primary" onClick={() => setPhase('sync')}>
-                {phone ? 'I made the bookmark' : 'I dragged it'}
-              </button>
-              <button type="button" className="btn" onClick={() => skipStep('preferences')}>
-                Later
-              </button>
-            </div>
-          </section>
-        )}
-
-        {step === 'halo' && !synced && phase === 'sync' && (
-          <section className="onboard-step onboard-wait" aria-label="First sync">
-            <span className="wait-ring" aria-hidden>
-              <HaloDraw size={72} />
-            </span>
-            <h1 className="onboard-title">Open Halo and {phone ? 'tap' : 'click'} Sync Halo.</h1>
-            <p className="onboard-text">Log in at halo.gcu.edu, then {phone ? 'open your bookmarks and tap Sync Halo' : 'click the bookmark'}. This page fills in on its own the moment your classes arrive.</p>
-            <p className="hint">
-              <a href="https://halo.gcu.edu" target="_blank" rel="noreferrer">
-                Open halo.gcu.edu
-              </a>
-            </p>
-            <div className="onboard-actions">
-              <button type="button" className="btn" onClick={() => setPhase('install')}>
-                Back
-              </button>
-              <button type="button" className="btn" onClick={() => skipStep('preferences')}>
-                Later
-              </button>
-            </div>
-          </section>
-        )}
-
-        {step === 'halo' && synced && (
-          <section className="onboard-step onboard-payoff" aria-label="Halo is connected">
-            <HaloDraw size={80} />
-            <h1 className="onboard-title">
-              We found <span className="payoff-num">{found}</span> {data.items.length === 1 ? 'assignment' : 'assignments'}
-              {finds > 0 ? (
-                <>
-                  {' '}
-                  and <span className="payoff-num">{foundPosts}</span> {finds === 1 ? 'thing' : 'things'} your professors only mentioned in announcements.
-                </>
-              ) : (
-                '.'
-              )}
-            </h1>
-            <p className="onboard-chips">
-              {data.courses.map((c) => (
-                <CourseChip key={c.id} course={c} />
-              ))}
-            </p>
-            {hero && (
-              <p className="onboard-text">
-                First up: <b>{hero.label}</b>, {dateOf(hero.dueAt, tz) < today ? 'was due' : 'due'} {fmtDate(dateOf(hero.dueAt, tz), 'short')}.
-              </p>
-            )}
-            {/* Day one has to deliver: what the announcements asked for, and a plan for the next test. */}
-            {finds === 0 && posts > 0 && (
-              <p className="onboard-text">
-                Max is reading your {posts} announcement{posts === 1 ? '' : 's'} now for what your professors only said there. It lands on each assignment as it goes.
-              </p>
-            )}
-            {testPlan && (
-              <div className="onboard-plan card">
-                <p className="eyebrow">Your study plan for {testPlan.exam.label}</p>
-                <p className="onboard-text">
-                  {testPlan.exam.type === 'exam' ? 'Exam' : 'Quiz'} on {fmtDate(testPlan.examDay, 'long')}. About {fmtMinutes(testPlan.remainingMinutes)} of study, spread so it fits your week:
-                </p>
-                <ul className="onboard-plan-days">
-                  {testPlan.sessions.map((x) => (
-                    <li key={x.day}>{x.label}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {onTrial && <p className="hint">Max is on for your first {TRIAL.days} days. No card. Nothing charges.</p>}
-            <div className="onboard-actions">
-              <button type="button" className="btn primary" onClick={finish}>
-                Show me my day
-              </button>
-            </div>
-          </section>
-        )}
-
-        {step === 'preferences' && (
-          <section className="onboard-step" aria-label="Two quick settings">
-            <h1 className="onboard-title">Two quick things.</h1>
-            <p className="onboard-text">Start-by dates and the workload view are built from your study hours. You can change these any time under You.</p>
-            <div className="field">
-              <span>Hours of schoolwork on a weekday, outside class</span>
-              <SegmentedControl label="Weekday hours" value={(HOURS.includes(hours(data.settings.weekdayMinutes) as (typeof HOURS)[number]) ? hours(data.settings.weekdayMinutes) : '3') as (typeof HOURS)[number]} options={HOURS.map((h) => ({ value: h, label: `${h}h` }))} onChange={(v) => actions.updateSettings({ weekdayMinutes: Number(v) * 60 })} />
-            </div>
-            <div className="field">
-              <span>On a weekend day</span>
-              <SegmentedControl label="Weekend hours" value={(WEEKEND.includes(hours(data.settings.weekendMinutes) as (typeof WEEKEND)[number]) ? hours(data.settings.weekendMinutes) : '4') as (typeof WEEKEND)[number]} options={WEEKEND.map((h) => ({ value: h, label: `${h}h` }))} onChange={(v) => actions.updateSettings({ weekendMinutes: Number(v) * 60 })} />
-            </div>
-            <div className="field">
-              <span>A morning note with your day</span>
-              <SegmentedControl label="Morning note" value={(data.settings.reminders?.morningTime ?? '07:30') as (typeof MORNING)[number]['value']} options={[...MORNING]} onChange={(v) => actions.updateSettings({ reminders: { ...(data.settings.reminders ?? {}), morningTime: v } })} />
-            </div>
-            <div className="onboard-actions">
-              <button type="button" className="btn primary" onClick={finish}>
-                Show me my day
-              </button>
-            </div>
-          </section>
-        )}
+          </ul>
+        ) : null}
+        <p className="hint">
+          {progress
+            ? `Reading your announcements: ${progress.done} of ${progress.total}. ${total} found so far.`
+            : total > finds.length
+              ? `${total} in all, each on its assignment.`
+              : total === 0 && posts > 0
+                ? `Reading your ${posts} announcement${posts === 1 ? '' : 's'} now. What they ask lands on each assignment.`
+                : total === 0
+                  ? 'No announcements yet. When your professors post, Halo+ reads them for you.'
+                  : 'Each one is on its assignment.'}
+        </p>
       </div>
-    </div>
+
+      {big && (
+        <div className="payoff-block">
+          <p className="eyebrow">Next big deadline</p>
+          <p className="onboard-text">
+            <b>{big.label}</b>, {big.points} pts, due {fmtDate(dateOf(big.dueAt, tz), 'long')}.
+          </p>
+        </div>
+      )}
+      {plan && (
+        <div className="payoff-block">
+          <p className="eyebrow">Study plan for {plan.exam.label}</p>
+          <p className="hint">
+            About {fmtMinutes(plan.remainingMinutes)}, spread out: {plan.sessions.map((x) => x.label).join(', ')}.
+          </p>
+        </div>
+      )}
+
+      <div className="onboard-actions">
+        <button type="button" className="btn primary" onClick={onStart}>
+          Start here
+        </button>
+      </div>
+      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Max is on for your first {TRIAL.days} days. No card. Nothing charges.</p> : null}
+    </section>
   );
 }

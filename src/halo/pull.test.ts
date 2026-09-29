@@ -117,3 +117,12 @@ describe('a bookmark saved before today', () => {
     expect(newer?.line).toBe('This sync came from a newer Sync Halo bookmark (2026-09-27a) than the Halo+ this tab is running (2026-09-18c). Reload Halo+ and sync again.');
   });
 });
+
+describe('the stale-sync line', () => {
+  it('never says "0 days ago": a kind that has simply never come is not a stale sync', async () => {
+    const { stalenessLine } = await import('./freshness');
+    const course = { code: 'CHM-113' } as never;
+    expect(stalenessLine({ never: [], stale: [{ kind: 'resources', courses: [course], days: 0 }] }, 1)).toBeNull();
+    expect(stalenessLine({ never: [], stale: [{ kind: 'assessments', courses: [course], days: 4 }] }, 1)).toBe('Last Halo sync was 4 days ago. Sync now.');
+  });
+});

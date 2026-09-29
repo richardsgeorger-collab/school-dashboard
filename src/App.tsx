@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AccountProvider } from './auth/AccountContext';
 import { useAccountSync } from './auth/useAccountSync';
 import { BottomNav, TopBar } from './components/Nav';
@@ -51,8 +51,7 @@ import { OkayCard, okayPress } from './views/Okay';
 import { NotificationPlanner } from './notify/NotificationPlanner';
 import { NowTour } from './onboarding/NowTour';
 import { Onboarding } from './onboarding/Onboarding';
-import { MaxWelcome } from './onboarding/MaxWelcome';
-import { maxOpen } from './onboarding/maxState';
+import { Upgrade, upgradeDue } from './onboarding/Upgrade';
 import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
@@ -66,7 +65,19 @@ function HaloHandoff() {
   const { params } = useRoute();
   const expecting = params.get('halo') === '1';
   const access = useSyncAccess();
-  useHaloHandoff(useCallback((p: HaloExport) => setPayload(p), []));
+  const { data } = useStore();
+  // The very first sync (nothing from Halo yet) applies itself: an empty planner has nothing to review. Decided once,
+  // when the sync arrives: saving it stamps the last pull, which must not flip it back to a review halfway through.
+  const firstNow = !data.courses.some((c) => c.haloClassId) && !data.settings.lastPull;
+  const first = useRef(firstNow);
+  first.current = firstNow;
+  const [firstSync, setFirstSync] = useState(false);
+  useHaloHandoff(
+    useCallback((p: HaloExport) => {
+      setFirstSync(first.current);
+      setPayload(p);
+    }, []),
+  );
   useEffect(() => {
     if (!expecting || payload) {
       setWaiting(false);
@@ -95,7 +106,7 @@ function HaloHandoff() {
           )}
         >
           {access.allowed ? (
-            <HaloImport payload={payload} onClose={() => setPayload(null)} />
+            <HaloImport payload={payload} onClose={() => setPayload(null)} auto={firstSync} />
           ) : (
             // Sync is off: the bookmark's data is not applied, and the student is told why, with the one-tap way back.
             <Modal title="Halo sync is paused" onClose={() => setPayload(null)}>
@@ -164,7 +175,7 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
  */
 function OnboardingHost() {
   const { data, actions, sync } = useStore();
-  const { auth } = useAccount();
+  const { auth, tier, loading } = useAccount();
   const { route } = useRoute();
   const front = useFront();
   const settled = !auth.session || sync.status === 'synced' || sync.status === 'error';
@@ -182,9 +193,12 @@ function OnboardingHost() {
   const ob = data.settings.onboarding;
   if (front !== 'app' || route === 'login') return null;
   if (isOpen(ob)) return <Onboarding />;
-  // The Max welcome, once Max is on and the first-run screens are out of the way.
-  if (maxOpen(data.settings.maxOnboarding)) return <MaxWelcome />;
+  // First the tour of Now, Calendar and Inbox; then, once, the welcome for whatever was just unlocked.
   if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;
+  if (tourPending(ob)) return null;
+  // Never on a plan still loading: the free tier it reads for a moment is not a downgrade, and the welcome waits.
+  const due = loading ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
+  if (due) return <Upgrade kind={due} />;
   return null;
 }
 

@@ -4,10 +4,10 @@ import { parseHaloExport, saveLastSync } from '../halo/handoff';
 import type { HaloExport } from '../halo/types';
 import { pixelOnce } from '../analytics/pixel';
 import { track } from '../onboarding/track';
-import { DiffReview } from './DiffReview';
+import { DiffReview, type AppliedSummary } from './DiffReview';
 
 /** Fallback path: the Halo bookmark's export, pasted or handed off. The .ics import is the normal path. */
-export function HaloImport({ payload: initial = null, onClose }: { payload?: HaloExport | null; onClose: () => void }) {
+export function HaloImport({ payload: initial = null, onClose, auto = false }: { payload?: HaloExport | null; onClose: () => void; auto?: boolean }) {
   const [payload, setPayload] = useState<HaloExport | null>(initial);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +30,19 @@ export function HaloImport({ payload: initial = null, onClose }: { payload?: Hal
     }
   };
 
+  const applied = (s: AppliedSummary) => {
+    saveLastSync({ at: new Date().toISOString(), added: s.added, changed: s.changed, removed: s.removed, completed: s.completed + s.scored });
+    // One row per sync, with the platform, for the admin screen; the pixel once, for the funnel.
+    track('sync', 'complete');
+    pixelOnce('HaloConnected');
+  };
+  // The first sync applies itself behind the onboarding's payoff: no review sheet for a planner that was empty.
+  if (auto && initial)
+    return (
+      <div hidden>
+        <DiffReview payload={initial} source="halo" autoApply onApplied={applied} onClose={onClose} />
+      </div>
+    );
   return (
     <Modal title="What Halo sent" onClose={onClose}>
       <div className="modal-body">
@@ -56,12 +69,7 @@ export function HaloImport({ payload: initial = null, onClose }: { payload?: Hal
           <DiffReview
             payload={payload}
             source="halo"
-            onApplied={(s) => {
-              saveLastSync({ at: new Date().toISOString(), added: s.added, changed: s.changed, removed: s.removed, completed: s.completed + s.scored });
-              // One row per sync, with the platform, for the admin screen; the pixel once, for the funnel.
-              track('sync', 'complete');
-              pixelOnce('HaloConnected');
-            }}
+            onApplied={applied}
             onClose={onClose}
           />
         )}

@@ -97,6 +97,22 @@ export function examPressure(plan: ExamPlan): string | null {
   return null;
 }
 
-/** The first-day plan: the next quiz or exam in three weeks, its study spread over the days before it. */
-export const nextTestPlan = (items: Item[], schedule: Schedule, settings: Settings, today: DateStr): ExamPlan | null =>
-  examMode(items, schedule, settings, today, (i) => i.estimatedMinutes, { types: ['quiz', 'exam'], days: 21 });
+/**
+ * The first-day plan: the next quiz or exam in three weeks, studied in a few real sessions (at least 30 minutes, at
+ * most four) on the days just before it, not a quarter hour every day for a week.
+ */
+export function nextTestPlan(items: Item[], schedule: Schedule, settings: Settings, today: DateStr): ExamPlan | null {
+  const plan = examMode(items, schedule, settings, today, (i) => i.estimatedMinutes, { types: ['quiz', 'exam'], days: 21 });
+  if (!plan || plan.sessions.length === 0) return plan;
+  const total = plan.sessions.reduce((n, x) => n + x.minutes, 0);
+  const count = Math.max(1, Math.min(4, plan.sessions.length, Math.floor(total / 30) || 1));
+  const days = plan.sessions.slice(-count);
+  const each = Math.max(30, round15(total / count));
+  let left = total;
+  const sessions = days.map((d, k) => {
+    const minutes = k === days.length - 1 ? Math.max(15, left) : Math.min(each, left);
+    left -= minutes;
+    return { ...d, minutes, label: `${d.label.split(' · ')[0]} · ${fmtMinutes(minutes)}` };
+  }).filter((x) => x.minutes > 0);
+  return { ...plan, sessions };
+}

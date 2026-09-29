@@ -421,6 +421,10 @@ export interface SundayReviewState {
 export interface OnboardingState {
   startedAt: string;
   step: 'welcome' | 'account' | 'halo' | 'preferences' | 'done';
+  /** Where inside the Halo step they are (bar, drag, open, wait; or the phone's copy, save, edit, open), to resume exactly. */
+  screen?: string | null;
+  /** Which path: a computer's bookmarks bar, or a phone's bookmarks menu. Chosen once, changeable. */
+  path?: 'desktop' | 'phone' | null;
   doneAt: string | null;
   skippedAt: string | null;
   tourDoneAt: string | null;
@@ -494,6 +498,8 @@ export interface Settings {
   lastPull?: { at: string; build: string | null; counts: Record<string, number> };
   onboarding?: OnboardingState;
   maxOnboarding?: MaxOnboardingState;
+  /** When each upgrade welcome was shown, so neither ever shows twice (onboarding/Upgrade.tsx). */
+  upgradeSeen?: { plus?: string | null; max?: string | null };
   /** When a friend-link student was asked, once, what is confusing or broken (day 3). */
   friendAskedAt?: string | null;
   reminders?: ReminderPrefs;
