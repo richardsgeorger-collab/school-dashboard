@@ -3,13 +3,14 @@ import { useStore } from '../storage/store';
 import type { OnboardingState } from './state';
 
 /**
- * The tour after the payoff: three stops on the real thing, Now, Calendar, Inbox. Optional: Skip ends it on any stop.
+ * The tour after the payoff: four stops on the real thing, Now, Calendar, Inbox, Study. Optional: Skip ends it on any stop.
  * A stop whose element is not on screen is skipped, never pointed at thin air.
  */
 export const STOPS = [
   { selector: '.now .hero, .now .empty', title: 'Now', text: 'The one thing to do next, with what it is worth and how long it takes. Tap the check when it is done.' },
   { selector: '.nav-link[href="#/calendar"]', title: 'Calendar', text: 'Every due date by day, with the parts your professors added in announcements.' },
   { selector: '.nav-link[href="#/inbox"]', title: 'Inbox', text: 'Every announcement, read for you. What each one asks is already on its assignment.' },
+  { selector: '.nav-link[href="#/study"]', title: 'Study', text: 'Practice for any quiz or exam from your own slides, ask anything about your classes, and check your work before you turn it in.' },
 ];
 
 /** The visible one of several matches: the top bar's link on a laptop, the bottom bar's on a phone. */

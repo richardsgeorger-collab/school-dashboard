@@ -118,7 +118,7 @@ const run = async (name, device, scheme) => {
   }
   await page.click('.onboard button:has-text("Start here")');
   await page.waitForTimeout(1200);
-  for (const stop of ['now', 'calendar', 'inbox']) {
+  for (const stop of ['now', 'calendar', 'inbox', 'study']) {
     const tip = await page.$('.tour-tip');
     if (!tip) break;
     await shot(page, `tour-${stop}`);
