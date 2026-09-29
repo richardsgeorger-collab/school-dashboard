@@ -10,7 +10,7 @@ import { dateOf, fmtDate } from '../domain/dates';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { materialLine } from '../study/material';
-import { checkableWork, inDays, upcomingTests } from '../study/upcoming';
+import { inDays, nextCheckable, upcomingTests } from '../study/upcoming';
 import { libraryDb, type Deck } from '../library/db';
 import { recordingsDb, type Recording } from '../record/db';
 import { UpgradeButton } from './PlanWall';
@@ -26,7 +26,7 @@ export function Study() {
   const tz = data.settings.timezone;
   const allowed = can('aiChat', tier) && can('flashcards', tier);
   const tests = upcomingTests(data.items, today, tz);
-  const work = checkableWork(data.items, today, tz);
+  const next = nextCheckable(data.items, today, tz);
   const [q, setQ] = useState('');
   const [m, setM] = useState<Meter | null>(latestMeter());
   useEffect(() => onMeter(setM), []);
@@ -161,7 +161,7 @@ export function Study() {
           <a className="btn primary" href={allowed ? '#/check' : lockHref}>
             Check my work
           </a>
-          {work[0] && <span className="hint">Next up: {work[0].label}, due {fmtDate(dateOf(work[0].dueAt, tz), 'long')}.</span>}
+          {next && <span className="hint">{next.late ? 'Still open' : 'Next up'}: {next.item.label}, {next.late ? 'was due' : 'due'} {fmtDate(dateOf(next.item.dueAt, tz), 'long')}.</span>}
         </div>
       </section>
 

@@ -223,6 +223,13 @@ const run = async (name, device, scheme) => {
   await shot('check-essay');
   const ch = await text('.check-page .lib-head');
   say(/Paste your draft or drop the file/.test(ch) && /Not a grade, not a rewrite/.test(ch), 'scenario 3: three clicks to Check for the essay, and it says what it does');
+  // A dropped Word file is read into the box (the docx is made here, as a student's would be by Word).
+  const { Document, Packer, Paragraph } = await import('docx');
+  const docxBuf = await Packer.toBuffer(new Document({ sections: [{ children: [new Paragraph('Aspirin is the everyday compound I chose.'), new Paragraph('It is an ester made from salicylic acid.')] }] }));
+  await page.setInputFiles('.check-card input[type=file]', { name: 'draft.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: docxBuf });
+  await page.waitForTimeout(1200);
+  const dropped = await page.$eval('.check-text', (e) => e.value).catch(() => '');
+  say(/Aspirin is the everyday compound I chose\.\nIt is an ester/.test(dropped) && /draft\.docx/.test(await text('.check-card')), `a dropped .docx lands in the box as text: "${dropped.slice(0, 60)}…"`);
   await page.fill('.check-text', 'Aspirin, or acetylsalicylic acid, is the everyday compound I chose. It is an ester made from salicylic acid and acetic anhydride. In the body it blocks the COX enzymes, which is why it lowers pain and fever. I take it for headaches; my grandmother takes a low dose daily for her heart. The reaction to make it is a nucleophilic acyl substitution, and its solubility in water is low because most of the molecule is nonpolar.');
   if (live) {
     await page.click('.check-card .btn.primary');

@@ -34,3 +34,12 @@ export function checkableWork(items: Item[], today: DateStr, tz: string, days = 
     .filter((i) => !isTest(i) && i.type !== 'participation' && i.status !== 'done' && diffDays(today, dateOf(i.dueAt, tz)) <= days && diffDays(today, dateOf(i.dueAt, tz)) >= -14)
     .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
 }
+
+/** The assignment Check offers first: the nearest still ahead, else the most recent late one, and which it is. */
+export function nextCheckable(items: Item[], today: DateStr, tz: string): { item: Item; late: boolean } | null {
+  const work = checkableWork(items, today, tz);
+  const ahead = work.find((i) => dateOf(i.dueAt, tz) >= today);
+  if (ahead) return { item: ahead, late: false };
+  const late = work[work.length - 1];
+  return late ? { item: late, late: true } : null;
+}

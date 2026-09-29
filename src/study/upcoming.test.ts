@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Item } from '../domain/types';
-import { checkableWork, inDays, testWithin, upcomingTests } from './upcoming';
+import { checkableWork, inDays, nextCheckable, testWithin, upcomingTests } from './upcoming';
 
 const tz = 'America/Phoenix';
 const today = '2026-09-28';
@@ -26,5 +26,9 @@ describe('the tests ahead', () => {
   it('the work Check is for: open assignments due within a month or a bit late, no tests', () => {
     const items = [it_('essay', 'paper', '2026-10-09'), it_('late', 'homework', '2026-09-20'), it_('q', 'quiz', '2026-10-05'), it_('old', 'homework', '2026-08-01'), it_('far', 'paper', '2026-12-13')];
     expect(checkableWork(items, today, tz).map((i) => i.id)).toEqual(['late', 'essay']);
+    // Study's "Next up" is the nearest one still ahead, not a two-week-late row; with nothing ahead, the late one, said so.
+    expect(nextCheckable(items, today, tz)).toMatchObject({ item: { id: 'essay' }, late: false });
+    expect(nextCheckable([it_('late', 'homework', '2026-09-20')], today, tz)).toMatchObject({ item: { id: 'late' }, late: true });
+    expect(nextCheckable([], today, tz)).toBeNull();
   });
 });
