@@ -1,3 +1,4 @@
+import { CookMeter } from './CookMeter';
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
@@ -44,7 +45,7 @@ function ClassCard({ course }: { course: Course }) {
   const pace = paceFor(course, data.items, schedule, today);
   const paceLine = overdue > 0 ? `${overdue} late` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : pace.kind === 'behind' ? `${pace.n} behind` : null;
   return (
-    <li>
+    <li className="class-card-wrap">
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />
@@ -66,6 +67,7 @@ function ClassCard({ course }: { course: Course }) {
           </p>
         )}
       </a>
+      <CookMeter course={course} />
     </li>
   );
 }

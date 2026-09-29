@@ -1,3 +1,4 @@
+import { CookMeter } from './CookMeter';
 import { useEffect, useState } from 'react';
 import { ClassNotes } from './Requirements';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -108,10 +109,11 @@ export function ClassPage() {
             {course.instructors.length ? ` · ${course.instructors.map((p) => p.name).join(', ')}` : ''}
           </p>
           <SyncedLine courseId={course.id} />
+          <CookMeter course={course} size="page" />
         </div>
         <span className="settings-actions">
           <button type="button" className="btn small" onClick={() => setPaste(true)}>
-            Paste transcript
+            Add a lecture
           </button>
           <a className="btn small" href={`#/ask?c=${course.id}`}>
             Ask
