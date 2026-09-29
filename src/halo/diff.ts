@@ -152,6 +152,8 @@ export function mergeItem(existing: Item, next: Item, course: Course, now: strin
     title: next.title,
     label: existing.labelOverridden ? existing.label : shortLabel({ title: next.title, courseCode: course.code, type: existing.type }),
     haloId: next.haloId ?? existing.haloId ?? null,
+    haloUnitId: next.haloUnitId ?? existing.haloUnitId ?? null,
+    haloType: next.haloType ?? existing.haloType ?? null,
     icsUid: next.icsUid ?? existing.icsUid ?? null,
     url: next.url ?? existing.url ?? null,
     dueAt: next.dueAt,

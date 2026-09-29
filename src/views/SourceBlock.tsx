@@ -1,4 +1,5 @@
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
+import { haloLink } from '../domain/heroFacts';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
 
@@ -34,9 +35,9 @@ export function SourceBlock({ item }: { item: Item }) {
           {item.dateChange.source.title ? ` by “${item.dateChange.source.title}”` : ''} on {fmtDate(dateOf(item.dateChange.at, tz), 'short')}.
         </p>
       )}
-      {item.url && (
+      {(item.url || item.haloId) && (
         <p>
-          <a href={item.url} target="_blank" rel="noreferrer">
+          <a href={haloLink(item, course).href} target="_blank" rel="noreferrer">
             Open in Halo
           </a>
         </p>

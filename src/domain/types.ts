@@ -101,6 +101,9 @@ export interface Item {
   source: 'parsed' | 'manual' | 'halo' | 'ics';
   /** Halo assessment id, set once an item is linked to Halo. */
   haloId?: string | null;
+  /** Halo's unit (topic) id and assessment type, for "Open in Halo" straight to it. */
+  haloUnitId?: string | null;
+  haloType?: string | null;
   /** Calendar-export UID, set when the item came from or matched an .ics import. */
   icsUid?: string | null;
   /** Link into Halo when the export carried one. */

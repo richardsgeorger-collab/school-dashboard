@@ -50,8 +50,15 @@ describe('facts, not urgency', () => {
 
 describe('the way in to Halo', () => {
   it('uses the export link when there is one, and Halo itself when there is not, never a guessed address', () => {
-    expect(haloLink({ ...draft, url: 'https://halo.gcu.edu/courses/abc/assessments/1' }, 'ENG-105')).toEqual({ href: 'https://halo.gcu.edu/courses/abc/assessments/1', label: 'Open in Halo' });
-    expect(haloLink(draft, 'ENG-105')).toEqual({ href: HALO_HOME, label: 'Open ENG-105 in Halo' });
+    expect(haloLink({ ...draft, url: 'https://halo.gcu.edu/quiz/1' }, { code: 'ENG-105' })).toEqual({ href: 'https://halo.gcu.edu/quiz/1', label: 'Open in Halo' });
+    // The feed's /assessments/ shape answers 404 on Halo, so the built link wins.
+    expect(haloLink({ ...draft, url: 'https://halo.gcu.edu/courses/abc/assessments/1', haloId: 'a2', haloUnitId: 'u3' }, { code: 'ENG-105', haloSlugId: 'abc' }).href).toBe('https://halo.gcu.edu/courses/abc/course-units/u3');
+    expect(haloLink(draft, { code: 'ENG-105' })).toEqual({ href: HALO_HOME, label: 'Open ENG-105 in Halo' });
+    const eng = { code: 'ENG-105', haloSlugId: 'eng-105-onl4' };
+    // Straight to it: a quiz opens its quiz page, anything else the topic page that lists it, else the class page.
+    expect(haloLink({ ...draft, haloId: 'a1', haloType: 'QUIZ' }, eng).href).toBe('https://halo.gcu.edu/quiz/a1');
+    expect(haloLink({ ...draft, haloId: 'a2', haloType: 'ASSIGNMENT', haloUnitId: 'u3' }, eng).href).toBe('https://halo.gcu.edu/courses/eng-105-onl4/course-units/u3');
+    expect(haloLink({ ...draft, haloId: 'a2', haloType: 'ASSIGNMENT' }, eng)).toEqual({ href: 'https://halo.gcu.edu/courses/eng-105-onl4', label: 'Open ENG-105 in Halo' });
     expect(haloLink(draft, undefined).label).toBe('Open Halo');
   });
 });

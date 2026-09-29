@@ -165,7 +165,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
   // Slides, readings, and lecture stretches are places to go. "the syllabus" on its own is not, so it never shows alone.
   const realSources = sources.filter((s) => s.kind !== 'syllabus');
   const covered = realSources.length + material.decks.filter(deckShown).length + material.recs.length;
-  const halo = haloLink(item, course?.code);
+  const halo = haloLink(item, course);
   // What a zero here does to the class grade, once enough is graded for that to mean something.
   const skip = !done && course ? skipLine(item, data.items, course.code) : null;
 

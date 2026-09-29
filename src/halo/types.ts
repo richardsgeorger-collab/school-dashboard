@@ -162,6 +162,8 @@ export interface HaloAssessment {
   title: string;
   description: string | null;
   unit: string | null;
+  /** The unit's id, for the link to the page the assignment sits on. Absent from exports before 2026-09-29. */
+  unitId?: string | null;
   unitSequence: number | null;
   sequence: number | null;
   startDate: string | null;

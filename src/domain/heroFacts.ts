@@ -77,11 +77,19 @@ export function fitLine(item: Item, minutes: number, schedule: Schedule, courses
 export const HALO_HOME = 'https://halo.gcu.edu/';
 
 /**
- * Where to go to hand this in. The export carries a direct link for some items and not others, so the fallback is
- * Halo itself: one press either way, and never a guessed URL that lands on an error page.
+ * Where to go to hand this in, as close to the assignment as Halo's own pages allow. Halo has no page for a single
+ * assignment: its routes (read from its build manifest, 2026-09-29) are /quiz/[assessmentId] for a quiz, and
+ * /courses/[slugId]/course-units/[courseUnitId] for the topic an assignment sits on, whose page lists it. So: a quiz
+ * opens its quiz page, anything else its topic page, then the class page, then Halo's home. Never a guessed URL.
  */
-export function haloLink(item: Item, code: string | undefined): { href: string; label: string } {
-  return item.url ? { href: item.url, label: 'Open in Halo' } : { href: HALO_HOME, label: code ? `Open ${code} in Halo` : 'Open Halo' };
+export function haloLink(item: Item, course: { code?: string; haloSlugId?: string | null } | undefined): { href: string; label: string } {
+  // A calendar-feed link in the /courses/…/assessments/… shape is not a Halo page (it answers 404), so it never wins.
+  if (item.url && !/halo\.gcu\.edu\/courses\/[^/]+\/assessments\//.test(item.url)) return { href: item.url, label: 'Open in Halo' };
+  const slug = course?.haloSlugId;
+  if (item.haloId && item.haloType === 'QUIZ') return { href: `${HALO_HOME}quiz/${encodeURIComponent(item.haloId)}`, label: 'Open in Halo' };
+  if (slug && item.haloUnitId) return { href: `${HALO_HOME}courses/${encodeURIComponent(slug)}/course-units/${encodeURIComponent(item.haloUnitId)}`, label: 'Open in Halo' };
+  if (slug) return { href: `${HALO_HOME}courses/${encodeURIComponent(slug)}`, label: course?.code ? `Open ${course.code} in Halo` : 'Open in Halo' };
+  return { href: HALO_HOME, label: course?.code ? `Open ${course.code} in Halo` : 'Open Halo' };
 }
 
 /** "Started 12 min ago" for the timer. */

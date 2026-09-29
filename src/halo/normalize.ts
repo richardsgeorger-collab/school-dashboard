@@ -184,6 +184,8 @@ export function toItem(a: HaloAssessment, course: Course, opts: ToItemOptions): 
     flags: course.online ? { ...haloFlags(a), inClass: false } : haloFlags(a),
     source,
     haloId: source === 'halo' ? a.id : null,
+    haloUnitId: source === 'halo' ? (a.unitId ?? null) : null,
+    haloType: source === 'halo' ? a.type || null : null,
     icsUid: source === 'ics' ? a.id : null,
     url: a.url ?? null,
     award: null,
