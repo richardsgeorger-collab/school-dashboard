@@ -35,7 +35,7 @@ export interface PlanInput {
   today: DateStr;
   now: string;
   lastPull: string | null;
-  /** When the Max trial ends, for its two reminders. */
+  /** When the free trial ends, for its two reminders. */
   trialEndsAt?: string | null;
   /** What Max did during the trial, one line ("Max during your trial: read 23 announcements, …"), for those reminders. */
   trialRecap?: string | null;
@@ -163,7 +163,7 @@ export function planNotices(input: PlanInput): Notice[] {
       push({
         kind: 'trial_ends',
         sendAt: r.sendAt,
-        title: last ? 'Last day of your Max trial' : 'Your Max trial ends in 2 days',
+        title: last ? 'Last day of your free trial' : 'Your free trial ends in 2 days',
         body: `${recap.trim() ? `${recap.trim()} ` : ''}${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses and the study tools lock. Nothing charges.`,
         url: '#/you?s=plan',
         key: `trial_ends:${cal.lastDay}:${r.daysBefore}`,

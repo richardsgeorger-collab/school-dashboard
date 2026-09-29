@@ -391,7 +391,7 @@ export function Now() {
           {reading.outcome.todo} announcement{reading.outcome.todo === 1 ? ' is' : 's are'} waiting to be read.{' '}
           {trialAvailable ? (
             // The moment the product's promise is one tap away: the posts are on file, the reader is not on this plan.
-            <TrialOffer variant="inline" label={`Try Max free and it reads ${reading.outcome.todo === 1 ? 'it' : 'them'}`} />
+            <TrialOffer variant="inline" label={`Try it free and it reads ${reading.outcome.todo === 1 ? 'it' : 'them'}`} />
           ) : (
             <>
               Reading them is part of {planOf('announcementAI')}. <a href="#/inbox">Inbox</a>

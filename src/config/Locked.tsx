@@ -62,7 +62,7 @@ export function Locked({ feature, tier, children, compact = false, line, quiet =
         <span className="locked-tier">{TIER_NAMES[need]}</span>
         {trial ? (
           <span className="locked-trial">
-            <TrialOffer variant="button" label="Try Max free for 7 days" />
+            <TrialOffer variant="button" label={TRIAL.button} />
             <span className="hint">No card. Nothing charges.</span>
           </span>
         ) : (

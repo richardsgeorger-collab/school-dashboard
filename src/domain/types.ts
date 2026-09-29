@@ -506,7 +506,7 @@ export interface Settings {
   maxOnboarding?: MaxOnboardingState;
   /** When each upgrade welcome was shown, so neither ever shows twice (onboarding/Upgrade.tsx). */
   upgradeSeen?: { plus?: string | null; max?: string | null };
-  /** When the "Your Max trial ended" screen was seen (once, the first open after the trial). */
+  /** When the "Your free trial ended" screen was seen (once, the first open after the trial). */
   trialEndSeen?: string | null;
   /** When a friend-link student was asked, once, what is confusing or broken (day 3). */
   friendAskedAt?: string | null;

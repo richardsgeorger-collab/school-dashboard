@@ -203,10 +203,6 @@
   background: var(--accent-soft);
   color: var(--accent-text);
 }
-.offer-after {
-  margin: -4px 0 0;
-  text-align: center;
-}
 .offer-free {
   margin: 4px 0 0;
   text-align: center;
@@ -769,4 +765,171 @@
   font-style: normal;
   color: var(--accent-text);
   font-weight: 700;
+}
+
+/* ---- The fifteen-second story and the trial screen (2026-09-29) --------------------------------------------- */
+.story {
+  gap: 14px;
+}
+.story-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.story-progress {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.story-progress span {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.story-progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+}
+.story-progress [data-state='done'] i {
+  width: 100%;
+}
+.story-progress [data-state='now'] i {
+  animation: story-fill 5s linear forwards;
+}
+@keyframes story-fill {
+  to {
+    width: 100%;
+  }
+}
+.story-skip {
+  font-size: 15px;
+}
+.story-caption {
+  margin: 0;
+  font: 700 26px/1.2 var(--font-display);
+  letter-spacing: var(--track-tight);
+}
+.story-caption b {
+  color: var(--ink-3);
+}
+.story-caption b[data-plan='Plus'],
+.story-caption b[data-plan='Max'] {
+  color: var(--accent-text);
+}
+.story-caption span {
+  color: var(--ink);
+}
+.story-screen .mock-screen {
+  min-height: 330px;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.story-screen[data-beat='2'] .mock-screen {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-2);
+}
+.story-in {
+  animation: story-in 0.5s ease both;
+}
+.story-d1 {
+  animation-delay: 0.6s;
+}
+.story-d2 {
+  animation-delay: 1.4s;
+}
+@keyframes story-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.story-glow {
+  animation: story-glow 1.6s ease 1.2s both;
+}
+@keyframes story-glow {
+  0% {
+    box-shadow: 0 0 0 0 transparent;
+    background: var(--surface);
+  }
+  40% {
+    box-shadow: 0 0 0 6px var(--accent-soft);
+    background: var(--accent-soft);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    background: var(--surface);
+  }
+}
+.story-max {
+  border-color: var(--accent);
+}
+.story-ask {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.story-q,
+.story-a {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  max-width: 85%;
+}
+.story-q {
+  justify-self: end;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.story-a {
+  justify-self: start;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.story-example {
+  margin: 0;
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-in,
+  .story-glow,
+  .story-progress [data-state='now'] i {
+    animation: none;
+  }
+  .story-progress [data-state='now'] i {
+    width: 50%;
+  }
+}
+.plan-offer {
+  gap: 16px;
+}
+.offer-title {
+  font-size: clamp(34px, 6vw, 48px);
+}
+.offer-promise {
+  margin: -6px 0 6px;
+  font: 700 19px/1.35 var(--font-body);
+}
+.offer-go {
+  min-height: 64px;
+  font-size: 20px;
+  width: 100%;
+  justify-content: center;
+  border-radius: var(--r-lg);
+}
+.offer-after {
+  margin: 0;
+  text-align: center;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.plan-offer .offer-free {
+  margin-top: 18px;
+  font-size: 13px;
 }

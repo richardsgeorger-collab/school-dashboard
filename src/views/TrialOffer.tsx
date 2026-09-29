@@ -33,7 +33,7 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
       reloadProfile();
       // Welcome to Max: four screens, once, after any first-run screens still open.
       actions.updateSettings({ maxOnboarding: freshMax() });
-      setNote(`Your free week of Max is on. ${TRIAL.after}`);
+      setNote(`Your free week is on. ${TRIAL.after}`);
     } else setNote(r.message);
   };
   const button = (
@@ -47,7 +47,7 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
     return (
       <>
         <button type="button" className="hero-inline" disabled={busy || !auth.session} onClick={() => void go()}>
-          {busy ? 'Starting…' : (label ?? 'Try Max free')}
+          {busy ? 'Starting…' : (label ?? TRIAL.buttonShort)}
         </button>
         {note && <span className="hint"> {note}</span>}
       </>
@@ -112,10 +112,10 @@ export function TrialReceipts() {
   if (trialState(profile) !== 'active' || days === null) return null;
   const line = r ? receiptsLine(r) : null;
   return (
-    <section className="card trial-receipts" aria-label="Your Max trial">
-      <p className="eyebrow">{days <= 1 ? 'Your Max trial ends tomorrow' : `Max trial · ${days} day${days === 1 ? '' : 's'} left`}</p>
-      <p className="trial-lead">{line ?? 'Max is on. Sync Halo and it starts reading your announcements.'}</p>
-      <p className="hint">Nothing charges when it ends. Everything you have stays; Halo sync and Max features pause until you choose a plan.</p>
+    <section className="card trial-receipts" aria-label="Your free trial">
+      <p className="eyebrow">{days <= 1 ? 'Your free trial ends tomorrow' : `Free trial · ${days} day${days === 1 ? '' : 's'} left`}</p>
+      <p className="trial-lead">{line ?? 'Everything is on. Sync Halo and it starts reading your announcements.'}</p>
+      <p className="hint">Nothing charges when it ends. Everything you have stays; Halo sync and the study tools pause until you choose a plan.</p>
       <div className="settings-actions">
         <a className="btn small primary" href="#/you?s=plan&to=max">
           Keep Max, ${PRICES.max.month.toFixed(2)} a month

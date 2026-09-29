@@ -23,7 +23,7 @@ type Group = 'needs' | 'info' | 'empty' | 'unread';
 const GROUP_LABEL: Record<Group, string> = { needs: 'Needs you', info: 'Info only', empty: 'Nothing in it', unread: 'Not read yet' };
 import { ReadAll } from './ReadAll';
 import { postLine } from '../domain/postLine';
-import { planOf } from '../config/tiers';
+import { planOf, TRIAL } from '../config/tiers';
 
 /**
  * The inbox: announcements, newest first. At GCU the week's real instructions often live here, so this is where they are read,
@@ -298,7 +298,7 @@ export function Inbox() {
                       <span className="hint">
                         {trialAvailable ? (
                           <>
-                            Max reads this for what it asks. <TrialOffer variant="inline" label="Try Max free" />
+                            Max reads this for what it asks. <TrialOffer variant="inline" label={TRIAL.buttonShort} />
                           </>
                         ) : (
                           `Reading announcements is part of ${planOf('announcementAI')}.`

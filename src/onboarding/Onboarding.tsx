@@ -197,7 +197,7 @@ export function Onboarding() {
         {step === 'account' && !synced && (
           <section className="onboard-step" aria-label="Sign up">
             <h1 className="onboard-title">Make your account.</h1>
-            <p className="onboard-text">{pendingFriend() ? 'Your friend link gives you Max free. No card.' : `Max is free for your first ${TRIAL.days} days. No card.`} An email and a password, or Google.</p>
+            <p className="onboard-text">{pendingFriend() ? 'Your friend link gives you Max free. No card.' : 'Free to start. No card.'} An email and a password, or Google.</p>
             <SignIn auth={auth} title="Sign up" />
             <p className="hint">
               <button type="button" className="hero-inline" onClick={() => go('halo')}>

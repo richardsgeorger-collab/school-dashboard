@@ -73,7 +73,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free' }: { onFree?: (
   );
 }
 
-/** "Max trial · 5 days left" in the top bar. Tapping it says what is included, when it ends, and what then. */
+/** "Free trial · 5 days left" in the top bar. Tapping it says what is included, when it ends, and what then. */
 export function TrialChip() {
   const { state, real, cal } = useTrial();
   const [open, setOpen] = useState(false);
@@ -87,7 +87,7 @@ export function TrialChip() {
         <span className="chip-short" aria-hidden>{trialChipShort(cal.daysLeft)}</span>
       </button>
       {open && (
-        <Modal title="Your Max trial" onClose={() => setOpen(false)}>
+        <Modal title="Your free trial" onClose={() => setOpen(false)}>
           <div className="modal-body trial-sheet">
             <p>
               <b>{cal.daysLeft <= 1 ? 'This is the last day.' : `${cal.daysLeft} days left.`}</b> It ends {fmtDate(dateOf(cal.endsAt, tz), 'long')} at {fmtTime(cal.endsAt, tz)}.
@@ -165,14 +165,14 @@ export function TrialEnded() {
     [n.answered, 'questions answered'],
   ].filter(([v]) => (v as number) > 0) : [];
   return (
-    <div className="onboard trial-ended" role="dialog" aria-modal="true" aria-label="Your Max trial ended">
+    <div className="onboard trial-ended" role="dialog" aria-modal="true" aria-label="Your free trial ended">
       <div className="onboard-inner">
         <section className="onboard-step">
           <p className="eyebrow">Ended {fmtDate(dateOf(profile.trialEndsAt, tz), 'long')}</p>
-          <h1 className="onboard-title">Your Max trial ended.</h1>
+          <h1 className="onboard-title">Your free trial ended.</h1>
           {numbers.length > 0 && (
             <>
-              <p className="onboard-text">What Max did for you this week:</p>
+              <p className="onboard-text">What it did for you this week:</p>
               <div className="ended-numbers">
                 {numbers.map(([v, label]) => (
                   <p key={label as string} className="ended-number">
@@ -217,9 +217,9 @@ export function TrialReminder() {
   const last = cal.daysLeft === 1;
   const did = n ? [n.fromHalo ? `pulled ${n.fromHalo} assignments from Halo` : '', n.read ? `read ${n.read} announcement${n.read === 1 ? '' : 's'}` : '', n.found ? `found ${n.found} hidden requirement${n.found === 1 ? '' : 's'}` : '', n.answered ? `answered ${n.answered} question${n.answered === 1 ? '' : 's'}` : ''].filter(Boolean) : [];
   return (
-    <section className="card trial-receipts" aria-label="Your Max trial">
-      <p className="eyebrow">{last ? 'Last day of your Max trial' : 'Your Max trial ends in 2 days'}</p>
-      {did.length > 0 && <p className="trial-lead">This week Max {did.join(', ')}.</p>}
+    <section className="card trial-receipts" aria-label="Your free trial">
+      <p className="eyebrow">{last ? 'Last day of your free trial' : 'Your free trial ends in 2 days'}</p>
+      {did.length > 0 && <p className="trial-lead">This week Halo+ {did.join(', ')}.</p>}
       <p className="hint">{last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses, announcements aren't read, and Study locks. Everything you have stays. Nothing charges.</p>
       <PlanChoices />
     </section>

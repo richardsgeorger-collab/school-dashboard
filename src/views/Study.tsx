@@ -76,7 +76,7 @@ export function Study() {
             <span className="locked-tier">{TIER_NAMES.max}</span>
             {trial ? (
               <span className="locked-trial">
-                <TrialOffer variant="button" label="Try Max free for 7 days" />
+                <TrialOffer variant="button" label={TRIAL.button} />
                 <span className="hint">No card. Nothing charges.</span>
               </span>
             ) : (

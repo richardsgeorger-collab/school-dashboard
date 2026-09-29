@@ -1,89 +1,74 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { startTrial } from '../auth/trial';
-import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
 import { TRIAL } from '../config/tiers';
 import { pixel } from '../analytics/pixel';
 
 /**
- * Right after sign-up, before anything is connected: what the difference between Free and Max looks like on the
- * one screen that matters, for an example student. Visual first, almost no words. Max is shown first.
+ * Before connecting Halo (George, 2026-09-29): fifteen seconds, no reading required, on an example GCU student's Now
+ * screen. Three beats: Free (a sparse planner with a few hand-added items), Plus (everything fills in from Halo,
+ * grades appear, a hidden requirement lights up from an announcement), Max (a study plan and a practice worksheet
+ * for Friday's quiz, and Ask answering a question about the class). It plays itself, can be skipped, and moves on.
  */
+export const BEAT_MS = 5000;
+const BEATS = [
+  { plan: 'Free', line: 'What you add yourself.' },
+  { plan: 'Plus', line: 'Everything from Halo, read for you.' },
+  { plan: 'Max', line: 'Study help that knows your class.' },
+] as const;
+
 export function Compare({ onNext }: { onNext: () => void }) {
-  const [side, setSide] = useState<'max' | 'free'>('max');
+  const [beat, setBeat] = useState(0);
+  useEffect(() => {
+    // The screenshot script can hold a beat; nothing else sets it.
+    let hold: number | null = null;
+    try {
+      const v = localStorage.getItem('school-dashboard:story-hold');
+      hold = v === null ? null : Number(v);
+    } catch {
+      /* storage unavailable */
+    }
+    if (hold !== null && Number.isFinite(hold)) {
+      setBeat(hold);
+      return;
+    }
+    const t = setTimeout(() => (beat < 2 ? setBeat(beat + 1) : onNext()), beat < 2 ? BEAT_MS : BEAT_MS + 800);
+    return () => clearTimeout(t);
+  }, [beat, onNext]);
+  const b = BEATS[beat];
   return (
-    <section className="onboard-step plan-compare" aria-label="Free and Max, side by side">
-      <h1 className="onboard-title">Same week, two plans.</h1>
-      <div className="segmented plan-toggle" role="group" aria-label="Show">
-        <button type="button" aria-pressed={side === 'max'} onClick={() => setSide('max')}>
-          Max
-        </button>
-        <button type="button" aria-pressed={side === 'free'} onClick={() => setSide('free')}>
-          Free
-        </button>
-      </div>
-      <div className="plan-sides" data-side={side}>
-        <MockNow kind="max" />
-        <MockNow kind="free" />
-      </div>
-      <p className="hint plan-example">An example student at GCU, not your data.</p>
-      <div className="onboard-actions">
-        <button type="button" className="btn primary block" onClick={onNext}>
-          Next
+    <section className="onboard-step story" aria-label="What Free, Plus and Max look like">
+      <div className="story-top">
+        <div className="story-progress" aria-hidden>
+          {BEATS.map((x, i) => (
+            <span key={x.plan} data-state={i < beat ? 'done' : i === beat ? 'now' : 'next'}>
+              <i />
+            </span>
+          ))}
+        </div>
+        <button type="button" className="hero-inline story-skip" onClick={onNext}>
+          Skip the example
         </button>
       </div>
+      <p className="story-caption" aria-live="polite">
+        <b data-plan={b.plan}>{b.plan}</b> <span>{b.line}</span>
+      </p>
+      <StoryScreen beat={beat} />
+      <p className="hint story-example">Example: a GCU student's week, not your data.</p>
     </section>
   );
 }
 
-/** A drawn Now screen: Max full and alive, Free sparse. Built in HTML so it follows light and dark. */
-function MockNow({ kind }: { kind: 'max' | 'free' }) {
-  const max = kind === 'max';
+/** The example Now screen, drawn in HTML so it follows light and dark. Each beat adds to the one before. */
+function StoryScreen({ beat }: { beat: number }) {
+  const plus = beat >= 1;
+  const max = beat >= 2;
   return (
-    <figure className="mock-now" data-kind={kind} aria-label={max ? 'Example: Now on Max' : 'Example: Now on Free'}>
-      <figcaption className="mock-cap">
-        <b>{max ? 'Max' : 'Free'}</b>
-        <span className="mock-example">Example</span>
-      </figcaption>
+    <figure className="mock-now story-screen" data-beat={beat} role="img" aria-label={['Example Now on Free: two things the student typed in, no grades, no announcements.', 'Example Now on Plus: assignments and grades from Halo, and a requirement found in an announcement.', 'Example Now on Max: a study plan and worksheet for Friday’s quiz, and Ask answering a question about the class.'][beat]}>
       <div className="mock-screen">
-        {max ? (
+        <p className="mock-status">{plus ? '3 things need you.' : '2 things you added.'}</p>
+        {!plus && (
           <>
-            <p className="mock-status">3 things need you.</p>
-            <div className="mock-hero">
-              <span className="mock-meta">
-                <i className="mock-dot" style={{ background: '#e0632e' }} /> CHM-113 · from Halo
-              </span>
-              <b className="mock-title">Lab 4 Titration Report</b>
-              <span className="mock-pills">
-                <i>75 pts</i>
-                <i>due Fri</i>
-                <i>~2h</i>
-              </span>
-              <span className="mock-req">
-                <b>Reply to 2 classmates by Sunday</b>
-                <em>only in an announcement</em>
-              </span>
-            </div>
-            <div className="mock-row">
-              <span>Study plan · Quiz 2 Friday</span>
-              <span className="mock-sessions">
-                <i>Wed 30m</i>
-                <i>Thu 45m</i>
-              </span>
-            </div>
-            <div className="mock-row">
-              <span>Grades from Halo</span>
-              <span className="mock-grades">
-                <i>A 96%</i>
-                <i>B+ 88%</i>
-                <i>A 95%</i>
-              </span>
-            </div>
-            <p className="mock-foot">24 assignments · 6 classes · synced 2 min ago</p>
-          </>
-        ) : (
-          <>
-            <p className="mock-status">2 things you added.</p>
             <div className="mock-row mock-plain">
               <span>Chem homework</span>
               <span className="mock-faint">Oct 1</span>
@@ -95,25 +80,64 @@ function MockNow({ kind }: { kind: 'max' | 'free' }) {
             <div className="mock-empty">
               <span>No grades</span>
               <span>No announcements</span>
-              <span>Nothing found for you</span>
             </div>
           </>
         )}
+        {plus && (
+          <>
+            <div className="mock-hero story-in">
+              <span className="mock-meta">
+                <i className="mock-dot" style={{ background: '#e0632e' }} /> CHM-113 · from Halo
+              </span>
+              <b className="mock-title">Lab 4 Titration Report</b>
+              <span className="mock-pills">
+                <i>75 pts</i>
+                <i>due Fri</i>
+                <i>~2h</i>
+              </span>
+              <span className="mock-req story-glow">
+                <b>Reply to 2 classmates by Sunday</b>
+                <em>found in an announcement</em>
+              </span>
+            </div>
+            <div className="mock-row story-in story-d1">
+              <span>Grades from Halo</span>
+              <span className="mock-grades">
+                <i>A 96%</i>
+                <i>B+ 88%</i>
+                <i>A 95%</i>
+              </span>
+            </div>
+          </>
+        )}
+        {max && (
+          <>
+            <div className="mock-row story-in story-max">
+              <span>
+                <b>Quiz 2 on Friday</b> · study plan
+              </span>
+              <span className="mock-sessions">
+                <i>Wed 30m</i>
+                <i>Thu 45m</i>
+              </span>
+            </div>
+            <div className="mock-row story-in story-max story-d1">
+              <span>Practice worksheet · 12 problems</span>
+              <span className="mock-faint">with answers</span>
+            </div>
+            <div className="story-ask story-in story-d2">
+              <p className="story-q">What's on Friday's quiz?</p>
+              <p className="story-a">Molarity and titration, chapters 4 and 5. Your worksheet covers both.</p>
+            </div>
+          </>
+        )}
+        {plus && !max && <p className="mock-foot story-in story-d2">24 assignments · 6 classes · synced 2 min ago</p>}
       </div>
     </figure>
   );
 }
 
-const LINES: { icon: () => React.ReactElement; text: string }[] = [
-  { icon: IconSync, text: 'Pulls every class, assignment, and grade from Halo' },
-  { icon: IconInbox, text: 'Reads your announcements so you never miss hidden work' },
-  { icon: IconNow, text: 'Tells you what to do next' },
-  { icon: IconStudy, text: 'Builds study plans and practice worksheets for your quizzes' },
-  { icon: IconAsk, text: 'Answers questions about your own classes' },
-  { icon: IconColour, text: 'Pick your own color' },
-];
-
-/** The offer. One button starts the week and goes straight on to connecting Halo; the other stays on Free. */
+/** The trial screen. One huge button starts the week and goes straight on to connecting Halo. */
 export function Offer({ onStarted, onFree }: { onStarted: () => void; onFree: () => void }) {
   const { reloadProfile } = useAccount();
   const [busy, setBusy] = useState(false);
@@ -133,22 +157,13 @@ export function Offer({ onStarted, onFree }: { onStarted: () => void; onFree: ()
     setNote(r.message);
   };
   return (
-    <section className="onboard-step plan-offer" aria-label="Try Max free">
-      <h1 className="onboard-title">{TRIAL.offer}</h1>
-      <ul className="offer-lines">
-        {LINES.map(({ icon: Icon, text }) => (
-          <li key={text}>
-            <span className="offer-icon" aria-hidden>
-              <Icon />
-            </span>
-            {text}
-          </li>
-        ))}
-      </ul>
-      <button type="button" className="btn primary block onboard-big" disabled={busy} onClick={() => void start()}>
+    <section className="onboard-step plan-offer" aria-label="Try everything free">
+      <h1 className="onboard-title offer-title">{TRIAL.headline}</h1>
+      <p className="offer-promise">{TRIAL.promise}</p>
+      <button type="button" className="btn primary block offer-go" disabled={busy} onClick={() => void start()}>
         {busy ? 'Starting your week…' : 'Start my free week'}
       </button>
-      <p className="hint offer-after">{TRIAL.after}</p>
+      <p className="offer-after">{TRIAL.after}</p>
       {note && (
         <p className="hint" role="alert">
           {note}{' '}
@@ -159,7 +174,7 @@ export function Offer({ onStarted, onFree }: { onStarted: () => void; onFree: ()
       )}
       <p className="offer-free">
         <button type="button" className="hero-inline" onClick={onFree}>
-          Stay on Free and upload syllabi instead
+          Continue with Free instead.
         </button>
       </p>
     </section>

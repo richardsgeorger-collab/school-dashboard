@@ -3,7 +3,7 @@ import { supabase } from './client';
 export type StartTrial = { ok: true; endsAt: string } | { ok: false; why: 'used' | 'already_max' | 'offline' | 'signed_out' | 'error'; message: string };
 
 /**
- * Starts the free five-day Max trial for the signed-in account. The server decides once per account; this only
+ * Starts the free seven-day trial (Max) for the signed-in account. The server decides once per account; this only
  * asks and repeats the answer. Nothing here can charge anyone: there is no card anywhere in this path.
  */
 export async function startTrial(): Promise<StartTrial> {

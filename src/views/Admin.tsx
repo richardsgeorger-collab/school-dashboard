@@ -96,7 +96,7 @@ export function Admin() {
           ) : (
             <p className="hint">Loading…</p>
           )}
-          <p className="hint">One free five-day Max trial per account, started by the student, no card.</p>
+          <p className="hint">One free seven-day trial (Max, which covers Plus) per account, started by the student, no card.</p>
         </section>
         <section className="card settings-card">
           <h2 className="section-title">What gets used</h2>

@@ -124,7 +124,7 @@ function AccountCard({ tier }: { tier: Tier }) {
         ) : (
           <>
             {TIER_NAMES[tier]}
-            {days !== null ? ` · ${days} day${days === 1 ? '' : 's'} left on your Max trial` : ''}
+            {days !== null ? ` · free trial, ${days} day${days === 1 ? '' : 's'} left` : ''}
             {reward !== null ? ` · ${TIER_NAMES[profile?.rewardTier ?? 'plus']} from a friend for ${reward} more day${reward === 1 ? '' : 's'}` : ''}
           </>
         )}

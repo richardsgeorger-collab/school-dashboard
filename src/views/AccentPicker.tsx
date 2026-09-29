@@ -1,7 +1,7 @@
 import { useAccount } from '../auth/AccountContext';
 import { ACCENTS, type AccentId } from '../config/accents';
 import { trialState } from '../config/flags';
-import { TIER_NAMES } from '../config/tiers';
+import { TIER_NAMES, TRIAL } from '../config/tiers';
 import { useStore } from '../storage/store';
 import { TrialOffer } from './TrialOffer';
 
@@ -40,7 +40,7 @@ export function AccentPicker({ value, onChange, allowed }: { value: AccentId; on
           <span className="hint">Your colour is part of Max. Everyone else wears gold.</span>
           {trial ? (
             <span className="locked-trial">
-              <TrialOffer variant="button" label="Try Max free for 7 days" />
+              <TrialOffer variant="button" label={TRIAL.button} />
               <span className="hint">No card. Nothing charges.</span>
             </span>
           ) : (

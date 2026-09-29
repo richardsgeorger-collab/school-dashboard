@@ -55,7 +55,7 @@ export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
       <p className="hint diff-gap" role="status">
         {trialAvailable ? (
           <>
-            {o.todo} announcement{o.todo === 1 ? ' is' : 's are'} waiting to be read. <TrialOffer variant="inline" label={`Try Max free and it reads ${o.todo === 1 ? 'it' : 'them'}`} />
+            {o.todo} announcement{o.todo === 1 ? ' is' : 's are'} waiting to be read. <TrialOffer variant="inline" label={`Try it free and it reads ${o.todo === 1 ? 'it' : 'them'}`} />
           </>
         ) : (
           line

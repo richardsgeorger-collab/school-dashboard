@@ -108,7 +108,7 @@ export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
   const trialEnded = !!profile?.trialStartedAt && !!profile.trialEndsAt;
   return (
     <section className="card plan-wall" aria-label="Choose a plan">
-      <p className="eyebrow">{trialEnded ? `Your Max trial ended ${short(profile!.trialEndsAt ?? null) ?? ''}` : 'Halo sync is part of Plus'}</p>
+      <p className="eyebrow">{trialEnded ? `Your free trial ended ${short(profile!.trialEndsAt ?? null) ?? ''}` : 'Halo sync is part of Plus'}</p>
       <p className="trial-lead">{context === 'sync' ? 'Syncing Halo is part of Plus. Everything you have stays.' : 'Everything you have stays. Plus turns Halo sync back on, with your grades and announcements.'}</p>
       {did && <p className="hint">{did}</p>}
       <ul className="plan-lines">
