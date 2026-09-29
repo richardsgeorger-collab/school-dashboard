@@ -17,8 +17,12 @@ University; Halo is GCU's learning platform.
   the professor's own instructions from announcements. Then the short list of what comes after.
 - **Announcements, read for you.** The "due Friday" a professor only posted in an announcement lands on the
   assignment it belongs to, as a checklist line quoting the post. Standing rules ("150 to 200 words, every week")
-  live with the class. Every post arrives in the Inbox with a one-line summary. (Reading is part of Max; five days
-  free, no card.)
+  live with the class. Every post arrives in the Inbox with a one-line summary. (Halo sync and the reading are part
+  of Plus; every new account starts with seven days of Max free, no card.)
+- **Study.** One tab: Ask anything about your classes (it knows your assignments, grades, slides, lectures and
+  announcements, and answers short, with what to do next as buttons); Practice for any quiz or exam (a plan for the
+  days left, a worksheet with the answers on the last page as Word or PDF, quiz me one question at a time,
+  flashcards, all from your own class material); Check my work against the rubric or the class's method. Part of Max.
 - **Grades.** Points earned over points graded per class, from Halo's gradebook, with what the number rests on
   ("based on 3 items"), what you need on the rest, and what skipping one thing would do.
 - **Calendar, Load, Classes.** Week and month views, a heatmap of heavy weeks for the whole term, and a page per

@@ -44,9 +44,10 @@ buried in one
 > - Reminders as push notifications: the morning note, a heads-up the night before a heavy day.
 > - Works on a phone from the Home Screen.
 >
-> It's independent, not from GCU, and I'm one student. The announcement reading uses an AI model and is the paid
-> part (five days free, no card); everything else is free to use. Your data is yours: export it or delete the
-> account in one tap.
+> It's independent, not from GCU, and I'm one student. The Halo sync and the announcement reading are Plus
+> ($3.99 a month, cancel anytime); a Study tab that practices for your quizzes from your own slides and checks your
+> work against the rubric is Max ($7.99). Every account starts with a week of Max free, no card, and the syllabus
+> planner stays free. Your data is yours: export it or delete the account in one tap.
 >
 > https://richardsgeorger-collab.github.io/school-dashboard/
 >

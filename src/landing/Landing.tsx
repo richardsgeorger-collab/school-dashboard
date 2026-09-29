@@ -158,7 +158,7 @@ export function Landing() {
           </article>
           <article className="card landing-feature">
             <h3>Studies with you</h3>
-            <p>Ask what to work on first. Turn a lecture into notes and practice questions. A plan for the exam, spread over the days before it.</p>
+            <p>One Study tab. Ask anything about your classes and get a short answer with what to do next. Practice for any quiz or exam with a plan, a worksheet with answers and quiz me, all from your own slides and lectures. Check your work against the rubric before you turn it in.</p>
           </article>
         </div>
       </section>
