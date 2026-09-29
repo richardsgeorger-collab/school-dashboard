@@ -90,8 +90,10 @@ First Page Sage trial benchmarks; Amplitude on reverse trials. Full list in the 
   no announcements, no AI.
 - **Plus $3.99 a month:** Halo sync (bookmark and auto-sync extension), Halo's real grades and
   every announcement, announcements read for you, every notification and the Sunday preview.
-- **Max $7.99 a month:** everything in Plus; coach, tutor, prompt panel, study worksheets, quiz
-  me, exam study plans, lecture transcripts, the colour picker.
+- **Max $7.99 a month:** everything in Plus; the Study tab (loop 110): Ask (one chat that knows the classes,
+  slides and announcements), Practice (a study plan, a worksheet with answers as .docx/PDF, quiz me, flashcards,
+  a one-pager, for any quiz or exam), Check my work (against the rubric or the class's method); the prompt panel,
+  lecture transcripts, the colour picker.
 - **Pro is retired.** Not sold; an old Pro row keeps Plus.
 - **Trial:** 7 days of Max, started by the signup itself (migration 0010), once per account; recap reminder on day 5.
 - **After the trial with nothing paid:** sync pauses, data stays, every screen shows "Halo sync paused since …" and

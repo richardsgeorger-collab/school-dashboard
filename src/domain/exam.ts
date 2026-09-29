@@ -88,12 +88,13 @@ export function examMode(
 
 /** One calm sentence for the pressure slot in exam mode, or null. */
 export function examPressure(plan: ExamPlan): string | null {
-  if (plan.shortfall > 0) return `${fmtMinutes(plan.shortfall)} of study will not fit before the exam at your current hours. Start today, or add study hours under You, Study time.`;
+  const what = plan.exam.type === 'quiz' ? 'quiz' : 'exam';
+  if (plan.shortfall > 0) return `${fmtMinutes(plan.shortfall)} of study will not fit before the ${what} at your current hours. Start today, or add study hours under You, Study time.`;
   if (plan.mustDoBefore.length > 0) {
     const n = plan.mustDoBefore.length;
-    return `${n} other thing${n === 1 ? ' is' : 's are'} due before the exam and still fit around it.`;
+    return `${n} other thing${n === 1 ? ' is' : 's are'} due before the ${what} and still fit around it.`;
   }
-  if (plan.suppressed.length > 0) return `${plan.suppressed.length} other thing${plan.suppressed.length === 1 ? '' : 's'} due in the two weeks after wait until the exam is over.`;
+  if (plan.suppressed.length > 0) return `${plan.suppressed.length} other thing${plan.suppressed.length === 1 ? '' : 's'} due in the two weeks after wait until the ${what} is over.`;
   return null;
 }
 
@@ -103,7 +104,12 @@ export function examPressure(plan: ExamPlan): string | null {
  */
 export function nextTestPlan(items: Item[], schedule: Schedule, settings: Settings, today: DateStr): ExamPlan | null {
   const plan = examMode(items, schedule, settings, today, (i) => i.estimatedMinutes, { types: ['quiz', 'exam'], days: 21 });
-  if (!plan || plan.sessions.length === 0) return plan;
+  return plan ? fewerLongerSessions(plan) : plan;
+}
+
+/** A plan's study as a few real sessions: at least 30 minutes each, at most four, on the days just before the test. */
+export function fewerLongerSessions(plan: ExamPlan): ExamPlan {
+  if (plan.sessions.length === 0) return plan;
   const total = plan.sessions.reduce((n, x) => n + x.minutes, 0);
   const count = Math.max(1, Math.min(4, plan.sessions.length, Math.floor(total / 30) || 1));
   const days = plan.sessions.slice(-count);

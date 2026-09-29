@@ -24,7 +24,10 @@ const SEEDED = [
   ['inbox', '#/inbox'],
   ['you', '#/you'],
   ['plans', '#/you?s=plan'],
-  ['ai', '#/ai'],
+  ['study', '#/study'],
+  ['ask', '#/ask'],
+  ['practice', '#/practice'],
+  ['check', '#/check'],
   ['load', '#/load'],
   ['grades', '#/grades'],
   ['library', '#/library'],
@@ -35,8 +38,11 @@ const SEEDED = [
     const heroes = await page.evaluate(() => document.querySelectorAll('.now > .hero').length);
     if (heroes !== 1) throw new Error(`item: ${heroes} hero cards on Now with the sheet open; expected 1`);
   }],
-  // The AI screens and the ingest review, on the first class: locked previews on this build, the real shape of each.
-  ...['ingest', 'tutor', 'study', 'quiz'].map((r) => [r, '#/now', async (page) => { const id = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses[0].id); await page.goto(`${BASE}#/${r}?c=${id}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700); }]),
+  // The ingest review and the scoped Study tools, on the first class: locked previews on this build (no account), the real shape of each.
+  ...['ingest', 'ask', 'practice'].map((r) => [`${r}-class`, '#/now', async (page) => { const id = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).courses[0].id); await page.goto(`${BASE}#/${r}?c=${id}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700); }]),
+  // Practice for a named quiz, Check for a named paper: what the item sheet's one button opens.
+  ['practice-test', '#/now', async (page) => { const id = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.find((i) => i.label === 'Chem Quiz 2').id); await page.goto(`${BASE}#/practice?i=${id}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700); }],
+  ['check-item', '#/now', async (page) => { const id = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.find((i) => i.label === 'Chem Lab Connections Essay').id); await page.goto(`${BASE}#/check?i=${id}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700); }],
   ['looks', '#/looks?d=violet'],
   ['you-progress', '#/you?s=progress'],
   ['you-workload', '#/you?s=workload'],
@@ -175,8 +181,8 @@ const SEEDED = [
   }],
   ['item-required', '#/classes', async (page) => { await page.click('.classes-list a'); await page.waitForTimeout(500); await page.click('.item-main:has-text("Chem Quiz 2")'); await page.waitForTimeout(500); }],
   ['onboarding-payoff', '#/now', async (page) => { await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1800); await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); }); }],
-  // The coach, opened from Now's side column (locked on this build, so the honest card with the trial shows).
-  ['coach', '#/now', async (page) => { await page.click('.coach-ask'); await page.waitForTimeout(500); }],
+  // The item sheet's one study button: Practice for a quiz, Get help on an assignment.
+  ['item-quiz-row', '#/classes', async (page) => { await page.click('.classes-list a'); await page.waitForTimeout(500); await page.click('.item-main:has-text("Chem Quiz 2")'); await page.waitForTimeout(500); }],
   // "Am I okay?": the one paragraph behind the status line.
   ['hero-menu', '#/now', async (page) => { await page.click('.hero-actions .btn.quiet'); await page.waitForTimeout(300); await page.click('.hero-menu > summary'); await page.waitForTimeout(300); }],
   // Done from the hero: the toast with Undo, then Undo puts the card back.
@@ -256,7 +262,7 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const scheme of ['light', 'dark']) {
   // The onboarding and upgrade welcomes are captured on the real backend by scripts/e2e-onboarding.mjs (they need an
   // account); the old four-screen Max welcome and the old onboarding scenes are retired here.
-  const RETIRED = /^(onboarding-|max-|tour$)/;
+  const RETIRED = /^(onboarding-|max-|tour$|ai$|tutor$|quiz$|coach$)/;
   for (const [group, full] of [['seeded', SEEDED], ['timed', TIMED], ['fresh', FRESH]]) {
     const list = full.filter(([name]) => !RETIRED.test(name));
     const ctx = await browser.newContext({ ...device, colorScheme: scheme, reducedMotion: 'reduce' });

@@ -106,6 +106,7 @@ export const MAX_TOKENS = {
   lecture: 4000,
   study: 6000,
   quiz: 4000,
+  worksheet: 6000,
   brief: 1500,
   draft: 1500,
   method: 1500,
@@ -133,6 +134,7 @@ export const AI_KIND_FEATURE: Record<AiKind, Feature> = {
   lecture: 'lectures',
   study: 'flashcards',
   quiz: 'flashcards',
+  worksheet: 'flashcards',
   recap: 'weeklyRecap',
   other: 'aiChat',
 };
@@ -190,9 +192,9 @@ export const FEATURE_LINES: Record<Feature, string> = {
   gradeProjection: 'What you need on the rest of the term.',
   gamification: 'Points, streaks, and a bar that shows the term filling in.',
   icsFeed: 'Your deadlines in Google or Apple Calendar, live.',
-  aiChat: 'A coach and a tutor that know your classes.',
+  aiChat: 'Ask anything about your classes: what to do next, what a professor wants, how a topic works, from your own slides and announcements.',
   promptPanel: 'A ready-made prompt for any assignment, built from its rubric and announcements.',
-  flashcards: 'Quiz me and study worksheets from your own material.',
+  flashcards: 'Practice for any quiz or exam: a study plan, a worksheet with answers, quiz me, flashcards, all from your own class material.',
   examPlans: 'A study plan for your next quiz or exam, spread over the days before it.',
   lectures: 'Paste or record a lecture, get notes and the key points.',
   syllabusAI: 'Reads syllabi and rubrics into real start dates and prep steps.',
@@ -204,7 +206,7 @@ export const FEATURE_LINES: Record<Feature, string> = {
 export const PLAN_LINES: Record<'free' | Paid, string[]> = {
   free: ['Syllabus PDF drop and items you add', 'Now, Calendar and Classes built from them', 'No Halo sync, no announcements, no AI'],
   plus: ['Halo sync: the bookmark and the auto-sync extension', "Halo's real grades and every announcement", 'Announcements read for you', 'Every notification and the Sunday preview'],
-  max: ['Everything in Plus', 'Coach, tutor, prompt panel and study worksheets', 'Quiz me and exam study plans', 'Lecture transcripts and your own colour'],
+  max: ['Everything in Plus', 'Ask: a study partner that knows your classes, slides and announcements', 'Practice: study plans, worksheets with answers, quiz me, flashcards', 'Check my work against the rubric, lecture notes, your own colour'],
 };
 
 /** "part of Plus": the plan a feature is in, for every locked line, so no message ever names a plan by hand. */

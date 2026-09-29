@@ -2,17 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { bump } from './analytics/usage';
 
 /**
- * Five tabs: Now, Calendar, Classes, Inbox, You. Everything else is a screen reached from one of them and lights up
- * that tab. Old addresses keep working through the aliases so a bookmark from last month still lands somewhere.
+ * Six tabs: Now, Calendar, Study, Classes, Inbox, You. Everything else is a screen reached from one of them and lights
+ * up that tab. Study holds the three AI tools: Ask, Practice, Check; the old AI addresses land on them. Old addresses keep working through the aliases so a bookmark from last month still lands somewhere.
  * The bare root (no hash) is `home`: the landing page for a stranger, Now for everyone else. `start` opens the
  * app with sign-up first; `login` is the sign-in screen on its own.
  */
-export type Route = 'home' | 'start' | 'login' | 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'quiz' | 'class' | 'ingest' | 'tutor' | 'study' | 'ai' | 'admin' | 'looks';
-const ROUTES: Route[] = ['home', 'start', 'login', 'now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'quiz', 'class', 'ingest', 'tutor', 'study', 'ai', 'admin', 'looks'];
-const ALIASES: Record<string, Route> = { '': 'home', record: 'library', news: 'inbox', settings: 'you', plan: 'load', signin: 'login', signup: 'start' };
+export type Route = 'home' | 'start' | 'login' | 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'class' | 'ingest' | 'study' | 'ask' | 'practice' | 'check' | 'admin' | 'looks';
+const ROUTES: Route[] = ['home', 'start', 'login', 'now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'class', 'ingest', 'study', 'ask', 'practice', 'check', 'admin', 'looks'];
+// The AI screens before loop 110: the hub, the tutor and the quiz land on the tool that replaced each.
+const ALIASES: Record<string, Route> = { '': 'home', record: 'library', news: 'inbox', settings: 'you', plan: 'load', signin: 'login', signup: 'start', ai: 'study', tutor: 'ask', quiz: 'practice' };
 
-export type Tab = 'now' | 'calendar' | 'classes' | 'inbox' | 'you';
-export const TABS: Tab[] = ['now', 'calendar', 'classes', 'inbox', 'you'];
+export type Tab = 'now' | 'calendar' | 'study' | 'classes' | 'inbox' | 'you';
+export const TABS: Tab[] = ['now', 'calendar', 'study', 'classes', 'inbox', 'you'];
 
 /** Which tab a screen belongs to, so the tab bar can show where you are. */
 export const TAB_OF: Record<Route, Tab> = {
@@ -24,10 +25,10 @@ export const TAB_OF: Record<Route, Tab> = {
   classes: 'classes',
   class: 'classes',
   library: 'classes',
-  ai: 'now',
-  quiz: 'now',
-  study: 'now',
-  tutor: 'now',
+  study: 'study',
+  ask: 'study',
+  practice: 'study',
+  check: 'study',
   ingest: 'classes',
   inbox: 'inbox',
   you: 'you',

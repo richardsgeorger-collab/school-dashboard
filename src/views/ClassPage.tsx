@@ -19,7 +19,6 @@ import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { ItemDetail } from './ItemDetail';
 import { PasteTranscript } from './PasteTranscript';
-import { QuizLink } from './Quiz';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -36,6 +35,14 @@ export function ClassPage() {
   const [paste, setPaste] = useState(false);
   const [tab, setTab] = useState<'work' | 'rules' | 'notes'>('work');
   const [resources, setResources] = useState<StoredResource[]>([]);
+  // "#/class?c=…&i=…" opens one item's sheet: where Ask and Check send "Open the assignment".
+  const wantItem = params.get('i');
+  useEffect(() => {
+    if (!wantItem) return;
+    const it = data.items.find((i) => i.id === wantItem);
+    if (it) setOpen(it);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantItem]);
   useEffect(() => {
     if (!course) return;
     let live = true;
@@ -106,10 +113,12 @@ export function ClassPage() {
           <button type="button" className="btn small" onClick={() => setPaste(true)}>
             Paste transcript
           </button>
-          <a className="btn small" href={`#/tutor?c=${course.id}`}>
-            Tutor
+          <a className="btn small" href={`#/ask?c=${course.id}`}>
+            Ask
           </a>
-          <QuizLink courseId={course.id} />
+          <a className="btn small primary" href={`#/practice?c=${course.id}`}>
+            Practice
+          </a>
         </span>
       </div>
 
@@ -233,9 +242,6 @@ export function ClassPage() {
           </a>{' '}
           <a className="btn small" href="#/grades">
             Grades
-          </a>{' '}
-          <a className="btn small" href={`#/study?c=${course.id}`}>
-            Study kit
           </a>{' '}
           <a className="btn small" href={`#/ingest?c=${course.id}`}>
             {course.ingest === 'ai' ? (planStatus && planStatus.pending > 0 ? `AI plan · ${planStatus.pending} to review` : planStatus?.state === 'stale' ? 'AI plan · changed since' : 'AI plan') : 'AI plan'}

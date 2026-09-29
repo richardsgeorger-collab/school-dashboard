@@ -85,7 +85,7 @@ export function buildKitPrompt(course: Course, kind: KitKind, topic: string, sou
   const want = kind === 'formulas' ? 'a formula sheet (fill formulas only)' : kind === 'cards' ? 'flashcards (fill cards only)' : 'a one-page summary (fill sections only)';
   return {
     system: [{ text: KIT_SYSTEM, cache: true }, { text: `Sources (cite as [S#]):\n\n${sourcesBlock(sources)}`, cache: true }],
-    user: `Class: ${course.code} ${course.name}\nBuild: ${want}\nTopic: ${topic || 'everything on file, in teaching order'}\nWeak topics, first and heaviest: ${weak.join(', ') || '(none known)'}\nCalled exam material by the professor: ${flagged.join('; ') || '(nothing recorded)'}`,
+    user: `Class: ${course.code} ${course.name}\nBuild: ${want}\nTopic: ${topic ? `${topic} (if the sources do not cover this by name, build from what they do cover: the test's material is what is on file, never nothing)` : 'everything on file, in teaching order'}\nWeak topics, first and heaviest: ${weak.join(', ') || '(none known)'}\nCalled exam material by the professor: ${flagged.join('; ') || '(nothing recorded)'}`,
   };
 }
 

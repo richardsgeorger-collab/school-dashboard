@@ -88,7 +88,8 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--line);
-  grid-template-columns: repeat(5, 1fr);
+  /* Six tabs since loop 110 (Study); a column never grows past its share, so the sixth is never pushed off screen. */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 .nav-bottom .nav-link {
   min-height: var(--nav-h);

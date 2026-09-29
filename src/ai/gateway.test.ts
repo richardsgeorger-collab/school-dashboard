@@ -13,7 +13,12 @@ describe('the gateway', () => {
     const w = toWire({ kind: 'coach', system: [{ text: 'sys', cache: true }, { text: ' ' }], messages: [{ role: 'user', content: 'x' }], max_tokens: 999_999, think: true });
     expect(w.model).toBe(MODEL);
     expect(w.max_tokens).toBe(MAX_TOKENS.coach);
-    expect(w.thinking).toEqual({ type: 'adaptive' });
+    // Haiku takes `enabled` with a budget under the cap; `adaptive` is what it rejected for days.
+    expect(w.thinking).toEqual({ type: 'enabled', budget_tokens: MAX_TOKENS.coach / 2 });
+    expect(toWire({ kind: 'coach', system: [], messages: [], think: false }).thinking).toBeUndefined();
+    // A forced tool call cannot think: the flag is dropped, not sent to fail.
+    expect(toWire({ kind: 'class_plan', system: [], messages: [], think: true, tools: [{ name: 't', input_schema: {} }], tool_choice: { type: 'tool', name: 't' } }).thinking).toBeUndefined();
+    expect(toWire({ kind: 'needs', system: [], messages: [], think: true }).thinking).toBeUndefined();
     expect(w.system).toEqual([{ type: 'text', text: 'sys', cache_control: { type: 'ephemeral' } }]);
     expect(toWire({ kind: 'needs', system: [], messages: [] }).max_tokens).toBe(MAX_TOKENS.needs);
     expect(toWire({ kind: 'needs', system: [], messages: [], max_tokens: 100 }).max_tokens).toBe(100);

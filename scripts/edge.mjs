@@ -23,7 +23,7 @@ const SCENES = [
   ['fresh-library', async (page) => { await page.goto(`${BASE}#/library`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); }],
   ['fresh-load', async (page) => { await page.goto(`${BASE}#/load`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); }],
   ['fresh-you', async (page) => { await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); }],
-  ['fresh-ai', async (page) => { await page.goto(`${BASE}#/ai`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); }],
+  ['fresh-study', async (page) => { await page.goto(`${BASE}#/study`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); }],
   ['fresh-add', async (page) => { await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); await page.click('button[aria-label="Add something"]'); await page.waitForTimeout(400); }],
 ];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });

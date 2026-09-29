@@ -1,0 +1,307 @@
+/* ---- Study: the home for Ask, Practice and Check (loop 110) --------------------------------------------------- */
+.study-home,
+.ask,
+.practice,
+.check-page {
+  display: grid;
+  gap: var(--s-4);
+}
+.study-lead {
+  max-width: var(--prose-max);
+  margin: 4px 0 0;
+}
+.study-lock {
+  border-style: dashed;
+  display: grid;
+  gap: var(--s-3);
+}
+.study-lock-line {
+  margin: 0;
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.study-lock-line b {
+  color: var(--ink);
+}
+.study-block {
+  display: grid;
+  gap: var(--s-3);
+}
+.study-block-head .section-title {
+  margin: 0 0 2px;
+}
+.study-block-head .hint {
+  margin: 0;
+}
+.study-tests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.study-test {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.study-test-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.study-test-title {
+  font: var(--t-heading);
+  color: var(--ink);
+}
+.study-test .hint.mono {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 6px;
+  margin: 0;
+}
+.study-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.study-chips .hint {
+  margin: 0 4px 0 0;
+}
+a.quiz-chip {
+  text-decoration: none;
+}
+.study-ask {
+  display: flex;
+  gap: 8px;
+}
+.study-ask input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--ink);
+  font: var(--t-body);
+  font-size: 16px;
+}
+
+/* Ask */
+.ask-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.ask-about {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.ask-about a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 700;
+}
+.ask-card .chat-log {
+  max-height: none;
+  min-height: 120px;
+}
+.ask-turn {
+  display: grid;
+  gap: 6px;
+}
+.ask-turn[data-role='user'] {
+  justify-items: end;
+}
+.ask-turn .tutor-cites {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.ask-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ask-known {
+  margin: 0;
+}
+.chat-msg[data-failed='true'] {
+  border-left: 3px solid var(--danger);
+  color: var(--ink-2);
+}
+
+/* Practice */
+.practice .segmented {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.practice .segmented::-webkit-scrollbar {
+  display: none;
+}
+.practice .segmented button {
+  white-space: nowrap;
+}
+.practice-plan {
+  display: grid;
+  gap: 10px;
+}
+.practice-sessions .exam-session {
+  align-items: center;
+}
+.practice-next {
+  align-items: center;
+}
+.ws-doc {
+  display: grid;
+  gap: 4px;
+  max-width: 76ch;
+}
+.ws-title {
+  font: var(--t-title);
+  letter-spacing: var(--track-tight);
+  margin: 0;
+}
+.ws-heading {
+  font: var(--t-heading);
+  margin: 14px 0 2px;
+}
+.ws-problem {
+  margin: 8px 0 2px;
+  font: var(--t-body);
+}
+.ws-choice {
+  margin: 0 0 0 22px;
+  font: var(--t-body);
+}
+.ws-answer {
+  margin: 8px 0 0;
+  font-weight: 600;
+}
+.ws-step {
+  margin: 0 0 0 22px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ws-rule {
+  margin-top: 12px;
+}
+.ws-answers {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line-strong);
+}
+.ws-answers summary {
+  cursor: pointer;
+}
+
+/* Check */
+.check-card {
+  display: grid;
+  gap: var(--s-3);
+}
+.check-drop {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+}
+.check-drop[data-over='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.check-text {
+  width: 100%;
+  min-height: 180px;
+}
+.check-result {
+  display: grid;
+  gap: 8px;
+}
+
+/* The one clear button on an item (sheet, hero) */
+.study-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+@media print {
+  .ws-answers {
+    break-before: page;
+    border: 0;
+  }
+  .ws-answers summary {
+    display: none;
+  }
+  .ws-answers[open] > *,
+  .ws-answers > * {
+    display: block;
+  }
+  .practice .lib-head,
+  .practice .segmented,
+  .practice .kit-setup,
+  .practice-next,
+  .ask-scope {
+    display: none !important;
+  }
+}
+@media (max-width: 639px) {
+  .study-test {
+    flex-wrap: wrap;
+  }
+  .study-lock .locked-actions {
+    flex-wrap: wrap;
+  }
+  .study-test .btn {
+    margin-left: auto;
+  }
+  .study-ask {
+    flex-direction: column;
+  }
+}
+
+/* Suggestions and follow-ups are sentences: they wrap instead of widening the page. */
+.study-home .chat-suggest .btn,
+.ask-card .chat-suggest .btn,
+.ask-next .btn,
+.practice-next .btn {
+  white-space: normal;
+  text-align: left;
+  height: auto;
+  min-height: var(--tap);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1.3;
+}
+.study-home,
+.ask,
+.practice,
+.check-page {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* A study session on a phone: the line, then its button, not a squeezed column beside it. */
+@media (max-width: 639px) {
+  .practice-sessions .exam-session {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}

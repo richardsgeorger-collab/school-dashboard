@@ -5,7 +5,7 @@ import { CourseChip } from '../components/CourseChip';
 import { useStore } from '../storage/store';
 
 const k = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
-const KIND_WORDS: Record<string, string> = { class_plan: 'class passes', term_plan: 'term passes', lecture: 'lecture reads', tutor: 'tutor', brief: 'assignment briefs', draft: 'draft checks', method: 'method checks', links: 'cross-class links', study: 'study kits', quiz: 'practice sets', coach: 'coach', audit: 'Halo audits', needs: 'needs-you lines', other: 'other' };
+const KIND_WORDS: Record<string, string> = { class_plan: 'class passes', term_plan: 'term passes', lecture: 'lecture reads', tutor: 'tutor', brief: 'assignment briefs', draft: 'draft checks', method: 'method checks', links: 'cross-class links', study: 'study kits', quiz: 'practice sets', worksheet: 'worksheets', coach: 'coach', audit: 'Halo audits', needs: 'needs-you lines', other: 'other' };
 
 /** What the AI features cost this month, measured from what the API reported, and which classes run on the AI plan. */
 export function AiPanel() {

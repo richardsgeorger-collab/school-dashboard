@@ -3,7 +3,7 @@
 // screen reader; a way to catch the mechanical misses.   node scripts/a11y.mjs
 import { chromium, devices } from 'playwright-core';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
-const ROUTES = ['#/now', '#/calendar', '#/calendar?v=month', '#/classes', '#/inbox', '#/you', '#/you?s=display', '#/you?s=notifications', '#/ai', '#/load', '#/grades', '#/library'];
+const ROUTES = ['#/now', '#/calendar', '#/calendar?v=month', '#/classes', '#/inbox', '#/you', '#/you?s=display', '#/you?s=notifications', '#/study', '#/ask', '#/practice', '#/check', '#/load', '#/grades', '#/library'];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const [label, device] of [['desk', { viewport: { width: 1440, height: 900 } }], ['phone', { ...devices['iPhone 14'] }]]) {
   const ctx = await browser.newContext({ ...device, reducedMotion: 'reduce' });

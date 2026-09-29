@@ -499,7 +499,7 @@ export function You() {
           </label>
           <label className="field field-check">
             <input type="checkbox" checked={!!data.settings.dailyQuestion} onChange={(e) => actions.updateSettings({ dailyQuestion: e.target.checked })} />
-            <span>One flashcard from your own study kit on a quiet day, on Now.</span>
+            <span>One flashcard from your own Practice flashcards on a quiet day, on Now.</span>
           </label>
           <div className="settings-actions sunday-settings">
             <span className="hint">

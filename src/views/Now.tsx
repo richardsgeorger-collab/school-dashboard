@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChatCard } from '../chat/ChatCard';
 import { ItemRow } from '../components/ItemRow';
 import { Modal } from '../components/Modal';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
@@ -27,7 +26,7 @@ import { sessionTopics, topicBlocks, type SessionTopic } from '../domain/examTop
 import { libraryDb } from '../library/db';
 import { recordingsDb } from '../record/db';
 import { weakSpots } from '../domain/weak';
-import { QuizLink } from './Quiz';
+import { inDays, testWithin } from '../study/upcoming';
 import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '../domain/away';
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
@@ -45,7 +44,6 @@ import { useAccount } from '../auth/AccountContext';
 import { trialDaysLeft, trialState } from '../config/flags';
 import { receiptsLine } from '../domain/receipts';
 import { TrialOffer, TrialReceipts, useReceipts } from './TrialOffer';
-import { Locked } from '../config/Locked';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
@@ -111,11 +109,11 @@ function ExamHero({ plan, onOpen, onDone, onLog }: { plan: ExamPlan; onOpen: (i:
         <span className="pill">{plan.remainingMinutes > 0 ? `${fmtMinutes(plan.remainingMinutes)} of study left` : 'study logged'}</span>
       </p>
       <div className="hero-actions">
-        <a className="btn primary" href={`#/study?c=${plan.exam.courseId}`}>
-          Study kit
+        <a className="btn primary" href={`#/practice?i=${plan.exam.id}`}>
+          Practice
         </a>
-        <a className="btn" href={`#/tutor?c=${plan.exam.courseId}&i=${plan.exam.id}`}>
-          Tutor
+        <a className="btn" href={`#/ask?c=${plan.exam.courseId}&i=${plan.exam.id}`}>
+          Ask
         </a>
         <button type="button" className="btn quiet" onClick={() => onOpen(plan.exam)}>
           Open
@@ -237,7 +235,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
  */
 export function Now() {
   const { data, schedule, derived, today, actions, progress, previewAward, calibrate, justDone } = useStore();
-  const { tier, profile, auth } = useAccount();
+  const { profile, auth } = useAccount();
   const trialDays = trialDaysLeft(profile);
   const onTrial = trialState(profile) === 'active';
   const trialAvailable = auth.configured && trialState(profile) === 'available';
@@ -305,6 +303,8 @@ export function Now() {
   // An exam within a week reshapes the screen: exam hero, study sessions, one pressure line.
   const exam = useMemo(() => examMode(work, schedule, data.settings, today, (i) => calibrate(i).minutes), [work, schedule, data.settings, today, calibrate]);
   const examTopics = useExamTopics(exam, data.settings.quizStats, data.items);
+  // A quiz or exam within five days gets Practice offered on Now, whatever the hero is.
+  const soonTest = useMemo(() => testWithin(work, today, tz), [work, today, tz]);
   const logStudy = (minutes: number) => {
     if (!exam) return;
     actions.upsertItem({ ...exam.exam, estimatedMinutes: Math.max(0, exam.exam.estimatedMinutes - minutes), estimateOverridden: true, status: 'in_progress' });
@@ -359,7 +359,6 @@ export function Now() {
   const eveningQuiet = data.settings.eveningQuiet && hour >= 21 && !work.some((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now());
 
   // Every warning in one place, one line each. Order: what costs points first, then what is waiting or stale.
-  const [coach, setCoach] = useState(false);
   const headsUp: HeadsUpLine[] = [];
   const reading = useReadStatus();
   const readNow = useReadNow();
@@ -545,7 +544,12 @@ export function Now() {
                   {examTopics[idx] && (
                     <span className="exam-topic" data-weak={examTopics[idx].weak}>
                       {' '}
-                      · {examTopics[idx].text} {examTopics[idx].topic && <QuizLink courseId={exam.exam.courseId} topic={examTopics[idx].topic} label="practice" />}
+                      · {examTopics[idx].text}{' '}
+                      {examTopics[idx].topic && (
+                        <a className="btn small" href={`#/practice?i=${exam.exam.id}&k=quiz&t=${encodeURIComponent(examTopics[idx].topic)}`}>
+                          practice
+                        </a>
+                      )}
                     </span>
                   )}
                 </span>
@@ -647,6 +651,14 @@ export function Now() {
           </div>
         )}
       </header>
+      {soonTest && !back && (!exam || exam.exam.id !== soonTest.id) && (
+        <p className="study-nudge" role="note">
+          <b>{soonTest.label}</b> is {inDays(soonTest, today, tz)}.{' '}
+          <a className="btn small primary" href={`#/practice?i=${soonTest.id}`}>
+            Practice
+          </a>
+        </p>
+      )}
       {primary}
 
       {then.length > 0 && !back && !exam && (mode.mode === 'urgent' || showAnyway) && (
@@ -667,20 +679,12 @@ export function Now() {
         {data.courses.length > 0 && <SyncedLine stale={stale} />}
         <HeadsUp lines={headsUp} />
         {data.courses.length > 0 && (
-          <button type="button" className="coach-ask" onClick={() => setCoach(true)} aria-haspopup="dialog">
+          <a className="coach-ask" href="#/ask">
             <IconNow />
-            <span>Ask what to do next</span>
-            <kbd>⏎</kbd>
-          </button>
+            <span>Ask anything about your classes</span>
+          </a>
         )}
       </aside>
-      {coach && (
-        <Modal title="Coach" onClose={() => setCoach(false)} side>
-          <Locked feature="aiChat" tier={tier} compact>
-            <ChatCard />
-          </Locked>
-        </Modal>
-      )}
 
       {sunday && (
         <SundayReview

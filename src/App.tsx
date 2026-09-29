@@ -20,6 +20,7 @@ import './styles/now.css';
 import './styles/screens.css';
 import './styles/looks.css';
 import './styles/landing.css';
+import './styles/study.css';
 import { Landing } from './landing/Landing';
 import { Login } from './landing/Login';
 import { useFront } from './landing/useShowLanding';
@@ -37,7 +38,10 @@ const Load = lazy(() => import('./views/Load').then((m) => ({ default: m.Load })
 const Grades = lazy(() => import('./views/Grades').then((m) => ({ default: m.Grades })));
 const Library = lazy(() => import('./views/Library').then((m) => ({ default: m.Library })));
 const You = lazy(() => import('./views/You').then((m) => ({ default: m.You })));
-const Ai = lazy(() => import('./views/Ai').then((m) => ({ default: m.Ai })));
+const Study = lazy(() => import('./views/Study').then((m) => ({ default: m.Study })));
+const Ask = lazy(() => import('./views/Ask').then((m) => ({ default: m.Ask })));
+const Practice = lazy(() => import('./views/Practice').then((m) => ({ default: m.Practice })));
+const Check = lazy(() => import('./views/Check').then((m) => ({ default: m.Check })));
 const Admin = lazy(() => import('./views/Admin').then((m) => ({ default: m.Admin })));
 const ClassPage = lazy(() => import('./views/ClassPage').then((m) => ({ default: m.ClassPage })));
 const Classes = lazy(() => import('./views/Classes').then((m) => ({ default: m.Classes })));
@@ -277,11 +281,14 @@ function ScreenFor({ route }: { route: ReturnType<typeof useRoute>['route'] }) {
       return <Grades />;
     case 'admin':
       return <Admin />;
-    case 'ai':
-    case 'quiz':
-    case 'tutor':
     case 'study':
-      return <Ai />;
+      return <StudyOrPractice />;
+    case 'ask':
+      return <Ask />;
+    case 'practice':
+      return <Practice />;
+    case 'check':
+      return <Check />;
     case 'class':
       return <ClassPage />;
     case 'ingest':
@@ -291,6 +298,12 @@ function ScreenFor({ route }: { route: ReturnType<typeof useRoute>['route'] }) {
     default:
       return <Now />;
   }
+}
+
+/** The Study home; an old study-kit address (#/study?c=…&k=…) lands on Practice for that class. */
+function StudyOrPractice() {
+  const { params } = useRoute();
+  return params.has('c') || params.has('k') ? <Practice /> : <Study />;
 }
 
 /** The app with its nav, or the landing page / sign-in screen on their own. Nothing renders while the account is being looked up. */

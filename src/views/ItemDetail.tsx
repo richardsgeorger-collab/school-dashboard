@@ -4,7 +4,9 @@ import { decksForItem } from '../library/links';
 import { terms } from '../library/search';
 import { recordingsDb, type Recording } from '../record/db';
 import { syllabiDb } from '../syllabus/db';
-import { QuizLink } from './Quiz';
+import { PromptPanel } from './PromptPanel';
+import { isTest } from '../study/upcoming';
+import { starterAsk } from '../work/starter';
 import { gatedBy } from '../domain/gating';
 import { linksFor } from '../ingest/links';
 import { BLOCK_REASONS, BLOCK_WORDS, blockPhrase, isBlocked, makeBlock } from '../domain/blocked';
@@ -78,6 +80,7 @@ export function blankItem(courseId: string, tz: string, today: string): Item {
 export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew?: boolean; onClose: () => void }) {
   const { data, courseById, schedule, actions, today, derived, calibrate } = useStore();
   const [decks, setDecks] = useState<Deck[]>([]);
+  const [prompt, setPrompt] = useState(false);
   const [recs, setRecs] = useState<Recording[]>([]);
   const [sylLine, setSylLine] = useState<string | null>(null);
   useEffect(() => {
@@ -190,6 +193,34 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           </p>
         )}
         {!isNew && course && skipLine(item, data.items, course.code) && <p className="hint item-skip">{skipLine(item, data.items, course.code)}</p>}
+        {/* The one study button, before anything else: a test gets Practice, work gets help and a check. */}
+        {!isNew && course && item.status !== 'done' && (
+          <p className="study-row">
+            {isTest(item) ? (
+              <a className="btn small primary" href={`#/practice?i=${item.id}`} onClick={onClose}>
+                Practice for this
+              </a>
+            ) : (
+              <a className="btn small primary" href={`#/ask?c=${item.courseId}&i=${item.id}&q=${encodeURIComponent(starterAsk(item))}`} onClick={onClose}>
+                Get help
+              </a>
+            )}
+            {isTest(item) ? (
+              <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}`} onClick={onClose}>
+                Ask about it
+              </a>
+            ) : (
+              <a className="btn small" href={`#/check?i=${item.id}`} onClick={onClose}>
+                Check my work
+              </a>
+            )}
+            {!isTest(item) && (
+              <button type="button" className="btn small" onClick={() => setPrompt(true)}>
+                Get a prompt
+              </button>
+            )}
+          </p>
+        )}
         <div className="field">
           <span>Status</span>
           <SegmentedControl
@@ -670,12 +701,6 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
               </p>
             )}
             {sylLine && <blockquote className="study-syllabus hint">{sylLine}</blockquote>}
-            <p className="hint">
-              <QuizLink courseId={item.courseId} topic={item.title} label="Quiz me on this" />{' '}
-              <a className="btn small" href={`#/tutor?c=${item.courseId}&t=${encodeURIComponent(item.topic ?? item.title)}&i=${item.id}`} onClick={onClose}>
-                Explain this like I’m behind
-              </a>
-            </p>
           </div>
         )}
         {!isNew &&
@@ -750,6 +775,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
           </button>
         </div>
       </form>
+    {prompt && course && <PromptPanel item={item} course={course} onClose={() => setPrompt(false)} />}
     </Modal>
   );
 }

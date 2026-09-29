@@ -15,7 +15,8 @@ import { useStore } from '../storage/store';
 import { itemTone, toneLabel } from '../domain/status';
 import { skipLine } from '../domain/impact';
 import { bump } from '../analytics/usage';
-import { starterPrompt } from '../work/starter';
+import { starterAsk, starterPrompt } from '../work/starter';
+import { isTest } from '../study/upcoming';
 import { PromptPanel } from './PromptPanel';
 import { Requirements } from './Requirements';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
@@ -43,8 +44,6 @@ interface Material {
   recs: Recording[];
   flagged: { point: string; where: string }[];
 }
-
-export const STARTER_SLOT = (itemId: string) => `school-dashboard:starter:${itemId}`;
 
 /** The slides and lectures on file for this item, and anything the professor called exam material on its topic. */
 function useMaterial(item: Item, tz: string): Material {
@@ -200,13 +199,9 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
     const d = e.currentTarget.closest('details');
     if (d) d.open = false;
   };
-  const openTutor = () => {
-    try {
-      sessionStorage.setItem(STARTER_SLOT(item.id), starter);
-    } catch {
-      // Same: the tutor falls back to its own opening line.
-    }
-    window.location.hash = `/tutor?c=${item.courseId}&i=${item.id}&starter=1`;
+  // Get help: Ask, scoped to this assignment, with its opening question already asked.
+  const openAsk = () => {
+    window.location.hash = `/ask?c=${item.courseId}&i=${item.id}&q=${encodeURIComponent(starterAsk(item))}`;
   };
 
   // The pill follows the one colour rule: red late, amber due within a day and untouched, grey otherwise.
@@ -290,6 +285,17 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
           {hasDetails && (
             <button type="button" className="btn quiet" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
               {details ? 'Less' : 'Details'}
+            </button>
+          )}
+          {/* The one study button on every card: a test gets Practice, everything else gets help with it. */}
+          {course && isTest(item) && (
+            <a className="btn hero-study" href={`#/practice?i=${item.id}`}>
+              Practice
+            </a>
+          )}
+          {course && !isTest(item) && (
+            <button type="button" className="btn hero-study" onClick={openAsk}>
+              Get help
             </button>
           )}
         </div>
@@ -395,8 +401,8 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
             <p className="hero-line">
               <b>You've been shaky on {shaky.topic}</b>
               {shaky.pct !== null ? ` (${shaky.pct}% so far)` : ''}. Start with the slides above, or{' '}
-              <a className="hero-inline" href={`#/tutor?c=${item.courseId}&t=${encodeURIComponent(shaky.topic)}&i=${item.id}`}>
-                ask the tutor
+              <a className="hero-inline" href={`#/ask?c=${item.courseId}&t=${encodeURIComponent(shaky.topic)}&i=${item.id}&q=${encodeURIComponent(`Explain ${shaky.topic} like I'm behind`)}`}>
+                ask about it
               </a>
               .
             </p>
@@ -413,7 +419,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
             </a>
             {course && (
               <button type="button" className="btn small" onClick={() => setPanel(true)}>
-                Prompt for this
+                Get a prompt
               </button>
             )}
             <details className="menu hero-menu">
@@ -421,11 +427,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onSkip,
                 More
               </summary>
               <div className="menu-list">
-                {course && (
-                  <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); openTutor(); }}>
-                    Ask the tutor
-                  </button>
-                )}
                 {course && (
                   <button type="button" className="menu-item" onClick={(e) => { closeMenu(e); void copy(); }}>
                     {copied ? 'Copied' : 'Copy a short prompt'}

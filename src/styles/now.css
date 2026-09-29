@@ -933,3 +933,33 @@
   color: var(--ink-3);
   white-space: nowrap;
 }
+
+/* ---- Study on Now (loop 110): the one study button on the card, and the line for a test within five days ---- */
+.hero-actions .hero-study {
+  margin-left: auto;
+}
+.study-nudge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 0 0 var(--s-3);
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.study-nudge b {
+  color: var(--ink);
+}
+.study-nudge .btn {
+  margin-left: auto;
+}
+@media (max-width: 639px) {
+  .hero-actions {
+    flex-wrap: wrap;
+  }
+}

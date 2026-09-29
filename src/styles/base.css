@@ -195,7 +195,7 @@ button {
   background: var(--surface);
   border-top: 1px solid var(--line);
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 .topbar-gear {
   position: relative;
@@ -229,6 +229,20 @@ button {
   font-size: 11px;
   min-height: var(--nav-h);
   justify-content: center;
+  /* Six tabs across a phone: no side padding, and a label never widens its column. */
+  padding: 0 2px;
+  min-width: 0;
+}
+.nav-bottom .nav-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 359px) {
+  .nav-bottom .nav-link {
+    font-size: 10px;
+  }
 }
 .nav-bottom .nav-link[aria-current='page'] {
   background: none;

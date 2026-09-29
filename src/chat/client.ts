@@ -1,7 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
-import { callGateway, GatewayError, type ToolSpec } from '../ai/gateway';
+import { callGateway, GatewayError, type SystemBlock, type ToolSpec } from '../ai/gateway';
 import { recordUsage } from '../ai/usage';
-import { CHAT_TOOLS, dispatchTool, SYSTEM_PROMPT, type ToolApi } from './context';
+import { CHAT_TOOLS, dispatchTool, type ToolApi } from './context';
 
 const MAX_TOOL_ROUNDS = 3;
 
@@ -20,21 +20,17 @@ export interface SendArgs {
   fetch?: typeof globalThis.fetch;
   history: ChatTurn[];
   userText: string;
-  context: string;
-  /** Syllabus text per class, when any has been added. Stable across turns, so it is cached. */
-  syllabi?: string;
-  /** Deck index plus the slides picked for this question. Changes per message, so it is not cached. */
-  materials?: string;
+  /** The rules and everything the answer may draw on, assembled by the caller (ask/ask.ts). */
+  system: SystemBlock[];
   api: ToolApi;
-  /** Adaptive thinking, on by default. Turned off for the retry when a whole budget went on thinking. */
-  reasoning?: boolean;
+  maxTokens?: number;
   /** Set on the inner call once the deadline is already running. */
   noTimeout?: boolean;
   timeoutMs?: number;
 }
 
-/** Long enough for a real answer with thinking, short enough that a hung request does not spin for ever. */
-export const CHAT_TIMEOUT_MS = 90_000;
+/** Long enough for a real answer, short enough that a hung request does not spin for ever. */
+export const CHAT_TIMEOUT_MS = 60_000;
 
 export class ChatTimeout extends Error {
   constructor() {
@@ -43,13 +39,16 @@ export class ChatTimeout extends Error {
   }
 }
 
-/** One user message through the model, running tool calls locally until it answers in text. */
+/**
+ * One user message through the model, running tool calls locally until it answers in text. No extended thinking:
+ * the answer is short by design, and the thinking flag is what stopped the coach answering at all for days.
+ */
 export async function sendChat(args: SendArgs): Promise<string> {
-  const { apiKey, history, userText, context, syllabi, materials, api, fetch, reasoning = true } = args;
+  const { apiKey, history, userText, system, api, fetch } = args;
   // Nothing below has a deadline of its own. Without this a stalled connection leaves the dots spinning and the
   // conversation empty, which is the one failure that shows the user nothing at all.
   if (!args.noTimeout) {
-    // The e2e shortens this so a stalled request can be exercised without a ninety second wait.
+    // The e2e shortens this so a stalled request can be exercised without a long wait.
     const override = typeof globalThis !== 'undefined' ? (globalThis as { __coachTimeout?: number }).__coachTimeout : undefined;
     const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new ChatTimeout()), args.timeoutMs ?? override ?? CHAT_TIMEOUT_MS));
     return Promise.race([sendChat({ ...args, noTimeout: true }), timeout]);
@@ -60,24 +59,7 @@ export async function sendChat(args: SendArgs): Promise<string> {
   ];
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-    const response = await callGateway(
-      {
-        kind: 'coach',
-        // Adaptive thinking spends from this budget before a single word is written. At 600 a hard question — "I have
-        // a quiz tomorrow on 1.4 to 2.7, how do I prepare" — used the lot on thinking and returned no text at all.
-        max_tokens: reasoning ? 4000 : 1200,
-        think: reasoning,
-        system: [
-          { text: SYSTEM_PROMPT, cache: true },
-          ...(syllabi ? [{ text: `Syllabi:\n${syllabi}`, cache: true }] : []),
-          ...(materials ? [{ text: `Materials:\n${materials}` }] : []),
-          { text: `Context:\n${context}` },
-        ],
-        tools: CHAT_TOOLS as unknown as ToolSpec[],
-        messages,
-      },
-      { apiKey, fetch },
-    );
+    const response = await callGateway({ kind: 'coach', max_tokens: args.maxTokens ?? 1500, think: false, system, tools: CHAT_TOOLS as unknown as ToolSpec[], messages }, { apiKey, fetch });
 
     recordUsage('coach', response.model, response.usage);
     const text = response.content
@@ -87,10 +69,8 @@ export async function sendChat(args: SendArgs): Promise<string> {
       .trim();
     if (response.stop_reason !== 'tool_use') {
       if (text) return text;
-      // An empty answer is never an answer. Ran out of room thinking: ask again with the thinking turned off
-      // rather than showing a stub that looks like a considered reply.
-      if (reasoning) return sendChat({ ...args, reasoning: false });
-      return 'That question needs more room than I have here. Ask it again in two or three shorter questions, or open the tutor for a longer session.';
+      // An empty answer is never an answer: say what to do instead of showing a stub that looks like a reply.
+      return 'That came back empty. Ask it again, or in two shorter questions.';
     }
 
     const uses = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');

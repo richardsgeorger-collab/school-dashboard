@@ -43,7 +43,8 @@ export function sessionTopics(count: number, blocks: TopicBlock[]): SessionTopic
   for (let i = 0; i < count; i++) {
     const b = blocks[i % blocks.length];
     const slides = b.deck ? (b.from === 1 && b.to >= (b.deck.pages || b.to) ? `${b.deck.title}` : `${b.deck.title}, slides ${b.from}–${b.to}`) : 'where you lost points';
-    out.push({ text: `${b.topic}: ${slides}, plus practice`, topic: b.topic, weak: b.weak });
+    // "Topic 4: Topic 4: Stoichiometry" when the deck's title already starts with its tag: say it once.
+    out.push({ text: slides.toLowerCase().startsWith(b.topic.toLowerCase()) ? `${slides}, plus practice` : `${b.topic}: ${slides}, plus practice`, topic: b.topic, weak: b.weak });
   }
   return out;
 }

@@ -71,13 +71,27 @@ export interface GatewayOptions {
 export const AI_DIRECT_ALLOWED: boolean = ENV.DEV || ENV.MODE === 'test' || ENV.AI_DIRECT;
 const DIRECT_ALLOWED = AI_DIRECT_ALLOWED;
 
+/**
+ * Extended thinking, the way the model we run takes it. Haiku 4.5 takes `enabled` with a budget (it rejects `adaptive`
+ * with a 400, which the function relays as a 502: the coach answered every question with that for days while the
+ * e2e mock kept the tests green). A forced tool call cannot think at all, so the flag is dropped there rather than
+ * sent to fail. The budget stays under the output cap so an answer always has room after the thinking.
+ */
+export function thinkingFor(req: Pick<GatewayRequest, 'think' | 'tool_choice'>, max: number): { thinking?: { type: 'enabled'; budget_tokens: number } } {
+  if (!req.think) return {};
+  if (req.tool_choice && req.tool_choice.type !== 'auto') return {};
+  const budget = Math.min(Math.max(1024, Math.floor(max / 2)), max - 512);
+  if (budget < 1024) return {};
+  return { thinking: { type: 'enabled', budget_tokens: budget } };
+}
+
 /** The wire shape sent either to our function or, in dev, to Anthropic. The model is set here and nowhere else. */
 export function toWire(req: GatewayRequest): Record<string, unknown> {
   const max = Math.min(req.max_tokens ?? MAX_TOKENS[req.kind], MAX_TOKENS[req.kind]);
   return {
     model: MODEL,
     max_tokens: max,
-    ...(req.think ? { thinking: { type: 'adaptive' } } : {}),
+    ...thinkingFor(req, max),
     system: req.system.filter((b) => b.text.trim()).map((b) => ({ type: 'text', text: b.text, ...(b.cache ? { cache_control: { type: 'ephemeral' } } : {}) })),
     ...(req.tools?.length ? { tools: req.tools } : {}),
     ...(req.tool_choice ? { tool_choice: req.tool_choice } : {}),

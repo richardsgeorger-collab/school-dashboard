@@ -31,7 +31,7 @@ export function upgradeDue(tier: Tier, seen: Settings['upgradeSeen'], oldMax?: M
 /**
  * The celebration after an upgrade, three screens at most, on the student's own data. Plus: what is now on, what it
  * found in their real announcements, then auto-sync and notifications one tap each. Max: welcome, pick a colour on a
- * live copy of their Now, then their next quiz or exam with a study plan and a practice worksheet, and the coach in
+ * live copy of their Now, then their next quiz or exam with a study plan and a practice worksheet, and Ask in
  * one line. Shown once each, ever.
  */
 export function Upgrade({ kind }: { kind: 'plus' | 'max' }) {
@@ -171,7 +171,7 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
         <HaloDraw size={80} />
         <p className="eyebrow">Max is on</p>
         <h1 className="onboard-title">Welcome to Max.</h1>
-        <p className="onboard-text">Everything in Plus, and a study partner that knows your classes: study plans, practice worksheets, quizzes, lecture notes and a coach. Two quick things.</p>
+        <p className="onboard-text">Everything in Plus, and the Study tab: ask anything about your classes, practice for any quiz or exam with a plan, a worksheet and quiz me, and check your work before you turn it in. Two quick things.</p>
         <div className="onboard-actions">
           <button type="button" className="btn primary" onClick={next}>
             Let's go
@@ -206,10 +206,10 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
             A study plan that fits your week, about {fmtMinutes(plan.remainingMinutes)}: {plan.sessions.map((x) => x.label).join(', ')}.
           </p>
           <div className="onboard-actions upgrade-actions">
-            <button type="button" className="btn primary" onClick={() => done(`#/study?c=${course.id}&k=onepager`)}>
+            <button type="button" className="btn primary" onClick={() => done(`#/practice?i=${plan.exam.id}&k=worksheet`)}>
               Make my practice worksheet
             </button>
-            <button type="button" className="btn" onClick={() => done(`#/quiz?c=${course.id}`)}>
+            <button type="button" className="btn" onClick={() => done(`#/practice?i=${plan.exam.id}&k=quiz`)}>
               Quiz me
             </button>
           </div>
@@ -220,14 +220,14 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
           <h1 className="onboard-title">No quiz or exam in the next three weeks.</h1>
           <p className="onboard-text">When one comes up, Now plans the studying around it. Any time, make a practice worksheet from a class's material.</p>
           <div className="onboard-actions">
-            <button type="button" className="btn primary" onClick={() => done('#/study')}>
+            <button type="button" className="btn primary" onClick={() => done('#/practice')}>
               Make a practice worksheet
             </button>
           </div>
         </>
       )}
       <p className="hint">
-        Stuck on what to do tonight? Ask the coach: it's the box at the bottom of Now, and it knows your classes.{' '}
+        Stuck on what to do tonight? Ask: it's the Study tab, and it knows your classes.{' '}
         <button type="button" className="hero-inline" onClick={() => done()}>
           Go to Now
         </button>

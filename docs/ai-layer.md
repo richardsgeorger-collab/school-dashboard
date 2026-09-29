@@ -41,19 +41,40 @@ So the rules now are:
 The three passes share one prompt prefix — what is on file, then the class as it stands — so it is written to the cache
 once and read back at a tenth of the price. The per-pass rules go last, because the cache matches on a prefix.
 
-## Built on top (src/tutor, src/study, src/domain/concepts.ts, src/ingest/links.ts, src/work/brief.ts)
+## The Study tab (loop 110): Ask, Practice, Check
 
-- **Tutor** `#/tutor?c=&t=&i=`: sources gathered from the class library (`quiz/sources.ts`) with `[S#]` ids; the rules
-  and the sources are cached across turns; the situation block carries what is coming, what the professor flagged, weak
-  topics, and cross-class links. Next step, not the answer. Nothing submittable.
+One home (`#/study`, in the main navigation) and three tools, each with one name. The audit that led here is
+`docs/AI-AUDIT-2026-09-28.md`; `scripts/e2e-study.mjs` runs the four new-student scenarios on the real backend.
+
+- **Ask** `#/ask?c=&i=&t=&q=` (`src/ask/ask.ts`, `views/Ask.tsx`): the coach and the tutor as one chat. Every turn
+  carries the planner context (`chat/context.ts`), Halo's grades, the syllabi, slides picked for the question across
+  classes (`library/retrieve.ts`) and, with a class in focus, that class's slides, transcript stretches and syllabus as
+  `[S#]` sources (`quiz/sources.ts`) plus the tutor's situation block (`tutor/tutor.ts`: what is coming, exam flags,
+  weak topics, links, announcements). The rules, the syllabi and the class sources are cached across turns. Two tools:
+  remember a note, update an item. No extended thinking: the answer is short by design, and `thinking: adaptive` is
+  what Haiku rejected for days (fixed at `ai/gateway.ts`, `thinkingFor`). The last line of every answer is three
+  follow-ups (`>> a | b | c`) that the screen turns into buttons; the app adds Practice / Check / Open for what is in
+  focus (`appSteps`). `q=` asks once on arrival (Study's box, "Get help" on an assignment, "ask about it" on the hero).
+- **Practice** `#/practice?i=<quiz or exam>` or `?c=<class>`, `&k=plan|worksheet|quiz|cards|sheet`, `&t=<topic>`
+  (`src/practice/*`, `views/Practice.tsx`): the coming tests first (`study/upcoming.ts`). Plan: the exam-mode planner
+  pointed at the named test (`practice/plan.ts`, `planForTest`), a few real sessions, the test's own topics first then
+  the weak ones (`domain/examTopics.ts`). Worksheet (`practice/worksheet.ts`, kind `worksheet`): about ten problems
+  from the class's material with the answers and working, one document model rendered on screen, as `.docx`
+  (`practice/docx.ts`, the `docx` package, loaded on demand) and as PDF (`practice/pdf.ts`, `jspdf`, on demand),
+  answers always on their own last page; cached in `aiDb` by its sources. Quiz me: `views/QuizRunner.tsx`, one
+  question at a time, misses recorded per topic. Flashcards and the one-pager / formula sheet: `study/kits.ts`.
+- **Check** `#/check?i=` (`views/Check.tsx`, `check/extract.ts`): paste or drop `.docx` / `.pdf` / `.txt`; writing is
+  checked against the rubric (`work/brief.ts`, `checkDraft`, the brief made first if the item has none), problem sets
+  against the class's method (`checkMethod`, material from `quiz/sources.ts`). Ends with "Ask how to fix: <first miss>".
+- **On every item**: the sheet's first row is Practice for this (tests) or Get help + Check my work + Get a prompt
+  (`views/ItemDetail.tsx`); the Now card carries Practice or Get help (`views/HeroCard.tsx`); a test within five days
+  gets a line on Now (`study/upcoming.ts`, `testWithin`); exam mode's hero offers Practice and Ask.
 - **Lecture knowledge**: the after-lecture pass (`record/summarize.ts`) also returns what was stressed, exam flags,
-  slides dwelt on or skipped (against the day's deck outline), and terms, with `[mm:ss]` moments.
+  slides dwelt on or skipped (against the day's deck outline), and terms, with `[mm:ss]` moments. Lives with the class's
+  material (the library), not under Study.
 - **Concept warnings**: `topicScores` by topic (Halo unit + AI topics), `conceptWarnings` through the class topic map
   and cross-class links to the first open item that assumes a weak topic. One line on Now (≤ 3 weeks), Grades, class page.
-- **Method check**: `checkMethod` on problem sets — setup right or off, the step to look at again, never the number.
 - **Cross-class links**: `findLinks` once two classes carry topic maps; said once on the item.
-- **Study kits** `#/study?c=&k=&t=`: formula sheet, flashcards, one-pager from the material on file, weak topics first,
-  cached by their sources.
 
 ## Cost (measured in Settings → AI)
 

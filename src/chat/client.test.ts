@@ -16,30 +16,20 @@ function fakeApi(replies: { text?: string; stop?: string }[]) {
   return { fetch, seen };
 }
 
-const base = { apiKey: 'k', history: [], context: '{}', api: {} as never };
+const base = { apiKey: 'k', history: [], system: [{ text: 'rules' }], api: {} as never };
 
 describe('the coach on a hard question', () => {
-  it('never shows an empty answer as an answer', async () => {
-    // What actually happened: the whole budget went on thinking, so the response carried no text block at all.
-    const { fetch, seen } = fakeApi([{ stop: 'max_tokens' }, { text: 'Here is a plan for tonight: start with 1.4…' }]);
+  it('never sends the thinking flag: Haiku rejected it, and the coach answered every question with a 502 for days', async () => {
+    const { fetch, seen } = fakeApi([{ text: 'Start with 1.4 tonight.' }]);
     const out = await sendChat({ ...base, userText: 'I have a quiz tomorrow at 7am on 1.4-2.7 and I do not feel prepared. How can I prepare?', fetch });
-    expect(out).toContain('plan for tonight');
-    expect(out).not.toContain('did not have anything to add');
-    // It asked again with the thinking off rather than returning a stub.
-    expect(seen).toHaveLength(2);
-    expect(seen[0].thinking).toBe(true);
-    expect(seen[1].thinking).toBe(false);
+    expect(out).toContain('1.4');
+    expect(seen).toHaveLength(1);
+    expect(seen[0].thinking).toBe(false);
+    expect(seen[0].maxTokens).toBe(1500);
   });
 
-  it('gives thinking enough room to answer at all', async () => {
-    const { fetch, seen } = fakeApi([{ text: 'ok' }]);
-    await sendChat({ ...base, userText: 'hi', fetch });
-    // 600 was the bug: adaptive thinking spends from this before a word is written.
-    expect(seen[0].maxTokens).toBeGreaterThanOrEqual(4000);
-  });
-
-  it('says what to do instead when even the retry comes back empty', async () => {
-    const { fetch } = fakeApi([{ stop: 'max_tokens' }, { stop: 'max_tokens' }]);
+  it('says what to do instead when the answer comes back empty', async () => {
+    const { fetch } = fakeApi([{ stop: 'max_tokens' }]);
     const out = await sendChat({ ...base, userText: 'something enormous', fetch });
     expect(out).toContain('shorter questions');
     expect(out).not.toContain('did not have anything to add');

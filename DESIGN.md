@@ -200,7 +200,8 @@ today") are impossible by construction now: `statusLine` and `riskLine` count th
 
 **Now** answers "what do I do next, and am I okay" in two seconds: one sentence in one colour, the hero (title,
 class, points, time, due, Start, Done, Details, one why-line that names the same day as its chips), three Then
-rows, one Heads-up card (every warning, one line each, three shown), and one coach row that opens a side panel.
+rows, one Heads-up card (every warning, one line each, three shown), and one Ask row that opens the Study tab's Ask
+(loop 110; a quiz or exam within five days adds one line above the hero with Practice).
 Term progress, next class and the sync time moved off. **Agenda**: collapsed rows, expand for parts and notes,
 two weeks then Later. **Month**: grey, two short labels a cell, red only for late, fits a laptop screen.
 **Classes**: tiles with a grade ring; a grade needs three graded items or a tenth of the points. **Class page**:
@@ -236,7 +237,7 @@ student opens forty times a week. Two reference screenshots were offered as a fl
 direction was sharpened: keep Halo+'s own structure (the hero, Then, Heads up), only change the surface.
 
 - **Full width.** `--content-max` is 1440px with 32–48px side padding; the nav spans the same width. Now is two
-  columns on a wide screen (the answer, hero and Then on the left; Heads up and the coach on the right, sticky).
+  columns on a wide screen (the answer, hero and Then on the left; Heads up and the Ask row on the right, sticky).
   Agenda is the list with the week at a glance beside it. Classes are three across. Inbox is two panes: the list and
   the selected post. You is a settings page: sections on the left, one section's content on the right. Below 900px
   everything is one column.

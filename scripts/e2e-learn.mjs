@@ -1,3 +1,5 @@
+// RETIRED at loop 110: the pages this drove (#/quiz, #/tutor, #/study kits) became Ask (#/ask?c=…) and Practice (#/practice?c=…&k=cards).
+// scripts/e2e-study.mjs covers them on the real backend. Kept for the canned-reply harness it shows.
 // The learning layer, with api.anthropic.com answered by canned replies: the tutor teaching from a dropped deck with
 // citations and the next-step rule; a study kit built from the same material and cached; a method check on a problem
 // set; the one conceptual line on Now, Grades, and the class page when a weak topic meets later material.

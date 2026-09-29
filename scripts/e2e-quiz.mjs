@@ -1,3 +1,5 @@
+// RETIRED at loop 110: the pages this drove (#/quiz, #/tutor, #/study kits) became Practice (#/practice?c=…&k=quiz).
+// scripts/e2e-study.mjs covers them on the real backend. Kept for the canned-reply harness it shows.
 // Practice sets from the student's own material, with api.anthropic.com answered by a canned practice_set tool call:
 // sources gathered from a dropped deck, the prompt carries them, five questions of three kinds, checking, the
 // solution path only after an attempt, "I'm stuck", close calls handed to the student, misses tracked per topic.

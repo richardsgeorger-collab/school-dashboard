@@ -5,6 +5,23 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
 
 ## Done
 
+### Loop 110: The Study tab (2026-09-28)
+- **Audit first** (`docs/AI-AUDIT-2026-09-28.md`): fourteen AI surfaces, eleven doors, no home, and two things
+  broken in production that the e2e mock had hidden: the coach (every message a 502, `thinking: adaptive` on Haiku)
+  and the AI plan's core pass (same flag on a forced tool call). Fixed at the gateway (`thinkingFor`).
+- **Three tools, one name each, one home.** Study is a tab: the coming quizzes and exams each with Practice, one Ask
+  box, Check my work. **Ask** (`#/ask`) merges the coach and the tutor: planner context, Halo's grades, syllabi,
+  slides across classes, and with a class in focus its own sources with citations, announcements, what is coming;
+  short answers; a `>>` follow-up line the screen turns into buttons plus the app's own (Practice / Check / Open).
+  **Practice** (`#/practice`) merges study plans, worksheets, quiz me, flashcards and the kits: a plan for the named
+  test (`planForTest`), a worksheet as a real document (`.docx` via `docx`, PDF via `jspdf`, answers on their own
+  last page), quiz me one at a time, flashcards, a one-pager or formula sheet. **Check** (`#/check`) merges the draft
+  and method checks: paste or drop `.docx`/`.pdf`/`.txt`. Old `#/ai`, `#/tutor`, `#/quiz` are aliases.
+- **One button per thing**: the item sheet's first row (Practice for this / Get help + Check my work + Get a
+  prompt), the Now card (Practice / Get help), a line on Now when a test is within five days, exam mode's hero.
+- **Verified on the deployed function** (`scripts/e2e-study.mjs`): the four new-student scenarios in at most three
+  clicks each, real Haiku answers, the downloads, the Free preview; desk and phone, light and dark.
+
 ### Phase 1: Audit and plan (commit 0644a13, 2026-09-22)
 - Fresh-eyes audit as a new phone user (`scripts/audit-fresh.mjs`) and the product plan (`PLAN.md`).
 

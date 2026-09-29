@@ -111,6 +111,14 @@ export const IconClasses = ({ size = 20 }: IconProps = {}) => (
     <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h4.5a1.5 1.5 0 0 0 1.5-1.5z" />
   </svg>
 );
+/** Study: a mortarboard. */
+export const IconStudy = ({ size = 20 }: IconProps = {}) => (
+  <svg {...base} width={size} height={size}>
+    <path d="M3 9.5 12 5l9 4.5-9 4.5z" />
+    <path d="M7 11.5V16c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5" />
+    <path d="M21 9.5V15" />
+  </svg>
+);
 export const IconInbox = ({ size = 20 }: IconProps = {}) => (
   <svg {...base} width={size} height={size}>
     <path d="M4 13.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3.5" />

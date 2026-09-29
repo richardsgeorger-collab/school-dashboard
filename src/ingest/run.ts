@@ -88,7 +88,7 @@ export async function runClassPass(course: Course, data: AppData, today: DateStr
   let cost = NO_COST;
   const run = async ({ step, tool, prompt, maxTokens }: Call) => {
     opts.onStep?.(step);
-    const r = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'class_plan', system: prompt.system, user: prompt.user, tool, maxTokens, think: step === 'core' });
+    const r = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'class_plan', system: prompt.system, user: prompt.user, tool, maxTokens });
     cost = addCost(cost, r.usage);
     return r.input;
   };
@@ -131,7 +131,7 @@ export async function runTermPass(data: AppData, plans: Record<string, ClassPlan
   opts.onStep?.('term');
   const prompt = buildTermPrompt(input);
   const model = MODEL;
-  const result = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'term_plan', system: prompt.system, user: prompt.user, tool: TERM_PLAN_TOOL, maxTokens: 12_000, think: true });
+  const result = await callTool({ apiKey: deps.apiKey, fetch: deps.fetch, kind: 'term_plan', system: prompt.system, user: prompt.user, tool: TERM_PLAN_TOOL, maxTokens: 12_000 });
   const term = termFromTool(result.input, input, model);
   await deps.cache.put(TERM_KEY, term);
   return { term, cached: false, cost: addCost(NO_COST, result.usage) };

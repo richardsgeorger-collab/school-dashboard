@@ -12,7 +12,6 @@ import { WhatIf } from './WhatIf';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { weakLine, weakTopicFor } from '../domain/weak';
 import { gradeFloor } from '../domain/floor';
-import { QuizLink } from './Quiz';
 
 function ScoreInput({ item }: { item: Item }) {
   const { actions } = useStore();
@@ -111,7 +110,10 @@ function CourseCard({ course }: { course: Course }) {
       )}
       {weak && (
         <p className="hint grade-weak">
-          {weak} <QuizLink courseId={course.id} topic={weakTopicFor(course, data.items, data.settings.quizStats) ?? undefined} />
+          {weak}{' '}
+          <a className="btn small" href={`#/practice?c=${course.id}&k=quiz${weakTopicFor(course, data.items, data.settings.quizStats) ? `&t=${encodeURIComponent(weakTopicFor(course, data.items, data.settings.quizStats)!)}` : ''}`}>
+            Practice
+          </a>
         </p>
       )}
       <div className="settings-actions">

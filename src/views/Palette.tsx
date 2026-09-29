@@ -20,7 +20,9 @@ const SCREENS: { route: Route; label: string; words: string }[] = [
   { route: 'you', label: 'You', words: 'you settings account plan profile' },
   { route: 'load', label: 'Workload', words: 'load workload hours weeks' },
   { route: 'grades', label: 'Grades', words: 'grades gpa' },
-  { route: 'ai', label: 'Coach', words: 'coach tutor ai ask' },
+  { route: 'study', label: 'Study', words: 'study practice quiz worksheet flashcards' },
+  { route: 'ask', label: 'Ask', words: 'ask coach tutor ai help question' },
+  { route: 'check', label: 'Check my work', words: 'check draft rubric method' },
 ];
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();

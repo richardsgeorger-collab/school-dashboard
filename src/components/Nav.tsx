@@ -1,11 +1,11 @@
 import type { ReactElement } from 'react';
 import { TAB_OF, TABS, useRoute, type Tab } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconClasses, IconHalo, IconInbox, IconMoon, IconNow, IconPlus, IconSun, IconSync, IconYou } from './Icons';
+import { IconCalendar, IconClasses, IconHalo, IconInbox, IconMoon, IconNow, IconPlus, IconStudy, IconSun, IconSync, IconYou } from './Icons';
 import { useAccount } from '../auth/AccountContext';
 
-const LABEL: Record<Tab, string> = { now: 'Now', calendar: 'Calendar', classes: 'Classes', inbox: 'Inbox', you: 'You' };
-const ICON: Record<Tab, () => ReactElement> = { now: IconNow, calendar: IconCalendar, classes: IconClasses, inbox: IconInbox, you: IconYou };
+const LABEL: Record<Tab, string> = { now: 'Now', calendar: 'Calendar', study: 'Study', classes: 'Classes', inbox: 'Inbox', you: 'You' };
+const ICON: Record<Tab, () => ReactElement> = { now: IconNow, calendar: IconCalendar, study: IconStudy, classes: IconClasses, inbox: IconInbox, you: IconYou };
 
 function Links({ current }: { current: Tab }) {
   return (

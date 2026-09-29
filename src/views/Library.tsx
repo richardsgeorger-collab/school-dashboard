@@ -11,7 +11,6 @@ import { useStore } from '../storage/store';
 import { Record } from './Record';
 import { PasteTranscript } from './PasteTranscript';
 import { SearchView } from './SearchView';
-import { QuizLink } from './Quiz';
 import { SlidesView } from './SlidesView';
 import { SyllabusPanel } from './SyllabusPanel';
 
@@ -240,7 +239,9 @@ function ClassLibrary({ courseId }: { courseId: string }) {
             <button type="button" className="btn small primary" onClick={() => setPaste(true)}>
               Paste a lecture transcript
             </button>
-            <QuizLink courseId={course.id} />
+            <a className="btn small" href={`#/practice?c=${course.id}`}>
+              Practice
+            </a>
           </span>
         )}
       </div>

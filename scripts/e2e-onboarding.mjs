@@ -138,7 +138,7 @@ const run = async (name, device, scheme) => {
     await page.click('.upgrade .onboard-actions button.primary');
     await shot(page, 'max-3-next-test');
     const t3 = await page.$eval('.upgrade', (e) => e.innerText.replace(/\s+/g, ' '));
-    if (scheme === 'light') check(/Quiz 2/.test(t3) && /practice worksheet/i.test(t3) && /coach/.test(t3), `${name}: Max's third screen: the next quiz, a worksheet, the coach`);
+    if (scheme === 'light') check(/Quiz 2/.test(t3) && /practice worksheet/i.test(t3) && /Study tab/.test(t3), `${name}: Max's third screen: the next quiz, a worksheet, Ask on the Study tab`);
     await page.click('.upgrade button:has-text("Go to Now")');
     await page.waitForTimeout(800);
     await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2500);

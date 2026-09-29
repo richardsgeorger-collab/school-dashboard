@@ -95,7 +95,7 @@ export function buildQuizPrompt({ course, topic, sources, weakTopics, avoid }: Q
   const worked = wantsWorkedProblems(course);
   const lines = [
     `Class: ${course.code} ${course.name}`,
-    topic ? `Topic asked for: ${topic}` : 'Topic: whatever the sources cover best, most recent material first.',
+    topic ? `Topic asked for: ${topic}. If the sources do not cover it by name, ask about what they do cover, most recent material first; never return fewer questions because the name did not match.` : 'Topic: whatever the sources cover best, most recent material first.',
     worked ? 'Make at least three of the five worked problems.' : 'No worked problems: this is not a computation class.',
     weakTopics.length ? `Come back to these, which the student has missed before, in at least two questions: ${weakTopics.join('; ')}.` : '',
     avoid.length ? `Do not repeat these questions:\n${avoid.map((q) => `- ${q}`).join('\n')}` : '',

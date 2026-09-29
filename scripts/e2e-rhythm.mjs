@@ -62,7 +62,7 @@ await sleep(150);
 s = await state();
 console.log('turned on:', s.settings.sundayReview.off, s.settings.sundayReview.skips);
 
-// 4. Grades: a low score brings one calm line and a Quiz me link.
+// 4. Grades: a low score brings one calm line and a Practice link.
 s = await state();
 const chm = s.courses.find((c) => c.code === 'CHM-113');
 const quiz = s.items.filter((i) => i.courseId === chm.id && i.type === 'quiz').sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
@@ -95,6 +95,6 @@ await page.waitForSelector('.modal', { timeout: 5000 });
 await sleep(600);
 console.log('opened:', opened, '| modal title:', await t('.modal h2, .modal .modal-title'), '| study present:', !!(await page.$('.modal .study')));
 if (!(await page.$('.modal .study'))) console.log('modal text:', (await t('.modal')).slice(0, 400));
-console.log('study block for', opened, ':', await t('.modal .study'), '| quiz href:', await page.$eval('.modal .study a[href^="#/quiz"]', (e) => e.getAttribute('href')).catch(() => null));
+console.log('study block for', opened, ':', await t('.modal .study'), '| quiz href:', await page.$eval('.modal .study-row a[href^="#/practice"]', (e) => e.getAttribute('href')).catch(() => null));
 await page.screenshot({ path: `${out}-study.png`, fullPage: false });
 await browser.close();
