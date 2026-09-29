@@ -1,3 +1,4 @@
+import { dateOf } from '../domain/dates';
 import { estimateMinutes } from '../domain/estimate';
 import { newId } from '../domain/ids';
 import { shortLabel } from '../domain/labels';
@@ -6,7 +7,7 @@ import { overlap, readingCovers } from '../domain/reqClean';
 import { money } from './readCost';
 import type { Course, Item, ReqSource } from '../domain/types';
 import type { Action } from './actions';
-import { routeActions } from './actions';
+import { fileParticipation, routeActions } from './actions';
 import { readState, type ReadEntry, type StoredAnnouncement } from './announce';
 import { planOf } from '../config/tiers';
 
@@ -108,8 +109,10 @@ export function itemFromAction(a: Action, course: Course, now: string): Item | n
  * Turns one post's findings into changes. Nothing here writes; the caller applies the plan, so the same logic is
  * testable without a store and the split between automatic and approved stays in one place.
  */
-export function planFromActions(args: { actions: Action[]; announcement: StoredAnnouncement; course: Course; items: Item[]; courses: Course[]; now: string; rewrite?: boolean }): AutoPlan {
-  const { actions, announcement, course, items, now } = args;
+export function planFromActions(args: { actions: Action[]; announcement: StoredAnnouncement; course: Course; items: Item[]; courses: Course[]; now: string; rewrite?: boolean; tz?: string }): AutoPlan {
+  const { announcement, course, items, now } = args;
+  const tz = args.tz ?? 'America/Phoenix';
+  const actions = fileParticipation(args.actions, items, course.id, dateOf(announcement.publishedAt ?? now, tz), tz);
   const plan: AutoPlan = { upserts: [], courses: [], added: [], moved: [], attached: 0, noted: 0, updated: [], needsApproval: [] };
   const routed = routeActions(actions, course.id, now);
   const byId = new Map(items.map((i) => [i.id, i]));

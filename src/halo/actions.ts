@@ -4,6 +4,7 @@ import { callTool, type ToolSpec } from '../ai/client';
 import { addDays, dateOf, makeIso } from '../domain/dates';
 import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from '../domain/types';
 import type { StoredAnnouncement } from './announce';
+import { isParticipationWork, participationFor } from '../domain/participation';
 
 /**
  * What one announcement actually asks of the student. At GCU the assignment description is written once, at the start
@@ -12,7 +13,7 @@ import type { StoredAnnouncement } from './announce';
  * graded. This reads for anything actionable rather than for a list of categories.
  */
 
-export type ActionKind = 'requirement' | 'new_work' | 'date_change' | 'points_change' | 'note';
+export type ActionKind = 'requirement' | 'new_work' | 'participation' | 'date_change' | 'points_change' | 'note';
 
 export interface Action {
   kind: ActionKind;
@@ -52,7 +53,7 @@ export const ACTIONS_TOOL: ToolSpec = {
             kind: {
               type: 'string',
               description:
-                'requirement: a step or rule attached to work already in the planner list. new_work: something to do that is not in the list at all. date_change: existing work moves. points_change: its value changes. note: anything else worth knowing, including anything that fits none of these. Never drop a finding because it has no category; use note.',
+                'requirement: a step or rule attached to work already in the planner list. participation: anything that earns participation points (acknowledging an announcement, posting in the forum, replying to classmates, attending, in-class activities); set applies_to to that week\'s participation item. new_work: real graded work with a clear deliverable (a file, a quiz, a paper, a lab, a problem set) that is not in the list at all. date_change: existing work moves. points_change: its value changes. note: anything else worth knowing, including anything that fits none of these. Never drop a finding because it has no category; use note.',
             },
             applies_to: { type: 'string', description: 'The planner item id from the list, when it is about one of them. Empty for anything that belongs to the class rather than one assignment.' },
             what: { type: 'string', description: 'The checklist line: one plain to-do of at most ten words, like "Reply to 2 classmates on 2 different days" or "Submit as one PDF, no handwriting". No file names, no quotation, no "per the announcement". Put a date in it only when the step has its own date, written like "Sep 20" ("Claim your topic in the forum by Sep 20").' },
@@ -78,10 +79,14 @@ At this university the assignment description is written before the term starts 
 What counts:
 - Anything that adds a step to work the student already has, however small: reply to classmates, bring a printed copy, use the template, name the file a certain way, post by a certain day, cite a particular source, submit somewhere else as well.
 - Anything that changes what full credit means on existing work.
-- Anything to do that is not in their list at all.
+- Real graded work with a clear deliverable that is not in their list at all (a file to submit, a quiz, a paper, a lab, a problem set). Only this is new_work.
 - Dates that move, values that change, work that is cancelled.
 - What an exam covers, what to prepare, what to bring, what to read first.
 - Anything actionable that fits none of the above. Use note. A finding you cannot categorise is still a finding, and dropping it is the one unrecoverable mistake here.
+
+Participation, strictly:
+- Anything about acknowledging the announcement, posting in the forum, replying to classmates, attending, or in-class activities is PARTICIPATION. Use kind participation and set applies_to to that week's participation item for this class (the planner items with type participation; pick the one due at the end of the week the post talks about).
+- Never make new_work for participation, and never for reading something, watching something, emailing someone, or anything without a deliverable that is graded on its own. Those are participation, a requirement on the work they belong to, or a note.
 
 Rules:
 - Quote the post's own words for every entry. No quote, no entry.
@@ -98,7 +103,7 @@ Rules:
 
 Procedure, every time:
 1. Read the whole post once. Then go sentence by sentence and mark every sentence that tells students to do, bring, submit, read, reply, or prepare something, or that changes a date, a value, or what counts.
-2. For each marked sentence decide the kind: requirement (adds to work they have), new_work (not in their list), date_change, points_change, or note (actionable, fits nothing else).
+2. For each marked sentence decide the kind: participation (acknowledge, forum, replies, attendance, in class), requirement (adds to work they have), new_work (graded work with a deliverable, not in their list), date_change, points_change, or note (actionable, fits nothing else).
 3. Resolve every relative date with the calendar in the message: find the named weekday there and use its date,
    never count days yourself. "Before Monday", "by Monday" and "due Monday" all mean that Monday's date: the first
    Monday after the posting day, or next week's if the post says "next Monday". Write dates as YYYY-MM-DD.
@@ -143,7 +148,7 @@ export function cleanWhat(text: string): string {
   const cut = text.replace(THINKING, '').trim().replace(/[,;:—–-]+$/, '').trim();
   return cut.split(/\s+/).filter(Boolean).length >= 3 ? cut : '';
 }
-const KINDS: ActionKind[] = ['requirement', 'new_work', 'date_change', 'points_change', 'note'];
+const KINDS: ActionKind[] = ['requirement', 'new_work', 'participation', 'date_change', 'points_change', 'note'];
 
 /** The instant a date and time mean, or null. A bare date lands at 23:59 local, the way Halo's own deadlines do. */
 function when(date: string, time: string, tz: string): string | null {
@@ -265,6 +270,26 @@ const SHORTEN_TOOL: ToolSpec = {
 
 let seq = 0;
 const rid = (at: string) => `rq-${at.slice(0, 10).replace(/-/g, '')}-${(seq += 1).toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+/**
+ * Participation, enforced in code whatever the reader answered: anything that earns participation goes on that week's
+ * participation item for the class (a class note when it has none), and is never its own item. New work that is not
+ * graded on its own is a note, not a row.
+ */
+export function fileParticipation(actions: Action[], items: Item[], courseId: string, posted: DateStr, tz: string): Action[] {
+  return actions.map((a) => {
+    const said = `${a.text} ${a.source.quote ?? ''}`;
+    const isPart = a.kind === 'participation' || ((a.kind === 'new_work' || ((a.kind === 'requirement' || a.kind === 'note') && !a.itemId)) && isParticipationWork(said));
+    const current = a.itemId ? items.find((i) => i.id === a.itemId) : null;
+    if (isPart && current?.type !== 'participation') {
+      const target = participationFor(items, courseId, a.dueAt ? dateOf(a.dueAt, tz) : posted, tz);
+      return target ? { ...a, kind: 'requirement' as const, itemId: target.id } : { ...a, kind: 'note' as const, itemId: null };
+    }
+    if (a.kind === 'participation') return { ...a, kind: 'requirement' as const };
+    if (a.kind === 'new_work' && !a.gradedOn) return { ...a, kind: 'note' as const, itemId: null };
+    return a;
+  });
+}
 
 export interface Routed {
   /** Parts to attach to work that already exists. Facts about the student's own assignments: saved on arrival. */

@@ -132,7 +132,7 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
       try {
         if (!got.ok) throw got.e;
         const r = got.r;
-        const p = planFromActions({ actions: r.actions, announcement: a, course: courses.find((c) => c.id === a.courseId) ?? course, items, courses, now: at });
+        const p = planFromActions({ actions: r.actions, announcement: a, course: courses.find((c) => c.id === a.courseId) ?? course, items, courses, now: at, tz: args.tz });
         for (const i of p.upserts) {
           args.upsertItem(i);
           items = [...items.filter((x) => x.id !== i.id), i];

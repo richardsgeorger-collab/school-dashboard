@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AccountProvider } from './auth/AccountContext';
 import { SetNewPassword } from './auth/SignIn';
+import { ParticipationFold } from './halo/ParticipationFold';
 import { useAccountSync } from './auth/useAccountSync';
 import { BottomNav, TopBar } from './components/Nav';
 import { TimeAsk } from './components/TimeAsk';
@@ -412,6 +413,7 @@ export default function App() {
       <AccountProvider>
         <AccountSync />
         <RecoveryHost />
+        <ParticipationFold />
         <AccentHost />
         <AutoRerun />
         <HaloHandoff />
