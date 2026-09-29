@@ -1,4 +1,5 @@
 import { skipNote } from '../domain/blocked';
+import { HaloJump } from './HaloJump';
 import { movedRecently } from '../domain/requirements';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { useEffect, useState } from 'react';
@@ -96,6 +97,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
           </span>
         )}
         {item.status === 'in_progress' && <span className="flag">in progress</span>}
+        <HaloJump item={item} course={course} />
       </span>
     </li>
   );

@@ -140,17 +140,20 @@ export const looksLikeRule = (text: string): boolean => RULE_SHAPES.some((re) =>
  * A part that only says the assignment's own name and date adds nothing next to it. "Complete and submit Practice
  * Quiz 1 by Sunday" sitting on Practice Quiz 1 is noise; "Cite two peer-reviewed sources" is not.
  */
-export function restatesItem(text: string, item: Pick<Item, 'title'>): boolean {
-  const VERBS = new Set(['complete', 'submit', 'finish', 'turn', 'hand', 'post', 'upload', 'take', 'do', 'due', 'quiz', 'assignment', 'in']);
+export function restatesItem(text: string, item: Pick<Item, 'title'> & { label?: string }): boolean {
+  // Doing-words that only say "do the assignment" ("Author Chemistry Connections Essay" on that essay, 2026-09-29).
+  const VERBS = new Set(['complete', 'submit', 'finish', 'turn', 'hand', 'post', 'upload', 'take', 'do', 'due', 'quiz', 'assignment', 'in', 'author', 'write', 'draft', 'compose', 'create', 'prepare', 'produce', 'start', 'begin', 'work', 'on', 'use', 'using', 'follow', 'following', 'per']);
   // Words that add nothing next to the item's own row: when it is due, what it is worth, where it sits in the term.
-  const FILLER = new Set(['week', 'weeks', 'topic', 'topics', 'module', 'points', 'pts', 'point', 'class', 'course', 'today', 'tonight', 'tomorrow', 'end', 'before', 'after', 'midnight', 'pm', 'am', 'day', 'days', 'time', 'date', 'deadline', 'graded', 'grade', 'worth', 'total', 'via', 'through', 'halo', 'lopeswrite', 'dropbox']);
+  const FILLER = new Set(['week', 'weeks', 'topic', 'topics', 'module', 'points', 'pts', 'point', 'class', 'course', 'today', 'tonight', 'tomorrow', 'end', 'before', 'after', 'midnight', 'pm', 'am', 'day', 'days', 'time', 'date', 'deadline', 'graded', 'grade', 'worth', 'total', 'via', 'through', 'halo', 'lopeswrite', 'dropbox', 'guide', 'guides', 'guideline', 'guidelines', 'instruction', 'instructions', 'direction', 'directions', 'provided', 'given', 'assigned']);
   // Points and term positions are not identity; "Quiz 1" against "Quiz 2" is. Strip the former before tokenising.
   const stripped = text.replace(/\(\s*\d+\s*(?:points?|pts)?\s*\)/gi, ' ').replace(/\b\d+\s*(?:points?|pts|%)\b/gi, ' ').replace(/\b(?:topic|week|module|unit)\s*\d+\b/gi, ' ');
   const left = tokens(stripped).filter((w) => !VERBS.has(w) && !FILLER.has(w));
-  const title = new Set(tokens(item.title));
+  // The title and the short label both name it; stems and abbreviations match ("Chem" is "Chemistry").
+  const names = [...tokens(item.title), ...tokens(item.label ?? '')].map(stem);
+  const named = (w: string) => { const x = stem(w); return names.some((n) => n === x || (n.length >= 4 && x.length >= 4 && (n.startsWith(x) || x.startsWith(n)))); };
   if (left.length === 0) return true;
   // Everything it says beyond the verbs is already the title, or nearly all of it is.
-  const shared = left.filter((w) => title.has(w)).length;
+  const shared = left.filter(named).length;
   return shared === left.length || (left.length >= 3 && shared / left.length >= 0.8);
 }
 
@@ -180,7 +183,7 @@ export interface CleanResult {
 }
 
 /** One item's requirements, deduplicated, classified, and stripped of anything that only repeats the item. */
-export function cleanRequirements(item: Pick<Item, 'title' | 'requirements'>, opts: { ruleTexts?: Set<string> } = {}): CleanResult {
+export function cleanRequirements(item: Pick<Item, 'title' | 'requirements'> & { label?: string }, opts: { ruleTexts?: Set<string> } = {}): CleanResult {
   const raw = item.requirements ?? [];
   let dropped = 0;
   let merged = 0;

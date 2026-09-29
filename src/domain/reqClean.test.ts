@@ -64,6 +64,12 @@ describe('parts that only repeat the assignment', () => {
     expect(restatesItem('Complete APA Quiz 1 by Sunday (2026-09-20)', { title: 'APA Quiz 1' })).toBe(true);
     expect(restatesItem('Submit one PDF only, no handwriting', { title: 'APA Quiz 1' })).toBe(false);
     expect(restatesItem('Reply to two classmates', { title: 'Topic 2 DQ 1' })).toBe(false);
+    // George's CHM-113L essay (2026-09-29): a doing-word, the title, and "using guides" say nothing new.
+    expect(restatesItem('Author Chemistry Connections Essay using guides', { title: 'Chemistry Connections Essay', label: 'Chem Lab Connections Essay' })).toBe(true);
+    expect(restatesItem('Write the Chem Connections Essay following the instructions', { title: 'Chemistry Connections Essay' })).toBe(true);
+    expect(restatesItem('Use the lab report template from Halo', { title: 'Lab 4 Report' })).toBe(false);
+    expect(restatesItem('Cite two peer-reviewed sources in the Connections Essay', { title: 'Chemistry Connections Essay' })).toBe(false);
+    expect(restatesItem('Complete Quiz 2 early', { title: 'Quiz 1' })).toBe(false);
 
     const r = cleanRequirements(item('Practice Quiz 1', [req('r20', 'Complete and submit Practice Quiz 1 by Sunday', { dueAt: '2026-09-21T06:59:00.000Z' })]));
     expect(r.parts).toEqual([]);

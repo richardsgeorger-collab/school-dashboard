@@ -40,6 +40,7 @@ import { useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
 import { DailyQuestion } from './DailyQuestion';
 import { HeroCard, type NotNow } from './HeroCard';
+import { HaloJump } from '../components/HaloJump';
 import { ItemDetail } from './ItemDetail';
 import { useAccount } from '../auth/AccountContext';
 import { trialDaysLeft, trialState } from '../config/flags';
@@ -230,6 +231,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
         </span>
         {item.status === 'done' && <IconCheck />}
       </button>
+      <HaloJump item={item} course={course} />
     </li>
   );
 }

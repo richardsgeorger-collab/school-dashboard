@@ -223,7 +223,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
     <span className="pill">Getting ahead</span>
   ) : null;
 
-  const hasDetails = !!asks || gates.length > 0 || prereqs.length > 0 || !!next || rubric.length > 0 || covered > 0 || material.flagged.length > 0 || !!shaky || !!link || !!fit || !!skip;
 
   return (
     <section
@@ -299,17 +298,19 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
               <button type="button" className="btn primary" onClick={start}>
                 Start
               </button>
-              <button type="button" className="btn" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
+              <button type="button" className="btn hero-phone-more" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
                 <IconCheck />
               </button>
             </>
           )}
-          {hasDetails && (
-            <button type="button" className="btn quiet" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
-              {details ? 'Less' : 'Details'}
-            </button>
-          )}
-          <span className="notnow-anchor">
+          {/* One of the most used buttons, so it is in the row, not behind Details (George, 2026-09-29). */}
+          <a className="btn hero-halo" href={halo.href} target="_blank" rel="noreferrer" title={halo.label}>
+            Open in Halo ↗
+          </a>
+          <button type="button" className="btn quiet" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
+            {details ? 'Less' : 'Details'}
+          </button>
+          <span className="notnow-anchor hero-phone-more">
             <button type="button" className="hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>
               Not now
             </button>
@@ -317,12 +318,12 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
           </span>
           {/* The one study button on every card: a test gets Practice, everything else gets help with it. */}
           {course && isTest(item) && (
-            <a className="btn hero-study" href={`#/practice?i=${item.id}`}>
+            <a className="btn hero-study hero-phone-more" href={`#/practice?i=${item.id}`}>
               Practice
             </a>
           )}
           {course && !isTest(item) && (
-            <button type="button" className="btn hero-study" onClick={openAsk}>
+            <button type="button" className="btn hero-study hero-phone-more" onClick={openAsk}>
               Get help
             </button>
           )}
@@ -331,6 +332,31 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
 
       {details && (
         <div className="hero-details">
+          {/* On a phone the row keeps Start and Open in Halo; the rest is here. */}
+          {!done && (
+            <div className="hero-phone-row">
+              {!item.startedAt && (
+                <button type="button" className="btn small" onClick={() => { bump('done'); onDone(item); }}>
+                  <IconCheck /> Done
+                </button>
+              )}
+              {course && (isTest(item) ? (
+                <a className="btn small" href={`#/practice?i=${item.id}`}>
+                  Practice
+                </a>
+              ) : (
+                <button type="button" className="btn small" onClick={openAsk}>
+                  Get help
+                </button>
+              ))}
+              <span className="notnow-anchor">
+                <button type="button" className="hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>
+                  Not now
+                </button>
+                {notNow && <NotNowMenu onPick={pick} onClose={() => setNotNow(false)} />}
+              </span>
+            </div>
+          )}
           {asks && <p className="hero-asks">{asks}</p>}
           {fit && <p className="hero-line">{fit}</p>}
           {skip && <p className="hero-line">{skip}</p>}
@@ -442,9 +468,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
           )}
           {/* Two actions in view (go do it; get a prompt for it); the rest behind More. */}
           <div className="hero-more">
-            <a className="btn small" href={halo.href} target="_blank" rel="noreferrer">
-              {halo.label} ↗
-            </a>
             {course && (
               <button type="button" className="btn small" onClick={() => setPanel(true)}>
                 Get a prompt

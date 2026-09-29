@@ -1,3 +1,4 @@
+import { HaloJump } from '../components/HaloJump';
 import { ParticipationChecklist } from './ParticipationWeek';
 import { useEffect, useMemo, useState } from 'react';
 import { libraryDb, type Deck } from '../library/db';
@@ -191,6 +192,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             ))}
             {/* A start-by day that has passed is noise next to "due was": the only advice left is to start. */}
             {sched && item.status !== 'done' && sched.startBy >= today && <span className="pill">start by {fmtDate(sched.startBy, 'short')}</span>}
+            <HaloJump item={item} course={course} />
           </p>
         )}
         {!isNew && course && skipLine(item, data.items, course.code) && <p className="hint item-skip">{skipLine(item, data.items, course.code)}</p>}

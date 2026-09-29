@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useId } from 'react';
 import { gradedOpen, partsLine } from '../domain/requirements';
+import { restatesItem } from '../domain/reqClean';
 import { detailFor, shortLine } from '../domain/shortLine';
 import type { ClassNote, Course, Item, Requirement } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -13,14 +14,18 @@ export function Requirements({ item: passed, compact = false, onMore }: { item: 
   const { data, actions } = useStore();
   // The panel is opened with a copy of the item; ticking a part has to redraw against the live one.
   const item = data.items.find((i) => i.id === passed.id) ?? passed;
-  const all = item.requirements ?? [];
+  // Read live (ticks redraw at once), but shown the way every other screen shows them: a line that only restates the
+  // assignment itself is left out here too. Reading the raw list is how "Author Chemistry Connections Essay using
+  // guides" reached the hero on that very essay (2026-09-29).
+  const all = (item.requirements ?? []).filter((r) => !restatesItem(r.text, item));
   // Compact (the hero card): the open parts only, three at most, each with its source one tap away.
   const list = compact ? all.filter((r) => !r.done).slice(0, 3) : all;
   if (list.length === 0) return null;
 
+  // A tick changes that one line and keeps every other line: writing back only the lines on screen dropped the rest.
   const toggle = (r: Requirement) => {
     const now = new Date().toISOString();
-    actions.upsertItem({ ...item, requirements: list.map((x) => (x.id === r.id ? { ...x, done: !x.done, doneAt: x.done ? null : now } : x)) });
+    actions.upsertItem({ ...item, requirements: (item.requirements ?? []).map((x) => (x.id === r.id ? { ...x, done: !x.done, doneAt: x.done ? null : now } : x)) });
   };
   const open = gradedOpen(item);
 

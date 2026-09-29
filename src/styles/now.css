@@ -1101,3 +1101,61 @@
   color: var(--ink-3);
   font-size: 13px;
 }
+
+/* ---- Open in Halo in the row, "↗ Halo" everywhere else (2026-09-29) --------------------------------------------- */
+.hero-actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.hero-actions .hero-halo {
+  white-space: nowrap;
+}
+.hero-phone-row {
+  display: none;
+}
+@media (max-width: 639px) {
+  /* A phone keeps Start and Open in Halo (and the Details toggle) in the row; the rest moves into Details. */
+  .hero-actions .hero-phone-more {
+    display: none !important;
+  }
+  .hero-actions .btn.primary {
+    padding: 0 22px;
+  }
+  .hero-actions {
+    flex-wrap: nowrap;
+  }
+  .hero-phone-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: var(--s-3);
+  }
+}
+.halo-jump {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--ink-3);
+  font: 500 12px/1.4 var(--font-body);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.halo-jump:hover,
+.halo-jump:focus-visible {
+  color: var(--accent-text);
+  background: var(--surface-2);
+}
+.then li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.then li > .row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.item-facts .halo-jump {
+  margin-left: auto;
+}
