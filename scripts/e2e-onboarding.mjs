@@ -82,9 +82,9 @@ const run = async (name, device, scheme) => {
     const bar = await page.$('.onboard [aria-label="Show your bookmarks bar"]');
     if (name === 'desk' && scheme === 'light') check(!!bar, 'after sign-in it resumes at the bookmarks-bar step (headless has no bar to read)');
     await shot(page, 'bar');
-    await page.click('button:has-text("My bookmarks bar is already showing")');
+    await page.click('button:has-text("I see my bookmarks bar")');
     await shot(page, 'drag');
-    await page.click('button:has-text("I already have it in my bar")');
+    await page.click('button:has-text("It\'s in my bookmarks bar")');
     await shot(page, 'open-halo');
     await page.click('.onboard button:has-text("Open Halo")');
     await page.waitForTimeout(800);

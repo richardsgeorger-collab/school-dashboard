@@ -46,6 +46,7 @@ import { receiptsLine } from '../domain/receipts';
 import { TRIAL } from '../config/tiers';
 import { TrialOffer, useReceipts } from './TrialOffer';
 import { TrialReminder } from './TrialStatus';
+import { FinishSetup } from '../onboarding/FinishSetup';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
@@ -622,6 +623,7 @@ export function Now() {
   }, [hero?.id, today, justFinished]);
   return (
     <div className="now">
+      <FinishSetup where="now" />
       <TrialReminder />
       {trialAvailable && !headsUp.some((h) => h.key === 'read-failed') && data.courses.length > 0 && (
         <p className="hint trial-quiet">

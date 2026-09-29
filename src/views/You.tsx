@@ -29,6 +29,7 @@ import { NotificationsCard } from '../notify/NotificationsCard';
 import { FeedbackCard } from './FeedbackCard';
 import { FriendLinks } from './FriendLinks';
 import { TrialOffer, TrialReceipts } from './TrialOffer';
+import { FinishSetup } from '../onboarding/FinishSetup';
 import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
@@ -425,6 +426,7 @@ export function You() {
           ))}
         </nav>
         <div className="you-content" key={active}>
+          {active === 'profile' && <FinishSetup where="you" />}
           {active === 'profile' && (
             <>
               <AccountCard tier={tier} />

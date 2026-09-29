@@ -19,6 +19,7 @@ import { HaloImport } from '../views/HaloImport';
 import { BookmarkButton, useBookmarkHref } from '../views/BookmarkButton';
 import { type OnboardingState, type Step } from './state';
 import { Compare, Offer } from './PlanChoice';
+import { ChromeMenuPicture, ShortcutKeyboard } from './Keyboard';
 import { ImportSyllabus } from '../views/ImportSyllabus';
 import { can } from '../config/flags';
 import { track } from './track';
@@ -122,6 +123,7 @@ export function Onboarding() {
   const skipAll = () => {
     track(step, 'skip');
     set({ skippedAt: new Date().toISOString() });
+    navigate('now');
   };
   const onTrial = trialState(profile) === 'active';
   const gift = friendGift(profile);
@@ -178,7 +180,7 @@ export function Onboarding() {
             ))}
           </span>
           {!synced && (
-            <button type="button" className="diff-toggle" onClick={skipAll}>
+            <button type="button" className="diff-toggle onboard-skip" onClick={skipAll}>
               Skip for now
             </button>
           )}
@@ -323,19 +325,18 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
       {screen === 'bar' && (
         <section className="onboard-step" aria-label="Show your bookmarks bar">
           <h1 className="onboard-title">Show your bookmarks bar.</h1>
-          <p className="onboard-text">Press these three keys together:</p>
-          <p className="keycaps" aria-label={keys}>
-            {(isMac() ? ['⌘', 'Shift', 'B'] : ['Ctrl', 'Shift', 'B']).map((k) => (
-              <kbd key={k}>{k}</kbd>
-            ))}
-          </p>
-          <MiniBrowser bar slot={false} label="The bookmarks bar appears under the address bar." />
-          <p className="hint">This page moves on by itself when the bar appears.</p>
-          <p className="hint">
-            <button type="button" className="hero-inline" onClick={() => show('drag')}>
-              My bookmarks bar is already showing
-            </button>
-          </p>
+          <ShortcutKeyboard mac={isMac()} />
+          <p className="kb-instruction">Hold down the first two keys, then tap B.</p>
+          <p className="hint">{keys}. This page moves on by itself when the bar appears.</p>
+          <button type="button" className="btn primary block onboard-big" onClick={() => show('drag')}>
+            I see my bookmarks bar
+          </button>
+          <div className="bar-or">
+            <p className="hint">
+              <b>Or, without the keyboard:</b> click the three dots in the top right of Chrome, then <b>Bookmarks and lists</b>, then <b>Show bookmarks bar</b>.
+            </p>
+            <ChromeMenuPicture />
+          </div>
         </section>
       )}
 
@@ -355,11 +356,9 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
             </p>
           )}
           {safari && <p className="hint">In Safari, drag it to the Favorites bar. Chrome or Edge is easier if you have one.</p>}
-          <p className="hint">
-            <button type="button" className="hero-inline" onClick={() => show('open')}>
-              I already have it in my bar
-            </button>
-          </p>
+          <button type="button" className="btn primary block onboard-big" onClick={() => show('open')}>
+            It's in my bookmarks bar
+          </button>
           <p className="hint">
             <button type="button" className="hero-inline" onClick={() => show('bar')}>
               I can't see my bookmarks bar
@@ -377,11 +376,9 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
         <section className="onboard-step" aria-label="Open Halo">
           <h1 className="onboard-title">It's in your bar. Now open Halo.</h1>
           <p className="onboard-text">Halo opens in a new tab. Log in there if it asks.</p>
-          <div className="onboard-actions">
-            <button type="button" className="btn primary" onClick={openHalo}>
-              Open Halo
-            </button>
-          </div>
+          <button type="button" className="btn primary block onboard-big" onClick={openHalo}>
+            Open Halo
+          </button>
           <p className="hint">
             <button type="button" className="hero-inline" onClick={() => show('drag')}>
               Back

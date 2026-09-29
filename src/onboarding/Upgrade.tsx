@@ -212,6 +212,9 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
             <button type="button" className="btn" onClick={() => done(`#/practice?i=${plan.exam.id}&k=quiz`)}>
               Quiz me
             </button>
+            <button type="button" className="btn" onClick={() => done()}>
+              Maybe later
+            </button>
           </div>
         </>
       ) : (
@@ -223,14 +226,14 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
             <button type="button" className="btn primary" onClick={() => done('#/practice')}>
               Make a practice worksheet
             </button>
+            <button type="button" className="btn" onClick={() => done()}>
+              Maybe later
+            </button>
           </div>
         </>
       )}
       <p className="hint">
-        Stuck on what to do tonight? Ask: it's the Study tab, and it knows your classes.{' '}
-        <button type="button" className="hero-inline" onClick={() => done()}>
-          Go to Now
-        </button>
+        Optional. It's all on the Study tab whenever you want it, along with Ask for what to do tonight.
       </p>
     </section>
   );
