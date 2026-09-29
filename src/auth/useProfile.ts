@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { effectiveTier, type TierSource } from '../config/flags';
-import type { Tier } from '../config/tiers';
+import { TIERS, type Tier } from '../config/tiers';
 import { AI_DIRECT_ALLOWED } from '../ai/gateway';
 import { isConfigured, supabase } from './client';
 
@@ -62,6 +62,23 @@ export function useProfile(userId: string | null): ProfileState {
   const [profile, setProfile] = useState<Profile | null>(configured ? null : LOCAL_PROFILE);
   const [loading, setLoading] = useState(configured && !!userId);
   const [tick, setTick] = useState(0);
+  // The plan exactly as the server enforces it (public.plan_of: paid, trial, friend link, referral, admin).
+  const [serverPlan, setServerPlan] = useState<Tier | null>(null);
+
+  useEffect(() => {
+    const c = supabase();
+    if (!c || !userId) {
+      setServerPlan(null);
+      return;
+    }
+    let live = true;
+    void c.rpc('my_plan').then(({ data, error }) => {
+      if (live && !error && typeof data === 'string' && (TIERS as readonly string[]).includes(data)) setServerPlan(data as Tier);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId, tick]);
 
   useEffect(() => {
     const c = supabase();
@@ -98,7 +115,8 @@ export function useProfile(userId: string | null): ProfileState {
     [userId],
   );
 
-  return { profile, tier: devTier() ?? effectiveTier(profile), loading, reload, update };
+  // The server's answer when it has one; the same rules worked out here until it arrives (they agree: see flags.ts).
+  return { profile, tier: devTier() ?? serverPlan ?? effectiveTier(profile), loading, reload, update };
 }
 
 /**

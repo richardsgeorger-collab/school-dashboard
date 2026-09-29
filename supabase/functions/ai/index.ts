@@ -5,7 +5,7 @@
 // Reply: { response: { content, stop_reason, usage, model }, meter } or { error: { code, message } }.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { MAX_TOKENS } from '../_shared/tiers.ts';
-import { effectiveTier } from '../_shared/flags.ts';
+import type { Tier } from '../_shared/tiers.ts';
 import { allowance, costOf, meter, type UsageRow } from '../_shared/meter.ts';
 import { MODEL } from '../_shared/model.ts';
 
@@ -45,8 +45,11 @@ Deno.serve(async (req) => {
   if (!(kind in MAX_TOKENS) || !body.request) return json(400, { error: { code: 'upstream', message: 'Unknown kind of call.' } });
 
   // The meter: tier from the profile, usage from the log, both server-side truth.
-  const { data: profile } = await admin.from('profiles').select('tier, trial_ends_at, grace_until, timezone').eq('user_id', userId).maybeSingle();
-  const tier = effectiveTier(profile ? { tier: profile.tier, trialEndsAt: profile.trial_ends_at, graceUntil: profile.grace_until } : null);
+  // The plan comes from the one server function that decides it (paid, trial, friend link, referral, admin): this
+  // used to rebuild it from the paid tier and the trial alone, and refused every friend-link student.
+  const { data: profile } = await admin.from('profiles').select('timezone').eq('user_id', userId).maybeSingle();
+  const { data: plan } = await admin.rpc('plan_of', { uid: userId });
+  const tier = (['free', 'plus', 'pro', 'max'].includes(plan as string) ? plan : 'free') as Tier;
   const tz = profile?.timezone ?? 'America/Phoenix';
   const today = dayIn(tz);
   const monthStart = `${today.slice(0, 7)}-01`;

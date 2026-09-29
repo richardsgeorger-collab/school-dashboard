@@ -24,6 +24,8 @@ export interface TierSource {
   legacySyncUntil?: string | null;
   /** A friend link's gift: who it is from (Max through rewardUntil). */
   friendFrom?: string | null;
+  /** Admins have Max, as public.plan_of says. */
+  isAdmin?: boolean;
 }
 
 /** Max as a gift from a friend link, still running: no trial talk, no upgrade asks. */
@@ -38,6 +40,7 @@ export function effectiveTier(p: TierSource | null | undefined, now = new Date()
   let best: Tier = p.tier;
   if (p.trialEndsAt && p.trialEndsAt > now && rank(TRIAL.tier) > rank(best)) best = TRIAL.tier;
   if (p.rewardTier && p.rewardUntil && p.rewardUntil > now && rank(p.rewardTier) > rank(best)) best = p.rewardTier;
+  if (p.isAdmin) best = 'max';
   return best;
 }
 
