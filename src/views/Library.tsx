@@ -237,7 +237,7 @@ function ClassLibrary({ courseId }: { courseId: string }) {
         {course && (
           <span className="settings-actions">
             <button type="button" className="btn small primary" onClick={() => setPaste(true)}>
-              Paste a lecture transcript
+              Add a lecture
             </button>
             <a className="btn small" href={`#/practice?c=${course.id}`}>
               Practice

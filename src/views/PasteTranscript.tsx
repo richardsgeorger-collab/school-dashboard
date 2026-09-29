@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { describeAiError } from '../ai/client';
 import { loadApiKey } from '../chat/key';
 import { useAiAllowed } from '../config/useCan';
@@ -11,6 +11,7 @@ import type { LectureNotes } from '../record/notes';
 import { createPastedRecording, pastedTitle, wordCount } from '../record/paste';
 import { summarizeLecture } from '../record/summarize';
 import { useStore } from '../storage/store';
+import { ACCEPT, acceptedFile, progressLine, transcribeFile, transcribeReady } from '../record/audioFile';
 import { LectureReview, type Decision } from './LectureReview';
 
 /**
@@ -30,6 +31,32 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
   const [review, setReview] = useState<{ recording: Recording; notes: LectureNotes } | null>(null);
   const hasKey = useAiAllowed('lectures');
   const words = wordCount(text);
+  // Upload a recording (Max) or paste a transcript; both end in the same transcript box.
+  const [mode, setMode] = useState<'upload' | 'paste'>(hasKey ? 'upload' : 'paste');
+  const [ready, setReady] = useState<boolean | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [fileErr, setFileErr] = useState<string | null>(null);
+  const [fromFile, setFromFile] = useState<string | null>(null);
+  useEffect(() => {
+    if (mode === 'upload' && hasKey && ready === null) void transcribeReady().then(setReady);
+  }, [mode, hasKey, ready]);
+  const upload = async (file: File | undefined) => {
+    if (!file) return;
+    setFileErr(null);
+    if (!acceptedFile(file)) return setFileErr('That file is not one of these: MP4, M4A, MP3 or WAV.');
+    try {
+      const out = await transcribeFile(file, (stage, left, done, total) => setProgress(`${progressLine(stage, left)}${total > 1 ? ` · ${done} of ${total} parts done` : ''}`));
+      if (wordCount(out) < 20) throw new Error('Almost no speech came out of that file. Is it the right recording?');
+      setText(out);
+      setFromFile(file.name);
+      if (!title) setTitle(file.name.replace(/\.[^.]+$/, '').slice(0, 80));
+      setMode('paste');
+    } catch (e) {
+      setFileErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProgress(null);
+    }
+  };
 
   const save = async () => {
     setBusy('saving');
@@ -69,9 +96,44 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
     return <LectureReview title={review.recording.title} notes={review.notes} transcript={text} course={course} lectureDate={date} dryRun={false} decisions={review.recording.review} onDecide={(id, d, applied) => void decide(id, d, applied)} onClose={onClose} />;
   }
   return (
-    <Modal title={`Paste a lecture transcript · ${course.code}`} onClose={onClose}>
+    <Modal title={`Add a lecture · ${course.code}`} onClose={onClose}>
       <div className="modal-body">
-        <p className="hint">In Voice Memos: open the memo, open its transcript, select all, copy. Paste it here with the day of the lecture. It becomes searchable, the tutor teaches from it, and Claude pulls out what the professor stressed, called exam material, or said was due.</p>
+        <div className="segmented lecture-mode" role="group" aria-label="How the lecture comes in">
+          <button type="button" aria-pressed={mode === 'upload'} onClick={() => setMode('upload')} disabled={saved || progress !== null}>
+            Upload a recording
+          </button>
+          <button type="button" aria-pressed={mode === 'paste'} onClick={() => setMode('paste')} disabled={progress !== null}>
+            Paste transcript
+          </button>
+        </div>
+        {mode === 'upload' ? (
+          !hasKey ? (
+            <p className="hint lecture-locked">Turning a recording into a transcript is part of Max. You can still paste a transcript.</p>
+          ) : ready === false ? (
+            <p className="hint lecture-locked">Transcribing files is not switched on yet. Paste a transcript for now.</p>
+          ) : (
+            <>
+              <p className="hint">A video or audio file of the lecture: MP4, M4A, MP3 or WAV. Halo+ pulls out the sound and writes the transcript, then it works just like a pasted one.</p>
+              <label className={`lecture-drop${progress ? ' busy' : ''}`}>
+                <input type="file" accept={ACCEPT} disabled={progress !== null || ready === null} onChange={(e) => void upload(e.target.files?.[0])} />
+                <span>{progress ?? (ready === null ? 'Checking…' : 'Choose a recording')}</span>
+                {progress && <span className="lecture-bar" aria-hidden />}
+              </label>
+              {progress && (
+                <p className="hint" role="status">
+                  Keep this tab open until the transcript appears.
+                </p>
+              )}
+              {fileErr && (
+                <p className="hint signin-error" role="alert">
+                  {fileErr}
+                </p>
+              )}
+            </>
+          )
+        ) : (
+          <p className="hint">{fromFile ? `Transcript from ${fromFile}. Check the date, then save it.` : 'In Voice Memos: open the memo, open its transcript, select all, copy. Paste it here with the day of the lecture. It becomes searchable, the tutor teaches from it, and Claude pulls out what the professor stressed, called exam material, or said was due.'}</p>
+        )}
         <div className="field-row">
           <label className="field">
             <span>Lecture date</span>
@@ -82,7 +144,7 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={pastedTitle(course.code, date)} disabled={saved} />
           </label>
         </div>
-        <textarea className="halo-paste paste-transcript" rows={10} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste the transcript here." aria-label="Transcript" disabled={saved} />
+        {mode === 'paste' && <textarea className="halo-paste paste-transcript" rows={10} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste the transcript here." aria-label="Transcript" disabled={saved} />}
         <p className="hint mono">
           {words ? `${words.toLocaleString()} words` : ''}
           {!hasKey && words ? ' · saved and searchable; notes from it need a Max plan' : ''}
@@ -94,7 +156,7 @@ export function PasteTranscript({ course, onClose }: { course: Course; onClose: 
           </button>
           <span className="spacer" />
           {!saved && (
-            <button type="button" className="btn primary" disabled={busy !== null || words < 20} onClick={() => void save()}>
+            <button type="button" className="btn primary" disabled={busy !== null || words < 20 || mode !== 'paste'} onClick={() => void save()}>
               {busy === 'saving' ? 'Saving…' : busy === 'reading' ? 'Reading it…' : hasKey ? 'Save and read it' : 'Save'}
             </button>
           )}
