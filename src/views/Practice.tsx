@@ -18,6 +18,10 @@ import { EMPTY_POOL, loadPool } from '../quiz/pool';
 import { gatherSources, type SourcePool } from '../quiz/sources';
 import { weakTopics } from '../quiz/stats';
 import { useRoute } from '../router';
+import { announceStores } from '../halo/announce';
+import { ingestFile } from '../library/ingest';
+import { studyFilesFor } from '../study/haloFiles';
+import { HALO_HOME } from '../domain/heroFacts';
 import { useStore } from '../storage/store';
 import { buildKit, kitHash, type KitKind, type StudyKit as Kit } from '../study/kits';
 import { topicCovered } from '../study/topic';
@@ -107,6 +111,7 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
   const { data, schedule, calibrate } = useStore();
   const allowed = useAiAllowed('flashcards');
   const [pool, setPool] = useState<SourcePool | null>(null);
+  const [reload, setReload] = useState(0);
   useEffect(() => {
     let live = true;
     loadPool(course.id)
@@ -115,7 +120,37 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
     return () => {
       live = false;
     };
-  }, [course.id]);
+  }, [course.id, reload]);
+  // What the professor posted in Halo, named so the student knows which file to fetch and drop here.
+  const [haloFiles, setHaloFiles] = useState<string[]>([]);
+  useEffect(() => {
+    let live = true;
+    announceStores
+      .resources()
+      .then((rs) => live && setHaloFiles(studyFilesFor(rs, course.id, test?.topic ?? '')))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [course.id, test?.topic]);
+  const [dropNote, setDropNote] = useState<string | null>(null);
+  const [dropping, setDropping] = useState(false);
+  const drop = async (files: File[]) => {
+    setDropping(true);
+    setDropNote(null);
+    const lines: string[] = [];
+    for (const f of files) {
+      try {
+        const r = await ingestFile(f, course, tz, today);
+        lines.push(`${r.title}: ${r.detail}`);
+      } catch (e) {
+        lines.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    setDropNote(lines.join(' '));
+    setDropping(false);
+    setReload((k) => k + 1);
+  };
 
   // The topic: what was asked for, else the test's own; blank means the newest material.
   const ownTopics = test ? testTopics(test) : [];
@@ -163,6 +198,24 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
           </a>
         )}
       </div>
+
+      {pool && use.length === 0 && (
+        <label
+          className="sync-drop rec-import lib-drop practice-drop"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            void drop(Array.from(e.dataTransfer.files));
+          }}
+        >
+          <input type="file" multiple accept=".pdf,.pptx,.txt,application/pdf,audio/*,.m4a,.mp3" className="visually-hidden" aria-label={`Drop ${course.code} slides here`} onChange={(e) => { void drop(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
+          <b>{dropping ? 'Reading the file…' : `Drop your ${course.code} slides here`}</b>
+          <span className="hint">
+            {haloFiles.length ? <>Your professor posted {haloFiles.join(', ')} in Halo. Download one from <a className="diff-toggle" href={HALO_HOME} target="_blank" rel="noreferrer">Halo</a> and drop it here; everything below builds from it.</> : 'A PDF or PowerPoint of the lecture slides, or a lecture recording. Everything below builds from it.'}
+          </span>
+        </label>
+      )}
+      {dropNote && <p className="hint">{dropNote}</p>}
 
       <SegmentedControl label="Practice" value={tab} options={TABS} onChange={(v) => setTab(v)} />
 
