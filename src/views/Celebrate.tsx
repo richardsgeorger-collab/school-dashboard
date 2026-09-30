@@ -36,9 +36,20 @@ export function Celebrations() {
   const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding);
   useEffect(() => {
     const seen = read(LEVEL_KEY);
-    if (seen !== null && progress.level > seen && !firstRun) setLevel(progress.level);
+    // One level up is a moment. More than one at once is history arriving (a new device loading the account after it
+    // started at level 1), never a full-screen celebration on sign-in (audit, 2026-09-30).
+    if (seen !== null && progress.level === seen + 1 && !firstRun) setLevel(progress.level);
     write(LEVEL_KEY, progress.level);
   }, [progress.level, firstRun]);
+  // Escape and Enter close it too, not only a tap.
+  useEffect(() => {
+    if (level === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') setLevel(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [level]);
   useEffect(() => {
     const seen = read(STREAK_KEY) ?? 0;
     if (progress.dailyStreak >= 2 && progress.dailyStreak > seen) setStreak(progress.dailyStreak);
