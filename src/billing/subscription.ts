@@ -1,4 +1,4 @@
-import { GRACE_DAYS, LEGACY_PRICE_IDS, PAID, STRIPE_PRICE_IDS, type Interval, type Paid, type Tier } from '../config/tiers';
+import { GRACE_DAYS, LEGACY_PRICE_IDS, PAID, STRIPE_LIVE_PRICE_IDS, STRIPE_PRICE_IDS, type Interval, type Paid, type Tier } from '../config/tiers';
 
 /**
  * What a Stripe subscription means for a profile. Pure, shared with the webhook, so the client and the server
@@ -18,7 +18,7 @@ export type { Interval, Paid };
 export function tierForPrice(priceId: string | null): { tier: Tier; interval: Interval } | null {
   if (!priceId) return null;
   for (const tier of PAID) {
-    for (const [interval, id] of Object.entries(STRIPE_PRICE_IDS[tier]) as [Interval, string][]) {
+    for (const [interval, id] of [...Object.entries(STRIPE_PRICE_IDS[tier]), ...Object.entries(STRIPE_LIVE_PRICE_IDS[tier])] as [Interval, string][]) {
       if (id === priceId) return { tier, interval };
     }
   }

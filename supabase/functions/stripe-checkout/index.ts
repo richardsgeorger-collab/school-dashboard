@@ -2,10 +2,19 @@
 // ids refuse to run at all. The browser only ever gets the Checkout URL.
 import Stripe from 'npm:stripe@18';
 import { admin, json, guard, userFromRequest } from '../_shared/admin.ts';
-import { OFFERED_INTERVALS, STRIPE_PRICE_IDS, type Interval } from '../_shared/tiers.ts';
+import { OFFERED_INTERVALS, STRIPE_LIVE_PRICE_IDS, STRIPE_PRICE_IDS, type Interval } from '../_shared/tiers.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
+
+const customerExists = async (stripe: Stripe, id: string): Promise<boolean> => {
+  try {
+    const c = await stripe.customers.retrieve(id);
+    return !('deleted' in c && c.deleted);
+  } catch {
+    return false;
+  }
+};
 
 Deno.serve(guard(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info', 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-max-age': '86400' } });
@@ -18,10 +27,12 @@ Deno.serve(guard(async (req) => {
   const body = (await req.json().catch(() => ({}))) as { tier?: string; interval?: string; returnTo?: string; next?: string };
   // Where to land after paying: a route inside Halo+ only (the exam-week offer lands in Practice for that quiz).
   const next = typeof body.next === 'string' && /^\/(practice|now|study|you)(\?[A-Za-z0-9=&_.-]*)?$/.test(body.next) ? body.next : '/you?s=plan';
+  // A live key sells the live prices; a test key the sandbox ones.
+  const ids = /^(sk|rk)_live_/.test(Deno.env.get('STRIPE_SECRET_KEY') ?? '') ? STRIPE_LIVE_PRICE_IDS : STRIPE_PRICE_IDS;
   const tier = body.tier as keyof typeof STRIPE_PRICE_IDS;
   // Only an interval that is offered can be bought (monthly, today).
   const interval: Interval = (OFFERED_INTERVALS as string[]).includes(body.interval ?? '') ? (body.interval as Interval) : 'month';
-  const price = STRIPE_PRICE_IDS[tier]?.[interval];
+  const price = ids[tier]?.[interval];
   if (!price) return json(400, { error: 'No such plan.' });
   if (price.includes('PLACEHOLDER')) return json(503, { error: 'Checkout is not switched on yet.' });
   const returnTo = typeof body.returnTo === 'string' && body.returnTo.startsWith('http') ? body.returnTo : '';
@@ -30,6 +41,8 @@ Deno.serve(guard(async (req) => {
   const db = admin();
   const { data: profile } = await db.from('profiles').select('stripe_customer_id').eq('user_id', user.id).maybeSingle();
   let customer = profile?.stripe_customer_id as string | null;
+  // A customer made in test mode does not exist in live mode (and one can be deleted): make a new one then.
+  if (customer && !(await customerExists(stripe, customer))) customer = null;
   if (!customer) {
     const created = await stripe.customers.create({ email: user.email ?? undefined, metadata: { user_id: user.id } });
     customer = created.id;

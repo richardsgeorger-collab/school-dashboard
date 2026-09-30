@@ -17,6 +17,9 @@ Deno.serve(guard(async (req) => {
   const { data: profile } = await admin().from('profiles').select('stripe_customer_id').eq('user_id', user.id).maybeSingle();
   const customer = profile?.stripe_customer_id as string | null;
   if (!customer) return json(404, { error: 'No plan to manage yet.' });
+  // A customer from test mode is not there once the key is live.
+  const found = await stripe.customers.retrieve(customer).then((c) => !('deleted' in c && c.deleted)).catch(() => false);
+  if (!found) return json(404, { error: 'No plan to manage yet.' });
   const return_url = `${returnTo}#/you?s=plan`;
   // Cancel is one click from You: the portal opens on the cancel confirmation for this plan and comes back after.
   if (body.flow === 'cancel') {
