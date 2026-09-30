@@ -57,6 +57,8 @@ export function InviteLine() {
         onClick={async () => {
           const r = await shareInvite(code);
           setSaid(r === 'copied' ? 'Copied. Paste it to a friend.' : r === 'shared' ? 'Sent.' : null);
+          // Nothing could share or copy it: the Invite page shows the link to copy by hand.
+          if (r === 'failed') window.location.hash = '#/you?s=invite';
         }}
       >
         <span className="invite-line-icon">

@@ -18,7 +18,7 @@ export function inviteLink(code: string): string {
 }
 
 /** The phone's own share sheet (Messages, Snapchat…) with the message ready; elsewhere, the message and link copied. */
-export async function shareInvite(code: string): Promise<'shared' | 'copied' | 'failed'> {
+export async function shareInvite(code: string): Promise<'shared' | 'copied' | 'cancelled' | 'failed'> {
   const url = inviteLink(code);
   const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void>; canShare?: (d: ShareData) => boolean };
   // The share sheet on phones and tablets (Messages, Snapchat…); a computer copies, which is what people do there.
@@ -28,7 +28,7 @@ export async function shareInvite(code: string): Promise<'shared' | 'copied' | '
       await nav.share({ title: 'Halo+', text: INVITE_MESSAGE, url });
       return 'shared';
     } catch (e) {
-      if ((e as Error)?.name === 'AbortError') return 'failed';
+      if ((e as Error)?.name === 'AbortError') return 'cancelled';
     }
   }
   try {
@@ -91,6 +91,7 @@ export function progressLine(p: InviteProgress | null): string | null {
 export function InviteButton({ label = 'Invite a friend', primary = true, small = false }: { label?: string; primary?: boolean; small?: boolean }) {
   const { profile } = useAccount();
   const [said, setSaid] = useState<string | null>(null);
+  const [manual, setManual] = useState<string | null>(null);
   if (!profile?.referralCode) return null;
   return (
     <>
@@ -100,6 +101,8 @@ export function InviteButton({ label = 'Invite a friend', primary = true, small 
         onClick={async () => {
           const r = await shareInvite(profile.referralCode!);
           setSaid(r === 'copied' ? 'Copied. Paste it to a friend.' : r === 'shared' ? 'Sent.' : null);
+          // Neither the share sheet nor the clipboard worked (some iPad browsers): the link itself, to copy by hand.
+          setManual(r === 'failed' ? inviteLink(profile.referralCode!) : null);
         }}
       >
         {label}
@@ -108,6 +111,12 @@ export function InviteButton({ label = 'Invite a friend', primary = true, small 
         <span className="hint invite-said" role="status">
           {said}
         </span>
+      )}
+      {manual && (
+        <label className="field invite-manual">
+          <span className="hint">Copy your link and send it to a friend:</span>
+          <input className="field-input" readOnly value={manual} onFocus={(e) => e.currentTarget.select()} />
+        </label>
       )}
     </>
   );
