@@ -16,13 +16,17 @@ const schedule = computeSchedule(items, settings, today, { start: '2026-08-31', 
 
 describe('facts, not urgency', () => {
   it('names worth, time, due day, what it unlocks or feeds, and LopesWrite, in that order', () => {
-    const facts = heroFacts(draft, items, 240, TZ, today).map((f) => f.text);
+    // A class with a term's worth on file (the share needs it: domain/share.ts SHARE_MIN_ITEMS).
+    const term = [...items, ...[1, 2, 3].map((n) => mkItem({ id: `q${n}`, courseId: 'eng', title: `Quiz ${n}`, type: 'quiz', points: 50, dueAt: at('2026-10-20') }))];
+    const facts = heroFacts(draft, term, 240, TZ, today).map((f) => f.text);
     // The points chip also says the share of the class grade, so a 5-point DQ never looks like a paper.
     expect(facts[0]).toMatch(/^100 pts · \d+(\.\d)?% of grade$/);
     expect(facts.slice(1)).toEqual(['~4h', 'due Mon, Sep 21', 'unlocks Eng Op-Ed Final', 'goes through LopesWrite']);
     expect(heroFacts(draft, items, 240, TZ, today)[3].itemId).toBe('final');
-    const small = heroFacts(post, items, 25, TZ, today).map((f) => f.text);
+    const small = heroFacts(post, term, 25, TZ, today).map((f) => f.text);
     expect(small[0]).toMatch(/^5 pts · \d+(\.\d)?% of grade$/);
+    // Three items on file is not the term: the points alone, never "2% of grade" from a partial total.
+    expect(heroFacts(post, items, 25, TZ, today)[0].text).toBe('5 pts');
     expect(small.slice(1)).toEqual(['~25m', 'due tomorrow']);
     const late = { ...post, dueAt: at('2026-09-10') };
     expect(heroFacts(late, items, 25, TZ, today)[2].text).toBe('due was Sep 10');
