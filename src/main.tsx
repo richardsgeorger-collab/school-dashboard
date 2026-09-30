@@ -3,7 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { forgetStrayKey } from './chat/key';
-import { installErrorMonitor } from './monitor/install';
+import { installErrorMonitor, prefetchScreens } from './monitor/install';
 import { CANONICAL_ORIGIN, LEGACY_ORIGIN } from './config/site';
 import { LegacyMove } from './move/LegacyMove';
 import { canonicalHref, hasLocalData, MOVED_KEY, receiveMove } from './move/move';
@@ -48,4 +48,6 @@ else if (!forwarded) {
     </React.StrictMode>,
   );
   installUsageFlush();
+  // The other screens' code, fetched once the app is idle: moving between screens later works offline.
+  prefetchScreens();
 }

@@ -32,35 +32,85 @@ export function isChunkError(e: unknown): boolean {
 }
 
 const RELOAD_KEY = 'school-dashboard:chunk-reload';
+const loaders: (() => Promise<unknown>)[] = [];
+
+/** The server answers (a real missing file after a deploy) or not (offline, a dead network): never reload into nothing. */
+async function reachable(): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+  try {
+    const r = await fetch(`${window.location.pathname.replace(/[^/]*$/, '')}site.json?probe=${Date.now()}`, { cache: 'no-store' });
+    return r.ok || r.status === 404;
+  } catch {
+    return false;
+  }
+}
+
+/** Resolves when the browser says it is back online (or after a while, to try again). */
+const backOnline = () =>
+  new Promise<void>((resolve) => {
+    const done = () => {
+      window.removeEventListener('online', done);
+      resolve();
+    };
+    window.addEventListener('online', done);
+    setTimeout(done, 20_000);
+  });
+
+/** "You're offline" while a screen waits for the network, read by the Suspense fallback (ScreenLoading). */
+export const offlineWait = { on: false, listeners: new Set<() => void>() };
+const setOfflineWait = (on: boolean) => {
+  offlineWait.on = on;
+  offlineWait.listeners.forEach((l) => l());
+};
 
 /**
  * A screen loaded on first open. After a deploy, a tab opened before it asks for code files the deploy removed and the
  * whole app showed "This screen could not draw" until a reload (George, 2026-09-30: "20% of the time"). Now that one
- * failure reloads the page once, onto the new version, where the file exists. Only if it fails again right after the
- * reload does it reach the error screen (and the report).
+ * failure reloads the page once, onto the new version, where the file exists: but only when the server is reachable.
+ * Offline the same failure waits for the network instead (a reload offline is a blank page), and the screen opens when
+ * it is back. Only a second failure with the server reachable reaches the error screen (and the report).
  */
 export function lazyScreen<T extends ComponentType<any>>(load: () => Promise<{ default: T }>): LazyExoticComponent<T> { // eslint-disable-line @typescript-eslint/no-explicit-any
-  return lazy(() =>
-    load().catch((err: unknown) => {
-      if (isChunkError(err)) {
-        let last = 0;
-        try {
-          last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
-        } catch {
-          /* storage off: reload anyway, once per page */
-        }
-        if (Date.now() - last > 60_000) {
-          try {
-            sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
-          } catch {
-            /* nothing */
-          }
-          window.location.reload();
-          return new Promise<{ default: T }>(() => undefined);
-        }
-        report({ kind: 'crash', title: 'A screen failed to load even after reloading', message: err instanceof Error ? err.message : String(err) });
+  loaders.push(load);
+  const attempt = (): Promise<{ default: T }> =>
+    load().catch(async (err: unknown) => {
+      if (!isChunkError(err)) throw err;
+      if (!(await reachable())) {
+        setOfflineWait(true);
+        await backOnline();
+        setOfflineWait(false);
+        return attempt();
       }
+      let last = 0;
+      try {
+        last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
+      } catch {
+        /* storage off: reload anyway, once per page */
+      }
+      if (Date.now() - last > 60_000) {
+        try {
+          sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+        } catch {
+          /* nothing */
+        }
+        window.location.reload();
+        return new Promise<{ default: T }>(() => undefined);
+      }
+      report({ kind: 'crash', title: 'A screen failed to load even after reloading', message: err instanceof Error ? err.message : String(err) });
       throw err;
-    }),
-  );
+    });
+  return lazy(attempt);
+}
+
+/**
+ * Every screen's code, fetched quietly a few seconds after the app opens, so moving between screens later works
+ * offline and never waits (skipped on a data-saving connection).
+ */
+export function prefetchScreens(): void {
+  if (typeof window === 'undefined') return;
+  const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+  if (saveData || navigator.onLine === false) return;
+  const run = () => loaders.forEach((l) => void l().catch(() => undefined));
+  const idle = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+  setTimeout(() => (idle ? idle(run, { timeout: 5000 }) : run()), 4000);
 }

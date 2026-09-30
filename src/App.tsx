@@ -1,4 +1,5 @@
 import { WinbackOpens } from './winback/WinbackHooks';
+import { HaloDraw } from './components/HaloDraw';
 import { DuplicateFold } from './halo/DuplicateFold';
 import { PeekSummary } from './winback/PeekSummary';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -36,7 +37,7 @@ import { can } from './config/flags';
 import { useAccount } from './auth/AccountContext';
 import { IconHalo } from './components/Icons';
 import { AppFailed, ErrorBoundary } from './components/ErrorBoundary';
-import { lazyScreen } from './monitor/install';
+import { lazyScreen, offlineWait } from './monitor/install';
 import { PlanWatch } from './monitor/planWatch';
 import { Now } from './views/Now';
 import { initPixel } from './analytics/pixel';
@@ -243,7 +244,11 @@ function OnboardingHost() {
   const { auth, tier, loading, planKnown } = useAccount();
   const { route } = useRoute();
   const front = useFront();
-  const settled = !auth.session || sync.status === 'synced' || sync.status === 'error';
+  // Settled: the sign-in is known and, when signed in, the account's first load is done. Before that a signed-in
+  // student on a new device looked signed out for a few seconds on a slow network, and onboarding started (audit).
+  const signedIn = !!auth.session || !!auth.knownUserId;
+  const settled = !auth.loading && (!signedIn || sync.status === 'synced' || sync.status === 'error');
+  const fresh = data.courses.length === 0 && data.items.length === 0 && !data.settings.lastPull;
   useEffect(() => {
     if (front !== 'app' || route === 'login' || !settled) return;
     const s = initialState(data.settings, data.courses);
@@ -258,6 +263,8 @@ function OnboardingHost() {
   }, [data.settings.onboarding, data.courses.length, front, route, settled]);
   const ob = data.settings.onboarding;
   if (front !== 'app' || route === 'login') return null;
+  // An account still arriving on a device with nothing of its own: a quiet wait, never onboarding or an empty Now.
+  if (signedIn && !settled && fresh) return <AccountLoading />;
   if (isOpen(ob)) return <Onboarding />;
   // First the tour of Now, Calendar and Inbox; then, once, the welcome for whatever was just unlocked.
   if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;
@@ -268,6 +275,19 @@ function OnboardingHost() {
   // The first open after a trial ends: one clear screen (it renders nothing unless that is now).
   if (!loading) return <TrialEnded />;
   return null;
+}
+
+/** A signed-in student's classes on their way to a new device. */
+function AccountLoading() {
+  return (
+    <div className="onboard account-loading" role="status" aria-live="polite">
+      <section className="onboard-step" aria-label="Loading your classes">
+        <HaloDraw size={64} />
+        <h1 className="onboard-title">Loading your classes…</h1>
+        <p className="onboard-text">Bringing your planner from your account. This takes a moment on a slow connection.</p>
+      </section>
+    </div>
+  );
 }
 
 /** Back from a password-reset email: ask for the new password over whatever is open. */
@@ -319,12 +339,29 @@ function BackgroundRead() {
   return null;
 }
 
+/** Nothing while a screen's code arrives, unless it is waiting for the network: then it says so (monitor/install.ts). */
+function ScreenLoading() {
+  const [offline, setOffline] = useState(offlineWait.on);
+  useEffect(() => {
+    const l = () => setOffline(offlineWait.on);
+    offlineWait.listeners.add(l);
+    return () => void offlineWait.listeners.delete(l);
+  }, []);
+  if (!offline) return null;
+  return (
+    <div className="card calm" role="status">
+      <p className="eyebrow">You're offline</p>
+      <p className="trial-lead">This screen opens as soon as you're back online. Everything you have is still here.</p>
+    </div>
+  );
+}
+
 function Screen() {
   const { route } = useRoute();
   // Keyed on the route so a tab change remounts the screen and its entrance plays.
   return (
     <div className="screen" key={route}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<ScreenLoading />}>
         <ScreenFor route={route} />
       </Suspense>
     </div>
