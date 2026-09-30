@@ -32,10 +32,7 @@ export function Login() {
       <section className="login-box" aria-label="Log in">
         <h1 className="landing-title">Log in.</h1>
         <p className="landing-lede">Your classes and work follow you between your phone and laptop. Email and password, or Google.</p>
-        <SignIn auth={auth} title="Log in" mode="login" />
-        <p className="hint">
-          New here? <a href="#/start">Sign up</a> and connect Halo in two minutes.
-        </p>
+        <SignIn auth={auth} title="Log in" mode="login" signupHref="#/start" />
       </section>
     </div>
   );

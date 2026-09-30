@@ -23,7 +23,7 @@ type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'sent' } | { kind: '
  * Email and password, or Google. Nothing to do with a GCU login: this is the account for the planner itself. Sign up
  * signs straight in (no confirmation email). Used inside onboarding (sign up), on the log-in page, and on You.
  */
-export function SignIn({ auth, title, note, mode: first = 'signup' }: { auth: AuthState; title?: string; note?: string; mode?: 'signup' | 'login' }) {
+export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }: { auth: AuthState; title?: string; note?: string; mode?: 'signup' | 'login'; /** Where "Sign up" goes instead of switching this form (the Log in page sends it to the real sign-up). */ signupHref?: string }) {
   const [mode, setMode] = useState<Mode>(first);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -108,7 +108,8 @@ export function SignIn({ auth, title, note, mode: first = 'signup' }: { auth: Au
   const signup = mode === 'signup';
   return (
     <form className="card signin" onSubmit={submit} aria-label={signup ? 'Sign up' : 'Log in'} noValidate>
-      <p className="section-title">{title ?? (signup ? 'Make your account' : 'Log in')}</p>
+      {/* The label follows the form: a "Log in" title never sits over the sign-up form (audit, 2026-09-30). */}
+      <p className="section-title">{mode === first && title ? title : signup ? 'Make your account' : 'Log in'}</p>
       {note && <p className="hint">{note}</p>}
       <button type="button" className="btn" onClick={google} disabled={busy}>
         Continue with Google
@@ -147,9 +148,15 @@ export function SignIn({ auth, title, note, mode: first = 'signup' }: { auth: Au
         ) : (
           <>
             New here?{' '}
-            <button type="button" className="hero-inline" onClick={() => switchTo('signup')}>
-              Sign up
-            </button>
+            {signupHref ? (
+              <a className="hero-inline" href={signupHref}>
+                Sign up
+              </a>
+            ) : (
+              <button type="button" className="hero-inline" onClick={() => switchTo('signup')}>
+                Sign up
+              </button>
+            )}
             {' · '}
             <button type="button" className="hero-inline" onClick={() => switchTo('forgot')}>
               Forgot password
