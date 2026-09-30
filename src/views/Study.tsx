@@ -136,7 +136,8 @@ export function Study() {
           className="study-ask"
           onSubmit={(e) => {
             e.preventDefault();
-            if (allowed) ask(q);
+            // Empty box: the question shown in it (the placeholder looks filled in; Ask used to do nothing).
+            if (allowed) ask(q.trim() || suggestions[1] || suggestions[0]);
             else window.location.hash = lockHref.slice(1);
           }}
         >
