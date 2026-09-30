@@ -35,6 +35,8 @@ export const PRICES: Record<Paid, { month: number } & Partial<Record<Interval, n
 
 /** Said right beside every price. */
 export const CANCEL_LINE = 'Cancel anytime';
+/** Beside every price too (George, 2026-09-30): prices are before tax, and Stripe adds sales tax at checkout where it applies. */
+export const TAX_LINE = 'plus tax where applicable';
 
 /** Stripe price ids (sandbox, test mode; Max created 2026-09-28, Plus $4.99 on 2026-09-29). At launch, replace with the live ids. */
 export const STRIPE_PRICE_IDS: Record<Paid, { month: string } & Partial<Record<Interval, string>>> = {

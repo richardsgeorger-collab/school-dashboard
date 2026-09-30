@@ -5,7 +5,7 @@ import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { startCheckout } from '../billing/client';
 import { syncAccess, type SyncAccess } from '../config/flags';
-import { CANCEL_LINE, PLAN_LINES, PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
+import { CANCEL_LINE, PLAN_LINES, PRICES, TAX_LINE, TIER_NAMES, TRIAL } from '../config/tiers';
 import { dateOf, fmtDate } from '../domain/dates';
 import { receiptsLine } from '../domain/receipts';
 import { useStore } from '../storage/store';
@@ -44,7 +44,7 @@ export function useShortDate(): (iso: string | null) => string | null {
 }
 
 /** One tap to Stripe for a plan, monthly. Coming back, the webhook has set the plan and sync, grades and colour return. */
-export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, source, next }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string }) {
+export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, taxNote, source, next }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** "plus tax where applicable": on by default whenever the button shows a price. */ taxNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const go = async () => {
@@ -58,12 +58,15 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
       setBusy(false);
     }
   };
+  const text = label ?? `Get ${TIER_NAMES[tier]}, $${PRICES[tier].month.toFixed(2)} a month`;
+  const tax = taxNote ?? text.includes('$');
+  const note = [cancelNote ? CANCEL_LINE : '', tax ? TAX_LINE : ''].filter(Boolean).join(' · ');
   return (
     <>
       <button type="button" className={primary ? 'btn small primary' : 'btn small'} disabled={busy} onClick={() => void go()}>
-        {busy ? 'Opening checkout…' : (label ?? `Get ${TIER_NAMES[tier]}, $${PRICES[tier].month.toFixed(2)} a month`)}
+        {busy ? 'Opening checkout…' : text}
       </button>
-      {cancelNote && <span className="cancel-note">{CANCEL_LINE}</span>}
+      {note && <span className="cancel-note">{note}</span>}
       {err && <span className="hint">{err}</span>}
     </>
   );
@@ -123,7 +126,7 @@ export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
         ))}
       </ul>
       <p className="hint">
-        ${PRICES.plus.month.toFixed(2)} a month. {CANCEL_LINE}, in one click from You; a cancelled plan runs to the end of the month paid for.
+        ${PRICES.plus.month.toFixed(2)} a month, {TAX_LINE}. {CANCEL_LINE}, in one click from You; a cancelled plan runs to the end of the month paid for.
       </p>
       {!trialEnded && <TrialOffer lead={TRIAL.offer} label="Start my free week" />}
       <div className="settings-actions">
@@ -152,7 +155,7 @@ export function LegacyNotice() {
   return (
     <div className="legacy-notice" role="status">
       <p>
-        <b>Halo sync is now part of Plus.</b> You were already syncing, so it stays on for you until {short(access.legacyUntil)}, the end of this term. After that, Plus keeps it going for ${PRICES.plus.month.toFixed(2)} a month ({CANCEL_LINE.toLowerCase()}); your syllabus classes and anything you add stay free.
+        <b>Halo sync is now part of Plus.</b> You were already syncing, so it stays on for you until {short(access.legacyUntil)}, the end of this term. After that, Plus keeps it going for ${PRICES.plus.month.toFixed(2)} a month, {TAX_LINE} ({CANCEL_LINE.toLowerCase()}); your syllabus classes and anything you add stay free.
       </p>
       <button type="button" className="btn small" onClick={() => void seen()}>
         Got it

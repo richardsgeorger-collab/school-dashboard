@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { startTrial } from '../auth/trial';
 import { trialDaysLeft, trialState } from '../config/flags';
-import { CANCEL_LINE, PRICES, TRIAL } from '../config/tiers';
+import { CANCEL_LINE, PRICES, TAX_LINE, TRIAL } from '../config/tiers';
 import { announceDb, readLedger } from '../halo/announce';
 import { recordingsDb } from '../record/db';
 import { receiptsFrom, receiptsLine, type Receipts } from '../domain/receipts';
@@ -120,7 +120,9 @@ export function TrialReceipts() {
         <a className="btn small primary" href="#/you?s=plan&to=max">
           Keep Max, ${PRICES.max.month.toFixed(2)} a month
         </a>
-        <span className="cancel-note">{CANCEL_LINE}</span>
+        <span className="cancel-note">
+          {CANCEL_LINE} · {TAX_LINE}
+        </span>
       </div>
     </section>
   );

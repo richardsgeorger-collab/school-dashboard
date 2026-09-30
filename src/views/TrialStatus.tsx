@@ -5,7 +5,7 @@ import { Modal } from '../components/Modal';
 import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
 import { friendGift, trialState } from '../config/flags';
 import { trialCalendar, trialChipShort, trialChipText, trialEndSentence } from '../config/trialCalendar';
-import { CANCEL_LINE, PRICES, TRIAL, type Feature } from '../config/tiers';
+import { CANCEL_LINE, PRICES, TAX_LINE, TRIAL, type Feature } from '../config/tiers';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { readLedger } from '../halo/announce';
 import { useStore } from '../storage/store';
@@ -48,6 +48,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free' }: { onFree?: (
       <div className="plan-choice" data-best="true">
         <span className="plan-choice-name">
           <b>Max · ${PRICES.max.month.toFixed(2)} a month</b>
+          <small className="tax-note">{TAX_LINE}</small>
           <span>Everything you had this week. {CANCEL_LINE}.</span>
         </span>
         <UpgradeButton tier="max" label="Keep Max" cancelNote={false} />
@@ -55,6 +56,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free' }: { onFree?: (
       <div className="plan-choice">
         <span className="plan-choice-name">
           <b>Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
+          <small className="tax-note">{TAX_LINE}</small>
           <span>Halo sync, real grades, announcements read for you. No study tools. {CANCEL_LINE}.</span>
         </span>
         <UpgradeButton tier="plus" label="Choose Plus" primary={false} cancelNote={false} />

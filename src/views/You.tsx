@@ -12,7 +12,7 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { can, friendGift, rewardDaysLeft, trialDaysLeft } from '../config/flags';
 import { DEFAULT_ACCENT } from '../config/accents';
 import { AccentPicker } from './AccentPicker';
-import { CANCEL_LINE, OFFERED_INTERVALS, PAID, PLAN_LINES, PRICES, REFERRAL, TIER_NAMES, TRIAL, type Tier } from '../config/tiers';
+import { CANCEL_LINE, OFFERED_INTERVALS, PAID, PLAN_LINES, PRICES, REFERRAL, TAX_LINE, TIER_NAMES, TRIAL, type Tier } from '../config/tiers';
 import { openPortal, startCheckout } from '../billing/client';
 import { subscriptionLine, type Interval, type Paid } from '../billing/subscription';
 import { useSubscription } from '../billing/useSubscription';
@@ -322,7 +322,10 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
               </div>
               <p className="plan-price">
                 {`$${(PRICES[t][interval] ?? PRICES[t].month).toFixed(2)}`}
-                <small> {interval === 'month' ? 'a month' : 'a semester'} · {CANCEL_LINE}</small>
+                <small>
+                  {' '}
+                  {interval === 'month' ? 'a month' : 'a semester'}, {TAX_LINE} · {CANCEL_LINE}
+                </small>
               </p>
               <ul>
                 {adds.map((l) => (
