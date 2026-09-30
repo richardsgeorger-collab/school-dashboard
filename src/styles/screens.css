@@ -3109,3 +3109,28 @@
   max-height: 280px;
   overflow: auto;
 }
+
+/* ---- Grades → Scores: fixed columns, so every row's box, "/ pts" and source line up (audit, 2026-09-30) ---- */
+.score-list .score-cell {
+  display: grid;
+  grid-template-columns: auto 40px;
+  align-items: center;
+  column-gap: 8px;
+  flex: 0 0 auto;
+}
+.score-list .score-input {
+  display: grid;
+  grid-template-columns: 72px 52px;
+  align-items: center;
+  column-gap: 6px;
+}
+.score-list .score-input input {
+  width: 72px;
+  min-width: 0;
+}
+.score-list .score-input > span {
+  white-space: nowrap;
+}
+.score-list .score-source {
+  text-align: left;
+}

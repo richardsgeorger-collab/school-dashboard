@@ -137,7 +137,8 @@ function CourseCard({ course }: { course: Course }) {
               </span>
               <span className="score-cell">
                 <ScoreInput item={i} />
-                {i.score !== null && <span className="hint">{i.scoreSource === 'manual' ? 'typed' : 'Halo'}</span>}
+                {/* Always there (empty when unscored), so every row's box and "/ pts" line up. */}
+                <span className="hint score-source">{i.score !== null ? (i.scoreSource === 'manual' ? 'typed' : 'Halo') : ''}</span>
               </span>
             </li>
           ))}
