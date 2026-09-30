@@ -52,10 +52,10 @@ export function FeedbackCard() {
       ) : (
         <>
           <div className="settings-actions">
-            <button type="button" className={`btn small${kind === 'feedback' ? ' primary' : ''}`} onClick={() => setKind('feedback')}>
+            <button type="button" className={`btn small${kind === 'feedback' ? ' primary' : ''}`} aria-pressed={kind === 'feedback'} onClick={() => setKind('feedback')}>
               An idea
             </button>
-            <button type="button" className={`btn small${kind === 'bug' ? ' primary' : ''}`} onClick={() => setKind('bug')}>
+            <button type="button" className={`btn small${kind === 'bug' ? ' primary' : ''}`} aria-pressed={kind === 'bug'} onClick={() => setKind('bug')}>
               Something broke
             </button>
           </div>
