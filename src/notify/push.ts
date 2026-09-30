@@ -1,5 +1,6 @@
 import { supabase } from '../auth/client';
 import { ENV } from '../env';
+import { isIOSDevice } from '../ui/device';
 
 /**
  * Web push, no vendor: the browser's own subscription, our VAPID key, one row per device. Turning it on asks the
@@ -25,7 +26,8 @@ function toKey(b64: string): Uint8Array {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
-export const isIos = (): boolean => typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
+/** iPhone or iPad. An iPad's Safari calls itself a Mac; ui/device.ts tells them apart by the touch screen (sweep, 2026-09-30: the Home Screen step gave an iPad Chrome's instructions). */
+export const isIos = (): boolean => typeof navigator !== 'undefined' && isIOSDevice();
 export const isStandalone = (): boolean => typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true);
 
 export async function pushEnabled(): Promise<boolean> {
@@ -36,7 +38,7 @@ export async function pushEnabled(): Promise<boolean> {
 
 export async function enablePush(): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!pushSupported()) {
-    return { ok: false, error: isIos() && !isStandalone() ? 'On iPhone, add the app to your Home Screen first (Share, then Add to Home Screen) and open it from there. Notifications work from the Home Screen app.' : 'This browser cannot receive notifications.' };
+    return { ok: false, error: isIos() && !isStandalone() ? 'On iPhone or iPad, add the app to your Home Screen first (Share, then Add to Home Screen) and open it from there. Notifications work from the Home Screen app.' : 'This browser cannot receive notifications.' };
   }
   if (!keyReady()) return { ok: false, error: 'Notifications arrive once the server keys are set.' };
   const c = supabase();

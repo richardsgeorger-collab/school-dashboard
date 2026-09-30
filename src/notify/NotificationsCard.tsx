@@ -72,7 +72,7 @@ export function NotificationsCard() {
         ) : (
           <>
             <p className="hint">
-              {enabled === null ? 'Checking…' : enabled ? 'Notifications are on for this device.' : pushSupported() ? 'Notifications are off on this device.' : isIos() && !isStandalone() ? 'On iPhone, add the app to your Home Screen first, then turn notifications on from there.' : 'This browser cannot receive notifications.'}
+              {enabled === null ? 'Checking…' : enabled ? 'Notifications are on for this device.' : pushSupported() ? 'Notifications are off on this device.' : isIos() && !isStandalone() ? 'On iPhone or iPad, add the app to your Home Screen first, then turn notifications on from there.' : 'This browser cannot receive notifications.'}
             </p>
             <div className="settings-actions">
               {enabled ? (

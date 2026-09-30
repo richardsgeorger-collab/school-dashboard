@@ -10,3 +10,6 @@ supabase/.temp
 dist-e2e
 dist-before
 dist-site
+
+dist-e2e2/
+tsconfig.tsbuildinfo

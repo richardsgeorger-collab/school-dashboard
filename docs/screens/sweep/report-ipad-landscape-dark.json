@@ -1,0 +1,502 @@
+[
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "now",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "now-details",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "now-notnow",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "item-sheet",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "calendar",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "calendar-month",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "classes",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "class",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "button.then-all \"show\"",
+    "cls": "then-all"
+   }
+  ]
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "class-editor",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "button.then-all \"show\"",
+    "cls": "then-all"
+   }
+  ]
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "inbox",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "inbox-post",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-profile",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-plan",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-progress",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-grades",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-workload",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-halo",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-study",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-display",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-classes",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-notifications",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-invite",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-feedback",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "you-advanced",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "study",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "ask",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "practice",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "check",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "grades",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "dt \"EARNED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"190 / 200\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"GRADED SO FAR\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"211%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"STILL OPEN\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"75 of 95 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"PROJECTED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"275%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"88 / 95\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"238%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"40 of 40 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"312.6%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"176.34 / 215\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"159%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"105 of 135 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"194.4%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127.5 / 150\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"130%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"115 of 115 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"195.9%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127 / 130\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"325%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"20 of 40 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"366.4%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"264.19 / 300\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"857%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"35 of 35 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"842.9%\"",
+    "cls": ""
+   }
+  ]
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "library",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "input.visually-hidden \"\"",
+    "by": "b \"Drop a recording, slides, or a syllabus here\""
+   }
+  ]
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "load",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "span.muted \"/ 25h\"",
+    "cls": "muted"
+   }
+  ]
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "looks",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "sync-sheet",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "add-sheet",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "palette",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "trial-sheet",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "account-menu",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-welcome",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-story-0",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-story-1",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-story-2",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-gift",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-safari",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-bar",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-copy",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-copied",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-step-Next-t5h",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-wait",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-wait-fixes",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-payoff",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-notify-ask",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-home-screen",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-tour",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "button.row \"Eng Math Excel Microchip ESG-162 · was due Sep 21 · ~2h · 20\"",
+    "by": "p \"Now. The one thing to do next, with what it is worth and how\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.row \"Chem HW 4 CHM-113 · was due Sep 26 · ~1.5h · 20 pts\"",
+    "by": "button.btn.small \"Skip\""
+   }
+  ]
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-upgrade",
+  "issues": []
+ }
+]
