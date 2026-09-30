@@ -167,6 +167,9 @@ async function failed(e, auto) {
 
 async function finish(payload, auto) {
   payload.auto = auto;
+  // Every sync restarts the three hours from now: a Sync now just after install otherwise left the first alarm a
+  // minute away, and the popup said "Last synced 2:19 AM · Next sync around 2:19 AM" (2026-09-30).
+  await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
   const where = await deliver(payload, auto);
   await set({
     lastSyncAt: new Date().toISOString(),

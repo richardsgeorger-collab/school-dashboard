@@ -1,6 +1,6 @@
 // The popup: when Halo+ last synced and when it syncs next, a big Sync now with real progress, plain errors, and a link
 // to Halo+ (George, 2026-09-30). Everything is read from the worker's storage, so it stays current while it is open.
-import { DASH_ORIGIN } from './config.js';
+import { DASH_ORIGIN, PERIOD_MINUTES } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const PAID = ['plus', 'pro', 'max'];
@@ -41,7 +41,9 @@ async function render() {
   $('plan').textContent = PLAN_NAMES[s.tier] ?? '';
 
   const last = s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b>` : 'Not synced from here yet';
-  const next = paid && alarm ? `<span class="next">Next sync around ${when(new Date(alarm.scheduledTime).toISOString())}</span>` : '';
+  // Never earlier than three hours after the last sync: an alarm that fires sooner skips (synced recently).
+  const nextAt = alarm ? Math.max(alarm.scheduledTime, s.lastSyncAt ? new Date(s.lastSyncAt).getTime() + PERIOD_MINUTES * 60_000 : 0) : null;
+  const next = paid && nextAt ? `<span class="next">Next sync around ${when(new Date(nextAt).toISOString())}</span>` : '';
   $('status').innerHTML = s.running ? (s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b><span class="next">Syncing now</span>` : 'Syncing now') : last + next;
   $('plus').hidden = paid || !s.tier;
 
