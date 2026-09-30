@@ -335,7 +335,9 @@ export function DiffReview({
       <ReadStatusLines />
       {source === 'halo' && !held && (
         <p className="hint pull-tally">
-          <b>{gaps ? 'Not everything came through.' : 'Everything in Halo is in Halo+.'}</b> {countsLine(counts)}
+          {/* Zero classes is not "everything": Halo showed none (logged out mid-way, or a new term not open yet). */}
+          <b>{payload.classes.length === 0 ? 'Halo sent no classes.' : gaps ? 'Not everything came through.' : 'Everything in Halo is in Halo+.'}</b>{' '}
+          {payload.classes.length === 0 ? 'Nothing here changes. Open Halo, check your classes are there, and sync again.' : countsLine(counts)}
           {kept && referenceLine(kept) ? (
             <>
               <br />
