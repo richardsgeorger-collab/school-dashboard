@@ -83,7 +83,7 @@ const onboarding = async (name, device, scheme) => {
     await page.waitForSelector('[aria-label="Show your bookmarks bar"]', { timeout: 8000 }).catch(() => undefined);
     await page.screenshot({ path: `${OUT}/4-bookmarks-bar.png` });
     const bar = await text(page, '[aria-label="Show your bookmarks bar"]');
-    say(/Show your bookmarks bar/.test(bar) && !!(await page.$('.kb')) !== undefined && /My bookmarks bar is already showing/.test(bar), 'Connect Halo lands on the bookmarks bar step, with the keyboard and "My bookmarks bar is already showing"');
+    say(/Show your bookmarks bar/.test(bar) && !!(await page.$('figure.kb')) && /My bookmarks bar is already showing/.test(bar), 'Connect Halo lands on the bookmarks bar step, with the keyboard and "My bookmarks bar is already showing"');
     // A browser that looks like it has the bar showing (tall chrome) still gets the step: nothing skips it now.
     await page.waitForTimeout(1500);
     say(!!(await page.$('[aria-label="Show your bookmarks bar"]')), 'it stays until the student moves on');
