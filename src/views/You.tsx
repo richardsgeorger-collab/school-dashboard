@@ -273,7 +273,8 @@ function WorkloadSection() {
 function UsageCard() {
   const [m, setM] = useState<Meter | null>(latestMeter());
   useEffect(() => onMeter(setM), []);
-  if (!m || m.ceilingUsd <= 0) return null;
+  // Same guard as Study: a meter missing a number shows nothing rather than crashing You.
+  if (!m || !(m.ceilingUsd > 0) || typeof m.monthCostUsd !== 'number') return null;
   const warn = warningLine(m);
   return (
     <section className="card settings-card" aria-label="AI this month">

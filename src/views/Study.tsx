@@ -52,7 +52,9 @@ export function Study() {
   };
   const suggestions = askSuggestions({ course: null, item: null }, data.items, today, tz);
   const cap = LIMITS.aiMessagesPerDay[tier];
-  const meterLine = allowed && m ? `${m.messagesToday} of ${cap} questions today · $${m.monthCostUsd.toFixed(2)} of $${m.ceilingUsd.toFixed(2)} this month` : null;
+  // A meter missing a field (an older server, a bad answer) drops the line; it never takes the whole screen down.
+  const usd = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? n.toFixed(2) : null);
+  const meterLine = allowed && m && usd(m.monthCostUsd) && usd(m.ceilingUsd) ? `${m.messagesToday ?? 0} of ${cap} questions today · $${usd(m.monthCostUsd)} of $${usd(m.ceilingUsd)} this month` : null;
   const trial = auth.configured && trialState(profile) === 'available' && rank(TRIAL.tier) >= rank('max');
   const lockHref = '#/you?s=plan&to=max&for=flashcards';
   const first = tests[0];
