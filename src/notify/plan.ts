@@ -13,7 +13,7 @@ import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
  * morning note, the night-before heavy-day warning, the not-started nudge, the re-sync reminder, and on Max the
  * Sunday recap; the trial's one reminder has none.
  */
-export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation' | 'welcome_sync';
+export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation' | 'welcome_sync' | 'winback_exam' | 'winback_stale';
 
 export interface Notice {
   kind: NoticeKind;

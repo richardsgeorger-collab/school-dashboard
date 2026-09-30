@@ -1,3 +1,6 @@
+import { trialState } from '../config/flags';
+import { planWinback } from '../winback/rules';
+import { useInviteProgress, useMyGrants } from '../referral/Invite';
 import { useEffect } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
@@ -18,6 +21,8 @@ export function NotificationPlanner() {
   const { auth, tier, profile } = useAccount();
   // What Max did during the trial, for its reminders (counted from the trial's start).
   const recap = useReceipts(profile?.trialStartedAt ?? undefined);
+  const invites = useInviteProgress();
+  const grants = useMyGrants();
   useEffect(() => {
     void registerSw();
   }, []);
@@ -25,13 +30,24 @@ export function NotificationPlanner() {
   const lastPull = data.settings.lastPull?.at ?? null;
   const tz = data.settings.timezone;
   useEffect(() => {
-    if (!auth.session || !auth.userId || !prefs?.pushEnabled || !can('reminders', tier)) return;
+    // Plans that include reminders get the full plan; Free gets only the win-back pushes (2026-09-29), and only with
+    // notifications on.
+    if (!auth.session || !auth.userId || !prefs?.pushEnabled) return;
+    const full = can('reminders', tier);
     const c = supabase();
     if (!c) return;
     const userId = auth.userId;
     const t = setTimeout(async () => {
       const now = new Date().toISOString();
-      const notices = planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialStartedAt: profile?.friendFrom ? null : (profile?.trialStartedAt ?? null), trialEndsAt: profile?.trialEndsAt ?? null, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier) });
+      const notices = full ? planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialStartedAt: profile?.friendFrom ? null : (profile?.trialStartedAt ?? null), trialEndsAt: profile?.trialEndsAt ?? null, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier) }) : [];
+      // Win-back: Free after the Max week, not in a referral, never upgraded.
+      const eligible = tier === 'free' && trialState(profile) === 'used' && !profile?.referredBy && !profile?.friendFrom && (invites?.joined ?? 0) === 0 && grants.length === 0;
+      if (eligible) {
+        const { data: sent } = await c.from('winback_sends').select('sent_at').eq('user_id', userId).order('sent_at', { ascending: false }).limit(10);
+        const own = data.settings.winbackOwnOpenAt ?? '';
+        const times = (sent ?? []).map((r) => r.sent_at as string);
+        notices.push(...planWinback({ items: data.items, tz, today, now, lastPull, quietFrom: prefs.quietFrom ?? '22:00', quietTo: prefs.quietTo ?? '07:00', eligible, lastSentAt: times[0] ?? null, ignoredInRow: times.filter((t) => t > own).length }));
+      }
       // Upsert by each notice's key (one "morning note for Sep 25" per student, enforced by a unique index), then drop
       // unsent rows that are no longer planned. Overlapping runs converge instead of stacking duplicates, and a note
       // that was already sent keeps its sent_at, so it is never sent twice.
@@ -52,6 +68,6 @@ export function NotificationPlanner() {
       });
     }, 3000);
     return () => clearTimeout(t);
-  }, [auth.session, auth.userId, tier, prefs, data.items, data.courses, tz, lastPull, schedule, today, recap, profile?.trialEndsAt]);
+  }, [auth.session, auth.userId, tier, prefs, data.items, data.courses, tz, lastPull, schedule, today, recap, profile?.trialEndsAt, invites, grants]);
   return null;
 }

@@ -116,9 +116,18 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
   const last = data.settings.lastPull?.at ?? loadLastSync()?.at ?? null;
   const walled = !useSyncAccess().allowed;
   if (walled) {
+    // Free (2026-09-29): Sync still works as a peek. Run the bookmark and Halo+ counts what changed, adding nothing.
     return (
-      <Modal title="Sync Halo" onClose={onClose}>
+      <Modal title="See what's changed in Halo" onClose={onClose}>
         <div className="modal-body sync-sheet">
+          <p className="trial-lead">{last ? `Your planner is as of ${fmtDate(dateOf(last, tz), 'short')}.` : 'Your planner has no Halo data yet.'} Run {BOOKMARK_NAME} on Halo as usual: on Free, Halo+ shows what changed there without adding it.</p>
+          <HowYouSync />
+          <SyncSteps onNote={setNote} />
+          {note && (
+            <p className="hint" role="status">
+              {note}
+            </p>
+          )}
           <PlanWall context="sync" />
         </div>
       </Modal>

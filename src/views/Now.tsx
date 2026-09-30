@@ -1,3 +1,4 @@
+import { ExamWeekCard } from '../winback/ExamWeekCard';
 import { WelcomeChecklist } from './WelcomeChecklist';
 import { NotifyReask } from './NotifyReask';
 import { InviteNowCard } from './InviteNowCard';
@@ -730,6 +731,7 @@ export function Now() {
       {quiet && !eveningWrap && <DailyQuestion />}
 
       <aside className="now-side">
+        <ExamWeekCard />
         <WelcomeChecklist onOpen={setOpen} />
         <NotifyReask />
         <InviteNowCard />

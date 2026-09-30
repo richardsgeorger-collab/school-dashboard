@@ -1,3 +1,5 @@
+import { WinbackOpens } from './winback/WinbackHooks';
+import { PeekSummary } from './winback/PeekSummary';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AccountProvider } from './auth/AccountContext';
 import { SetNewPassword } from './auth/SignIn';
@@ -15,7 +17,7 @@ import { SyncAssignments } from './views/SyncAssignments';
 import { SyncSheet } from './views/SyncSheet';
 import { useRoute } from './router';
 import { StoreProvider } from './storage/store';
-import { syncPress } from './ui/presses';
+import { syncClose, syncPress } from './ui/presses';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
@@ -64,8 +66,7 @@ import { TrialEnded } from './views/TrialStatus';
 import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
-import { FrozenBanner, LegacyNotice, PlanWall, useSyncAccess } from './views/PlanWall';
-import { Modal } from './components/Modal';
+import { FrozenBanner, LegacyNotice, useSyncAccess } from './views/PlanWall';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
 function HaloHandoff() {
@@ -132,12 +133,9 @@ function HaloHandoff() {
           {access.allowed ? (
             <HaloImport payload={payload} onClose={() => setPayload(null)} auto={firstSync} />
           ) : (
-            // Sync is off: the bookmark's data is not applied, and the student is told why, with the one-tap way back.
-            <Modal title="Halo sync is paused" onClose={() => setPayload(null)}>
-              <div className="modal-body">
-                <PlanWall context="sync" />
-              </div>
-            </Modal>
+            // Sync is off (Free): nothing is applied; the student sees what their own Halo holds that the planner
+            // does not, counted, with the ways to bring it in (win-back peek, 2026-09-29).
+            <PeekSummary payload={payload} onClose={() => setPayload(null)} />
           )}
         </ErrorBoundary>
       )}
@@ -377,6 +375,7 @@ export default function App() {
   const [captureOpen, setCaptureOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   syncPress.current = () => setSyncOpen(true);
+  syncClose.current = () => setSyncOpen(false);
   useEffect(() => initPixel(), []);
   // The small ⋯ / More menus are <details>: they close on Escape and on a tap anywhere outside, like any menu.
   useEffect(() => {
@@ -414,6 +413,7 @@ export default function App() {
         <AccountSync />
         <RecoveryHost />
         <ParticipationFold />
+        <WinbackOpens />
         <AccentHost />
         <AutoRerun />
         <HaloHandoff />

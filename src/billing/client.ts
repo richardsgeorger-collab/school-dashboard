@@ -26,7 +26,7 @@ async function call(fn: string, body: Record<string, unknown>): Promise<Result> 
 const returnTo = () => `${window.location.origin}${import.meta.env.BASE_URL}`;
 
 /** Stripe Checkout for a plan. On success the browser leaves for Stripe and comes back to You. */
-export const startCheckout = (tier: Paid, interval: Interval): Promise<Result> => call('stripe-checkout', { tier, interval, returnTo: returnTo() });
+export const startCheckout = (tier: Paid, interval: Interval, next?: string): Promise<Result> => call('stripe-checkout', { tier, interval, returnTo: returnTo(), next });
 
 /** Stripe's customer portal: the card and invoices, or with 'cancel' straight to the cancel confirmation for the plan. */
 export const openPortal = (flow?: 'cancel'): Promise<Result> => call('stripe-portal', { returnTo: returnTo(), flow });

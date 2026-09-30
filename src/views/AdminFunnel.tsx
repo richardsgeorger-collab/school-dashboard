@@ -75,6 +75,72 @@ export function AdminFunnel() {
           </p>
         </>
       )}
+      <Winback days={days} />
     </section>
+  );
+}
+
+interface WinbackKind {
+  sent: number;
+  opened: number;
+  upgrade_taps: number;
+  upgraded: number;
+}
+interface WinbackStats {
+  peek_syncs: number;
+  peek_students: number;
+  by_kind: Record<'peek' | 'exam' | 'stale', WinbackKind>;
+}
+
+/** Win-back (2026-09-29): Free students after the Max week. Sends and opens per push, upgrades per way in. */
+function Winback({ days }: { days: number }) {
+  const [w, setW] = useState<WinbackStats | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase()
+      ?.rpc('admin_winback', { p_days: days })
+      .then(({ data, error }) => (error ? setErr(error.message) : setW(data as WinbackStats)));
+  }, [days]);
+  const rows: [string, WinbackKind][] = w
+    ? [
+        ['Peek sync', w.by_kind.peek],
+        ['Exam-week offer', w.by_kind.exam],
+        ['Out-of-date push', w.by_kind.stale],
+      ]
+    : [];
+  return (
+    <>
+      <h3 className="section-title">Win-back</h3>
+      {err && <p className="hint">{err}</p>}
+      {w && (
+        <>
+          <p className="hint">
+            {w.peek_syncs} peek syncs by {w.peek_students} Free students.
+          </p>
+          <table className="funnel-table winback-table">
+            <thead>
+              <tr>
+                <th scope="col">Way in</th>
+                <th scope="col">Pushes sent</th>
+                <th scope="col">Opened</th>
+                <th scope="col">Tapped upgrade</th>
+                <th scope="col">Upgraded</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(([label, k]) => (
+                <tr key={label}>
+                  <th scope="row">{label}</th>
+                  <td className="mono">{label === 'Peek sync' ? '–' : k.sent}</td>
+                  <td className="mono">{label === 'Peek sync' ? '–' : k.opened}</td>
+                  <td className="mono">{k.upgrade_taps}</td>
+                  <td className="mono">{k.upgraded}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </>
   );
 }

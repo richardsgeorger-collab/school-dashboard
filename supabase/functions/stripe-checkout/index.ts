@@ -15,7 +15,9 @@ Deno.serve(guard(async (req) => {
   const user = await userFromRequest(req);
   if (!user) return json(401, { error: 'Sign in first.' });
 
-  const body = (await req.json().catch(() => ({}))) as { tier?: string; interval?: string; returnTo?: string };
+  const body = (await req.json().catch(() => ({}))) as { tier?: string; interval?: string; returnTo?: string; next?: string };
+  // Where to land after paying: a route inside Halo+ only (the exam-week offer lands in Practice for that quiz).
+  const next = typeof body.next === 'string' && /^\/(practice|now|study|you)(\?[A-Za-z0-9=&_.-]*)?$/.test(body.next) ? body.next : '/you?s=plan';
   const tier = body.tier as keyof typeof STRIPE_PRICE_IDS;
   // Only an interval that is offered can be bought (monthly, today).
   const interval: Interval = (OFFERED_INTERVALS as string[]).includes(body.interval ?? '') ? (body.interval as Interval) : 'month';
@@ -39,7 +41,7 @@ Deno.serve(guard(async (req) => {
     customer,
     line_items: [{ price, quantity: 1 }],
     allow_promotion_codes: true,
-    success_url: `${returnTo}#/you?s=plan&checkout=success`,
+    success_url: `${returnTo}#${next}${next.includes('?') ? '&' : '?'}checkout=success`,
     cancel_url: `${returnTo}#/you?s=plan&checkout=cancel`,
     metadata: { user_id: user.id },
     subscription_data: { metadata: { user_id: user.id } },

@@ -1,3 +1,5 @@
+import { bump } from '../analytics/usage';
+import { syncPress } from '../ui/presses';
 import { useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
@@ -42,13 +44,14 @@ export function useShortDate(): (iso: string | null) => string | null {
 }
 
 /** One tap to Stripe for a plan, monthly. Coming back, the webhook has set the plan and sync, grades and colour return. */
-export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean }) {
+export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, source, next }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const go = async () => {
     setBusy(true);
     setErr(null);
-    const r = await startCheckout(tier, 'month');
+    if (source) bump(`winback:upgrade:${source}`);
+    const r = await startCheckout(tier, 'month', next);
     if (r.ok) window.location.href = r.url;
     else {
       setErr(r.error);
@@ -75,11 +78,14 @@ export function FrozenBanner() {
   return (
     <div className="frozen-banner" role="alert">
       <p>
-        <b>Halo sync paused{when ? ` since ${when}` : ''}.</b> <span className="frozen-long">Your dates may be out of date: anything your professors moved or added since then is not here.</span>
-        <span className="frozen-short">Dates may be out of date.</span>
+        <b>Halo sync paused{when ? ` since ${when}` : ''}.</b> <span className="frozen-long">Tap Sync to see what's changed in Halo since then.</span>
+        <span className="frozen-short">Tap Sync to see what's changed.</span>
       </p>
       <div className="frozen-actions">
-        <UpgradeButton label={`Turn sync back on: Plus, $${PRICES.plus.month.toFixed(2)} a month`} />
+        <button type="button" className="btn small primary" onClick={() => syncPress.current?.()}>
+          Sync: see what's changed
+        </button>
+        <UpgradeButton label={`Plus, $${PRICES.plus.month.toFixed(2)} a month`} primary={false} cancelNote={false} />
         <a className="hero-inline" href="#/you?s=plan">
           See plans
         </a>

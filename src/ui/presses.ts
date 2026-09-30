@@ -3,3 +3,5 @@
  * from needing the shell's state: the shell sets it, the screen calls it.
  */
 export const syncPress: { current: (() => void) | null } = { current: null };
+/** Closes the Sync sheet: the peek replaces it once Halo's data arrives. */
+export const syncClose: { current: (() => void) | null } = { current: null };
