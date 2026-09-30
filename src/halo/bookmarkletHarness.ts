@@ -70,6 +70,7 @@ export async function runBookmarklet(
   const asked: string[] = [];
   const loaded: string[] = [];
   let payload: any = null;
+  const progress: any[] = [];
   let failed: string | null = null;
   let opened = 0;
   const dropped: any[] = [];
@@ -108,6 +109,11 @@ export async function runBookmarklet(
     },
     // The extension mode posts to Halo's own window; the content script would answer from the same origin.
     postMessage(p: any, origin: string) {
+      // Progress and failure notes go to the extension too; only the export itself is the payload.
+      if (p && (p.kind === 'halo-progress' || p.kind === 'halo-failed')) {
+        progress.push(p);
+        return;
+      }
       payload = p;
       for (const fn of [...listeners]) fn({ origin, data: { kind: 'halo-received' } });
       settle();

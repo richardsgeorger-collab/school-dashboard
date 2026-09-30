@@ -4,7 +4,12 @@
 import { DASH_ORIGIN, DASH_URL, PERIOD_MINUTES } from './config.js';
 
 const PAID = ['plus', 'pro', 'max'];
-const state = { pending: null, running: false };
+const state = { pending: null, fail: null, running: false, progress: null, lastProgressAt: 0 };
+// A real account (six classes, rubrics, feedback, announcements) takes minutes to read. The worker waits as long as the
+// sync script keeps reporting progress, and gives up only after this long with no word from it (2026-09-30: a fixed
+// 90 seconds cut real syncs off with "Halo did not answer").
+const SILENT_MS = 120_000;
+const MAX_MS = 15 * 60_000;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.create('auto-sync', { periodInMinutes: PERIOD_MINUTES, delayInMinutes: 5 });
@@ -22,8 +27,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (msg.kind === 'tier') {
     void chrome.storage.local.set({ tier: msg.tier });
     reply({ ok: true });
+  } else if (msg.kind === 'halo-progress') {
+    state.progress = msg.text;
+    state.lastProgressAt = Date.now();
+    void setBadge('…', msg.text);
+    reply({ ok: true });
+  } else if (msg.kind === 'halo-failed') {
+    if (state.fail) state.fail(msg.text);
+    reply({ ok: true });
   } else if (msg.kind === 'halo-export') {
     if (state.pending) state.pending(msg.payload);
+    // The worker was restarted while Halo was being read (Chrome stops idle workers): the export still goes through.
+    else void finish(msg.payload, true);
     reply({ ok: true });
   } else if (msg.kind === 'sync-now') {
     // From the popup (by hand) or from the Halo page itself when it was just opened (auto). Halo sync is part of Plus
@@ -68,34 +83,54 @@ async function runSync({ auto }) {
     await waitForLoad(haloTab.id);
     await sleep(1500);
   }
+  state.progress = null;
+  state.lastProgressAt = Date.now();
+  const started = Date.now();
   const payload = await new Promise(async (resolve) => {
-    const timer = setTimeout(() => resolve(null), 90_000);
+    // Checking in keeps this worker alive (an extension API call resets Chrome's idle timer) and ends the wait only
+    // when the script has gone quiet for SILENT_MS or the whole run passes MAX_MS.
+    const watch = setInterval(() => {
+      void chrome.runtime.getPlatformInfo();
+      if (Date.now() - state.lastProgressAt > SILENT_MS || Date.now() - started > MAX_MS) {
+        clearInterval(watch);
+        resolve(null);
+      }
+    }, 5000);
     state.pending = (p) => {
-      clearTimeout(timer);
+      clearInterval(watch);
       resolve(p);
+    };
+    state.fail = (why) => {
+      clearInterval(watch);
+      resolve({ error: why });
     };
     try {
       await chrome.scripting.executeScript({ target: { tabId: haloTab.id }, files: ['sync-inject.js'], world: 'MAIN' });
     } catch (e) {
-      clearTimeout(timer);
+      clearInterval(watch);
       resolve({ error: e && e.message ? e.message : String(e) });
     }
   });
   state.pending = null;
+  state.fail = null;
   state.running = false;
   if (opened) {
     chrome.tabs.remove(haloTab.id).catch(() => undefined);
     await chrome.storage.local.set({ openedBySync: false });
   }
   if (!payload || payload.error) {
-    const why = payload && payload.error ? payload.error : 'Halo did not answer. Are you logged in there?';
+    const why = payload && payload.error ? payload.error : state.progress ? `Halo stopped answering while: ${state.progress}` : 'Halo did not answer. Are you logged in there?';
     await chrome.storage.local.set({ lastError: why, lastErrorAt: new Date().toISOString() });
     await setBadge('!', why);
     return;
   }
+  await finish(payload, auto);
+}
+
+async function finish(payload, auto) {
   const delivered = await deliver(payload, auto);
   await chrome.storage.local.set({ lastSyncAt: new Date().toISOString(), lastError: delivered ? null : 'The dashboard tab did not take the export.', lastCounts: { classes: payload.classes.length, assignments: payload.classes.reduce((n, c) => n + (c.assessments || []).length, 0) } });
-  await setBadge(delivered ? '' : '!', delivered ? 'School Dashboard' : 'The dashboard tab did not take the export.');
+  await setBadge(delivered ? '' : '!', delivered ? 'Halo+' : 'The dashboard tab did not take the export.');
 }
 
 async function deliver(payload, auto) {

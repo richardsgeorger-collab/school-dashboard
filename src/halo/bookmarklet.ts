@@ -137,7 +137,8 @@ var msg=document.createElement('div');msg.textContent='Reading Halo\\u2026';box.
 var x=document.createElement('button');x.textContent='\\u00d7';x.setAttribute('aria-label','Close');
 x.style.cssText='position:absolute;top:4px;right:8px;background:none;border:0;color:#aeb7c2;font-size:18px;cursor:pointer';
 x.onclick=function(){box.remove();};box.appendChild(x);document.body.appendChild(box);
-var say=function(t){msg.textContent=t;};
+var AGAIN=${JSON.stringify(cfg.deliver ?? 'open')}==='message'?'sync again from the Halo+ button':'click the bookmark again';
+var say=function(t){msg.textContent=t;if(${JSON.stringify(cfg.deliver ?? 'open')}==='message'){window.postMessage({kind:'halo-progress',text:String(t)},location.origin);}};
 var problems=[];
 var prob=function(where,kind,e){var m=(e&&e.message)?String(e.message):String(e);
 var list=(e&&e.errors&&e.errors.length)?e.errors.map(function(x){return String(x).slice(0,400);}):[m.slice(0,400)];
@@ -161,7 +162,7 @@ else{b.textContent=ok?'Copied':'Select all and copy';}};
 box.appendChild(b);};
 try{
 var s=await (await fetch('/api/auth/session',{credentials:'include'})).json();
-if(!s||!s.authToken||!s.contextToken){throw new Error('No Halo session found. Log in to Halo, then click the bookmark again.');}
+if(!s||!s.authToken||!s.contextToken){throw new Error('No Halo session found. Log in to Halo, then '+AGAIN+'.');}
 var gql=async function(op,q,v){
 var r=await fetch(${JSON.stringify(GATEWAY)},{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.authToken,'ContextToken':'Bearer '+s.contextToken,'transaction-id':(crypto.randomUUID?crypto.randomUUID():String(Date.now()))},body:JSON.stringify({operationName:op,variables:v,query:q})});
 var j=null;try{j=await r.json();}catch(e){}
@@ -209,7 +210,7 @@ mine.push({id:P2.id,forumId:IF.forumId||null,content:P2.content||'',publishedAt:
 mine.sort(function(a,b){return String(b.publishedAt||'').localeCompare(String(a.publishedAt||''));});msgs[IC.courseClassId]=mine;}}catch(e){msgs={};prob(null,'inbox',e);}
 var CD=await gql('getCourseClassesForUser',Q1,{pgNum:1,pgSize:50});
 var cls=((CD&&CD.getCourseClassesForUser)||{}).courseClasses||[];
-if(!cls.length){throw new Error('Halo returned no classes. Open a class in Halo, then click the bookmark again.');}
+if(!cls.length){throw new Error('Halo returned no classes. Open a class in Halo, then '+AGAIN+'.');}
 var names={};
 try{var ND0=await gql('getCourseClassesForUser',Q3,{pgNum:1,pgSize:50});if(!ND0||!ND0.getCourseClassesForUser){throw noField('getCourseClassesForUser','getCourseClassesForUser');}var ic=ND0.getCourseClassesForUser.courseClasses||[];
 for(var ii=0;ii<ic.length;ii++){if(ic[ii]&&ic[ii].id){names[ic[ii].id]=ic[ii].instructors||[];}}}catch(e){names={};prob(null,'instructor names',e);}
@@ -368,7 +369,7 @@ window.removeEventListener('message',onMsg);
 if(got){say('Sent to the dashboard. Review the changes there.');setTimeout(function(){box.remove();},4000);}
 else if(K&&DROP&&MODE==='open'&&(await drop(payload)).ok){say('Sent to your Halo+ account. Open Halo+ and it is waiting for you to review.');goLink('Open Halo+');}
 else{var why=MODE==='message'?'The extension did not pick up the export.':openErr?'Your browser blocked the dashboard tab from opening. Allow pop-ups for halo.gcu.edu, or open '+P+' yourself first.':(win&&win.closed)?'The dashboard tab was closed before the export arrived.':'The dashboard tab at '+P+' did not answer in 30 seconds. It has to be that exact address, and it has to finish loading.';fallback(JSON.stringify(payload),why);}
-}catch(e){say('Halo sync failed: '+(e&&e.message?e.message:e));}
+}catch(e){say('Halo sync failed: '+(e&&e.message?e.message:e));if(MODE==='message'){window.postMessage({kind:'halo-failed',text:'Halo sync failed: '+(e&&e.message?e.message:e)},location.origin);}}
 })();`;
   return code.replace(/\s*\n\s*/g, ' ').trim();
 }
