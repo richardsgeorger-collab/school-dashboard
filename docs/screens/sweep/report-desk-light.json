@@ -1,0 +1,97 @@
+[
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-welcome",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-story-0",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-story-1",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-story-2",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-gift",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-bar",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-drag",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-open",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-wait",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-wait-fixes",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-payoff",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-notify-ask",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-tour",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "button.row \"Eng Math Excel Microchip ESG-162 · was due Sep 21 · ~2h · 20\"",
+    "by": "p \"Now. The one thing to do next, with what it is worth and how\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.row \"Chem HW 4 CHM-113 · was due Sep 26 · ~1.5h · 20 pts\"",
+    "by": "div.tour-tip \"Now. The one thing to do next, with what it is worth and how\""
+   }
+  ]
+ },
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "onboard-upgrade",
+  "issues": []
+ }
+]

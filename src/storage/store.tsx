@@ -135,10 +135,22 @@ export function emptyData(): AppData {
 }
 
 /** Fill fields added after a row was written (older caches, other devices, imports). */
+/**
+ * Classes in one order on every screen: by code, a lab right after its lecture (CHM-113, CHM-113L, ENG-105…). The
+ * cloud returns rows in whatever order they were written, and the Classes list, the Inbox chips and the Study chips
+ * each showed a different one (sweep, 2026-09-30). The same array comes back when it is already in order.
+ */
+export function orderCourses(courses: Course[]): Course[] {
+  const by = (a: Course, b: Course) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' }) || a.id.localeCompare(b.id);
+  for (let i = 1; i < courses.length; i++) if (by(courses[i - 1], courses[i]) > 0) return [...courses].sort(by);
+  return courses;
+}
+
 export function normalizeData(data: AppData): AppData {
   const codeById = new Map(data.courses.map((c) => [c.id, c.code]));
   return {
     ...data,
+    courses: orderCourses(data.courses),
     items: data.items.map((i) => {
       const raw = i as Partial<Item> & Item;
       const courseCode = codeById.get(i.courseId) ?? '';
@@ -375,7 +387,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Computed against the ref, not React's queued state, so several actions in one tick each see the last one's result
   // and a snapshot taken right after an action is exact.
   const update = useCallback((fn: (d: AppData) => AppData) => {
-    const next = fn(dataRef.current);
+    const raw = fn(dataRef.current);
+    const ordered = orderCourses(raw.courses);
+    const next = ordered === raw.courses ? raw : { ...raw, courses: ordered };
     dataRef.current = next;
     setData(next);
   }, []);

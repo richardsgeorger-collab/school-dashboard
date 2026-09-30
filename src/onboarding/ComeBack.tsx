@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { enablePush, isIos, isStandalone } from '../notify/push';
+import { morningBody } from '../notify/plan';
 import { useStore } from '../storage/store';
 import { isAndroid, isChromeIOS } from '../ui/device';
 
@@ -25,14 +26,18 @@ export function useMorningNote() {
 
 export function NotifyAsk({ onNext }: { onNext: () => void }) {
   const { turnOn, decline } = useMorningNote();
+  const { data, today } = useStore();
   const [why, setWhy] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const homeFirst = needsHomeScreenFirst();
+  // The sample note is the student's own for today (sweep, 2026-09-30: a made-up "Chem Lab 3" read as their data).
+  const sample = data.items.length === 0;
+  const note = sample ? '2 due today. First: Chem Lab 3 (CHM-113, 50 pts).' : morningBody(data.items, data.courses, today, data.settings.timezone);
   return (
     <section className="onboard-step comeback" aria-label="A morning note">
       <div className="comeback-note" aria-hidden>
-        <b>Halo+ · 7:30 AM</b>
-        <span>2 due today. First: Chem Lab 3 (CHM-113, 50 pts).</span>
+        <b>Halo+ · 7:30 AM{sample ? ' · example' : ''}</b>
+        <span>{note}</span>
       </div>
       <h1 className="onboard-title">Want a morning note with what to do today?</h1>
       <p className="onboard-text">One short note each morning: what is due and what to start first. Change the time or turn it off any time in You.</p>

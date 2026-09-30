@@ -2928,3 +2928,23 @@
   gap: 8px;
   align-items: center;
 }
+
+/* Sweep, 2026-09-30: on a phone the class row wraps, so the name is not cut to one letter by its meeting times. */
+@media (max-width: 600px) {
+  .course-row {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .course-row-name {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .course-row .hint {
+    flex-basis: 100%;
+  }
+}
+/* The section strip scrolls sideways on a phone; a fade on the right says so while there is more to the right. */
+.you-nav[data-more='true'] {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+}

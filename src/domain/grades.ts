@@ -52,8 +52,11 @@ export function courseGrade(courseId: string, items: Item[], course?: Pick<Cours
     const e = halo.points ?? earned;
     const p = halo.maxPoints ?? possibleGraded;
     const pct = halo.percent;
-    const projected = pct !== null && totalPossible > 0 ? round1(((e + (remaining * pct) / 100) / totalPossible) * 100) : null;
-    return { earned: e, possibleGraded: p, pct, remaining, totalPossible, projected, graded, enough: pct !== null, source: 'halo', letter: halo.letter, itemsPct };
+    // The term is at least what Halo has graded plus what is still open here: the planner can hold fewer points than
+    // Halo's gradebook (skipped or removed items), and "graded so far 159%" read as nonsense (sweep, 2026-09-30).
+    const total = Math.max(totalPossible, p + remaining);
+    const projected = pct !== null && total > 0 ? round1(((e + (remaining * pct) / 100) / total) * 100) : null;
+    return { earned: e, possibleGraded: p, pct, remaining, totalPossible: total, projected, graded, enough: pct !== null, source: 'halo', letter: halo.letter, itemsPct };
   }
   const enough = graded > 0 && possibleGraded > 0;
   const pct = enough ? itemsPct : null;

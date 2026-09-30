@@ -10,7 +10,8 @@ export function SourceBlock({ item }: { item: Item }) {
   const { data, courseById } = useStore();
   const tz = data.settings.timezone;
   const course = courseById.get(item.courseId);
-  const pulled = data.settings.haloPulls?.[item.courseId]?.assessments ?? null;
+  // A class synced before per-class stamps existed counts as synced with the account's last sync.
+  const pulled = data.settings.haloPulls?.[item.courseId]?.assessments ?? (course?.haloClassId ? (data.settings.lastPull?.at ?? null) : null);
   const stamp = (at: string) => `${fmtDate(dateOf(at, tz), 'short')} ${fmtTime(at, tz)}`;
   const from = item.source === 'halo' ? 'Halo' : item.source === 'ics' ? 'a calendar export' : item.source === 'parsed' ? `the ${course?.code ?? ''} syllabus` : 'you';
   const matched = item.source === 'halo' ? (item.halo?.checkedAt ? ` · matched Halo ${stamp(item.halo.checkedAt)}` : pulled ? ` · synced ${stamp(pulled)}` : ' · not synced since it was added') : '';

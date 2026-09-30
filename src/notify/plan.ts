@@ -68,13 +68,23 @@ export function outsideQuiet(iso: string, tz: string, quietFrom: string, quietTo
 
 const codeOf = (courses: Course[], id: string) => courses.find((c) => c.id === id)?.code ?? '';
 
+/** The morning note for a day: "2 due today. First: Lab 3 (CHM-113, 50 pts)." Shown as the sample in onboarding too, from the student's own planner. */
+export function morningBody(items: Item[], courses: Course[], day: DateStr, tz: string): string {
+  const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
+  const due = open.filter((i) => dateOf(i.dueAt, tz) === day).sort((a, b) => b.points - a.points);
+  // A part with its own date (a discussion's Wednesday initial post inside a Sunday assignment) is due that day too.
+  const parts = open.flatMap((i) => (dateOf(i.dueAt, tz) === day ? [] : partsDueOn(i, day, tz).filter((r) => r.dueAt).map((r) => ({ item: i, req: r }))));
+  const n = due.length + parts.length;
+  const next = open.filter((i) => dateOf(i.dueAt, tz) > day).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
+  const first = due[0] ? `${due[0].label} (${codeOf(courses, due[0].courseId)}, ${due[0].points} pts)` : `${parts[0]?.item.label}: ${parts[0]?.req.text.replace(/\s*[.!]$/, '')} (${codeOf(courses, parts[0]?.item.courseId ?? '')})`;
+  return n === 0 ? (next ? `Nothing due today. Next: ${next.label}, due ${fmtDate(dateOf(next.dueAt, tz), 'short')}.` : 'Nothing due today.') : `${n} due today. First: ${first}.`;
+}
+
 export function planNotices(input: PlanInput): Notice[] {
   const p = { ...DEFAULT_PREFS, ...(input.prefs ?? {}) };
   const { items, courses, schedule, tz, today, now, lastPull } = input;
   const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
   const dueOn = (day: DateStr) => open.filter((i) => dateOf(i.dueAt, tz) === day).sort((a, b) => b.points - a.points);
-  // A part with its own date (a discussion's Wednesday initial post inside a Sunday assignment) is due that day too.
-  const partsOn = (day: DateStr) => open.flatMap((i) => (dateOf(i.dueAt, tz) === day ? [] : partsDueOn(i, day, tz).filter((r) => r.dueAt).map((r) => ({ item: i, req: r }))));
   const out: Notice[] = [];
   const push = (n: Notice) => {
     const sendAt = outsideQuiet(n.sendAt, tz, p.quietFrom, p.quietTo);
@@ -84,12 +94,7 @@ export function planNotices(input: PlanInput): Notice[] {
 
   if (p.morning && p.morningTime && p.morningTime !== 'off') {
     for (const day of [today, tomorrow]) {
-      const due = dueOn(day);
-      const parts = partsOn(day);
-      const n = due.length + parts.length;
-      const next = open.filter((i) => dateOf(i.dueAt, tz) > day).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
-      const first = due[0] ? `${due[0].label} (${codeOf(courses, due[0].courseId)}, ${due[0].points} pts)` : `${parts[0]?.item.label}: ${parts[0]?.req.text.replace(/\s*[.!]$/, '')} (${codeOf(courses, parts[0]?.item.courseId ?? '')})`;
-      const body = n === 0 ? (next ? `Nothing due today. Next: ${next.label}, due ${fmtDate(dateOf(next.dueAt, tz), 'short')}.` : 'Nothing due today.') : `${n} due today. First: ${first}.`;
+      const body = morningBody(items, courses, day, tz);
       push({ kind: 'morning', sendAt: at(day, p.morningTime, tz), title: day === today ? 'Today' : 'Today', body, url: '#/now', key: `morning:${day}` });
     }
   }

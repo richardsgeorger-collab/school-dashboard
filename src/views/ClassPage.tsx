@@ -6,7 +6,7 @@ import { cleanAll, foldReadings, rulesFor } from '../domain/reqClean';
 import { ClassRules } from './ClassRules';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { ItemRow } from '../components/ItemRow';
-import { addDays, dateOf, diffDays, fmtDate, fmtMinutes } from '../domain/dates';
+import { addDays, dateOf, diffDays, fmtClock, fmtDate, fmtMinutes, hhmmToMinutes } from '../domain/dates';
 import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
@@ -90,8 +90,10 @@ export function ClassPage() {
   const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz).filter((w) => w.courseId === course.id), 6);
   const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, tz);
   const pace = paceFor(course, data.items, schedule, today);
-  const pulled = data.settings.haloPulls?.[course.id]?.assessments ?? null;
-  const meetings = course.online ? 'Online' : course.meetings.map((m) => `${DAYS[m.day]} ${m.start}–${m.end}`).join(', ') || 'No meetings set';
+  // A class the account synced before per-class pull stamps existed still counts as synced.
+  const pulled = data.settings.haloPulls?.[course.id]?.assessments ?? (course.haloClassId ? (data.settings.lastPull?.at ?? null) : null);
+  const clock = (hhmm: string) => { const m = hhmmToMinutes(hhmm); return fmtClock(Math.floor(m / 60), m % 60); };
+  const meetings = course.online ? 'Online' : course.meetings.map((m) => `${DAYS[m.day]} ${clock(m.start)}–${clock(m.end)}`).join(', ') || 'No meetings set';
   const paceText = pace.kind === 'behind' ? `${pace.n} item${pace.n === 1 ? '' : 's'} behind` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : 'Nothing open';
 
   return (
@@ -104,7 +106,7 @@ export function ClassPage() {
           <h1 className="page-title lib-class-title">
             <CourseChip course={course} /> <span>{course.name}</span>
           </h1>
-          <p className="hint mono">
+          <p className="hint">
             {meetings}
             {course.instructors.length ? ` · ${course.instructors.map((p) => p.name).join(', ')}` : ''}
           </p>
@@ -131,7 +133,7 @@ export function ClassPage() {
             <button type="button" className="class-next-title" onClick={() => setOpen(next)}>
               {next.label}
             </button>
-            <p className="hint mono">
+            <p className="hint">
               {fmtDate(dateOf(next.dueAt, tz), 'long')} · {(() => {
                 const d = diffDays(today, dateOf(next.dueAt, tz));
                 return d < 0 ? `${-d} day${d === -1 ? '' : 's'} past` : d === 0 ? 'today' : d === 1 ? 'tomorrow' : `in ${d} days`;

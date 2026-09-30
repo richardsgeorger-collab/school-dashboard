@@ -195,7 +195,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
             <HaloJump item={item} course={course} />
           </p>
         )}
-        {!isNew && course && skipLine(item, data.items, course.code) && <p className="hint item-skip">{skipLine(item, data.items, course.code)}</p>}
+        {!isNew && course && skipLine(item, data.items, course.code, course) && <p className="hint item-skip">{skipLine(item, data.items, course.code, course)}</p>}
         {/* The one study button, before anything else: a test gets Practice, work gets help and a check. */}
         {!isNew && course && item.status !== 'done' && (
           <p className="study-row">

@@ -84,7 +84,7 @@ function Picker() {
             <li key={t.id} className="study-test">
               <div className="study-test-main">
                 <span className="study-test-title">{t.label}</span>
-                <span className="hint mono">
+                <span className="hint">
                   <CourseChip course={courseById.get(t.courseId)} /> · {fmtDate(dateOf(t.dueAt, tz), 'long')} · {inDays(t, today, tz)} · {t.points} pts
                 </span>
               </div>
@@ -190,7 +190,7 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
               {fmtDate(day, 'long')} · {inDays(test, today, tz)} · {test.points} pts{ownTopics.length ? ` · on ${ownTopics.join(', ')}` : ''}
             </p>
           )}
-          <p className="hint mono">{materialLine}</p>
+          <p className="hint">{materialLine}</p>
         </div>
         {pool && use.length === 0 && (
           <a className="btn small" href={`#/library?c=${course.id}`}>
@@ -232,7 +232,7 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
                       <li key={t.id} className="study-test">
                         <div className="study-test-main">
                           <span className="study-test-title">{t.label}</span>
-                          <span className="hint mono">
+                          <span className="hint">
                             {fmtDate(dateOf(t.dueAt, tz), 'long')} · {inDays(t, today, tz)} · {t.points} pts
                           </span>
                         </div>
@@ -291,7 +291,7 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
         )}
         {tab === 'worksheet' && <WorksheetTab course={course} test={test} topic={topic} sources={use} weak={weakNames} pool={pool} allowed={allowed} day={day} onQuiz={() => setTab('quiz')} askHref={askHref} />}
         {tab === 'quiz' && pool && <QuizRunner course={course} topic={effectiveTopic} sources={use} weak={weak} askHref={askHref} />}
-        {tab === 'quiz' && !pool && <p className="hint mono">Reading your {course.code} material…</p>}
+        {tab === 'quiz' && !pool && <p className="hint">Reading your {course.code} material…</p>}
         {(tab === 'cards' || tab === 'sheet') && <KitTab course={course} kind={tab === 'cards' ? 'cards' : wantsWorkedProblems(course) ? 'formulas' : 'onepager'} allowSheetKinds={tab === 'sheet' && wantsWorkedProblems(course)} topic={effectiveTopic} sources={use} weak={weakNames} flagged={flagged} pool={pool} allowed={allowed} onQuiz={() => setTab('quiz')} />}
       </Locked>
     </div>
@@ -423,7 +423,7 @@ function Block({ b }: { b: ReturnType<typeof worksheetDoc>[number] }) {
     case 'title':
       return <h2 className="ws-title">{b.text}</h2>;
     case 'subtitle':
-      return <p className="hint mono">{b.text}</p>;
+      return <p className="hint">{b.text}</p>;
     case 'note':
       return <p className="hint">{b.text}</p>;
     case 'heading':

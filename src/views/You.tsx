@@ -362,6 +362,21 @@ export function You() {
   const gifted = !!friendGift(profile);
   const { params } = useRoute();
   const section = (params.get('s') ?? null) as Section | null;
+  // On a phone the section strip scrolls sideways; a fade on its right edge says so while there is more to see.
+  const navRef = useRef<HTMLElement>(null);
+  const [navMore, setNavMore] = useState(false);
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const check = () => setNavMore(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+    check();
+    el.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => {
+      el.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, []);
   const highlight = (params.get('to') ?? null) as Tier | null;
   const [editing, setEditing] = useState<Course | null>(null);
   const [importing, setImporting] = useState(false);
@@ -428,7 +443,7 @@ export function You() {
         </section>
       )}
       <div className="you-layout">
-        <nav className="you-nav" aria-label="Settings">
+        <nav className="you-nav" aria-label="Settings" ref={navRef} data-more={navMore || undefined}>
           {NAV.map(([id, label]) => (
             <a key={id} href={`#/you?s=${id}`} aria-current={active === id ? 'page' : undefined}>
               {label}

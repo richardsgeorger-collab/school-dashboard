@@ -136,7 +136,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Sync Halo" onClose={onClose}>
       <div className="modal-body sync-sheet">
-        <p className="hint mono">{last ? `Last synced ${fmtDate(dateOf(last, tz), 'short')} ${fmtTime(last, tz)}.` : 'Not synced yet.'}</p>
+        <p className="hint">{last ? `Last synced ${fmtDate(dateOf(last, tz), 'short')} ${fmtTime(last, tz)}.` : 'Not synced yet.'}</p>
         <HowYouSync />
         <p className="hint">
           The <b>{BOOKMARK_NAME}</b> bookmark runs on Halo&apos;s own page while you are logged in there and sends your classes, assignments, grades and announcements here. It never sees your password. You approve every change before it applies.

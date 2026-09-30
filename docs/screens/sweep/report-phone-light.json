@@ -1,0 +1,179 @@
+[
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "now",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "item-sheet",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "class",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "inbox",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-classes",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "grades",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "dt \"EARNED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"190 / 200\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"GRADED SO FAR\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"73%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"STILL OPEN\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"75 of 275 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"PROJECTED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"95%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"176.34 / 215\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"67%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"105 of 320 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"82%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127.5 / 150\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"57%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"115 of 265 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"85%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127 / 130\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"87%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"20 of 150 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"97.7%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"88 / 95\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"70%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"40 of 135 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"92.6%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"264.19 / 300\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"90%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"35 of 335 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"88.1%\"",
+    "cls": ""
+   }
+  ]
+ }
+]

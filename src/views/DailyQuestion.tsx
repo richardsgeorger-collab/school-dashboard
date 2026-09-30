@@ -55,7 +55,7 @@ export function DailyQuestion() {
   if (!on || !pick) return null;
   return (
     <section className="card daily-q" aria-label="One question">
-      <p className="hint mono">
+      <p className="hint">
         One from your {pick.course.code} cards{pick.topic ? ` · ${pick.topic}` : ''} · {pick.n} of {pick.of}
       </p>
       <button type="button" className="kit-card" data-flipped={flipped} onClick={() => setFlipped((f) => !f)} aria-label={flipped ? 'Back of card' : 'Front of card'}>

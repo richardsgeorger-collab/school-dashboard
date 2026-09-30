@@ -11,7 +11,9 @@ import { HowYouSync } from './HowYouSync';
 export function SyncedLine({ stale, courseId }: { stale?: string | null; courseId?: string }) {
   const { data, today } = useStore();
   const tz = data.settings.timezone;
-  const at = (courseId ? data.settings.haloPulls?.[courseId]?.assessments : data.settings.lastPull?.at) ?? loadLastSync()?.at ?? null;
+  // A class synced before per-class pull stamps existed falls back to the account's last sync (it is Halo-linked).
+  const linked = !!courseId && !!data.courses.find((c) => c.id === courseId)?.haloClassId;
+  const at = (courseId ? (data.settings.haloPulls?.[courseId]?.assessments ?? (linked ? data.settings.lastPull?.at : null)) : data.settings.lastPull?.at) ?? loadLastSync()?.at ?? null;
   const sync = (
     <button type="button" className="verify-nudge" onClick={() => syncPress.current?.()}>
       Sync now

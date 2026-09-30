@@ -280,7 +280,7 @@ export function DiffReview({
   return (
     <>
       {banner}
-      <p className="hint mono">
+      <p className="hint">
         {payload.classes.length} class{payload.classes.length === 1 ? '' : 'es'} · {source === 'ics' ? 'exported' : 'read'} {when(payload.exportedAt)}
         {diff.courses.created.length > 0 && ` · new classes: ${diff.courses.created.map((c) => c.code).join(', ')}`}
       </p>

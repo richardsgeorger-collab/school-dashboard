@@ -42,12 +42,15 @@ export interface Staleness {
   stale: { kind: PullKind; courses: Course[]; days: number }[];
 }
 
-export function staleness(courses: Course[], settings: Pick<Settings, 'haloPulls' | 'timezone'>, today: DateStr, bar = STALE_DAYS): Staleness {
+export function staleness(courses: Course[], settings: Pick<Settings, 'haloPulls' | 'timezone' | 'lastPull'>, today: DateStr, bar = STALE_DAYS): Staleness {
   const pulls = settings.haloPulls ?? {};
   const never: Course[] = [];
   const byKind = new Map<PullKind, { courses: Course[]; days: number }>();
   for (const c of courses) {
-    const p = pulls[c.id];
+    // A class linked to Halo but synced before per-class stamps existed was pulled with the account's last sync;
+    // without this, Now said "No class has been synced from Halo yet" beside "Synced from Halo today" (sweep, 2026-09-30).
+    const last = settings.lastPull?.at ?? null;
+    const p = pulls[c.id] ?? (c.haloClassId && last ? { assessments: last, grades: last, announcements: last } : undefined);
     if (!p || (!p.assessments && !p.grades && !p.announcements)) {
       never.push(c);
       continue;

@@ -302,7 +302,7 @@ export function Ask() {
               Ask
             </button>
           </form>
-          <p className="hint mono ask-known">
+          <p className="hint ask-known">
             {sources === null ? `Reading your ${course?.code ?? ''} material…` : `Knows: ${known.join(' · ')}.`}
             {history.length > 0 && (
               <>

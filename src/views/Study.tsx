@@ -114,7 +114,7 @@ export function Study() {
           ))}
         </p>
         {material && material.text && (
-          <p className="hint mono study-material">
+          <p className="hint study-material">
             {material.text}{' '}
             {material.empty.length > 0 && (
               <a className="diff-toggle" href={`#/library${material.empty.length === data.courses.length ? '' : `?c=${material.empty[0].id}`}`}>
@@ -165,7 +165,7 @@ export function Study() {
         </div>
       </section>
 
-      {meterLine && <p className="hint mono ai-meter">{meterLine}</p>}
+      {meterLine && <p className="hint ai-meter">{meterLine}</p>}
     </div>
   );
 }
@@ -178,7 +178,7 @@ function TestRow({ item, href }: { item: Item; href: string }) {
     <li className="study-test">
       <div className="study-test-main">
         <span className="study-test-title">{item.label}</span>
-        <span className="hint mono">
+        <span className="hint">
           <CourseChip course={courseById.get(item.courseId)} /> · {fmtDate(day, 'long')} · {inDays(item, today, tz)} · {item.points} pts
         </span>
       </div>
