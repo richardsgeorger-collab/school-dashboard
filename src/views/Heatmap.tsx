@@ -99,7 +99,7 @@ export function Heatmap() {
                   {/* Catch-up sits in its own shade so a week is not judged on work that was already late. */}
                   {(w.catchUp ?? 0) > 0 && <span className="load-catchup" style={{ width: `${Math.min(100, ((w.catchUp ?? 0) / maxCap) * 100)}%` }} />}
                 </span>
-                <span className="load-value mono">
+                <span className="load-value num">
                   {w.total ? fmtMinutes(w.total) : '0h'} <span className="muted">/ {fmtMinutes(w.capacity)}</span>
                   {(w.catchUp ?? 0) > 0 && <span className="load-catchup-note">{fmtMinutes(w.catchUp ?? 0)} catch-up</span>}
                 </span>

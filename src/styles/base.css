@@ -6004,3 +6004,8 @@ a.hero-chip:hover {
 .feedback-row p {
   margin: 0 0 6px;
 }
+
+/* Numbers that line up in a column, in the body face (not monospace). */
+.num {
+  font-variant-numeric: tabular-nums;
+}
