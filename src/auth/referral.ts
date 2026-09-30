@@ -35,6 +35,8 @@ export async function claimPendingRef(): Promise<{ ok: boolean; why?: string } |
     /* storage unavailable */
   }
   if (error) return { ok: false, why: error.message };
+  // A paying inviter's month pauses their billing (Stripe); the function does nothing for anyone else.
+  if ((data as { ok?: boolean })?.ok) void c.functions.invoke('referral-credit', { body: {} }).catch(() => undefined);
   return (data as { ok: boolean; why?: string }) ?? { ok: false };
 }
 
