@@ -134,7 +134,11 @@ export function Onboarding() {
     pixel('CompleteRegistration');
     const now = new Date().toISOString();
     set({ step: 'done', doneAt: now });
-    // The welcome for Max (colour, study plan) follows the tour on its own; see onboarding/Upgrade.tsx.
+    // A student on the welcome gift has just been shown what Max does (the gift screen) and their study plan (the
+    // payoff): the three-screen "Welcome to Max" after the tour said it all a third time, twelve screens in, before
+    // they ever reached Now (walkthrough, 2026-09-30). It stays for a real upgrade; the colour is under You, Display.
+    if (onTrial && !data.settings.upgradeSeen?.max) actions.updateSettings({ upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } });
+    // The welcome for a paid plan (colour, study plan) follows the tour on its own; see onboarding/Upgrade.tsx.
     navigate('now');
   };
 

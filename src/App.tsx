@@ -200,7 +200,7 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
  */
 function OnboardingHost() {
   const { data, actions, sync } = useStore();
-  const { auth, tier, loading } = useAccount();
+  const { auth, tier, loading, planKnown } = useAccount();
   const { route } = useRoute();
   const front = useFront();
   const settled = !auth.session || sync.status === 'synced' || sync.status === 'error';
@@ -223,7 +223,7 @@ function OnboardingHost() {
   if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;
   if (tourPending(ob)) return null;
   // Never on a plan still loading: the free tier it reads for a moment is not a downgrade, and the welcome waits.
-  const due = loading ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
+  const due = loading || !planKnown ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
   if (due) return <Upgrade kind={due} />;
   // The first open after a trial ends: one clear screen (it renders nothing unless that is now).
   if (!loading) return <TrialEnded />;
