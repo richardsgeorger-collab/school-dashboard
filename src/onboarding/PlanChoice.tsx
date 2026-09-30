@@ -161,13 +161,13 @@ function StoryScreen({ beat }: { beat: number }) {
 function HaloLightsUp() {
   return (
     <div className="halo-up" aria-hidden>
-      <svg viewBox="0 0 64 64" className="halo-up-mark">
+      <svg viewBox="0 0 64 64" width="108" height="108" className="halo-up-mark" data-viz>
         <path className="halo-up-glow" d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" pathLength={1} />
         <path className="halo-up-ring" d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" pathLength={1} />
         <path className="halo-up-plus" d="M47.1 9.3v15.2M39.5 16.9h15.2" />
       </svg>
       {[0, 1, 2, 3, 4].map((i) => (
-        <svg key={i} viewBox="0 0 10 10" className="halo-up-spark" data-n={i}>
+        <svg key={i} viewBox="0 0 10 10" width="14" height="14" className="halo-up-spark" data-n={i}>
           <path d="M5 0 L6.1 3.9 L10 5 L6.1 6.1 L5 10 L3.9 6.1 L0 5 L3.9 3.9 Z" />
         </svg>
       ))}
