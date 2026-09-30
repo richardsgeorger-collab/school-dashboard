@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Modal } from '../components/Modal';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { ItemRow } from '../components/ItemRow';
 import { addDays, dateOf, fmtDate, fmtMinutes, weekStart } from '../domain/dates';
@@ -130,24 +131,17 @@ export function Heatmap() {
         })}
       </ol>
 
+      {/* The shared sheet: Escape, focus and the close button like every other sheet (it was hand-built; audit). */}
       {pick && (
-        <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setPick(null)}>
-          <div className="modal" role="dialog" aria-modal="true" aria-label="Week detail">
-            <div className="modal-head">
-              <h2>
-                Week of {fmtDate(pick.week.start, 'short')} · {data.courses.find((c) => c.id === pick.courseId)?.code}
-              </h2>
-              <button type="button" className="modal-close" onClick={() => setPick(null)} aria-label="Close">
-                ×
-              </button>
-            </div>
+        <Modal title={`Week of ${fmtDate(pick.week.start, 'short')} · ${data.courses.find((c) => c.id === pick.courseId)?.code ?? ''}`} onClose={() => setPick(null)}>
+          <div className="modal-body">
             <ul className="item-list">
               {itemsFor(pick.week, pick.courseId).map((i) => (
                 <ItemRow key={i.id} item={i} onOpen={(it) => { setPick(null); setOpen(it); }} showStart />
               ))}
             </ul>
           </div>
-        </div>
+        </Modal>
       )}
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
     </>
