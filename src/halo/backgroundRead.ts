@@ -255,14 +255,15 @@ const FIRST_MS = 1500;
 /** Mounted once in the app: reads the backlog after a sync lands, and once on open in case a run was interrupted. */
 export function useBackgroundRead(): void {
   const { data, actions } = useStore();
-  const { tier } = useAccount();
-  const latest = useRef({ data, actions, tier });
-  latest.current = { data, actions, tier };
+  const { tier, planKnown } = useAccount();
+  const latest = useRef({ data, actions, tier, planKnown });
+  latest.current = { data, actions, tier, planKnown };
   useEffect(() => {
     let timer: number | null = null;
     const run = () => {
-      const { data: d, actions: a, tier: t } = latest.current;
-      if (d.courses.length === 0) return;
+      const { data: d, actions: a, tier: t, planKnown: known } = latest.current;
+      // Not before the plan is known: a run that saw the loading placeholder marked everything "part of Plus".
+      if (d.courses.length === 0 || !known) return;
       void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse });
     };
     const later = (ms: number) => {
@@ -282,7 +283,7 @@ export function useBackgroundRead(): void {
   }, []);
   // The profile lands after the first run on a slow connection, and a run that saw Free left the backlog marked
   // "part of Plus" until the next Halo sync. When the plan turns out to read, run again.
-  const canRead = can('announcementAI', tier);
+  const canRead = planKnown && can('announcementAI', tier);
   useEffect(() => {
     if (!canRead) return;
     const { data: d, actions: a, tier: t } = latest.current;

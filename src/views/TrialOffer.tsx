@@ -16,11 +16,11 @@ import { freshMax } from '../onboarding/maxState';
  * `card` is the payoff version; `line` is the quiet one.
  */
 export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card' | 'line' | 'button' | 'inline'; lead?: string; label?: string }) {
-  const { auth, profile, reloadProfile } = useAccount();
+  const { auth, profile, reloadProfile, planKnown } = useAccount();
   const { actions } = useStore();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  if (!auth.configured) return null;
+  if (!auth.configured || !planKnown) return null;
   const state = trialState(profile);
   // Just started from this very card: the profile now says active and the card would vanish mid-tap. Say it happened.
   if (state !== 'available') return note ? <p className="hint trial-line" role="status">{note}</p> : null;

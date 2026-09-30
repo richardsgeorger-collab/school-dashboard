@@ -2995,3 +2995,6 @@
 .class-card-wrap > .class-card {
   flex: 1;
 }
+.account-wait {
+  min-height: 150px;
+}

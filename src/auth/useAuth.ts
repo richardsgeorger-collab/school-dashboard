@@ -1,3 +1,4 @@
+import { storedUserId } from './planCache';
 import { useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { arrivedForRecovery, isConfigured, supabase } from './client';
@@ -13,6 +14,8 @@ export interface AuthState {
   loading: boolean;
   session: Session | null;
   userId: string | null;
+  /** The account signed in on this device: the session's, or while the session is still being checked, the one in storage. For showing the remembered plan only. */
+  knownUserId: string | null;
   email: string | null;
   signInWithEmail: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   signInWithGoogle: () => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -42,6 +45,9 @@ export function useAuth(): AuthState {
   const configured = isConfigured();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(configured);
+  // Who was signed in here, read straight from storage so the plan this device remembers shows before the auth
+  // library has checked the token (2026-09-30).
+  const [stored] = useState(() => (configured ? storedUserId() : null));
   const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
@@ -49,6 +55,7 @@ export function useAuth(): AuthState {
     if (!c) return;
     if (arrivedForRecovery()) setRecovery(true);
     void c.auth.getSession().then(({ data }) => {
+      performance.mark?.('halo:session');
       setSession(data.session);
       setLoading(false);
     });
@@ -113,5 +120,5 @@ export function useAuth(): AuthState {
     await supabase()?.auth.signOut();
   }, []);
 
-  return { configured, loading, session, userId: session?.user.id ?? null, email: session?.user.email ?? null, signInWithEmail, signInWithGoogle, signUpWithPassword, signInWithPassword, sendPasswordReset, setPassword, recovery, endRecovery, signOut };
+  return { configured, loading, session, userId: session?.user.id ?? null, knownUserId: session?.user.id ?? (loading ? stored : null), email: session?.user.email ?? null, signInWithEmail, signInWithGoogle, signUpWithPassword, signInWithPassword, sendPasswordReset, setPassword, recovery, endRecovery, signOut };
 }

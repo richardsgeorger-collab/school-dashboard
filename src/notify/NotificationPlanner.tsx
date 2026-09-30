@@ -18,7 +18,7 @@ import { registerSw } from './push';
  */
 export function NotificationPlanner() {
   const { data, schedule, today } = useStore();
-  const { auth, tier, profile } = useAccount();
+  const { auth, tier, profile, planKnown } = useAccount();
   // What Max did during the trial, for its reminders (counted from the trial's start).
   const recap = useReceipts(profile?.trialStartedAt ?? undefined);
   const invites = useInviteProgress();
@@ -41,7 +41,7 @@ export function NotificationPlanner() {
       const now = new Date().toISOString();
       const notices = full ? planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialStartedAt: profile?.friendFrom ? null : (profile?.trialStartedAt ?? null), trialEndsAt: profile?.trialEndsAt ?? null, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier) }) : [];
       // Win-back: Free after the Max week, not in a referral, never upgraded.
-      const eligible = tier === 'free' && trialState(profile) === 'used' && !profile?.referredBy && !profile?.friendFrom && (invites?.joined ?? 0) === 0 && grants.length === 0;
+      const eligible = planKnown && tier === 'free' && trialState(profile) === 'used' && !profile?.referredBy && !profile?.friendFrom && (invites?.joined ?? 0) === 0 && grants.length === 0;
       if (eligible) {
         const { data: sent } = await c.from('winback_sends').select('sent_at').eq('user_id', userId).order('sent_at', { ascending: false }).limit(10);
         const own = data.settings.winbackOwnOpenAt ?? '';

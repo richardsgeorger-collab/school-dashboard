@@ -102,6 +102,8 @@ function AccountCard({ tier }: { tier: Tier }) {
       </section>
     );
   }
+  // Still checking the sign-in: a signed-in student must never be asked to sign in on the way.
+  if (!auth.session && auth.loading) return <section className="card settings-card account-wait" aria-busy="true" aria-label="Account" />;
   if (!auth.session) return <SignIn auth={auth} title="Save your planner to an account" note="Your classes and work follow you to your phone and laptop, and nothing is lost if this browser is cleared." />;
   const tz = data.settings.timezone;
   const days = trialDaysLeft(profile);
@@ -179,11 +181,11 @@ function ReferralCard() {
         <p className="hint">
           {!auth.configured
             ? 'This build has no accounts, so there is no invite link.'
-            : !auth.session
+            : !auth.session && !auth.loading
               ? `Sign in to get your invite link. You and a friend each get ${TIER_NAMES[REFERRAL.rewardTier]} for ${REFERRAL.days} days.`
               : 'Getting your invite link…'}
         </p>
-        {auth.configured && !auth.session && (
+        {auth.configured && !auth.session && !auth.loading && (
           <div className="settings-actions">
             <a className="btn small primary" href="#/login">
               Log in

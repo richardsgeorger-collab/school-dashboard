@@ -22,7 +22,7 @@ import { TrialOffer } from './TrialOffer';
  */
 export function Study() {
   const { data, today, courseById } = useStore();
-  const { tier, profile, auth } = useAccount();
+  const { tier, profile, auth, planKnown } = useAccount();
   const tz = data.settings.timezone;
   const allowed = can('aiChat', tier) && can('flashcards', tier);
   const tests = upcomingTests(data.items, today, tz);
@@ -66,7 +66,7 @@ export function Study() {
         </div>
       </div>
 
-      {!allowed && (
+      {!allowed && planKnown && (
         <section className="card study-lock" role="note" aria-label={`Included with ${TIER_NAMES.max}`}>
           <p className="study-lock-line">
             <b>Practice, Ask and Check are part of Max.</b>{' '}

@@ -996,3 +996,10 @@ input[type='range']::-webkit-slider-thumb {
   font-size: 12px;
   color: var(--ink-3, var(--ink-2));
 }
+/* Where a locked card will go while the plan is still being confirmed: quiet space, never a lock. */
+.locked-wait {
+  min-height: 72px;
+}
+.locked-wait.locked-compact {
+  min-height: 0;
+}

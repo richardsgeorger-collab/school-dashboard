@@ -16,8 +16,12 @@ import { TrialOffer, useReceipts } from './TrialOffer';
  * keeps sync on; everything else asks `syncAccess` in config/flags.ts.
  */
 export function useSyncAccess(): SyncAccess {
-  const { profile, auth } = useAccount();
+  const { profile, auth, planKnown } = useAccount();
   if (!auth.configured) return { allowed: true, via: 'plan', pausedSince: null, legacyUntil: null };
+  // Until the plan is known nothing is paused: no frozen banner, no peek, no wall for a student who is paying.
+  if (!planKnown) return { allowed: true, via: 'plan', pausedSince: null, legacyUntil: null };
+  // Still checking the sign-in: nothing is paused yet (the session arrives a moment later).
+  if (!auth.session && auth.loading) return { allowed: true, via: 'plan', pausedSince: null, legacyUntil: null };
   if (!auth.session) return { allowed: false, via: 'none', pausedSince: null, legacyUntil: null };
   return syncAccess(profile);
 }
@@ -45,6 +49,7 @@ export function useShortDate(): (iso: string | null) => string | null {
 
 /** One tap to Stripe for a plan, monthly. Coming back, the webhook has set the plan and sync, grades and colour return. */
 export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, taxNote, source, next }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** "plus tax where applicable": on by default whenever the button shows a price. */ taxNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string }) {
+  const { planKnown } = useAccount();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const go = async () => {
@@ -61,6 +66,7 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
   const text = label ?? `Get ${TIER_NAMES[tier]}, $${PRICES[tier].month.toFixed(2)} a month`;
   const tax = taxNote ?? text.includes('$');
   const note = [cancelNote ? CANCEL_LINE : '', tax ? TAX_LINE : ''].filter(Boolean).join(' · ');
+  if (!planKnown) return null;
   return (
     <>
       <button type="button" className={primary ? 'btn small primary' : 'btn small'} disabled={busy} onClick={() => void go()}>
@@ -110,11 +116,12 @@ export function AsOf({ item }: { item?: { haloId?: string | null; source?: strin
  * Max did during the trial when it was one, then the one-tap upgrade.
  */
 export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
-  const { profile } = useAccount();
+  const { profile, planKnown } = useAccount();
   const short = useShortDate();
   const receipts = useReceipts(profile?.trialStartedAt ?? undefined);
   const did = receipts ? receiptsLine(receipts, 'during your trial') : null;
   const trialEnded = !!profile?.trialStartedAt && !!profile.trialEndsAt;
+  if (!planKnown) return null;
   return (
     <section className="card plan-wall" aria-label="Choose a plan">
       <p className="eyebrow">{trialEnded ? `Your free trial ended ${short(profile!.trialEndsAt ?? null) ?? ''}` : 'Halo sync is part of Plus'}</p>

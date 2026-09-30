@@ -92,7 +92,7 @@ function HaloHandoff() {
   // A sync the bookmark dropped on the server (iPad, phones): picked up on load, when the tab comes back, and when the
   // bookmark sends the student here with ?pending=1. Only ever there when the server path is on for them.
   const pendingParam = params.get('pending') === '1';
-  const { auth: account } = useAccount();
+  const { auth: account, planKnown } = useAccount();
   useEffect(() => {
     if (!account.session) return;
     let live = true;
@@ -121,7 +121,8 @@ function HaloHandoff() {
           Waiting for Halo. Keep this tab open. If nothing arrives, open You, Halo, and paste the export.
         </div>
       )}
-      {payload && (
+      {/* A sync that lands before the plan is known waits the moment it takes, rather than being judged as Free. */}
+      {payload && planKnown && (
         <ErrorBoundary
           fallback={(err, reset) => (
             <div className="halo-banner" role="alert">

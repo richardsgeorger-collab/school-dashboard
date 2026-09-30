@@ -12,6 +12,8 @@ export interface Account {
   profile: ProfileState['profile'];
   tier: Tier;
   loading: boolean;
+  /** The plan is real (the server's, or this device's memory of it): never lock, upsell or say Free before this. */
+  planKnown: boolean;
   reloadProfile: () => void;
   updateProfile: ProfileState['update'];
 }
@@ -20,15 +22,15 @@ const Ctx = createContext<Account | null>(null);
 
 export function AccountProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
-  const p = useProfile(auth.userId);
+  const p = useProfile(auth.knownUserId);
   // The plan on this device, for the extension (auto-sync is Plus) and nothing else.
   // A free account kept on sync until its term ends counts as Plus for the extension, which only knows tiers.
   const syncTier = p.tier === 'free' && syncAccess(p.profile).allowed ? 'plus' : p.tier;
   // Not while the account is still loading: the placeholder plan is Free, and the extension read that and never
   // auto-synced a Max student (2026-09-30).
   useEffect(() => {
-    if (!auth.loading && !p.loading) rememberTier(syncTier);
-  }, [syncTier, auth.loading, p.loading]);
+    if (p.planKnown && !p.loading) rememberTier(syncTier);
+  }, [syncTier, p.planKnown, p.loading]);
   // An invite link is remembered on arrival and claimed once there is an account to claim it with.
   useEffect(() => {
     captureRef();
@@ -47,7 +49,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.session]);
-  const value: Account = { auth, profile: p.profile, tier: p.tier, loading: auth.loading || p.loading, reloadProfile: p.reload, updateProfile: p.update };
+  const planKnown = p.planKnown && !(auth.loading && !auth.knownUserId && auth.configured);
+  const value: Account = { auth, profile: p.profile, tier: p.tier, loading: auth.loading || p.loading, planKnown, reloadProfile: p.reload, updateProfile: p.update };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

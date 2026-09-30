@@ -47,10 +47,12 @@ function usePreview(feature: Feature): string | null {
  * it is still available, otherwise the plan. Never a wall, never a modal: the rest of the screen keeps working.
  */
 export function Locked({ feature, tier, children, compact = false, line, quiet = false }: { feature: Feature; tier: Tier; children: ReactNode; compact?: boolean; /** Words for this surface when the feature's own line does not fit (the tutor shares the coach's feature). */ line?: string; /** Leave out the data preview. */ quiet?: boolean }) {
-  const { profile, auth } = useAccount();
+  const { profile, auth, planKnown } = useAccount();
   const previewLine = usePreview(feature);
   const preview = quiet ? null : previewLine;
   if (can(feature, tier)) return <>{children}</>;
+  // The plan is still loading: a quiet space, never a lock a paying student would read as broken (2026-09-30).
+  if (!planKnown) return <div className={`locked-wait${compact ? ' locked-compact' : ''}`} aria-busy="true" />;
   const need = tierFor(feature);
   // The trial is Max, and Max has everything Pro has: offer it on any feature the trial tier covers.
   const trial = auth.configured && trialState(profile) === 'available' && rank(TRIAL.tier) >= rank(need);
@@ -80,6 +82,7 @@ export function Locked({ feature, tier, children, compact = false, line, quiet =
 
 /** A one-line inline lock for menus and buttons: the label, with the plan that has it after it. */
 export function LockTag({ feature, tier }: { feature: Feature; tier: Tier }) {
-  if (can(feature, tier)) return null;
+  const { planKnown } = useAccount();
+  if (can(feature, tier) || !planKnown) return null;
   return <span className="lock-tag">{TIER_NAMES[tierFor(feature)]}</span>;
 }

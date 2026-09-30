@@ -99,7 +99,7 @@ export function nextBig(items: Item[], today: string, tz: string): Item | null {
 
 export function Onboarding() {
   const { data, schedule, actions, today } = useStore();
-  const { auth, profile, tier, loading } = useAccount();
+  const { auth, profile, tier, loading, planKnown } = useAccount();
   const { navigate } = useRoute();
   const tz = data.settings.timezone;
   const ob = data.settings.onboarding as OnboardingState;
@@ -173,7 +173,7 @@ export function Onboarding() {
   }, [synced, step]);
 
   // The free path adds classes from syllabi; everyone else connects Halo.
-  const freePath = step === 'syllabus' || (synced && !can('haloManualSync', tier) && !ob.path);
+  const freePath = step === 'syllabus' || (synced && planKnown && !can('haloManualSync', tier) && !ob.path);
   const labels = auth.configured ? ['Welcome', 'Account', 'Your plan', freePath ? 'Syllabi' : 'Connect Halo', 'Your classes'] : ['Welcome', 'Connect Halo', 'Your classes'];
   const at = auth.configured
     ? synced ? 4 : step === 'welcome' ? 0 : step === 'account' ? 1 : step === 'compare' || step === 'offer' ? 2 : 3

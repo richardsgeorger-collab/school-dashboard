@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { effectiveTier, type TierSource } from '../config/flags';
 import { TIERS, type Tier } from '../config/tiers';
+import { readPlan, writePlan } from './planCache';
 import { AI_DIRECT_ALLOWED } from '../ai/gateway';
 import { isConfigured, supabase } from './client';
 
@@ -53,17 +54,31 @@ export interface ProfileState {
   tier: Tier;
   loading: boolean;
   reload: () => void;
+  /** The plan is the server's or this device's memory of it, not the Free placeholder of a profile still loading. */
+  planKnown: boolean;
   /** The client may change only these: onboarding progress and zone. Tier and trial are server-only. */
   update: (patch: Partial<Pick<Row, 'onboarding_step' | 'onboarding_done_at' | 'timezone'>>) => Promise<void>;
 }
 
 export function useProfile(userId: string | null): ProfileState {
   const configured = isConfigured();
-  const [profile, setProfile] = useState<Profile | null>(configured ? null : LOCAL_PROFILE);
-  const [loading, setLoading] = useState(configured && !!userId);
+  // What this device knew last time, shown at once; the server's answer replaces it within a second.
+  const cached = readPlan(userId);
+  const [profile, setProfile] = useState<Profile | null>(configured ? (cached?.profile ?? null) : LOCAL_PROFILE);
+  const [loading, setLoading] = useState(configured && !!userId && !cached);
   const [tick, setTick] = useState(0);
   // The plan exactly as the server enforces it (public.plan_of: paid, trial, friend link, referral, admin).
-  const [serverPlan, setServerPlan] = useState<Tier | null>(null);
+  const [serverPlan, setServerPlan] = useState<Tier | null>(cached?.tier ?? null);
+  const [confirmed, setConfirmed] = useState(false);
+  // A different account signing in on this device starts from its own memory, never the last one's.
+  const [forUser, setForUser] = useState(userId);
+  if (forUser !== userId) {
+    setForUser(userId);
+    setProfile(configured ? (cached?.profile ?? null) : LOCAL_PROFILE);
+    setServerPlan(cached?.tier ?? null);
+    setLoading(configured && !!userId && !cached);
+    setConfirmed(false);
+  }
 
   useEffect(() => {
     const c = supabase();
@@ -73,7 +88,10 @@ export function useProfile(userId: string | null): ProfileState {
     }
     let live = true;
     void c.rpc('my_plan').then(({ data, error }) => {
-      if (live && !error && typeof data === 'string' && (TIERS as readonly string[]).includes(data)) setServerPlan(data as Tier);
+      if (!live) return;
+      if (!error && typeof data === 'string' && (TIERS as readonly string[]).includes(data)) setServerPlan(data as Tier);
+      setConfirmed(true);
+      performance.mark?.('halo:plan-confirmed');
     });
     return () => {
       live = false;
@@ -88,7 +106,7 @@ export function useProfile(userId: string | null): ProfileState {
       return;
     }
     let live = true;
-    setLoading(true);
+    if (!readPlan(userId)) setLoading(true);
     void c
       .from('profiles')
       .select('user_id, tier, trial_ends_at, trial_started_at, legacy_sync_until, legacy_notice_seen_at, friend_from, friend_joined_at, grace_until, referral_code, referred_by, reward_tier, reward_until, onboarding_step, onboarding_done_at, is_admin, timezone')
@@ -115,8 +133,14 @@ export function useProfile(userId: string | null): ProfileState {
     [userId],
   );
 
+  const tier = devTier() ?? serverPlan ?? effectiveTier(profile);
+  // Remember what the server confirmed, for the next time this device opens the app.
+  useEffect(() => {
+    if (userId && confirmed && profile && !loading) writePlan(userId, tier, profile);
+  }, [userId, confirmed, profile, loading, tier]);
   // The server's answer when it has one; the same rules worked out here until it arrives (they agree: see flags.ts).
-  return { profile, tier: devTier() ?? serverPlan ?? effectiveTier(profile), loading, reload, update };
+  // The plan is known once the server answered or this device remembered it; until then nothing locks or upsells.
+  return { profile, tier, loading, reload, update, planKnown: !configured || !userId || confirmed || !!serverPlan };
 }
 
 /**

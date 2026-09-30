@@ -68,7 +68,7 @@ export function NotificationsCard() {
         {!auth.configured ? (
           <p className="hint">Notifications need an account. This build has none.</p>
         ) : !auth.session ? (
-          <p className="hint">Sign in above to turn notifications on.</p>
+          <p className="hint">{auth.loading ? 'Checking your account…' : 'Sign in above to turn notifications on.'}</p>
         ) : (
           <>
             <p className="hint">

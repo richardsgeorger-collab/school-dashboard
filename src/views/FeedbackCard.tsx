@@ -48,7 +48,7 @@ export function FeedbackCard() {
     <section className="card settings-card" aria-label="Feedback">
       <h2 className="section-title">Tell us what is wrong, or what would help</h2>
       {!auth.session ? (
-        <p className="hint">Sign in above to send feedback.</p>
+        <p className="hint">{auth.loading ? 'Checking your account…' : 'Sign in above to send feedback.'}</p>
       ) : (
         <>
           <div className="settings-actions">

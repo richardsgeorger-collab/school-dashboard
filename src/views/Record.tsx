@@ -1,3 +1,4 @@
+import { useAccount } from '../auth/AccountContext';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CourseChip } from '../components/CourseChip';
 import { InlineTitle } from '../components/InlineTitle';
@@ -74,6 +75,7 @@ export function Record({ embedded = false, courseId: onlyCourse, collapseOver }:
   // Whether notes can be made: the plan has lectures and this build can reach a model. On production there is never
   // a key in the browser; the call goes through the account. Gating on the key alone kept Extract disabled for everyone.
   const canExtract = useAiAllowed('lectures');
+  const { planKnown } = useAccount();
 
   const refresh = useCallback(async () => {
     try {
@@ -574,7 +576,7 @@ export function Record({ embedded = false, courseId: onlyCourse, collapseOver }:
             </div>
             );
           })}
-          {!canExtract && scoped.length > 0 && <p className="hint">Turning a transcript into notes is part of Max. Recording and transcripts never need it.</p>}
+          {!canExtract && planKnown && scoped.length > 0 && <p className="hint">Turning a transcript into notes is part of Max. Recording and transcripts never need it.</p>}
           <div className="settings-actions" style={{ marginTop: 12 }}>
             <button type="button" className="btn" onClick={previewSample}>
               Preview the review flow with a sample lecture

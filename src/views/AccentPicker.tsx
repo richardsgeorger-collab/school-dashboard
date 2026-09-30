@@ -12,7 +12,7 @@ import { TrialOffer } from './TrialOffer';
  */
 export function AccentPicker({ value, onChange, allowed }: { value: AccentId; onChange: (a: AccentId) => void; allowed: boolean }) {
   const { isDark } = useStore();
-  const { auth, profile } = useAccount();
+  const { auth, profile, planKnown } = useAccount();
   const trial = auth.configured && trialState(profile) === 'available';
   return (
     <div className="accent-picker" data-locked={!allowed}>
@@ -34,7 +34,7 @@ export function AccentPicker({ value, onChange, allowed }: { value: AccentId; on
           </button>
         ))}
       </div>
-      {!allowed && (
+      {!allowed && planKnown && (
         <div className="locked-actions accent-lock">
           <span className="locked-tier">{TIER_NAMES.max}</span>
           <span className="hint">Your colour is part of Max. Everyone else wears gold.</span>
