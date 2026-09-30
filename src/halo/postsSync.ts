@@ -10,6 +10,7 @@ import { announceDb, type StoredAnnouncement } from './announce';
 interface Stub {
   id: string;
   updated_at: string;
+  course_id?: string;
 }
 interface Row extends Stub {
   course_id: string;
@@ -18,9 +19,12 @@ interface Row extends Stub {
 }
 
 export function planPostsSync(local: StoredAnnouncement[], remote: Stub[]): { pullIds: string[]; push: StoredAnnouncement[] } {
-  const localIds = new Set(local.map((a) => a.id));
+  const localById = new Map(local.map((a) => [a.id, a]));
   const remoteIds = new Set(remote.map((r) => r.id));
-  return { pullIds: remote.filter((r) => !localIds.has(r.id)).map((r) => r.id), push: local.filter((a) => !remoteIds.has(a.id)) };
+  // A post the account has filed under another class is pulled again: the lab repair of 2026-09-30 moved a merged
+  // lab's announcements to the lab's own class on the server, and a device that already had them kept the old class.
+  const moved = (r: Stub) => !!r.course_id && localById.get(r.id)?.courseId !== undefined && localById.get(r.id)!.courseId !== r.course_id;
+  return { pullIds: remote.filter((r) => !localById.has(r.id) || moved(r)).map((r) => r.id), push: local.filter((a) => !remoteIds.has(a.id)) };
 }
 
 const toRow = (a: StoredAnnouncement) => ({ id: a.id, course_id: a.courseId, data: a, published_at: a.publishedAt ?? null, updated_at: a.pulledAt });
@@ -36,7 +40,7 @@ async function client() {
 export async function syncPosts(courseIds: Set<string>): Promise<number> {
   const c = await client();
   if (!c) return 0;
-  const { data: stubs, error } = await c.from('announcements').select('id, updated_at');
+  const { data: stubs, error } = await c.from('announcements').select('id, updated_at, course_id');
   if (error || !stubs) return 0;
   const local = (await announceDb.list().catch(() => [] as StoredAnnouncement[])).filter((a) => courseIds.has(a.courseId));
   const plan = planPostsSync(local, stubs as Stub[]);

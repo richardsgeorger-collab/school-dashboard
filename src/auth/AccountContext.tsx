@@ -24,7 +24,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   // The plan on this device, for the extension (auto-sync is Plus) and nothing else.
   // A free account kept on sync until its term ends counts as Plus for the extension, which only knows tiers.
   const syncTier = p.tier === 'free' && syncAccess(p.profile).allowed ? 'plus' : p.tier;
-  useEffect(() => rememberTier(syncTier), [syncTier]);
+  // Not while the account is still loading: the placeholder plan is Free, and the extension read that and never
+  // auto-synced a Max student (2026-09-30).
+  useEffect(() => {
+    if (!auth.loading && !p.loading) rememberTier(syncTier);
+  }, [syncTier, auth.loading, p.loading]);
   // An invite link is remembered on arrival and claimed once there is an account to claim it with.
   useEffect(() => {
     captureRef();

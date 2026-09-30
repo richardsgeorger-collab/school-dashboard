@@ -13,4 +13,9 @@ describe('the posts mirror', () => {
   it('is a no-op when both sides hold the same posts', () => {
     expect(planPostsSync([post('a')], [{ id: 'a', updated_at: 'x' }])).toEqual({ pullIds: [], push: [] });
   });
+  it('pulls a post again when the account filed it under another class (the lab repair)', () => {
+    const plan = planPostsSync([{ ...post('a'), courseId: 'lecture' }], [{ id: 'a', updated_at: 'x', course_id: 'lab' }]);
+    expect(plan.pullIds).toEqual(['a']);
+    expect(planPostsSync([{ ...post('a'), courseId: 'lab' }], [{ id: 'a', updated_at: 'x', course_id: 'lab' }]).pullIds).toEqual([]);
+  });
 });

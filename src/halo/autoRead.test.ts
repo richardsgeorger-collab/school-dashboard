@@ -269,3 +269,33 @@ describe('reading the same announcement twice', () => {
     expect(withIt.some((i) => i.id === first.added[0].id)).toBe(true);
   });
 });
+
+describe('Halo assignments are the truth (2026-09-30)', () => {
+  const dq = mkItem({ id: 'h-dq', courseId: 'c1', title: 'Topic 3 DQ 1', type: 'discussion', points: 10, dueAt: '2026-09-24T06:59:00.000Z', haloId: 'halo-dq31', source: 'halo' });
+  const graded = mkItem({ id: 'h-quiz', courseId: 'c1', title: 'Quiz #2', type: 'quiz', points: 50, dueAt: '2026-09-26T06:59:00.000Z', haloId: 'halo-q2', source: 'halo', status: 'done', score: 45, halo: { status: 'PUBLISHED', submittedAt: '2026-09-25T20:00:00Z', checkedAt: NOW } });
+  it('an announcement mentioning an existing DQ with a different date creates no new item; it adds a requirement and leaves Halo\'s date', () => {
+    const p = plan([action({ kind: 'new_work', text: 'Post your DQ 3.1 response by Thursday.', dueAt: '2026-09-25T06:59:00.000Z', points: 10 })], { items: [dq] });
+    expect(p.added).toEqual([]);
+    const next = p.upserts.find((i) => i.id === 'h-dq')!;
+    expect(next.dueAt).toBe('2026-09-24T06:59:00.000Z');
+    expect(next.requirements?.map((r) => r.text)).toEqual(['Post your DQ 3.1 response by Thursday']);
+    expect(p.attached).toBe(1);
+    // "Topic 3 Discussion Question 1" is the same one.
+    expect(plan([action({ kind: 'new_work', text: 'Topic 3 Discussion Question 1 is due Friday', dueAt: '2026-09-26T06:59:00.000Z' })], { items: [dq] }).added).toEqual([]);
+    // A different DQ number is different work.
+    expect(plan([action({ kind: 'new_work', text: 'Topic 3 DQ 2 opens Monday', dueAt: '2026-09-29T06:59:00.000Z' })], { items: [dq] }).added).toHaveLength(1);
+  });
+  it('a graded item\'s date never changes from an announcement, and it is never copied or reopened', () => {
+    const moved = plan([action({ kind: 'date_change', text: 'Quiz 2 moved to Monday.', itemId: 'h-quiz', dueAt: '2026-09-29T06:59:00.000Z' })], { items: [graded] });
+    expect(moved.moved).toEqual([]);
+    expect(moved.upserts).toEqual([]);
+    const copied = plan([action({ kind: 'new_work', text: 'Take Quiz 2 on Monday', dueAt: '2026-09-29T06:59:00.000Z', points: 50 })], { items: [graded] });
+    expect(copied.added).toEqual([]);
+    expect(copied.upserts).toEqual([]);
+  });
+  it('an item that is not submitted can still move, struck through', () => {
+    const p = plan([action({ kind: 'date_change', text: 'DQ moved.', itemId: 'h-dq', dueAt: '2026-09-26T06:59:00.000Z' })], { items: [dq] });
+    expect(p.moved).toHaveLength(1);
+    expect(p.upserts[0].dateChange?.from).toBe('2026-09-24T06:59:00.000Z');
+  });
+});

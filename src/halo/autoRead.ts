@@ -10,6 +10,8 @@ import type { Action } from './actions';
 import { fileParticipation, routeActions } from './actions';
 import { readState, type ReadEntry, type StoredAnnouncement } from './announce';
 import { planOf } from '../config/tiers';
+import { haloMatch, isLocked, keysDiffer } from './sameAssignment';
+import type { Requirement } from '../domain/types';
 
 /**
  * Announcements read themselves on every sync. Professors post new assignments in them constantly, so anything that
@@ -150,7 +152,18 @@ export function planFromActions(args: { actions: Action[]; announcement: StoredA
       // alongside it. Matching is on meaning, and it reaches across posts: two announcements describing the same
       // assignment produce one item carrying both sources.
       const candidates = [...items.map((i) => take(i.id) ?? i), ...plan.added].filter((i) => i.courseId === course.id);
-      const hit = candidates.find((i) => sameWork(i, created, announcement.id));
+      // Halo's own assignment is the truth (2026-09-30): a post describing it adds a requirement to it, never a second
+      // row, and never touches its date or points. Work Halo has as turned in or graded is left entirely alone.
+      const halo = haloMatch(candidates, created) ?? candidates.find((i) => !!i.haloId && !keysDiffer(i, created) && sameWork(i, created, announcement.id));
+      if (halo) {
+        if (isLocked(halo)) continue;
+        const req: Requirement = { id: newId(), text: created.title, dueAt: created.dueAt !== halo.dueAt ? created.dueAt : null, done: false, doneAt: null, gradedOn: true, source: asSource(action), addedAt: now };
+        const merged = mergeRequirements(halo.requirements, [req]);
+        plan.attached += merged.length - (halo.requirements?.length ?? 0);
+        if (merged.length !== (halo.requirements?.length ?? 0)) edited.set(halo.id, { ...halo, requirements: merged, updatedAt: now });
+        continue;
+      }
+      const hit = candidates.find((i) => !keysDiffer(i, created) && sameWork(i, created, announcement.id));
       if (hit) {
         const changes: string[] = [];
         const next: Item = { ...hit, updatedAt: now };
@@ -182,7 +195,8 @@ export function planFromActions(args: { actions: Action[]; announcement: StoredA
 
     if (action.kind === 'date_change' && action.itemId && action.dueAt) {
       const item = take(action.itemId);
-      if (!item || item.dueAt === action.dueAt) continue;
+      // Turned in or graded in Halo: no post moves it (2026-09-30).
+      if (!item || item.dueAt === action.dueAt || isLocked(item)) continue;
       plan.moved.push({ item, from: item.dueAt, to: action.dueAt });
       edited.set(action.itemId, { ...item, dueAt: action.dueAt, dateChange: { from: item.dueAt, at: now, source: asSource(action) }, updatedAt: now } as Item);
       continue;
@@ -190,7 +204,8 @@ export function planFromActions(args: { actions: Action[]; announcement: StoredA
 
     if (action.kind === 'points_change' && action.itemId && action.points !== null) {
       const item = take(action.itemId);
-      if (!item || item.points === action.points) continue;
+      // Halo's points are the gradebook's; a post never overrides them.
+      if (!item || item.points === action.points || item.haloId) continue;
       edited.set(action.itemId, { ...item, points: action.points, updatedAt: now });
       continue;
     }

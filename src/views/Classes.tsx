@@ -1,4 +1,6 @@
 import { CookMeter } from './CookMeter';
+import { ItemDetail } from './ItemDetail';
+import { urgentFor } from '../domain/urgent';
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
@@ -9,7 +11,7 @@ import { paceFor } from '../domain/pace';
 import { Ring } from '../components/Ring';
 import { newId } from '../domain/ids';
 import { isNoise } from '../domain/requirements';
-import type { Course } from '../domain/types';
+import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
 import { CourseEditor } from './CourseEditor';
@@ -39,6 +41,8 @@ function ClassCard({ course }: { course: Course }) {
   const next = [...open].filter((i) => i.type !== 'participation' && dateOf(i.dueAt, tz) >= today).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
   const overdue = open.filter((i) => dateOf(i.dueAt, tz) < today).length;
   const g = courseGrade(course.id, data.items, course);
+  const urgent = urgentFor(course.id, data.items, today, tz);
+  const [openItem, setOpenItem] = useState<Item | null>(null);
   const line = gradeLine(g, course.gradeScale);
   const basis = basedOn(g);
   const nextLine = next ? `${next.label} · ${diffDays(today, dateOf(next.dueAt, tz)) === 0 ? 'today' : diffDays(today, dateOf(next.dueAt, tz)) === 1 ? 'tomorrow' : fmtDate(dateOf(next.dueAt, tz), 'short')}` : open.length === 0 ? 'Nothing open' : null;
@@ -46,7 +50,7 @@ function ClassCard({ course }: { course: Course }) {
   const pace = paceFor(course, data.items, schedule, today);
   const paceLine = overdue > 0 ? `${overdue} late` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : pace.kind === 'behind' ? `${pace.n} behind` : null;
   return (
-    <li className="class-card-wrap">
+    <li className="class-card-wrap" data-urgent={urgent.length > 0 || undefined}>
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />
@@ -68,7 +72,14 @@ function ClassCard({ course }: { course: Course }) {
           </p>
         )}
       </a>
+      {urgent.length > 0 && (
+        <button type="button" className="class-urgent" title={urgent[0].line} onClick={() => setOpenItem(data.items.find((i) => i.id === urgent[0].item.id) ?? urgent[0].item)}>
+          <span className="class-urgent-line">{urgent[0].line}</span>
+          {urgent.length > 1 && <span className="class-urgent-more">+{urgent.length - 1} more</span>}
+        </button>
+      )}
       <CookMeter course={course} />
+      {openItem && <ItemDetail item={openItem} onClose={() => setOpenItem(null)} />}
     </li>
   );
 }

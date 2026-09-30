@@ -1,4 +1,5 @@
 import { WinbackOpens } from './winback/WinbackHooks';
+import { DuplicateFold } from './halo/DuplicateFold';
 import { PeekSummary } from './winback/PeekSummary';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AccountProvider } from './auth/AccountContext';
@@ -67,6 +68,7 @@ import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
 import { FrozenBanner, LegacyNotice, useSyncAccess } from './views/PlanWall';
+import { MergedBanner } from './views/MergedBanner';
 
 /** The Halo bookmark posts its export here; the diff opens on whatever screen is showing. */
 function HaloHandoff() {
@@ -356,6 +358,7 @@ function Shell({ captureOpen, paletteOpen, onSync, onCapture, onCloseCapture, on
         {/* Inside the page, under the fixed top bar on a phone: sync paused, or kept on until term end. */}
         <FrozenBanner />
         <LegacyNotice />
+        <MergedBanner />
         <Screen />
       </main>
       <BottomNav />
@@ -414,6 +417,7 @@ export default function App() {
         <RecoveryHost />
         <ParticipationFold />
         <WinbackOpens />
+        <DuplicateFold />
         <AccentHost />
         <AutoRerun />
         <HaloHandoff />
