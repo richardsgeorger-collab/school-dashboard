@@ -21,8 +21,8 @@ setTimeout(() => clearInterval(early), 60_000);
 window.addEventListener('storage', (e) => e.key === 'school-dashboard:tier' && report());
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && report());
 
-chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
-  if (!msg || msg.kind !== 'deliver') return;
+/** Posts an export to the page until the app says it has it (the app's listener mounts a moment after load). */
+function handOver(payload, done) {
   let got = false;
   const onAck = (e) => {
     if (e.data && e.data.kind === 'halo-received') got = true;
@@ -33,10 +33,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     if (got || Date.now() - t0 > 15000) {
       clearInterval(iv);
       window.removeEventListener('message', onAck);
-      reply({ ok: got });
+      done(got);
       return;
     }
-    window.postMessage(msg.payload, location.origin);
+    window.postMessage(payload, location.origin);
   }, 400);
+}
+
+chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  if (!msg || msg.kind !== 'deliver') return;
+  handOver(msg.payload, (ok) => reply({ ok }));
   return true;
 });
+
+// A sync that ran while Halo+ was closed waits in the extension; it is handed over now.
+chrome.runtime.sendMessage({ kind: 'take-waiting' }).then((r) => {
+  if (r && r.payload) handOver(r.payload, () => undefined);
+}).catch(() => undefined);

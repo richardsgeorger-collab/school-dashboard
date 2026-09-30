@@ -1,13 +1,16 @@
 // The Chrome extension, loaded unpacked into Chromium exactly as George would (chrome://extensions → Load unpacked →
-// extension/), against the live haloplus.app with a throwaway Max account; only Halo is faked (2026-09-30).
-//   1. Opening Halo syncs by itself when the last sync is over 30 minutes old: the export reaches the dashboard tab and
-//      the classes land in the account.
-//   2. Opening Halo again within 30 minutes does not sync again.
-//   3. On Free, opening Halo does not sync by itself.
-//   KEYS_ENV=... node scripts/e2e-extension.mjs
-import { mkdtempSync, mkdirSync, readFileSync } from 'node:fs';
+// extension/), against the live haloplus.app with throwaway accounts; only Halo is faked, answering at a real
+// account's pace when asked (2026-09-30).
+//   1. Sync now in the popup: runs at once, shows real progress, finishes past the old 90-second cutoff, classes land.
+//   2. Logged out of Halo: the popup says so calmly, with a link to log in, and no badge.
+//   3. The three-hour schedule: with no Halo tab open, one opens in the background (never active), is closed after,
+//      nothing takes focus, and an open Halo+ tab applies the sync quietly (no review sheet, an Undo note).
+//   4. With Halo+ closed, a scheduled sync waits in the extension and applies the next time Halo+ opens.
+//   5. Opening Halo no longer syncs by itself; Free gets no scheduled sync.
+//   KEYS_ENV=... [ONLY=popup|loggedout|schedule|waiting|free] node scripts/e2e-extension.mjs
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { extname, join, resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from 'playwright-core';
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
@@ -15,152 +18,199 @@ const SITE = process.env.SITE ?? 'https://haloplus.app/';
 const EXT = resolve(process.env.EXT_DIR ?? 'extension');
 const OUT = 'docs/screens/extension';
 mkdirSync(OUT, { recursive: true });
+const ONLY = process.env.ONLY;
 const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];
 const admin = createClient(env.VITE_SUPABASE_URL, env.SERVICE_ROLE, { auth: { persistSession: false } });
 const checks = [];
 const check = (ok, line) => { checks.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${line}`); };
 const made = [];
-const newUser = async () => {
+const newUser = async (free = false) => {
   const email = `e2e-ext-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.invalid`;
   const { data } = await admin.auth.admin.createUser({ email, email_confirm: true });
   made.push(data.user.id);
+  if (free) await admin.from('profiles').update({ tier: 'free', trial_started_at: new Date(Date.now() - 20 * 86_400_000).toISOString(), trial_ends_at: new Date(Date.now() - 13 * 86_400_000).toISOString() }).eq('user_id', data.user.id);
   const { data: link } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
   const c = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
   const { data: s } = await c.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
   return { id: data.user.id, session: s.session };
 };
 const day = (n) => new Date(Date.now() + n * 86_400_000).toISOString();
-const CLASSES = { getCourseClassesForUser: { courseClasses: [
-  { id: 'hc-chm', classCode: 'CHM-113-WF700A', slugId: 'CHM-113-WF700A-20260908', startDate: '2026-09-08', endDate: '2026-12-20', name: 'General Chemistry I-Lecture', stage: 'CURRENT', modality: 'ONGROUND', credits: 3, courseCode: 'CHM-113', units: [{ id: 'u1', title: 'Topic 3', sequence: 3, startDate: day(-5), endDate: day(9), assessments: [{ id: 'as1', sequence: 1, title: 'Topic 5 Homework', description: '', startDate: day(-3), dueDate: day(3), points: 20, type: 'ASSIGNMENT', tags: [], requiresLopesWrite: false, isGroupEnabled: false, inPerson: false }] }] },
-  { id: 'hc-chml', classCode: 'CHM-113L-M600A', slugId: 'CHM-113L-M600A-20260908', startDate: '2026-09-08', endDate: '2026-12-20', name: 'General Chemistry I-Lab', stage: 'CURRENT', modality: 'ONGROUND', credits: 1, courseCode: 'CHM-113L', units: [{ id: 'u2', title: 'Week 5', sequence: 5, startDate: day(-5), endDate: day(9), assessments: [{ id: 'as2', sequence: 1, title: 'Stoichiometry Lab', description: '', startDate: day(-3), dueDate: day(2), points: 30, type: 'ASSIGNMENT', tags: [], requiresLopesWrite: false, isGroupEnabled: false, inPerson: false }] }] },
-] } };
-const fakeHalo = async (ctx, calls, opts = {}) => {
+const unit = (id, title, as) => ({ id, title, sequence: 1, startDate: day(-5), endDate: day(9), assessments: as });
+const asm = (id, title, n, points) => ({ id, sequence: 1, title, description: '', startDate: day(-3), dueDate: day(n), points, type: 'ASSIGNMENT', tags: [], requiresLopesWrite: false, isGroupEnabled: false, inPerson: false });
+const classes = (extra) => ({ getCourseClassesForUser: { courseClasses: [
+  { id: 'hc-chm', classCode: 'CHM-113-WF700A', slugId: 'CHM-113-WF700A-20260908', startDate: '2026-09-08', endDate: '2026-12-20', name: 'General Chemistry I-Lecture', stage: 'CURRENT', modality: 'ONGROUND', credits: 3, courseCode: 'CHM-113', units: [unit('u1', 'Topic 5', [asm('as1', 'Topic 5 Homework', 3, 20), ...(extra ? [asm('as3', 'Topic 6 Homework', 8, 20)] : [])])] },
+  { id: 'hc-chml', classCode: 'CHM-113L-M600A', slugId: 'CHM-113L-M600A-20260908', startDate: '2026-09-08', endDate: '2026-12-20', name: 'General Chemistry I-Lab', stage: 'CURRENT', modality: 'ONGROUND', credits: 1, courseCode: 'CHM-113L', units: [unit('u2', 'Week 5', [asm('as2', 'Stoichiometry Lab', 2, 30)])] },
+] } });
+// LOCAL_SITE=dist-site serves haloplus.app from a local build (SITE_BASE=/), to test the app before it is deployed.
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.txt': 'text/plain', '.xml': 'application/xml' };
+const serveLocal = (dist) => (route) => {
+  const path = decodeURIComponent(new URL(route.request().url()).pathname).replace(/^\//, '');
+  let file = join(dist, path || 'index.html');
+  if (!existsSync(file) || statSync(file).isDirectory()) file = join(dist, 'index.html');
+  return route.fulfill({ status: 200, contentType: TYPES[extname(file)] ?? 'application/octet-stream', body: readFileSync(file) });
+};
+const fakeHalo = async (ctx, calls, opts) => {
+  if (process.env.LOCAL_SITE) await ctx.route('https://haloplus.app/**', serveLocal(process.env.LOCAL_SITE));
   await ctx.route('https://halo.gcu.edu/**', (route) => {
     const url = route.request().url();
     if (url.includes('/api/auth/session')) return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(opts.loggedOut ? {} : { authToken: 'A', contextToken: 'C' }) });
     return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: '<!doctype html><meta charset="utf-8"><title>Halo</title><h1>Halo (test)</h1><main>My classes</main>' });
   });
   await ctx.route('https://gateway.halo.gcu.edu/**', async (route) => {
-    // A real account's gateway: every call takes a while, so a whole sync runs for minutes.
     if (opts.delayMs && route.request().method() !== 'OPTIONS') await new Promise((r) => setTimeout(r, opts.delayMs));
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST' } });
     const body = JSON.parse(route.request().postData() || '{}');
     if (body.operationName === 'getCourseClassesForUser') calls.n++;
-    const data = body.operationName === 'getCourseClassesForUser' ? CLASSES : null;
+    const data = body.operationName === 'getCourseClassesForUser' ? classes(opts.extra?.()) : null;
     return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: JSON.stringify(data ? { data } : { errors: [{ message: 'not in the test gateway' }] }) });
   });
 };
 const settings = { timezone: 'America/Phoenix', onboarding: { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, notifyAsk: { askedAt: 'x', answer: 'no' } };
 
-const run = async (label, tier) => {
-  const u = await newUser();
-  if (tier === 'free') await admin.from('profiles').update({ tier: 'free', trial_started_at: new Date(Date.now() - 20 * 86_400_000).toISOString(), trial_ends_at: new Date(Date.now() - 13 * 86_400_000).toISOString() }).eq('user_id', u.id);
+const open = async (u, opts = {}) => {
   const dir = mkdtempSync(join(tmpdir(), 'haloplus-ext-'));
-  const ctx = await chromium.launchPersistentContext(dir, { channel: 'chromium', headless: true, args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`], viewport: { width: 1280, height: 900 } });
-  const calls = { n: 0 };
-  await fakeHalo(ctx, calls);
-  await ctx.addInitScript(({ s, key, settings }) => { if (location.hostname !== 'haloplus.app' || localStorage.getItem(key)) return; localStorage.setItem(key, JSON.stringify(s)); localStorage.setItem('school-dashboard:v1', JSON.stringify({ courses: [], items: [], settings })); }, { s: u.session, key: `sb-${ref}-auth-token`, settings });
-  let [worker] = ctx.serviceWorkers();
-  if (!worker) worker = await ctx.waitForEvent('serviceworker', { timeout: 15000 });
-  const extId = worker.url().split('/')[2];
-  console.log(`--- ${label}: extension ${extId} loaded from ${EXT}`);
-  // The dashboard tells the extension which plan this is.
-  const dash = await ctx.newPage();
-  await dash.goto(`${SITE}#/now`, { waitUntil: 'load' });
-  await dash.waitForTimeout(5000);
-  await dash.reload({ waitUntil: 'load' });
-  await dash.waitForTimeout(3000);
-  const stored = await worker.evaluate(() => chrome.storage.local.get(['tier', 'lastSyncAt']));
-  check(stored.tier === tier, `${label}: the extension knows the plan from the dashboard (${stored.tier})`);
-  // Open Halo, the way a student does.
-  const halo = await ctx.newPage();
-  await halo.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
-  await halo.bringToFront();
-  await halo.waitForTimeout(tier === 'free' ? 9000 : 16000);
-  const after = await worker.evaluate(() => chrome.storage.local.get(['lastSyncAt', 'lastError', 'lastCounts']));
-  const cloud = (await admin.from('courses').select('data').eq('user_id', u.id).is('deleted_at', null)).data ?? [];
-  if (tier === 'free') {
-    check(!after.lastSyncAt && calls.n === 0, `${label}: opening Halo on Free does not sync by itself (Halo calls: ${calls.n})`);
-  } else {
-    await dash.bringToFront();
-    await dash.waitForTimeout(4000);
-    await dash.screenshot({ path: `${OUT}/after-auto-sync.png` });
-    const cloud2 = (await admin.from('courses').select('data').eq('user_id', u.id).is('deleted_at', null)).data ?? [];
-    check(!!after.lastSyncAt && !after.lastError && calls.n >= 1, `${label}: opening Halo synced by itself (${JSON.stringify(after.lastCounts)}; error: ${after.lastError ?? 'none'})`);
-    check(cloud2.length === 2 && cloud2.some((c) => c.data.code === 'CHM-113L'), `${label}: the classes reached the account: ${cloud2.map((c) => c.data.code).join(', ') || '(none yet)'} (before settling: ${cloud.length})`);
-    // Again within 30 minutes: no second sync.
-    const before = calls.n;
-    await halo.close();
-    const again = await ctx.newPage();
-    await again.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
-    await again.bringToFront();
-    await again.waitForTimeout(9000);
-    check(calls.n === before, `${label}: opening Halo again within 30 minutes does not sync again (Halo calls ${before} → ${calls.n})`);
-    // Past 30 minutes: it syncs again.
-    await worker.evaluate(() => chrome.storage.local.set({ lastSyncAt: new Date(Date.now() - 31 * 60 * 1000).toISOString() }));
-    await again.close();
-    const third = await ctx.newPage();
-    await third.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
-    await third.bringToFront();
-    await third.waitForTimeout(16000);
-    check(calls.n > before, `${label}: once the last sync is over 30 minutes old, opening Halo syncs again (Halo calls ${before} → ${calls.n})`);
-  }
-  await ctx.close();
-};
-
-const popupRun = async (label, opts) => {
-  const u = await newUser();
-  const dir = mkdtempSync(join(tmpdir(), 'haloplus-ext-'));
-  const ctx = await chromium.launchPersistentContext(dir, { channel: 'chromium', headless: true, args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`], viewport: { width: 1280, height: 900 } });
+  const ctx = await chromium.launchPersistentContext(dir, { channel: 'chromium', headless: true, colorScheme: opts.scheme ?? 'light', args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`], viewport: { width: 1280, height: 900 } });
   const calls = { n: 0 };
   await fakeHalo(ctx, calls, opts);
   await ctx.addInitScript(({ s, key, settings }) => { if (location.hostname !== 'haloplus.app' || localStorage.getItem(key)) return; localStorage.setItem(key, JSON.stringify(s)); localStorage.setItem('school-dashboard:v1', JSON.stringify({ courses: [], items: [], settings })); }, { s: u.session, key: `sb-${ref}-auth-token`, settings });
   let [worker] = ctx.serviceWorkers();
   if (!worker) worker = await ctx.waitForEvent('serviceworker', { timeout: 15000 });
   const extId = worker.url().split('/')[2];
+  return { ctx, calls, worker, extId };
+};
+const dashboard = async (ctx) => {
   const dash = await ctx.newPage();
   await dash.goto(`${SITE}#/now`, { waitUntil: 'load' });
   await dash.waitForTimeout(6000);
-  // Halo open and logged in, sync-on-open off so the popup's button is what runs.
-  await worker.evaluate(() => chrome.storage.local.set({ syncOnOpen: false }));
-  const halo = await ctx.newPage();
-  await halo.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
-  const popup = await ctx.newPage();
-  await popup.setViewportSize({ width: 320, height: 260 });
-  await popup.goto(`chrome-extension://${extId}/popup.html`, { waitUntil: 'load' });
-  const font = await popup.$eval('#last', (e) => getComputedStyle(e).fontFamily);
-  await popup.screenshot({ path: `${OUT}/popup-${label}-before.png` });
-  const t0 = Date.now();
-  await popup.click('#sync');
-  // Wait for the button to come back (the popup awaits the whole sync).
-  await popup.waitForFunction(() => document.getElementById('sync').textContent === 'Sync now', null, { timeout: 16 * 60_000, polling: 1000 }).catch(() => undefined);
-  const secs = Math.round((Date.now() - t0) / 1000);
-  await popup.waitForTimeout(1500);
-  await popup.screenshot({ path: `${OUT}/popup-${label}-after.png` });
-  const st = await worker.evaluate(() => chrome.storage.local.get(['lastSyncAt', 'lastError', 'lastCounts']));
-  const shown = await popup.$eval('body', (b) => b.innerText.replace(/\s+/g, ' '));
-  await ctx.close();
-  return { font, secs, st, shown, calls: calls.n, userId: u.id };
+  return dash;
 };
+const popupPage = async (ctx, extId) => {
+  const p = await ctx.newPage();
+  await p.setViewportSize({ width: 320, height: 320 });
+  await p.goto(`chrome-extension://${extId}/popup.html`, { waitUntil: 'load' });
+  await p.waitForTimeout(600);
+  return p;
+};
+const cloudCodes = async (id) => ((await admin.from('courses').select('data').eq('user_id', id).is('deleted_at', null)).data ?? []).map((c) => c.data.code).sort();
+const fireAlarm = (worker) => worker.evaluate(async () => { await chrome.storage.local.remove('lastSyncAt'); await chrome.alarms.create('auto-sync', { when: Date.now() + 1500, periodInMinutes: 180 }); });
+const until = async (fn, ms) => { const end = Date.now() + ms; while (Date.now() < end) { if (await fn()) return true; await new Promise((r) => setTimeout(r, 1000)); } return false; };
 
 try {
-  if (!process.env.ONLY || process.env.ONLY === 'slow') {
-    const r = await popupRun('slow', { delayMs: 9000 });
-    const cloud = (await admin.from('courses').select('data').eq('user_id', r.userId).is('deleted_at', null)).data ?? [];
-    check(r.secs > 95 && !r.st.lastError && !!r.st.lastSyncAt, `Sync now on a slow, real-sized sync (${r.secs}s, past the old 90-second cutoff): synced, no error (${r.st.lastError ?? 'none'})`);
-    check(cloud.length === 2, `…and the classes reached the account: ${cloud.map((c) => c.data.code).join(', ')}`);
-    check(!/mono|Menlo|Courier/i.test(r.font), `the popup uses the app's font: ${r.font.split(',')[0]}`);
-    console.log('   popup says:', r.shown.slice(0, 160));
+  if (!ONLY || ONLY === 'popup') {
+    for (const scheme of process.env.DBG ? ['light'] : ['light', 'dark']) {
+      const u = await newUser();
+      const { ctx, calls, worker, extId } = await open(u, { delayMs: 9000, scheme });
+      await dashboard(ctx);
+      const halo = await ctx.newPage();
+      await halo.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+      await halo.waitForTimeout(8000);
+      if (scheme === 'light') check(calls.n === 0, 'opening Halo no longer syncs by itself');
+      const p = await popupPage(ctx, extId);
+      await p.screenshot({ path: `${OUT}/popup-${scheme}-1-before.png` });
+      const font = await p.$eval('body', (e) => getComputedStyle(e).fontFamily);
+      if (process.env.DBG) { worker.on('console', (m) => console.log('   worker:', m.text().slice(0, 160))); halo.on('console', (m) => console.log('   halo:', m.text().slice(0, 160))); }
+      const t0 = Date.now();
+      await p.click('#sync');
+      for (let k = 0; k < 6; k++) { await p.waitForTimeout(5000); if (process.env.DBG) console.log('   progress', (k + 1) * 5, JSON.stringify(await worker.evaluate(() => chrome.storage.local.get(['progress', 'running']))), await worker.evaluate(() => chrome.tabs.query({}).then((t) => t.map((x) => `${x.id}:${(x.url || '').slice(8, 30)}:${x.active ? 'A' : ''}${x.discarded ? 'D' : ''}`).join(' ')))); }
+      const mid = await p.evaluate(() => ({ step: document.getElementById('step').innerText, fill: document.getElementById('fill').style.width, disabled: document.getElementById('sync').disabled }));
+      await p.screenshot({ path: `${OUT}/popup-${scheme}-2-syncing.png` });
+      await until(async () => !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 12 * 60_000);
+      const secs = Math.round((Date.now() - t0) / 1000);
+      await p.waitForTimeout(2500);
+      await p.screenshot({ path: `${OUT}/popup-${scheme}-3-after.png` });
+      const status = await p.$eval('#status', (e) => e.innerText);
+      const st = await worker.evaluate(() => chrome.storage.local.get(['lastSyncAt', 'lastError']));
+      const codes = await cloudCodes(u.id);
+      if (scheme === 'light') {
+        check(!/mono|Menlo|Courier/i.test(font) && /Inter/.test(font), `the popup uses the app's font: ${font.split(',')[0]}`);
+        check(mid.disabled && /Reading|Finding|Checking|rubric/i.test(mid.step), `while it runs: real progress ("${mid.step}", bar ${mid.fill || 'moving'})`);
+        check(secs > 95 && !st.lastError && codes.join() === 'CHM-113,CHM-113L', `Sync now finished a ${secs}s sync with no error; classes landed: ${codes.join(', ')}`);
+        check(/^Last synced \d{1,2}:\d{2}\s?[AP]M\s*Next sync around \d{1,2}:\d{2}\s?[AP]M$/.test(status), `the popup says "${status}"`);
+      }
+      await ctx.close();
+    }
   }
-  if (!process.env.ONLY || process.env.ONLY === 'loggedout') {
-    const r = await popupRun('loggedout', { loggedOut: true });
-    check(!!r.st.lastError && r.secs < 60 && !r.st.lastSyncAt, `logged out of Halo: says so right away (${r.secs}s): "${r.st.lastError}"`);
+  if (!ONLY || ONLY === 'loggedout') {
+    const u = await newUser();
+    const { ctx, worker, extId } = await open(u, { loggedOut: true });
+    await dashboard(ctx);
+    const p = await popupPage(ctx, extId);
+    await p.click('#sync');
+    await until(async () => !!(await worker.evaluate(() => chrome.storage.local.get('lastError').then((s) => s.lastError))), 60_000);
+    await p.waitForTimeout(1500);
+    await p.screenshot({ path: `${OUT}/popup-logged-out.png` });
+    const text = await p.$eval('#problem', (e) => (e.hidden ? '' : e.innerText.replace(/\s+/g, ' ')));
+    const badge = await worker.evaluate(() => chrome.action.getBadgeText({}));
+    const tabs = await worker.evaluate(() => chrome.tabs.query({ url: 'https://halo.gcu.edu/*' }).then((t) => t.length));
+    check(/logged out of Halo/i.test(text) && /Log in to Halo/.test(text) && badge === '', `logged out: "${text}", no badge`);
+    check(tabs === 0, 'the Halo tab it opened is closed again');
+    await ctx.close();
   }
-  if (process.env.ONLY && process.env.ONLY !== 'auto') throw 'done';
-  await run('max', 'max');
-  await run('free', 'free');
-} catch (e) {
-  if (e !== 'done') throw e;
+  if (!ONLY || ONLY === 'schedule') {
+    const u = await newUser();
+    let extra = false;
+    const { ctx, calls, worker } = await open(u, { extra: () => extra });
+    const dash = await dashboard(ctx);
+    if (process.env.DBG) { dash.on('console', (m) => console.log('   dash:', m.text().slice(0, 200))); ctx.on('page', (pg) => pg.on('console', (m) => console.log('   page:', pg.url().slice(0, 30), m.text().slice(0, 160)))); }
+    // First, a normal Sync now so the account has classes; then the schedule brings one new assignment.
+    await worker.evaluate(() => chrome.runtime.sendMessage === undefined);
+    await worker.evaluate(async () => { await chrome.storage.local.set({ tier: 'max' }); });
+    const work = await ctx.newPage();
+    await work.goto('https://example.org/', { waitUntil: 'load' }).catch(() => undefined);
+    await work.bringToFront();
+    await fireAlarm(worker);
+    await until(async () => calls.n >= 1 && !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 120_000);
+    await dash.waitForTimeout(6000);
+    if (process.env.DBG) console.log('   after first:', calls.n, JSON.stringify(await worker.evaluate(() => chrome.storage.local.get(['lastSyncAt', 'lastError', 'running', 'progress']))), 'modal', !!(await dash.$('.modal')), await dash.$eval('.done-toast', (e) => e.innerText).catch(() => 'no toast'));
+    extra = true;
+    const pagesBefore = ctx.pages().length;
+    const before = calls.n;
+    let haloActive = false;
+    worker.evaluate(() => new Promise((r) => { chrome.tabs.onCreated.addListener((t) => { if ((t.pendingUrl || t.url || '').includes('halo.gcu.edu')) r(t.active); }); })).then((a) => { haloActive = a; }).catch(() => undefined);
+    await fireAlarm(worker);
+    await until(async () => calls.n > before && !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 180_000);
+    await dash.waitForTimeout(3000);
+    console.log('   debug', calls.n, JSON.stringify(await worker.evaluate(() => chrome.storage.local.get(['lastSyncAt', 'lastError', 'running', 'progress', 'tier']))), JSON.stringify(await worker.evaluate(() => chrome.tabs.query({}).then((t) => t.map((x) => [x.url, x.active])))));
+    const focused = await work.evaluate(() => document.hasFocus() || document.visibilityState === 'visible');
+    const haloLeft = await worker.evaluate(() => chrome.tabs.query({ url: 'https://halo.gcu.edu/*' }).then((t) => t.length));
+    const toast = await dash.$eval('.done-toast', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '');
+    const modal = !!(await dash.$('.modal'));
+    await dash.bringToFront();
+    await dash.screenshot({ path: `${OUT}/scheduled-sync-note.png` });
+    const items = ((await admin.from('items').select('data').eq('user_id', u.id).is('deleted_at', null)).data ?? []).map((r) => r.data.title);
+    check(calls.n > before && haloActive === false && haloLeft === 0 && ctx.pages().length === pagesBefore, `scheduled sync: Halo opened in a background tab (active: ${haloActive}) and closed after (${haloLeft} left)`);
+    check(focused, 'what the student was looking at stayed in front');
+    check(!modal && /Synced from Halo: 1 new/.test(toast) && /Undo/.test(toast), `the open Halo+ tab applied it quietly: no review sheet, a note "${toast}"`);
+    check(items.includes('Topic 6 Homework'), 'the new assignment reached the account');
+    await ctx.close();
+  }
+  if (!ONLY || ONLY === 'waiting') {
+    const u = await newUser();
+    const { ctx, calls, worker } = await open(u);
+    const dash = await dashboard(ctx);
+    await dash.close();
+    await fireAlarm(worker);
+    await until(async () => calls.n >= 1 && !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 120_000);
+    const waiting = await worker.evaluate(() => chrome.storage.local.get('waiting').then((s) => !!s.waiting));
+    const dashTabs = await worker.evaluate(() => chrome.tabs.query({ url: 'https://haloplus.app/*' }).then((t) => t.length));
+    check(waiting && dashTabs === 0, 'with Halo+ closed, the scheduled sync waits in the extension and opens no Halo+ tab');
+    const again = await dashboard(ctx);
+    await again.waitForTimeout(6000);
+    const codes = await cloudCodes(u.id);
+    const left = await worker.evaluate(() => chrome.storage.local.get('waiting').then((s) => !!s.waiting));
+    check(codes.join() === 'CHM-113,CHM-113L' && !left, `opening Halo+ applies it: ${codes.join(', ')}`);
+    await ctx.close();
+  }
+  if (!ONLY || ONLY === 'free') {
+    const u = await newUser(true);
+    const { ctx, calls, worker } = await open(u);
+    await dashboard(ctx);
+    const tier = await worker.evaluate(() => chrome.storage.local.get('tier').then((s) => s.tier));
+    await fireAlarm(worker);
+    await new Promise((r) => setTimeout(r, 12000));
+    check(tier === 'free' && calls.n === 0, `on Free the schedule does not sync (plan ${tier}, Halo calls ${calls.n})`);
+    await ctx.close();
+  }
 } finally {
   for (const id of made) {
     for (const t of ['courses', 'items', 'settings', 'announcements', 'read_ledger', 'usage_log', 'usage_events', 'onboarding_events', 'notification_plan']) await admin.from(t).delete().eq('user_id', id);

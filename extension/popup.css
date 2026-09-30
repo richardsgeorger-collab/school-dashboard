@@ -1,0 +1,208 @@
+/* The app's look (src/styles/tokens.css): neutral surfaces, gold accent, Inter, dark and light. */
+@font-face {
+  font-family: 'Inter';
+  src: url('fonts/Inter.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --line: rgb(16 20 28 / 0.08);
+  --line-strong: rgb(16 20 28 / 0.16);
+  --ink: #14171c;
+  --ink-2: #4b5261;
+  --ink-3: #69717f;
+  --accent: #dfa321;
+  --accent-ink: #1b1400;
+  --accent-text: #946800;
+  --accent-soft: #fbf1d3;
+  --danger: #c73a31;
+  --danger-soft: #fbe6e4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0d10;
+    --surface: #15181c;
+    --surface-2: #1c2025;
+    --line: rgb(255 255 255 / 0.08);
+    --line-strong: rgb(255 255 255 / 0.16);
+    --ink: #f2f4f7;
+    --ink-2: #a9b0bc;
+    --ink-3: #8a919d;
+    --accent: #f2b84b;
+    --accent-text: #f2b84b;
+    --accent-soft: rgb(242 184 75 / 0.14);
+    --danger: #f27c6d;
+    --danger-soft: rgb(242 124 109 / 0.14);
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  width: 320px;
+  margin: 0;
+  padding: 16px 16px 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 14px/1.45 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mark {
+  border-radius: 7px;
+}
+.word {
+  font: 800 18px/1 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+.plan {
+  margin-left: auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font: 600 11px/1.4 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.status {
+  margin: 14px 0 12px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.status .next {
+  display: block;
+  color: var(--ink-3);
+}
+.status b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.sync {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 15px/1 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 6px 16px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+  transition: filter 120ms ease;
+}
+.sync:hover {
+  filter: brightness(1.04);
+}
+.sync:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.sync:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+.progress {
+  margin-top: 12px;
+}
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 400ms ease;
+}
+.bar[data-indeterminate] i {
+  width: 35%;
+  animation: slide 1.3s ease-in-out infinite;
+}
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+.step {
+  margin: 8px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.problem {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--danger-soft);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  font-size: 13px;
+}
+.problem[data-tone='calm'] {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+.problem p {
+  margin: 0;
+  color: var(--ink);
+}
+.problem-action {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--accent-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.problem-action:hover {
+  text-decoration: underline;
+}
+.plus {
+  margin: 12px 0 0;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.foot {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.open {
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.open:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar[data-indeterminate] i {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}

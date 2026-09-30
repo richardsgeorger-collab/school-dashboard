@@ -5,6 +5,8 @@ export interface HaloExport {
   exportedAt: string;
   /** 'extension' when the Chrome extension ran the same script and carried the export over. */
   source: 'bookmarklet' | 'extension' | 'paste' | 'ics';
+  /** Sent by the extension on its own schedule, not by a tap: applied quietly, removals left for a review. */
+  auto?: boolean;
   classes: HaloClass[];
   /** Halo's own alert feed, account-wide rather than per class. */
   alerts?: HaloAlert[];

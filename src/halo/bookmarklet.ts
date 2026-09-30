@@ -161,6 +161,7 @@ if(navigator.clipboard){navigator.clipboard.writeText(json).then(function(){b.te
 else{b.textContent=ok?'Copied':'Select all and copy';}};
 box.appendChild(b);};
 try{
+say('Checking your Halo login\u2026');
 var s=await (await fetch('/api/auth/session',{credentials:'include'})).json();
 if(!s||!s.authToken||!s.contextToken){throw new Error('No Halo session found. Log in to Halo, then '+AGAIN+'.');}
 var gql=async function(op,q,v){
@@ -190,6 +191,7 @@ var Q12=${JSON.stringify(Q_INBOX)};
 var QS=${JSON.stringify(Q_SCHEMA)};
 var QT=${JSON.stringify(Q_TYPE)};
 var alerts;
+say('Reading your alerts and messages\u2026');
 try{var AD0=await gql('GetUserAlerts',Q11,{userAlerts:{pageSize:'200'}});if(!AD0||AD0.getUserAlerts===undefined){throw noField('GetUserAlerts','getUserAlerts');}var AL=AD0.getUserAlerts||{};var al2=AL.alerts||[];var aout=[];
 for(var ali=0;ali<al2.length;ali++){var AA=al2[ali];if(!AA)continue;var AD=AA.data||{};
 aout.push({id:AA.id,classId:AA.classId||null,type:AA.type||null,at:AA.timestamp||null,read:!!AA.isRead,title:AD.announcementTitle||AD.assignmentTitle||null,assessmentId:AD.assessmentId||null,sender:AD.senderName||null,forumId:AD.forumId||null,forumType:AD.forumType||null,announcementTitle:AD.announcementTitle||null,postId:AD.postId||null});}
@@ -208,6 +210,7 @@ for(var ipi=0;ipi<IP.length;ipi++){var P2=IP[ipi];if(!P2)continue;var CB=P2.crea
 var nm=((U2.preferredFirstName||U2.firstName||'')+' '+(U2.lastName||'')).trim();
 mine.push({id:P2.id,forumId:IF.forumId||null,content:P2.content||'',publishedAt:P2.publishDate||null,author:nm||null,fromInstructor:String(CB.baseRoleName||'').toUpperCase().indexOf('STUDENT')<0});}}
 mine.sort(function(a,b){return String(b.publishedAt||'').localeCompare(String(a.publishedAt||''));});msgs[IC.courseClassId]=mine;}}catch(e){msgs={};prob(null,'inbox',e);}
+say('Finding your classes\u2026');
 var CD=await gql('getCourseClassesForUser',Q1,{pgNum:1,pgSize:50});
 var cls=((CD&&CD.getCourseClassesForUser)||{}).courseClasses||[];
 if(!cls.length){throw new Error('Halo returned no classes. Open a class in Halo, then '+AGAIN+'.');}

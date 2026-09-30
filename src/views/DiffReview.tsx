@@ -93,6 +93,7 @@ export function DiffReview({
   onApplied,
   onClose,
   autoApply = false,
+  keepRemovals = false,
 }: {
   payload: HaloExport;
   source: SyncSource;
@@ -103,6 +104,8 @@ export function DiffReview({
   onClose: () => void;
   /** The first sync ever (an empty planner): nothing to compare or lose, so it applies itself and closes. */
   autoApply?: boolean;
+  /** Apply everything except removals (a background sync never deletes on its own). */
+  keepRemovals?: boolean;
 }) {
   const { data, actions, undo } = useStore();
   const { auth, profile } = useAccount();
@@ -132,7 +135,7 @@ export function DiffReview({
     [payload, data, tz, now, bareAs, includeZero, source, resolveCourse],
   );
   useEffect(() => {
-    setSel(defaultSelection(diff));
+    setSel(keepRemovals ? { ...defaultSelection(diff), missing: new Set<string>() } : defaultSelection(diff));
     setConfirmZone(false);
   }, [diff]);
 

@@ -1,8 +1,10 @@
 # Halo+ for Halo (Chrome extension)
 
-Desktop auto-sync for Plus and up. It opens Halo in a background tab every three hours while Chrome is running,
-runs the same sync the bookmark runs, and hands the export to the dashboard tab, where you approve the changes
-exactly as with the bookmark. Anyone can press **Sync now** in the popup; only Plus, Pro and Max get the schedule.
+Desktop auto-sync for Plus and up. Every three hours while Chrome is running it runs the same sync the bookmark runs,
+on your own Halo tab if one is open or on one it opens quietly in the background and closes after. Nothing takes
+focus: an open Halo+ tab applies the sync with a small "Synced from Halo" note and Undo (removals still wait for a
+review), and with Halo+ closed the sync waits in the extension until Halo+ next opens. **Sync now** in the popup runs
+at once on any plan and opens Halo+ to review it. Logged out of Halo, the popup says so and the next run tries again.
 
 It never sees your password. It runs on Halo only while you are already logged in there; if you are not, it says so.
 

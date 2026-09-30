@@ -134,7 +134,7 @@ function HaloHandoff() {
           )}
         >
           {access.allowed ? (
-            <HaloImport payload={payload} onClose={() => setPayload(null)} auto={firstSync} />
+            <HaloImport payload={payload} onClose={() => setPayload(null)} auto={firstSync} background={!firstSync && payload.source === 'extension' && !!payload.auto} />
           ) : (
             // Sync is off (Free): nothing is applied; the student sees what their own Halo holds that the planner
             // does not, counted, with the ways to bring it in (win-back peek, 2026-09-29).
