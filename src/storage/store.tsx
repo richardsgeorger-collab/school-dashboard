@@ -381,6 +381,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [syncNow],
   );
 
+  // Back online: what was changed offline goes up now, not at the next change or reload (audit, 2026-09-30).
+  useEffect(() => {
+    const onOnline = () => {
+      if (remoteRef.current) void syncNow();
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [syncNow]);
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === 'visible' && remoteRef.current) void syncNow();
