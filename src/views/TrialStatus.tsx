@@ -1,3 +1,4 @@
+import { creditLine, plusCredit, type PlusCredit } from '../referral/credit';
 import { InviteBlock, InviteButton, INVITE_RULE, progressLine, useInviteProgress, useMyGrants } from '../referral/Invite';
 import { useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
@@ -103,7 +104,8 @@ export function TrialChip() {
               ))}
             </ul>
             <h3>After it ends</h3>
-            <p className="hint">{plusAfter ? `Then Plus, free until ${fmtDate(dateOf(plusAfter.ends, tz), 'long')}, from your friend's invite: Halo sync and every announcement read for you. The study tools lock unless you keep Max.` : trialEndSentence(cal, tz)}</p>
+            {plusAfter && <p className="credit-line">{creditLine(plusAfter, tz)}</p>}
+            <p className="hint">{plusAfter ? `From ${creditFrom(plusAfter)}: Halo sync and every announcement read for you, free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}. The study tools lock unless you keep Max. Nothing charges.` : trialEndSentence(cal, tz)}</p>
             <h3>Keep it</h3>
             <PlanChoices />
             <h3>Or invite a friend</h3>
@@ -115,12 +117,25 @@ export function TrialChip() {
   );
 }
 
-/** The Plus month from a friend's invite that follows the free week, if there is one. */
-export function usePlusAfter(endsAt: string | null | undefined) {
+/**
+ * The Plus credit from invites, as one stretch: every back-to-back 30 days (two friends are 60, not the first 30), when
+ * it starts and why, and whose invite it is (referral/credit.ts). Null with none left.
+ */
+export function usePlusCredit(): PlusCredit | null {
+  const { profile } = useAccount();
   const grants = useMyGrants();
-  if (!endsAt) return null;
-  return grants.find((g) => g.tier === 'plus' && Math.abs(new Date(g.starts).getTime() - new Date(endsAt).getTime()) < 36 * 3_600_000) ?? grants.find((g) => g.tier === 'plus' && new Date(g.starts).getTime() <= Date.now() && new Date(g.ends).getTime() > Date.now()) ?? null;
+  return plusCredit(grants, { trialEndsAt: profile?.trialEndsAt ?? null, rewardTier: profile?.rewardTier ?? null, rewardUntil: profile?.rewardUntil ?? null }, new Date().toISOString());
 }
+
+/** The Plus credit that follows the free week (or is running now), if there is one. */
+export function usePlusAfter(endsAt: string | null | undefined) {
+  const c = usePlusCredit();
+  if (!endsAt || !c) return null;
+  return c.running || Math.abs(Date.parse(c.start) - Date.parse(endsAt)) < 36 * 3_600_000 ? c : null;
+}
+
+/** "your friend's invite", "the friends you invited": said the right way round. */
+const creditFrom = (c: PlusCredit) => (c.from === 'invited' ? "your friend's invite" : c.from === 'inviting' ? 'the friends you invited' : 'invites');
 
 /** What the trial did, in numbers, from this device's own records. */
 export function useTrialNumbers(since: string | null | undefined, until: string | null | undefined) {
@@ -187,7 +202,7 @@ export function TrialEnded() {
         <section className="onboard-step">
           <p className="eyebrow">Ended {fmtDate(dateOf(profile.trialEndsAt, tz), 'long')}</p>
           <h1 className="onboard-title">{onPlusGift ? 'Your free week of Max ended. Plus from your friend is on.' : 'Your free trial ended.'}</h1>
-          {onPlusGift && plusAfter && <p className="onboard-text">Plus is free until {fmtDate(dateOf(plusAfter.ends, tz), 'long')}: Halo sync, real grades, and every announcement read for you. No card; after that you choose again.</p>}
+          {onPlusGift && plusAfter && <p className="onboard-text">Plus is free until {fmtDate(dateOf(plusAfter.end, tz), 'long')}, from {creditFrom(plusAfter)}: Halo sync, real grades, and every announcement read for you. No card; after that you choose again.</p>}
           {numbers.length > 0 && (
             <>
               <p className="onboard-text">What it did for you this week:</p>
@@ -257,7 +272,7 @@ export function TrialReminder() {
       {did.length > 0 && <p className="trial-lead">This week Halo+ {did.join(', ')}.</p>}
       <p className="hint">
         {plusAfter
-          ? `${last ? 'Tomorrow' : 'After that'} your friend's invite gives you Plus, free until ${fmtDate(dateOf(plusAfter.ends, data.settings.timezone), 'long')}: sync and announcements keep going; Study locks unless you keep Max. Nothing charges.`
+          ? `${last ? 'Tomorrow' : 'After that'} ${creditFrom(plusAfter)} ${plusAfter.from === 'invited' ? 'gives' : 'give'} you Plus, free until ${fmtDate(dateOf(plusAfter.end, data.settings.timezone), 'long')}: sync and announcements keep going; Study locks unless you keep Max. Nothing charges.`
           : `${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses, announcements aren't read, and Study locks. Everything you have stays. Nothing charges.`}
       </p>
       <InviteBlock headline="Not ready to pay? Invite a friend and you both get Plus free for 30 days." />

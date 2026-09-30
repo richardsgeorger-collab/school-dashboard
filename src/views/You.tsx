@@ -1,4 +1,5 @@
-import { InviteBlock, inviteLink } from '../referral/Invite';
+import { creditLine, creditSource, plusCredit } from '../referral/credit';
+import { InviteBlock, inviteLink, useMyGrants } from '../referral/Invite';
 import { useEffect, useRef, useState } from 'react';
 import { AI_DIRECT_ALLOWED, latestMeter, onMeter } from '../ai/gateway';
 import { warningLine, type Meter } from '../ai/meter';
@@ -79,6 +80,7 @@ function meetingSummary(c: Course): string {
 /** One collapsible group of settings. Opens itself when the address names it. */
 function AccountCard({ tier }: { tier: Tier }) {
   const { auth, profile, reloadProfile } = useAccount();
+  const grants = useMyGrants();
   const { data } = useStore();
   const { params } = useRoute();
   const [tick, setTick] = useState(0);
@@ -109,6 +111,7 @@ function AccountCard({ tier }: { tier: Tier }) {
   const days = trialDaysLeft(profile);
   const reward = rewardDaysLeft(profile);
   const gift = friendGift(profile);
+  const credit = plusCredit(grants, { trialEndsAt: profile?.trialEndsAt ?? null, rewardTier: profile?.rewardTier ?? null, rewardUntil: profile?.rewardUntil ?? null }, new Date().toISOString());
   const line = subscriptionLine(sub, profile?.graceUntil ?? null, (iso) => fmtDate(dateOf(iso, tz), 'short'));
   const manage = async (flow?: 'cancel') => {
     const r = await openPortal(flow);
@@ -133,6 +136,12 @@ function AccountCard({ tier }: { tier: Tier }) {
         )}
       </p>
       {line && <p className="hint">{line}</p>}
+      {/* The Plus credit from invites, one line with its real dates (the same line as the trial sheet's). */}
+      {credit && (
+        <p className="credit-line">
+          {creditLine(credit, tz)} <span className="hint">{creditSource(credit)}</span>
+        </p>
+      )}
       {note && (
         <p className="hint" role="status">
           {note}
@@ -288,7 +297,9 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
   // `current` is what the student has today, which on the free week (or free referral days) is not what they pay for:
   // that plan is "Free trial", with Keep, never "Current plan" greyed out as if it were already bought.
   const bought = profile?.tier ?? current;
-  const freeDays = trialDaysLeft(profile) ?? rewardDaysLeft(profile);
+  // Free days left on what they have: the trial, a friend link, or Plus credit from invites running now.
+  const running = plusCredit(useMyGrants(), { trialEndsAt: profile?.trialEndsAt ?? null, rewardTier: profile?.rewardTier ?? null, rewardUntil: profile?.rewardUntil ?? null }, new Date().toISOString());
+  const freeDays = trialDaysLeft(profile) ?? rewardDaysLeft(profile) ?? (running?.running ? running.days : null);
   const [interval, setInterval_] = useState<Interval>('month');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

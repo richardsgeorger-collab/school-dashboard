@@ -207,7 +207,7 @@ export function Landing() {
 
       <section className="landing-section landing-invite" aria-label="Bring a friend">
         <h2 className="landing-h2">Bring a friend, both get a month</h2>
-        <p className="landing-lede">Everyone gets a link on their You page. When a friend signs up with yours, you both get Plus free for 30 days: Halo sync, real grades, and every announcement read for you.</p>
+        <p className="landing-lede">Everyone gets a link on their You page. When a friend signs up with yours, they get their free week of Max like everyone, then 30 days of Plus free, and you get 30 days of Plus too: Halo sync, real grades, and every announcement read for you.</p>
         <p className="hint">Your month starts after any free week or paid plan you have, so none is wasted. Theirs starts after their own free week of Max. Invite as many friends as you like; each one adds another 30 days.</p>
       </section>
 

@@ -10,7 +10,8 @@ import { REFERRAL } from '../config/tiers';
 export const INVITE_OFFER = `Invite a friend and you both get Plus free for ${REFERRAL.days} days.`;
 /** The rules, in one line. */
 export const INVITE_RULE = `Your ${REFERRAL.days} days start after any free week or paid plan you have, so none is wasted. Theirs start after their free week of Max.`;
-export const INVITE_MESSAGE = `I've been using Halo+ for Halo, it reads your announcements and tells you what's due. We both get Plus free for ${REFERRAL.days} days with my link:`;
+// What the friend reads first. They get the free week of Max everyone gets, then the Plus days: never "just Plus".
+export const INVITE_MESSAGE = `I've been using Halo+ for Halo, it reads your announcements and tells you what's due. With my link you get a free week of Max, then ${REFERRAL.days} days of Plus free (and I get ${REFERRAL.days} days too):`;
 
 export function inviteLink(code: string): string {
   return `${window.location.origin}${import.meta.env.BASE_URL}#/start?ref=${code}`;
@@ -41,6 +42,8 @@ export async function shareInvite(code: string): Promise<'shared' | 'copied' | '
 export interface InviteProgress {
   joined: number;
   days: number;
+  /** Joins that paused a paying inviter's billing (30 days each) instead of adding Plus days. */
+  paused?: number;
 }
 
 /** "2 friends joined. You've earned 60 days of Plus." */
@@ -50,7 +53,7 @@ export function useInviteProgress(): InviteProgress | null {
   useEffect(() => {
     const c = supabase();
     if (!c || !auth.session) return;
-    void c.rpc('my_referrals').then(({ data }) => data && setP({ joined: Number((data as InviteProgress).joined) || 0, days: Number((data as InviteProgress).days) || 0 }));
+    void c.rpc('my_referrals').then(({ data }) => data && setP({ joined: Number((data as InviteProgress).joined) || 0, days: Number((data as InviteProgress).days) || 0, paused: Number((data as InviteProgress).paused) || 0 }));
   }, [auth.session]);
   return p;
 }
@@ -74,8 +77,15 @@ export function useMyGrants(): Grant[] {
   return g;
 }
 
-export const progressLine = (p: InviteProgress | null): string | null =>
-  p && p.joined > 0 ? `${p.joined} friend${p.joined === 1 ? '' : 's'} joined. You've earned ${p.days} days of Plus.` : null;
+/** "2 friends joined. You've earned 60 days of Plus." A paying inviter's joins move their next charge instead. */
+export function progressLine(p: InviteProgress | null): string | null {
+  if (!p || p.joined <= 0) return null;
+  const who = `${p.joined} friend${p.joined === 1 ? '' : 's'} joined.`;
+  const paused = Math.min(p.paused ?? 0, p.joined);
+  const plusDays = 30 * (p.joined - paused);
+  const parts = [plusDays > 0 ? `You've earned ${plusDays} days of Plus.` : '', paused > 0 ? `Your next charge moves ${30 * paused} days later.` : ''].filter(Boolean);
+  return `${who} ${parts.join(' ')}`;
+}
 
 /** The share button with its result, used by every invite spot. */
 export function InviteButton({ label = 'Invite a friend', primary = true, small = false }: { label?: string; primary?: boolean; small?: boolean }) {

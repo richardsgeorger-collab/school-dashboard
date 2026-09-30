@@ -3023,3 +3023,16 @@
     padding: 2px 4px;
   }
 }
+
+/* "Plus credit: 30 days, starts Oct 7 when your Max week ends." A fact about the plan, in the body face, with a thin
+   gold rule so it reads as credit, not as a warning. */
+.credit-line {
+  font: var(--t-small);
+  color: var(--ink);
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent);
+}
+.credit-line .hint {
+  color: var(--ink-3);
+}

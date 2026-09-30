@@ -247,7 +247,7 @@ function Welcome({ onStart, signedOut }: { onStart: () => void; signedOut: boole
       <p className="eyebrow">{friend ? 'A friend sent you Halo+' : invited ? 'A friend invited you' : 'The planner built for Halo'}</p>
       <h1 className="onboard-title">See your real assignments in about two minutes.</h1>
       <p className="onboard-text">Halo+ pulls your classes, due dates and announcements from Halo and shows the one thing to do next. It never asks for your GCU password.</p>
-      {invited && <p className="onboard-text welcome-invited">Your invite is saved: a free week of Max, then 30 days of Plus free, for you and your friend.</p>}
+      {invited && <p className="onboard-text welcome-invited">Your invite is saved: a free week of Max, then 30 days of Plus free. Your friend gets 30 days of Plus too.</p>}
       <div className="onboard-actions">
         <button type="button" className="btn primary" onClick={onStart}>
           Start
