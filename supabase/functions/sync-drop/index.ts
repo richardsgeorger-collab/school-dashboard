@@ -9,14 +9,16 @@
 import { admin } from '../_shared/admin.ts';
 
 const ORIGINS = ['https://halo.gcu.edu'];
-// A full account (six classes, rubrics, announcements, files) is well under this.
-const MAX_BYTES = 8_000_000;
+// What arrives on the wire, and what it may unpack to. The extension gzips its export (a real account's sync, six
+// classes with descriptions, rubrics, discussions and 249 files, was refused at 8 MB of plain JSON, 2026-09-30).
+const MAX_WIRE = 8_000_000;
+const MAX_BYTES = 40_000_000;
 const PER_HOUR = 30;
 
 const allowed = (origin: string | null) => !!origin && (ORIGINS.includes(origin) || origin.startsWith('chrome-extension://'));
 const cors = (origin: string | null) => ({
   'access-control-allow-origin': allowed(origin) ? origin! : ORIGINS[0],
-  'access-control-allow-headers': 'content-type, apikey, authorization, x-client-info',
+  'access-control-allow-headers': 'content-type, apikey, authorization, x-client-info, x-halo-encoding',
   'access-control-allow-methods': 'POST, OPTIONS',
   'access-control-max-age': '86400',
   vary: 'origin',
@@ -29,7 +31,14 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
   if (req.method !== 'POST') return reply(origin, 405, { ok: false, why: 'POST only.' });
   try {
-    const raw = await req.text();
+    const wire = await req.arrayBuffer();
+    if (wire.byteLength > MAX_WIRE) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
+    let raw: string;
+    try {
+      raw = req.headers.get('x-halo-encoding') === 'gzip' ? await new Response(new Blob([wire]).stream().pipeThrough(new DecompressionStream('gzip'))).text() : new TextDecoder().decode(wire);
+    } catch {
+      return reply(origin, 400, { ok: false, why: 'The sync arrived damaged. Press Sync now to try again.' });
+    }
     if (raw.length > MAX_BYTES) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
     let body: { key?: unknown; payload?: unknown; via?: unknown };
     try {
@@ -53,7 +62,7 @@ Deno.serve(async (req) => {
     const { count } = await db.from('pending_syncs').select('id', { count: 'exact', head: true }).eq('user_id', owner.user_id).gte('created_at', since);
     if ((count ?? 0) >= PER_HOUR) return reply(origin, 429, { ok: false, why: 'Too many syncs in the last hour. Wait a few minutes, then tap Sync Halo again.' });
     const { data: row, error } = await db.from('pending_syncs').insert({ user_id: owner.user_id, payload: p, bytes: raw.length }).select('id').single();
-    if (error || !row) return reply(origin, 500, { ok: false, why: 'Halo+ could not save it. Tap Sync Halo again, or use Copy and paste it into Halo+.' });
+    if (error || !row) return reply(origin, 500, { ok: false, why: `Halo+ could not save it (${error?.message ?? 'no row'}). Tap Sync Halo again, or use Copy and paste it into Halo+.` });
     // A mailbox, not a history: the newest sync replaces every older one, taken or not.
     await db.from('pending_syncs').delete().eq('user_id', owner.user_id).neq('id', row.id);
     return reply(origin, 200, { ok: true, id: row.id });

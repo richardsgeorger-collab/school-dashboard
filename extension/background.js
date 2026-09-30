@@ -193,16 +193,34 @@ async function failed(e, auto) {
 const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 const countsOf = (payload) => ({ classes: payload.classes.length, assignments: payload.classes.reduce((n, c) => n + (c.assessments || []).length, 0) });
 
-/** Into the account's pending slot on the server. { ok } or { ok: false, why } in words. */
+/**
+ * Into the account's pending slot on the server, gzipped (a real account's export is several megabytes of JSON; it was
+ * refused at 8 MB plain). { ok } or { ok: false, why } in words. Every attempt is recorded in lastDrop, so a sync that
+ * went to an open tab instead says why the account did not take it.
+ */
 async function toAccount(payload) {
   const { syncKey } = await get('syncKey');
   if (!syncKey) return { ok: false, kind: 'no-key' };
+  const raw = JSON.stringify({ key: syncKey, payload, via: 'extension' });
+  const note = { at: new Date().toISOString(), bytes: raw.length };
   try {
-    const r = await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, payload, via: 'extension' }) });
+    const body = await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
+    note.sent = body.byteLength;
+    const post = () => fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json', 'x-halo-encoding': 'gzip' }, body });
+    // A big account takes the server several seconds to store; one failure there is tried once more.
+    let r = await post();
+    if (r.status >= 500) r = await post();
     const j = await r.json().catch(() => null);
-    if (r.ok && j && j.ok) return { ok: true };
-    return { ok: false, kind: 'refused', why: (j && j.why) || `Halo+ answered ${r.status}` };
-  } catch {
+    note.status = r.status;
+    if (r.ok && j && j.ok) {
+      await set({ lastDrop: { ...note, ok: true } });
+      return { ok: true };
+    }
+    const why = (j && j.why) || `Halo+ answered ${r.status}`;
+    await set({ lastDrop: { ...note, ok: false, why } });
+    return { ok: false, kind: 'refused', why };
+  } catch (e) {
+    await set({ lastDrop: { ...note, ok: false, why: e && e.message ? e.message : String(e) } });
     return { ok: false, kind: 'offline' };
   }
 }
