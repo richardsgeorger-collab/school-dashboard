@@ -26,7 +26,8 @@ export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
     return (
       <p className="hint pull-tally" role="status">
         {s.progress.why === 'tidy' ? `Shortening checklist lines: announcement ${s.progress.done} of ${s.progress.total}` : `Reading ${s.progress.why} announcement ${s.progress.done} of ${s.progress.total}`}
-        {compact ? '' : `: “${s.progress.title}”`}…
+        {/* Before the first post starts there is no title yet: never an empty “”. */}
+        {compact || !s.progress.title?.trim() ? '' : `: “${s.progress.title}”`}…
       </p>
     );
   }

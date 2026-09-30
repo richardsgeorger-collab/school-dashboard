@@ -112,8 +112,10 @@ const MONO_OK = /(^|\s)(mono|chip|grade-stats|quiz-chip|hb-url|course-chip|item-
 
 const nav = async (p, hash) => { const same = p.url() === `${BASE}${hash}`; await p.goto(`${BASE}${hash}`, { waitUntil: 'load' }); if (same) await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(2200); await p.click('.upgrade button:has-text("Skip")', { timeout: 800 }).catch(() => undefined); await p.click('.tour-tip button:has-text("Skip")', { timeout: 500 }).catch(() => undefined); };
 const tap = async (p, sel, ms = 900) => { const ok = await p.click(sel, { timeout: 4000 }).then(() => true).catch(() => false); await p.waitForTimeout(ms); return ok; };
+// Until announcements are read (a "Reading announcement 0 of 2" line is a moment, not the screen).
+const calm = async (p) => { for (let k = 0; k < 45; k++) { if (!(await p.evaluate(() => /Reading announcement/.test(document.body.innerText)).catch(() => false))) return; await p.waitForTimeout(1000); } };
 const SCENES = [
-  { name: 'now', go: (p) => nav(p, '#/now') },
+  { name: 'now', go: async (p) => { await nav(p, '#/now'); await calm(p); } },
   { name: 'now-details', go: async (p) => { await nav(p, '#/now'); await tap(p, 'button[aria-expanded]:has-text("Details")'); } },
   { name: 'now-notnow', go: async (p) => { await nav(p, '#/now'); await tap(p, 'button:has-text("Not now")'); } },
   { name: 'item-sheet', go: async (p) => { await nav(p, '#/now'); await tap(p, '.row >> nth=0'); } },
@@ -138,11 +140,16 @@ const SCENES = [
   { name: 'palette', go: async (p) => { await nav(p, '#/now'); await p.keyboard.press('Meta+K'); await p.waitForTimeout(800); } },
   { name: 'trial-sheet', go: async (p) => { await nav(p, '#/now'); await tap(p, '.trial-chip'); } },
   { name: 'account-menu', go: async (p) => { await nav(p, '#/now'); await tap(p, '.topbar [aria-haspopup], .topbar-avatar, button.avatar'); } },
+  // A sync that brings something new and moves a date: the review it opens ("What Halo sent"). Last, since it saves
+  // what the sync asserts about work already in the planner.
+  { name: 'sync-review', go: async (p) => { await nav(p, '#/now'); await calm(p); const x = payload(); const chm = x.classes.find((c) => c.courseCode === 'CHM-113'); chm.assessments.push({ id: 'hc-chm-new', title: 'Topic 6 Homework', dueDate: new Date(due(9)).toISOString(), points: 20, type: 'ASSIGNMENT', status: null, score: null, description: '' }); const q = chm.assessments.find((a) => a.title === 'Quiz 2'); if (q) q.dueDate = new Date(due(5)).toISOString(); await p.evaluate((d) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: d, source: window })), x); await p.waitForSelector('.modal', { timeout: 8000 }).catch(() => undefined); await p.waitForTimeout(1500); await calm(p); } },
 ];
 
 const IPAD_SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
 const DEVICES = {
   desk: { viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 },
+  // The Chrome Web Store's screenshot size, exactly (ONLY=store-light); one screen, not the whole page.
+  store: { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 },
   phone: { ...devices['iPhone 14'], deviceScaleFactor: 2 },
   'ipad-portrait': { ...devices['iPad Pro 11'], userAgent: IPAD_SAFARI, viewport: { width: 834, height: 1194 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true },
   'ipad-landscape': { ...devices['iPad Pro 11'], userAgent: IPAD_SAFARI, viewport: { width: 1194, height: 834 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true },
@@ -162,7 +169,7 @@ const audit = async (page, device, scheme, scene) => {
   const dir = `${OUT}/${device}-${scheme}`;
   mkdirSync(dir, { recursive: true });
   const modal = await page.$('.modal, .onboard, [role="menu"]');
-  await page.screenshot({ path: `${dir}/${scene}.png`, fullPage: !modal }).catch(() => undefined);
+  await page.screenshot({ path: `${dir}/${scene}.png`, fullPage: !modal && device !== 'store' }).catch(() => undefined);
   report.push({ device, scheme, scene, issues });
   const line = issues.slice(0, 6).map((i) => `${i.kind}: ${i.what}${i.by ? ` (${typeof i.by === 'number' ? i.by + 'px' : 'by ' + i.by})` : ''}`).join(' | ');
   console.log(`${issues.length ? 'FIND' : 'ok  '} ${device}-${scheme} ${scene}${issues.length ? ` [${issues.length}] ${line}` : ''}`);

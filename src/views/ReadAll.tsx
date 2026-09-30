@@ -96,7 +96,8 @@ export function ReadAll({ list, ledger, onClose, onDone }: { list: StoredAnnounc
             {!hasKey && <p className="hint">Reading announcements is part of {planOf('announcementAI')}.</p>}
             {progress && (
               <p className="hint mono" role="status">
-                Reading {progress.done} of {progress.total}: {progress.course} “{progress.title}”
+                Reading {progress.done} of {progress.total}
+                {progress.title?.trim() ? `: ${progress.course} “${progress.title}”` : '…'}
               </p>
             )}
             {error && <p className="hint" style={{ color: 'var(--overdue)' }}>{error}</p>}
