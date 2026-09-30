@@ -222,7 +222,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const local = dataRef.current;
         const result = mergeData(local, { courses: other.courses, items: other.items, settings: other.settings });
         const merged = normalizeData(result.merged);
-        merged.settings = { ...merged.settings, supabaseUrl: local.settings.supabaseUrl, supabaseAnonKey: local.settings.supabaseAnonKey };
+        merged.settings = { ...DEFAULT_SETTINGS, ...merged.settings, supabaseUrl: local.settings.supabaseUrl, supabaseAnonKey: local.settings.supabaseAnonKey };
         dataRef.current = merged;
         setData(merged);
       }),
@@ -348,8 +348,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const local = dataRef.current;
       const result = mergeData(local, remote, { preferRemoteSettings: first && fresh(local) });
       result.merged = normalizeData(result.merged);
-      // Connection details never come from the server.
+      // Connection details never come from the server. Every setting the account's saved copy predates gets its
+      // default: a copy without weekStartsOn made the Calendar's days NaN and re-render until the tab died (audit).
       result.merged.settings = {
+        ...DEFAULT_SETTINGS,
         ...result.merged.settings,
         supabaseUrl: local.settings.supabaseUrl,
         supabaseAnonKey: local.settings.supabaseAnonKey,
