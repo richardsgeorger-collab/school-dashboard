@@ -51,7 +51,12 @@ const worksheetKey = (courseId: string, itemId: string | null, topic: string) =>
  * and a one-page sheet, all from the class's own material, the test's topics and the weak ones first.
  */
 export function Practice() {
-  const { data, today } = useStore();
+  const { data, today, actions } = useStore();
+  // The welcome checklist's "Practice for your next quiz" ticks itself the first time Practice opens.
+  useEffect(() => {
+    if (!data.settings.welcomeList?.practice) actions.updateSettings({ welcomeList: { ...(data.settings.welcomeList ?? {}), practice: new Date().toISOString() } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { params, navigate } = useRoute();
   const { tier } = useAccount();
   const tz = data.settings.timezone;

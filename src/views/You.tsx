@@ -1,3 +1,4 @@
+import { InviteBlock, inviteLink } from '../referral/Invite';
 import { useEffect, useRef, useState } from 'react';
 import { AI_DIRECT_ALLOWED, latestMeter, onMeter } from '../ai/gateway';
 import { warningLine, type Meter } from '../ai/meter';
@@ -192,7 +193,7 @@ function ReferralCard() {
       </section>
     );
   }
-  const link = `${window.location.origin}${import.meta.env.BASE_URL}#/now?ref=${profile.referralCode}`;
+  const link = inviteLink(profile.referralCode);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(link);
@@ -204,11 +205,9 @@ function ReferralCard() {
   return (
     <section className="card settings-card" aria-label="Invite a friend">
       <h2 className="section-title">Invite a friend</h2>
-      <p className="hint">
-        Send this link. When they sign up, you both get {REFERRAL.days} days of {TIER_NAMES[REFERRAL.rewardTier]}.
-      </p>
+      <InviteBlock />
       <p className="mono you-invite" title={link}>
-        {link.replace(/^https?:\/\//, '').replace(/\/(?:[^/]*\/)?#\/now\?ref=/, '/…ref=')}
+        {link.replace(/^https?:\/\//, '').replace(/\/(?:[^/]*\/)?#\/start\?ref=/, '/…ref=')}
       </p>
       <div className="settings-actions">
         <button type="button" className="btn small primary" onClick={() => void copy()}>
@@ -419,6 +418,12 @@ export function You() {
   return (
     <>
       <h1 className="page-title">You</h1>
+      {/* Not buried in settings any more (George, 2026-09-29): the invite sits at the top of You on every section. */}
+      {active !== 'invite' && auth.session && profile?.referralCode && !profile.friendFrom && (
+        <section className="card you-invite-top" aria-label="Invite a friend">
+          <InviteBlock />
+        </section>
+      )}
       <div className="you-layout">
         <nav className="you-nav" aria-label="Settings">
           {NAV.map(([id, label]) => (

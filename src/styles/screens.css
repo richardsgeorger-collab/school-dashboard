@@ -2782,3 +2782,155 @@
   font-family: var(--font-body);
   color: var(--ink-3);
 }
+
+/* ---- The welcome week (2026-09-29): the checklist, the invite everywhere ----------------------------------------- */
+.welcome-list,
+.invite-now,
+.notify-reask,
+.you-invite-top {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+.welcome-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.welcome-head .section-title {
+  margin: 0;
+  flex: 1;
+}
+.welcome-x {
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.invite-now .welcome-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.welcome-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.welcome-rows li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.welcome-tick {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.welcome-rows li[data-done='true'] .welcome-tick {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.welcome-label {
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  font: 500 14px/1.35 var(--font-body);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.welcome-rows li[data-done='true'] .welcome-label {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  cursor: default;
+}
+.invite-block {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.invite-headline {
+  margin: 0;
+  font: 600 16px/1.35 var(--font-body);
+}
+.invite-rule {
+  margin: 0;
+}
+.invite-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.invite-progress {
+  margin: 0;
+  font-weight: 600;
+  color: var(--accent-text);
+}
+.invite-said {
+  margin-left: 8px;
+}
+.you-invite-top {
+  border-left: 3px solid var(--accent);
+  margin-bottom: var(--s-4);
+}
+.payoff-invite {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.payoff-invite .onboard-text {
+  margin: 0;
+}
+.plan-choice-invite {
+  border: 1.5px dashed var(--accent);
+  background: var(--accent-soft);
+}
+.plan-choice-invite .plan-choice-name span {
+  display: block;
+}
+.landing-invite .hint {
+  max-width: 64ch;
+}
+.funnel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.funnel-table th {
+  text-align: left;
+  font-weight: 500;
+  padding: 5px 8px 5px 0;
+  white-space: nowrap;
+}
+.funnel-table td {
+  padding: 5px 6px;
+}
+.funnel-bar-cell {
+  width: 45%;
+}
+.funnel-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--accent);
+  min-width: 2px;
+}

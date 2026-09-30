@@ -4,6 +4,7 @@ import { supabase } from '../auth/client';
 import { EmptyState } from '../components/EmptyState';
 import { TIER_NAMES, TIERS, type Tier } from '../config/tiers';
 import { ResetEmailAdmin } from './ResetEmailAdmin';
+import { AdminFunnel } from './AdminFunnel';
 
 interface Stats {
   users: number;
@@ -60,6 +61,7 @@ export function Admin() {
     <>
       <h1 className="page-title">Admin</h1>
       <div className="settings-grid">
+        <AdminFunnel />
         <section className="card settings-card">
           <h2 className="section-title">People</h2>
           <dl className="grade-stats mono">

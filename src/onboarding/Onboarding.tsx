@@ -1,7 +1,8 @@
+import { InviteButton } from '../referral/Invite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
-import { pendingFriend } from '../auth/referral';
+import { pendingFriend, pendingRef } from '../auth/referral';
 import { CourseChip } from '../components/CourseChip';
 import { HaloDraw } from '../components/HaloDraw';
 import { friendGift, trialState } from '../config/flags';
@@ -18,7 +19,9 @@ import { useStore } from '../storage/store';
 import { HaloImport } from '../views/HaloImport';
 import { BookmarkButton, useBookmarkHref } from '../views/BookmarkButton';
 import { type OnboardingState, type Step } from './state';
-import { Compare, Offer } from './PlanChoice';
+import { Compare, Gift } from './PlanChoice';
+import { HomeScreenAsk, isPhoneLike, NotifyAsk } from './ComeBack';
+import { isStandalone as isStandaloneApp } from '../notify/push';
 import { ChromeMenuPicture, HaloBarPicture, ShortcutKeyboard } from './Keyboard';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { deviceSyncHow } from '../halo/syncHow';
@@ -145,8 +148,18 @@ export function Onboarding() {
     navigate('now');
   };
 
-  // The plan choice is for someone who can still take the trial: signed in, never had it, not a friend's guest.
-  const choosing = auth.configured && !!auth.session && !gift && !pendingFriend() && trialState(profile) === 'available';
+  // After the first sync (2026-09-29): the payoff, then a morning note, then on a phone the Home Screen. Skipped where
+  // there is nothing to ask: no accounts on this build, or notifications already on.
+  const after = ob.after ?? 'payoff';
+  const afterPayoff = () => {
+    const pushOn = !!data.settings.reminders?.pushEnabled;
+    if (auth.configured && auth.session && !pushOn) set({ after: 'notify' });
+    else if (isPhoneLike() && !isStandaloneApp()) set({ after: 'home' });
+    else finish();
+  };
+  // The welcome (2026-09-29): every new account has Max for 7 days from sign-up, so a new student sees the fifteen
+  // seconds and then the gift. A friend's guest, a paid plan, or a build without accounts goes straight to Halo.
+  const welcoming = auth.configured && !!auth.session && !gift && !pendingFriend() && trialState(profile) === 'active' && !profile?.friendFrom;
   // The account step passes itself the moment someone is signed in (including coming back from the email link).
   useEffect(() => {
     if (step === 'account' && (!auth.configured || auth.session)) set({ step: 'compare' });
@@ -155,9 +168,9 @@ export function Onboarding() {
   // Nothing to choose (a friend's link, a trial already used or running, a paid plan, no accounts on this build):
   // straight on to Halo. Waits for the profile, so a new account is never sent past its own offer.
   useEffect(() => {
-    if ((step === 'compare' || step === 'offer') && !loading && !choosing) set({ step: 'halo' });
+    if ((step === 'compare' || step === 'offer') && !loading && !welcoming) set({ step: 'halo' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, loading, choosing]);
+  }, [step, loading, welcoming]);
 
   const synced = data.courses.length > 0;
   // Record the arrival once, so the admin screen sees who got as far as their own classes.
@@ -210,9 +223,9 @@ export function Onboarding() {
           </section>
         )}
 
-        {step === 'compare' && !synced && choosing && <Compare onNext={() => go('offer')} />}
-        {step === 'offer' && !synced && choosing && <Offer onStarted={() => go('halo')} onFree={() => go('syllabus')} />}
-        {step === 'syllabus' && !synced && <SyllabusStep onTrial={() => go('offer')} canTry={choosing || trialState(profile) === 'available'} />}
+        {step === 'compare' && !synced && welcoming && <Compare onNext={() => go('offer')} />}
+        {step === 'offer' && !synced && welcoming && <Gift onNext={() => go('halo')} invited={!!profile?.referredBy || !!pendingRef()} />}
+        {step === 'syllabus' && !synced && <SyllabusStep onTrial={() => go('halo')} canTry={trialState(profile) === 'available'} />}
 
         {step === 'halo' && !synced && path === 'desktop' && (
           <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />
@@ -221,7 +234,9 @@ export function Onboarding() {
         {step === 'halo' && !synced && path === 'ipad' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
 
         {/* A sync that lands on any screen (a student who clicked the bookmark early) goes straight to the payoff. */}
-        {synced && <Payoff onStart={finish} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} />}
+        {synced && after === 'payoff' && <Payoff onStart={afterPayoff} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} />}
+        {synced && after === 'notify' && <NotifyAsk onNext={() => (isPhoneLike() ? set({ after: 'home' }) : finish())} />}
+        {synced && after === 'home' && <HomeScreenAsk onNext={finish} />}
       </div>
       {paste && <HaloImport onClose={() => setPaste(false)} />}
     </div>
@@ -749,6 +764,11 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads }: { onStar
         <button type="button" className="btn primary" onClick={onStart}>
           Start here
         </button>
+      </div>
+      <div className="payoff-invite">
+        <p className="onboard-text">Someone in your section would want this too.</p>
+        <InviteButton label="Invite a friend" primary={false} />
+        <p className="hint">You both get Plus free for 30 days, after your free weeks.</p>
       </div>
       {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free week of Max is on. {TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync, announcements and the study tools are Max; try it free for 7 days any time from You.</p> : null}
     </section>

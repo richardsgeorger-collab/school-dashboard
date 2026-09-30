@@ -1,3 +1,6 @@
+import { WelcomeChecklist } from './WelcomeChecklist';
+import { NotifyReask } from './NotifyReask';
+import { InviteNowCard } from './InviteNowCard';
 import { ParticipationWeek } from './ParticipationWeek';
 import { useEffect, useMemo, useState } from 'react';
 import { ItemRow } from '../components/ItemRow';
@@ -727,6 +730,9 @@ export function Now() {
       {quiet && !eveningWrap && <DailyQuestion />}
 
       <aside className="now-side">
+        <WelcomeChecklist onOpen={setOpen} />
+        <NotifyReask />
+        <InviteNowCard />
         {/* The trust line, always: when what is on screen last matched Halo, or that it is out of date, with the one button. */}
         {data.courses.length > 0 && <SyncedLine stale={stale} />}
         <HeadsUp lines={headsUp} />

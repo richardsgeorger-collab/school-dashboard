@@ -432,6 +432,8 @@ export interface OnboardingState {
   screen?: string | null;
   /** Which path: a computer's bookmarks bar, a phone's bookmarks menu, or the iPad's own steps (2026-09-29). */
   path?: 'desktop' | 'phone' | 'ipad' | null;
+  /** After the first sync: the payoff, then the morning-note question, then (phones) the Home Screen. */
+  after?: 'payoff' | 'notify' | 'home' | null;
   doneAt: string | null;
   skippedAt: string | null;
   tourDoneAt: string | null;
@@ -516,6 +518,12 @@ export interface Settings {
   /** When a friend-link student was asked, once, what is confusing or broken (day 3). */
   friendAskedAt?: string | null;
   reminders?: ReminderPrefs;
+  /** The morning-note question after the first sync: declined once, it is asked once more on day 2, then never. */
+  notifyAsk?: { declinedAt: string | null; asks: number } | null;
+  /** "Get the most out of your week" on Now: what was done by hand, and whether it was put away. */
+  welcomeList?: { practice?: string; requirement?: string; dismissedAt?: string; doneAt?: string } | null;
+  /** The invite card on Now: when it was last put away (it comes back at most once a week). */
+  inviteCardAt?: string | null;
   updatedAt: string;
 }
 

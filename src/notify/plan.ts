@@ -13,7 +13,7 @@ import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
  * morning note, the night-before heavy-day warning, the not-started nudge, the re-sync reminder, and on Max the
  * Sunday recap; the trial's one reminder has none.
  */
-export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation';
+export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation' | 'welcome_sync';
 
 export interface Notice {
   kind: NoticeKind;
@@ -35,6 +35,8 @@ export interface PlanInput {
   today: DateStr;
   now: string;
   lastPull: string | null;
+  /** When the welcome gift started, for the one "connect Halo" reminder a few hours in. */
+  trialStartedAt?: string | null;
   /** When the free trial ends, for its two reminders. */
   trialEndsAt?: string | null;
   /** What Max did during the trial, one line ("Max during your trial: read 23 announcements, …"), for those reminders. */
@@ -126,6 +128,12 @@ export function planNotices(input: PlanInput): Notice[] {
       const day = sendAt > now ? today : tomorrow;
       push({ kind: 'resync', sendAt: at(day, '10:00', tz), title: 'Sync Halo', body: days === null ? 'Halo has not been synced yet. One tap and your week is in.' : `Halo was last synced ${days} days ago. Deadlines may have moved.`, url: '#/now?sync=1', key: `resync:${day}` });
     }
+  }
+
+  // The welcome gift, a few hours in and still nothing synced: one reminder, once (George, 2026-09-29).
+  if (input.trialStartedAt && !lastPull && input.courses.length === 0) {
+    const sendAt = new Date(new Date(input.trialStartedAt).getTime() + 3 * 3_600_000).toISOString();
+    if (sendAt > now && (!input.trialEndsAt || sendAt < input.trialEndsAt)) push({ kind: 'welcome_sync', sendAt, title: 'Your free week of Max has started', body: 'Connect Halo to use it. It takes about two minutes.', url: '#/now', key: 'welcome_sync' });
   }
 
   // Saturday at nine: participation still open this week, class by class. Planned when Saturday is today or tomorrow.

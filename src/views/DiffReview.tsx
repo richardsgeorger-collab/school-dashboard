@@ -1,3 +1,4 @@
+import { InviteButton } from '../referral/Invite';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
@@ -244,10 +245,8 @@ export function DiffReview({
           {/* The moment a sync lands is the moment a student thinks of the friend in the same section. One line. */}
           {source === 'halo' && auth.session && profile?.referralCode && (
             <li className="diff-invite">
-              Someone in your section would want this too. Invite them: you both get {TIER_NAMES[REFERRAL.rewardTier]} for {REFERRAL.days} days.{' '}
-              <a className="diff-toggle" href="#/you?s=invite">
-                Invite a friend
-              </a>
+              Someone in your section would want this too. You both get {TIER_NAMES[REFERRAL.rewardTier]} free for {REFERRAL.days} days.{' '}
+              <InviteButton label="Invite a friend" small />
             </li>
           )}
         </ul>

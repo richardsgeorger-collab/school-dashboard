@@ -31,9 +31,9 @@ export function trialCalendar(endsAt: string, tz: string, now: string = new Date
 }
 
 /** "Free trial · 5 days left", "Free trial · last day". */
-export const trialChipText = (daysLeft: number): string => (daysLeft <= 1 ? 'Free trial · last day' : `Free trial · ${daysLeft} days left`);
+export const trialChipText = (daysLeft: number): string => (daysLeft <= 1 ? 'Max · last day' : `Max · ${daysLeft} days left`);
 /** The same on a phone's narrow top bar: "Max · 5 days", "Max · last day". */
-export const trialChipShort = (daysLeft: number): string => (daysLeft <= 1 ? 'Trial · last day' : `Trial · ${daysLeft} days`);
+export const trialChipShort = (daysLeft: number): string => (daysLeft <= 1 ? 'Max · last day' : `Max · ${daysLeft} days`);
 
 /** "Sat, Oct 3" and the plain sentence of what happens then. */
 export function trialEndSentence(cal: TrialCalendar, tz: string): string {

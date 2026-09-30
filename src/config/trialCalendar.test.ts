@@ -24,7 +24,7 @@ describe('the trial calendar', () => {
     expect(trialCalendar(early, TZ, '2026-10-01T12:00:00.000Z').lastDay).toBe('2026-10-04');
   });
   it('the chip', () => {
-    expect(trialChipText(5)).toBe('Free trial · 5 days left');
-    expect(trialChipText(1)).toBe('Free trial · last day');
+    expect(trialChipText(5)).toBe('Max · 5 days left');
+    expect(trialChipText(1)).toBe('Max · last day');
   });
 });

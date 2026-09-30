@@ -59,9 +59,13 @@ export function Requirements({ item: passed, compact = false, onMore }: { item: 
  * names, quotes or metadata under the line.
  */
 export function ReqLine({ req, check, extra }: { req: Pick<Requirement, 'text' | 'detail' | 'dueAt' | 'source'>; check?: { checked: boolean; onChange: () => void }; extra?: string }) {
-  const { data } = useStore();
+  const { data, actions } = useStore();
   const [open, setOpen] = useState(false);
   const id = useId();
+  // Opening a requirement Max found ticks the welcome checklist's fourth item.
+  const opened = () => {
+    if (req.source.kind === 'announcement' && !data.settings.welcomeList?.requirement) actions.updateSettings({ welcomeList: { ...(data.settings.welcomeList ?? {}), requirement: new Date().toISOString() } });
+  };
   const line = shortLine(req.text);
   const detail = [detailFor(req, data.settings.timezone), extra].filter(Boolean).join(' ');
   const post = req.source.kind === 'announcement' && req.source.id ? `#/inbox?a=${req.source.id}` : null;
@@ -69,7 +73,7 @@ export function ReqLine({ req, check, extra }: { req: Pick<Requirement, 'text' |
     <div className="req-line" data-open={open}>
       <div className="req-line-row">
         {check && <input type="checkbox" checked={check.checked} onChange={check.onChange} aria-label={line} />}
-        <button type="button" className="req-line-text" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>
+        <button type="button" className="req-line-text" aria-expanded={open} aria-controls={id} onClick={() => { setOpen((o) => !o); opened(); }}>
           {line}
         </button>
       </div>

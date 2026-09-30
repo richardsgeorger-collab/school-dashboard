@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useAccount } from '../auth/AccountContext';
-import { startTrial } from '../auth/trial';
+import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
 import { TRIAL } from '../config/tiers';
-import { pixel } from '../analytics/pixel';
 
 /**
  * Before connecting Halo (George, 2026-09-29): fifteen seconds, no reading required, on an example GCU student's Now
@@ -137,46 +135,43 @@ function StoryScreen({ beat }: { beat: number }) {
   );
 }
 
-/** The trial screen. One huge button starts the week and goes straight on to connecting Halo. */
-export function Offer({ onStarted, onFree }: { onStarted: () => void; onFree: () => void }) {
-  const { reloadProfile } = useAccount();
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const start = async () => {
-    setBusy(true);
-    setNote(null);
-    const r = await startTrial();
-    setBusy(false);
-    if (r.ok || r.why === 'already_max') {
-      pixel('StartTrial');
-      reloadProfile();
-      onStarted();
-      return;
-    }
-    // Used already (a returning account): say so and carry on to Halo on the plan they have.
-    setNote(r.message);
-  };
+const GIFT_LINES: { icon: () => React.ReactElement; text: string }[] = [
+  { icon: IconSync, text: 'Pulls every class, assignment, and grade from Halo' },
+  { icon: IconInbox, text: 'Reads your announcements so you never miss hidden work' },
+  { icon: IconNow, text: 'Tells you what to do next' },
+  { icon: IconStudy, text: 'Builds study plans and practice worksheets for your quizzes' },
+  { icon: IconAsk, text: 'Answers questions about your own classes' },
+  { icon: IconColour, text: 'Pick your own color' },
+];
+
+/**
+ * The welcome gift (George, 2026-09-29, replacing the offer): every new account already has Max for 7 days, so this
+ * is not a choice. It says what they have, what it does for them, and what happens after, then one button.
+ */
+export function Gift({ onNext, invited = false }: { onNext: () => void; invited?: boolean }) {
   return (
-    <section className="onboard-step plan-offer" aria-label="Try everything free">
-      <h1 className="onboard-title offer-title">{TRIAL.headline}</h1>
+    <section className="onboard-step gift" aria-label="Your welcome gift">
+      <div className="gift-burst" aria-hidden>
+        <span className="gift-ring" />
+        <span className="gift-bow">🎁</span>
+      </div>
+      <h1 className="onboard-title gift-title">You've got Max free for 7 days.</h1>
       <p className="offer-promise">{TRIAL.promise}</p>
-      <button type="button" className="btn primary block offer-go" disabled={busy} onClick={() => void start()}>
-        {busy ? 'Starting your week…' : 'Start my free week'}
+      <ul className="offer-lines gift-lines">
+        {GIFT_LINES.map(({ icon: Icon, text }) => (
+          <li key={text}>
+            <span className="offer-icon" aria-hidden>
+              <Icon />
+            </span>
+            {text}
+          </li>
+        ))}
+      </ul>
+      {invited && <p className="gift-invited">Then 30 days of Plus free, from your friend's invite.</p>}
+      <p className="gift-after">After 7 days you choose what to keep. Free stays free.</p>
+      <button type="button" className="btn primary block offer-go" onClick={onNext}>
+        Connect Halo
       </button>
-      <p className="offer-after">{TRIAL.after}</p>
-      {note && (
-        <p className="hint" role="alert">
-          {note}{' '}
-          <button type="button" className="hero-inline" onClick={onStarted}>
-            Continue
-          </button>
-        </p>
-      )}
-      <p className="offer-free">
-        <button type="button" className="hero-inline" onClick={onFree}>
-          Continue with Free instead.
-        </button>
-      </p>
     </section>
   );
 }

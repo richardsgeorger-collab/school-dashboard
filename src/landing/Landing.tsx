@@ -53,7 +53,7 @@ export function Landing() {
               Log in
             </a>
           </div>
-          <p className="hint">{TRIAL.offer} You choose when it starts; after it, you're back on Free and nothing charges.</p>
+          <p className="hint">Max free for {TRIAL.days} days when you sign up. No card. After it, you choose what to keep; Free stays free.</p>
         </div>
 
         {/* The picture is the app: the same classes and tokens Now uses, so the landing wears whatever gold the app wears. */}
@@ -194,8 +194,14 @@ export function Landing() {
         </div>
         <p className="landing-trial">
           <HaloDraw size={28} />
-          <span>Every account starts on Free. {TRIAL.offer} Start it when you're ready; after {TRIAL.days} days you're back on Free unless you choose Plus or Max, and nothing ever charges without you choosing it. Invite a friend and you both get a month of Plus.</span>
+          <span>Every new account gets Max free for {TRIAL.days} days, from the moment you sign up. No card, nothing to cancel, nothing charges. After {TRIAL.days} days you choose what to keep; Free stays free.</span>
         </p>
+      </section>
+
+      <section className="landing-section landing-invite" aria-label="Bring a friend">
+        <h2 className="landing-h2">Bring a friend, both get a month</h2>
+        <p className="landing-lede">Everyone gets a link on their You page. When a friend signs up with yours, you both get Plus free for 30 days: Halo sync, real grades, and every announcement read for you.</p>
+        <p className="hint">Your month starts after any free week or paid plan you have, so none is wasted. Theirs starts after their own free week of Max. Invite as many friends as you like; each one adds another 30 days.</p>
       </section>
 
       <section className="landing-section landing-faq" aria-label="Questions">

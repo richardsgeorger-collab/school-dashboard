@@ -31,7 +31,7 @@ export function NotificationPlanner() {
     const userId = auth.userId;
     const t = setTimeout(async () => {
       const now = new Date().toISOString();
-      const notices = planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialEndsAt: profile?.trialEndsAt ?? null, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier) });
+      const notices = planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialStartedAt: profile?.friendFrom ? null : (profile?.trialStartedAt ?? null), trialEndsAt: profile?.trialEndsAt ?? null, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier) });
       // Upsert by each notice's key (one "morning note for Sep 25" per student, enforced by a unique index), then drop
       // unsent rows that are no longer planned. Overlapping runs converge instead of stacking duplicates, and a note
       // that was already sent keeps its sent_at, so it is never sent twice.

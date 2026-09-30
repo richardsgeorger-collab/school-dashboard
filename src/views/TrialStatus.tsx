@@ -1,3 +1,4 @@
+import { InviteBlock, InviteButton, INVITE_RULE, progressLine, useInviteProgress, useMyGrants } from '../referral/Invite';
 import { useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { Modal } from '../components/Modal';
@@ -78,6 +79,7 @@ export function TrialChip() {
   const { state, real, cal } = useTrial();
   const [open, setOpen] = useState(false);
   const { data } = useStore();
+  const plusAfter = usePlusAfter(cal?.endsAt);
   if (state !== 'active' || !real || !cal) return null;
   const tz = data.settings.timezone;
   return (
@@ -99,14 +101,23 @@ export function TrialChip() {
               ))}
             </ul>
             <h3>After it ends</h3>
-            <p className="hint">{trialEndSentence(cal, tz)}</p>
+            <p className="hint">{plusAfter ? `Then Plus, free until ${fmtDate(dateOf(plusAfter.ends, tz), 'long')}, from your friend's invite: Halo sync and every announcement read for you. The study tools lock unless you keep Max.` : trialEndSentence(cal, tz)}</p>
             <h3>Keep it</h3>
             <PlanChoices />
+            <h3>Or invite a friend</h3>
+            <InviteBlock />
           </div>
         </Modal>
       )}
     </>
   );
+}
+
+/** The Plus month from a friend's invite that follows the free week, if there is one. */
+function usePlusAfter(endsAt: string | null | undefined) {
+  const grants = useMyGrants();
+  if (!endsAt) return null;
+  return grants.find((g) => g.tier === 'plus' && Math.abs(new Date(g.starts).getTime() - new Date(endsAt).getTime()) < 36 * 3_600_000) ?? grants.find((g) => g.tier === 'plus' && new Date(g.starts).getTime() <= Date.now() && new Date(g.ends).getTime() > Date.now()) ?? null;
 }
 
 /** What the trial did, in numbers, from this device's own records. */
@@ -154,8 +165,12 @@ export function TrialEnded() {
   const { data, actions } = useStore();
   const tz = data.settings.timezone;
   const real = !!profile?.trialStartedAt && !!profile.trialEndsAt && !profile.friendFrom;
-  const ended = real && trialState(profile) === 'used' && tier === 'free' && !data.settings.trialEndSeen;
+  const plusAfter = usePlusAfter(profile?.trialEndsAt);
+  // Free after the week, or Plus from a friend's invite: either way one clear screen, once.
+  const onPlusGift = tier === 'plus' && !!plusAfter;
+  const ended = real && trialState(profile) === 'used' && (tier === 'free' || onPlusGift) && !data.settings.trialEndSeen;
   const n = useTrialNumbers(profile?.trialStartedAt, profile?.trialEndsAt);
+  const invites = useInviteProgress();
   if (!ended || !profile?.trialEndsAt) return null;
   const done = () => actions.updateSettings({ trialEndSeen: new Date().toISOString() });
   const numbers = n ? [
@@ -169,7 +184,8 @@ export function TrialEnded() {
       <div className="onboard-inner">
         <section className="onboard-step">
           <p className="eyebrow">Ended {fmtDate(dateOf(profile.trialEndsAt, tz), 'long')}</p>
-          <h1 className="onboard-title">Your free trial ended.</h1>
+          <h1 className="onboard-title">{onPlusGift ? 'Your free week of Max ended. Plus from your friend is on.' : 'Your free trial ended.'}</h1>
+          {onPlusGift && plusAfter && <p className="onboard-text">Plus is free until {fmtDate(dateOf(plusAfter.ends, tz), 'long')}: Halo sync, real grades, and every announcement read for you. No card; after that you choose again.</p>}
           {numbers.length > 0 && (
             <>
               <p className="onboard-text">What it did for you this week:</p>
@@ -185,9 +201,15 @@ export function TrialEnded() {
           )}
           <h3 className="section-title">What changes now</h3>
           <ul className="ended-list">
-            <li>Halo sync is paused. Due dates stay as they were at your last sync.</li>
-            <li>New announcements aren't read for you.</li>
-            <li>Study, Ask and Check are locked.</li>
+            {onPlusGift ? (
+              <li>Study, Ask and Check are locked. Halo sync and announcements keep going.</li>
+            ) : (
+              <>
+                <li>Halo sync is paused. Due dates stay as they were at your last sync.</li>
+                <li>New announcements aren't read for you.</li>
+                <li>Study, Ask and Check are locked.</li>
+              </>
+            )}
           </ul>
           <h3 className="section-title">What you keep</h3>
           <ul className="ended-list">
@@ -195,6 +217,15 @@ export function TrialEnded() {
             <li>Everything you added or checked off yourself.</li>
           </ul>
           <PlanChoices onFree={done} freeLabel="Stay on Free" />
+          {/* The fourth way on, as prominent as the plans (George, 2026-09-29): the most important invite spot. */}
+          <div className="plan-choice plan-choice-invite">
+            <span className="plan-choice-name">
+              <b>Not ready to pay? Invite a friend and you both get Plus free for 30 days.</b>
+              <span>{INVITE_RULE}</span>
+              {progressLine(invites) && <span className="invite-progress">{progressLine(invites)}</span>}
+            </span>
+            <InviteButton label="Invite a friend" />
+          </div>
           <p className="hint">Nothing charged, and nothing will unless you choose a plan.</p>
         </section>
       </div>
@@ -213,6 +244,8 @@ export type { Feature };
 export function TrialReminder() {
   const { state, real, cal, profile } = useTrial();
   const n = useTrialNumbers(profile?.trialStartedAt, null);
+  const { data } = useStore();
+  const plusAfter = usePlusAfter(cal?.endsAt);
   if (state !== 'active' || !real || !cal || cal.daysLeft > 2) return null;
   const last = cal.daysLeft === 1;
   const did = n ? [n.fromHalo ? `pulled ${n.fromHalo} assignments from Halo` : '', n.read ? `read ${n.read} announcement${n.read === 1 ? '' : 's'}` : '', n.found ? `found ${n.found} hidden requirement${n.found === 1 ? '' : 's'}` : '', n.answered ? `answered ${n.answered} question${n.answered === 1 ? '' : 's'}` : ''].filter(Boolean) : [];
@@ -220,7 +253,12 @@ export function TrialReminder() {
     <section className="card trial-receipts" aria-label="Your free trial">
       <p className="eyebrow">{last ? 'Last day of your free trial' : 'Your free trial ends in 2 days'}</p>
       {did.length > 0 && <p className="trial-lead">This week Halo+ {did.join(', ')}.</p>}
-      <p className="hint">{last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses, announcements aren't read, and Study locks. Everything you have stays. Nothing charges.</p>
+      <p className="hint">
+        {plusAfter
+          ? `${last ? 'Tomorrow' : 'After that'} your friend's invite gives you Plus, free until ${fmtDate(dateOf(plusAfter.ends, data.settings.timezone), 'long')}: sync and announcements keep going; Study locks unless you keep Max. Nothing charges.`
+          : `${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses, announcements aren't read, and Study locks. Everything you have stays. Nothing charges.`}
+      </p>
+      <InviteBlock headline="Not ready to pay? Invite a friend and you both get Plus free for 30 days." />
       <PlanChoices />
     </section>
   );

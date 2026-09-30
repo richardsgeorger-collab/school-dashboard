@@ -1228,3 +1228,120 @@
     display: inline;
   }
 }
+
+/* ---- The welcome gift (2026-09-29): celebratory, full screen, gold ---------------------------------------------- */
+.onboard:has(.gift) {
+  background:
+    radial-gradient(1200px 520px at 50% -8%, color-mix(in srgb, var(--accent) 34%, transparent), transparent 70%),
+    radial-gradient(700px 360px at 90% 110%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    var(--bg);
+}
+.gift {
+  gap: 18px;
+  text-align: left;
+}
+.gift-burst {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+}
+.gift-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+  border: 3px solid var(--accent);
+  animation: gift-ring 2.4s ease-out infinite;
+}
+.gift-bow {
+  font-size: 48px;
+  line-height: 1;
+  animation: gift-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes gift-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+@keyframes gift-pop {
+  from {
+    transform: scale(0.3) rotate(-12deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.gift-title {
+  font-size: clamp(34px, 6vw, 50px);
+}
+.gift-title::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 5px;
+  margin-top: 12px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.gift-lines li {
+  animation: story-in 0.45s ease both;
+}
+.gift-lines li:nth-child(2) { animation-delay: 0.08s; }
+.gift-lines li:nth-child(3) { animation-delay: 0.16s; }
+.gift-lines li:nth-child(4) { animation-delay: 0.24s; }
+.gift-lines li:nth-child(5) { animation-delay: 0.32s; }
+.gift-lines li:nth-child(6) { animation-delay: 0.4s; }
+.gift-after {
+  margin: 4px 0 0;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gift-ring,
+  .gift-bow,
+  .gift-lines li {
+    animation: none;
+  }
+}
+
+/* ---- After the first sync: the morning note and the Home Screen (2026-09-29) ------------------------------------ */
+.comeback-note {
+  display: grid;
+  gap: 2px;
+  max-width: 360px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-2);
+  font-size: 14px;
+  animation: story-in 0.5s ease both;
+}
+.comeback-note b {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .comeback-note {
+    animation: none;
+  }
+}
+.gift-invited {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  font-weight: 600;
+  text-align: center;
+}
