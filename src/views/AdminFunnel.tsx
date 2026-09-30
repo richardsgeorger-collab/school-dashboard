@@ -18,7 +18,7 @@ interface Funnel {
 
 /**
  * George's funnel for new accounts (2026-09-29): how many of the students who signed up in the window went on to
- * each step of the welcome week. Test accounts (@example.invalid) are left out on the server.
+ * each step of the welcome week. Real students only: the same test-account rule as Growth (migration 0021).
  */
 export function AdminFunnel() {
   const [days, setDays] = useState(30);
@@ -59,11 +59,11 @@ export function AdminFunnel() {
               {rows.map(([label, n, of]) => (
                 <tr key={label}>
                   <th scope="row">{label}</th>
-                  <td className="mono">{n}</td>
+                  <td className="num">{n}</td>
                   <td className="funnel-bar-cell">
                     <span className="funnel-bar" style={{ width: `${of ? Math.round((n / of) * 100) : 0}%` }} />
                   </td>
-                  <td className="mono muted">{of ? `${Math.round((n / of) * 100)}%` : '–'}</td>
+                  <td className="num muted">{of ? `${Math.round((n / of) * 100)}%` : '–'}</td>
                 </tr>
               ))}
             </tbody>
@@ -106,6 +106,9 @@ function Winback({ days }: { days: number }) {
         ['Out-of-date push', w.by_kind.stale],
       ]
     : [];
+  const empty = !!w && w.peek_syncs === 0 && rows.every(([, k]) => !k.sent && !k.opened && !k.upgrade_taps && !k.upgraded);
+  // One line until there is something to show (George, 2026-09-30).
+  if (empty) return <p className="hint winback-empty"><b>Win-back:</b> nothing sent or tapped yet in the last {days} days.</p>;
   return (
     <>
       <h3 className="section-title">Win-back</h3>
@@ -129,10 +132,10 @@ function Winback({ days }: { days: number }) {
               {rows.map(([label, k]) => (
                 <tr key={label}>
                   <th scope="row">{label}</th>
-                  <td className="mono">{label === 'Peek sync' ? '–' : k.sent}</td>
-                  <td className="mono">{label === 'Peek sync' ? '–' : k.opened}</td>
-                  <td className="mono">{k.upgrade_taps}</td>
-                  <td className="mono">{k.upgraded}</td>
+                  <td className="num">{label === 'Peek sync' ? '–' : k.sent}</td>
+                  <td className="num">{label === 'Peek sync' ? '–' : k.opened}</td>
+                  <td className="num">{k.upgrade_taps}</td>
+                  <td className="num">{k.upgraded}</td>
                 </tr>
               ))}
             </tbody>

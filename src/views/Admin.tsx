@@ -2,17 +2,13 @@ import { useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { EmptyState } from '../components/EmptyState';
-import { TIER_NAMES, TIERS, type Tier } from '../config/tiers';
 import { ResetEmailAdmin } from './ResetEmailAdmin';
 import { AdminFunnel } from './AdminFunnel';
 import { AdminErrors } from './AdminErrors';
+import { AdminGrowth } from './AdminGrowth';
+import { AdminAccounts } from './AdminAccounts';
 
 interface Stats {
-  users: number;
-  by_tier: Record<string, number> | null;
-  on_trial: number;
-  paying: number;
-  signups_7d: number;
   ai_cost_month: number;
   ai_calls_month: number;
   funnel: { step: string; event: string; n: number }[];
@@ -28,7 +24,6 @@ const STEPS = ['welcome', 'account', 'compare', 'offer', 'syllabus', 'halo', 'pr
 export function Admin() {
   const { auth, profile } = useAccount();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [trials, setTrials] = useState<{ started: number; running: number; ended: number; converted: number } | null>(null);
   const [usage, setUsage] = useState<{ key: string; n: number; people: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -39,7 +34,6 @@ export function Admin() {
       if (e) setError(e.message);
       else setStats(data as Stats);
     });
-    void c.rpc('admin_trials').then(({ data }) => data && setTrials(data as { started: number; running: number; ended: number; converted: number }));
     void c.rpc('admin_usage').then(({ data }) => Array.isArray(data) && setUsage(data as { key: string; n: number; people: number }[]));
   }, [profile?.isAdmin, tick]);
 
@@ -61,47 +55,11 @@ export function Admin() {
   return (
     <>
       <h1 className="page-title">Admin</h1>
-      <div className="settings-grid">
-        <AdminErrors />
+      <div className="settings-grid admin-grid">
+        <AdminGrowth tick={tick} />
+        <AdminAccounts onChange={() => setTick((k) => k + 1)} />
         <AdminFunnel />
-        <section className="card settings-card">
-          <h2 className="section-title">People</h2>
-          <dl className="grade-stats mono">
-            <div>
-              <dt>Accounts</dt>
-              <dd>{stats.users}</dd>
-            </div>
-            <div>
-              <dt>New this week</dt>
-              <dd>{stats.signups_7d}</dd>
-            </div>
-            <div>
-              <dt>On trial</dt>
-              <dd>{stats.on_trial}</dd>
-            </div>
-            <div>
-              <dt>Paying</dt>
-              <dd>{stats.paying}</dd>
-            </div>
-            {TIERS.map((t: Tier) => (
-              <div key={t}>
-                <dt>{TIER_NAMES[t]}</dt>
-                <dd>{stats.by_tier?.[t] ?? 0}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-        <section className="card settings-card">
-          <h2 className="section-title">Trials</h2>
-          {trials ? (
-            <p className="mono">
-              {trials.started} started · {trials.running} running · {trials.ended} ended · {trials.converted} went on to pay
-            </p>
-          ) : (
-            <p className="hint">Loading…</p>
-          )}
-          <p className="hint">One free seven-day trial (Max, which covers Plus) per account, started by the student, no card.</p>
-        </section>
+        <AdminErrors />
         <section className="card settings-card">
           <h2 className="section-title">What gets used</h2>
           {usage.length === 0 ? (
@@ -118,9 +76,9 @@ export function Admin() {
               <tbody>
                 {usage.slice(0, 40).map((u) => (
                   <tr key={u.key}>
-                    <td className="mono">{u.key}</td>
-                    <td className="mono">{u.n}</td>
-                    <td className="mono">{u.people}</td>
+                    <td>{u.key}</td>
+                    <td>{u.n}</td>
+                    <td>{u.people}</td>
                   </tr>
                 ))}
               </tbody>
@@ -129,9 +87,9 @@ export function Admin() {
         </section>
         <section className="card settings-card">
           <h2 className="section-title">AI this month</h2>
-          <p className="mono">
+          <p>
             ${Number(stats.ai_cost_month).toFixed(2)} across {stats.ai_calls_month} calls
-            {stats.paying > 0 ? ` · $${(Number(stats.ai_cost_month) / stats.paying).toFixed(2)} per paying account` : ''}
+            {' '}(every account, test ones included: it is what was spent)
           </p>
         </section>
         <section className="card settings-card">
@@ -149,9 +107,9 @@ export function Admin() {
               {STEPS.map((s) => (
                 <tr key={s}>
                   <td>{s}</td>
-                  <td className="mono">{count(s, 'enter')}</td>
-                  <td className="mono">{count(s, 'complete')}</td>
-                  <td className="mono">{count(s, 'skip')}</td>
+                  <td>{count(s, 'enter')}</td>
+                  <td>{count(s, 'complete')}</td>
+                  <td>{count(s, 'skip')}</td>
                 </tr>
               ))}
             </tbody>
@@ -160,10 +118,10 @@ export function Admin() {
         </section>
         <section className="card settings-card">
           <h2 className="section-title">Halo syncs</h2>
-          <p className="mono">
+          <p>
             Last 7 days: {Object.entries(stats.syncs_7d ?? {}).map(([k, v]) => `${v} on ${k}`).join(' · ') || 'none'}
           </p>
-          <p className="mono">
+          <p>
             Last 30 days: {stats.syncing_users_30d} accounts synced; {stats.phone_only_syncers} of them only ever from a phone.
           </p>
           <p className="hint">Phone-only students run the bookmark by hand every time. If that number grows, the phone flow needs to get shorter.</p>
@@ -178,7 +136,7 @@ export function Admin() {
               {stats.feedback_open.map((f) => (
                 <li key={f.id} className="feedback-row">
                   <p>
-                    <span className="mono muted">
+                    <span className="muted">
                       {f.kind} · {f.screen ?? '?'} · {f.created_at.slice(0, 10)}
                     </span>
                     <br />
