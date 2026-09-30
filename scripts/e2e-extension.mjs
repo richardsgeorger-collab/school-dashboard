@@ -111,7 +111,7 @@ try {
       if (process.env.DBG) { worker.on('console', (m) => console.log('   worker:', m.text().slice(0, 160))); halo.on('console', (m) => console.log('   halo:', m.text().slice(0, 160))); }
       const t0 = Date.now();
       await p.click('#sync');
-      for (let k = 0; k < 6; k++) { await p.waitForTimeout(5000); if (process.env.DBG) console.log('   progress', (k + 1) * 5, JSON.stringify(await worker.evaluate(() => chrome.storage.local.get(['progress', 'running']))), await worker.evaluate(() => chrome.tabs.query({}).then((t) => t.map((x) => `${x.id}:${(x.url || '').slice(8, 30)}:${x.active ? 'A' : ''}${x.discarded ? 'D' : ''}`).join(' ')))); }
+      for (let k = 0; k < 3; k++) { await p.waitForTimeout(4000); if (process.env.DBG) console.log('   progress', (k + 1) * 5, JSON.stringify(await worker.evaluate(() => chrome.storage.local.get(['progress', 'running']))), await worker.evaluate(() => chrome.tabs.query({}).then((t) => t.map((x) => `${x.id}:${(x.url || '').slice(8, 30)}:${x.active ? 'A' : ''}${x.discarded ? 'D' : ''}`).join(' ')))); }
       const mid = await p.evaluate(() => ({ step: document.getElementById('step').innerText, fill: document.getElementById('fill').style.width, disabled: document.getElementById('sync').disabled }));
       await p.screenshot({ path: `${OUT}/popup-${scheme}-2-syncing.png` });
       await until(async () => !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 12 * 60_000);
@@ -123,8 +123,8 @@ try {
       const codes = await cloudCodes(u.id);
       if (scheme === 'light') {
         check(!/mono|Menlo|Courier/i.test(font) && /Inter/.test(font), `the popup uses the app's font: ${font.split(',')[0]}`);
-        check(mid.disabled && /Reading|Finding|Checking|rubric/i.test(mid.step), `while it runs: real progress ("${mid.step}", bar ${mid.fill || 'moving'})`);
-        check(secs > 95 && !st.lastError && codes.join() === 'CHM-113,CHM-113L', `Sync now finished a ${secs}s sync with no error; classes landed: ${codes.join(', ')}`);
+        check(mid.disabled && /Reading|Checking|rubric|Finishing/i.test(mid.step), `while it runs: real progress ("${mid.step}", bar ${mid.fill || 'moving'})`);
+        check(!st.lastError && codes.join() === 'CHM-113,CHM-113L', `Sync now finished a ${secs}s sync with no error; classes landed: ${codes.join(', ')}`);
         check(/^Last synced \d{1,2}:\d{2}\s?[AP]M\s*Next sync around \d{1,2}:\d{2}\s?[AP]M$/.test(status), `the popup says "${status}"`);
       }
       await ctx.close();

@@ -240,9 +240,11 @@ describe('the guards themselves', () => {
   }
 
   it('every query result is parsed inside the guard that caught its request', () => {
-    // One try per gql call site, plus the per-class guard, plus the incidental ones.
-    expect((src.match(/await gql\(/g) ?? []).length).toBe(17);
-    for (const m of src.matchAll(/await gql\(/g)) {
+    // One try per gql call site, plus the per-class guard, plus the incidental ones. A class's independent queries
+    // start together (2026-09-30) and each is awaited, and parsed, inside its own guard.
+    expect((src.match(/await gql\(/g) ?? []).length).toBe(4);
+    expect((src.match(/=pre\(gql\(/g) ?? []).length).toBe(11);
+    for (const m of src.matchAll(/await (gql\(|P[GOCFRDN];|PAL;|PIB;|PIN;|PTs\[ti\];|Promise\.all\(fids)/g)) {
       const before = src.slice(0, m.index);
       const opens = (before.match(/try\s*\{/g) ?? []).length;
       const closes = (before.match(/catch\(e\)\{/g) ?? []).length;
@@ -263,7 +265,8 @@ describe('the guards themselves', () => {
 
   it('the per-class body is wrapped, so one bad class cannot end the run', () => {
     expect(src).toContain("}catch(e){prob(code,'this class',e);}");
-    expect(src.indexOf('for(var i=0;i<cls.length;i++)')).toBeLessThan(src.indexOf("prob(code,'this class',e)"));
+    expect(src.indexOf('var one=async function(c,i){')).toBeLessThan(src.indexOf("prob(code,'this class',e)"));
+    expect(src).toContain('await pool(2,cls,one);');
   });
 });
 

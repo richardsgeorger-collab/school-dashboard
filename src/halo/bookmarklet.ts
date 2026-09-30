@@ -172,6 +172,8 @@ if(!j||j.errors){var ms=[];var el=(j&&j.errors)||[];for(var ei=0;ei<el.length;ei
 throw fail(ms[0]||('Halo answered '+r.status),ms);}
 if(!j.data){throw fail('Halo returned no data for '+op);}
 return j.data;};
+var pre=function(p){p.catch(function(){return null;});return p;};
+var pool=async function(n,items,fn){var next=0;var run=async function(){while(next<items.length){var idx=next++;await fn(items[idx],idx);}};var ws=[];for(var w=0;w<Math.min(n,items.length);w++){ws.push(run());}await Promise.all(ws);};
 var noField=function(op,field){var E=new Error('Halo returned no '+field+' field');E.op=op;E.missingField=field;return E;};
 var Q1=${JSON.stringify(Q_CLASSES)};
 var Q2=${JSON.stringify(Q_GRADES)};
@@ -191,8 +193,9 @@ var Q12=${JSON.stringify(Q_INBOX)};
 var QS=${JSON.stringify(Q_SCHEMA)};
 var QT=${JSON.stringify(Q_TYPE)};
 var alerts;
-say('Reading your alerts and messages\u2026');
-try{var AD0=await gql('GetUserAlerts',Q11,{userAlerts:{pageSize:'200'}});if(!AD0||AD0.getUserAlerts===undefined){throw noField('GetUserAlerts','getUserAlerts');}var AL=AD0.getUserAlerts||{};var al2=AL.alerts||[];var aout=[];
+say('Reading your alerts, messages and classes\u2026');
+var PAL=pre(gql('GetUserAlerts',Q11,{userAlerts:{pageSize:'200'}}));var PIB=pre(gql('GetInboxLeftPanel',Q12,{}));var PCL=pre(gql('getCourseClassesForUser',Q1,{pgNum:1,pgSize:50}));var PIN=pre(gql('getCourseClassesForUser',Q3,{pgNum:1,pgSize:50}));
+try{var AD0=await PAL;if(!AD0||AD0.getUserAlerts===undefined){throw noField('GetUserAlerts','getUserAlerts');}var AL=AD0.getUserAlerts||{};var al2=AL.alerts||[];var aout=[];
 for(var ali=0;ali<al2.length;ali++){var AA=al2[ali];if(!AA)continue;var AD=AA.data||{};
 aout.push({id:AA.id,classId:AA.classId||null,type:AA.type||null,at:AA.timestamp||null,read:!!AA.isRead,title:AD.announcementTitle||AD.assignmentTitle||null,assessmentId:AD.assessmentId||null,sender:AD.senderName||null,forumId:AD.forumId||null,forumType:AD.forumType||null,announcementTitle:AD.announcementTitle||null,postId:AD.postId||null});}
 alerts=aout;}catch(e){alerts=undefined;prob(null,'alerts',e);}
@@ -203,52 +206,59 @@ if(!AF.announcementTitle&&String(AF.forumType||'').toUpperCase().indexOf('ANNOUN
 if(!alertForums[AF.classId]){alertForums[AF.classId]=[];}
 if(alertForums[AF.classId].indexOf(AF.forumId)<0){alertForums[AF.classId].push(AF.forumId);}}
 var msgs={};
-try{var ID0=await gql('GetInboxLeftPanel',Q12,{});if(!ID0||ID0.getInboxLeftPanel===undefined){throw noField('GetInboxLeftPanel','getInboxLeftPanel');}var IB=ID0.getInboxLeftPanel||[];
+try{var ID0=await PIB;if(!ID0||ID0.getInboxLeftPanel===undefined){throw noField('GetInboxLeftPanel','getInboxLeftPanel');}var IB=ID0.getInboxLeftPanel||[];
 for(var ib=0;ib<IB.length;ib++){var IC=IB[ib];if(!IC||!IC.courseClassId)continue;var mine=[];var ifs=IC.forums||[];
 for(var ifi=0;ifi<ifs.length;ifi++){var IF=ifs[ifi];if(!IF)continue;var IP=IF.posts||[];
 for(var ipi=0;ipi<IP.length;ipi++){var P2=IP[ipi];if(!P2)continue;var CB=P2.createdBy||{};var U2=CB.user||{};
 var nm=((U2.preferredFirstName||U2.firstName||'')+' '+(U2.lastName||'')).trim();
 mine.push({id:P2.id,forumId:IF.forumId||null,content:P2.content||'',publishedAt:P2.publishDate||null,author:nm||null,fromInstructor:String(CB.baseRoleName||'').toUpperCase().indexOf('STUDENT')<0});}}
 mine.sort(function(a,b){return String(b.publishedAt||'').localeCompare(String(a.publishedAt||''));});msgs[IC.courseClassId]=mine;}}catch(e){msgs={};prob(null,'inbox',e);}
-say('Finding your classes\u2026');
-var CD=await gql('getCourseClassesForUser',Q1,{pgNum:1,pgSize:50});
+var CD=await PCL;
 var cls=((CD&&CD.getCourseClassesForUser)||{}).courseClasses||[];
 if(!cls.length){throw new Error('Halo returned no classes. Open a class in Halo, then '+AGAIN+'.');}
 var names={};
-try{var ND0=await gql('getCourseClassesForUser',Q3,{pgNum:1,pgSize:50});if(!ND0||!ND0.getCourseClassesForUser){throw noField('getCourseClassesForUser','getCourseClassesForUser');}var ic=ND0.getCourseClassesForUser.courseClasses||[];
+try{var ND0=await PIN;if(!ND0||!ND0.getCourseClassesForUser){throw noField('getCourseClassesForUser','getCourseClassesForUser');}var ic=ND0.getCourseClassesForUser.courseClasses||[];
 for(var ii=0;ii<ic.length;ii++){if(ic[ii]&&ic[ii].id){names[ic[ii].id]=ic[ii].instructors||[];}}}catch(e){names={};prob(null,'instructor names',e);}
-var classes=[];
-for(var i=0;i<cls.length;i++){var c=cls[i];
-if(!c||!c.id){continue;}
+var classes=[];var slots=[];var started=0;
+/* Classes are read two at a time and each class's independent queries at once (2026-09-30: one after another, a real account took three minutes). Halo has no changed-since filter on these lists, so they are read whole, and this script keeps nothing on Halo's side between runs. The script is joined onto one line: block comments only. */
+var one=async function(c,i){
+if(!c||!c.id){return;}
 var code=c.courseCode||c.classCode||'a class';
-say('Reading '+code+' ('+(i+1)+' of '+cls.length+')\\u2026');
+say('Reading '+code+' ('+(++started)+' of '+cls.length+')\\u2026');
+var PG=pre(gql('AllAssessmentGrades',Q2,{courseClassSlugId:c.slugId,courseUnitId:null}));
+var PO=pre(gql('GradeOverview',QG,{courseClassSlugId:c.slugId}));
+var PC=pre(gql('ClassFacts',Q5,{slugId:c.slugId}));
+var PF=pre(gql('AssessmentFeedback',Q6,{courseClassSlugId:c.slugId,courseUnitId:null}));
+var PR=pre(gql('courseClassResources',Q7,{slugId:c.slugId}));
+var PD=pre(gql('AllDQForCourseClass',Q8,{courseClassId:c.id,sortBy:null,pgNum:1,pgSize:50}));
+var PN=pre(gql('GetForumNotifications',Q4b,{classId:c.id,filters:null}));
 var grades=[],cur=null,fin=undefined,pub=null,fb={},res,dqs,anns,rubricOf={},attachOf={},rubrics={},quizzes={},out=[],okRub=false,okFb=false,okQz=false;
 try{
-try{var g=await gql('AllAssessmentGrades',Q2,{courseClassSlugId:c.slugId,courseUnitId:null});if(!g||g.assessmentGrades===undefined){throw noField('AllAssessmentGrades','assessmentGrades');}
+try{var g=await PG;if(!g||g.assessmentGrades===undefined){throw noField('AllAssessmentGrades','assessmentGrades');}
 grades=((g.assessmentGrades&&g.assessmentGrades[0]&&g.assessmentGrades[0].grades)||[]);}catch(e){grades=[];prob(code,'grades',e);}
-try{var GO=await gql('GradeOverview',QG,{courseClassSlugId:c.slugId});if(!GO||GO.gradeOverview===undefined){throw noField('GradeOverview','gradeOverview');}
+try{var GO=await PO;if(!GO||GO.gradeOverview===undefined){throw noField('GradeOverview','gradeOverview');}
 var go0=(GO.gradeOverview&&GO.gradeOverview[0])||null;var F=go0&&go0.finalGrade;
 fin=F?{letter:F.gradeValue==null?null:String(F.gradeValue),points:F.finalPoints==null?null:F.finalPoints,maxPoints:F.maxPoints==null?null:F.maxPoints,published:!!F.isPublished}:null;
 pub={};var GR=(go0&&go0.grades)||[];for(var gi5=0;gi5<GR.length;gi5++){var G5=GR[gi5];if(G5&&G5.assessment&&G5.assessment.id){pub[G5.assessment.id]={status:G5.status||null,points:G5.finalPoints==null?null:G5.finalPoints};}}
 }catch(e){fin=undefined;pub=null;prob(code,'class grade',e);}
-try{var CC=await gql('ClassFacts',Q5,{slugId:c.slugId});if(!CC||CC.currentClass===undefined){throw noField('ClassFacts','currentClass');}cur=CC.currentClass||null;}catch(e){cur=null;prob(code,'class facts',e);}
-try{var fg=await gql('AssessmentFeedback',Q6,{courseClassSlugId:c.slugId,courseUnitId:null});if(!fg||fg.assessmentGrades===undefined){throw noField('AssessmentFeedback','assessmentGrades');}
+try{var CC=await PC;if(!CC||CC.currentClass===undefined){throw noField('ClassFacts','currentClass');}cur=CC.currentClass||null;}catch(e){cur=null;prob(code,'class facts',e);}
+try{var fg=await PF;if(!fg||fg.assessmentGrades===undefined){throw noField('AssessmentFeedback','assessmentGrades');}
 var fr=((fg.assessmentGrades&&fg.assessmentGrades[0]&&fg.assessmentGrades[0].grades)||[]);
 for(var fi2=0;fi2<fr.length;fi2++){var fgr=fr[fi2];if(fgr&&fgr.assessment&&fgr.assessment.id){fb[fgr.assessment.id]=fgr;}}
 okFb=true;}catch(e){fb={};okFb=false;prob(code,'instructor feedback',e);}
-try{var RD=await gql('courseClassResources',Q7,{slugId:c.slugId});if(!RD||RD.courseClassResources===undefined){throw noField('courseClassResources','courseClassResources');}var rc=RD.courseClassResources||{};var rout=[];
+try{var RD=await PR;if(!RD||RD.courseClassResources===undefined){throw noField('courseClassResources','courseClassResources');}var rc=RD.courseClassResources||{};var rout=[];
 var pushRes=function(list,unitTitle){var L2=list||[];for(var qi=0;qi<L2.length;qi++){var R=L2[qi];if(!R||R.instructorOnly)continue;
 var files=[];var inner=R.resources||[];for(var i3=0;i3<inner.length;i3++){var rr2=inner[i3]&&inner[i3].resource;if(rr2){files.push({id:rr2.id,name:rr2.name||'',kind:rr2.kind||null,type:rr2.type||null});}}
 rout.push({id:R.id,title:R.title||'',description:R.description||null,instructorAdded:!!R.instructorAdded,unit:unitTitle,files:files});}};
 pushRes(rc.resources,null);var ru=rc.units||[];
 for(var ui=0;ui<ru.length;ui++){if(ru[ui]){pushRes(ru[ui].resources,ru[ui].title||null);}}
 res=rout;}catch(e){res=undefined;prob(code,'class resources',e);}
-try{var DD=await gql('AllDQForCourseClass',Q8,{courseClassId:c.id,sortBy:null,pgNum:1,pgSize:50});if(!DD||DD.allDQForCourseClass===undefined){throw noField('AllDQForCourseClass','allDQForCourseClass');}var dl=DD.allDQForCourseClass||[];var dout=[];
+try{var DD=await PD;if(!DD||DD.allDQForCourseClass===undefined){throw noField('AllDQForCourseClass','allDQForCourseClass');}var dl=DD.allDQForCourseClass||[];var dout=[];
 for(var di=0;di<dl.length;di++){var DQ=dl[di];if(!DQ)continue;
 dout.push({forumId:DQ.forumId,title:DQ.title||'',description:DQ.description||null,startDate:DQ.startDate||null,dueDate:DQ.dueDate||null,totalPosts:DQ.totalPosts==null?null:DQ.totalPosts});}
 dqs=dout;}catch(e){dqs=undefined;prob(code,'discussions',e);}
 var af=null;
-try{var FN=await gql('GetForumNotifications',Q4b,{classId:c.id,filters:null});
+try{var FN=await PN;
 var fids=[];
 var reap=function(node){if(!node)return;
 var an=((node.forumTypes||{}).ANNOUNCEMENTS)||null;if(!an)return;
@@ -260,7 +270,8 @@ if(Array.isArray(top)){for(var z0=0;z0<top.length;z0++){reap(top[z0]);}}else{rea
 if(!fids.length&&alertForums[c.id]){for(var z5=0;z5<alertForums[c.id].length;z5++){if(fids.indexOf(alertForums[c.id][z5])<0){fids.push(alertForums[c.id][z5]);}}}
 if(!fids.length){var E2=new Error('getForumNotifications answered but named no announcement forum');E2.op='GetForumNotifications';E2.shape=JSON.stringify(FN||null).slice(0,600);throw E2;}
 var pooled=[];
-for(var z3=0;z3<fids.length&&z3<3;z3++){var PP=await gql('getDiscussionForumPosts',Q4c,{forumId:fids[z3],postId:null,depthStart:0,depthEnd:1});
+var PPs=await Promise.all(fids.slice(0,3).map(function(fid){return gql('getDiscussionForumPosts',Q4c,{forumId:fid,postId:null,depthStart:0,depthEnd:1});}));
+for(var z3=0;z3<PPs.length;z3++){var PP=PPs[z3];
 if(!PP||PP.Posts===undefined){throw noField('getDiscussionForumPosts','Posts');}var pl=PP.Posts||[];for(var z4=0;z4<pl.length;z4++){if(pl[z4]){pooled.push(pl[z4]);}}}
 af=[{forumId:fids[0],posts:pooled}];}catch(e){af=null;prob(code,'announcements',e);}
 try{if(af===null){var AN=await gql('GetAnnouncementsStudent',Q4,{courseClassId:c.id});if(!AN||AN.announcements===undefined){throw noField('GetAnnouncementsStudent','announcements');}af=AN.announcements||[];}var nout=[];
@@ -286,13 +297,15 @@ if(aa.length){attachOf[A2.id]=aa;}}}
 okRub=true;}}catch(e){rubricOf={};attachOf={};okRub=false;prob(code,'rubric list',e);}
 var rubricIds=[];for(var rk in rubricOf){if(Object.prototype.hasOwnProperty.call(rubricOf,rk)){rubricIds.push(rk);}}
 rubricIds=rubricIds.slice(0,${MAX_RUBRICS});
-for(var rq=0;rq<rubricIds.length;rq++){try{say('Reading '+code+' rubrics ('+(rq+1)+' of '+rubricIds.length+')\\u2026');
-var RB0=await gql('AssessmentRubric',Q9,{assessmentId:rubricIds[rq]});if(!RB0||RB0.assessmentRubric===undefined){throw noField('AssessmentRubric','assessmentRubric');}var RB=RB0.assessmentRubric;var RR=RB&&RB.rubric;
+var rubDone=0;
+await pool(4,rubricIds,async function(rid){try{
+say('Reading '+code+' rubrics ('+(++rubDone)+' of '+rubricIds.length+')\\u2026');
+var RB0=await gql('AssessmentRubric',Q9,{assessmentId:rid});if(!RB0||RB0.assessmentRubric===undefined){throw noField('AssessmentRubric','assessmentRubric');}var RB=RB0.assessmentRubric;var RR=RB&&RB.rubric;
 if(RR){var crit=[];var cl=RR.criteria||[];
 for(var ci=0;ci<cl.length;ci++){var C2=cl[ci];if(!C2)continue;var lv=[];var al=C2.achievementLevels||[];
 for(var li=0;li<al.length;li++){var L=al[li];if(L){lv.push({cellId:L.cellId,name:L.name||null,description:L.description||null,points:L.points==null?null:L.points});}}
 crit.push({id:C2.id,name:C2.name||'',description:C2.description||null,points:C2.points==null?null:C2.points,levels:lv});}
-rubrics[rubricIds[rq]]={id:RR.id,name:RR.name||null,criteria:crit};}}catch(e){prob(code,'rubric',e);}}
+rubrics[rid]={id:RR.id,name:RR.name||null,criteria:crit};}}catch(e){prob(code,'rubric',e);}});
 var quizIds=[];
 for(var qk in fb){if(Object.prototype.hasOwnProperty.call(fb,qk)&&fb[qk]&&fb[qk].userQuizAssessment&&fb[qk].userQuizAssessment.userQuizId){quizIds.push([qk,fb[qk].userQuizAssessment.userQuizId]);}}
 quizIds=quizIds.slice(0,${MAX_QUIZZES});
@@ -325,11 +338,13 @@ quiz:okQz?(quizzes[t.id]||null):undefined,
 feedback:okFb?feedbackOf(fb[t.id]):undefined});}}
 }catch(e){prob(code,'this class',e);}
 var who=(names[c.id]||[]).map(function(x){var u=x&&x.user;return u?((u.preferredFirstName||u.firstName||'')+' '+(u.lastName||'')).trim():'';}).filter(Boolean);
-classes.push({finalGrade:fin,id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',instructors:who,startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out,announcements:anns,resources:res,discussions:dqs,
+slots[i]=({finalGrade:fin,id:c.id,slugId:c.slugId,classCode:c.classCode||'',courseCode:c.courseCode||'',name:c.name||'',instructors:who,startDate:c.startDate||null,endDate:c.endDate||null,stage:c.stage||null,modality:c.modality||null,credits:c.credits==null?null:c.credits,assessments:out,announcements:anns,resources:res,discussions:dqs,
 gradeScale:(cur&&cur.gradeScale&&cur.gradeScale.entries)?cur.gradeScale.entries.filter(Boolean).map(function(E){return{label:E.label||'',minPercent:E.minPercent==null?null:E.minPercent,maxPercent:E.maxPercent==null?null:E.maxPercent};}):undefined,
 holidays:(cur&&cur.holidays)?cur.holidays.filter(function(H){return H&&H.active!==false;}).map(function(H){return{title:H.title||'',description:H.description||null,startDate:H.startDate||null,duration:H.duration==null?null:H.duration};}):undefined,
 participation:(cur&&cur.participationPolicy)?{description:cur.participationPolicy.description||null,days:cur.participationPolicy.numDays==null?null:cur.participationPolicy.numDays,posts:cur.participationPolicy.numPosts==null?null:cur.participationPolicy.numPosts}:undefined,
-messages:msgs[c.id]||[]});}
+messages:msgs[c.id]||[]});};
+await pool(2,cls,one);
+for(var si2=0;si2<slots.length;si2++){if(slots[si2]){classes.push(slots[si2]);}}
 var orch='';try{var NDx=document.getElementById('__NEXT_DATA__');var ND=NDx?JSON.parse(NDx.textContent):null;orch=(ND&&ND.runtimeConfig&&ND.runtimeConfig.orchestrationApiEndpoint)||'';if(!orch){throw new Error('No orchestrationApiEndpoint on the page');}}catch(e){orch='';prob(null,'rubric files',e);}
 if(orch){try{var want=[];
 for(var ci2=0;ci2<classes.length;ci2++){var AS=classes[ci2].assessments||[];
@@ -341,7 +356,7 @@ var DR=await fetch(orch+'downloadUrl/'+want[wi].resourceId,{method:'GET',headers
 var DJ=await DR.json();var du=(DJ&&(DJ.downloadUrl||(DJ.result&&DJ.result.downloadUrl)))||'';
 if(du){want[wi].downloadUrl=du;}}catch(e){prob(null,'rubric file',e);}}}catch(e){prob(null,'rubric files',e);}}
 var schema=null;
-if(problems.length){say('Asking Halo what its schema actually allows\\u2026');
+if(problems.length){say('Finishing up\\u2026');
 try{var SR=await gql('HaloSchemaProbe',QS,{});
 var qf=((((SR||{}).__schema||{}).queryType||{}).fields)||[];
 var nameOf=function(t){var n='',d=0;while(t&&d<4){if(t.name){n=t.name;}t=t.ofType;d++;}return n;};
@@ -352,7 +367,8 @@ if(want[F.name]){var ar=[];var al2=F.args||[];for(var ai3=0;ai3<al2.length;ai3++
 names.sort();
 schema={queryFields:names,ours:detail,types:{}};
 var probeTypes=['CourseClass','UserAlertsInputGQL','FilterInputGQL','Post'];
-for(var ti=0;ti<probeTypes.length;ti++){try{var TR=await gql('HaloTypeProbe',QT,{name:probeTypes[ti]});var T=(TR||{}).__type;
+var PTs=probeTypes.map(function(n){return pre(gql('HaloTypeProbe',QT,{name:n}));});
+for(var ti=0;ti<probeTypes.length;ti++){try{var TR=await PTs[ti];var T=(TR||{}).__type;
 if(T){var fl=[];var ff2=T.fields||T.inputFields||[];for(var fi3=0;fi3<ff2.length;fi3++){if(ff2[fi3]){fl.push(ff2[fi3].name);}}schema.types[probeTypes[ti]]=fl.sort();}}catch(e){schema.types[probeTypes[ti]]='could not read: '+((e&&e.message)||e);}}
 }catch(e){schema={introspection:'refused',why:(e&&e.message)?String(e.message).slice(0,300):String(e)};prob(null,'schema probe',e);}}
 var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:MODE==='open'?'bookmarklet':'extension',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','class grade','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};

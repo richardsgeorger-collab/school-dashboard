@@ -22,10 +22,9 @@ function fraction(text) {
   const t = text || '';
   // The first steps, before the classes: small, honest steps forward.
   if (/Checking your Halo login/i.test(t)) return 0.03;
-  if (/alerts and messages/i.test(t)) return 0.05;
-  if (/Finding your classes/i.test(t)) return 0.07;
+  if (/alerts, messages and classes/i.test(t)) return 0.06;
   if (/Sending|Sent/i.test(t)) return 0.98;
-  if (/schema|Read \d+ assignment/i.test(t)) return 0.95;
+  if (/Finishing up|Read \d+ assignment/i.test(t)) return 0.95;
   const m = /\((\d+) of (\d+)\)/.exec(t);
   if (!m) return null;
   const f = Number(m[1]) / Number(m[2]);
