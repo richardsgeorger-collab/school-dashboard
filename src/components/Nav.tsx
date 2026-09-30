@@ -45,7 +45,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <a href="#/now" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a href="#/now" className="brand" aria-label="Halo+, go to Now" style={{ textDecoration: 'none', color: 'inherit' }}>
           <span className="brand-mark" aria-hidden>
             <IconHalo />
           </span>
