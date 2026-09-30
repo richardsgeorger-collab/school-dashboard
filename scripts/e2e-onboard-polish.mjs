@@ -3,7 +3,7 @@
 //      under the frame, tabs that jump; the animation is the same.
 //   2. The gift screen: the Halo+ ring lights up in gold (SVG), no emoji anywhere in onboarding.
 //   3. The bookmarks bar step always shows (desktop), with "My bookmarks bar is already showing".
-//   4. The quiet invite line at the foot of Now: not on day one, not beside the invite card, dismissible for two weeks.
+//   4. The quiet invite line at the foot of Now: from day one, not beside the invite card, dismissible for two weeks.
 // Screens to docs/screens/onboard-polish/<device>-<scheme>/.
 //   KEYS_ENV=... BASE=http://localhost:4174/school-dashboard/ node scripts/e2e-onboard-polish.mjs
 import { randomUUID } from 'node:crypto';
@@ -149,9 +149,9 @@ const nowLine = async (name, device, scheme) => {
   }
   await ctx.close();
   if (name !== 'desk' || !main) return;
-  // Day one: nothing.
+  // From the first day (George, 2026-09-30).
   ({ ctx, page } = await seeded(0.3));
-  say(!(await page.$('.invite-line')), 'not in the first day');
+  say(!!(await page.$('.invite-line')), 'shows from the first day');
   await ctx.close();
   // Two weeks after putting it away: back.
   ({ ctx, page } = await seeded(20, { inviteLineAt: new Date(Date.now() - 15 * DAY).toISOString(), inviteCardAt: new Date().toISOString() }));

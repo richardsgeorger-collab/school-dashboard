@@ -88,12 +88,26 @@ describe('toItem', () => {
 
 describe('courses', () => {
   const courses = [mkCourse({ id: 'c1', code: 'CHM-113' }), mkCourse({ id: 'c2', code: 'CHM-113L' }), mkCourse({ id: 'c3', code: 'UNV-106', haloClassId: 'halo-unv' })];
-  it('matches by link, then code, then class-code prefix (longest wins)', () => {
+  it('matches by link, then code, then the class code with its section dropped; a lab is never its lecture', () => {
     expect(findCourse(courses, mkClass({ id: 'halo-unv', courseCode: 'XXX-999' }))?.id).toBe('c3');
     expect(findCourse(courses, mkClass({ id: 'x', courseCode: 'chm 113l' }))?.id).toBe('c2');
     expect(findCourse(courses, mkClass({ id: 'x', courseCode: '', classCode: 'CHM-113L-O500' }))?.id).toBe('c2');
     expect(findCourse(courses, mkClass({ id: 'x', courseCode: '', classCode: 'CHM-113-O500' }))?.id).toBe('c1');
     expect(findCourse(courses, mkClass({ id: 'x', courseCode: 'MAT-261' }))).toBeUndefined();
+    // The bug of 2026-09-30: with only the lecture in the planner, the lab matched it by prefix and was merged in.
+    const lectureOnly = [mkCourse({ id: 'c1', code: 'CHM-113' })];
+    expect(findCourse(lectureOnly, mkClass({ id: 'lab', courseCode: 'CHM-113L', classCode: 'CHM-113L-M600A' }))).toBeUndefined();
+    expect(findCourse(lectureOnly, mkClass({ id: 'lab', courseCode: '', classCode: 'CHM-113L-M600A' }))).toBeUndefined();
+    expect(findCourse([mkCourse({ id: 'e', code: 'ENG-105-ONL4' })], mkClass({ id: 'x', courseCode: 'ENG-105', classCode: 'ENG-105-ONL4' }))?.id).toBe('e');
+  });
+  it('a link to a lab merged into its lecture gives way when the lecture itself is in the export', () => {
+    const merged = [mkCourse({ id: 'c1', code: 'CHM-113', haloClassId: 'lab' })];
+    const lecture = mkClass({ id: 'lec', courseCode: 'CHM-113', classCode: 'CHM-113-WF700A' });
+    const lab = mkClass({ id: 'lab', courseCode: 'CHM-113L', classCode: 'CHM-113L-M600A' });
+    expect(findCourse(merged, lab, [lecture, lab])).toBeUndefined();
+    expect(findCourse(merged, lecture, [lecture, lab])?.id).toBe('c1');
+    // Without the lecture in the export the link still holds (a student who renamed the class's code).
+    expect(findCourse(merged, lab, [lab])?.id).toBe('c1');
   });
   it('links an existing course without touching its setup', () => {
     const c = toCourse(mkClass({ id: 'h', courseCode: 'CHM-113', name: 'Renamed' }), courses[0], { tz: TZ, now: NOW, index: 0 });
@@ -106,16 +120,21 @@ describe('courses', () => {
     const c = toCourse(mkClass({ id: 'h', courseCode: 'PHY-111', name: 'Physics', instructors: [{ name: 'Dr. Lee' }, null, 7, '  Dr. Kim '] as never }), undefined, { tz: TZ, now: NOW, index: 0 });
     expect(c.instructors.map((i) => i.name)).toEqual(['Dr. Lee', 'Dr. Kim']);
   });
-  it('creates a new course from Halo with known defaults', () => {
-    const c = toCourse(mkClass({ id: 'h', courseCode: 'ESG-162', name: 'Intro to Engineering', modality: 'ONLINE' }), undefined, { tz: TZ, now: NOW, index: 0 });
+  it('creates a new course from Halo with its own section\'s times, never a table of someone else\'s', () => {
+    const c = toCourse(mkClass({ id: 'h', courseCode: 'ESG-162', classCode: 'ESG-162-MW100A', name: 'Intro to Engineering', modality: 'ONGROUND' }), undefined, { tz: TZ, now: NOW, index: 0 });
     expect(c.code).toBe('ESG-162');
     expect(c.name).toBe('Intro to Engineering');
     expect(c.termStart).toBe('2026-09-08');
     expect(c.termEnd).toBe('2026-12-20');
-    expect(c.meetings.length).toBe(2);
+    expect(c.meetings).toEqual([{ day: 1, start: '13:00', end: '14:15' }, { day: 3, start: '13:00', end: '14:15' }]);
+    expect(c.meetingsFrom).toBe('section');
     expect(c.online).toBe(false);
-    const unknown = toCourse(mkClass({ id: 'h2', courseCode: 'MAT-261', modality: 'ONLINE' }), undefined, { tz: TZ, now: NOW, index: 1 });
-    expect(unknown.online).toBe(true);
+    // Online by modality (ESG-162 used to be given Tuesday and Thursday at 7 whatever Halo said).
+    const online = toCourse(mkClass({ id: 'h2', courseCode: 'ESG-162', classCode: 'ESG-162-ONL2', modality: 'ONLINE' }), undefined, { tz: TZ, now: NOW, index: 1 });
+    expect(online.online).toBe(true);
+    expect(online.meetings).toEqual([]);
+    const unknown = toCourse(mkClass({ id: 'h3', courseCode: 'MAT-261', modality: 'ONGROUND' }), undefined, { tz: TZ, now: NOW, index: 1 });
+    expect(unknown.online).toBe(false);
     expect(unknown.meetings).toEqual([]);
   });
 });

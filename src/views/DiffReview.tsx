@@ -146,7 +146,8 @@ export function DiffReview({
       const at = new Date().toISOString();
       // A class this sync is creating counts too: its announcements are kept under the id it is about to get, or a
       // new student's first sync (every class new) would lose every announcement and the reader would have nothing.
-      const known = [...data.courses, ...diff.courses.created];
+      // Linked first: a class re-pointed by this sync (a lecture taking its link back from a merged lab) wins.
+      const known = [...diff.courses.linked, ...diff.courses.created, ...data.courses];
       const courseIdOf = (classId: string, code: string) => known.find((c) => c.haloClassId === classId)?.id ?? known.find((c) => normCode(c.code) === normCode(code))?.id ?? null;
       const plan = referencePlan(diff, data);
       if (plan.facts.length > 0 || plan.courses.length > 0) actions.applyHaloSync(plan);
@@ -209,8 +210,8 @@ export function DiffReview({
   }, [autoApply, sel, kept]);
 
   const ChangeLine = ({ c }: { c: FieldChange }) => {
-    const label = c.field === 'dueAt' ? 'Due' : c.field === 'points' ? 'Points' : 'Title';
-    const f = (v: string | number | null) => (c.field === 'dueAt' && typeof v === 'string' ? when(v) : String(v ?? '—'));
+    const label = c.field === 'dueAt' ? 'Due' : c.field === 'points' ? 'Points' : c.field === 'course' ? 'Class' : 'Title';
+    const f = (v: string | number | null) => (c.field === 'dueAt' && typeof v === 'string' ? when(v) : c.field === 'course' ? (data.courses.find((x) => x.id === v)?.code ?? diff.courses.created.find((x) => x.id === v)?.code ?? '—') : String(v ?? '—'));
     return (
       <div className="diff-change">
         {label}: <span className="old">{f(c.from)}</span> → <mark>{f(c.to)}</mark>

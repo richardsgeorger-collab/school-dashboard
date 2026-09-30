@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { IconClose } from './Icons';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -7,6 +8,9 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
  * A sheet on a phone, a dialog on a laptop. Escape closes it, focus stays inside it while it is open (Tab wraps),
  * and focus goes back to whatever opened it when it closes. It focuses itself, not its first field, so opening a
  * sheet on a phone does not pop the keyboard; a field that wants focus on open says so with autoFocus.
+ *
+ * It renders at the body (2026-09-30): opened from inside the top bar, the trial sheet inherited that row's
+ * monospace 13px, its nowrap (text ran off the edge) and its stacking, and could not scroll.
  */
 export function Modal({ title, onClose, children, side = false }: { title: string; onClose: () => void; children: ReactNode; side?: boolean }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -42,7 +46,8 @@ export function Modal({ title, onClose, children, side = false }: { title: strin
     };
   }, [onClose]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} ref={panel} tabIndex={-1} data-side={side || undefined}>
         <div className="modal-head">
@@ -53,6 +58,7 @@ export function Modal({ title, onClose, children, side = false }: { title: strin
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

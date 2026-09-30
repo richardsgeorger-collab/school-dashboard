@@ -8,7 +8,6 @@ interface Funnel {
   from_friend_links: number;
   synced: number;
   notifications: number;
-  checklist: number;
   day2: number;
   day4: number;
   day7: number;
@@ -35,7 +34,6 @@ export function AdminFunnel() {
         ['Signed up', f.signed_up, f.signed_up],
         ['Synced Halo', f.synced, f.signed_up],
         ['Turned on notifications', f.notifications, f.signed_up],
-        ['Finished the checklist', f.checklist, f.signed_up],
         ['Active on day 2', f.day2, f.signed_up],
         ['Active on day 4', f.day4, f.signed_up],
         ['Active on day 7', f.day7, f.signed_up],

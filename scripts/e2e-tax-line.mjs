@@ -28,7 +28,7 @@ const newUser = async () => {
   return { id: data.user.id, session: s.session };
 };
 const lastPull = new Date(Date.now() - 8 * DAY).toISOString();
-const settingsOf = (extra = {}) => ({ timezone: 'America/Phoenix', lastPull: { at: lastPull, source: 'bookmarklet' }, onboarding: { startedAt: 'x', step: 'done', doneAt: lastPull, skippedAt: null, tourDoneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, welcomeList: { doneAt: 'x' }, ...extra });
+const settingsOf = (extra = {}) => ({ timezone: 'America/Phoenix', lastPull: { at: lastPull, source: 'bookmarklet' }, onboarding: { startedAt: 'x', step: 'done', doneAt: lastPull, skippedAt: null, tourDoneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, ...extra });
 const seedData = async (u, settings) => {
   const courseId = randomUUID();
   const now = new Date().toISOString();

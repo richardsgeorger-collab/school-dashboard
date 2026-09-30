@@ -20,12 +20,13 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function meetingSummary(c: Course): string {
   if (c.online) return 'Online';
   if (c.meetings.length === 0) return 'No meeting times';
-  return c.meetings
+  const slots = c.meetings
     .map((m) => {
       const s = hhmmToMinutes(m.start);
       return `${DAYS[m.day]} ${fmtClock(Math.floor(s / 60), s % 60)}`;
     })
     .join(' · ');
+  return c.meetingsFrom === 'section' ? `${slots} · from your Halo section` : slots;
 }
 
 function ClassCard({ course }: { course: Course }) {

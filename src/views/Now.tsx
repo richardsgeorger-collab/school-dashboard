@@ -1,5 +1,4 @@
 import { ExamWeekCard } from '../winback/ExamWeekCard';
-import { WelcomeChecklist } from './WelcomeChecklist';
 import { NotifyReask } from './NotifyReask';
 import { InviteLine, InviteNowCard } from './InviteNowCard';
 import { ParticipationWeek } from './ParticipationWeek';
@@ -732,7 +731,6 @@ export function Now() {
 
       <aside className="now-side">
         <ExamWeekCard />
-        <WelcomeChecklist onOpen={setOpen} />
         <NotifyReask />
         <InviteNowCard />
         {/* The trust line, always: when what is on screen last matched Halo, or that it is out of date, with the one button. */}

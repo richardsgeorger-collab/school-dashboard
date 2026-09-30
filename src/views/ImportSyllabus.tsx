@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Modal } from '../components/Modal';
-import { COURSE_DEFAULTS, PALETTE } from '../data/courseDefaults';
+import { PALETTE } from '../data/courseDefaults';
 import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
 import { TYPE_LABELS } from '../domain/types';
 import { parseGcuSyllabus, type ParsedSyllabus } from '../parser/gcuSyllabus';
@@ -23,7 +23,7 @@ export function ImportSyllabus({ onClose }: { onClose: () => void }) {
   const preview = useMemo(() => {
     if (!parsed) return null;
     const defaults =
-      existing ? { color: existing.color, meetings: existing.meetings, online: existing.online } : (COURSE_DEFAULTS[parsed.code] ?? { color: PALETTE[data.courses.length % PALETTE.length] });
+      existing ? { color: existing.color, meetings: existing.meetings, online: existing.online } : { color: PALETTE[data.courses.length % PALETTE.length] };
     return toAppData(parsed, { includeZeroPoint: includeZero, tz, defaults, existingCourseId: existing?.id });
   }, [parsed, includeZero, tz, existing, data.courses.length]);
 

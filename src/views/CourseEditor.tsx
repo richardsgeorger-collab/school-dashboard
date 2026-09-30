@@ -19,7 +19,8 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
   }, [course.id, course.code]);
   const matCount = mat ? mat.recordings + mat.decks + (mat.syllabus ? 1 : 0) : 0;
   const matWords = mat ? [mat.recordings ? `${mat.recordings} recording${mat.recordings === 1 ? '' : 's'}` : '', mat.decks ? `${mat.decks} slide deck${mat.decks === 1 ? '' : 's'}` : '', mat.syllabus ? 'the syllabus' : ''].filter(Boolean).join(', ') : '';
-  const set = <K extends keyof Course>(k: K, v: Course[K]) => setDraft((d) => ({ ...d, [k]: v }));
+  // Once the student touches the meetings they are theirs: a later sync leaves them alone.
+  const set = <K extends keyof Course>(k: K, v: Course[K]) => setDraft((d) => ({ ...d, [k]: v, ...(k === 'meetings' ? { meetingsFrom: null } : {}) }));
   const setMeeting = (idx: number, patch: Partial<Meeting>) =>
     set(
       'meetings',
@@ -107,6 +108,7 @@ export function CourseEditor({ course, onClose }: { course: Course; onClose: () 
         {!draft.online && (
           <div className="field">
             <span>Meetings</span>
+            {draft.meetingsFrom === 'section' && <p className="hint">Days and start times are from your Halo section code ({course.haloSlugId?.split('-')[2] ?? 'the section'}). The end time is Halo+'s usual guess: fix it here if it is off.</p>}
             {draft.meetings.map((m, idx) => (
               <div key={idx} className="meeting-edit">
                 <select value={m.day} onChange={(e) => setMeeting(idx, { day: Number(e.target.value) as Meeting['day'] })} aria-label="Day">

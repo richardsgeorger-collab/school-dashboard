@@ -47,7 +47,7 @@ const seed = async (u, { quiz = true } = {}) => {
   await admin.from('items').insert(items.map((i) => ({ id: i.id, user_id: u.id, data: i, updated_at: now })));
   await admin.from('settings').upsert({ user_id: u.id, updated_at: now, data: settingsOf() });
 };
-const settingsOf = () => ({ timezone: 'America/Phoenix', lastPull: { at: lastPullAt, source: 'bookmarklet' }, onboarding: { startedAt: 'x', step: 'done', doneAt: lastPullAt, skippedAt: null, tourDoneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, trialEndSeen: 'x', welcomeList: { doneAt: 'x' }, reminders: { pushEnabled: true, morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00' } });
+const settingsOf = () => ({ timezone: 'America/Phoenix', lastPull: { at: lastPullAt, source: 'bookmarklet' }, onboarding: { startedAt: 'x', step: 'done', doneAt: lastPullAt, skippedAt: null, tourDoneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, trialEndSeen: 'x', reminders: { pushEnabled: true, morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00' } });
 // What Halo has now: the quiz moved a day, two new assignments, one announcement asking for work, one that does not.
 const payload = () => ({ kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'grades', 'announcements'],
   classes: [{ id: 'hc-chm', slugId: 'chm', classCode: 'CHM-113-O500', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: ['Dr. Awad'], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 3,

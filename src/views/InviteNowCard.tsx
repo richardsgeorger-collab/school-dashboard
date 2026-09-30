@@ -38,18 +38,16 @@ export function InviteNowCard() {
 
 /**
  * The quiet reminder at the foot of Now (George, 2026-09-30): one muted line with a small gold icon, no card. One tap
- * opens the share sheet (a computer copies the message and link). Not in anyone's first day, not while the invite
- * card is up (never both), and put away for two weeks at a time.
+ * opens the share sheet (a computer copies the message and link). From the first day on; not while the invite card
+ * is up (never both); put away for two weeks at a time.
  */
 export function InviteLine() {
   const { data, actions } = useStore();
   const { auth, profile } = useAccount();
   const card = useInviteCardShown();
   const [said, setSaid] = useState<string | null>(null);
-  const started = profile?.trialStartedAt ?? data.settings.onboarding?.startedAt ?? null;
-  const since = started ? Date.now() - new Date(started).getTime() : 0;
   const put = data.settings.inviteLineAt ? Date.now() - new Date(data.settings.inviteLineAt).getTime() : Infinity;
-  if (!auth.session || !profile?.referralCode || card || since < DAY || put < 14 * DAY) return null;
+  if (!auth.session || !profile?.referralCode || card || put < 14 * DAY) return null;
   const code = profile.referralCode;
   return (
     <p className="invite-line">

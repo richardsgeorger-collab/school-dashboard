@@ -1,4 +1,5 @@
-import { COURSE_DEFAULTS, PALETTE } from '../data/courseDefaults';
+import { PALETTE } from '../data/courseDefaults';
+import { repairSetup, setupFromHalo } from './section';
 import { classifyItem } from '../domain/classify';
 import { dateOf, makeIso, zonedParts } from '../domain/dates';
 import { estimateMinutes } from '../domain/estimate';
@@ -193,17 +194,28 @@ export function toItem(a: HaloAssessment, course: Course, opts: ToItemOptions): 
   };
 }
 
-/** Existing class for a Halo class: by link, then course code, then the longest code the class code starts with. */
-export function findCourse(courses: Course[], c: HaloClass): Course | undefined {
-  const linked = courses.find((x) => x.haloClassId && x.haloClassId === c.id);
-  if (linked) return linked;
+/**
+ * The planner class a Halo class belongs to: the one linked to it, else the one with its course code, else the one
+ * whose code is its class code with the section dropped (ENG-105-ONL4 is ENG-105; CHM-113L-M600A is CHM-113L). A lab
+ * is never its lecture: until 2026-09-30 a class could also match any course its class code merely started with, and
+ * CHM-113L folded into CHM-113 on every account with a lab.
+ *
+ * A link is trusted unless the linked class carries a different course code AND another class in the same export
+ * carries the linked class's code exactly: that is a lab merged into its lecture by the old rule, and the lecture is
+ * the rightful owner, so the lab goes on to get a class of its own.
+ */
+export function findCourse(courses: Course[], c: HaloClass, others: readonly HaloClass[] = []): Course | undefined {
   const code = normCode(c.courseCode);
+  const linked = courses.find((x) => x.haloClassId && x.haloClassId === c.id);
+  if (linked) {
+    const linkedCode = normCode(linked.code);
+    const owner = code && linkedCode !== code && others.some((o) => o.id !== c.id && normCode(o.courseCode) === linkedCode);
+    if (!owner) return linked;
+  }
   const exact = code ? courses.find((x) => normCode(x.code) === code) : undefined;
   if (exact) return exact;
-  const cls = normCode(c.classCode);
-  return courses
-    .filter((x) => normCode(x.code).length >= 4 && cls.startsWith(normCode(x.code)))
-    .sort((a, b) => normCode(b.code).length - normCode(a.code).length)[0];
+  const key = courseKey(c.courseCode || c.classCode);
+  return key ? courses.find((x) => courseKey(x.code) === key) : undefined;
 }
 
 export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz: string; now: string; index: number; stampHalo?: boolean }): Course {
@@ -220,6 +232,7 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     // already known survives instead of being wiped.
     return {
       ...existing,
+      ...repairSetup(existing, c),
       haloSlugId: c.slugId,
       haloClassId: c.id,
       instructors,
@@ -231,7 +244,7 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     };
   }
   const code = c.courseCode?.trim() || c.classCode?.trim() || 'CLASS';
-  const d = COURSE_DEFAULTS[code.toUpperCase()] ?? {};
+  const setup = setupFromHalo(c);
   const today = dateOf(opts.now, opts.tz);
   const termStart = dateOf(parseHaloDate(c.startDate, opts.tz) ?? opts.now, opts.tz) || today;
   const termEnd = c.endDate ? dateOf(parseHaloDate(c.endDate, opts.tz) ?? opts.now, opts.tz) : termStart;
@@ -239,11 +252,12 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     id: stableId(`course|halo|${c.id}`),
     code,
     name: c.name?.trim() || code,
-    color: d.color ?? PALETTE[opts.index % PALETTE.length],
+    color: PALETTE[opts.index % PALETTE.length],
     credits: c.credits ?? 3,
     instructors: names.map((name) => ({ name, email: '' })),
-    meetings: d.meetings ?? [],
-    online: d.online ?? (c.modality === 'ONLINE' || c.modality === 'TRADONLINE'),
+    meetings: setup.meetings,
+    online: setup.online,
+    meetingsFrom: setup.meetingsFrom,
     haloSlugId: stamp ? c.slugId : null,
     haloClassId: stamp ? c.id : null,
     ...(c.gradeScale?.length ? { gradeScale: c.gradeScale } : {}),

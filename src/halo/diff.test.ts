@@ -185,3 +185,50 @@ describe('zone warning', () => {
     return mkExport([mkClass({ id: 'hc1', courseCode: 'CHM-113', assessments: [mkAssessment({ id: 'h1', title: 'Quiz 1', dueDate: '2026-09-15T06:59:00Z' })] })]);
   }
 });
+
+describe('a lecture and its lab (2026-09-30)', () => {
+  const grade = (letter: string, points: number, maxPoints: number) => ({ letter, points, maxPoints, published: true });
+  const lecture = mkClass({ id: 'lec', courseCode: 'CHM-113', classCode: 'CHM-113-WF700A', slugId: 'CHM-113-WF700A-20260908', name: 'General Chemistry I-Lecture', finalGrade: grade('A', 190, 200), assessments: [mkAssessment({ id: 'h-hw', title: 'Topic 5 Homework', points: 20 })] });
+  const lab = mkClass({ id: 'lab', courseCode: 'CHM-113L', classCode: 'CHM-113L-M600A', slugId: 'CHM-113L-M600A-20260908', name: 'General Chemistry I-Lab', finalGrade: grade('B-', 176, 215), assessments: [mkAssessment({ id: 'h-lab', title: 'Stoichiometry Lab', points: 30 })] });
+  it('a first sync makes two classes, each with its own grade and its own schedule', () => {
+    const diff = diffHalo(mkExport([lecture, lab]), mkData([], []), opts);
+    expect(diff.courses.created.map((c) => c.code)).toEqual(['CHM-113', 'CHM-113L']);
+    const [lec, lb] = diff.courses.created;
+    expect(lec.haloClassId).toBe('lec');
+    expect(lb.haloClassId).toBe('lab');
+    expect(lec.haloGrade?.letter).toBe('A');
+    expect(lb.haloGrade?.letter).toBe('B-');
+    expect(lec.meetings).toEqual([{ day: 3, start: '07:00', end: '08:15' }, { day: 5, start: '07:00', end: '08:15' }]);
+    expect(lb.meetings).toEqual([{ day: 1, start: '18:00', end: '20:50' }]);
+    expect(diff.added.map((e) => [e.item.title, e.course.code])).toEqual([['Topic 5 Homework', 'CHM-113'], ['Stoichiometry Lab', 'CHM-113L']]);
+  });
+  it('an account where the lab was merged into the lecture is repaired: the lab gets its class, its items move with their done marks, nothing is removed', () => {
+    // As the old rule left it: one class, named for the lecture, linked to the lab, holding both classes' items.
+    const mergedCourse = mkCourse({ id: 'c1', code: 'CHM-113', name: 'General Chemistry I-Lecture', haloClassId: 'lab', haloSlugId: 'CHM-113L-M600A-20260908', meetings: [{ day: 3, start: '07:00', end: '08:15' }, { day: 5, start: '07:00', end: '08:15' }] });
+    const items = [
+      mkItem({ id: haloItemId('h-hw'), courseId: 'c1', title: 'Topic 5 Homework', haloId: 'h-hw', source: 'halo', points: 20, notes: 'started it' }),
+      mkItem({ id: haloItemId('h-lab'), courseId: 'c1', title: 'Stoichiometry Lab', haloId: 'h-lab', source: 'halo', points: 30, status: 'done', completedAt: NOW, score: 28 }),
+    ];
+    for (const order of [[lecture, lab], [lab, lecture]]) {
+      const diff = diffHalo(mkExport(order), mkData([mergedCourse], items), opts);
+      expect(diff.courses.linked.map((c) => [c.code, c.haloClassId])).toEqual([['CHM-113', 'lec']]);
+      expect(diff.courses.created.map((c) => [c.code, c.haloClassId, c.name])).toEqual([['CHM-113L', 'lab', 'General Chemistry I-Lab']]);
+      expect(diff.missing).toEqual([]);
+      expect(diff.added).toEqual([]);
+      const moved = diff.changed.find((e) => e.existing.id === haloItemId('h-lab'));
+      expect(moved?.changes).toEqual([{ field: 'course', from: 'c1', to: diff.courses.created[0].id }]);
+      expect(moved?.next.status).toBe('done');
+      expect(moved?.next.score).toBe(28);
+      expect(diff.changed.find((e) => e.existing.id === haloItemId('h-hw'))).toBeUndefined();
+      expect(diff.unchanged.find((e) => e.existing.id === haloItemId('h-hw'))?.next.notes).toBe('started it');
+      // The lecture keeps its own grade now; the times it was given (the legacy table) match its section, so they stay.
+      expect(diff.courses.linked[0].haloGrade?.letter).toBe('A');
+      expect(diff.courses.created[0].haloGrade?.letter).toBe('B-');
+    }
+  });
+  it('an online ENG-105 that was given the legacy Wednesday and Friday times becomes online on the next sync', () => {
+    const eng = mkCourse({ id: 'e', code: 'ENG-105', haloClassId: 'eng', online: false, meetings: [{ day: 3, start: '11:00', end: '12:45' }, { day: 5, start: '11:00', end: '12:45' }] });
+    const diff = diffHalo(mkExport([mkClass({ id: 'eng', courseCode: 'ENG-105', classCode: 'ENG-105-ONL4', slugId: 'ENG-105-ONL4-20260914', modality: 'ONLINE' })]), mkData([eng], []), opts);
+    expect(diff.courses.linked[0]).toMatchObject({ online: true, meetings: [] });
+  });
+});

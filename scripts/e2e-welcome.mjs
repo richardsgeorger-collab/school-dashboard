@@ -1,6 +1,6 @@
 // The welcome week (2026-09-29), on the real backend with brand-new throwaway accounts: the automatic gift, the
 // fifteen seconds into the gift screen, Connect Halo, the payoff with a clear invite, the morning-note question, the
-// Home Screen on phones, the "Get the most out of your week" checklist, every invite spot, the fast-forward to day
+// Home Screen on phones, every invite spot, the fast-forward to day
 // 3 (invite card, the morning-note question once more), 2 days left, the last day and the end (with the invite as a
 // fourth option); then a student arriving through an invite link (the gift, then Plus from the friend). Desktop,
 // phone, iPad Safari and iPad Chrome, light and dark. Screens to docs/screens/welcome/<device>-<scheme>/.
@@ -114,15 +114,7 @@ const run = async (name, device, scheme) => {
   await page.waitForTimeout(1200);
   await page.goto(`${BASE}#/now`, { waitUntil: 'load' });
   await page.waitForTimeout(1500);
-  await page.locator('.welcome-list').scrollIntoViewIfNeeded().catch(() => undefined);
-  await shot('checklist');
-  const wl = await text('.welcome-list');
-  say(/Get the most out of your week/i.test(wl) && /1 of 4/.test(wl) && /Sync Halo/.test(wl) && /Turn on your morning note/.test(wl) && /Practice for/.test(wl) && /Open one requirement Max found/.test(wl), `the checklist on Now: "${wl.slice(0, 120)}…"`);
-  await page.click('.welcome-list a:has-text("Practice for")');
-  await page.waitForTimeout(1500);
-  await page.goto(`${BASE}#/now`, { waitUntil: 'load' });
-  await page.waitForTimeout(1200);
-  say(/2 of 4/.test(await text('.welcome-list')), 'Practice ticks itself: 2 of 4');
+  say(!(await page.$('.welcome-list')) && !/Get the most out of your week/i.test(await text('.now')), 'no checklist card on Now (removed 2026-09-30)');
   const chip = await text('.trial-chip');
   say(/^Max · 7 days( left)?$/.test(chip), `the chip: "${chip}"`);
   await page.click('.trial-chip');
@@ -246,7 +238,7 @@ const funnel = async (scheme) => {
   await p.locator('.admin-funnel').scrollIntoViewIfNeeded().catch(() => undefined);
   await p.screenshot({ path: `docs/screens/welcome/admin-funnel-${scheme}.png` });
   const t = await p.$eval('.admin-funnel', (e) => e.innerText).catch(() => '');
-  if (scheme === 'light') check(['Signed up', 'Synced Halo', 'Turned on notifications', 'Finished the checklist', 'Active on day 2', 'Active on day 4', 'Active on day 7', 'Invited a friend', 'Chose a plan at the end'].every((r) => t.includes(r)) && /came through a friend's invite link/.test(t), 'Admin: the new-account funnel, with referral signups');
+  if (scheme === 'light') check(['Signed up', 'Synced Halo', 'Turned on notifications', 'Active on day 2', 'Active on day 4', 'Active on day 7', 'Invited a friend', 'Chose a plan at the end'].every((r) => t.includes(r)) && /came through a friend's invite link/.test(t), 'Admin: the new-account funnel, with referral signups');
   await ctx.close();
 };
 

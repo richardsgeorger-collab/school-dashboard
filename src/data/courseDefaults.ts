@@ -1,35 +1,5 @@
-import type { Course } from '../domain/types';
-
-/** Known GCU course codes: colors and meeting times. Editable in Settings after import. */
-export const COURSE_DEFAULTS: Record<string, Partial<Course>> = {
-  'CHM-113': {
-    color: '#D95D39',
-    online: false,
-    meetings: [
-      { day: 3, start: '07:00', end: '08:15' },
-      { day: 5, start: '07:00', end: '08:15' },
-    ],
-  },
-  'CHM-113L': { color: '#2F6FDB', online: false, meetings: [{ day: 1, start: '18:00', end: '20:50' }] },
-  'ENG-105': {
-    color: '#1F9E89',
-    online: false,
-    meetings: [
-      { day: 3, start: '11:00', end: '12:45' },
-      { day: 5, start: '11:00', end: '12:45' },
-    ],
-  },
-  'ESG-162': {
-    color: '#7A5AD0',
-    online: false,
-    meetings: [
-      { day: 2, start: '07:00', end: '08:15' },
-      { day: 4, start: '07:00', end: '08:15' },
-    ],
-  },
-  'ESG-162L': { color: '#C9459A', online: false, meetings: [{ day: 2, start: '12:30', end: '14:20' }] },
-  'UNV-106': { color: '#B8860B', online: true, meetings: [] },
-};
+// The per-code timetable that used to live here (George's own six classes) gave every account his meeting times.
+// A class's days and start now come from its Halo section code (src/halo/section.ts); nothing here is per course.
 
 /** Validated categorical order (light surface). Assign in this order, never cycle. */
 export const PALETTE = ['#D95D39', '#2F6FDB', '#1F9E89', '#7A5AD0', '#C9459A', '#B8860B', '#5A6B7C', '#8A5A2B'];

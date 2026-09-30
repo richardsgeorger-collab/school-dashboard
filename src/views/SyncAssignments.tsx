@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CourseChip } from '../components/CourseChip';
 import { Modal } from '../components/Modal';
-import { COURSE_DEFAULTS, PALETTE } from '../data/courseDefaults';
+import { PALETTE } from '../data/courseDefaults';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { stableId } from '../domain/ids';
 import type { Course } from '../domain/types';
@@ -34,16 +34,15 @@ export function StaleLine({ stamp }: { stamp: string | null }) {
 }
 
 function newCourse(location: string, code: string, index: number, template: Course | undefined, now: string): Course {
-  const d = COURSE_DEFAULTS[code.toUpperCase()] ?? {};
   return {
     id: stableId(`course|ics|${location}|${code}`),
     code,
     name: location,
-    color: d.color ?? PALETTE[index % PALETTE.length],
+    color: PALETTE[index % PALETTE.length],
     credits: 3,
     instructors: [],
-    meetings: d.meetings ?? [],
-    online: d.online ?? false,
+    meetings: [],
+    online: false,
     termStart: template?.termStart ?? dateOf(now, 'America/Phoenix'),
     termEnd: template?.termEnd ?? dateOf(now, 'America/Phoenix'),
     updatedAt: now,

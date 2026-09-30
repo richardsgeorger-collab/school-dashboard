@@ -6,7 +6,7 @@ import { assessmentIssue, findCourse, hasZone, isSubmitted, normTitle, oddDueTim
 import type { HaloAssessment, HaloClass, HaloExport, HaloFeedback, HaloQuizResult, HaloRubric } from './types';
 
 export interface FieldChange {
-  field: 'dueAt' | 'points' | 'title';
+  field: 'dueAt' | 'points' | 'title' | 'course';
   from: string | number | null;
   to: string | number | null;
 }
@@ -149,6 +149,8 @@ export function mergeItem(existing: Item, next: Item, course: Course, now: strin
   const points = next.points > 0 ? next.points : existing.points;
   const merged: Item = {
     ...existing,
+    // An item follows its Halo class: one that a merged lab left under the lecture moves to the lab's own class.
+    courseId: course.id,
     title: next.title,
     label: existing.labelOverridden ? existing.label : shortLabel({ title: next.title, courseCode: course.code, type: existing.type }),
     haloId: next.haloId ?? existing.haloId ?? null,
@@ -183,6 +185,7 @@ export function changesBetween(existing: Item, merged: Item): FieldChange[] {
   if (!sameInstant(existing.dueAt, merged.dueAt)) out.push({ field: 'dueAt', from: existing.dueAt, to: merged.dueAt });
   if (existing.points !== merged.points) out.push({ field: 'points', from: existing.points, to: merged.points });
   if (normTitle(existing.title) !== normTitle(merged.title)) out.push({ field: 'title', from: existing.title, to: merged.title });
+  if (existing.courseId !== merged.courseId) out.push({ field: 'course', from: existing.courseId, to: merged.courseId });
   return out;
 }
 
@@ -212,10 +215,14 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
   };
   const courses = [...data.courses];
   let created = 0;
-  for (const c of payload.classes) {
-    if (c.stage && SKIP_STAGES.has(c.stage)) continue;
+  const classes = payload.classes.filter((c) => !(c.stage && SKIP_STAGES.has(c.stage)));
+  // Which class in this export each Halo assessment belongs to. An item filed under another class (a lab merged
+  // into its lecture before 2026-09-30) is claimed by its own class and moved, never counted as gone.
+  const claimedBy = new Map<string, string>();
+  for (const c of classes) for (const a of c.assessments ?? []) if (a.id) claimedBy.set(a.id, c.id);
+  for (const c of classes) {
     const source = opts.source ?? 'halo';
-    const existing = opts.resolveCourse ? opts.resolveCourse(c) : findCourse(courses, c);
+    const existing = opts.resolveCourse ? opts.resolveCourse(c) : findCourse(courses, c, classes);
     const known = !!existing && data.courses.some((x) => x.id === existing.id);
     const course = toCourse(c, existing, { tz, now, index: data.courses.length + created, stampHalo: source === 'halo' });
     if (existing && known) {
@@ -233,6 +240,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       created++;
     }
     const local = data.items.filter((i) => i.courseId === course.id);
+    const strays = source === 'halo' ? data.items.filter((i) => i.courseId !== course.id && !!i.haloId && claimedBy.get(i.haloId) === c.id) : [];
     const taken = new Set<string>();
     for (const a of c.assessments ?? []) {
       const raw = a.rawDue ?? a.dueDate;
@@ -250,7 +258,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
       // A posted score is a fact from the gradebook; it never depends on our own done flag.
       const score = a.score != null && Number.isFinite(a.score) ? a.score : null;
       const match = findMatch(
-        local.filter((i) => !taken.has(i.id)),
+        [...local, ...strays].filter((i) => !taken.has(i.id)),
         next,
         tz,
       );
@@ -274,6 +282,7 @@ export function diffHalo(payload: HaloExport, data: AppData, opts: DiffOptions):
     // Only items this path itself brought in can be "no longer in" its export.
     for (const i of local) {
       if (taken.has(i.id)) continue;
+      if (source === 'halo' && i.haloId && claimedBy.has(i.haloId) && claimedBy.get(i.haloId) !== c.id) continue;
       const linkedHere = source === 'ics' ? !!i.icsUid : !!i.haloId;
       if (linkedHere) diff.missing.push({ key: i.id, existing: i, course, suggestRemove: i.status === 'todo' });
       else diff.untouched.push(i);

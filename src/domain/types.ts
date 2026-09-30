@@ -36,6 +36,8 @@ export interface Course {
   credits: number;
   instructors: Instructor[];
   meetings: Meeting[];
+  /** 'section' when a sync read the days and start time from the Halo section code (the end time is assumed); null once the student edits them. */
+  meetingsFrom?: 'section' | null;
   online: boolean;
   /** Set when the class is linked to Halo. */
   haloSlugId?: string | null;
@@ -520,8 +522,6 @@ export interface Settings {
   reminders?: ReminderPrefs;
   /** The morning-note question after the first sync: declined once, it is asked once more on day 2, then never. */
   notifyAsk?: { declinedAt: string | null; asks: number } | null;
-  /** "Get the most out of your week" on Now: what was done by hand, and whether it was put away. */
-  welcomeList?: { practice?: string; requirement?: string; dismissedAt?: string; doneAt?: string } | null;
   /** The invite card on Now: when it was last put away (it comes back at most once a week). */
   inviteCardAt?: string | null;
   /** When the quiet invite line at the foot of Now was put away; it comes back two weeks later. */
