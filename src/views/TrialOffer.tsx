@@ -9,6 +9,8 @@ import { receiptsFrom, receiptsLine, type Receipts } from '../domain/receipts';
 import { pixel } from '../analytics/pixel';
 import { useStore } from '../storage/store';
 import { freshMax } from '../onboarding/maxState';
+import { dateOf, fmtDate } from '../domain/dates';
+import { usePlusAfter } from './TrialStatus';
 
 /**
  * The trial, offered where it means something and nowhere else: the first-sync payoff, a locked Max feature, one
@@ -109,13 +111,19 @@ export function TrialReceipts() {
   const { profile } = useAccount();
   const r = useReceipts();
   const days = trialDaysLeft(profile);
+  const plusAfter = usePlusAfter(profile?.trialEndsAt);
+  const { data } = useStore();
   if (trialState(profile) !== 'active' || days === null) return null;
   const line = r ? receiptsLine(r) : null;
   return (
     <section className="card trial-receipts" aria-label="Your free trial">
       <p className="eyebrow">{days <= 1 ? 'Your free trial ends tomorrow' : `Free trial · ${days} day${days === 1 ? '' : 's'} left`}</p>
       <p className="trial-lead">{line ?? 'Everything is on. Sync Halo and it starts reading your announcements.'}</p>
-      <p className="hint">Nothing charges when it ends. Everything you have stays; Halo sync and the study tools pause until you choose a plan.</p>
+      <p className="hint">
+        {plusAfter
+          ? `Nothing charges when it ends. Your friend's invite gives you Plus, free until ${fmtDate(dateOf(plusAfter.ends, data.settings.timezone), 'long')}: Halo sync and announcements keep going; the study tools pause unless you keep Max.`
+          : 'Nothing charges when it ends. Everything you have stays; Halo sync and the study tools pause until you choose a plan.'}
+      </p>
       <div className="settings-actions">
         <a className="btn small primary" href="#/you?s=plan&to=max">
           Keep Max, ${PRICES.max.month.toFixed(2)} a month

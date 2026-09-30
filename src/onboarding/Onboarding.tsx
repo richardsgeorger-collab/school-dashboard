@@ -228,7 +228,7 @@ export function Onboarding() {
         {step === 'halo' && !synced && path === 'ipad' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
 
         {/* A sync that lands on any screen (a student who clicked the bookmark early) goes straight to the payoff. */}
-        {synced && after === 'payoff' && <Payoff onStart={afterPayoff} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} />}
+        {synced && after === 'payoff' && <Payoff onStart={afterPayoff} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} invited={!!profile?.referredBy || !!pendingRef()} />}
         {synced && after === 'notify' && <NotifyAsk onNext={() => (isPhoneLike() ? set({ after: 'home' }) : finish())} />}
         {synced && after === 'home' && <HomeScreenAsk onNext={finish} />}
       </div>
@@ -239,12 +239,15 @@ export function Onboarding() {
 
 function Welcome({ onStart, signedOut }: { onStart: () => void; signedOut: boolean }) {
   const friend = pendingFriend();
+  // An invite link promised "you both get Plus free for 30 days": the first screen says it arrived.
+  const invited = !friend && !!pendingRef();
   return (
     <section className="onboard-step" aria-label="Welcome">
       <HaloDraw size={72} />
-      <p className="eyebrow">{friend ? 'A friend sent you Halo+' : 'The planner built for Halo'}</p>
+      <p className="eyebrow">{friend ? 'A friend sent you Halo+' : invited ? 'A friend invited you' : 'The planner built for Halo'}</p>
       <h1 className="onboard-title">See your real assignments in about two minutes.</h1>
       <p className="onboard-text">Halo+ pulls your classes, due dates and announcements from Halo and shows the one thing to do next. It never asks for your GCU password.</p>
+      {invited && <p className="onboard-text welcome-invited">Your invite is saved: a free week of Max, then 30 days of Plus free, for you and your friend.</p>}
       <div className="onboard-actions">
         <button type="button" className="btn primary" onClick={onStart}>
           Start
@@ -681,7 +684,7 @@ const whenSession = (label: string) => {
   return day === 'Today' || day === 'Tomorrow' ? day.toLowerCase() : `on ${day}`;
 };
 
-function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads }: { onStart: () => void; schedule: ReturnType<typeof useStore>['schedule']; today: string; tz: string; gift: { from: string; until: string } | null; onTrial: boolean; reads: boolean }) {
+function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads, invited = false }: { onStart: () => void; schedule: ReturnType<typeof useStore>['schedule']; today: string; tz: string; gift: { from: string; until: string } | null; onTrial: boolean; reads: boolean; invited?: boolean }) {
   const { data, courseById } = useStore();
   const reading = useReadStatus();
   const found = useCountUp(data.items.length);
@@ -774,7 +777,7 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads }: { onStar
         <InviteButton label="Invite a friend" primary={false} />
         <p className="hint">You both get Plus free for 30 days, after your free weeks.</p>
       </div>
-      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free week of Max is on. {TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync, announcements and the study tools are Max; try it free for 7 days any time from You.</p> : null}
+      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free week of Max is on. {invited ? "Then 30 days of Plus free, from your friend's invite." : TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync, announcements and the study tools are Max; try it free for 7 days any time from You.</p> : null}
     </section>
   );
 }

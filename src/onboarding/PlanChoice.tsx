@@ -204,8 +204,12 @@ export function Gift({ onNext, invited = false }: { onNext: () => void; invited?
           </li>
         ))}
       </ul>
-      {invited && <p className="gift-invited">Then 30 days of Plus free, from your friend's invite.</p>}
-      <p className="gift-after">After 7 days you choose what to keep. Free stays free.</p>
+      {invited ? (
+        // Not "you choose what to keep": an invited student moves to Plus on day 8 without doing anything.
+        <p className="gift-invited">Then 30 days of Plus free, from your friend's invite. After that you choose what to keep.</p>
+      ) : (
+        <p className="gift-after">After 7 days you choose what to keep. Free stays free.</p>
+      )}
       <button type="button" className="btn primary block offer-go" onClick={onNext}>
         Connect Halo
       </button>

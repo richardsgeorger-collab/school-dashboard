@@ -116,7 +116,7 @@ export function TrialChip() {
 }
 
 /** The Plus month from a friend's invite that follows the free week, if there is one. */
-function usePlusAfter(endsAt: string | null | undefined) {
+export function usePlusAfter(endsAt: string | null | undefined) {
   const grants = useMyGrants();
   if (!endsAt) return null;
   return grants.find((g) => g.tier === 'plus' && Math.abs(new Date(g.starts).getTime() - new Date(endsAt).getTime()) < 36 * 3_600_000) ?? grants.find((g) => g.tier === 'plus' && new Date(g.starts).getTime() <= Date.now() && new Date(g.ends).getTime() > Date.now()) ?? null;
