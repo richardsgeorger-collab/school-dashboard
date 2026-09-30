@@ -3416,7 +3416,8 @@ button {
   left: 50%;
   bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
   transform: translateX(-50%);
-  z-index: 70;
+  /* Above the page and the tab bar, under any open sheet (40): it covered a sheet's buttons on phones (audit). */
+  z-index: 35;
   width: min(92vw, 560px);
   background: var(--surface);
   color: var(--ink);
