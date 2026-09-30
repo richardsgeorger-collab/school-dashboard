@@ -3,10 +3,14 @@
 // otherwise one it opens quietly in the background and closes after) and carries the export to Halo+.
 //
 // It never interrupts (George, 2026-09-30): a scheduled sync opens no window, focuses nothing and shows no review
-// sheet (the app applies it quietly with an Undo note). If no Halo+ tab is open, the export waits here and is handed
-// over the next time Halo+ opens. Logged out of Halo is not an error to nag about: the popup says so, and the next
-// scheduled run tries again.
-import { DASH_ORIGIN, DASH_URL, PERIOD_MINUTES } from './config.js';
+// sheet (the app applies it quietly with an Undo note). Logged out of Halo is not an error to nag about: the popup
+// says so, and the next scheduled run tries again.
+//
+// Every sync goes to the account first (the pending slot the iPad bookmark uses), so it lands with no Halo+ tab open;
+// an open tab is told to take it now, and a closed Halo+ takes it when it next opens. Only when the account cannot be
+// reached does the export wait here instead, and "Last synced" is written only for a sync that landed (2026-09-30:
+// a 6:08 AM sync read Halo, found no Halo+ tab, was lost, and the popup still said "Last synced 6:08 AM").
+import { DASH_ORIGIN, DASH_URL, DROP_URL, PERIOD_MINUTES } from './config.js';
 
 const PAID = ['plus', 'pro', 'max'];
 const HALO = 'https://halo.gcu.edu/';
@@ -30,7 +34,11 @@ async function ensureSchedule() {
   if (due) await chrome.alarms.create(ALARM, { delayInMinutes: 1, periodInMinutes: PERIOD_MINUTES });
   else if (!alarm) await chrome.alarms.create(ALARM, { when: new Date(lastSyncAt).getTime() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
 }
-chrome.runtime.onInstalled.addListener(() => void ensureSchedule());
+chrome.runtime.onInstalled.addListener(async (d) => {
+  // Before 0.3.0 a sync was stamped "Last synced" whether or not it reached Halo+; that time cannot be trusted.
+  if (d.reason === 'update' && d.previousVersion && d.previousVersion < '0.3.0') await chrome.storage.local.remove(['lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt']);
+  await ensureSchedule();
+});
 chrome.runtime.onStartup.addListener(() => void ensureSchedule());
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -48,6 +56,14 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg.kind === 'tier') {
     void set({ tier: msg.tier }).then(ensureSchedule);
     reply({ ok: true });
+  } else if (msg.kind === 'key') {
+    // The signed-in account's sync key, from an open Halo+ tab: it can drop a sync into that account and nothing else.
+    void set({ syncKey: msg.key || null }).then(() => msg.key && sendWaiting());
+    reply({ ok: true });
+  } else if (msg.kind === 'landed') {
+    // An open Halo+ tab took a kept export by hand.
+    void markLanded(msg.exportedAt, 'tab');
+    reply({ ok: true });
   } else if (msg.kind === 'halo-progress') {
     state.lastProgressAt = Date.now();
     void set({ progress: msg.text });
@@ -61,13 +77,22 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     else void finish(msg.payload, true);
     reply({ ok: true });
   } else if (msg.kind === 'take-waiting') {
-    // A Halo+ tab just opened: hand it the export a scheduled sync kept for it.
-    void get('waiting').then(({ waiting }) => {
-      if (waiting) void chrome.storage.local.remove('waiting');
+    // A Halo+ tab just opened: an export kept here goes to the account (the tab takes it from there), or, when the
+    // account still cannot be reached, straight to the tab.
+    void (async () => {
+      if (msg.key) await set({ syncKey: msg.key });
+      const { waiting } = await get('waiting');
+      if (!waiting) return reply({});
+      await chrome.storage.local.remove('waiting');
       // Older than half a day: the next sync is fresher than this one, so it is dropped rather than applied late.
-      const fresh = waiting && Date.now() - new Date(waiting.exportedAt).getTime() < 12 * 3_600_000;
-      reply({ payload: fresh ? waiting : null });
-    });
+      if (Date.now() - new Date(waiting.exportedAt).getTime() > 12 * 3_600_000) return reply({});
+      const saved = await toAccount(waiting);
+      if (saved.ok) {
+        await markLanded(waiting.exportedAt, 'account');
+        return reply({ pending: true });
+      }
+      reply({ payload: waiting });
+    })();
     return true;
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
@@ -165,48 +190,110 @@ async function failed(e, auto) {
   if (!auto && !e.quiet) await chrome.action.setBadgeText({ text: '!' });
 }
 
-async function finish(payload, auto) {
-  payload.auto = auto;
-  // Every sync restarts the three hours from now: a Sync now just after install otherwise left the first alarm a
-  // minute away, and the popup said "Last synced 2:19 AM · Next sync around 2:19 AM" (2026-09-30).
+const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const countsOf = (payload) => ({ classes: payload.classes.length, assignments: payload.classes.reduce((n, c) => n + (c.assessments || []).length, 0) });
+
+/** Into the account's pending slot on the server. { ok } or { ok: false, why } in words. */
+async function toAccount(payload) {
+  const { syncKey } = await get('syncKey');
+  if (!syncKey) return { ok: false, kind: 'no-key' };
+  try {
+    const r = await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, payload, via: 'extension' }) });
+    const j = await r.json().catch(() => null);
+    if (r.ok && j && j.ok) return { ok: true };
+    return { ok: false, kind: 'refused', why: (j && j.why) || `Halo+ answered ${r.status}` };
+  } catch {
+    return { ok: false, kind: 'offline' };
+  }
+}
+
+/** A sync reached the account (or an open Halo+ tab): now, and only now, it is "Last synced". */
+async function markLanded(readAt, how) {
+  await set({ lastSyncAt: readAt, lastLanded: how, lastError: null, lastErrorKind: null });
   await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
-  const where = await deliver(payload, auto);
-  await set({
-    lastSyncAt: new Date().toISOString(),
-    lastError: where === 'failed' ? 'Halo+ did not take the sync. Open Halo+ and press Sync now again.' : null,
-    lastErrorKind: where === 'failed' ? 'delivery' : null,
-    lastCounts: { classes: payload.classes.length, assignments: payload.classes.reduce((n, c) => n + (c.assessments || []).length, 0) },
-  });
   await chrome.action.setBadgeText({ text: '' });
 }
 
-/** To an open Halo+ tab (focused only for Sync now); with none open, a scheduled sync waits here, Sync now opens one. */
-async function deliver(payload, auto) {
-  let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;
-  if (!tab) {
-    if (auto) {
-      await set({ waiting: payload });
-      return 'waiting';
-    }
-    tab = await chrome.tabs.create({ url: DASH_URL, active: true });
-    await waitForLoad(tab.id);
-    await sleep(1200);
-  } else if (!auto) {
-    await chrome.tabs.update(tab.id, { active: true });
-    await chrome.windows.update(tab.windowId, { focused: true }).catch(() => undefined);
-  }
+/** Tells every open Halo+ tab a sync is waiting in the account, so it takes it now. */
+async function pingTabs() {
+  const tabs = await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` });
+  for (const t of tabs) chrome.tabs.sendMessage(t.id, { kind: 'pending' }).catch(() => undefined);
+  return tabs;
+}
+
+/** An export kept here goes to the account the moment there is a key to send it with. */
+async function sendWaiting() {
+  const { waiting } = await get('waiting');
+  if (!waiting) return;
+  const saved = await toAccount(waiting);
+  if (!saved.ok) return;
+  await chrome.storage.local.remove('waiting');
+  await markLanded(waiting.exportedAt, 'account');
+  await pingTabs();
+}
+
+async function finish(payload, auto) {
+  payload.auto = auto;
+  const readAt = payload.exportedAt || new Date().toISOString();
+  await set({ lastCounts: countsOf(payload) });
+  const r = await land(payload, auto);
+  if (r.landed) return markLanded(readAt, r.how);
+  const at = clock(readAt);
+  const text =
+    r.kind === 'no-key'
+      ? `Read Halo at ${at}, but it could not go to your account yet: open Halo+ on this computer, signed in, and it goes in.`
+      : r.kind === 'offline'
+        ? `Read Halo at ${at}, but your Halo+ account could not be reached (no connection). It is kept here and goes in when Halo+ opens.`
+        : `Read Halo at ${at}, but it did not reach your account: ${String(r.why || 'unknown error').replace(/\.$/, '')}. It is kept here; press Sync now to try again.`;
+  await set({ lastError: text, lastErrorKind: 'not-landed', lastErrorAt: new Date().toISOString() });
+  if (!auto) await chrome.action.setBadgeText({ text: '!' });
+}
+
+/** Hands an export to one open Halo+ tab; true when the app said it has it. */
+async function handTo(tab, payload) {
   for (let attempt = 0; attempt < 8; attempt++) {
     try {
       const r = await chrome.tabs.sendMessage(tab.id, { kind: 'deliver', payload });
-      if (r && r.ok) return 'delivered';
+      if (r && r.ok) return true;
     } catch {
       /* the content script is not there yet */
     }
     await sleep(1000);
   }
-  if (auto) {
-    await set({ waiting: payload });
-    return 'waiting';
+  return false;
+}
+
+async function openDash() {
+  const tab = await chrome.tabs.create({ url: DASH_URL, active: true });
+  await waitForLoad(tab.id);
+  await sleep(1200);
+  return tab;
+}
+
+/**
+ * The account first; an open Halo+ tab is told to take it now. Sync now also brings Halo+ to the front. Without the
+ * account: an open tab by hand, or, for Sync now, a new Halo+ tab; a scheduled sync that has neither waits here.
+ */
+async function land(payload, auto) {
+  const saved = await toAccount(payload);
+  if (saved.ok) {
+    await chrome.storage.local.remove('waiting');
+    const tabs = await pingTabs();
+    if (!auto) {
+      if (tabs[0]) {
+        await chrome.tabs.update(tabs[0].id, { active: true });
+        await chrome.windows.update(tabs[0].windowId, { focused: true }).catch(() => undefined);
+      } else await chrome.tabs.create({ url: DASH_URL, active: true });
+    }
+    return { landed: true, how: 'account' };
   }
-  return 'failed';
+  let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;
+  if (tab && !auto) {
+    await chrome.tabs.update(tab.id, { active: true });
+    await chrome.windows.update(tab.windowId, { focused: true }).catch(() => undefined);
+  }
+  if (!tab && !auto) tab = await openDash();
+  if (tab && (await handTo(tab, payload))) return { landed: true, how: 'tab' };
+  await set({ waiting: payload });
+  return { landed: false, kind: saved.kind, why: saved.why };
 }

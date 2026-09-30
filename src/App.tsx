@@ -10,7 +10,7 @@ import { BottomNav, TopBar } from './components/Nav';
 import { TimeAsk } from './components/TimeAsk';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
-import { takePending } from './halo/serverSync';
+import { loadSyncKey, SYNC_KEY_SLOT, takePending } from './halo/serverSync';
 import { HaloImport } from './views/HaloImport';
 import { QuickCapture } from './views/QuickCapture';
 import { Palette } from './views/Palette';
@@ -91,20 +91,56 @@ function HaloHandoff() {
   useHaloHandoff(receive);
   // A sync the bookmark dropped on the server (iPad, phones): picked up on load, when the tab comes back, and when the
   // bookmark sends the student here with ?pending=1. Only ever there when the server path is on for them.
+  // The Chrome extension drops every sync there too (2026-09-30), so it lands with Halo+ closed, and pings an open tab
+  // to take it now. One older than what this planner already has is taken and skipped, never applied over it.
   const pendingParam = params.get('pending') === '1';
   const { auth: account, planKnown } = useAccount();
+  const lastAt = useRef<string | null>(null);
+  lastAt.current = data.settings.lastPull?.at ?? null;
   useEffect(() => {
     if (!account.session) return;
     let live = true;
-    const look = () => void takePending().then((p) => live && p && receive(p)).catch(() => undefined);
+    const look = () =>
+      void takePending()
+        .then((p) => {
+          if (!live || !p) return;
+          if (lastAt.current && p.exportedAt && Date.parse(p.exportedAt) < Date.parse(lastAt.current)) return;
+          receive(p);
+        })
+        .catch(() => undefined);
     look();
     const onShow = () => document.visibilityState === 'visible' && look();
+    const onPing = (e: MessageEvent) => e.origin === window.location.origin && (e.data as { kind?: string } | null)?.kind === 'halo-pending' && look();
     document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('message', onPing);
     return () => {
       live = false;
       document.removeEventListener('visibilitychange', onShow);
+      window.removeEventListener('message', onPing);
     };
   }, [account.session, pendingParam, receive]);
+  // The account's sync key, for the Chrome extension on this computer (its content script reads it here): with it the
+  // extension drops each sync into this account. It can drop off a sync and nothing else. Gone when signed out.
+  const userId = account.session?.user.id ?? null;
+  useEffect(() => {
+    if (!userId) {
+      if (!account.loading) {
+        try {
+          localStorage.removeItem(SYNC_KEY_SLOT);
+        } catch {
+          /* storage unavailable */
+        }
+      }
+      return;
+    }
+    void loadSyncKey(true).then((k) => {
+      try {
+        if (k) localStorage.setItem(SYNC_KEY_SLOT, k.key);
+      } catch {
+        /* storage unavailable */
+      }
+    });
+  }, [userId, account.loading]);
   useEffect(() => {
     if (!expecting || payload) {
       setWaiting(false);
@@ -134,7 +170,9 @@ function HaloHandoff() {
           )}
         >
           {access.allowed ? (
-            <HaloImport payload={payload} onClose={() => setPayload(null)} auto={firstSync} background={!firstSync && payload.source === 'extension' && !!payload.auto} />
+            // Every extension sync (scheduled or Sync now, straight from the tab or from the account) applies the safe
+            // part quietly with Undo; removals wait for the student's OK behind a Review button.
+            <HaloImport payload={payload} onClose={() => setPayload(null)} auto={firstSync} background={!firstSync && payload.source === 'extension'} />
           ) : (
             // Sync is off (Free): nothing is applied; the student sees what their own Halo holds that the planner
             // does not, counted, with the ways to bring it in (win-back peek, 2026-09-29).

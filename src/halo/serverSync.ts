@@ -9,6 +9,9 @@ import type { HaloExport } from './types';
  * the server, and this app picks it up. The key that lets a bookmark drop it off is the student's own; it is only put
  * in a bookmark while the server path is switched on for them, so everyone else keeps today's bookmark exactly.
  */
+/** Where the app leaves the account's sync key for the Chrome extension on this computer. */
+export const SYNC_KEY_SLOT = 'school-dashboard:sync-key';
+
 export const dropUrl = (): string => (ENV.SUPABASE_URL ? `${ENV.SUPABASE_URL.replace(/\/$/, '')}/functions/v1/sync-drop` : '');
 
 export interface SyncKey {
@@ -67,5 +70,8 @@ export async function takePending(): Promise<HaloExport | null> {
   const row = data[0] as { id: string; payload: unknown };
   // Taken the moment it is handed to the review, as a tab handoff is: closing the review drops it, as it always has.
   await c.rpc('take_pending_sync', { sync_id: row.id });
-  return isHaloExport(row.payload) ? { ...(row.payload as HaloExport), source: 'bookmarklet' } : null;
+  // The extension's syncs keep their name (and its quiet apply); anything else came from the bookmark.
+  if (!isHaloExport(row.payload)) return null;
+  const p = row.payload as HaloExport;
+  return { ...p, source: p.source === 'extension' ? 'extension' : 'bookmarklet' };
 }

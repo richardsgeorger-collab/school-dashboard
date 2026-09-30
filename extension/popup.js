@@ -33,7 +33,7 @@ function fraction(text) {
 }
 
 async function render() {
-  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'lastCounts']);
+  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'lastCounts', 'syncKey']);
   const alarm = await chrome.alarms.get('auto-sync');
   const paid = PAID.includes(s.tier);
 
@@ -57,13 +57,21 @@ async function render() {
     $('step').textContent = s.progress || 'Opening Halo…';
   }
 
-  // A problem is shown until a later sync succeeds.
+  // A problem is shown until a later sync lands. "Last synced" above is only ever a sync that reached the account.
   const problem = !s.running && s.lastError && (!s.lastSyncAt || !s.lastErrorAt || s.lastErrorAt > s.lastSyncAt);
-  $('problem').hidden = !problem;
+  // Without the account's key a sync can only land in an open Halo+ tab: said once, calmly, until Halo+ is opened.
+  const noKey = !s.running && !problem && paid && !s.syncKey;
+  $('problem').hidden = !problem && !noKey;
+  if (noKey) {
+    $('problemText').textContent = 'Open Halo+ once on this computer, signed in, so syncs reach your account even when Halo+ is closed.';
+    $('problem').dataset.tone = 'calm';
+    [$('problemAction').textContent, $('problemAction').href] = ['Open Halo+', `${DASH_ORIGIN}/#/now`];
+    $('problemAction').hidden = false;
+  }
   if (problem) {
     $('problemText').textContent = s.lastError;
     $('problem').dataset.tone = s.lastErrorKind === 'logged-out' || s.lastErrorKind === 'offline' ? 'calm' : 'alert';
-    const action = s.lastErrorKind === 'logged-out' ? ['Log in to Halo', 'https://halo.gcu.edu/'] : s.lastErrorKind === 'delivery' ? ['Open Halo+', `${DASH_ORIGIN}/#/now`] : null;
+    const action = s.lastErrorKind === 'logged-out' ? ['Log in to Halo', 'https://halo.gcu.edu/'] : s.lastErrorKind === 'delivery' || s.lastErrorKind === 'not-landed' ? ['Open Halo+', `${DASH_ORIGIN}/#/now`] : null;
     $('problemAction').hidden = !action;
     if (action) [$('problemAction').textContent, $('problemAction').href] = action;
   }

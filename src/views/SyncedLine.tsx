@@ -36,9 +36,13 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
       </p>
     );
   }
+  // The account's line says where the last sync came from when it was the extension, so a student can tell the
+  // three-hourly sync is landing.
+  const via = !courseId && data.settings.lastPull?.via === 'extension' && data.settings.lastPull.at === at ? ' via extension' : '';
   return (
     <p className="synced mono" data-level="ok">
-      Synced from Halo {when}.
+      Synced from Halo {when}
+      {via}.
     </p>
   );
 }

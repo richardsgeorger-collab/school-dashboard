@@ -7,6 +7,8 @@ import type { HaloExport } from '../halo/types';
 import { pixelOnce } from '../analytics/pixel';
 import { track } from '../onboarding/track';
 import { DiffReview, type AppliedSummary } from './DiffReview';
+import { BOOKMARKLET_BUILD } from '../halo/bookmarklet';
+import { bookmarkAge } from '../halo/freshness';
 
 /** Fallback path: the Halo bookmark's export, pasted or handed off. The .ics import is the normal path. */
 export function HaloImport({ payload: initial = null, onClose, auto = false, background = false }: { payload?: HaloExport | null; onClose: () => void; auto?: boolean; /** The extension's scheduled sync: applied quietly, no removals, a note with Undo. */ background?: boolean }) {
@@ -33,8 +35,11 @@ export function HaloImport({ payload: initial = null, onClose, auto = false, bac
   };
 
   const [done, setDone] = useState<AppliedSummary | null>(null);
+  // Quiet unless it needs the student: an older extension's sync is held for the review, and "Review" on the note
+  // opens the removals it left for approval.
+  const [quiet, setQuiet] = useState(background && !!initial && bookmarkAge(initial, BOOKMARKLET_BUILD)?.kind !== 'older');
   const applied = (s: AppliedSummary) => {
-    if (background) setDone(s);
+    if (quiet) setDone(s);
     saveLastSync({ at: new Date().toISOString(), added: s.added, changed: s.changed, removed: s.removed, completed: s.completed + s.scored });
     // One row per sync, with the platform, for the admin screen; the pixel once, for the funnel.
     track('sync', 'complete');
@@ -42,8 +47,8 @@ export function HaloImport({ payload: initial = null, onClose, auto = false, bac
   };
   // The extension's scheduled sync (George, 2026-09-30: "never interrupt what I'm doing"): no review sheet over the
   // screen. Everything but removals applies, and one small note says what changed, with Undo.
-  if (background && initial)
-    return <BackgroundApply payload={initial} onApplied={applied} onClose={onClose} done={done} />;
+  if (quiet && initial)
+    return <BackgroundApply payload={initial} onApplied={applied} onClose={onClose} done={done} onReview={() => setQuiet(false)} />;
   // The first sync applies itself behind the onboarding's payoff: no review sheet for a planner that was empty.
   if (auto && initial)
     return (
@@ -86,12 +91,14 @@ export function HaloImport({ payload: initial = null, onClose, auto = false, bac
   );
 }
 
-function BackgroundApply({ payload, onApplied, onClose, done }: { payload: HaloExport; onApplied: (s: AppliedSummary) => void; onClose: () => void; done: AppliedSummary | null }) {
+function BackgroundApply({ payload, onApplied, onClose, done, onReview }: { payload: HaloExport; onApplied: (s: AppliedSummary) => void; onClose: () => void; done: AppliedSummary | null; onReview: () => void }) {
   const { actions, undo } = useStore();
   const [applying, setApplying] = useState(true);
   const [hidden, setHidden] = useState(false);
+  const held = done?.held ?? 0;
   useEffect(() => {
-    if (!done) return;
+    // A note that asks for approval stays until the student answers it.
+    if (!done || held > 0) return;
     const t = setTimeout(() => {
       setHidden(true);
       onClose();
@@ -99,7 +106,7 @@ function BackgroundApply({ payload, onApplied, onClose, done }: { payload: HaloE
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
-  const line = done ? backgroundLine(done) : null;
+  const line = done ? [backgroundLine(done), held > 0 ? `${held} removal${held === 1 ? '' : 's'} need${held === 1 ? 's' : ''} your OK.` : ''].filter(Boolean).join(' ') || null : null;
   return (
     <>
       {applying && (
@@ -110,6 +117,16 @@ function BackgroundApply({ payload, onApplied, onClose, done }: { payload: HaloE
       {line && !hidden && (
         <div className="done-toast" role="status">
           <span className="done-toast-text">{line}</span>
+          {held > 0 && (
+            <>
+              <button type="button" className="done-toast-undo" onClick={onReview}>
+                Review
+              </button>
+              <button type="button" className="done-toast-undo" onClick={() => { setHidden(true); onClose(); }}>
+                Not now
+              </button>
+            </>
+          )}
           {undo && undo.count > 0 && (done!.added + done!.changed + done!.completed + done!.scored > 0) && (
             <button type="button" className="done-toast-undo" onClick={() => { actions.undoLast(); setHidden(true); onClose(); }}>
               Undo

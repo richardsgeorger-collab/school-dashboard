@@ -2,9 +2,15 @@
 
 Desktop auto-sync for Plus and up. Every three hours while Chrome is running it runs the same sync the bookmark runs,
 on your own Halo tab if one is open or on one it opens quietly in the background and closes after. Nothing takes
-focus: an open Halo+ tab applies the sync with a small "Synced from Halo" note and Undo (removals still wait for a
-review), and with Halo+ closed the sync waits in the extension until Halo+ next opens. **Sync now** in the popup runs
-at once on any plan and opens Halo+ to review it. Logged out of Halo, the popup says so and the next run tries again.
+focus. Every sync goes to your account first (the pending slot the iPad bookmark uses), so it lands with Halo+ closed:
+an open Halo+ tab takes it at once, a closed one when it next opens, and either applies it with a small "Synced from
+Halo" note and Undo (removals wait for your OK behind Review). Now says "Synced from Halo 6:08 AM via extension", the
+time Halo was read. The popup says "Last synced" only for a sync that reached your account; if one did not, it says so
+and keeps it until it can. The extension learns your account from Halo+: open Halo+ once on the computer, signed in.
+**Sync now** in the popup runs at once on any plan. Logged out of Halo, the popup says so and the next run tries again.
+
+After changing any file here, press **Reload** on the extension in chrome://extensions: Chrome keeps running the old
+worker until then (2026-09-30: George's Chrome was still running the loop 154 worker hours after loop 156).
 
 It never sees your password. It runs on Halo only while you are already logged in there; if you are not, it says so.
 

@@ -32,6 +32,8 @@ export interface AppliedSummary {
   completed: number;
   scored: number;
   linked: number;
+  /** Removals a quiet (background) apply left for the student to approve. */
+  held?: number;
 }
 
 function Section({
@@ -162,7 +164,11 @@ export function DiffReview({
       } catch {
         // The planner keeps what it got; the next sync brings these again.
       }
-      actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, at), lastPull: { at, build: payload.build ?? null, counts: { ...pullCounts(payload) } } });
+      // Stamped with when Halo was read, not when this tab applied it: a 6:08 AM extension sync taken at 8:00 is as of
+      // 6:08. Never in the future (a clock ahead of this one), and it says where it came from.
+      const readAt = payload.exportedAt && Date.parse(payload.exportedAt) < Date.parse(at) ? new Date(payload.exportedAt).toISOString() : at;
+      const via = payload.source === 'extension' ? 'extension' : payload.source === 'paste' ? 'paste' : 'bookmark';
+      actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, readAt), lastPull: { at: readAt, build: payload.build ?? null, counts: { ...pullCounts(payload) }, via } });
       setKept({ facts: plan.facts.length, classes: plan.courses.length, announcements: ann.saved, fresh: ann.fresh, messages: extra.messages, resources: extra.resources, alerts: extra.alerts });
       // The sync event is what starts the background read (halo/backgroundRead.ts): new and edited posts are read
       // now, by the app, whether or not this sheet stays open.
@@ -193,7 +199,7 @@ export function DiffReview({
     if (!sel) return;
     const plan = planFromDiff(diff, sel);
     actions.applyHaloSync(plan);
-    const summary = { added: sel.added.size, changed: sel.changed.size, removed: sel.missing.size, completed: plan.complete.length, scored: plan.scores.length, linked: diff.unchanged.length };
+    const summary = { added: sel.added.size, changed: sel.changed.size, removed: sel.missing.size, completed: plan.complete.length, scored: plan.scores.length, linked: diff.unchanged.length, held: keepRemovals ? diff.missing.filter((e) => e.suggestRemove).length : 0 };
     // Announcements are not planner rows, so they are stored rather than approved; what they change is approved later,
     // one finding at a time. The same pass records what this pull actually carried, per class. Awaited, so the screen
     // never says it is done while the write is still in flight and a navigation could cut it off.

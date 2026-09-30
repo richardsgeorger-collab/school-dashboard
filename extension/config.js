@@ -2,4 +2,5 @@
 export const DASH_ORIGIN = "https://haloplus.app";
 export const DASH_URL = "https://haloplus.app/#/now?halo=1";
 export const PERIOD_MINUTES = 180;
+export const DROP_URL = "https://kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop";
 export const BUILD = "2026-09-28a";

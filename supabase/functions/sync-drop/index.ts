@@ -1,15 +1,21 @@
 // The Sync Halo bookmark's second way home (2026-09-28), for iPad and phones, where opening the Halo+ tab replaces
 // the Halo tab and the two tabs never talk. The bookmark posts its export here with the student's sync key; this
 // stores it in their pending slot and nothing else. The key can drop off a sync; it can never read anything.
-// OFF unless an admin has turned it on for the account (or for everyone), and never under the kill switch.
+// OFF for the bookmark unless an admin has turned it on for the account (or for everyone), and never under the kill
+// switch. The Chrome extension's syncs (via: 'extension') are always taken, kill switch aside (George, 2026-09-30:
+// a scheduled sync at 6:08 AM read Halo, found no Halo+ tab open, and was lost; now it waits here for Halo+).
+// A new drop replaces every older one: the newest sync is the whole picture, and an older one applied after it would
+// put stale dates back.
 import { admin } from '../_shared/admin.ts';
 
 const ORIGINS = ['https://halo.gcu.edu'];
-const MAX_BYTES = 4_000_000;
+// A full account (six classes, rubrics, announcements, files) is well under this.
+const MAX_BYTES = 8_000_000;
 const PER_HOUR = 30;
 
+const allowed = (origin: string | null) => !!origin && (ORIGINS.includes(origin) || origin.startsWith('chrome-extension://'));
 const cors = (origin: string | null) => ({
-  'access-control-allow-origin': origin && ORIGINS.includes(origin) ? origin : ORIGINS[0],
+  'access-control-allow-origin': allowed(origin) ? origin! : ORIGINS[0],
   'access-control-allow-headers': 'content-type, apikey, authorization, x-client-info',
   'access-control-allow-methods': 'POST, OPTIONS',
   'access-control-max-age': '86400',
@@ -25,7 +31,7 @@ Deno.serve(async (req) => {
   try {
     const raw = await req.text();
     if (raw.length > MAX_BYTES) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
-    let body: { key?: unknown; payload?: unknown };
+    let body: { key?: unknown; payload?: unknown; via?: unknown };
     try {
       body = JSON.parse(raw);
     } catch {
@@ -38,15 +44,18 @@ Deno.serve(async (req) => {
     const db = admin();
     const { data: owner } = await db.from('sync_keys').select('user_id').eq('key', key).maybeSingle();
     if (!owner) return reply(origin, 401, { ok: false, why: 'This bookmark\'s sync key was reset. Get the bookmark again from Halo+ (You, Halo).' });
-    const { data: on } = await db.rpc('server_sync_on', { uid: owner.user_id });
+    const fromExtension = body.via === 'extension';
+    const { data: on } = fromExtension
+      ? await db.from('app_switches').select('enabled').eq('name', 'server_sync_kill').maybeSingle().then(({ data }) => ({ data: !data?.enabled }))
+      : await db.rpc('server_sync_on', { uid: owner.user_id });
     if (!on) return reply(origin, 200, { ok: false, off: true, why: 'Sending straight to your account is not switched on.' });
     const since = new Date(Date.now() - 3_600_000).toISOString();
     const { count } = await db.from('pending_syncs').select('id', { count: 'exact', head: true }).eq('user_id', owner.user_id).gte('created_at', since);
     if ((count ?? 0) >= PER_HOUR) return reply(origin, 429, { ok: false, why: 'Too many syncs in the last hour. Wait a few minutes, then tap Sync Halo again.' });
     const { data: row, error } = await db.from('pending_syncs').insert({ user_id: owner.user_id, payload: p, bytes: raw.length }).select('id').single();
     if (error || !row) return reply(origin, 500, { ok: false, why: 'Halo+ could not save it. Tap Sync Halo again, or use Copy and paste it into Halo+.' });
-    // Old and taken ones go: a pending slot is a mailbox, not a history.
-    await db.from('pending_syncs').delete().eq('user_id', owner.user_id).or(`consumed_at.not.is.null,created_at.lt.${new Date(Date.now() - 7 * 86_400_000).toISOString()}`).neq('id', row.id);
+    // A mailbox, not a history: the newest sync replaces every older one, taken or not.
+    await db.from('pending_syncs').delete().eq('user_id', owner.user_id).neq('id', row.id);
     return reply(origin, 200, { ok: true, id: row.id });
   } catch (e) {
     return reply(origin, 500, { ok: false, why: `Halo+ could not save it (${e instanceof Error ? e.message : String(e)}). Tap Sync Halo again, or use Copy and paste it into Halo+.` });

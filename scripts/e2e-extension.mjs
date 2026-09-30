@@ -5,9 +5,10 @@
 //   2. Logged out of Halo: the popup says so calmly, with a link to log in, and no badge.
 //   3. The three-hour schedule: with no Halo tab open, one opens in the background (never active), is closed after,
 //      nothing takes focus, and an open Halo+ tab applies the sync quietly (no review sheet, an Undo note).
-//   4. With Halo+ closed, a scheduled sync waits in the extension and applies the next time Halo+ opens.
+//   4. With Halo+ closed, a scheduled sync goes to the account's pending slot; Halo+ takes it when it opens and Now
+//      says the time Halo was read, "via extension". Never seen Halo+ (no key): it says it did not land, then lands.
 //   5. Opening Halo no longer syncs by itself; Free gets no scheduled sync.
-//   KEYS_ENV=... [ONLY=popup|loggedout|schedule|waiting|free] node scripts/e2e-extension.mjs
+//   KEYS_ENV=... [ONLY=popup|loggedout|schedule|closed|nokey|free] node scripts/e2e-extension.mjs
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { extname, join, resolve } from 'node:path';
@@ -188,21 +189,57 @@ try {
     check(items.includes('Topic 6 Homework'), 'the new assignment reached the account');
     await ctx.close();
   }
-  if (!ONLY || ONLY === 'waiting') {
+  if (!ONLY || ONLY === 'closed' || ONLY === 'waiting') {
+    // George, 2026-09-30: a 6:08 AM sync read Halo with no Halo+ tab open and was lost. Now it goes to the account.
     const u = await newUser();
-    const { ctx, calls, worker } = await open(u);
+    const { ctx, calls, worker, extId } = await open(u);
     const dash = await dashboard(ctx);
+    const key = await worker.evaluate(() => chrome.storage.local.get('syncKey').then((s) => s.syncKey || null));
+    check(!!key, 'opening Halo+ once gave the extension this account (its sync key)');
     await dash.close();
     await fireAlarm(worker);
     await until(async () => calls.n >= 1 && !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 120_000);
-    const waiting = await worker.evaluate(() => chrome.storage.local.get('waiting').then((s) => !!s.waiting));
+    const st = await worker.evaluate(() => chrome.storage.local.get(['waiting', 'lastSyncAt', 'lastLanded', 'lastError']));
     const dashTabs = await worker.evaluate(() => chrome.tabs.query({ url: 'https://haloplus.app/*' }).then((t) => t.length));
-    check(waiting && dashTabs === 0, 'with Halo+ closed, the scheduled sync waits in the extension and opens no Halo+ tab');
+    const pend = (await admin.from('pending_syncs').select('id, consumed_at, bytes, payload').eq('user_id', u.id)).data ?? [];
+    check(pend.length === 1 && !pend[0].consumed_at && pend[0].payload?.source === 'extension' && !st.waiting && dashTabs === 0, `with Halo+ closed, the sync went to the account (${pend.length} pending, ${pend[0]?.bytes} bytes) and opened no Halo+ tab`);
+    const p = await popupPage(ctx, extId);
+    const status = await p.$eval('#status', (e) => e.innerText.replace(/\s+/g, ' '));
+    const lastWhen = status.match(/Last synced (\d{1,2}:\d{2}\s?[AP]M)/)?.[1] ?? null;
+    check(st.lastLanded === 'account' && !!st.lastSyncAt && !st.lastError && !!lastWhen, `the popup says "${status}" (landed in the account)`);
+    await p.screenshot({ path: `${OUT}/popup-landed-closed.png` });
+    await p.close();
+    // A minute later, so the time Halo was read and the time Halo+ applies it differ.
+    await new Promise((r) => setTimeout(r, 65_000));
     const again = await dashboard(ctx);
     await again.waitForTimeout(6000);
     const codes = await cloudCodes(u.id);
-    const left = await worker.evaluate(() => chrome.storage.local.get('waiting').then((s) => !!s.waiting));
-    check(codes.join() === 'CHM-113,CHM-113L' && !left, `opening Halo+ applies it: ${codes.join(', ')}`);
+    const taken = ((await admin.from('pending_syncs').select('consumed_at').eq('user_id', u.id)).data ?? [])[0]?.consumed_at;
+    check(codes.join() === 'CHM-113,CHM-113L' && !!taken, `opening Halo+ took it from the account and applied it: ${codes.join(', ')}`);
+    const line = await again.$eval('.synced', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '');
+    await again.screenshot({ path: `${OUT}/now-after-closed-sync.png` });
+    check(/via extension/.test(line) && !!lastWhen && line.includes(lastWhen), `Now says "${line}", the time Halo was read (popup: ${lastWhen})`);
+    await ctx.close();
+  }
+  if (!ONLY || ONLY === 'nokey') {
+    // An extension that has never seen this account's Halo+: the sync cannot land, and it says so plainly.
+    const u = await newUser();
+    const { ctx, calls, worker, extId } = await open(u);
+    await worker.evaluate(async () => { await chrome.storage.local.set({ tier: 'max' }); await chrome.storage.local.remove('syncKey'); });
+    await fireAlarm(worker);
+    await until(async () => calls.n >= 1 && !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 120_000);
+    const st = await worker.evaluate(() => chrome.storage.local.get(['waiting', 'lastSyncAt', 'lastError']));
+    const p = await popupPage(ctx, extId);
+    const status = await p.$eval('#status', (e) => e.innerText.replace(/\s+/g, ' '));
+    const problem = await p.$eval('#problem', (e) => (e.hidden ? '' : e.innerText.replace(/\s+/g, ' ')));
+    await p.screenshot({ path: `${OUT}/popup-not-landed.png` });
+    check(!st.lastSyncAt && !!st.waiting && !/Last synced/.test(status) && /could not go to your account/.test(problem), `not landed: no "Last synced" ("${status}"), and "${problem}"`);
+    await p.close();
+    const dash = await dashboard(ctx);
+    await dash.waitForTimeout(6000);
+    const codes = await cloudCodes(u.id);
+    const after = await worker.evaluate(() => chrome.storage.local.get(['waiting', 'lastSyncAt']));
+    check(codes.join() === 'CHM-113,CHM-113L' && !after.waiting && !!after.lastSyncAt, `opening Halo+ signed in sent it to the account and applied it: ${codes.join(', ')}`);
     await ctx.close();
   }
   if (!ONLY || ONLY === 'free') {
@@ -217,7 +254,7 @@ try {
   }
 } finally {
   for (const id of made) {
-    for (const t of ['courses', 'items', 'settings', 'announcements', 'read_ledger', 'usage_log', 'usage_events', 'onboarding_events', 'notification_plan']) await admin.from(t).delete().eq('user_id', id);
+    for (const t of ['pending_syncs', 'sync_keys', 'courses', 'items', 'settings', 'announcements', 'read_ledger', 'usage_log', 'usage_events', 'onboarding_events', 'notification_plan']) await admin.from(t).delete().eq('user_id', id);
     await admin.auth.admin.deleteUser(id);
   }
   console.log(`removed ${made.length} throwaways`);
