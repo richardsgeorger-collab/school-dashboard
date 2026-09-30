@@ -284,7 +284,11 @@ function UsageCard() {
 }
 
 function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }) {
-  const { auth } = useAccount();
+  const { auth, profile } = useAccount();
+  // `current` is what the student has today, which on the free week (or free referral days) is not what they pay for:
+  // that plan is "Free trial", with Keep, never "Current plan" greyed out as if it were already bought.
+  const bought = profile?.tier ?? current;
+  const freeDays = trialDaysLeft(profile) ?? rewardDaysLeft(profile);
   const [interval, setInterval_] = useState<Interval>('month');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -312,22 +316,25 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
       <div className="plans">
         {paid.map((t) => {
           const adds = PLAN_LINES[t];
+          const owned = bought === t;
+          const onFree = !owned && current === t;
           return (
-            <div key={t} className="plan card" data-current={current === t} data-highlight={highlight === t}>
+            <div key={t} className="plan card" data-current={owned || onFree} data-highlight={highlight === t}>
               <div className="grade-head">
                 <b>{TIER_NAMES[t]}</b>
-                {current === t && (
+                {(owned || onFree) && (
                   <span className="plan-badge" data-tier={t}>
-                    Current
+                    {owned ? 'Current' : freeDays ? `Free · ${freeDays} day${freeDays === 1 ? '' : 's'} left` : 'Free for now'}
                   </span>
                 )}
               </div>
               <p className="plan-price">
                 {`$${(PRICES[t][interval] ?? PRICES[t].month).toFixed(2)}`}
-                <small>
-                  {' '}
-                  {interval === 'month' ? 'a month' : 'a semester'}, {TAX_LINE} · {CANCEL_LINE}
-                </small>
+                <small> {interval === 'month' ? 'a month' : 'a semester'}</small>
+                {/* The terms on their own line: inline, they broke as "plus tax where / applicable" on a phone. */}
+                <span className="plan-terms">
+                  {TAX_LINE} · {CANCEL_LINE}
+                </span>
               </p>
               <ul>
                 {adds.map((l) => (
@@ -335,8 +342,8 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
                 ))}
               </ul>
               {ready ? (
-                <button type="button" className="btn small primary" disabled={busy !== null || current === t} onClick={() => void choose(t)}>
-                  {current === t ? 'Current plan' : busy === t ? 'Opening…' : `Choose ${TIER_NAMES[t]}`}
+                <button type="button" className="btn small primary" disabled={busy !== null || owned} onClick={() => void choose(t)}>
+                  {owned ? 'Current plan' : busy === t ? 'Opening…' : onFree ? `Keep ${TIER_NAMES[t]}` : `Choose ${TIER_NAMES[t]}`}
                 </button>
               ) : (
                 <a className="btn small primary" href="#/you">

@@ -5782,6 +5782,12 @@ a.hero-chip:hover {
   font-weight: 500;
   color: var(--ink-3);
 }
+.plan-terms {
+  display: block;
+  font: 500 12px/1.4 var(--font-body);
+  color: var(--ink-3);
+  margin-top: 2px;
+}
 .plan ul {
   margin: 8px 0 10px;
   padding-left: 18px;
