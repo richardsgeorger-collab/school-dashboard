@@ -8,6 +8,8 @@ export interface RemoteData extends Partial<AppData> {
 
 /** Remote persistence (Supabase). Every call may reject; the store queues and retries. */
 export interface Repository {
+  /** The signed-in account this repository reads and writes, when there is one. */
+  readonly accountId?: string;
   load(): Promise<RemoteData>;
   saveCourses(courses: Course[]): Promise<void>;
   saveItems(items: Item[]): Promise<void>;
@@ -51,12 +53,17 @@ function mergeRows<T extends { id: string; updatedAt: string }>(
   return { merged, push };
 }
 
-/** Last-write-wins merge of the local cache with a remote snapshot. */
-export function mergeData(local: AppData, remote: RemoteData): MergeResult {
+/**
+ * Last-write-wins merge of the local cache with a remote snapshot. On a device's first load of an account with nothing
+ * of its own yet (`preferRemoteSettings`), the account's settings win whatever their stamp: the device stamped its
+ * defaults a moment earlier (onboarding starting on the first render), and newer-wins then replaced a student's saved
+ * settings with a fresh device's defaults, onboarding and sync history included (2026-09-30).
+ */
+export function mergeData(local: AppData, remote: RemoteData, opts: { preferRemoteSettings?: boolean } = {}): MergeResult {
   const courses = mergeRows(local.courses, remote.courses, remote.deletedCourseIds);
   const items = mergeRows(local.items, remote.items, remote.deletedItemIds);
   const remoteSettings = remote.settings;
-  const useRemoteSettings = !!remoteSettings && remoteSettings.updatedAt > local.settings.updatedAt;
+  const useRemoteSettings = !!remoteSettings && (!!opts.preferRemoteSettings || remoteSettings.updatedAt > local.settings.updatedAt);
   return {
     merged: {
       courses: courses.merged,

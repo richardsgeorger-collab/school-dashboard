@@ -2,6 +2,8 @@ import type { AppData } from '../domain/types';
 
 const DATA_KEY = 'school-dashboard:v1';
 const PENDING_KEY = 'school-dashboard:pending';
+/** Accounts this device has loaded from the server at least once. */
+const SEEN_KEY = 'school-dashboard:accounts-seen';
 
 export type PendingOp =
   | { kind: 'items'; ids: string[] }
@@ -84,5 +86,21 @@ export const localCache = {
   },
   savePending(ops: PendingOp[]): void {
     safeSet(PENDING_KEY, JSON.stringify(ops));
+  },
+  seenAccount(id: string): boolean {
+    try {
+      return (JSON.parse(safeGet(SEEN_KEY) ?? '[]') as string[]).includes(id);
+    } catch {
+      return false;
+    }
+  },
+  markAccountSeen(id: string): void {
+    let seen: string[] = [];
+    try {
+      seen = JSON.parse(safeGet(SEEN_KEY) ?? '[]') as string[];
+    } catch {
+      seen = [];
+    }
+    if (!seen.includes(id)) safeSet(SEEN_KEY, JSON.stringify([...seen, id].slice(-20)));
   },
 };

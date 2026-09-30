@@ -82,3 +82,16 @@ describe('mergeData', () => {
     expect(r.pushItems).toHaveLength(0);
   });
 });
+
+describe('a device loading an account for the first time', () => {
+  it("keeps the account's saved settings, not the defaults it stamped a moment earlier", async () => {
+    const { mergeData } = await import('./repository');
+    const saved = { ...DEFAULT_SETTINGS, updatedAt: '2026-09-30T19:35:00Z', lastPull: { at: '2026-09-30T19:35:00Z', build: 'b', counts: {}, via: 'extension' as const }, onboarding: { startedAt: 'x', step: 'done' as const, doneAt: 'x', skippedAt: null, tourDoneAt: null } };
+    const device: AppData = { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, updatedAt: '2026-09-30T20:10:22Z' } };
+    const first = mergeData(device, { settings: saved }, { preferRemoteSettings: true });
+    expect(first.merged.settings.lastPull?.via).toBe('extension');
+    expect(first.pushSettings).toBe(false);
+    // Without it (a device already in use), newer still wins, as before.
+    expect(mergeData(device, { settings: saved }).merged.settings.lastPull).toBeUndefined();
+  });
+});

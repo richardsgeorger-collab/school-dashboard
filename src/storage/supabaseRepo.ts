@@ -31,6 +31,10 @@ export class SupabaseRepo implements Repository {
     private userId: string,
   ) {}
 
+  get accountId(): string {
+    return this.userId;
+  }
+
   async load(): Promise<RemoteData> {
     const [courses, items, settings] = await Promise.all([
       this.client.from('courses').select('id,data,updated_at,deleted_at'),

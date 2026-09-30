@@ -338,10 +338,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!repo) return;
     setSync((s) => ({ ...s, status: 'syncing', error: null }));
     try {
+      // A device loading this account for the first time, with nothing of its own: the account's saved settings are
+      // the truth. What this device stamped before they arrived (defaults, onboarding starting) is not pushed over them.
+      const fresh = (d: AppData) => d.courses.length === 0 && d.items.length === 0 && !d.settings.lastPull;
+      const first = !!repo.accountId && !localCache.seenAccount(repo.accountId) && fresh(dataRef.current);
+      if (first) localCache.savePending(localCache.loadPending().filter((op) => op.kind !== 'settings'));
       await flushPending();
       const remote = await repo.load();
       const local = dataRef.current;
-      const result = mergeData(local, remote);
+      const result = mergeData(local, remote, { preferRemoteSettings: first && fresh(local) });
       result.merged = normalizeData(result.merged);
       // Connection details never come from the server.
       result.merged.settings = {
@@ -354,6 +359,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (result.pushCourses.length) await repo.saveCourses(result.pushCourses);
       if (result.pushItems.length) await repo.saveItems(result.pushItems);
       if (result.pushSettings) await repo.saveSettings(result.merged.settings);
+      if (repo.accountId) localCache.markAccountSeen(repo.accountId);
       setSync((s) => ({ ...s, status: 'synced', lastSync: nowIso(), error: null }));
       // The account's rows are here now; anything that waits for them (the announcement reader) may go.
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(ACCOUNT_SYNCED_EVENT));
