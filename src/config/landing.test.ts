@@ -11,7 +11,8 @@ describe('landing page', () => {
   it('takes its prices and trial length from the config, never from a literal', () => {
     expect(src).toContain("from '../config/tiers'");
     expect(src).toMatch(/PRICES\[p\.tier\]\.month\.toFixed\(2\)/);
-    expect(src).toContain('a month, {TAX_LINE} · {CANCEL_LINE}');
+    expect(src).toContain('<small> a month</small>');
+    expect(src).toContain('{TAX_LINE} · {CANCEL_LINE}');
     expect(src).not.toMatch(/semester|a year/);
     // The welcome gift (2026-09-29): Max free from sign-up, its length from the config, and what happens after.
     expect(src).toContain('Max free for {TRIAL.days} days');

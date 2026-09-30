@@ -16,14 +16,15 @@ Bump `"version"` in `extension/manifest.json` on every upload.
 **Name:** Halo+ for Halo
 
 **Summary (132 characters max):**
-Syncs your GCU Halo classes, grades and announcements to Halo+ whenever you open Halo. Never your password.
+Syncs your GCU Halo classes, grades and announcements to Halo+ every 3 hours while Chrome is open. Never your password.
 
 **Description:**
 
-Halo+ is an independent planner for GCU students. This extension makes opening Halo the sync: a few seconds after
-halo.gcu.edu loads, if your last sync is more than thirty minutes old, it reads your classes, assignments, grades
-and announcements the same way Halo's own app does and hands them to your Halo+ tab, where you approve every change
-before it applies.
+Halo+ is an independent planner for GCU students. This extension keeps it in step with Halo: every 3 hours while
+Chrome is open, it reads your classes, assignments, grades and announcements the same way Halo's own app does, in a
+quiet background tab it closes after, and hands them to Halo+. It never takes you away from what you are doing; new
+work appears in Halo+ with an Undo. Logged out of Halo? It says so in its popup and tries again next time. Sync now
+in the popup runs at once.
 
 What you get in Halo+:
 • One screen that says what to do next, with the due date, how long it takes and what it is worth.

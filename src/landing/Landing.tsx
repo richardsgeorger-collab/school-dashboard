@@ -133,7 +133,7 @@ export function Landing() {
                   </li>
                   <li className="headsup-line">
                     <span className="headsup-dot" aria-hidden />
-                    <span className="headsup-text">Oct 4–9 is heavy: 5 items, 400 pts. Start the paper by Sep 29.</span>
+                    <span className="headsup-text">Next week is heavy: 5 items, 400 pts. Start the paper this weekend.</span>
                   </li>
                 </ul>
               </section>
@@ -171,7 +171,7 @@ export function Landing() {
           <li>Open halo.gcu.edu and log in as you always do.</li>
           <li>Click the bookmark. Your classes, assignments, grades and announcements arrive here, and you approve them before anything changes.</li>
         </ol>
-        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and the free week of Max includes it; on Plus a small Chrome extension also syncs by itself whenever you open Halo.</p>
+        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and the free week of Max includes it; on Plus a small Chrome extension also syncs by itself every 3 hours while Chrome is open.</p>
       </section>
 
       <section className="landing-section" aria-label="Plans">
@@ -183,10 +183,12 @@ export function Landing() {
               <p className="landing-plan-price">
                 {p.tier === 'free' ? '$0' : `$${PRICES[p.tier].month.toFixed(2)}`}
                 {p.tier !== 'free' && (
-                  <small>
-                    {' '}
-                    a month, {TAX_LINE} · {CANCEL_LINE}
-                  </small>
+                  <>
+                    <small> a month</small>
+                    <span className="landing-plan-terms">
+                      {TAX_LINE} · {CANCEL_LINE}
+                    </span>
+                  </>
                 )}
               </p>
               <ul>

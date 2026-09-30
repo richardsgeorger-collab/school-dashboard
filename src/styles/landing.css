@@ -161,6 +161,14 @@
   color: var(--ink-3);
   letter-spacing: 0;
 }
+/* Tax and cancel on their own line: inline they broke into a stray "· Cancel anytime" line. */
+.landing-plan-terms {
+  display: block;
+  font: var(--t-small);
+  color: var(--ink-3);
+  letter-spacing: 0;
+  margin-top: 2px;
+}
 .landing-plan ul {
   margin: 0;
   padding-left: 18px;
@@ -248,8 +256,9 @@
   .landing-grid {
     grid-template-columns: repeat(4, 1fr);
   }
+  /* Three plans, three columns: four left an empty slot beside Max. */
   .landing-plans {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 

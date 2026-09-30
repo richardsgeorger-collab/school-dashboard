@@ -134,7 +134,7 @@ function PlusScreens({ i, next }: { i: number; next: () => void }) {
           <b>Sync on its own.</b>{' '}
           {EXTENSION_URL ? (
             <>
-              The Chrome extension syncs whenever you open Halo.{' '}
+              The Chrome extension syncs every 3 hours while Chrome is open.{' '}
               <a className="btn small" href={EXTENSION_URL} target="_blank" rel="noreferrer">
                 Add to Chrome
               </a>
