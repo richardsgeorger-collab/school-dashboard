@@ -191,3 +191,10 @@ export function fmtMinutes(min: number): string {
   const h = min / 60;
   return Number.isInteger(h) ? `${h}h` : `${h.toFixed(1).replace(/\.0$/, '')}h`;
 }
+
+/** "start today", "start tomorrow" or "start by Oct 3": one wording for the start-by date on rows and the sheet. */
+export function startByLabel(startBy: DateStr, today: DateStr): string {
+  if (startBy <= today) return 'start today';
+  if (startBy === addDays(today, 1)) return 'start tomorrow';
+  return `start by ${fmtDate(startBy, 'short')}`;
+}

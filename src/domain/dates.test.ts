@@ -72,3 +72,13 @@ describe('dates', () => {
     expect(fmtTime('2026-09-25T08:00:00-07:00', PHX)).toBe('8:00 AM');
   });
 });
+
+describe('startByLabel', () => {
+  it('says today and tomorrow in words, a later day as a date, and never a day already past', async () => {
+    const { startByLabel } = await import('./dates');
+    expect(startByLabel('2026-09-30', '2026-09-30')).toBe('start today');
+    expect(startByLabel('2026-09-29', '2026-09-30')).toBe('start today');
+    expect(startByLabel('2026-10-01', '2026-09-30')).toBe('start tomorrow');
+    expect(startByLabel('2026-10-03', '2026-09-30')).toBe('start by Oct 3');
+  });
+});

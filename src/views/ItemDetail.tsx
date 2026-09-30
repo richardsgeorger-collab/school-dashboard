@@ -21,7 +21,7 @@ import { Requirements } from './Requirements';
 import { RulesOnItem } from './ClassRules';
 import { Sure } from './PlanReview';
 import { WorkPanel } from './WorkPanel';
-import { addDays } from '../domain/dates';
+import { addDays, startByLabel } from '../domain/dates';
 import { Modal } from '../components/Modal';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { dateOf, fmtDate, fmtMinutes, makeIso, zonedParts } from '../domain/dates';
@@ -191,7 +191,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
               </span>
             ))}
             {/* A start-by day that has passed is noise next to "due was": the only advice left is to start. */}
-            {sched && item.status !== 'done' && sched.startBy >= today && <span className="pill">start by {fmtDate(sched.startBy, 'short')}</span>}
+            {sched && item.status !== 'done' && sched.startBy >= today && <span className="pill">{startByLabel(sched.startBy, today)}</span>}
             <HaloJump item={item} course={course} />
           </p>
         )}

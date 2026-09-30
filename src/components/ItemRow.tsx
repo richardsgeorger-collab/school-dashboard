@@ -1,7 +1,7 @@
 import { skipNote } from '../domain/blocked';
 import { HaloJump } from './HaloJump';
 import { movedRecently } from '../domain/requirements';
-import { dateOf, fmtDate, fmtTime } from '../domain/dates';
+import { dateOf, fmtDate, fmtTime, startByLabel } from '../domain/dates';
 import { useEffect, useState } from 'react';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -87,7 +87,7 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
           {item.flags.inClass && <span className="flag">in class</span>}
           {item.flags.group && <span className="flag">group</span>}
           {done && haloSaysNotIn(item) && item.halo && item.halo.checkedAt > item.dueAt && <span className="flag flag-late">Halo says not submitted</span>}
-          {showStart && sched && !done && !sched.risk && <span>start by {shortDate(sched.startBy)}</span>}
+          {showStart && sched && !done && !sched.risk && <span>{startByLabel(sched.startBy, today)}</span>}
         </span>
       </button>
       <span className="item-side">
@@ -101,9 +101,4 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
       </span>
     </li>
   );
-}
-
-function shortDate(d: string): string {
-  const [, m, day] = d.split('-');
-  return `${Number(m)}/${Number(day)}`;
 }
