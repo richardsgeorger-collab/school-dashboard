@@ -4,7 +4,8 @@
 //   node scripts/stripe-live-setup.mjs          # dry run: says what it would do, changes nothing
 //   node scripts/stripe-live-setup.mjs --go     # does it
 // What --go does, in live mode:
-//   1. Products "Plus" and "Max" (metadata tier) and monthly USD prices $4.99 and $7.99 (lookup keys plus_month,
+//   1. Products "Plus" and "Max" (metadata tier; tax code txcd_10103000, SaaS for personal use, which Stripe's
+//      Managed Payments requires) and monthly USD prices $4.99 and $7.99 (lookup keys plus_month,
 //      max_month). Prices are never changed or deleted by this script.
 //   2. The webhook endpoint to the stripe-webhook function with the five events the function handles.
 //   3. The customer portal: cancel at period end, card update, invoices, email; privacy and terms on haloplus.app.
@@ -74,7 +75,7 @@ for (const p of PLANS) {
   say(`${p.name}: create product and $${(p.amount / 100).toFixed(2)}/month price`);
   if (!GO) continue;
   const products = (await api('GET', 'products/search?query=' + encodeURIComponent(`metadata['tier']:'${p.tier}' AND active:'true'`))).data;
-  const product = products[0] ?? (await api('POST', 'products', { name: p.name, metadata: { tier: p.tier } }));
+  const product = products[0] ?? (await api('POST', 'products', { name: p.name, tax_code: 'txcd_10103000', metadata: { tier: p.tier } }));
   const price = await api('POST', 'prices', { product: product.id, currency: 'usd', unit_amount: p.amount, recurring: { interval: 'month' }, lookup_key: p.lookup, metadata: { tier: p.tier, interval: 'month' } });
   ids[p.tier] = price.id;
 }

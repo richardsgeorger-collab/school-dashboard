@@ -47,8 +47,8 @@ export const STRIPE_PRICE_IDS: Record<Paid, { month: string } & Partial<Record<I
  * scripts/stripe-live-setup.mjs; while they are placeholders, a live key refuses checkout instead of selling.
  */
 export const STRIPE_LIVE_PRICE_IDS: Record<Paid, { month: string } & Partial<Record<Interval, string>>> = {
-  plus: { month: 'PLACEHOLDER_LIVE_PLUS_MONTH' },
-  max: { month: 'PLACEHOLDER_LIVE_MAX_MONTH' },
+  plus: { month: 'price_1ULCTR0OWuzOLCGMRBVW4GUL' },
+  max: { month: 'price_1ULCTS0OWuzOLCGMr48BCHLp' },
 };
 
 /** Sandbox prices from before 2026-09-28, so a subscription made on one still maps to a plan. Never offered. */
