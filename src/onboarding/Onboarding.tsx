@@ -674,6 +674,13 @@ function Waiting({ phone, show, onPaste }: { phone: boolean; show: (s: Screen) =
  * The payoff: what arrived, counted up; what the announcements asked that the assignments don't say (live, while the
  * reader works); the next big deadline; and one button, Start here, that lands on Now.
  */
+
+/** "today", "tomorrow" or "on Fri", from a session label ("Fri · 40m"). */
+const whenSession = (label: string) => {
+  const day = label.split(' · ')[0];
+  return day === 'Today' || day === 'Tomorrow' ? day.toLowerCase() : `on ${day}`;
+};
+
 function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads }: { onStart: () => void; schedule: ReturnType<typeof useStore>['schedule']; today: string; tz: string; gift: { from: string; until: string } | null; onTrial: boolean; reads: boolean }) {
   const { data, courseById } = useStore();
   const reading = useReadStatus();
@@ -727,7 +734,7 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads }: { onStar
         ) : null}
         <p className="hint">
           {progress
-            ? `Reading your announcements: ${progress.done} of ${progress.total}. ${total} found so far.`
+            ? `Reading your announcements, ${progress.done} of ${progress.total}…${total > 0 ? ` ${total} found so far.` : ''}`
             : total > finds.length
               ? `${total} in all, each on its assignment.`
               : total === 0 && posts > 0
@@ -750,7 +757,9 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads }: { onStar
         <div className="payoff-block">
           <p className="eyebrow">Study plan for {plan.exam.label}</p>
           <p className="hint">
-            About {fmtMinutes(plan.remainingMinutes)}, spread out: {plan.sessions.map((x) => x.label).join(', ')}.
+            {plan.sessions.length === 1
+              ? `One ${fmtMinutes(plan.sessions[0].minutes)} session, ${whenSession(plan.sessions[0].label)}.`
+              : `About ${fmtMinutes(plan.remainingMinutes)} in ${plan.sessions.length} sessions: ${plan.sessions.map((x) => x.label).join(', ')}.`}
           </p>
         </div>
       )}

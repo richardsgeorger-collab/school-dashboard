@@ -78,7 +78,8 @@ export function examMode(
     if (f.free < 15) continue;
     const daysRemaining = free.slice(k).filter((x) => x.free >= 15).length || 1;
     const share = Math.min(f.free, round15(Math.ceil(left / daysRemaining)) || 15, left);
-    const minutes = Math.max(15, Math.min(f.free, share));
+    // Never more than is left: a 40-minute quiz is 40 minutes of sessions, not three rounded-up quarter hours (45).
+    const minutes = Math.min(left, Math.max(15, Math.min(f.free, share)));
     sessions.push({ day: f.day, minutes, label: `${dayLabel(f.day, today)} · ${fmtMinutes(minutes)}` });
     left -= minutes;
   }
@@ -110,13 +111,13 @@ export function nextTestPlan(items: Item[], schedule: Schedule, settings: Settin
 /** A plan's study as a few real sessions: at least 30 minutes each, at most four, on the days just before the test. */
 export function fewerLongerSessions(plan: ExamPlan): ExamPlan {
   if (plan.sessions.length === 0) return plan;
-  const total = plan.sessions.reduce((n, x) => n + x.minutes, 0);
+  const total = Math.min(plan.remainingMinutes, plan.sessions.reduce((n, x) => n + x.minutes, 0));
   const count = Math.max(1, Math.min(4, plan.sessions.length, Math.floor(total / 30) || 1));
   const days = plan.sessions.slice(-count);
   const each = Math.max(30, round15(total / count));
   let left = total;
   const sessions = days.map((d, k) => {
-    const minutes = k === days.length - 1 ? Math.max(15, left) : Math.min(each, left);
+    const minutes = k === days.length - 1 ? left : Math.min(each, left);
     left -= minutes;
     return { ...d, minutes, label: `${d.label.split(' · ')[0]} · ${fmtMinutes(minutes)}` };
   }).filter((x) => x.minutes > 0);

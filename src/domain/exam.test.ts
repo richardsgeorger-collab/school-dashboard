@@ -44,3 +44,23 @@ describe('exam mode', () => {
     expect(p.sessions.at(-1)?.day).toBe('2026-09-25');
   });
 });
+
+describe('the first-day plan', () => {
+  it('adds up to exactly the study the quiz needs (a 40-minute quiz is 40 minutes, not 45)', async () => {
+    const { nextTestPlan } = await import('./exam');
+    const quiz = mkItem({ id: 'q', courseId: 'c1', title: 'Quiz', label: 'UNV Quiz', type: 'quiz', points: 10, estimatedMinutes: 40, dueAt: '2026-09-24T23:59:00-07:00' });
+    const items = [quiz];
+    const p = nextTestPlan(items, computeSchedule(items, settings, today, term, `${today}T15:00:00Z`), settings, today)!;
+    expect(p.sessions.reduce((n, s) => n + s.minutes, 0)).toBe(40);
+    expect(p.sessions).toHaveLength(1);
+    expect(p.sessions[0].label).toMatch(/· 40m$/);
+    // The day before the quiz, not front-loaded to today.
+    expect(p.sessions[0].day).toBe('2026-09-23');
+    for (const m of [25, 70, 100, 135]) {
+      const q = { ...quiz, estimatedMinutes: m };
+      const r = nextTestPlan([q], computeSchedule([q], settings, today, term, `${today}T15:00:00Z`), settings, today)!;
+      expect(r.sessions.reduce((n, s) => n + s.minutes, 0)).toBe(m);
+      for (const s of r.sessions) expect(s.minutes).toBeGreaterThanOrEqual(15);
+    }
+  });
+});
