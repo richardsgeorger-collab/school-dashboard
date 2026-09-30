@@ -56,7 +56,7 @@ export function ServerSyncAdmin() {
         }}
       >
         <input className="field-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="friend@example.com" aria-label="Account email" />
-        <button type="submit" className="btn small">Turn on for this account</button>
+        <button type="submit" className="btn small" disabled={!email.trim()}>Turn on for this account</button>
       </form>
       {s.accounts.length > 0 && (
         <ul className="diff-list">
