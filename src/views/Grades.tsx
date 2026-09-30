@@ -65,7 +65,7 @@ function CourseCard({ course }: { course: Course }) {
             </a>
           </h2>
         </div>
-        <div className="grade-pct mono">
+        <div className="grade-pct">
           {g.pct === null && !g.letter ? <span className="muted grade-none">{NOT_GRADED}</span> : gradeLine(g, course.gradeScale)}
           {basedOn(g) && <span className="grade-basis">{basedOn(g)}</span>}
         </div>
@@ -75,11 +75,11 @@ function CourseCard({ course }: { course: Course }) {
         <span className="lost" style={{ width: `${g.totalPossible ? ((g.possibleGraded - g.earned) / g.totalPossible) * 100 : 0}%` }} />
       </div>
       {g.possibleGraded === 0 ? (
-        <p className="grade-empty mono">
+        <p className="grade-empty">
           No scores entered yet · {g.totalPossible} pts across {items.length} item{items.length === 1 ? '' : 's'}
         </p>
       ) : (
-        <dl className="grade-stats mono">
+        <dl className="grade-stats">
           <div>
             <dt>Earned</dt>
             <dd>
@@ -133,11 +133,11 @@ function CourseCard({ course }: { course: Course }) {
             <li key={i.id}>
               <span className="score-title">
                 {i.title}
-                <span className="muted mono"> · {fmtDate(dateOf(i.dueAt, data.settings.timezone), 'short')}</span>
+                <span className="muted"> · {fmtDate(dateOf(i.dueAt, data.settings.timezone), 'short')}</span>
               </span>
               <span className="score-cell">
                 <ScoreInput item={i} />
-                {i.score !== null && <span className="hint mono">{i.scoreSource === 'manual' ? 'typed' : 'Halo'}</span>}
+                {i.score !== null && <span className="hint">{i.scoreSource === 'manual' ? 'typed' : 'Halo'}</span>}
               </span>
             </li>
           ))}

@@ -1515,10 +1515,21 @@ button {
   font-size: 17px;
   margin-top: 4px;
 }
+/* The app's display face with even-width digits, never monospace, and a grade that never breaks across lines. */
 .grade-pct {
+  font-family: var(--font-display);
   font-size: 30px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .grade-pct {
+    font-size: 22px;
+  }
 }
 .grade-bar {
   display: flex;
@@ -1539,13 +1550,22 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--s-2);
   margin: 0 0 var(--s-3);
-  font-size: 12px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+/* Four across leaves a phone column narrower than "Graded so far": two by two there. */
+@media (max-width: 480px) {
+  .grade-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--s-3);
+  }
 }
 .grade-stats dt {
   color: var(--ink-3);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 .grade-stats dd {
   margin: 2px 0 0;

@@ -84,9 +84,8 @@ body {
 }
 .nav-bottom {
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Solid, like the top bar: see-through, the card scrolled under it read through the tab labels on phones. */
+  background: var(--surface);
   border-top: 1px solid var(--line);
   /* Six tabs since loop 110 (Study); a column never grows past its share, so the sixth is never pushed off screen. */
   grid-template-columns: repeat(6, minmax(0, 1fr));

@@ -57,10 +57,16 @@ try {
       }, { s: session, ob: done, key: `sb-${ref}-auth-token`, lastPull });
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForTimeout(3500);
+      // The trial-ended screen comes first (loop 131); choosing Free goes on to the paused planner.
+      if (await page.$('.trial-ended')) {
+        if (first) await page.screenshot({ path: `${OUT}/ended-${vp}-${scheme}.png` });
+        await page.getByRole('button', { name: 'Stay on Free' }).click();
+        await page.waitForTimeout(800);
+      }
       const banner = await page.$eval('.frozen-banner', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => null);
       const asOf = await page.$$eval('.as-of', (els) => els.length);
       if (first) {
-        check(!!banner && /Halo sync paused since/.test(banner) && /may be out of date/.test(banner), `banner on Now: ${banner?.slice(0, 120)}`);
+        check(!!banner && /Halo sync paused since/.test(banner) && /see what's changed/.test(banner), `banner on Now: ${banner?.slice(0, 120)}`);
         check(asOf > 0, `"as of" on ${asOf} due dates on Now`);
         // One date everywhere: the banner's "since" is the last sync, the same day every "as of" names.
         const sinceDay = banner?.match(/paused since ([A-Z][a-z]{2} \d+)/)?.[1];
@@ -78,7 +84,8 @@ try {
         const payload = { kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments'], classes: [{ id: c0.haloClassId, slugId: 'X', classCode: `${c0.code}-X`, courseCode: c0.code, name: c0.name, instructors: [], stage: 'CURRENT', modality: 'ONGROUND', credits: 3, assessments: [{ id: 'frozen-new', title: 'A brand new assignment', dueDate: '2026-11-20T06:59:00.000Z', points: 50, type: 'ASSIGNMENT', status: null, score: null, description: '' }], announcements: [], resources: [], discussions: [], messages: [] }] };
         await page.evaluate((p) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: p, source: window })), payload);
         await page.waitForTimeout(1500);
-        const wall = await page.$eval('.plan-wall', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => null);
+        // Since loop 150 a bookmark while paused is a peek: what Halo has, counted, nothing applied.
+        const wall = await page.$eval('[role="dialog"][aria-label="What Halo has that your planner doesn\'t"], .plan-wall', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => null);
         await page.screenshot({ path: `${OUT}/bookmark-${vp}-${scheme}.png` });
         await page.keyboard.press('Escape');
         const after = await page.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.length);
@@ -86,19 +93,22 @@ try {
         // One tap: the upgrade opens a Stripe test checkout.
         if (first) {
           await page.goto(`${BASE}#/now`, { waitUntil: 'networkidle' }); await page.waitForTimeout(1500);
-          const [nav] = await Promise.all([page.waitForURL(/checkout\.stripe\.com/, { timeout: 20000 }).then(() => page.url()).catch(() => null), page.click('.frozen-banner button')]);
+          const [nav] = await Promise.all([page.waitForURL(/checkout\.stripe\.com/, { timeout: 20000 }).then(() => page.url()).catch(() => null), page.locator('.frozen-banner button', { hasText: '$4.99' }).click()]);
           check(!!nav && nav.includes('checkout.stripe.com'), `upgrade button opens Stripe checkout: ${nav ? nav.slice(0, 60) : 'no navigation'}`);
           if (nav) {
-            // Stripe's own page is not needed: the session says what it charges and whether it is live. Needs the Stripe CLI
-            // on the sandbox key; without it this check is skipped, never faked.
-            const id = nav.match(/cs_test_[A-Za-z0-9]+/)?.[0];
+            // Stripe's own page is not needed: the session says what it charges. Read-only, with the live key from the
+            // macOS keychain; without it this check is skipped, never faked.
+            const id = nav.match(/cs_(test|live)_[A-Za-z0-9]+/)?.[0];
             let sess = null;
             try {
-              sess = JSON.parse(execFileSync('stripe', ['checkout', 'sessions', 'retrieve', id], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+              const key = execFileSync('security', ['find-generic-password', '-s', id.startsWith('cs_live') ? 'Stripe live secret key' : 'Stripe test secret key', '-w'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+              const r = await fetch(`https://api.stripe.com/v1/checkout/sessions/${id}`, { headers: { Authorization: `Bearer ${key}` } });
+              if (r.ok) sess = await r.json();
             } catch {
-              console.log('skip checkout amount: no Stripe CLI');
+              /* no key on this machine */
             }
-            if (sess) check(sess.amount_total === 399 && sess.livemode === false && sess.mode === 'subscription', `checkout session: $${(sess.amount_total / 100).toFixed(2)} ${sess.mode}, livemode ${sess.livemode}`);
+            if (!sess) console.log('skip checkout amount: no Stripe key');
+            if (sess) check(sess.amount_subtotal === 499 && sess.mode === 'subscription', `checkout session: $${(sess.amount_subtotal / 100).toFixed(2)} ${sess.mode}, livemode ${sess.livemode}`);
           }
         }
       }
