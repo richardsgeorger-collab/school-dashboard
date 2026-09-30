@@ -1171,7 +1171,8 @@ button {
   flex: 0 0 auto;
   margin-top: 4px;
 }
-:root[data-theme='dark'] .chip-item[data-state='today'],
+/* Dark ink only on the filled chips; the plain month chip keeps its own light ink (it read black on dark grey). */
+:root[data-theme='dark'] .chip-item:not([data-plain='true'])[data-state='today'],
 :root[data-theme='dark'] .chip-item[data-state='overdue'] {
   color: #0f1216;
 }

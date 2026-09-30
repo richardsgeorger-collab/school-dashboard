@@ -378,6 +378,9 @@
   color: var(--accent-ink);
   border-radius: var(--r-pill);
   padding: 2px 6px;
+  /* A pill that fits two digits: the fixed 22px circle let "30" spill out of it. */
+  width: auto;
+  min-width: 22px;
 }
 .month-count {
   font: var(--t-micro);
@@ -2997,4 +3000,26 @@
 }
 .account-wait {
   min-height: 150px;
+}
+
+/* ---- month on a phone: a cell is ~44px wide, so the day and its count stack instead of spilling side by side ---- */
+@media (max-width: 639px) {
+  .month-cell {
+    padding: 4px 2px;
+    align-items: center;
+  }
+  .month-cell-top {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .month-count,
+  .month-count[data-bold='true'],
+  .month-count[data-big='true'],
+  .month-cell[data-level='4'] .month-count {
+    font-size: 11px;
+    padding: 2px 5px;
+  }
+  .month-cell[data-today='true'] .month-daynum {
+    padding: 2px 4px;
+  }
 }
