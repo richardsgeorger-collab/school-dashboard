@@ -44,6 +44,8 @@ Deno.serve(guard(async (req) => {
   try {
     event = await stripe.webhooks.constructEventAsync(body, sig, secret, undefined, crypto);
   } catch (e) {
+    // Every real payment's plan change comes through here: a rejected webhook is a launch-stopper, never quiet.
+    await import('../_shared/errors.ts').then(({ serverError }) => serverError(admin(), 'stripe-webhook', new Error(`Bad signature: ${e instanceof Error ? e.message : String(e)}`), 400)).catch(() => undefined);
     return json(400, { error: `Bad signature: ${e instanceof Error ? e.message : String(e)}` });
   }
   const db = admin();
@@ -73,4 +75,4 @@ Deno.serve(guard(async (req) => {
       break;
   }
   return json(200, { received: true });
-}));
+}, 'stripe-webhook'));

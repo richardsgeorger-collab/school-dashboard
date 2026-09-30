@@ -1,5 +1,7 @@
 import { getAccessToken, supabaseConfig } from '../auth/client';
 import type { Interval, Paid } from './subscription';
+import { reportFunctionFailure } from '../monitor/report';
+import { watchCheckout } from '../monitor/planWatch';
 
 type Result = { ok: true; url: string } | { ok: false; error: string };
 
@@ -15,9 +17,13 @@ async function call(fn: string, body: Record<string, unknown>): Promise<Result> 
       body: JSON.stringify(body),
     });
     const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
-    if (!res.ok || !data.url) return { ok: false, error: data.error ?? `The billing service answered ${res.status}.` };
+    if (!res.ok || !data.url) {
+      reportFunctionFailure(fn, res.status, data.error);
+      return { ok: false, error: data.error ?? `The billing service answered ${res.status}.` };
+    }
     return { ok: true, url: data.url };
-  } catch {
+  } catch (e) {
+    reportFunctionFailure(fn, 0, e instanceof Error ? e.message : String(e));
     return { ok: false, error: 'Could not reach the billing service. Check your connection.' };
   }
 }
@@ -26,7 +32,12 @@ async function call(fn: string, body: Record<string, unknown>): Promise<Result> 
 const returnTo = () => `${window.location.origin}${import.meta.env.BASE_URL}`;
 
 /** Stripe Checkout for a plan. On success the browser leaves for Stripe and comes back to You. */
-export const startCheckout = (tier: Paid, interval: Interval, next?: string): Promise<Result> => call('stripe-checkout', { tier, interval, returnTo: returnTo(), next });
+export const startCheckout = async (tier: Paid, interval: Interval, next?: string): Promise<Result> => {
+  const r = await call('stripe-checkout', { tier, interval, returnTo: returnTo(), next });
+  // Watched from here: back with success and no plan change in 5 minutes is reported (monitor/planWatch.tsx).
+  if (r.ok) watchCheckout(tier);
+  return r;
+};
 
 /** Stripe's customer portal: the card and invoices, or with 'cancel' straight to the cancel confirmation for the plan. */
 export const openPortal = (flow?: 'cancel'): Promise<Result> => call('stripe-portal', { returnTo: returnTo(), flow });

@@ -1,7 +1,7 @@
 import { WinbackOpens } from './winback/WinbackHooks';
 import { DuplicateFold } from './halo/DuplicateFold';
 import { PeekSummary } from './winback/PeekSummary';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AccountProvider } from './auth/AccountContext';
 import { SetNewPassword } from './auth/SignIn';
 import { ParticipationFold } from './halo/ParticipationFold';
@@ -36,25 +36,27 @@ import { can } from './config/flags';
 import { useAccount } from './auth/AccountContext';
 import { IconHalo } from './components/Icons';
 import { AppFailed, ErrorBoundary } from './components/ErrorBoundary';
+import { lazyScreen } from './monitor/install';
+import { PlanWatch } from './monitor/planWatch';
 import { Now } from './views/Now';
 import { initPixel } from './analytics/pixel';
 // Every screen but Now (and the landing page) loads when first opened, so a stranger's first paint and Now's are
 // not paying for the calendar, the settings, the coach or the admin table.
-const Calendar = lazy(() => import('./views/calendar/Calendar').then((m) => ({ default: m.Calendar })));
-const Load = lazy(() => import('./views/Load').then((m) => ({ default: m.Load })));
-const Grades = lazy(() => import('./views/Grades').then((m) => ({ default: m.Grades })));
-const Library = lazy(() => import('./views/Library').then((m) => ({ default: m.Library })));
-const You = lazy(() => import('./views/You').then((m) => ({ default: m.You })));
-const Study = lazy(() => import('./views/Study').then((m) => ({ default: m.Study })));
-const Ask = lazy(() => import('./views/Ask').then((m) => ({ default: m.Ask })));
-const Practice = lazy(() => import('./views/Practice').then((m) => ({ default: m.Practice })));
-const Check = lazy(() => import('./views/Check').then((m) => ({ default: m.Check })));
-const Admin = lazy(() => import('./views/Admin').then((m) => ({ default: m.Admin })));
-const ClassPage = lazy(() => import('./views/ClassPage').then((m) => ({ default: m.ClassPage })));
-const Classes = lazy(() => import('./views/Classes').then((m) => ({ default: m.Classes })));
-const IngestView = lazy(() => import('./views/IngestView').then((m) => ({ default: m.IngestView })));
-const Inbox = lazy(() => import('./views/Inbox').then((m) => ({ default: m.Inbox })));
-const Looks = lazy(() => import('./views/Looks').then((m) => ({ default: m.Looks })));
+const Calendar = lazyScreen(() => import('./views/calendar/Calendar').then((m) => ({ default: m.Calendar })));
+const Load = lazyScreen(() => import('./views/Load').then((m) => ({ default: m.Load })));
+const Grades = lazyScreen(() => import('./views/Grades').then((m) => ({ default: m.Grades })));
+const Library = lazyScreen(() => import('./views/Library').then((m) => ({ default: m.Library })));
+const You = lazyScreen(() => import('./views/You').then((m) => ({ default: m.You })));
+const Study = lazyScreen(() => import('./views/Study').then((m) => ({ default: m.Study })));
+const Ask = lazyScreen(() => import('./views/Ask').then((m) => ({ default: m.Ask })));
+const Practice = lazyScreen(() => import('./views/Practice').then((m) => ({ default: m.Practice })));
+const Check = lazyScreen(() => import('./views/Check').then((m) => ({ default: m.Check })));
+const Admin = lazyScreen(() => import('./views/Admin').then((m) => ({ default: m.Admin })));
+const ClassPage = lazyScreen(() => import('./views/ClassPage').then((m) => ({ default: m.ClassPage })));
+const Classes = lazyScreen(() => import('./views/Classes').then((m) => ({ default: m.Classes })));
+const IngestView = lazyScreen(() => import('./views/IngestView').then((m) => ({ default: m.IngestView })));
+const Inbox = lazyScreen(() => import('./views/Inbox').then((m) => ({ default: m.Inbox })));
+const Looks = lazyScreen(() => import('./views/Looks').then((m) => ({ default: m.Looks })));
 import { Celebrations } from './views/Celebrate';
 import { useBackgroundRead } from './halo/backgroundRead';
 import { useAutoRerun } from './ingest/auto';
@@ -453,6 +455,7 @@ export default function App() {
     <StoreProvider>
       <AccountProvider>
         <AccountSync />
+        <PlanWatch />
         <RecoveryHost />
         <ParticipationFold />
         <WinbackOpens />

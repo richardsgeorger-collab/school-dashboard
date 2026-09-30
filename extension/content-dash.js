@@ -28,6 +28,12 @@ const report = () => {
   }
 };
 report();
+// Which extension this browser runs, for Halo+'s own error reports.
+try {
+  localStorage.setItem('school-dashboard:ext-version', chrome.runtime.getManifest().version);
+} catch {
+  /* storage unavailable */
+}
 const early = setInterval(report, 2000);
 setTimeout(() => clearInterval(early), 60_000);
 window.addEventListener('storage', (e) => (e.key === 'school-dashboard:tier' || e.key === 'school-dashboard:sync-key') && report());

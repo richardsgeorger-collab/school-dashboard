@@ -8,6 +8,7 @@ import { MAX_TOKENS } from '../_shared/tiers.ts';
 import type { Tier } from '../_shared/tiers.ts';
 import { allowance, costOf, meter, type UsageRow } from '../_shared/meter.ts';
 import { MODEL } from '../_shared/model.ts';
+import { serverError } from '../_shared/errors.ts';
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -24,7 +25,10 @@ const dayIn = (tz: string, d = new Date()) => new Intl.DateTimeFormat('en-CA', {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return preflight();
   if (req.method !== 'POST') return json(405, { error: { code: 'upstream', message: 'POST only' } });
-  if (!ANTHROPIC_KEY) return json(500, { error: { code: 'upstream', message: 'The server has no model key configured.' } });
+  if (!ANTHROPIC_KEY) {
+    await serverError(createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }), 'ai', new Error('The server has no model key configured.'), 500);
+    return json(500, { error: { code: 'upstream', message: 'The server has no model key configured.' } });
+  }
 
   // Who is asking. The user's JWT comes in the Authorization header; the service role client reads their rows.
   const auth = req.headers.get('authorization') ?? '';
@@ -69,6 +73,7 @@ Deno.serve(async (req) => {
   const answer = await upstream.json().catch(() => ({}));
   if (!upstream.ok) {
     const message = answer?.error?.message ?? `Anthropic answered ${upstream.status}.`;
+    await serverError(admin, 'ai', new Error(`Anthropic ${upstream.status}: ${message}`), 502, { kind, upstream: upstream.status });
     return json(502, { error: { code: 'upstream', message }, meter: m });
   }
 

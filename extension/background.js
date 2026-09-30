@@ -10,7 +10,7 @@
 // an open tab is told to take it now, and a closed Halo+ takes it when it next opens. Only when the account cannot be
 // reached does the export wait here instead, and "Last synced" is written only for a sync that landed (2026-09-30:
 // a 6:08 AM sync read Halo, found no Halo+ tab, was lost, and the popup still said "Last synced 6:08 AM").
-import { DASH_ORIGIN, DASH_URL, DROP_URL, PERIOD_MINUTES } from './config.js';
+import { DASH_ORIGIN, DASH_URL, DROP_URL, PERIOD_MINUTES, REPORT_URL } from './config.js';
 
 const PAID = ['plus', 'pro', 'max'];
 const HALO = 'https://halo.gcu.edu/';
@@ -22,6 +22,33 @@ const MAX_MS = 15 * 60_000;
 const state = { pending: null, fail: null, running: false, lastProgressAt: 0 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ---- error monitoring (2026-09-30) ----------------------------------------------------------------------------------
+// Crashes and syncs that fail or never land go to Halo+'s error log (the app's Admin page), without anything personal:
+// the extension's version, the plan, a random id for this browser, and the reason in plain words. At most 10 in 10
+// minutes, and the same problem once in 5.
+const VERSION = chrome.runtime.getManifest().version;
+async function reportError(r) {
+  try {
+    const s = await chrome.storage.local.get(['errorLog', 'deviceId', 'tier']);
+    const now = Date.now();
+    const log = (s.errorLog || []).filter((x) => now - x.at < 600_000);
+    const key = `${r.title}|${r.place || ''}`;
+    if (log.length >= 10 || log.some((x) => x.key === key && now - x.at < 300_000)) return;
+    const deviceId = s.deviceId || `ext-${crypto.randomUUID()}`;
+    await chrome.storage.local.set({ errorLog: [...log, { at: now, key }].slice(-20), deviceId });
+    const ua = navigator.userAgent;
+    const browser = `${/Edg\//.test(ua) ? 'Edge' : 'Chrome'} ${(ua.match(/(?:Edg|Chrome)\/(\d+)/) || [])[1] || ''} on ${/Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /CrOS/.test(ua) ? 'ChromeOS' : /Linux/.test(ua) ? 'Linux' : 'unknown'}`;
+    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'extension', ext_version: VERSION, browser, device: 'desktop', plan: s.tier || null, device_id: deviceId, ...r }) });
+  } catch {
+    /* the reporter never reports itself */
+  }
+}
+self.addEventListener('error', (e) => void reportError({ title: `Extension worker crashed: ${String(e.message || 'error').slice(0, 100)}`, message: e.message, stack: e.error && e.error.stack, place: 'worker' }));
+self.addEventListener('unhandledrejection', (e) => {
+  const m = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+  void reportError({ title: `Extension worker crashed: ${m.slice(0, 100)}`, message: m, stack: e.reason && e.reason.stack, place: 'worker' });
+});
 const get = (keys) => chrome.storage.local.get(keys);
 const set = (obj) => chrome.storage.local.set(obj);
 
@@ -186,6 +213,8 @@ async function runSync({ auto }) {
 
 async function failed(e, auto) {
   await set({ lastError: e.text, lastErrorKind: e.kind, lastErrorAt: new Date().toISOString() });
+  // Logged out and offline are the student's state, not a fault.
+  if (!e.quiet) void reportError({ title: `Extension sync failed: ${{ stalled: 'Halo stopped answering', 'no-classes': 'Halo showed no classes', delivery: 'Halo+ did not take it', other: 'Halo returned an error' }[e.kind] || e.kind}`, message: e.text, place: auto ? 'scheduled sync' : 'sync now', details: { kind: e.kind, auto } });
   // Nothing to nag about when logged out or offline; a Sync now that failed shows a mark until the popup is opened.
   if (!auto && !e.quiet) await chrome.action.setBadgeText({ text: '!' });
 }
@@ -218,6 +247,7 @@ async function toAccount(payload) {
     }
     const why = (j && j.why) || `Halo+ answered ${r.status}`;
     await set({ lastDrop: { ...note, ok: false, why } });
+    void reportError({ title: `Extension could not deliver to the pending slot (${r.status})`, message: why, place: 'sync-drop', status: r.status, details: { mb: Math.round(note.bytes / 100_000) / 10, sentMb: Math.round((note.sent || 0) / 100_000) / 10 } });
     return { ok: false, kind: 'refused', why };
   } catch (e) {
     await set({ lastDrop: { ...note, ok: false, why: e && e.message ? e.message : String(e) } });
@@ -264,6 +294,8 @@ async function finish(payload, auto) {
         ? `Read Halo at ${at}, but your Halo+ account could not be reached (no connection). It is kept here and goes in when Halo+ opens.`
         : `Read Halo at ${at}, but it did not reach your account: ${String(r.why || 'unknown error').replace(/\.$/, '')}. It is kept here; press Sync now to try again.`;
   await set({ lastError: text, lastErrorKind: 'not-landed', lastErrorAt: new Date().toISOString() });
+  // Never landed (kept in the extension). No key yet is setup, not a fault.
+  if (r.kind !== 'no-key') void reportError({ title: 'Extension sync did not reach the account', message: r.why || r.kind, place: auto ? 'scheduled sync' : 'sync now', details: { kind: r.kind || 'unknown', auto } });
   if (!auto) await chrome.action.setBadgeText({ text: '!' });
 }
 

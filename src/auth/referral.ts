@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { reportFunctionFailure } from '../monitor/report';
 
 const SLOT = 'school-dashboard:ref';
 /** What the extension and the landing page read to know the plan on this device. */
@@ -36,7 +37,11 @@ export async function claimPendingRef(): Promise<{ ok: boolean; why?: string } |
   }
   if (error) return { ok: false, why: error.message };
   // A paying inviter's month pauses their billing (Stripe); the function does nothing for anyone else.
-  if ((data as { ok?: boolean })?.ok) void c.functions.invoke('referral-credit', { body: {} }).catch(() => undefined);
+  if ((data as { ok?: boolean })?.ok)
+    void c.functions
+      .invoke('referral-credit', { body: {} })
+      .then(({ error: e }) => e && reportFunctionFailure('referral-credit', Number((e as { context?: { status?: number } }).context?.status ?? 0), e.message))
+      .catch((e: unknown) => reportFunctionFailure('referral-credit', 0, e instanceof Error ? e.message : String(e)));
   return (data as { ok: boolean; why?: string }) ?? { ok: false };
 }
 

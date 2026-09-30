@@ -1,4 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { report } from '../monitor/report';
 import { describeAiError } from '../ai/client';
 import { costOf, loadPrices, type ApiUsage } from '../ai/usage';
 import { useAccount } from '../auth/AccountContext';
@@ -75,6 +76,7 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     ledger = await readLedger.all();
   } catch (e) {
     const outcome = { ...emptyOutcome(), ledgerError: e instanceof Error ? e.message : String(e) };
+    report({ kind: 'silent', title: 'Announcements could not be read: the read record failed to open', message: outcome.ledgerError, place: 'reader' });
     set({ outcome, waiting: null, at: new Date().toISOString() });
     return outcome;
   }
@@ -96,6 +98,8 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
   }
   if (!aiAvailable() || !can('announcementAI', args.tier)) {
     const outcome = { ...emptyOutcome(), todo: todo.length, noKey: !aiAvailable(), locked: !can('announcementAI', args.tier) };
+    // On a plan that reads announcements, posts left unread because the AI is not there is a fault, not a plan limit.
+    if (!aiAvailable() && can('announcementAI', args.tier)) report({ kind: 'silent', title: 'Announcements stayed unread after a sync: AI unavailable', place: 'reader', details: { unread: todo.length } });
     set({ outcome, waiting: null, at: new Date().toISOString() });
     return outcome;
   }
@@ -169,6 +173,7 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     }
   } finally {
     const outcome: AutoOutcome = { todo: todo.length, read, failed, noKey: false, failures: groupFailures(why), cost: costOf(spend, loadPrices()), plan: total };
+    if (failed > 0) report({ kind: 'silent', title: 'Announcements failed to be read', message: why[0], place: 'reader', details: { failed, of: todo.length } });
     set({ running: false, progress: null, outcome, at: new Date().toISOString() });
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(READ_EVENT));
   }

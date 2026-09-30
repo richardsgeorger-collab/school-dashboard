@@ -62,7 +62,7 @@ const fakeHalo = async (ctx, calls, opts) => {
     if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST' } });
     const body = JSON.parse(route.request().postData() || '{}');
     if (body.operationName === 'getCourseClassesForUser') calls.n++;
-    const data = body.operationName === 'getCourseClassesForUser' ? classes(opts.extra?.()) : null;
+    const data = body.operationName === 'getCourseClassesForUser' && !opts.broken ? classes(opts.extra?.()) : null;
     return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'application/json', body: JSON.stringify(data ? { data } : { errors: [{ message: 'not in the test gateway' }] }) });
   });
 };
@@ -240,6 +240,29 @@ try {
     const codes = await cloudCodes(u.id);
     const after = await worker.evaluate(() => chrome.storage.local.get(['waiting', 'lastSyncAt']));
     check(codes.join() === 'CHM-113,CHM-113L' && !after.waiting && !!after.lastSyncAt, `opening Halo+ signed in sent it to the account and applied it: ${codes.join(', ')}`);
+    await ctx.close();
+  }
+  if (!ONLY || ONLY === 'broken') {
+    // Halo answers with errors: the sync fails, the popup says so, and the failure reaches Halo+'s error log.
+    const u = await newUser();
+    const { ctx, worker, extId } = await open(u, { broken: true });
+    await dashboard(ctx);
+    const p = await popupPage(ctx, extId);
+    await p.click('#sync');
+    await until(async () => !!(await worker.evaluate(() => chrome.storage.local.get('lastError').then((s) => s.lastError))), 90_000);
+    const { deviceId, lastError } = await worker.evaluate(() => chrome.storage.local.get(['deviceId', 'lastError']));
+    let ev = [];
+    for (let k = 0; k < 15 && !ev.length; k++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      ev = (await admin.from('error_events').select('kind, title, ext_version, place, details').eq('device_id', deviceId ?? '-')).data ?? [];
+    }
+    check(ev.some((e) => e.kind === 'extension' && /Extension sync failed/.test(e.title) && e.ext_version), `a failed extension sync is reported: "${ev[0]?.title}" (extension ${ev[0]?.ext_version}, ${ev[0]?.place}); the popup said "${String(lastError).slice(0, 80)}"`);
+    const fps = [...new Set(((await admin.from('error_events').select('fingerprint').eq('device_id', deviceId ?? '-')).data ?? []).map((r) => r.fingerprint))];
+    await admin.from('error_events').delete().eq('device_id', deviceId ?? '-');
+    for (const fp of fps) {
+      const { count } = await admin.from('error_events').select('id', { count: 'exact', head: true }).eq('fingerprint', fp);
+      if (!count) { await admin.from('error_alerts').delete().eq('fingerprint', fp); await admin.from('error_issues').delete().eq('fingerprint', fp); }
+    }
     await ctx.close();
   }
   if (!ONLY || ONLY === 'free') {

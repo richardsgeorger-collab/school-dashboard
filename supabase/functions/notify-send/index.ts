@@ -34,6 +34,8 @@ Deno.serve(async (req) => {
         if (code === 404 || code === 410) {
           await db.from('push_subscriptions').delete().eq('id', s.id);
           dropped++;
+        } else {
+          await import('../_shared/errors.ts').then(({ serverError }) => serverError(db, 'notify-send', e, code ?? 500, { push: code ?? 0 })).catch(() => undefined);
         }
       }
     }

@@ -1,4 +1,6 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { isChunkError } from '../monitor/install';
+import { report } from '../monitor/report';
 
 /**
  * Nothing in the app is allowed to blank the screen. A render error inside the boundary shows its fallback: an
@@ -9,9 +11,10 @@ export class ErrorBoundary extends Component<{ children: ReactNode; fallback: (e
   static getDerivedStateFromError(error: Error) {
     return { error };
   }
-  componentDidCatch(error: Error) {
-    // Nowhere else to send it on a static site; the console is what a bug report will quote.
+  componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Halo+ caught a render error:', error);
+    // Reported (monitor/report.ts): the screen, the message, the stack and which components it was drawing.
+    if (!isChunkError(error)) report({ kind: 'crash', title: `Screen crashed: ${error.message.split('\n')[0].slice(0, 100)}`, message: error.message, stack: `${error.stack ?? ''}\n--- components ---${(info.componentStack ?? '').split('\n').slice(0, 12).join('\n')}` });
   }
   render() {
     if (this.state.error) return this.fallback(this.state.error);

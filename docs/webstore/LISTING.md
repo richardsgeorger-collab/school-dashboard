@@ -6,7 +6,7 @@ account exists (LAUNCH_CHECKLIST step 13; needs George's OK to pay). Every file 
 
 | File | Where it goes |
 |---|---|
-| `halo-plus-extension-<version>.zip` | Package: manifest.json at the top level of the zip |
+| `halo-plus-extension-<version>.zip (now 0.3.2)` | Package: manifest.json at the top level of the zip |
 | `store-icon-128.png` | Store icon: 128×128, 96×96 artwork with 16 px transparent padding |
 | `screenshot-1-now.png` … `screenshot-5-sync-review.png` | Screenshots: exactly 1280×800, 24-bit PNG, no transparency |
 | `promo-tile-440x280.png` | Small promo tile: 440×280, 24-bit PNG, no transparency |

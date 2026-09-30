@@ -21,12 +21,14 @@ export async function userFromRequest(req: Request): Promise<{ id: string; email
  * Wraps a handler so an unexpected throw becomes a JSON error with its message, logged, instead of a bare 500 the
  * app can only show as "something went wrong". Stripe's own errors carry a readable message.
  */
-export const guard = (handler: (req: Request) => Promise<Response>) => async (req: Request): Promise<Response> => {
+export const guard = (handler: (req: Request) => Promise<Response>, fn?: string) => async (req: Request): Promise<Response> => {
   try {
     return await handler(req);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error('unhandled', message);
+    // Recorded for the Admin page's Errors (and an alert when it is new); never in the way of the reply.
+    if (fn) await import('./errors.ts').then(({ serverError }) => serverError(admin(), fn, e, 500)).catch(() => undefined);
     return json(500, { error: message });
   }
 };

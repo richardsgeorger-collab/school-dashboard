@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { reportFunctionFailure } from '../monitor/report';
 import { ENV } from '../env';
 import { MAX_TOKENS, type AiKind } from '../config/tiers';
 import { getAccessToken, supabaseConfig } from '../auth/client';
@@ -156,12 +157,17 @@ async function viaServer(req: GatewayRequest, opts: GatewayOptions): Promise<Gat
       body: JSON.stringify({ kind: req.kind, request: toWire(req) }),
     }, opts.timeoutMs ?? GATEWAY_TIMEOUT_MS);
   } catch (e) {
-    if (e instanceof GatewayError) throw e;
+    if (e instanceof GatewayError) {
+      if (e.code === 'network' || /timed out|deadline/i.test(e.message)) reportFunctionFailure('ai', 0, e.message, { kind: req.kind });
+      throw e;
+    }
+    reportFunctionFailure('ai', 0, e instanceof Error ? e.message : String(e), { kind: req.kind });
     throw new GatewayError('network', 'Could not reach the server. Check your connection.');
   }
   const body = (await res.json().catch(() => ({}))) as { error?: { code?: GatewayError['code']; message?: string }; response?: GatewayResponse; meter?: Meter };
   publish(body.meter);
   if (!res.ok || !body.response) {
+    reportFunctionFailure('ai', res.status, body.error?.message, { kind: req.kind });
     throw new GatewayError(body.error?.code ?? 'upstream', body.error?.message ?? `The AI service answered ${res.status}.`, res.status);
   }
   return { ...body.response, meter: body.meter };

@@ -1,6 +1,8 @@
 // Halo+ service worker: the app shell offline, and push notifications. Assets are hashed by the build
 // and cached on first use; navigations go to the network first and fall back to the cached shell.
-const VERSION = 'sd-2';
+// sd-3 (2026-09-30): only successful responses are cached. sd-2 cached a code file's 404 during a deploy and served
+// that failure from then on ("This screen could not draw" until the cache went); the new version wipes those.
+const VERSION = 'sd-3';
 const SHELL = new URL('./', self.location.href).pathname;
 
 self.addEventListener('install', (e) => {
@@ -17,11 +19,11 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(SHELL, copy)); return res; }).catch(() => caches.match(SHELL)));
+    e.respondWith(fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(SHELL, copy)); } return res; }).catch(() => caches.match(SHELL)));
     return;
   }
   if (url.pathname.includes('/assets/')) {
-    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); return res; })));
+    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); } return res; })));
   }
 });
 

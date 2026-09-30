@@ -1,4 +1,5 @@
 import { getAccessToken } from '../auth/client';
+import { reportFunctionFailure } from '../monitor/report';
 import { ENV } from '../env';
 
 /**
@@ -118,6 +119,7 @@ async function sendPiece(samples: Float32Array, token: string): Promise<string> 
       await new Promise((res) => setTimeout(res, 4000 * (attempt + 1)));
       continue;
     }
+    reportFunctionFailure('transcribe', r.status, out.why);
     throw new TranscribeError(out.why ?? `Transcribing stopped (${r.status}).`);
   }
 }

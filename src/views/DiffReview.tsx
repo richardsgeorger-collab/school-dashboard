@@ -1,4 +1,5 @@
 import { InviteButton } from '../referral/Invite';
+import { report } from '../monitor/report';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { saveAnnouncements, saveExtras } from '../halo/announce';
 import { countsLine, pullCounts } from '../halo/counts';
@@ -12,7 +13,7 @@ import { normCode } from '../halo/normalize';
 import { CourseChip } from '../components/CourseChip';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
-import { TYPE_LABELS, type Course } from '../domain/types';
+import { TYPE_LABELS, type AppData, type Course } from '../domain/types';
 import { countVisible, defaultSelection, planFromDiff, type Selection } from '../halo/apply';
 import { diffHalo, type FieldChange } from '../halo/diff';
 import type { BareDateMode, SyncSource } from '../halo/normalize';
@@ -164,6 +165,8 @@ export function DiffReview({
       } catch {
         // The planner keeps what it got; the next sync brings these again.
       }
+      // Silent failures (monitor/): a sync that came back short is reported, counts only, never what is in it.
+      checkShortSync(payload, data);
       // Stamped with when Halo was read, not when this tab applied it: a 6:08 AM extension sync taken at 8:00 is as of
       // 6:08. Never in the future (a clock ahead of this one), and it says where it came from.
       const readAt = payload.exportedAt && Date.parse(payload.exportedAt) < Date.parse(at) ? new Date(payload.exportedAt).toISOString() : at;
@@ -566,4 +569,34 @@ export function DiffReview({
       </div>
     </>
   );
+}
+
+/**
+ * Syncs that came back short, the kind nobody noticed before (2026-09-30): fewer classes than the last sync, or a
+ * class that had assignments (or grades) coming back with none. Reported as silent failures, with counts only.
+ */
+export function shortSync(payload: HaloExport, data: Pick<AppData, 'courses' | 'items' | 'settings'>): { fewer: { before: number; after: number } | null; emptyClasses: number; noGrades: number } {
+  const before = Number(data.settings.lastPull?.counts?.classes ?? 0);
+  const fewer = before > 0 && payload.classes.length < before ? { before, after: payload.classes.length } : null;
+  let emptyClasses = 0;
+  let noGrades = 0;
+  const askedGrades = !payload.pulls || payload.pulls.includes('grades');
+  for (const cls of payload.classes) {
+    const course = data.courses.find((c) => c.haloClassId === cls.id);
+    if (!course) continue;
+    const mine = data.items.filter((i) => i.courseId === course.id && i.source === 'halo');
+    if (mine.length > 0 && cls.assessments.length === 0) emptyClasses++;
+    const hadGrades = mine.some((i) => i.score !== null && i.score !== undefined);
+    if (askedGrades && hadGrades && cls.assessments.length > 0 && !cls.assessments.some((a) => a.score !== null && a.score !== undefined)) noGrades++;
+  }
+  return { fewer, emptyClasses, noGrades };
+}
+
+function checkShortSync(payload: HaloExport, data: Pick<AppData, 'courses' | 'items' | 'settings'>) {
+  if (payload.source === 'ics') return;
+  const s = shortSync(payload, data);
+  const via = payload.source ?? 'bookmark';
+  if (s.fewer) report({ kind: 'silent', title: 'A sync returned fewer classes than the last one', place: `sync:${via}`, details: { before: s.fewer.before, after: s.fewer.after, via } });
+  if (s.emptyClasses) report({ kind: 'silent', title: 'A sync returned 0 assignments for a class that had them', place: `sync:${via}`, details: { classes: s.emptyClasses, of: payload.classes.length, via } });
+  if (s.noGrades) report({ kind: 'silent', title: 'A sync returned no grades for a class that had them', place: `sync:${via}`, details: { classes: s.noGrades, of: payload.classes.length, via } });
 }

@@ -35,4 +35,4 @@ Deno.serve(guard(async (req) => {
   }
   const session = await stripe.billingPortal.sessions.create({ customer, return_url });
   return json(200, { url: session.url });
-}));
+}, 'stripe-portal'));

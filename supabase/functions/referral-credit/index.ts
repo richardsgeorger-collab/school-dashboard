@@ -34,4 +34,4 @@ Deno.serve(guard(async (req) => {
   await stripe.subscriptions.update(sub.stripe_subscription_id, { trial_end: until, proration_behavior: 'none' });
   await db.from('referrals').update({ inviter_reward: 'stripe_paused', inviter_applied_at: new Date().toISOString() }).eq('id', ref.id);
   return json(200, { ok: true, paused_until: new Date(until * 1000).toISOString() });
-}));
+}, 'referral-credit'));

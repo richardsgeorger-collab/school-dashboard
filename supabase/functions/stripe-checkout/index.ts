@@ -60,4 +60,4 @@ Deno.serve(guard(async (req) => {
     subscription_data: { metadata: { user_id: user.id } },
   });
   return json(200, { url: session.url });
-}));
+}, 'stripe-checkout'));
