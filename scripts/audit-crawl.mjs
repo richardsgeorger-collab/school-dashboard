@@ -68,14 +68,21 @@ async function crawlPersona(browser, kit, kind) {
   await ctx.route(/https:\/\/(checkout|billing)\.stripe\.com\/.*/, (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Stripe (stopped by the audit)</h1>' }));
   await ctx.route(/\/auth\/v1\/(recover|otp|magiclink)/, (r) => { blocked.push('email'); return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }); });
   await ctx.route('https://halo.gcu.edu/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Halo (audit)</h1>' }));
-  const page = await ctx.newPage();
   const errors = [];
-  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-  page.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource: the server responded with a status of 40[134]|net::ERR_|Download the React DevTools/.test(m.text())) errors.push(`console: ${m.text()}`); });
-  page.on('dialog', (d) => { errors.push(`dialog: ${d.type()} ${d.message()}`); void d.dismiss(); });
+  let lastClick = '';
+  const makePage = async () => {
+    const pg = await ctx.newPage();
+    pg.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+    pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|Failed to load resource: the server responded with a status of 40[134]|net::ERR_|Download the React DevTools/.test(m.text())) errors.push(`console: ${m.text()}`); });
+    pg.on('dialog', (d) => { errors.push(`dialog: ${d.type()} ${d.message()}`); void d.dismiss(); });
+    return pg;
+  };
+  let page = await makePage();
   const popups = [];
-  ctx.on('page', (pg) => { if (pg !== page) { popups.push(pg.url()); setTimeout(() => void pg.close().catch(() => undefined), 500); } });
-  await page.addInitScript(() => { window.__opened = []; const o = window.open; window.open = (u) => { window.__opened.push(String(u)); return null; }; void o; });
+  const own = new Set();
+  ctx.on('page', (pg) => { if (pg !== page && !own.has(pg)) { popups.push(pg.url()); setTimeout(() => void pg.close().catch(() => undefined), 500); } });
+  own.add(page);
+  await ctx.addInitScript(() => { window.__opened = []; const o = window.open; window.open = (u) => { window.__opened.push(String(u)); return null; }; void o; });
 
   const drain = () => { const e = errors.splice(0); const r = reports.splice(0); return { e, r }; };
   const checked = new Set();
@@ -188,6 +195,7 @@ async function crawlPersona(browser, kit, kind) {
   };
 
   for (const route of ROUTES(p)) {
+   try {
     await go(route);
     const first = drain();
     if (first.e.length) await finding(page, { kind: 'console', persona: kind, route, what: 'opening the screen', detail: first.e.join(' | ') });
@@ -195,7 +203,7 @@ async function crawlPersona(browser, kit, kind) {
     if (await page.$('.app-failed')) { await finding(page, { kind: 'crash', persona: kind, route, what: 'opening the screen' }); continue; }
     await layout(route, 'on open');
     await checkLinks(route);
-    const unnamed = await page.$$eval('button, a[href], [role="button"], [role="tab"], summary', (els) => els.filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !(el.getAttribute('aria-label') || el.innerText || el.getAttribute('title') || el.querySelector('img[alt]:not([alt=""])')).toString().trim(); }).map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}`));
+    const unnamed = await page.$$eval('button, a[href], [role="button"], [role="tab"], summary', (els) => els.filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !String(el.getAttribute('aria-label') || el.innerText || el.getAttribute('title') || (el.querySelector('img[alt]:not([alt=""])') ? 'img' : '')).trim(); }).map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}`));
     if (unnamed.length) await finding(page, { kind: 'a11y', persona: kind, route, what: `${unnamed.length} button(s) with no name for a screen reader`, detail: [...new Set(unnamed)].join(', ') });
     const done = new Set();
     for (let n = 0; n < MAX_CLICKS; n++) {
@@ -203,20 +211,31 @@ async function crawlPersona(browser, kit, kind) {
       const next = list.find((x) => !done.has(x.key) && !x.skip && !x.external);
       if (!next) break;
       done.add(next.key);
+      lastClick = next.label || next.tag;
       const t0 = Date.now();
       await clickOne(route, next);
-      if (process.env.DEBUG) console.log(`    ${Date.now() - t0}ms ${next.label || next.tag}`);
+      if (process.env.DEBUG) console.log(`    ${Date.now() - t0}ms heap ${await page.evaluate(() => Math.round(performance.memory.usedJSHeapSize / 1e6)).catch(() => '?')}MB nodes ${await page.evaluate(() => document.getElementsByTagName('*').length).catch(() => '?')} ${next.label || next.tag}`);
       // Anything the click left open (a sheet that did not close, a new route) is undone before the next.
       if (!(await page.url()).includes(route.replace(/^#/, '')) || (await page.$('.modal, [role="dialog"]'))) await go(route);
     }
     console.log(`  ${kind} ${route}: ${done.size} clicked`);
+    if (process.env.DEBUG) console.log(`  before Tab: heap ${await page.evaluate(() => Math.round(performance.memory.usedJSHeapSize / 1e6)).catch(() => '?')}MB`);
     await tabThrough(route);
+   } catch (e) {
+    // The tab died (or the page hung): recorded with the click just before it, and the next screen gets a fresh tab.
+    await finding(null, { kind: /crash/i.test(e.message) ? 'tab-crash' : 'harness', persona: kind, route, what: `${e.message.split('\n')[0].slice(0, 80)} after clicking "${lastClick}"` });
+    await page.close().catch(() => undefined);
+    page = await makePage();
+    own.add(page);
+    continue;
+   }
+    if (process.env.DEBUG) console.log(`  after Tab: heap ${await page.evaluate(() => Math.round(performance.memory.usedJSHeapSize / 1e6)).catch(() => '?')}MB`);
   }
   console.log(`  ${kind}: blocked ${[...new Set(blocked)].join(', ') || 'nothing'}`);
   await ctx.close();
 }
 
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-precise-memory-info'] });
 const kit = personaKit(env);
 try {
   for (const kind of PERSONAS) await crawlPersona(browser, kit, kind).catch((e) => finding(null, { kind: 'harness', persona: kind, route: '', what: e.message.split('\n')[0] }));
