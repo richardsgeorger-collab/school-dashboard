@@ -168,13 +168,13 @@ const n = (v: number, one: string, many: string) => `${v} ${v === 1 ? one : many
  * "nothing asks anything of you" over 47 failures is the same mistake as calling a Halo check clean on a parse error.
  */
 export function readAllLine(r: ReadAllResult, attached: number, noted: number): string {
-  if (r.failed > 0 && r.read === 0) return `${n(r.failed, 'announcement', 'announcements')} could not be read. I do not know what they ask.`;
+  if (r.failed > 0 && r.read === 0) return `${n(r.failed, 'announcement', 'announcements')} could not be read. Halo+ does not know yet what they ask.`;
   const parts = [n(attached, 'requirement', 'requirements') + ' attached to work you already have'];
   if (r.changes.length) parts.push(`${n(r.changes.length, 'change', 'changes')} to approve`);
   if (noted) parts.push(n(noted, 'class note', 'class notes'));
   const head = `Read ${n(r.read, 'announcement', 'announcements')}: ${parts.join(', ')}.`;
   if (r.failed === 0) return head;
-  return `${head} ${n(r.failed, 'announcement', 'announcements')} could not be read, so I do not know what those ask.`;
+  return `${head} ${n(r.failed, 'announcement', 'announcements')} could not be read, so Halo+ does not know yet what those ask.`;
 }
 
 /**

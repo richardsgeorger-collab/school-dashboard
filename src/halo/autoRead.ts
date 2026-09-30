@@ -294,12 +294,12 @@ export function autoResultLine(o: AutoOutcome): string | null {
     return `${posts(o.todo)} ${o.todo === 1 ? 'is' : 'are'} waiting to be read. Reading announcements is part of ${planOf('announcementAI')}.`;
   }
   if (o.noKey) {
-    return `${posts(o.todo)} came in and ${o.todo === 1 ? 'has' : 'have'} not been read: this build has no AI connection. Until then I do not know what ${o.todo === 1 ? 'it asks' : 'they ask'}.`;
+    return `${posts(o.todo)} came in and ${o.todo === 1 ? 'has' : 'have'} not been read: this build has no AI connection. Until then Halo+ does not know yet what ${o.todo === 1 ? 'it asks' : 'they ask'}.`;
   }
 
   const why = o.failures[0]?.message ? ` ${o.failures[0].message}` : '';
   if (o.failed === o.todo) {
-    return `${posts(o.todo)} could not be read.${why} I do not know what ${o.todo === 1 ? 'it asks' : 'they ask'}, and the next sync will try again.`;
+    return `${posts(o.todo)} could not be read.${why} Halo+ does not know yet what ${o.todo === 1 ? 'it asks' : 'they ask'}, and the next sync will try again.`;
   }
 
   const p = o.plan;
@@ -311,11 +311,11 @@ export function autoResultLine(o: AutoOutcome): string | null {
   if (p.noted) parts.push(`${p.noted} class note${p.noted === 1 ? '' : 's'}`);
 
   const approval = p.needsApproval.length ? ` ${p.needsApproval.length} removal${p.needsApproval.length === 1 ? '' : 's'} needs your approval below.` : '';
-  const rest = o.failed ? ` ${posts(o.failed)} could not be read, so I do not know what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why}` : '';
+  const rest = o.failed ? ` ${posts(o.failed)} could not be read, so Halo+ does not know yet what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why}` : '';
   const spent = o.read > 0 && o.cost > 0 ? ` Read ${o.read} announcement${o.read === 1 ? '' : 's'}, ${o.cost < 0.01 ? 'under a cent' : `about ${money(o.cost)}`}.` : '';
   if (parts.length) return `From your announcements: ${parts.join(', ')}.${approval}${rest}${spent}`;
   // Nothing landed. With a failure in the pass that is not the same as nothing being there, so the failure leads
   // and the clean claim is never made at all.
-  if (o.failed) return `${posts(o.failed)} could not be read, so I do not know what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why} The other ${o.read === 1 ? 'one asks' : `${o.read} ask`} nothing of you.${approval}${spent}`;
+  if (o.failed) return `${posts(o.failed)} could not be read, so Halo+ does not know yet what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why} The other ${o.read === 1 ? 'one asks' : `${o.read} ask`} nothing of you.${approval}${spent}`;
   return `Nothing in ${o.read === 1 ? 'the new announcement' : `the ${o.read} new announcements`} asks anything of you.${approval}${spent}`;
 }

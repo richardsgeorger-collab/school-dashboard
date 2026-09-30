@@ -34,7 +34,7 @@ export function ReadStatusLines({ compact = false }: { compact?: boolean }) {
   if (s.waiting) {
     return (
       <p className="hint diff-gap" role="status">
-        {s.waiting.line} Until they are read I do not know what they ask.{' '}
+        {s.waiting.line} Until they are read, Halo+ does not know what they ask.{' '}
         <button type="button" className="btn small primary" onClick={readNow}>
           Read {s.waiting.count} now
         </button>

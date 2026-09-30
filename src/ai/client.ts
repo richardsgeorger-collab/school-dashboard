@@ -51,7 +51,7 @@ export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
     .join('');
   const loose = jsonFromText(text);
   if (loose) return { input: loose, usage: response.usage as ApiUsage, model: response.model };
-  throw new Error('The model did not answer through the tool.');
+  throw new Error("The AI's answer came back in a form Halo+ could not use.");
 }
 
 /**

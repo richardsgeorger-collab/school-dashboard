@@ -126,7 +126,7 @@ describe('when the automatic read fails', () => {
     // The real case: out of credits. What the user got was "Nothing in them asks anything of you."
     const out: AutoOutcome = { ...base, read: 0, failed: 3, failures: groupFailures(['Your Anthropic credit balance is too low.', 'Your Anthropic credit balance is too low.', 'Your Anthropic credit balance is too low.']) };
     const line = autoResultLine(out)!;
-    expect(line).toBe('3 announcements could not be read. Your Anthropic credit balance is too low. I do not know what they ask, and the next sync will try again.');
+    expect(line).toBe('3 announcements could not be read. Your Anthropic credit balance is too low. Halo+ does not know yet what they ask, and the next sync will try again.');
     // The sentences that must never appear over a failed pass, in any form.
     expect(line).not.toMatch(/nothing/i);
     expect(line).not.toMatch(/asks anything of you/i);
@@ -156,7 +156,7 @@ describe('when the automatic read fails', () => {
     const line = autoResultLine({ ...base, read: 2, failed: 1, plan: p, failures: groupFailures(['Halo answered 500.']) })!;
     expect(line).toContain('1 new assignment added');
     expect(line).toContain('1 announcement could not be read');
-    expect(line).toContain('I do not know what that one asks');
+    expect(line).toContain('Halo+ does not know yet what that one asks');
   });
 
   it('claims nothing was found only when every post was read', () => {
@@ -165,7 +165,7 @@ describe('when the automatic read fails', () => {
     // One failure and that claim is gone.
     const partial = autoResultLine({ ...base, read: 2, failed: 1, failures: groupFailures(['Halo answered 500.']) })!;
     expect(partial).not.toMatch(/^Nothing in/);
-    expect(partial).toBe('1 announcement could not be read, so I do not know what that one asks. Halo answered 500. The other 2 ask nothing of you.');
+    expect(partial).toBe('1 announcement could not be read, so Halo+ does not know yet what that one asks. Halo answered 500. The other 2 ask nothing of you.');
   });
 
   it('is silent only when there was nothing to read', () => {

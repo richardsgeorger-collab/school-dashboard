@@ -29,7 +29,7 @@ describe('a pass where nothing could be read', () => {
     expect(r.failed).toBe(3);
 
     const line = readAllLine(r, 0, 0);
-    expect(line).toBe('3 announcements could not be read. I do not know what they ask.');
+    expect(line).toBe('3 announcements could not be read. Halo+ does not know yet what they ask.');
     // The sentence that must never appear over a failed pass, in any of its forms.
     expect(line).not.toMatch(/nothing/i);
     expect(line).not.toMatch(/asks anything/i);
@@ -60,7 +60,7 @@ describe('a pass that partly worked', () => {
   it('reports what it read and refuses to characterise what it could not', async () => {
     const r: ReadAllResult = { results: [], requirements: new Map(), notes: new Map(), changes: [], read: 12, failed: 35 };
     const line = readAllLine(r, 4, 1);
-    expect(line).toBe('Read 12 announcements: 4 requirements attached to work you already have, 1 class note. 35 announcements could not be read, so I do not know what those ask.');
+    expect(line).toBe('Read 12 announcements: 4 requirements attached to work you already have, 1 class note. 35 announcements could not be read, so Halo+ does not know yet what those ask.');
     expect(genuinelyNothing(r, 4, 1)).toBe(false);
     // Even with nothing found in the twelve, the thirty-five keep the all-clear off the screen.
     expect(genuinelyNothing({ ...r, read: 12, failed: 35 }, 0, 0)).toBe(false);
