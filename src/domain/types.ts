@@ -524,6 +524,8 @@ export interface Settings {
   welcomeList?: { practice?: string; requirement?: string; dismissedAt?: string; doneAt?: string } | null;
   /** The invite card on Now: when it was last put away (it comes back at most once a week). */
   inviteCardAt?: string | null;
+  /** When the quiet invite line at the foot of Now was put away; it comes back two weeks later. */
+  inviteLineAt?: string | null;
   /** The last time the student opened Halo+ on their own (not from a win-back push); resets the ignored count. */
   winbackOwnOpenAt?: string | null;
   /** Exam-week cards put away, by item id. */

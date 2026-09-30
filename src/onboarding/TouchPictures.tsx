@@ -62,7 +62,16 @@ export function TouchPicture({ browser, shot }: { browser: TouchBrowser; shot: T
       )}
       {shot === 'run' && browser === 'safari' && (
         <>
-          <Bar right={<span className="tp-btn" data-hot="true">📖</span>} />
+          <Bar
+            right={
+              <span className="tp-btn" data-hot="true" aria-label="Bookmarks">
+                {/* Safari's bookmarks button: an open book. */}
+                <svg viewBox="0 0 20 16" width="16" height="13" aria-hidden className="pic-glyph">
+                  <path d="M10 3.5C8 2 5 1.6 1.5 2v11c3.5-.4 6.5 0 8.5 1.5M10 3.5c2-1.5 5-1.9 8.5-1.5v11c-3.5-.4-6.5 0-8.5 1.5M10 3.5v11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                </svg>
+              </span>
+            }
+          />
           <ul className="tp-sheet">
             <li>Favorites</li>
             <li data-hot="true">{BOOKMARK_NAME}</li>

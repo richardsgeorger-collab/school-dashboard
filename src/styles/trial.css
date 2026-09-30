@@ -1345,3 +1345,285 @@
   font-weight: 600;
   text-align: center;
 }
+/* "My bookmarks bar is already showing" (2026-09-30): one tap on for people who have it, under the title. */
+.bar-already {
+  justify-self: start;
+}
+
+/* ---- The plan demo, framed as a demo (2026-09-30) ---------------------------------------------------------------- */
+.story-top {
+  justify-content: space-between;
+  align-items: baseline;
+}
+.story-title {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 32px);
+}
+.story-device {
+  --bezel: #16181d;
+  width: min(100%, 540px);
+  justify-self: center;
+  position: relative;
+  padding: 0 10px 12px;
+  border-radius: 18px;
+  background: var(--bezel);
+  box-shadow: 0 0 0 1px var(--line-strong), 0 18px 40px -18px rgba(0, 0, 0, 0.45);
+  margin-bottom: 14px;
+}
+/* The laptop's base. */
+.story-device::after {
+  content: '';
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -12px;
+  height: 12px;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(#2a2d34, #16181d);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+.story-device-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+}
+.story-device-dots {
+  display: flex;
+  gap: 5px;
+}
+.story-device-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3a3e47;
+}
+.story-device-tag {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #d6d9df;
+  font: 600 11px/1.5 var(--font-body);
+  letter-spacing: 0.02em;
+}
+.story-device-body {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.story-device-body .mock-screen {
+  min-height: 300px;
+}
+.story-pill {
+  justify-self: start;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font: 800 15px/1.2 var(--font-display);
+  letter-spacing: 0.12em;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line-strong);
+  animation: story-in 0.35s ease both;
+}
+.story-pill[data-plan='Plus'],
+.story-pill[data-plan='Max'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+.story .story-caption {
+  min-height: 2.6em;
+  font: 600 19px/1.35 var(--font-body);
+  letter-spacing: 0;
+  color: var(--ink);
+  text-align: center;
+}
+.story-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: min(100%, 420px);
+  justify-self: center;
+}
+.story-tabs button {
+  display: grid;
+  gap: 6px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font: 700 14px/1.2 var(--font-body);
+  cursor: pointer;
+}
+.story-tabs button[aria-selected='true'] {
+  color: var(--ink);
+}
+.story-tab-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.story-tab-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+}
+.story-tabs [data-state='done'] .story-tab-bar i {
+  width: 100%;
+}
+.story-tabs [data-state='now'] .story-tab-bar i {
+  animation: story-fill 5s linear forwards;
+}
+/* On a phone, a phone. */
+@media (max-width: 600px) {
+  .story-device {
+    width: 92%;
+    padding: 0 7px 7px;
+    border-radius: 30px;
+    margin-bottom: 0;
+  }
+  .story-device::after {
+    display: none;
+  }
+  .story-device-bar {
+    height: 26px;
+    justify-content: center;
+  }
+  .story-device-dots {
+    display: none;
+  }
+  .story-device-tag {
+    margin: 0;
+  }
+  .story-device-body {
+    border-radius: 23px;
+    padding: 10px;
+  }
+  .story-device-body .mock-screen {
+    min-height: 280px;
+  }
+  .story .story-caption {
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-pill,
+  .story-tabs [data-state='now'] .story-tab-bar i {
+    animation: none;
+  }
+  .story-tabs [data-state='now'] .story-tab-bar i {
+    width: 50%;
+  }
+}
+
+/* ---- The gift: the Halo+ ring lighting up (2026-09-30, replacing the gift emoji) --------------------------------- */
+.halo-up {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  margin-bottom: 4px;
+}
+.halo-up-mark {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.halo-up-ring,
+.halo-up-glow {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: halo-draw 1.2s cubic-bezier(0.55, 0.1, 0.25, 1) 0.15s forwards;
+}
+.halo-up-ring {
+  stroke-width: 6;
+}
+.halo-up-glow {
+  stroke-width: 12;
+  opacity: 0.35;
+  filter: blur(5px);
+  animation: halo-draw 1.2s cubic-bezier(0.55, 0.1, 0.25, 1) 0.15s forwards, halo-glow 2.8s ease-in-out 1.4s infinite;
+}
+.halo-up-plus {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 6.5;
+  stroke-linecap: round;
+  transform-origin: 47px 17px;
+  animation: halo-plus 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) 1.2s both;
+}
+.halo-up-spark {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  fill: var(--accent);
+  opacity: 0;
+  animation: halo-spark 2.6s ease-in-out infinite;
+}
+.halo-up-spark[data-n='0'] { top: -6px; left: 6px; animation-delay: 1.3s; }
+.halo-up-spark[data-n='1'] { top: 30px; right: -16px; width: 10px; height: 10px; animation-delay: 1.7s; }
+.halo-up-spark[data-n='2'] { bottom: -4px; right: 8px; animation-delay: 2.1s; }
+.halo-up-spark[data-n='3'] { bottom: 18px; left: -14px; width: 10px; height: 10px; animation-delay: 1.5s; }
+.halo-up-spark[data-n='4'] { top: -14px; right: 28px; width: 8px; height: 8px; animation-delay: 2.4s; }
+@keyframes halo-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes halo-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.75; }
+}
+@keyframes halo-plus {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes halo-spark {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  25% { opacity: 1; transform: scale(1) rotate(20deg); }
+  50% { opacity: 0; transform: scale(0.5) rotate(45deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .halo-up-ring,
+  .halo-up-glow,
+  .halo-up-plus {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .halo-up-spark {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+.pic-glyph {
+  vertical-align: -1px;
+}
+/* Dark: a lighter bezel and a visible edge, so the device reads against the near-black page. */
+:root[data-theme='dark'] .story-device {
+  --bezel: #262a31;
+  box-shadow: 0 0 0 1.5px #4a4f5a, 0 18px 40px -18px rgba(0, 0, 0, 0.7);
+}
+:root[data-theme='dark'] .story-device::after {
+  background: linear-gradient(#34383f, #262a31);
+}
+/* A phone shows the whole demo, caption and tabs without scrolling: the example screen is drawn smaller. */
+@media (max-width: 600px) {
+  .story-device-body {
+    zoom: 0.74;
+  }
+  .story-title {
+    font-size: 24px;
+  }
+  .story-top .story-skip {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+}

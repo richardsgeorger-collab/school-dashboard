@@ -1159,3 +1159,46 @@
 .item-facts .halo-jump {
   margin-left: auto;
 }
+/* The quiet invite line at the foot of Now (2026-09-30): muted text, a small gold icon, no card. */
+.invite-line {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 4px 0 0;
+}
+.invite-line-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font: 500 13px/1.35 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+.invite-line-go:hover span:last-child {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.invite-line-icon {
+  display: inline-flex;
+  color: var(--accent);
+  flex: none;
+}
+.invite-line-x {
+  margin-left: auto;
+  padding: 4px 8px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.invite-line-x:hover {
+  opacity: 1;
+}

@@ -1,7 +1,7 @@
 import { ExamWeekCard } from '../winback/ExamWeekCard';
 import { WelcomeChecklist } from './WelcomeChecklist';
 import { NotifyReask } from './NotifyReask';
-import { InviteNowCard } from './InviteNowCard';
+import { InviteLine, InviteNowCard } from './InviteNowCard';
 import { ParticipationWeek } from './ParticipationWeek';
 import { useEffect, useMemo, useState } from 'react';
 import { ItemRow } from '../components/ItemRow';
@@ -745,6 +745,7 @@ export function Now() {
           </a>
         )}
         <ParticipationWeek />
+        <InviteLine />
       </aside>
 
       {sunday && (

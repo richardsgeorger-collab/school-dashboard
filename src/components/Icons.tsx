@@ -167,3 +167,11 @@ export const IconHalo = ({ size = 24 }: IconProps = {}) => (
     <path d="M17.66 3.5v5.7M14.8 6.35h5.7" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
   </svg>
 );
+
+/** A gift box: the invite reward. */
+export const IconGift = ({ size = 20 }: IconProps = {}) => (
+  <svg {...base} width={size} height={size}>
+    <rect x="3.5" y="8.5" width="17" height="4" rx="1" />
+    <path d="M5 12.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6.5M12 8.5V20M12 8.5C10.5 5 7 4.5 7 6.8c0 1.2 1.6 1.7 5 1.7ZM12 8.5c1.5-3.5 5-4 5-1.7 0 1.2-1.6 1.7-5 1.7Z" />
+  </svg>
+);

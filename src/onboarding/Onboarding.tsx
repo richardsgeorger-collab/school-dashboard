@@ -57,16 +57,6 @@ const isMac = () => isMacComputer();
 /** Which touch browser's steps and pictures to show. */
 const touchBrowser = (): TouchBrowser => (isChromeIOS() ? 'chrome-ios' : isIOSDevice() ? 'safari' : 'android');
 
-/**
- * Whether the bookmarks bar is showing, from the height of the browser's own chrome around the page: tabs and toolbar
- * alone are about 80px; with the bookmarks bar about 110. Unknown in full screen or a window too odd to tell.
- */
-export function barGuess(outer: number, inner: number): 'shown' | 'hidden' | 'unknown' {
-  const chrome = outer - inner;
-  if (chrome < 50 || chrome > 220) return 'unknown';
-  return chrome >= 100 ? 'shown' : 'hidden';
-}
-
 /** The bar appearing shrinks the page by about 25 to 40px while the window keeps its size. */
 export const barAppeared = (before: { outer: number; inner: number }, after: { outer: number; inner: number }) => Math.abs(after.outer - before.outer) <= 2 && before.inner - after.inner >= 18 && before.inner - after.inner <= 60;
 
@@ -321,18 +311,16 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
   const keys = isMac() ? '⌘ Command + Shift + B' : 'Ctrl + Shift + B';
   const safari = isSafari();
 
-  // The bar step: skipped on its own when the bar already shows; advanced on its own when it appears.
+  // The bar step is always shown (George, 2026-09-30): a page cannot reliably tell whether the bar is showing, and
+  // guessing skipped it for people whose bar was hidden. It only moves on by itself when the student makes the bar
+  // appear (the page shrinks by a bar's height while the window keeps its size).
   const base = useRef({ outer: typeof window === 'undefined' ? 0 : window.outerHeight, inner: typeof window === 'undefined' ? 0 : window.innerHeight });
   useEffect(() => {
     if (screen !== 'bar') return;
-    if (barGuess(window.outerHeight, window.innerHeight) === 'shown') {
-      show('drag');
-      return;
-    }
     base.current = { outer: window.outerHeight, inner: window.innerHeight };
     const onResize = () => {
       const now = { outer: window.outerHeight, inner: window.innerHeight };
-      if (barAppeared(base.current, now) || barGuess(now.outer, now.inner) === 'shown') show('drag');
+      if (barAppeared(base.current, now)) show('drag');
       else base.current = now;
     };
     window.addEventListener('resize', onResize);
@@ -352,6 +340,9 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
       {screen === 'bar' && (
         <section className="onboard-step" aria-label="Show your bookmarks bar">
           <h1 className="onboard-title">Show your bookmarks bar.</h1>
+          <button type="button" className="btn small bar-already" onClick={() => show('drag')}>
+            My bookmarks bar is already showing
+          </button>
           <ShortcutKeyboard mac={isMac()} />
           <p className="kb-instruction">Hold down the first two keys, then tap B.</p>
           <p className="hint">{keys}. This page moves on by itself when the bar appears.</p>

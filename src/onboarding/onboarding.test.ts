@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { mkItem } from '../halo/fixtures';
-import { barAppeared, barGuess, nextBig } from './Onboarding';
+import { barAppeared, nextBig } from './Onboarding';
 import { upgradeDue } from './Upgrade';
 
 describe('the bookmarks bar', () => {
-  it('is guessed from the browser chrome around the page: about 80px without it, 110 with', () => {
-    expect(barGuess(900, 815)).toBe('hidden');
-    expect(barGuess(900, 787)).toBe('shown');
-    // Full screen, or a headless browser: no chrome to read.
-    expect(barGuess(900, 900)).toBe('unknown');
-  });
   it('appearing shrinks the page by 18 to 60px while the window keeps its size', () => {
     expect(barAppeared({ outer: 900, inner: 815 }, { outer: 900, inner: 787 })).toBe(true);
     expect(barAppeared({ outer: 900, inner: 815 }, { outer: 860, inner: 775 })).toBe(false);

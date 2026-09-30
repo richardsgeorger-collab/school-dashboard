@@ -3,16 +3,20 @@ import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '..
 import { TRIAL } from '../config/tiers';
 
 /**
- * Before connecting Halo (George, 2026-09-29): fifteen seconds, no reading required, on an example GCU student's Now
- * screen. Three beats: Free (a sparse planner with a few hand-added items), Plus (everything fills in from Halo,
- * grades appear, a hidden requirement lights up from an announcement), Max (a study plan and a practice worksheet
- * for Friday's quiz, and Ask answering a question about the class). It plays itself, can be skipped, and moves on.
+ * Before connecting Halo (George, 2026-09-29): fifteen seconds on an example student's Now screen. Three beats: Free (a
+ * sparse planner with a few hand-added items), Plus (everything fills in from Halo, grades appear, a hidden
+ * requirement lights up from an announcement), Max (a study plan and a practice worksheet for Friday's quiz, and Ask
+ * answering a question about the class). It plays itself, can be skipped, and moves on.
+ *
+ * Framed as a demo (George, 2026-09-30, who took it for his own data): a title, the screen inside a device outline
+ * with "Example student" in it and sample names, a big plan pill per beat, one caption under the frame, and tabs that
+ * show the sequence and jump to a beat. The animations themselves are unchanged.
  */
 export const BEAT_MS = 5000;
 const BEATS = [
-  { plan: 'Free', line: 'What you add yourself.' },
-  { plan: 'Plus', line: 'Everything from Halo, read for you.' },
-  { plan: 'Max', line: 'Study help that knows your class.' },
+  { plan: 'Free', line: 'You add everything yourself.' },
+  { plan: 'Plus', line: 'Everything from Halo, automatically. Hidden work found in announcements.' },
+  { plan: 'Max', line: 'Plus study plans, practice worksheets, and answers about your classes.' },
 ] as const;
 
 export function Compare({ onNext }: { onNext: () => void }) {
@@ -35,24 +39,42 @@ export function Compare({ onNext }: { onNext: () => void }) {
   }, [beat, onNext]);
   const b = BEATS[beat];
   return (
-    <section className="onboard-step story" aria-label="What Free, Plus and Max look like">
+    <section className="onboard-step story" aria-label="See what each plan does">
       <div className="story-top">
-        <div className="story-progress" aria-hidden>
-          {BEATS.map((x, i) => (
-            <span key={x.plan} data-state={i < beat ? 'done' : i === beat ? 'now' : 'next'}>
-              <i />
-            </span>
-          ))}
-        </div>
+        <h1 className="onboard-title story-title">See what each plan does</h1>
         <button type="button" className="hero-inline story-skip" onClick={onNext}>
           Skip the example
         </button>
       </div>
+      <div className="story-device" data-beat={beat}>
+        <div className="story-device-bar">
+          <span className="story-device-dots" aria-hidden>
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="story-device-tag">Example student · Sam Sample</span>
+        </div>
+        <div className="story-device-body">
+          <span className="story-pill" data-plan={b.plan} key={b.plan}>
+            {b.plan.toUpperCase()}
+          </span>
+          <StoryScreen beat={beat} />
+        </div>
+      </div>
       <p className="story-caption" aria-live="polite">
-        <b data-plan={b.plan}>{b.plan}</b> <span>{b.line}</span>
+        {b.line}
       </p>
-      <StoryScreen beat={beat} />
-      <p className="hint story-example">Example: a GCU student's week, not your data.</p>
+      <div className="story-tabs" role="tablist" aria-label="Plans">
+        {BEATS.map((x, i) => (
+          <button key={x.plan} type="button" role="tab" aria-selected={i === beat} data-state={i < beat ? 'done' : i === beat ? 'now' : 'next'} onClick={() => setBeat(i)}>
+            <span>{x.plan}</span>
+            <i className="story-tab-bar" aria-hidden>
+              <i />
+            </i>
+          </button>
+        ))}
+      </div>
     </section>
   );
 }
@@ -85,7 +107,7 @@ function StoryScreen({ beat }: { beat: number }) {
           <>
             <div className="mock-hero story-in">
               <span className="mock-meta">
-                <i className="mock-dot" style={{ background: '#e0632e' }} /> CHM-113 · from Halo
+                <i className="mock-dot" style={{ background: '#e0632e' }} /> CHEM 101 · from Halo
               </span>
               <b className="mock-title">Lab 4 Titration Report</b>
               <span className="mock-pills">
@@ -135,6 +157,24 @@ function StoryScreen({ beat }: { beat: number }) {
   );
 }
 
+/** The Halo+ ring drawing itself in gold, a soft glow, the plus, a few sparkles: a halo lighting up (no emoji). */
+function HaloLightsUp() {
+  return (
+    <div className="halo-up" aria-hidden>
+      <svg viewBox="0 0 64 64" className="halo-up-mark">
+        <path className="halo-up-glow" d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" pathLength={1} />
+        <path className="halo-up-ring" d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" pathLength={1} />
+        <path className="halo-up-plus" d="M47.1 9.3v15.2M39.5 16.9h15.2" />
+      </svg>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <svg key={i} viewBox="0 0 10 10" className="halo-up-spark" data-n={i}>
+          <path d="M5 0 L6.1 3.9 L10 5 L6.1 6.1 L5 10 L3.9 6.1 L0 5 L3.9 3.9 Z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
 const GIFT_LINES: { icon: () => React.ReactElement; text: string }[] = [
   { icon: IconSync, text: 'Pulls every class, assignment, and grade from Halo' },
   { icon: IconInbox, text: 'Reads your announcements so you never miss hidden work' },
@@ -151,10 +191,7 @@ const GIFT_LINES: { icon: () => React.ReactElement; text: string }[] = [
 export function Gift({ onNext, invited = false }: { onNext: () => void; invited?: boolean }) {
   return (
     <section className="onboard-step gift" aria-label="Your welcome gift">
-      <div className="gift-burst" aria-hidden>
-        <span className="gift-ring" />
-        <span className="gift-bow">🎁</span>
-      </div>
+      <HaloLightsUp />
       <h1 className="onboard-title gift-title">You've got Max free for 7 days.</h1>
       <p className="offer-promise">{TRIAL.promise}</p>
       <ul className="offer-lines gift-lines">
