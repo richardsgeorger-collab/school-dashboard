@@ -66,7 +66,7 @@ import { NotificationPlanner } from './notify/NotificationPlanner';
 import { NowTour } from './onboarding/NowTour';
 import { Onboarding } from './onboarding/Onboarding';
 import { Upgrade, upgradeDue } from './onboarding/Upgrade';
-import { TrialEnded } from './views/TrialStatus';
+import { TrialEnded } from './views/trialEnd/TrialEnded';
 import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
@@ -265,7 +265,7 @@ function OnboardingHost() {
   // Admin only (2026-10-01): the end-of-trial screen on the admin's own account and real numbers, changing nothing.
   const preview = params.get('preview');
   if (profile?.isAdmin && (preview === 'trial-end' || preview === 'trial-end-gift'))
-    return <TrialEnded preview={{ gift: preview === 'trial-end-gift', onGift: (g) => navigate(route, { preview: g ? 'trial-end-gift' : 'trial-end' }), onClose: () => navigate(route, {}) }} />;
+    return <TrialEnded preview={{ gift: preview === 'trial-end-gift', onGift: (g: boolean) => navigate(route, { preview: g ? 'trial-end-gift' : 'trial-end' }), onClose: () => navigate(route, {}) }} />;
   if (front !== 'app' || route === 'login') return null;
   // An account still arriving on a device with nothing of its own: a quiet wait, never onboarding or an empty Now.
   if (signedIn && !settled && fresh) return <AccountLoading />;

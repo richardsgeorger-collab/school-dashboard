@@ -149,6 +149,8 @@ export interface Item {
   blocked?: Block | null;
   /** When Start was pressed on Now, so Done can log the real time without asking. */
   startedAt?: string | null;
+  /** When Practice last built a worksheet for this test (for the end-of-week story). */
+  practicedAt?: string | null;
   updatedAt: string;
 }
 

@@ -23,7 +23,7 @@ async function shotAll(p, path) {
   await p.evaluate(() => {
     const el = document.querySelector('.trial-ended');
     const style = document.createElement('style');
-    style.textContent = '#root{display:none!important}.trial-ended{position:static!important;height:auto!important;max-height:none!important;overflow:visible!important}.trial-ended .onboard-inner{height:auto!important;max-height:none!important;overflow:visible!important}';
+    style.textContent = '#root{display:none!important}.trial-ended{position:static!important;height:auto!important;max-height:none!important;overflow:visible!important}.trial-ended .onboard-inner{height:auto!important;max-height:none!important;overflow:visible!important}.trial-ended *{animation:none!important}';
     document.head.appendChild(style);
     document.body.appendChild(el);
   });
@@ -57,14 +57,14 @@ try {
     await p.goto(`${BASE}#/admin`, { waitUntil: 'load' });
     await p.click('a:has-text("Preview the end-of-trial screen")', { timeout: 20000 });
     await p.waitForSelector('.trial-ended .trial-preview-bar', { timeout: 10000 });
-    await p.waitForSelector('.ended-number', { timeout: 15000 }).catch(() => undefined);
-    await p.waitForTimeout(1500);
+    await p.waitForSelector('.story-line', { timeout: 15000 }).catch(() => undefined);
+    await p.waitForTimeout(4500);
     if (dev === 'desk' && scheme === 'light') {
-      const lines = (await p.locator('.ended-number').allInnerTexts()).map((l) => l.replace(/\s+/g, ' '));
-      check(lines.some((l) => /^3 questions answered/.test(l)) && lines.some((l) => /^1 study plan or practice set built/.test(l)) && lines.some((l) => /^3 announcements read for you/.test(l)) && lines.some((l) => /^6 classes synced/.test(l)), `the admin's own last 7 days: ${lines.join(' | ')}`);
+      const lines = (await p.locator('.story-line').allInnerTexts()).map((l) => l.replace(/\s+/g, ' ').trim());
+      check(lines.some((l) => /^Answered 3 questions about your classes\.$/.test(l)) && lines.some((l) => /^Built 1 study plan or practice set/.test(l)) && lines.some((l) => /^Read 3 announcements for you/.test(l)), `the admin's own last 7 days: ${lines.join(' | ')}`);
       check(/Preview, admin only/.test(await p.locator('.trial-preview-bar').innerText()), 'it says plainly it is a preview');
     }
-    await shotAll(p, `${OUT}/preview-${dev}-${scheme}.png`);
+    await shotAll(p, `${OUT}/preview-page1-${dev}-${scheme}.png`);
     await ctx.close();
   }
   // Press everything, then check nothing changed.
@@ -78,25 +78,42 @@ try {
     const p = await ctx.newPage();
     await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
     await p.waitForSelector('.trial-preview-bar', { timeout: 20000 });
+    await p.waitForSelector('.story-continue', { timeout: 15000 });
+    await p.waitForTimeout(4000);
     await p.click('.trial-rating-n:has-text("3")');
     await p.fill('.trial-rating textarea', 'preview comment, must not be saved');
     await p.click('.trial-rating button:has-text("Send")');
     await p.waitForSelector('.trial-rating [role=status]');
+    await p.click('.story-continue');
+    await p.waitForSelector('.gcbc-page');
     await p.click('button:has-text("Keep Max")');
     await p.click('button:has-text("Choose Plus")');
-    await p.click('.plan-choice-invite button:has-text("Invite a friend")');
+    await p.click('.gcbc-invite button:has-text("Invite a friend")');
     await p.waitForTimeout(800);
     check(p.url().includes('#/admin') && !(await p.evaluate(() => window.__shared === true)), 'Keep Max, Choose Plus and Invite do nothing in the preview');
     await p.click('.trial-preview-bar button:has-text("Plus from a friend")');
     await p.waitForTimeout(500);
-    check(/Plus from your friend is on/.test(await p.locator('.onboard-title').innerText()) && p.url().includes('preview=trial-end-gift'), 'the friend-invite version');
-    await p.locator('.trial-ended').evaluate((el) => el.querySelector('.onboard-inner').scrollTo(0, 0));
-    await shotAll(p, `${OUT}/preview-gift-desk-light.png`);
+    await p.click('.trial-preview-bar button:has-text("Page 2")');
+    await p.waitForSelector('.gcbc-page');
+    await p.waitForTimeout(2600);
+    check(/Free until .+, from your friend's invite\./.test(await p.locator('.gcbc-plan[data-tier=plus]').innerText()) && (await p.locator('.gcbc-free-link').innerText()) === 'Continue with Plus free' && p.url().includes('preview=trial-end-gift'), 'the friend-invite version: Plus covered, "Continue with Plus free"');
+    await shotAll(p, `${OUT}/preview-page2-gift-desk-light.png`);
     await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
     await p.reload({ waitUntil: 'load' });
     await p.waitForSelector('.trial-preview-bar', { timeout: 20000 });
-    await p.click('.trial-rating-n:has-text("9")');
-    await p.waitForTimeout(400);
+    await p.click('.trial-preview-bar button:has-text("Page 2")');
+    await p.waitForSelector('.gcbc-page');
+    await shotAll(p, `${OUT}/preview-page2-desk-light.png`);
+    await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForSelector('.trial-preview-bar button:has-text("Page 2")', { timeout: 20000 });
+    await p.click('.trial-preview-bar button:has-text("Page 2")');
+    await p.click('.gcbc-free-link');
+    await p.waitForTimeout(800);
+    check((await p.locator('.trial-ended').count()) === 0, 'Stay on Free in the preview just closes it');
+    await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForSelector('.trial-preview-bar', { timeout: 20000 });
     await p.click('.trial-preview-bar button:has-text("Close preview")');
     await p.waitForTimeout(800);
     check((await p.locator('.trial-ended').count()) === 0 && (await p.locator('.admin-ratings').isVisible()), 'Close preview goes back to Admin');

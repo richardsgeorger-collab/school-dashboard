@@ -1,9 +1,8 @@
 import { creditLine, plusCredit, type PlusCredit } from '../referral/credit';
-import { InviteBlock, InviteButton, INVITE_RULE, progressLine, useInviteProgress, useMyGrants } from '../referral/Invite';
+import { InviteBlock, InviteButton, useMyGrants } from '../referral/Invite';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { Modal } from '../components/Modal';
-import { SegmentedControl } from '../components/SegmentedControl';
 import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
 import { friendGift, trialState } from '../config/flags';
 import { trialCalendar, trialChipShort, trialChipText, trialEndSentence } from '../config/trialCalendar';
@@ -48,10 +47,10 @@ const INCLUDED: { icon: () => React.ReactElement; text: string; plan: 'plus' | '
  * Admin preview of the end-of-trial screen (George, 2026-10-01): inside it no button charges, invites, saves a
  * rating or ends anything. Every live button on the screen reads this.
  */
-const PreviewMode = createContext(false);
+export const PreviewMode = createContext(false);
 const noop = () => undefined;
 
-function PlanButton({ tier, label, primary = true }: { tier: 'plus' | 'max'; label: string; primary?: boolean }) {
+export function PlanButton({ tier, label, primary = true }: { tier: 'plus' | 'max'; label: string; primary?: boolean }) {
   if (useContext(PreviewMode))
     return (
       <button type="button" className={primary ? 'btn small primary' : 'btn small'} onClick={noop} title="Preview: nothing is charged">
@@ -61,7 +60,7 @@ function PlanButton({ tier, label, primary = true }: { tier: 'plus' | 'max'; lab
   return <UpgradeButton tier={tier} label={label} primary={primary} cancelNote={false} />;
 }
 
-function Invite({ label }: { label: string }) {
+export function Invite({ label }: { label: string }) {
   if (useContext(PreviewMode))
     return (
       <button type="button" className="btn primary" onClick={noop} title="Preview: nothing is shared">
@@ -72,7 +71,7 @@ function Invite({ label }: { label: string }) {
 }
 
 /** A paper cup, small or large: the GCBC line beside Plus and Max. */
-function Cup({ size }: { size: 'small' | 'large' }) {
+export function Cup({ size }: { size: 'small' | 'large' }) {
   const h = size === 'small' ? 16 : 22;
   return (
     <svg className="cup" data-size={size} viewBox="0 0 16 22" width={(h * 16) / 22} height={h} aria-hidden fill="none">
@@ -119,7 +118,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
         <div className="plan-choice">
           <span className="plan-choice-name">
             <b>Free</b>
-            <span>Classes from their syllabi and what you add yourself.</span>
+            <span>Classes from your syllabi and what you add yourself.</span>
           </span>
           <button type="button" className="btn small" onClick={onFree}>
             {freeLabel}
@@ -255,240 +254,6 @@ export function useTrialNumbers(since: string | null | undefined, until: string 
     };
   }, [since, until, data.items, data.courses]);
   return n;
-}
-
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
-
-/** The recap's lines, in order, only those with something behind them. */
-export function recapLines(n: TrialNumbers | null): [number, string][] {
-  if (!n) return [];
-  const lines: [number, string][] = [
-    [n.classes, plural(n.classes, 'class synced from Halo', 'classes synced from Halo')],
-    [n.fromHalo, plural(n.fromHalo, 'assignment pulled in', 'assignments pulled in')],
-    [n.read, plural(n.read, 'announcement read for you', 'announcements read for you')],
-    [n.found, plural(n.found, 'requirement found in announcements', 'requirements found in announcements')],
-    [n.caught, plural(n.caught, 'due date change caught', 'due date changes caught')],
-    [n.practice, plural(n.practice, 'study plan or practice set built', 'study plans and practice sets built')],
-    [n.answered, plural(n.answered, 'question answered', 'questions answered')],
-  ];
-  return lines.filter(([v]) => v > 0);
-}
-
-/**
- * "How much did Halo+ help this week?" 1 to 10, once, at the end of the free week (George, 2026-10-01). 1 to 6 asks
- * what would make it better (into Feedback); 7 to 10 says thanks and offers the friend invite. Skippable, and it sits
- * above the plans without ever standing in front of them.
- */
-function TrialRating({ onHigh }: { onHigh: () => void }) {
-  const { data, actions } = useStore();
-  const preview = useContext(PreviewMode);
-  const [skipped, setSkipped] = useState(false);
-  const saved = preview ? (skipped ? { rating: null, at: '' } : null) : data.settings.trialRating;
-  const [rating, setRating] = useState<number | null>(saved?.rating ?? null);
-  const [text, setText] = useState('');
-  const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const save = (r: number | null) => (preview ? r === null && setSkipped(true) : actions.updateSettings({ trialRating: { rating: r, at: new Date().toISOString() } }));
-  const send = async (r: number, comment?: string) => {
-    const c = supabase();
-    if (!c || preview) return;
-    await c.rpc('rate_trial', { p_rating: r, p_comment: comment ?? null }).then(() => undefined, () => undefined);
-  };
-  useEffect(() => {
-    if (rating !== null && rating >= 7) onHigh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rating]);
-  if (saved && saved.rating === null) return null; // skipped
-  if (rating === null)
-    return (
-      <section className="trial-rating" aria-label="Rate your week">
-        <p className="trial-rating-q">How much did Halo+ help this week?</p>
-        <div className="trial-rating-scale" role="group" aria-label="1 is not at all, 10 is a lot">
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((v) => (
-            <button
-              key={v}
-              type="button"
-              className="trial-rating-n"
-              onClick={() => {
-                setRating(v);
-                save(v);
-                void send(v);
-              }}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-        <div className="trial-rating-ends" aria-hidden>
-          <span>Not at all</span>
-          <span>A lot</span>
-        </div>
-        <button type="button" className="hero-inline" onClick={() => save(null)}>
-          Skip
-        </button>
-      </section>
-    );
-  if (rating >= 7)
-    return (
-      <section className="trial-rating" aria-label="Thanks">
-        <p className="trial-rating-q">
-          {rating}/10. Thank you, that means a lot.
-        </p>
-        <div className="plan-choice plan-choice-invite">
-          <span className="plan-choice-name">
-            <b>Know someone who'd like it? Invite a friend and you both get 30 days of Plus free.</b>
-            <span>{INVITE_RULE}</span>
-          </span>
-          <Invite label="Invite a friend" />
-        </div>
-      </section>
-    );
-  return (
-    <section className="trial-rating" aria-label="What would make it better">
-      {sent ? (
-        <p className="trial-rating-q" role="status">
-          Thanks. George reads every one of these.
-        </p>
-      ) : (
-        <>
-          <label className="field">
-            <span className="trial-rating-q">{rating}/10. What would make it better?</span>
-            <textarea className="field-input" rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder="Anything: what was missing, what was annoying, what you expected" />
-          </label>
-          <div className="settings-actions">
-            <button
-              type="button"
-              className="btn small primary"
-              disabled={busy || !text.trim()}
-              onClick={() => {
-                setBusy(true);
-                void send(rating, text.trim()).then(() => {
-                  setBusy(false);
-                  setSent(true);
-                });
-              }}
-            >
-              {busy ? 'Sending…' : 'Send'}
-            </button>
-            <button type="button" className="btn small quiet" onClick={() => setSent(true)}>
-              Skip
-            </button>
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
-
-/**
- * The first open after the trial ends: one screen that says it ended, what Max did in numbers, what changes, what
- * stays, and the three choices. Seen once; the frozen banner carries on from there as before.
- */
-export interface TrialEndPreview {
-  /** Show it as a student on Plus from a friend's invite, instead of one going back to Free. */
-  gift: boolean;
-  onGift: (gift: boolean) => void;
-  onClose: () => void;
-}
-
-export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
-  const { profile, tier } = useAccount();
-  const { data, actions } = useStore();
-  const tz = data.settings.timezone;
-  // The preview's week: the admin's own last 7 days, so the numbers are real.
-  const [week] = useState(() => ({ since: new Date(Date.now() - 7 * 86_400_000).toISOString(), until: new Date().toISOString() }));
-  const real = !!profile?.trialStartedAt && !!profile.trialEndsAt && !profile.friendFrom;
-  const livePlusAfter = usePlusAfter(profile?.trialEndsAt);
-  const plusAfter: PlusCredit | null = preview ? (preview.gift ? { start: week.until, end: new Date(Date.parse(week.until) + 30 * 86_400_000).toISOString(), days: 30, running: true, after: 'trial', from: 'invited' } : null) : livePlusAfter;
-  // Free after the week, or Plus from a friend's invite: either way one clear screen, once.
-  const onPlusGift = preview ? preview.gift : tier === 'plus' && !!plusAfter;
-  const ended = !!preview || (real && trialState(profile) === 'used' && (tier === 'free' || onPlusGift) && !data.settings.trialEndSeen);
-  const endsAt = preview ? week.until : profile?.trialEndsAt;
-  const n = useTrialNumbers(preview ? week.since : profile?.trialStartedAt, preview ? week.until : profile?.trialEndsAt);
-  const invites = useInviteProgress();
-  // A 7 to 10 shows the invite right under the rating, so the card further down would say it twice.
-  const [inviteAbove, setInviteAbove] = useState(false);
-  if (!ended || !endsAt) return null;
-  const done = preview ? preview.onClose : () => actions.updateSettings({ trialEndSeen: new Date().toISOString() });
-  const numbers = recapLines(n);
-  return (
-    <PreviewMode.Provider value={!!preview}>
-    <div className="onboard trial-ended" role="dialog" aria-modal="true" aria-label={preview ? 'Preview: your free trial ended' : 'Your free trial ended'}>
-      <div className="onboard-inner">
-        {preview && (
-          <div className="trial-preview-bar" role="status">
-            <p>
-              <b>Preview, admin only.</b> Your own last 7 days, real numbers. Nothing here saves, charges, shares or ends anything.
-            </p>
-            <div className="trial-preview-actions">
-              <SegmentedControl
-                label="Show it as"
-                value={preview.gift ? 'gift' : 'free'}
-                options={[
-                  { value: 'free', label: 'Back to Free' },
-                  { value: 'gift', label: "Plus from a friend's invite" },
-                ]}
-                onChange={(v) => preview.onGift(v === 'gift')}
-              />
-              <button type="button" className="btn small" onClick={preview.onClose}>
-                Close preview
-              </button>
-            </div>
-          </div>
-        )}
-        <section className="onboard-step">
-          <p className="eyebrow">Ended {fmtDate(dateOf(endsAt, tz), 'long')}</p>
-          <h1 className="onboard-title">{onPlusGift ? 'Your free week of Max ended. Plus from your friend is on.' : 'Your free trial ended.'}</h1>
-          {onPlusGift && plusAfter && <p className="onboard-text">Plus is free until {fmtDate(dateOf(plusAfter.end, tz), 'long')}, from {creditFrom(plusAfter)}: Halo sync, real grades, and every announcement read for you. No card; after that you choose again.</p>}
-          {numbers.length > 0 && (
-            <>
-              <p className="onboard-text">What it did for you this week:</p>
-              <div className="ended-numbers">
-                {numbers.map(([v, label]) => (
-                  <p key={label} className="ended-number">
-                    <b>{v}</b>
-                    <span>{label}</span>
-                  </p>
-                ))}
-              </div>
-            </>
-          )}
-          <TrialRating onHigh={() => setInviteAbove(true)} />
-          <h3 className="section-title">What changes now</h3>
-          <ul className="ended-list">
-            {onPlusGift ? (
-              <li>Study, Ask and Check are locked. Halo sync and announcements keep going.</li>
-            ) : (
-              <>
-                <li>Halo sync is paused. Due dates stay as they were at your last sync.</li>
-                <li>New announcements aren't read for you.</li>
-                <li>Study, Ask and Check are locked.</li>
-              </>
-            )}
-          </ul>
-          <h3 className="section-title">What you keep</h3>
-          <ul className="ended-list">
-            <li>All your classes, assignments, grades and announcements so far.</li>
-            <li>Everything you added or checked off yourself.</li>
-          </ul>
-          <PlanChoices onFree={done} freeLabel="Stay on Free" maxTag="What you had this week" />
-          {/* The fourth way on, as prominent as the plans (George, 2026-09-29): the most important invite spot. */}
-          {!inviteAbove && (
-          <div className="plan-choice plan-choice-invite">
-            <span className="plan-choice-name">
-              <b>Not ready to pay? Invite a friend and you both get Plus free for 30 days.</b>
-              <span>{INVITE_RULE}</span>
-              {progressLine(invites) && <span className="invite-progress">{progressLine(invites)}</span>}
-            </span>
-            <Invite label="Invite a friend" />
-          </div>
-          )}
-          <p className="hint">Nothing charged, and nothing will unless you choose a plan.</p>
-        </section>
-      </div>
-    </div>
-    </PreviewMode.Provider>
-  );
 }
 
 /** For a student who has not tried Max: the offer, one quiet line. Used on Now and You. */

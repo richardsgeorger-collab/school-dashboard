@@ -299,6 +299,7 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
 }
 
 function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, onQuiz, askHref }: { course: Course; test: Item | null; topic: string; sources: ReturnType<typeof gatherSources>; weak: string[]; pool: SourcePool | null; allowed: boolean; day: string | null; onQuiz: () => void; askHref: (t: string) => string }) {
+  const { data: store, actions } = useStore();
   const [ws, setWs] = useState<Worksheet | null>(null);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState<'docx' | 'pdf' | null>(null);
@@ -338,6 +339,9 @@ function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, 
       const w = await buildWorksheet({ apiKey: loadApiKey(), course, test, testDate: day ? fmtDate(day, 'long') : '', topics, weakTopics: weak, sources });
       setWs(w);
       await aiDb.put(key, w).catch(() => undefined);
+      // The test remembers it was practiced for: the end-of-week story names it ("Built practice for your APA Quiz").
+      const current = test && store.items.find((i) => i.id === test.id);
+      if (current) actions.upsertItem({ ...current, practicedAt: new Date().toISOString() });
     } catch (e) {
       setNote(`${await describeAiError(e)} Press the button to try again.`);
     } finally {
