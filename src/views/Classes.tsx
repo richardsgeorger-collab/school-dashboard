@@ -4,6 +4,7 @@ import { urgentFor } from '../domain/urgent';
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
+import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
 import { PALETTE } from '../data/courseDefaults';
 import { dateOf, diffDays, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
 import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
@@ -87,6 +88,7 @@ function ClassCard({ course }: { course: Course }) {
 /** Every class on one screen: where the grade stands, what is next, when it was last synced. Tap one for the whole class. */
 export function Classes() {
   const { data, today } = useStore();
+  const neverSynced = useNeverSynced();
   const [editing, setEditing] = useState<Course | null>(null);
   const add = () =>
     setEditing({
@@ -118,7 +120,17 @@ export function Classes() {
           <SyncedLine />
         </div>
       )}
-      {data.courses.length === 0 ? (
+      {data.courses.length === 0 && neverSynced ? (
+        <>
+          <ConnectHaloLine what="Your classes, with their grades and what is next, come in from Halo." />
+          <p className="hint">
+            Not in Halo?{' '}
+            <button type="button" className="hero-inline" onClick={add}>
+              Add a class yourself
+            </button>
+          </p>
+        </>
+      ) : data.courses.length === 0 ? (
         <EmptyState art="classes">
           <p>
             <b>No classes yet.</b>

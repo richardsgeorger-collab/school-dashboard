@@ -122,18 +122,36 @@ export function Onboarding() {
     set({ screen: s, path });
   };
   const switchPath = () => set({ path: path === 'phone' ? 'desktop' : 'phone', screen: null });
-  const skipAll = () => {
-    track(step, 'skip');
-    set({ skippedAt: new Date().toISOString() });
+  // Opened from "Set up": only the Halo steps, and "Not now" just closes them.
+  const focus = ob.focus === 'halo';
+  // Skipping is safe (2026-10-01): one line on how to come back, then Now. The free week keeps running either way.
+  const [leaving, setLeaving] = useState(false);
+  const leave = () => {
+    const now = new Date().toISOString();
+    // One write: the skip, and (on the free week) the Max welcome marked seen, as finishing does. Skipping used to land
+    // on "Welcome to Max", three more setup screens about classes that were not there yet (2026-10-01).
+    const seen = trialState(profile) === 'active' && !data.settings.upgradeSeen?.max ? { upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } } : {};
+    actions.updateSettings({ onboarding: { ...ob, skippedAt: now, focus: null }, ...seen });
     navigate('now');
   };
+  const skipAll = () => {
+    track(step, 'skip');
+    if (focus) return leave();
+    setLeaving(true);
+  };
+  useEffect(() => {
+    if (!leaving) return;
+    const t = window.setTimeout(leave, 4500);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaving]);
   const onTrial = trialState(profile) === 'active';
   const gift = friendGift(profile);
   const finish = () => {
     track('payoff', 'complete');
     pixel('CompleteRegistration');
     const now = new Date().toISOString();
-    set({ step: 'done', doneAt: now });
+    set({ step: 'done', doneAt: now, focus: null });
     // A student on the welcome gift has just been shown what Max does (the gift screen) and their study plan (the
     // payoff): the three-screen "Welcome to Max" after the tour said it all a third time, twelve screens in, before
     // they ever reached Now (walkthrough, 2026-09-30). It stays for a real upgrade; the colour is under You, Display.
@@ -156,7 +174,7 @@ export function Onboarding() {
   const welcoming = auth.configured && !!auth.session && !gift && !pendingFriend() && trialState(profile) === 'active' && !profile?.friendFrom;
   // The account step passes itself the moment someone is signed in (including coming back from the email link).
   useEffect(() => {
-    if (step === 'account' && (!auth.configured || auth.session)) set({ step: 'compare' });
+    if (step === 'account' && (!auth.configured || auth.session)) set({ step: focus ? 'halo' : 'compare' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, auth.configured, auth.session]);
   // Nothing to choose (a friend's link, a trial already used or running, a paid plan, no accounts on this build):
@@ -183,21 +201,45 @@ export function Onboarding() {
     ? synced ? 4 : step === 'welcome' ? 0 : step === 'account' ? 1 : step === 'compare' || step === 'offer' ? 2 : 3
     : synced ? 2 : step === 'welcome' ? 0 : 1;
 
+  if (leaving)
+    return (
+      <div className="onboard" role="dialog" aria-modal="true" aria-label="Setup skipped">
+        <div className="onboard-inner">
+          <section className="onboard-step skip-note" role="status">
+            <h1 className="onboard-title">No problem.</h1>
+            <p className="onboard-text">
+              Tap <b className="skip-note-pill">Set up</b> {window.matchMedia?.('(max-width: 639px)').matches ? 'at the top' : 'in the top right'} whenever you're ready.
+            </p>
+            {trialState(profile) === 'active' && !profile?.friendFrom && <p className="hint">Your free week of Max is already running.</p>}
+            <button type="button" className="btn primary" onClick={leave}>
+              Go to Now
+            </button>
+          </section>
+        </div>
+      </div>
+    );
+
   return (
-    <div className="onboard" role="dialog" aria-modal="true" aria-label="Welcome">
+    <div className="onboard" role="dialog" aria-modal="true" aria-label={focus ? 'Connect Halo' : 'Welcome'}>
       <div className="onboard-inner">
         <header className="onboard-head">
-          <span className="onboard-count">
-            Step {at + 1} of {labels.length}: {labels[at]}
-          </span>
-          <span className="onboard-progress" aria-hidden>
-            {labels.map((s, i) => (
-              <i key={s} data-done={i < at} data-current={i === at} />
-            ))}
-          </span>
+          {focus ? (
+            <span className="onboard-count">{step === 'account' ? 'Sign up, then connect Halo' : 'Connect Halo'}</span>
+          ) : (
+            <>
+              <span className="onboard-count">
+                Step {at + 1} of {labels.length}: {labels[at]}
+              </span>
+              <span className="onboard-progress" aria-hidden>
+                {labels.map((s, i) => (
+                  <i key={s} data-done={i < at} data-current={i === at} />
+                ))}
+              </span>
+            </>
+          )}
           {!synced && (
             <button type="button" className="diff-toggle onboard-skip" onClick={skipAll}>
-              Skip for now
+              {focus ? 'Not now' : 'Skip for now'}
             </button>
           )}
         </header>

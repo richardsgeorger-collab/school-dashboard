@@ -3,7 +3,7 @@
 // You, which resumes where they left). Runs against the preview build (no accounts needed to reach these steps).
 //   BASE=http://localhost:4173/school-dashboard/ node scripts/e2e-onboarding-help.mjs
 import { mkdirSync } from 'node:fs';
-import { chromium, devices } from 'playwright-core';
+import { chromium } from 'playwright-core';
 const BASE = process.env.BASE ?? 'http://localhost:4173/school-dashboard/';
 const OUT = 'docs/screens/onboarding-help';
 mkdirSync(OUT, { recursive: true });
@@ -47,26 +47,7 @@ for (const scheme of ['light', 'dark']) {
     }
     await ctx.close();
   }
-  // Skipping, on a computer and a phone: Skip → Now with Finish setup → You too → Finish setup resumes.
-  for (const [name, device] of [['desk', { viewport: { width: 1280, height: 860 }, deviceScaleFactor: 2 }], ['phone', { ...devices['iPhone 14'], deviceScaleFactor: 2 }]]) {
-    const { ctx, p } = await fresh(device, scheme, name === 'desk' ? 'mac' : null);
-    await p.click('.onboard button:has-text("Start")');
-    await p.waitForTimeout(700);
-    await p.screenshot({ path: `${OUT}/skip-1-step-${name}-${scheme}.png` });
-    await p.click('.onboard-head .onboard-skip');
-    await p.waitForTimeout(900);
-    await p.screenshot({ path: `${OUT}/skip-2-now-${name}-${scheme}.png` });
-    if (scheme === 'light') check(!(await p.$('.onboard')) && /#\/now/.test(p.url()) && /Finish setup/.test(await text(p, '.finish-setup')), `${name}: Skip lands on Now with a Finish setup card`);
-    await p.goto(`${BASE}#/you`, { waitUntil: 'load' });
-    await p.waitForTimeout(900);
-    await p.screenshot({ path: `${OUT}/skip-3-you-${name}-${scheme}.png` });
-    if (scheme === 'light') check(!!(await p.$('.finish-setup')), `${name}: Finish setup on You too`);
-    await p.click('.finish-setup .btn.primary');
-    await p.waitForTimeout(900);
-    await p.screenshot({ path: `${OUT}/skip-4-resumed-${name}-${scheme}.png` });
-    if (scheme === 'light') check(!!(await p.$('.onboard [aria-label="Show your bookmarks bar"], .onboard [aria-label="Copy the bookmark"]')), `${name}: Finish setup picks up exactly where they left (the bookmark step)`);
-    await ctx.close();
-  }
+  // Skipping and coming back is scripts/e2e-setup.mjs (2026-10-01: the Set up pill replaced the Finish setup card).
 }
 await browser.close();
 console.log(checks.every(Boolean) ? 'PASS' : 'FAIL');

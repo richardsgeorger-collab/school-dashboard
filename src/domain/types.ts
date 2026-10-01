@@ -438,6 +438,8 @@ export interface OnboardingState {
   path?: 'desktop' | 'phone' | 'ipad' | null;
   /** After the first sync: the payoff, then the morning-note question, then (phones) the Home Screen. */
   after?: 'payoff' | 'notify' | 'home' | null;
+  /** Opened from "Set up" (2026-10-01): only the Halo steps (and sign-up first when there is no account), not the whole welcome. */
+  focus?: 'halo' | null;
   doneAt: string | null;
   skippedAt: string | null;
   tourDoneAt: string | null;

@@ -51,7 +51,7 @@ import { receiptsLine } from '../domain/receipts';
 import { TRIAL } from '../config/tiers';
 import { TrialOffer, useReceipts } from './TrialOffer';
 import { TrialReminder } from './TrialStatus';
-import { FinishSetup } from '../onboarding/FinishSetup';
+import { ConnectHaloCard, useNeverSynced } from '../onboarding/Setup';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
@@ -247,6 +247,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
 export function Now() {
   const { data, schedule, derived, today, actions, progress, previewAward, calibrate, justDone } = useStore();
   const { profile, auth } = useAccount();
+  const neverSynced = useNeverSynced();
   const trialDays = trialDaysLeft(profile);
   const onTrial = trialState(profile) === 'active';
   const trialAvailable = auth.configured && trialState(profile) === 'available';
@@ -676,9 +677,15 @@ export function Now() {
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hero?.id, today, justFinished, skipped]);
+  // Before the first sync, with nothing added by hand: one Connect Halo card, not an app with nothing in it.
+  if (neverSynced && data.items.length === 0)
+    return (
+      <div className="now now-unsynced">
+        <ConnectHaloCard />
+      </div>
+    );
   return (
     <div className="now">
-      <FinishSetup where="now" />
       <TrialReminder />
       {trialAvailable && !headsUp.some((h) => h.key === 'read-failed') && data.courses.length > 0 && (
         <p className="hint trial-quiet">

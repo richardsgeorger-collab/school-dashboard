@@ -16,6 +16,7 @@ import { MonthView } from './MonthView';
 import { WeekStrip } from './WeekStrip';
 import { WeekGlance } from './WeekGlance';
 import { CalendarFeed } from './CalendarFeed';
+import { ConnectHaloLine, useNeverSynced } from '../../onboarding/Setup';
 import { useFilteredItems } from './shared';
 
 /** Agenda is the calendar. Month is the map. There is no Week: the seven-day strip on the agenda is what that was for. */
@@ -45,6 +46,7 @@ export function Calendar() {
   const [filtering, setFiltering] = useState(!!filterParam);
   // "#/calendar?feed=1" opens Add to my calendar app straight away (from a notification, the help pages, You).
   const [feedOpen, setFeedOpen] = useState(params.get('feed') === '1');
+  const neverSynced = useNeverSynced();
   const openItem = (item: Item) => setOpen({ item, isNew: false });
 
   const set = (patch: Partial<{ v: View; d: string; c: string | null }>) => {
@@ -73,6 +75,13 @@ export function Calendar() {
     set({ c: next.length === all.length || next.length === 0 ? null : next.join(',') });
   };
 
+  if (data.courses.length === 0 && neverSynced)
+    return (
+      <>
+        <h1 className="page-title">Calendar</h1>
+        <ConnectHaloLine what="Your due dates land here once Halo is connected." />
+      </>
+    );
   if (data.courses.length === 0) {
     return (
       <>

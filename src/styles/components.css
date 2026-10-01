@@ -1002,3 +1002,163 @@ input[type='range']::-webkit-slider-thumb {
 .locked-wait.locked-compact {
   min-height: 0;
 }
+
+/* ---- the way back into setup (2026-10-01): until the first Halo sync -------------------------------------- */
+.setup-pill {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 14px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 500 13px/1 var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 14px -6px rgb(223 163 33 / 0.7);
+}
+.setup-pill b {
+  font-weight: 700;
+}
+.setup-pill:hover {
+  filter: brightness(1.05);
+}
+.setup-pill:focus-visible,
+.setup-bar:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.setup-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: setup-pulse 2.4s ease-in-out infinite;
+}
+@keyframes setup-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.setup-bar {
+  appearance: none;
+  display: none;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 500 14px/1 var(--font-body);
+  cursor: pointer;
+}
+.setup-bar b {
+  font-weight: 700;
+}
+@media (max-width: 639px) {
+  .setup-pill {
+    display: none;
+  }
+  .setup-bar {
+    display: flex;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-pill-dot {
+    animation: none;
+  }
+}
+
+/* Now before the first sync: one card. */
+.now.now-unsynced {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: none;
+  place-items: center;
+  min-height: 60vh;
+}
+.now.now-unsynced > .connect-halo {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+.connect-halo {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-3);
+  max-width: 520px;
+  padding: var(--s-6) var(--s-5);
+  text-align: center;
+}
+.connect-halo-mark {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.connect-halo-title {
+  margin: 0;
+  font: 800 clamp(24px, 4.4vw, 32px) / 1.15 var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.connect-halo-text {
+  margin: 0;
+  max-width: 40ch;
+  color: var(--ink-2);
+}
+.connect-halo .connect-halo-btn {
+  width: 100%;
+  max-width: 320px;
+  min-height: 52px;
+  margin-top: var(--s-2);
+  font-size: 17px;
+}
+.connect-halo-alt {
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+
+/* Calendar, Classes, Inbox and You before the first sync: one line and the button. */
+.connect-halo-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-3);
+  margin: var(--s-3) 0;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* "No problem." after Skip for now. */
+.skip-note {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-3);
+  max-width: 520px;
+  margin: 12vh auto 0;
+}
+.skip-note .onboard-text {
+  margin: 0;
+}
+.skip-note-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}

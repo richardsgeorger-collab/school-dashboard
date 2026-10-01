@@ -33,7 +33,7 @@ import { FriendLinks } from './FriendLinks';
 import { ServerSyncAdmin } from './ServerSyncAdmin';
 import { SyncKeyCard } from './SyncKeyCard';
 import { TrialOffer, TrialReceipts } from './TrialOffer';
-import { FinishSetup } from '../onboarding/FinishSetup';
+import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
 import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
@@ -380,6 +380,7 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
 export function You() {
   const { data, today, actions } = useStore();
   const { auth, tier, profile } = useAccount();
+  const neverSynced = useNeverSynced();
   const gifted = !!friendGift(profile);
   const { params } = useRoute();
   const section = (params.get('s') ?? null) as Section | null;
@@ -472,7 +473,7 @@ export function You() {
           ))}
         </nav>
         <div className="you-content" key={active}>
-          {active === 'profile' && <FinishSetup where="you" />}
+          {active === 'profile' && neverSynced && <ConnectHaloLine what="Halo isn't connected yet." />}
           {active === 'profile' && (
             <>
               <AccountCard tier={tier} />

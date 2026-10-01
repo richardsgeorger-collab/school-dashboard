@@ -4,6 +4,7 @@ import { useStore } from '../storage/store';
 import { IconCalendar, IconClasses, IconHalo, IconInbox, IconMoon, IconNow, IconPlus, IconStudy, IconSun, IconSync, IconYou } from './Icons';
 import { useAccount } from '../auth/AccountContext';
 import { PlanBadge, TrialChip } from '../views/TrialStatus';
+import { SetupBar, SetupPill } from '../onboarding/Setup';
 
 const LABEL: Record<Tab, string> = { now: 'Now', calendar: 'Calendar', study: 'Study', classes: 'Classes', inbox: 'Inbox', you: 'You' };
 /** During the trial: what each tab needs to stay (Study is Max; the Inbox's reading is Plus). */
@@ -55,6 +56,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
           <Links current={TAB_OF[route]} />
         </nav>
         <div className="topbar-date mono">
+          <SetupPill />
           <button type="button" className="topbar-gear topbar-sync" onClick={onCapture} title="Add something (⌘K)" aria-label="Add something">
             <IconPlus />
             <span className="gear-label">Add</span>
@@ -74,6 +76,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
           </a>
         </div>
       </div>
+      <SetupBar />
     </header>
   );
 }

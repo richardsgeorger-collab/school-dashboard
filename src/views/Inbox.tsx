@@ -4,6 +4,7 @@ import { loadApiKey } from '../chat/key';
 import { useAiAllowed } from '../config/useCan';
 import { CourseChip } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
+import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
 import { syncPress } from '../ui/presses';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course } from '../domain/types';
@@ -31,6 +32,7 @@ import { planOf, TRIAL } from '../config/tiers';
  */
 export function Inbox() {
   const { data, today, courseById } = useStore();
+  const neverSynced = useNeverSynced();
   const { params } = useRoute();
   const tz = data.settings.timezone;
   const only = params.get('c');
@@ -220,7 +222,8 @@ export function Inbox() {
           </ul>
         </section>
       )}
-      {list !== null && shown.length === 0 && filter === 'all' && (
+      {list !== null && shown.length === 0 && filter === 'all' && neverSynced && <ConnectHaloLine what="Your professors' announcements arrive here once Halo is connected." />}
+      {list !== null && shown.length === 0 && filter === 'all' && !neverSynced && (
         <EmptyState art="inbox">
           <p>
             <b>Nothing here yet.</b>
