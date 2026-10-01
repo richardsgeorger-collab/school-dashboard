@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { supabase } from './client';
 import type { AuthState } from './useAuth';
 
@@ -16,20 +16,21 @@ export function useResetReady(): boolean | null {
   return ready;
 }
 
-/** GCU school addresses: GCU blocks Google sign-in for them ("Access blocked … Error 400: access_not_configured"). */
-export const isGcuEmail = (email: string) => /@(my\.)?gcu\.edu\s*$/i.test(email.trim());
-
-/** Shown under Continue with Google, and again by the email field once a GCU address is typed (George, 2026-09-30). */
-export function GcuGoogleNote({ id }: { id?: string }): ReactNode {
-  return (
-    <span className="signin-gcu" id={id}>
-      Using your GCU email? <b>You can't sign up with Google.</b> GCU blocks it. Use email and password below instead.
-    </span>
-  );
+/**
+ * Which way in an address gets (George, 2026-10-01: email first). GCU blocks Google sign-in for school accounts
+ * ("Access blocked … Error 400: access_not_configured" on Google's own page, which never comes back here), and a
+ * warning beside the Google button was skimmed past. So the email comes first and a GCU address never sees Google.
+ */
+export type EmailKind = 'gcu' | 'google' | 'other';
+export function emailKind(email: string): EmailKind {
+  const e = email.trim().toLowerCase();
+  if (/@(my\.)?gcu\.edu$/.test(e)) return 'gcu';
+  if (/@(gmail|googlemail)\.com$/.test(e)) return 'google';
+  return 'other';
 }
 
 type Mode = 'signup' | 'login' | 'forgot';
-type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'sent' } | { kind: 'error'; message: string };
+type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'sent' } | { kind: 'error'; message: string; setPassword?: boolean };
 
 /**
  * Email and password, or Google. Nothing to do with a GCU login: this is the account for the planner itself. Sign up
@@ -41,13 +42,21 @@ export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  // Email first: the address decides what comes next (emailKind). `step` is which screen; a Google address can still
+  // choose a password instead.
+  const [step, setStep] = useState<'email' | 'next'>('email');
+  const [passwordInstead, setPasswordInstead] = useState(false);
+  // Set a password (no password yet) uses the reset email, under its own name.
+  const [setting, setSetting] = useState(false);
   const resetReady = useResetReady();
-  const emailRef = useRef<HTMLInputElement>(null);
-  const gcu = isGcuEmail(email);
-  // Google sends a GCU address to its own "Access blocked" page and never comes back, so steer them to the form.
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const googleRef = useRef<HTMLButtonElement>(null);
+  const kind = emailKind(email);
+  const withGoogle = kind === 'google' && !passwordInstead;
   useEffect(() => {
-    if (gcu) emailRef.current?.closest('form')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-  }, [gcu]);
+    if (step !== 'next') return;
+    (withGoogle ? googleRef.current : passwordRef.current)?.focus();
+  }, [step, withGoogle]);
 
   if (!auth.configured) {
     return (
@@ -60,6 +69,13 @@ export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }
   const busy = status.kind === 'busy';
   const switchTo = (m: Mode) => {
     setMode(m);
+    setSetting(false);
+    setStatus({ kind: 'idle' });
+  };
+  const changeEmail = () => {
+    setStep('email');
+    setPassword('');
+    setPasswordInstead(false);
     setStatus({ kind: 'idle' });
   };
 
@@ -67,6 +83,10 @@ export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }
     e.preventDefault();
     const address = email.trim();
     if (!EMAIL.test(address)) return setStatus({ kind: 'error', message: 'That does not look like an email address.' });
+    if (mode !== 'forgot' && step === 'email') {
+      setStatus({ kind: 'idle' });
+      return setStep('next');
+    }
     if (mode === 'forgot') {
       setStatus({ kind: 'busy' });
       const r = await auth.sendPasswordReset(address);
@@ -78,36 +98,43 @@ export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }
     const r = mode === 'signup' ? await auth.signUpWithPassword(address, password) : await auth.signInWithPassword(address, password);
     if (r.ok) return setStatus({ kind: 'idle' });
     if (mode === 'signup' && /already has an account/.test(r.error)) setMode('login');
+    // No match on log in: say plainly that an account made with an email link has no password yet, and offer one.
+    if (mode === 'login' && /don't match/.test(r.error))
+      return setStatus({
+        kind: 'error',
+        setPassword: true,
+        message: "That password doesn't match. If you made this account with an email link, it has no password yet: set one below." + (kind === 'google' ? ' Or change email and use Continue with Google.' : ''),
+      });
     setStatus({ kind: 'error', message: r.error });
   };
 
   const google = async () => {
     setStatus({ kind: 'busy' });
-    const r = await auth.signInWithGoogle();
+    const r = await auth.signInWithGoogle(email.trim());
     if (!r.ok) setStatus({ kind: 'error', message: r.error });
   };
 
   if (mode === 'forgot') {
     return (
-      <form className="card signin" onSubmit={submit} aria-label="Reset your password" noValidate>
-        <p className="section-title">Reset your password</p>
+      <form className="card signin" onSubmit={submit} aria-label={setting ? 'Set a password' : 'Reset your password'} noValidate>
+        <p className="section-title">{setting ? 'Set a password' : 'Reset your password'}</p>
         {resetReady === false ? (
           <p className="signin-contact" role="status">
             Contact George to reset your password.
           </p>
         ) : status.kind === 'sent' ? (
           <p className="hint" aria-live="polite">
-            If <b>{email.trim()}</b> has an account, a link to set a new password is on its way. Open it on this device.
+            If <b>{email.trim()}</b> has an account, a link to {setting ? 'set its password' : 'set a new password'} is on its way. Open it on this device.
           </p>
         ) : (
           <>
-            <p className="hint">We'll email you a link to set a new password. Made your account with an email link? This is how you give it a password.</p>
+            <p className="hint">{setting ? "We'll email you a link to set a password for this account. Open it on this device." : "We'll email you a link to set a new password. Made your account with an email link? This is how you give it a password."}</p>
             <label className="field">
               <span>Email</span>
               <input type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
             </label>
             <button type="submit" className="btn primary" disabled={busy || !email.trim() || resetReady === null}>
-              {busy ? 'Sending…' : 'Email me a reset link'}
+              {busy ? 'Sending…' : setting ? 'Email me a link to set it' : 'Email me a reset link'}
             </button>
           </>
         )}
@@ -124,66 +151,130 @@ export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }
   }
 
   const signup = mode === 'signup';
-  return (
-    <form className="card signin" onSubmit={submit} aria-label={signup ? 'Sign up' : 'Log in'} noValidate>
-      {/* The label follows the form: a "Log in" title never sits over the sign-up form (audit, 2026-09-30). */}
-      <p className="section-title">{mode === first && title ? title : signup ? 'Make your account' : 'Log in'}</p>
-      {note && <p className="hint">{note}</p>}
-      <button type="button" className="btn" onClick={google} disabled={busy}>
-        Continue with Google
+  const action = signup ? 'Sign up' : 'Log in';
+  const switchLine = (
+    <p className="hint signin-switch">
+      {signup ? (
+        <>
+          Have an account?{' '}
+          <button type="button" className="hero-inline" onClick={() => switchTo('login')}>
+            Log in
+          </button>
+        </>
+      ) : (
+        <>
+          New here?{' '}
+          {signupHref ? (
+            <a className="hero-inline" href={signupHref}>
+              Sign up
+            </a>
+          ) : (
+            <button type="button" className="hero-inline" onClick={() => switchTo('signup')}>
+              Sign up
+            </button>
+          )}
+        </>
+      )}
+    </p>
+  );
+  const error = status.kind === 'error' && (
+    <div className="signin-error-box" role="alert">
+      <p className="hint signin-error">{status.message}</p>
+      {status.setPassword && (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setMode('forgot');
+            setSetting(true);
+            setStatus({ kind: 'idle' });
+          }}
+        >
+          Set a password
+        </button>
+      )}
+    </div>
+  );
+  const heading = <p className="section-title">{mode === first && title ? title : signup ? 'Make your account' : 'Log in'}</p>;
+
+  // Screen 1: the email, and nothing else.
+  if (step === 'email') {
+    return (
+      <form className="card signin" onSubmit={submit} aria-label={action} noValidate data-step="email">
+        {heading}
+        {note && <p className="hint">{note}</p>}
+        <label className="field">
+          <span>What's your email?</span>
+          <input type="email" name="email" autoComplete={signup ? 'email' : 'username'} inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@my.gcu.edu" />
+        </label>
+        <button type="submit" className="btn primary" disabled={!email.trim()}>
+          Continue
+        </button>
+        {error}
+        {switchLine}
+      </form>
+    );
+  }
+
+  // Screen 2, by address: a GCU address gets a password and never a Google button; Gmail gets Google first.
+  const changeLine = (
+    <p className="signin-who">
+      <span className="signin-who-email">{email.trim()}</span>
+      <button type="button" className="hero-inline" onClick={changeEmail}>
+        Change email
       </button>
-      <GcuGoogleNote />
-      <p className="muted signin-or">or</p>
+    </p>
+  );
+  if (withGoogle) {
+    return (
+      <div className="card signin" aria-label={action} data-step="google">
+        {heading}
+        {changeLine}
+        <button type="button" ref={googleRef} className="btn primary signin-google" onClick={google} disabled={busy}>
+          {busy ? 'Opening Google…' : 'Continue with Google'}
+        </button>
+        <button type="button" className="hero-inline signin-instead" onClick={() => setPasswordInstead(true)}>
+          Or use a password instead
+        </button>
+        {error}
+      </div>
+    );
+  }
+  return (
+    <form className="card signin" onSubmit={submit} aria-label={action} noValidate data-step={kind === 'gcu' ? 'gcu' : 'password'}>
+      {heading}
+      {changeLine}
+      {/* The address again, for password managers to save with the password. */}
+      <input className="visually-hidden" type="email" name="email" autoComplete="username" value={email} readOnly tabIndex={-1} aria-hidden />
       <label className="field">
-        <span>Email</span>
-        <input type="email" name="email" autoComplete={signup ? 'email' : 'username'} inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@my.gcu.edu or any email" disabled={busy} ref={emailRef} aria-describedby={gcu ? 'signin-gcu-field' : undefined} />
-        {gcu && <GcuGoogleNote id="signin-gcu-field" />}
-      </label>
-      <label className="field">
-        <span>Password</span>
+        <span>{signup ? 'Make a password' : 'Password'}</span>
         <span className="signin-pass">
-          <input type={show ? 'text' : 'password'} name="password" autoComplete={signup ? 'new-password' : 'current-password'} minLength={signup ? MIN_PASSWORD : undefined} value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
+          <input ref={passwordRef} type={show ? 'text' : 'password'} name="password" autoComplete={signup ? 'new-password' : 'current-password'} minLength={signup ? MIN_PASSWORD : undefined} value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
           <button type="button" className="hero-inline" onClick={() => setShow(!show)} aria-pressed={show}>
             {show ? 'Hide' : 'Show'}
           </button>
         </span>
-        {signup && <small className="hint">At least {MIN_PASSWORD} characters. Not your GCU password.</small>}
+        {(kind === 'gcu' || signup) && (
+          <small className="hint">
+            {kind === 'gcu'
+              ? signup
+                ? `GCU accounts use a password here. Not your GCU password, make a new one (at least ${MIN_PASSWORD} characters).`
+                : 'GCU accounts use a password here: the one you made for Halo+, not your GCU password.'
+              : `At least ${MIN_PASSWORD} characters. Not your GCU password.`}
+          </small>
+        )}
       </label>
-      <button type="submit" className="btn primary" disabled={busy || !email.trim() || !password}>
-        {busy ? (signup ? 'Making your account…' : 'Logging in…') : signup ? 'Sign up' : 'Log in'}
+      <button type="submit" className="btn primary" disabled={busy || !password}>
+        {busy ? (signup ? 'Making your account…' : 'Logging in…') : action}
       </button>
-      {status.kind === 'error' && (
-        <p className="hint signin-error" role="alert">
-          {status.message}
+      {error}
+      {!signup && (
+        <p className="hint signin-switch">
+          <button type="button" className="hero-inline" onClick={() => switchTo('forgot')}>
+            Forgot password
+          </button>
         </p>
       )}
-      <p className="hint signin-switch">
-        {signup ? (
-          <>
-            Have an account?{' '}
-            <button type="button" className="hero-inline" onClick={() => switchTo('login')}>
-              Log in
-            </button>
-          </>
-        ) : (
-          <>
-            New here?{' '}
-            {signupHref ? (
-              <a className="hero-inline" href={signupHref}>
-                Sign up
-              </a>
-            ) : (
-              <button type="button" className="hero-inline" onClick={() => switchTo('signup')}>
-                Sign up
-              </button>
-            )}
-            {' · '}
-            <button type="button" className="hero-inline" onClick={() => switchTo('forgot')}>
-              Forgot password
-            </button>
-          </>
-        )}
-      </p>
     </form>
   );
 }

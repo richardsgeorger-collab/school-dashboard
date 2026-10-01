@@ -18,7 +18,7 @@ export interface AuthState {
   knownUserId: string | null;
   email: string | null;
   signInWithEmail: (email: string) => Promise<{ ok: true } | { ok: false; error: string }>;
-  signInWithGoogle: () => Promise<{ ok: true } | { ok: false; error: string }>;
+  signInWithGoogle: (hint?: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** A new account with a password, signed straight in (no confirmation email). */
   signUpWithPassword: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   signInWithPassword: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -34,7 +34,7 @@ export interface AuthState {
 /** Supabase's messages, in the app's words. */
 export function authMessage(raw: string): string {
   if (/already registered|already been registered|already exists/i.test(raw)) return 'That email already has an account. Log in instead.';
-  if (/invalid login credentials/i.test(raw)) return "That email and password don't match. Made your account with an email link? It has no password yet: use Forgot password, or Continue with Google if it is a Google address.";
+  if (/invalid login credentials/i.test(raw)) return "That email and password don't match. Made your account with an email link? It has no password yet: use Forgot password to set one.";
   if (/email not confirmed/i.test(raw)) return 'That account was never confirmed. Use Forgot password to set a password and get in.';
   if (/rate limit|too many/i.test(raw)) return 'Too many tries. Wait a minute and try again.';
   if (/password should be|weak password/i.test(raw)) return 'Pick a longer password: at least 8 characters.';
@@ -75,10 +75,11 @@ export function useAuth(): AuthState {
     return error ? { ok: false as const, error: error.message } : { ok: true as const };
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (hint?: string) => {
     const c = supabase();
     if (!c) return { ok: false as const, error: 'Accounts are not set up on this build.' };
-    const { error } = await c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectTo() } });
+    // The address typed on the email-first screen goes to Google as a hint, so it opens on that account.
+    const { error } = await c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectTo(), ...(hint ? { queryParams: { login_hint: hint } } : {}) } });
     return error ? { ok: false as const, error: error.message } : { ok: true as const };
   }, []);
 

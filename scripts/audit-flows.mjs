@@ -6,6 +6,7 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { personaKit } from './lib/personas.mjs';
+import { fillSignIn } from './lib/signin.mjs';
 
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const BASE = process.env.BASE ?? 'http://localhost:4174/school-dashboard/';
@@ -56,27 +57,24 @@ try {
     await note(page, 'signedout', 'log in', await text(page, 'form.signin'));
     const submit = page.locator('form.signin button[type=submit]');
     await note(page, 'signedout', 'log in, empty: submit disabled?', String(await submit.isDisabled()));
-    await page.fill('form.signin input[type=email]', 'not-an-email');
-    await page.fill('form.signin input[name=password]', 'x');
+    await fillSignIn(page, 'not-an-email', 'x').catch(() => undefined);
     await submit.click(); await page.waitForTimeout(2500);
     await note(page, 'signedout', 'log in with a bad email', await text(page, 'form.signin'));
-    await page.fill('form.signin input[type=email]', `nobody-${Date.now()}@example.invalid`);
-    await page.fill('form.signin input[name=password]', 'wrong-password-123');
+    await fillSignIn(page, `nobody-${Date.now()}@example.invalid`, 'wrong-password-123').catch(() => undefined);
     await submit.click(); await page.waitForTimeout(3000);
     await note(page, 'signedout', 'log in, wrong password', await text(page, 'form.signin'));
-    await page.fill('form.signin input[type=email]', `${'a'.repeat(300)}@example.invalid`);
-    await page.fill('form.signin input[name=password]', 'p'.repeat(500));
+    await fillSignIn(page, `${'a'.repeat(300)}@example.invalid`, 'p'.repeat(500)).catch(() => undefined);
     await submit.click(); await page.waitForTimeout(3000);
     await note(page, 'signedout', 'log in, 300-char email and 500-char password', await text(page, 'form.signin'));
     // Sign up.
     await page.click('button:has-text("Sign up"), button:has-text("Create an account"), button:has-text("create one")').catch(() => undefined);
     await page.waitForTimeout(800);
-    await page.fill('form.signin input[type=email]', `e2e-audit-signup-${Date.now()}@example.invalid`);
-    await page.fill('form.signin input[name=password]', 'short');
+    await fillSignIn(page, `e2e-audit-signup-${Date.now()}@example.invalid`, 'short').catch(() => undefined);
     await page.locator('form.signin button[type=submit]').click(); await page.waitForTimeout(2500);
     await note(page, 'signedout', 'sign up with a 5-character password', await text(page, 'form.signin'));
     // Forgot password.
     await page.goto(`${BASE}#/login`); await page.waitForTimeout(1200);
+    await fillSignIn(page, `someone-${Date.now()}@example.invalid`).catch(() => undefined); // Forgot password is on the password screen
     await page.click('button:has-text("Forgot")').catch(() => undefined);
     await page.waitForTimeout(800);
     await note(page, 'signedout', 'forgot password', await text(page, 'form.signin'));

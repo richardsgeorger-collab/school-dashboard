@@ -7,6 +7,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { chromium, devices } from 'playwright-core';
 import { currentBuild } from './lib/build.mjs';
+import { fillSignIn } from './lib/signin.mjs';
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const BASE = process.env.BASE ?? 'http://localhost:4174/school-dashboard/';
 const BUILD = await currentBuild(BASE);
@@ -56,8 +57,7 @@ const run = async (device, scheme) => {
   // Sign up with a password: the form a new student meets.
   await tap('button:has-text("Create an account"), button:has-text("Sign up"), button:has-text("create one")', 600);
   const email = `e2e-five-${device}-${scheme}-${Date.now()}@example.invalid`;
-  await p.fill('input[type=email]', email).catch(() => undefined);
-  await p.fill('input[type=password]', 'Halo-plus-2026!').catch(() => undefined);
+  await fillSignIn(p, email, 'Halo-plus-2026!').catch(() => undefined);
   await shot('signup-filled');
   await tap('form button[type=submit]', 3500);
   const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });

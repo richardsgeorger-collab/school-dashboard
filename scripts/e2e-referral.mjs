@@ -6,6 +6,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { chromium, devices } from 'playwright-core';
+import { fillSignIn } from './lib/signin.mjs';
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const BASE = process.env.BASE ?? 'http://localhost:4174/school-dashboard/';
 const SCHEME = process.env.SCHEME ?? 'light';
@@ -44,8 +45,7 @@ try {
   await shot('account-step');
   await tap('button:has-text("Create an account"), button:has-text("Sign up"), button:has-text("create one")', 600);
   const email = `e2e-ref-friend-${Date.now()}@example.invalid`;
-  await p.fill('input[type=email]', email).catch(() => undefined);
-  await p.fill('input[type=password]', 'Halo-plus-2026!').catch(() => undefined);
+  await fillSignIn(p, email, 'Halo-plus-2026!').catch(() => undefined);
   await tap('form button[type=submit]', 4000);
   const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const u = list.users.find((x) => x.email === email);

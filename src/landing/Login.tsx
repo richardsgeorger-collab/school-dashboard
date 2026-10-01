@@ -31,7 +31,7 @@ export function Login() {
       </header>
       <section className="login-box" aria-label="Log in">
         <h1 className="landing-title">Log in.</h1>
-        <p className="landing-lede">Your classes and work follow you between your phone and laptop. Email and password, or Google.</p>
+        <p className="landing-lede">Your classes and work follow you between your phone and laptop.</p>
         <SignIn auth={auth} title="Log in" mode="login" signupHref="#/start" />
       </section>
     </div>

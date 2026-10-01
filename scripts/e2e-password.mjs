@@ -6,6 +6,7 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from 'playwright-core';
+import { fillSignIn } from './lib/signin.mjs';
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const BASE = process.env.BASE ?? 'http://localhost:4174/school-dashboard/';
 const OUT = 'docs/screens/password';
@@ -27,15 +28,13 @@ try {
     await p.waitForTimeout(600);
     await p.screenshot({ path: `${OUT}/1-sign-up-${scheme}.png` });
     if (scheme === 'light') {
-      check(!!(await p.$('form.signin input[type="password"]')) && /Continue with Google/.test(await text(p, 'form.signin')), 'sign up asks for an email and a password, and keeps Google');
-      await p.fill('form.signin input[type="email"]', email);
-      await p.fill('form.signin input[name="password"]', 'short7!');
+      check(!!(await p.$('form.signin[data-step="email"]')) && !(await p.$('form.signin input[type="password"]')) && !/Continue with Google/.test(await text(p, 'form.signin')), 'sign up asks for the email first, and nothing else');
+      await fillSignIn(p, email, 'short7!');
       await p.click('form.signin button[type="submit"]');
       await p.waitForTimeout(400);
       check(/at least 8 characters/.test(await text(p, '.signin-error')), `under 8 characters is refused: "${await text(p, '.signin-error')}"`);
     }
-    await p.fill('form.signin input[type="email"]', email);
-    await p.fill('form.signin input[name="password"]', 'correct-horse-9');
+    await fillSignIn(p, email, 'correct-horse-9');
     await p.click('form.signin button[type="submit"]');
     await p.waitForFunction(() => !document.querySelector('form.signin'), null, { timeout: 20000 }).catch(() => undefined);
     await p.waitForTimeout(1200);
@@ -52,19 +51,19 @@ try {
     await p.waitForSelector('form.signin', { timeout: 15000 });
     await p.waitForTimeout(500);
     await p.screenshot({ path: `${OUT}/2-log-in-${scheme}.png` });
-    await p.fill('form.signin input[type="email"]', email);
-    await p.fill('form.signin input[name="password"]', 'wrong-password-1');
+    await fillSignIn(p, email, 'wrong-password-1');
     await p.click('form.signin button[type="submit"]');
     await p.waitForSelector('.signin-error', { timeout: 15000 }).catch(() => undefined);
     await p.screenshot({ path: `${OUT}/3-wrong-password-${scheme}.png` });
-    if (scheme === 'light') check(/don't match/.test(await text(p, '.signin-error')), `a wrong password says so: "${await text(p, '.signin-error')}"`);
+    if (scheme === 'light') check(/doesn't match/.test(await text(p, '.signin-error')), `a wrong password says so: "${await text(p, '.signin-error')}"`);
     await p.click('form.signin button:has-text("Forgot password")');
     await p.waitForTimeout(1500);
     await p.screenshot({ path: `${OUT}/4-forgot-off-${scheme}.png` });
-    if (scheme === 'light') check((await text(p, '.signin-contact')) === 'Contact George to reset your password.' && !(await p.$('form.signin button[type="submit"]')), 'with the reset email off, Forgot password says Contact George, with no link to press');
+    // Reset emails are on in production (2026-09-30); with them off this says Contact George instead.
+    const contact = await p.$('.signin-contact');
+    if (scheme === 'light') check(contact ? (await text(p, '.signin-contact')) === 'Contact George to reset your password.' && !(await p.$('form.signin button[type="submit"]')) : /Email me a reset link/.test(await text(p, 'form.signin button[type="submit"]')), `Forgot password offers ${contact ? 'Contact George' : 'a reset link'}, matching whether reset emails are on`);
     await p.click('form.signin button:has-text("Back to log in")');
-    await p.fill('form.signin input[type="email"]', email);
-    await p.fill('form.signin input[name="password"]', 'correct-horse-9');
+    await fillSignIn(p, email, 'correct-horse-9');
     await p.click('form.signin button[type="submit"]');
     await p.waitForFunction(() => Object.keys(localStorage).some((k) => /^sb-.*-auth-token$/.test(k)), null, { timeout: 20000 }).catch(() => undefined);
     if (scheme === 'light') check(await p.evaluate(() => Object.keys(localStorage).some((k) => /^sb-.*-auth-token$/.test(k))), 'logs back in with the password');
@@ -79,11 +78,10 @@ try {
   let p = await ctx.newPage();
   await p.goto(`${BASE}#/login`, { waitUntil: 'load' });
   await p.waitForSelector('form.signin', { timeout: 15000 });
-  await p.fill('form.signin input[type="email"]', old);
-  await p.fill('form.signin input[name="password"]', 'anything-at-all');
+  await fillSignIn(p, old, 'anything-at-all');
   await p.click('form.signin button[type="submit"]');
   await p.waitForSelector('.signin-error', { timeout: 15000 }).catch(() => undefined);
-  check(/email link\? It has no password yet: use Forgot password/.test(await text(p, '.signin-error')), 'an email-link account trying a password is told how to get one');
+  check(/email link, it has no password yet/.test(await text(p, '.signin-error')) && !!(await p.$('.signin-error-box button:has-text("Set a password")')), 'an email-link account trying a password is told plainly, with Set a password');
   // The reset email's link, followed: the app asks for a new password.
   const { data: link } = await admin.auth.admin.generateLink({ type: 'recovery', email: old });
   const anon = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
