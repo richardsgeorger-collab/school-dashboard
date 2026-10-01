@@ -180,8 +180,21 @@ body {
 }
 .plus {
   margin: 12px 0 0;
-  color: var(--ink-3);
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--accent-soft, rgba(223, 163, 33, 0.14));
+  color: var(--ink-2);
   font-size: 12px;
+  line-height: 1.4;
+}
+.upgrade {
+  color: var(--accent-text);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.upgrade:hover {
+  text-decoration: underline;
 }
 .foot {
   margin-top: 14px;

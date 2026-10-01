@@ -33,7 +33,7 @@ export function upgradeDue(tier: Tier, seen: Settings['upgradeSeen'], oldMax?: M
 
 /**
  * The celebration after an upgrade, three screens at most, on the student's own data. Plus: what is now on, what it
- * found in their real announcements, then auto-sync and notifications one tap each. Max: welcome, pick a colour on a
+ * found in their real announcements, then notifications one tap each (auto-sync is Max: the row offers Max). Max: welcome, pick a colour on a
  * live copy of their Now, then their next quiz or exam with a study plan and a practice worksheet, and Ask in
  * one line. Shown once each, ever.
  */
@@ -67,13 +67,13 @@ export function Upgrade({ kind }: { kind: 'plus' | 'max' }) {
             Skip
           </button>
         </header>
-        {kind === 'plus' ? <PlusScreens i={i} next={next} /> : <MaxScreens i={i} next={next} done={done} />}
+        {kind === 'plus' ? <PlusScreens i={i} next={next} done={done} /> : <MaxScreens i={i} next={next} done={done} />}
       </div>
     </div>
   );
 }
 
-function PlusScreens({ i, next }: { i: number; next: () => void }) {
+function PlusScreens({ i, next, done }: { i: number; next: () => void; done: (to?: string) => void }) {
   const { data, courseById, actions } = useStore();
   const reading = useReadStatus();
   const finds = useMemo(
@@ -128,21 +128,18 @@ function PlusScreens({ i, next }: { i: number; next: () => void }) {
     );
   return (
     <section className="onboard-step" aria-label="Two taps">
-      <h1 className="onboard-title">{EXTENSION_URL ? 'Two things, one tap each.' : 'One more tap.'}</h1>
+      <h1 className="onboard-title">{isTouchDevice() ? 'One more tap.' : 'Two things, one tap each.'}</h1>
       <div className="upgrade-rows">
-        {!isTouchDevice() && <div>
-          <b>Sync on its own.</b>{' '}
-          {EXTENSION_URL ? (
-            <>
-              The Chrome extension syncs every 3 hours while Chrome is open.{' '}
-              <a className="btn small" href={EXTENSION_URL} target="_blank" rel="noreferrer">
-                Add to Chrome
-              </a>
-            </>
-          ) : (
-            <span className="hint">The Chrome extension is on its way to the Web Store. Until then the bookmark takes one click.</span>
-          )}
-        </div>}
+        {/* Auto-sync is Max (2026-10-01): on Plus this row offers Max instead of setting it up. Plus syncs with one
+            click: the bookmark, or Sync now in the extension. */}
+        {!isTouchDevice() && (
+          <div>
+            <b>Sync on its own.</b> Auto-sync every 3 hours is part of Max. On Plus, Halo syncs when you click the bookmark{EXTENSION_URL ? ' or Sync now in the Chrome extension' : ''}.{' '}
+            <button type="button" className="btn small" onClick={() => done('#/you?s=plan&to=max')}>
+              Get Max
+            </button>
+          </div>
+        )}
         <div>
           <b>Notifications.</b> A morning note with your day.{' '}
           {pushSupported() || isIOSDevice() ? (

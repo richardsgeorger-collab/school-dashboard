@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Halo+",
-  "description": "Keeps Halo+ in sync with Halo: your classes, assignments, grades and announcements, every three hours. Part of Plus.",
-  "version": "0.3.2",
+  "description": "Syncs Halo+ with Halo: classes, assignments, grades and announcements. Sync now on Plus; every three hours on its own on Max.",
+  "version": "0.4.0",
   "permissions": ["alarms", "storage", "unlimitedStorage", "scripting", "tabs"],
   "host_permissions": ["https://halo.gcu.edu/*", "https://haloplus.app/*", "https://richardsgeorger-collab.github.io/*", "https://kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop", "https://kiacmspgvntzwngijibr.supabase.co/functions/v1/report"],
   "background": { "service_worker": "background.js", "type": "module" },

@@ -23,7 +23,7 @@ const Ctx = createContext<Account | null>(null);
 export function AccountProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const p = useProfile(auth.knownUserId);
-  // The plan on this device, for the extension (auto-sync is Plus) and nothing else.
+  // The plan on this device, for the extension (auto-sync is Max; Sync now on Plus) and nothing else.
   // A free account kept on sync until its term ends counts as Plus for the extension, which only knows tiers.
   const syncTier = p.tier === 'free' && syncAccess(p.profile).allowed ? 'plus' : p.tier;
   // Not while the account is still loading: the placeholder plan is Free, and the extension read that and never

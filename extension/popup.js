@@ -4,6 +4,8 @@ import { DASH_ORIGIN, PERIOD_MINUTES } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const PAID = ['plus', 'pro', 'max'];
+// Auto-sync is Max (2026-10-01): on Plus the popup says so, with the way to Max, and Sync now still works.
+const AUTO = ['max'];
 const PLAN_NAMES = { plus: 'Plus', pro: 'Pro', max: 'Max' };
 $('open').href = `${DASH_ORIGIN}/#/now`;
 
@@ -36,6 +38,7 @@ async function render() {
   const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'lastCounts', 'syncKey']);
   const alarm = await chrome.alarms.get('auto-sync');
   const paid = PAID.includes(s.tier);
+  const auto = AUTO.includes(s.tier);
 
   $('plan').hidden = !paid;
   $('plan').textContent = PLAN_NAMES[s.tier] ?? '';
@@ -43,9 +46,13 @@ async function render() {
   const last = s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b>` : 'Not synced from here yet';
   // Never earlier than three hours after the last sync: an alarm that fires sooner skips (synced recently).
   const nextAt = alarm ? Math.max(alarm.scheduledTime, s.lastSyncAt ? new Date(s.lastSyncAt).getTime() + PERIOD_MINUTES * 60_000 : 0) : null;
-  const next = paid && nextAt ? `<span class="next">Next sync around ${when(new Date(nextAt).toISOString())}</span>` : '';
+  const next = auto && nextAt ? `<span class="next">Next sync around ${when(new Date(nextAt).toISOString())}</span>` : '';
   $('status').innerHTML = s.running ? (s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b><span class="next">Syncing now</span>` : 'Syncing now') : last + next;
-  $('plus').hidden = paid || !s.tier;
+  // Plus: auto-sync is Max. Free: syncing at all is Plus. Nothing to say on Max or before the plan is known.
+  $('plus').hidden = auto || !s.tier;
+  $('plusText').textContent = paid ? 'Auto-sync is part of Max. Sync now still works on Plus.' : 'Halo sync is part of Plus, and auto-sync every 3 hours is part of Max.';
+  $('upgrade').textContent = paid ? 'Get Max' : 'See plans';
+  $('upgrade').href = `${DASH_ORIGIN}/#/you?s=plan&to=${paid ? 'max' : 'plus'}`;
 
   $('sync').disabled = !!s.running;
   $('sync').textContent = s.running ? 'Syncing…' : 'Sync now';

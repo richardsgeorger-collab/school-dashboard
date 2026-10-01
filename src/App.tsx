@@ -87,7 +87,13 @@ function HaloHandoff() {
   const first = useRef(firstNow);
   first.current = firstNow;
   const [firstSync, setFirstSync] = useState(false);
+  // A scheduled sync from the extension is Max (2026-10-01). The server refuses one from any other plan; this is the
+  // same rule for a sync an older extension hands straight to this tab. Sync now (auto false) is taken on any plan.
+  const { tier: planTier, planKnown: tierKnown } = useAccount();
+  const autoOk = useRef(true);
+  autoOk.current = !tierKnown || can('haloAutoSync', planTier);
   const receive = useCallback((p: HaloExport) => {
+    if ((p as HaloExport & { auto?: boolean }).auto === true && !autoOk.current) return;
     setFirstSync(first.current);
     setPayload(p);
   }, []);

@@ -1,4 +1,5 @@
-// The service worker. Every three hours while Chrome is open (plans that sync: Plus and up), or at once from the popup's
+// The service worker. Every three hours while Chrome is open (auto-sync is Max, 2026-10-01: Max, a Max trial or a
+// friend-link Max), or at once from the popup's
 // Sync now, it runs the same sync the bookmark runs on a Halo page (the student's own Halo tab if one is open,
 // otherwise one it opens quietly in the background and closes after) and carries the export to Halo+.
 //
@@ -12,7 +13,8 @@
 // a 6:08 AM sync read Halo, found no Halo+ tab, was lost, and the popup still said "Last synced 6:08 AM").
 import { DASH_ORIGIN, DASH_URL, DROP_URL, PERIOD_MINUTES, REPORT_URL } from './config.js';
 
-const PAID = ['plus', 'pro', 'max'];
+// Scheduled syncs run only on Max; Sync now runs on any plan (the app and the server apply the same rule).
+const AUTO = ['max'];
 const HALO = 'https://halo.gcu.edu/';
 const ALARM = 'auto-sync';
 // A real account takes minutes to read: the worker waits as long as the sync keeps reporting progress, and gives up
@@ -54,7 +56,12 @@ const set = (obj) => chrome.storage.local.set(obj);
 
 // ---- the schedule ---------------------------------------------------------------------------------------------------
 async function ensureSchedule() {
-  const { lastSyncAt } = await get('lastSyncAt');
+  const { lastSyncAt, tier } = await get(['lastSyncAt', 'tier']);
+  // Not on Max: no schedule at all (a plan that moved down from Max loses its alarm here).
+  if (!AUTO.includes(tier)) {
+    await chrome.alarms.clear(ALARM);
+    return;
+  }
   const due = !lastSyncAt || Date.now() - new Date(lastSyncAt).getTime() > PERIOD_MINUTES * 60_000;
   const alarm = await chrome.alarms.get(ALARM);
   // Overdue (Chrome was closed past the time): one run shortly after start, then every three hours from there.
@@ -71,7 +78,7 @@ chrome.runtime.onStartup.addListener(() => void ensureSchedule());
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== ALARM) return;
   const { tier, lastSyncAt } = await get(['tier', 'lastSyncAt']);
-  if (!PAID.includes(tier)) return;
+  if (!AUTO.includes(tier)) return void chrome.alarms.clear(ALARM);
   // A Sync now a moment ago already did it.
   if (lastSyncAt && Date.now() - new Date(lastSyncAt).getTime() < 30 * 60_000) return;
   await runSync({ auto: true });
@@ -258,7 +265,8 @@ async function toAccount(payload) {
 /** A sync reached the account (or an open Halo+ tab): now, and only now, it is "Last synced". */
 async function markLanded(readAt, how) {
   await set({ lastSyncAt: readAt, lastLanded: how, lastError: null, lastErrorKind: null });
-  await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
+  const { tier } = await get('tier');
+  if (AUTO.includes(tier)) await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
   await chrome.action.setBadgeText({ text: '' });
 }
 

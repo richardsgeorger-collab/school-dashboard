@@ -483,15 +483,15 @@ Website: ${SITE}
 
 ## How it connects to Halo
 
-- A bookmark ("Sync Halo") the student clicks while logged in to halo.gcu.edu. It runs on Halo's page and never sees or asks for the student's GCU password. On ${TIER_NAMES.plus}, an optional Chrome extension also syncs on its own.
+- A bookmark ("Sync Halo") the student clicks while logged in to halo.gcu.edu. It runs on Halo's page and never sees or asks for the student's GCU password. An optional Chrome extension syncs when the student presses Sync now (${TIER_NAMES.plus}), and also on its own every 3 hours while Chrome is open (${TIER_NAMES.max}).
 - The student reviews changes before they are applied. Assignments are still submitted in Halo; Halo+ only plans.
 - Source code is public: https://github.com/richardsgeorger-collab/school-dashboard
 
 ## Plans (US dollars)
 
 - ${TIER_NAMES.free}: $0. Works from a syllabus PDF and items you add. No Halo sync, no AI.
-- ${TIER_NAMES.plus}: ${plus} a month. Halo sync, Halo grades, announcements read for you, notifications.
-- ${TIER_NAMES.max}: ${max} a month. Everything in ${TIER_NAMES.plus} plus the AI study tools.
+- ${TIER_NAMES.plus}: ${plus} a month. Halo sync by hand (the bookmark, or Sync now in the extension), Halo grades, announcements read for you, notifications.
+- ${TIER_NAMES.max}: ${max} a month. Everything in ${TIER_NAMES.plus}, plus auto-sync every 3 hours and the AI study tools.
 - Every new account gets ${TIER_NAMES.max} free for ${trial}, no card. A friend link gives both people extra free time.
 
 ## Help pages

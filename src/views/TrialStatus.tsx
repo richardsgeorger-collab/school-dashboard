@@ -36,6 +36,7 @@ export function PlanBadge({ plan }: { plan: 'max' | 'plus' }) {
 
 const INCLUDED: { icon: () => React.ReactElement; text: string; plan: 'plus' | 'max' }[] = [
   { icon: IconSync, text: 'Pulls every class, assignment, and grade from Halo', plan: 'plus' },
+  { icon: IconSync, text: 'Syncs Halo on its own every 3 hours (the Chrome extension)', plan: 'max' },
   { icon: IconInbox, text: 'Reads your announcements so you never miss hidden work', plan: 'plus' },
   { icon: IconNow, text: 'Tells you what to do next', plan: 'plus' },
   { icon: IconStudy, text: 'Builds study plans and practice worksheets for your quizzes', plan: 'max' },
@@ -94,7 +95,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
           <span className="plan-choice-tag">{maxTag}</span>
           <b>Max · ${PRICES.max.month.toFixed(2)} a month</b>
           <small className="tax-note">{TAX_LINE}</small>
-          <span>Everything you had this week. {CANCEL_LINE}.</span>
+          <span>Everything you had this week, auto-sync every 3 hours included. {CANCEL_LINE}.</span>
           <span className="gcbc">
             <Cup size="large" />
             <span>About a large at GCBC, minus the regret.</span>
@@ -106,7 +107,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
         <span className="plan-choice-name">
           <b>Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
           <small className="tax-note">{TAX_LINE}</small>
-          <span>Halo sync, real grades, announcements read for you. No study tools. {CANCEL_LINE}.</span>
+          <span>Halo sync by hand, real grades, announcements read for you. No auto-sync or study tools. {CANCEL_LINE}.</span>
           <span className="gcbc">
             <Cup size="small" />
             <span>About a small at GCBC. Except this one actually helps.</span>

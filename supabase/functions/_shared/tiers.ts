@@ -184,7 +184,8 @@ export const FEATURES = {
   nowBasic: 'free',
   // Plus: Halo, its grades and announcements, and every reminder.
   haloManualSync: 'plus',
-  haloAutoSync: 'plus',
+  // Auto-sync is Max (George, 2026-10-01); Plus syncs by hand (the bookmark, or Sync now in the extension).
+  haloAutoSync: 'max',
   haloGrades: 'plus',
   announcementAI: 'plus',
   nowSmart: 'plus',
@@ -213,8 +214,8 @@ export const FEATURE_LINES: Record<Feature, string> = {
   monthView: 'See the month at a glance.',
   agendaView: 'Your work, day by day.',
   nowBasic: 'What to do right now.',
-  haloManualSync: 'Sync Halo: classes, assignments and due dates, with one bookmark.',
-  haloAutoSync: 'Halo syncs on its own whenever you open it (the Chrome extension).',
+  haloManualSync: 'Sync Halo by hand: the bookmark, or Sync now in the Chrome extension.',
+  haloAutoSync: 'Auto-sync: Halo syncs on its own every 3 hours while Chrome is open (the Chrome extension).',
   haloGrades: "Halo's real grades, exactly as Halo shows them.",
   announcementAI: 'Every announcement read for you, with what it asks put on the assignment.',
   nowSmart: 'Now ranks everything by due date, time it takes, and points, all term long.',
@@ -237,8 +238,8 @@ export const FEATURE_LINES: Record<Feature, string> = {
 /** What each paid plan is, in the words every price card, locked message and the landing page share. */
 export const PLAN_LINES: Record<'free' | Paid, string[]> = {
   free: ['Syllabus PDF drop and items you add', 'Now, Calendar and Classes built from them', 'No Halo sync, no announcements, no AI'],
-  plus: ['Halo sync: the bookmark and the auto-sync extension', "Halo's real grades and every announcement", 'Announcements read for you', 'Every notification and the Sunday preview'],
-  max: ['Everything in Plus', 'Ask: a study partner that knows your classes, slides and announcements', 'Practice: study plans, worksheets with answers, quiz me, flashcards', 'Check my work against the rubric, lecture notes, your own colour'],
+  plus: ['Halo sync by hand: the bookmark, or Sync now in the extension', "Halo's real grades and every announcement", 'Announcements read for you', 'Every notification and the Sunday preview'],
+  max: ['Everything in Plus', 'Auto-sync: Halo syncs on its own every 3 hours', 'Ask: a study partner that knows your classes, slides and announcements', 'Practice: study plans, worksheets with answers, quiz me, flashcards', 'Check my work against the rubric, lecture notes, your own colour'],
 };
 
 /** "part of Plus": the plan a feature is in, for every locked line, so no message ever names a plan by hand. */
