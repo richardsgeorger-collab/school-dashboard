@@ -1,43 +1,59 @@
 # Chrome Web Store listing kit
 
-Everything the store form asks for, ready to paste, so the submission takes ten minutes once the $5 developer
-account exists (LAUNCH_CHECKLIST step 13; needs George's OK to pay). Every file to upload is in `webstore-upload/`
-(kept out of git):
+The listing as it should read for **0.4.0** (auto-sync is Max). 0.3.1 is live
+(https://chromewebstore.google.com/detail/halo+/dookepepmkkakmepjabldmgfmfhfcmnn). Every file to upload is in
+`webstore-upload/` (kept out of git):
 
 | File | Where it goes |
 |---|---|
-| `halo-plus-extension-<version>.zip (now 0.3.2)` | Package: manifest.json at the top level of the zip |
+| `halo-plus-extension-0.4.0.zip` | Package: manifest.json at the top level of the zip |
 | `store-icon-128.png` | Store icon: 128×128, 96×96 artwork with 16 px transparent padding |
 | `screenshot-1-now.png` … `screenshot-5-sync-review.png` | Screenshots: exactly 1280×800, 24-bit PNG, no transparency |
 | `promo-tile-440x280.png` | Small promo tile: 440×280, 24-bit PNG, no transparency |
 
-Remake them: `npm run build:extension`, bump `"version"` in `extension/manifest.json` (every upload), zip the extension
-folder's files (not the folder, and not README.md) into `webstore-upload/`, then run the store sweep
-(`ONLY=store-light SCENES=now,classes,inbox,sync-review KEYS_ENV=… node scripts/e2e-sweep.mjs`) and
-`node scripts/webstore-assets.mjs`.
+Remake the package: bump `"version"` in `extension/manifest.json` (every upload), `npm run build:extension`, then
+from inside `extension/`: `zip -qr -X ../webstore-upload/halo-plus-extension-<version>.zip . -x README.md -x ".*"`.
+Test the zip itself: unzip it somewhere and run `EXT_DIR=<there> node scripts/e2e-autosync-max.mjs` and
+`EXT_DIR=<there> LOCAL_SITE=dist-site node scripts/e2e-extension.mjs`.
+
+## What changed since 0.3.1 (what to update in the dashboard for 0.4.0)
+
+1. **Package** tab → Upload new package → `webstore-upload/halo-plus-extension-0.4.0.zip`.
+2. **Store listing** tab → **Description**: replace it with the Description below. (The short summary under the name
+   comes from the manifest's `description`, which the 0.4.0 package already carries:
+   "Syncs Halo+ with Halo: classes, assignments, grades and announcements. Sync now on Plus; every three hours on its own on Max.")
+3. **Privacy** tab:
+   - **alarms** justification: replace with the `alarms` line below (the schedule is Max only now).
+   - **Host permission justification**: replace the whole box with the Host permission text below. It adds the error
+     log address (`…/functions/v1/report`), which 0.3.1 did not have, and says what an error report carries,
+     including the browser and operating system.
+   - Everything else on the Privacy tab is unchanged: single purpose, scripting, tabs, storage, unlimitedStorage,
+     remote code (No), data usage (Website content only, the three certifications), privacy policy URL.
+4. **Submit for review.**
 
 ## Store listing
 
 **Name:** Halo+ (the store takes the name from `manifest.json`; change it there to rename)
 
-**Summary (132 characters max):**
-Syncs your GCU Halo classes, grades and announcements to Halo+ every 3 hours while Chrome is open. Never your password.
+**Summary:** comes from the package (manifest `description`, 125 characters):
+Syncs Halo+ with Halo: classes, assignments, grades and announcements. Sync now on Plus; every three hours on its own on Max.
 
 **Description:**
 
-Halo+ is an independent planner for GCU students. This extension keeps it in step with Halo: every 3 hours while
-Chrome is open, it reads your classes, assignments, grades and announcements the same way Halo's own app does, in a
-quiet background tab it closes after, and sends them to your Halo+ account. It works even when Halo+ is closed: the
-next time you open Halo+, the new work is already there, with an Undo. It never takes you away from what you are
-doing, and it never syncs just because you opened Halo. The popup shows when it last synced and when it will next.
-Logged out of Halo? It says so in its popup and tries again next time. Sync now in the popup runs at once.
+Halo+ is an independent planner for GCU students. This extension keeps it in step with Halo: it reads your classes,
+assignments, grades and announcements the same way Halo's own app does, in a quiet background tab it closes after,
+and sends them to your Halo+ account. On Max it does this on its own every 3 hours while Chrome is open; on Plus you
+press Sync now in the popup whenever you want. It works even when Halo+ is closed: the next time you open Halo+, the
+new work is already there, with an Undo. It never takes you away from what you are doing, and it never syncs just
+because you opened Halo. The popup shows when it last synced (and, on Max, when it will next). Logged out of Halo?
+It says so in its popup and tries again next time.
 
 What you get in Halo+:
 • One screen that says what to do next, with the due date, how long it takes and what it is worth.
 • Announcements read for you: the "due Friday" a professor only posted in an announcement lands on the assignment.
 • Grades from the gradebook, with what you need on the rest of the term.
 • Reminders as push notifications; works on a phone from the Home Screen.
-• A Study tab (Max): practice for any quiz or exam from your own slides, ask anything about your classes, check your work against the rubric.
+• On Max: auto-sync every 3 hours, and a Study tab: practice for any quiz or exam from your own slides, ask anything about your classes, check your work against the rubric.
 
 Privacy: the extension runs only on halo.gcu.edu and on the Halo+ site. It never asks for, reads or stores your
 password; it uses the session you already have in that tab. Nothing is sent anywhere except to your own Halo+
@@ -53,22 +69,14 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
-**Permission justifications (paste one per permission):**
-- `host_permissions https://halo.gcu.edu/*`: run the sync on Halo's page while the student is logged in; the data
-  is read through Halo's own API with the session that tab already holds.
-- `host_permissions https://haloplus.app/*`: tell an open Halo+ tab a sync has arrived, and learn which account and plan
-  the student is signed in to on this computer.
-- `host_permissions https://kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop`: Halo+'s own server. Each sync is
-  sent there, to the signed-in student's own account, so it arrives even when no Halo+ tab is open. This one address,
-  nothing else on that host.
-- `host_permissions https://kiacmspgvntzwngijibr.supabase.co/functions/v1/report`: Halo+'s error log. When a sync
-  fails or the extension crashes, it sends what went wrong (the reason, the extension version, the browser and
-  operating system, the plan, a random id for this browser), never any class data, names or login.
-- `host_permissions https://richardsgeorger-collab.github.io/*`: Halo+'s previous address, kept while students move
-  over to haloplus.app; the same use as above.
+**Permission justifications (Privacy tab; one box per API permission, one box for all host permissions):**
+
+Host permission justification (the whole box):
+halo.gcu.edu: run the sync on Halo's page while the student is logged in; the data is read through Halo's own API with the session that tab already holds. haloplus.app: tell an open Halo+ tab a sync has arrived, and learn which account and plan the student is signed in to on this computer. richardsgeorger-collab.github.io: Halo+'s previous address, kept while students move over to haloplus.app; the same use. kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop: Halo+'s own server; each sync is sent there, to the signed-in student's own account, so it arrives even when no Halo+ tab is open. kiacmspgvntzwngijibr.supabase.co/functions/v1/report: Halo+'s error log; when a sync fails or the extension crashes, it sends what went wrong (the reason, the extension version, the browser and operating system, the plan, a random id for this browser), never any class data, names or login. Only these two addresses on that host.
+
+- `alarms`: the timed schedule (every three hours while Chrome is open) on Max; on any other plan no alarm is set.
 - `scripting`: inject the sync script into the Halo tab when a sync is due.
 - `tabs`: find the student's Halo tab (or open one in the background and close it after) and find an open Halo+ tab.
-- `alarms`: the timed schedule (every three hours while Chrome is open) for plans that include it.
 - `storage`: the last sync time, the plan, the account's sync key (it can only deliver a sync to that account), and a
   sync kept while the account cannot be reached.
 - `unlimitedStorage`: a whole term's export (every class, assignment, rubric and announcement) is several megabytes;
@@ -100,6 +108,8 @@ All five come from a throwaway account with made-up classes (no real student's d
 
 ## After approval
 
-- Put the store link on the You tab (Halo card) and on the landing page's "How the sync works" section.
+- The store link is an Admin setting (Admin → Chrome extension); with it set, Enable auto-sync (You → Halo connection,
+  Max), the Max welcome's Add to Chrome step, Plus's Add to Chrome, and the landing page's link are on for desktop
+  Chrome, Edge and Brave.
 - The extension's built-in script is a copy of the bookmark's; after any change to `src/halo/bookmarklet.ts`, run
   `npm run build:extension`, bump the manifest version, and upload again.

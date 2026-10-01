@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HaloDraw } from '../components/HaloDraw';
 import { ACCENTS, DEFAULT_ACCENT, type AccentId } from '../config/accents';
-import { EXTENSION_URL as STORE_URL } from '../config/extension';
+import { useExtension } from '../config/extension';
 import { isIOSDevice, isTouchDevice } from '../ui/device';
-/** No Chrome extensions on an iPad or a phone: never offered there. */
-const EXTENSION_URL = isTouchDevice() ? null : STORE_URL;
 import { rank } from '../config/flags';
 import type { Tier } from '../config/tiers';
 import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
@@ -41,7 +39,10 @@ export function Upgrade({ kind }: { kind: 'plus' | 'max' }) {
   const { data, actions } = useStore();
   const { navigate } = useRoute();
   const [i, setI] = useState(0);
-  const screens = 3;
+  // Max gets an "Add to Chrome" step when the extension can be installed here and is not yet (2026-10-01).
+  const ext = useExtension();
+  const [extStep] = useState(() => kind === 'max' && ext.offer);
+  const screens = extStep ? 4 : 3;
   useEffect(() => track(`upgrade-${kind}-${i + 1}`, 'enter'), [kind, i]);
   const done = (to?: string) => {
     track(`upgrade-${kind}`, 'complete');
@@ -67,13 +68,14 @@ export function Upgrade({ kind }: { kind: 'plus' | 'max' }) {
             Skip
           </button>
         </header>
-        {kind === 'plus' ? <PlusScreens i={i} next={next} done={done} /> : <MaxScreens i={i} next={next} done={done} />}
+        {kind === 'plus' ? <PlusScreens i={i} next={next} done={done} /> : <MaxScreens i={i} next={next} done={done} extStep={extStep} />}
       </div>
     </div>
   );
 }
 
 function PlusScreens({ i, next, done }: { i: number; next: () => void; done: (to?: string) => void }) {
+  const ext = useExtension();
   const { data, courseById, actions } = useStore();
   const reading = useReadStatus();
   const finds = useMemo(
@@ -134,10 +136,15 @@ function PlusScreens({ i, next, done }: { i: number; next: () => void; done: (to
             click: the bookmark, or Sync now in the extension. */}
         {!isTouchDevice() && (
           <div>
-            <b>Sync on its own.</b> Auto-sync every 3 hours is part of Max. On Plus, Halo syncs when you click the bookmark{EXTENSION_URL ? ' or Sync now in the Chrome extension' : ''}.{' '}
+            <b>Sync on its own.</b> Auto-sync every 3 hours is part of Max. On Plus, Halo syncs when you click the bookmark{ext.url && ext.browser ? ' or Sync now in the Halo+ extension' : ''}.{' '}
             <button type="button" className="btn small" onClick={() => done('#/you?s=plan&to=max')}>
               Get Max
             </button>
+            {ext.offer && (
+              <a className="btn small quiet" href={ext.url!} target="_blank" rel="noopener">
+                Add to {ext.browser}
+              </a>
+            )}
           </div>
         )}
         <div>
@@ -159,7 +166,9 @@ function PlusScreens({ i, next, done }: { i: number; next: () => void; done: (to
   );
 }
 
-function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?: string) => void }) {
+function MaxScreens({ i, next, done, extStep }: { i: number; next: () => void; done: (to?: string) => void; extStep: boolean }) {
+  const ext = useExtension();
+  const [opened, setOpened] = useState(false);
   const { data, schedule, today, actions, courseById } = useStore();
   const tz = data.settings.timezone;
   const accent: AccentId = data.settings.accent ?? DEFAULT_ACCENT;
@@ -171,7 +180,7 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
         <HaloDraw size={80} />
         <p className="eyebrow">Max is on</p>
         <h1 className="onboard-title">Welcome to Max.</h1>
-        <p className="onboard-text">Everything in Plus, and the Study tab: ask anything about your classes, practice for any quiz or exam with a plan, a worksheet and quiz me, and check your work before you turn it in. Two quick things.</p>
+        <p className="onboard-text">Everything in Plus, and the Study tab: ask anything about your classes, practice for any quiz or exam with a plan, a worksheet and quiz me, and check your work before you turn it in. {extStep ? 'A few quick things.' : 'Two quick things.'}</p>
         <div className="onboard-actions">
           <button type="button" className="btn primary" onClick={next}>
             Let's go
@@ -191,6 +200,24 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
             Keep {chosen.name.toLowerCase()}
           </button>
         </div>
+      </section>
+    );
+  // Auto-sync, now that the extension is on the Web Store: Max syncs on its own every 3 hours.
+  if (extStep && i === 2)
+    return (
+      <section className="onboard-step" aria-label="Add to Chrome">
+        <p className="eyebrow">Auto-sync</p>
+        <h1 className="onboard-title">Let Halo sync itself.</h1>
+        <p className="onboard-text">Add the Halo+ extension and Halo syncs on its own every 3 hours while {ext.browser ?? 'Chrome'} is open, even with Halo+ closed. No more clicking the bookmark.</p>
+        <div className="onboard-actions upgrade-actions">
+          <a className="btn primary" href={ext.url ?? '#'} target="_blank" rel="noopener" onClick={() => setOpened(true)}>
+            Add to {ext.browser ?? 'Chrome'}
+          </a>
+          <button type="button" className={opened ? 'btn primary' : 'btn'} onClick={next}>
+            {opened ? "I've added it" : 'Maybe later'}
+          </button>
+        </div>
+        <p className="hint">{opened ? 'Press Add to ' + (ext.browser ?? 'Chrome') + ' in the tab that opened, then come back here.' : 'It never sees your GCU password. Sync now in its popup works any time too.'}</p>
       </section>
     );
   const course = plan ? courseById.get(plan.exam.courseId) : null;

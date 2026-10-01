@@ -16,7 +16,7 @@ import { personaKit } from './lib/personas.mjs';
 
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const BASE = process.env.BASE ?? 'http://localhost:4174/school-dashboard/';
-const EXT = resolve('extension');
+const EXT = resolve(process.env.EXT_DIR ?? 'extension');
 const OUT = 'docs/screens/autosync-max';
 mkdirSync(OUT, { recursive: true });
 const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];

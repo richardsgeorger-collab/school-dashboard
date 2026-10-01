@@ -3,6 +3,7 @@ import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { HaloDraw } from '../components/HaloDraw';
 import { IconCheck, IconHalo } from '../components/Icons';
 import { HELP_PAGES } from '../help/pages';
+import { EXTENSION_URL } from '../config/extension';
 import { CANCEL_LINE, PLAN_LINES, PRICES, TAX_LINE, TIER_NAMES, TRIAL } from '../config/tiers';
 
 /**
@@ -172,7 +173,16 @@ export function Landing() {
           <li>Open halo.gcu.edu and log in as you always do.</li>
           <li>Click the bookmark. Your classes, assignments, grades and announcements arrive here, and you approve them before anything changes.</li>
         </ol>
-        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and the free week of Max includes it; on Max a small Chrome extension also syncs by itself every 3 hours while Chrome is open, and on Plus it syncs when you press Sync now.</p>
+        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and the free week of Max includes it; on Max a small{' '}
+          {EXTENSION_URL ? (
+            <a href={EXTENSION_URL} target="_blank" rel="noopener">
+              Chrome extension
+            </a>
+          ) : (
+            'Chrome extension'
+          )}{' '}
+          also syncs by itself every 3 hours while Chrome is open, and on Plus it syncs when you press Sync now.
+        </p>
       </section>
 
       <section className="landing-section" aria-label="Plans">

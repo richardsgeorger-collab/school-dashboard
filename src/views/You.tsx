@@ -34,6 +34,7 @@ import { ServerSyncAdmin } from './ServerSyncAdmin';
 import { SyncKeyCard } from './SyncKeyCard';
 import { TrialOffer, TrialReceipts } from './TrialOffer';
 import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
+import { AutoSyncCard } from './AutoSyncCard';
 import { fresh as freshOnboarding } from '../onboarding/state';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
@@ -529,6 +530,7 @@ export function You() {
           )}
           {active === 'workload' && <WorkloadSection />}
           {active === 'halo' && <HaloPanel onPaste={() => setHalo(true)} />}
+          {active === 'halo' && <AutoSyncCard />}
           {active === 'halo' && <SyncKeyCard />}
           {active === 'study' && (
             <section className="card settings-card" aria-label="Study time">

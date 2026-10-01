@@ -3411,3 +3411,21 @@
   gap: var(--s-2);
   margin: 0 0 var(--s-3);
 }
+
+/* Auto-sync on You → Halo connection (2026-10-01). */
+.autosync-card p {
+  margin: 0 0 var(--s-2);
+}
+.autosync-on {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.autosync-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--done, #2f9e5b);
+}
