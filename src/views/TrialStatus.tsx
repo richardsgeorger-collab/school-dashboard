@@ -9,6 +9,7 @@ import { trialCalendar, trialChipShort, trialChipText, trialEndSentence } from '
 import { CANCEL_LINE, PRICES, TAX_LINE, TRIAL, type Feature } from '../config/tiers';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { readLedger } from '../halo/announce';
+import { supabase } from '../auth/client';
 import { useStore } from '../storage/store';
 import { UpgradeButton } from './PlanWall';
 
@@ -42,15 +43,35 @@ const INCLUDED: { icon: () => React.ReactElement; text: string; plan: 'plus' | '
   { icon: IconColour, text: 'Pick your own color', plan: 'max' },
 ];
 
-/** The three ways on: Max, Plus, or Free. Monthly prices, cancel anytime beside each. */
-export function PlanChoices({ onFree, freeLabel = 'Stay on Free' }: { onFree?: () => void; freeLabel?: string }) {
+/** A paper cup, small or large: the GCBC line beside Plus and Max. */
+function Cup({ size }: { size: 'small' | 'large' }) {
+  const h = size === 'small' ? 16 : 22;
+  return (
+    <svg className="cup" data-size={size} viewBox="0 0 16 22" width={(h * 16) / 22} height={h} aria-hidden fill="none">
+      <path d="M2 5h12l-1.6 15a1.2 1.2 0 0 1-1.2 1H4.8a1.2 1.2 0 0 1-1.2-1L2 5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M1.2 5h13.6M5 5l.6-3.4h4.8L11 5M9.5 1.6 11 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/**
+ * The three ways on: Max, Plus, or Free. Monthly prices, cancel anytime and tax beside each. Max first, marked as what
+ * the student has (or had) this week. The GCBC line (George, 2026-10-01): Plus costs about a small drink at the Grand
+ * Canyon Beverage Company, Max about a large, except these help.
+ */
+export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now' }: { onFree?: () => void; freeLabel?: string; maxTag?: string }) {
   return (
     <div className="plan-choices">
       <div className="plan-choice" data-best="true">
         <span className="plan-choice-name">
+          <span className="plan-choice-tag">{maxTag}</span>
           <b>Max · ${PRICES.max.month.toFixed(2)} a month</b>
           <small className="tax-note">{TAX_LINE}</small>
           <span>Everything you had this week. {CANCEL_LINE}.</span>
+          <span className="gcbc">
+            <Cup size="large" />
+            <span>About a large at GCBC, minus the regret.</span>
+          </span>
         </span>
         <UpgradeButton tier="max" label="Keep Max" cancelNote={false} />
       </div>
@@ -59,6 +80,10 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free' }: { onFree?: (
           <b>Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
           <small className="tax-note">{TAX_LINE}</small>
           <span>Halo sync, real grades, announcements read for you. No study tools. {CANCEL_LINE}.</span>
+          <span className="gcbc">
+            <Cup size="small" />
+            <span>About a small at GCBC. Except this one actually helps.</span>
+          </span>
         </span>
         <UpgradeButton tier="plus" label="Choose Plus" primary={false} cancelNote={false} />
       </div>
@@ -137,19 +162,34 @@ export function usePlusAfter(endsAt: string | null | undefined) {
 /** "your friend's invite", "the friends you invited": said the right way round. */
 const creditFrom = (c: PlusCredit) => (c.from === 'invited' ? "your friend's invite" : c.from === 'inviting' ? 'the friends you invited' : 'invites');
 
-/** What the trial did, in numbers, from this device's own records. */
+export interface TrialNumbers {
+  classes: number;
+  fromHalo: number;
+  read: number;
+  found: number;
+  caught: number;
+  practice: number;
+  answered: number;
+}
+
+/**
+ * What the trial did, in numbers. The server's count where it keeps one (AI answers, practice sets, announcements
+ * read, from every device), this device's records as a floor, and the planner itself for classes, assignments and
+ * due dates an announcement moved. Every number is a real count; a zero line is never shown.
+ */
 export function useTrialNumbers(since: string | null | undefined, until: string | null | undefined) {
   const { data } = useStore();
-  const [n, setN] = useState<{ fromHalo: number; read: number; found: number; answered: number } | null>(null);
+  const [n, setN] = useState<TrialNumbers | null>(null);
   useEffect(() => {
     let live = true;
     void (async () => {
       const s = since ?? '';
       const u = until ?? '9999';
+      const inWeek = (at: string | null | undefined) => !!at && at >= s && at <= u;
       const ledger = await readLedger.all().catch(() => new Map());
       let read = 0;
       let found = 0;
-      for (const e of ledger.values()) if (e.at >= s && e.at <= u) {
+      for (const e of ledger.values()) if (inWeek(e.at)) {
         read += 1;
         found += e.count;
       }
@@ -159,18 +199,155 @@ export function useTrialNumbers(since: string | null | undefined, until: string 
           const k = localStorage.key(i) ?? '';
           if (k !== 'school-dashboard:chat' && !k.startsWith('school-dashboard:ask:')) continue;
           const turns = JSON.parse(localStorage.getItem(k) ?? '[]') as { role?: string; at?: string; failed?: boolean }[];
-          answered += turns.filter((t) => t.role === 'assistant' && !t.failed && t.at && t.at >= s && t.at <= u).length;
+          answered += turns.filter((t) => t.role === 'assistant' && !t.failed && inWeek(t.at)).length;
         }
       } catch {
         /* storage unavailable */
       }
-      if (live) setN({ fromHalo: data.items.filter((i) => i.source === 'halo').length, read, found, answered });
+      let server = { asked: 0, practice: 0, read: 0, found: 0 };
+      const c = supabase();
+      if (c && since) {
+        const { data: r } = await c.rpc('my_trial_recap', { p_since: since, p_until: until ?? new Date().toISOString() }).then((x) => x, () => ({ data: null }));
+        if (r) server = { ...server, ...(r as typeof server) };
+      }
+      const fromAnnouncements = data.items.reduce((a, i) => a + (i.requirements ?? []).filter((q) => q.source?.kind === 'announcement' && inWeek(q.addedAt)).length, 0);
+      if (live)
+        setN({
+          classes: data.courses.filter((x) => x.haloSlugId).length,
+          fromHalo: data.items.filter((i) => i.source === 'halo').length,
+          read: Math.max(read, server.read),
+          found: Math.max(found, server.found, fromAnnouncements),
+          caught: data.items.filter((i) => inWeek(i.dateChange?.at)).length,
+          practice: server.practice,
+          answered: Math.max(answered, server.asked),
+        });
     })();
     return () => {
       live = false;
     };
-  }, [since, until, data.items]);
+  }, [since, until, data.items, data.courses]);
   return n;
+}
+
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+/** The recap's lines, in order, only those with something behind them. */
+export function recapLines(n: TrialNumbers | null): [number, string][] {
+  if (!n) return [];
+  const lines: [number, string][] = [
+    [n.classes, plural(n.classes, 'class synced from Halo', 'classes synced from Halo')],
+    [n.fromHalo, plural(n.fromHalo, 'assignment pulled in', 'assignments pulled in')],
+    [n.read, plural(n.read, 'announcement read for you', 'announcements read for you')],
+    [n.found, plural(n.found, 'requirement found in announcements', 'requirements found in announcements')],
+    [n.caught, plural(n.caught, 'due date change caught', 'due date changes caught')],
+    [n.practice, plural(n.practice, 'study plan or practice set built', 'study plans and practice sets built')],
+    [n.answered, plural(n.answered, 'question answered', 'questions answered')],
+  ];
+  return lines.filter(([v]) => v > 0);
+}
+
+/**
+ * "How much did Halo+ help this week?" 1 to 10, once, at the end of the free week (George, 2026-10-01). 1 to 6 asks
+ * what would make it better (into Feedback); 7 to 10 says thanks and offers the friend invite. Skippable, and it sits
+ * above the plans without ever standing in front of them.
+ */
+function TrialRating({ onHigh }: { onHigh: () => void }) {
+  const { data, actions } = useStore();
+  const saved = data.settings.trialRating;
+  const [rating, setRating] = useState<number | null>(saved?.rating ?? null);
+  const [text, setText] = useState('');
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const save = (r: number | null) => actions.updateSettings({ trialRating: { rating: r, at: new Date().toISOString() } });
+  const send = async (r: number, comment?: string) => {
+    const c = supabase();
+    if (!c) return;
+    await c.rpc('rate_trial', { p_rating: r, p_comment: comment ?? null }).then(() => undefined, () => undefined);
+  };
+  useEffect(() => {
+    if (rating !== null && rating >= 7) onHigh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rating]);
+  if (saved && saved.rating === null) return null; // skipped
+  if (rating === null)
+    return (
+      <section className="trial-rating" aria-label="Rate your week">
+        <p className="trial-rating-q">How much did Halo+ help this week?</p>
+        <div className="trial-rating-scale" role="group" aria-label="1 is not at all, 10 is a lot">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((v) => (
+            <button
+              key={v}
+              type="button"
+              className="trial-rating-n"
+              onClick={() => {
+                setRating(v);
+                save(v);
+                void send(v);
+              }}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+        <div className="trial-rating-ends" aria-hidden>
+          <span>Not at all</span>
+          <span>A lot</span>
+        </div>
+        <button type="button" className="hero-inline" onClick={() => save(null)}>
+          Skip
+        </button>
+      </section>
+    );
+  if (rating >= 7)
+    return (
+      <section className="trial-rating" aria-label="Thanks">
+        <p className="trial-rating-q">
+          {rating}/10. Thank you, that means a lot.
+        </p>
+        <div className="plan-choice plan-choice-invite">
+          <span className="plan-choice-name">
+            <b>Know someone who'd like it? Invite a friend and you both get 30 days of Plus free.</b>
+            <span>{INVITE_RULE}</span>
+          </span>
+          <InviteButton label="Invite a friend" />
+        </div>
+      </section>
+    );
+  return (
+    <section className="trial-rating" aria-label="What would make it better">
+      {sent ? (
+        <p className="trial-rating-q" role="status">
+          Thanks. George reads every one of these.
+        </p>
+      ) : (
+        <>
+          <label className="field">
+            <span className="trial-rating-q">{rating}/10. What would make it better?</span>
+            <textarea className="field-input" rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder="Anything: what was missing, what was annoying, what you expected" />
+          </label>
+          <div className="settings-actions">
+            <button
+              type="button"
+              className="btn small primary"
+              disabled={busy || !text.trim()}
+              onClick={() => {
+                setBusy(true);
+                void send(rating, text.trim()).then(() => {
+                  setBusy(false);
+                  setSent(true);
+                });
+              }}
+            >
+              {busy ? 'Sending…' : 'Send'}
+            </button>
+            <button type="button" className="btn small quiet" onClick={() => setSent(true)}>
+              Skip
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
 }
 
 /**
@@ -188,14 +365,11 @@ export function TrialEnded() {
   const ended = real && trialState(profile) === 'used' && (tier === 'free' || onPlusGift) && !data.settings.trialEndSeen;
   const n = useTrialNumbers(profile?.trialStartedAt, profile?.trialEndsAt);
   const invites = useInviteProgress();
+  // A 7 to 10 shows the invite right under the rating, so the card further down would say it twice.
+  const [inviteAbove, setInviteAbove] = useState(false);
   if (!ended || !profile?.trialEndsAt) return null;
   const done = () => actions.updateSettings({ trialEndSeen: new Date().toISOString() });
-  const numbers = n ? [
-    [n.fromHalo, 'assignments pulled from Halo'],
-    [n.read, 'announcements read'],
-    [n.found, 'hidden requirements found'],
-    [n.answered, 'questions answered'],
-  ].filter(([v]) => (v as number) > 0) : [];
+  const numbers = recapLines(n);
   return (
     <div className="onboard trial-ended" role="dialog" aria-modal="true" aria-label="Your free trial ended">
       <div className="onboard-inner">
@@ -208,14 +382,15 @@ export function TrialEnded() {
               <p className="onboard-text">What it did for you this week:</p>
               <div className="ended-numbers">
                 {numbers.map(([v, label]) => (
-                  <p key={label as string} className="ended-number">
-                    <b>{v as number}</b>
-                    <span>{label as string}</span>
+                  <p key={label} className="ended-number">
+                    <b>{v}</b>
+                    <span>{label}</span>
                   </p>
                 ))}
               </div>
             </>
           )}
+          <TrialRating onHigh={() => setInviteAbove(true)} />
           <h3 className="section-title">What changes now</h3>
           <ul className="ended-list">
             {onPlusGift ? (
@@ -233,8 +408,9 @@ export function TrialEnded() {
             <li>All your classes, assignments, grades and announcements so far.</li>
             <li>Everything you added or checked off yourself.</li>
           </ul>
-          <PlanChoices onFree={done} freeLabel="Stay on Free" />
+          <PlanChoices onFree={done} freeLabel="Stay on Free" maxTag="What you had this week" />
           {/* The fourth way on, as prominent as the plans (George, 2026-09-29): the most important invite spot. */}
+          {!inviteAbove && (
           <div className="plan-choice plan-choice-invite">
             <span className="plan-choice-name">
               <b>Not ready to pay? Invite a friend and you both get Plus free for 30 days.</b>
@@ -243,6 +419,7 @@ export function TrialEnded() {
             </span>
             <InviteButton label="Invite a friend" />
           </div>
+          )}
           <p className="hint">Nothing charged, and nothing will unless you choose a plan.</p>
         </section>
       </div>

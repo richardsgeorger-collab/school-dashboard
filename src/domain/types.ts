@@ -518,6 +518,8 @@ export interface Settings {
   upgradeSeen?: { plus?: string | null; max?: string | null };
   /** When the "Your free trial ended" screen was seen (once, the first open after the trial). */
   trialEndSeen?: string | null;
+  /** The end-of-week "How much did Halo+ help?" answer: the number, or null when skipped. Asked once. */
+  trialRating?: { rating: number | null; at: string } | null;
   /** When a friend-link student was asked, once, what is confusing or broken (day 3). */
   friendAskedAt?: string | null;
   reminders?: ReminderPrefs;

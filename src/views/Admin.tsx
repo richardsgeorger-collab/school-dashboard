@@ -3,6 +3,7 @@ import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { EmptyState } from '../components/EmptyState';
 import { ResetEmailAdmin } from './ResetEmailAdmin';
+import { AdminRatings } from './AdminRatings';
 import { AdminFunnel } from './AdminFunnel';
 import { AdminErrors } from './AdminErrors';
 import { AdminGrowth } from './AdminGrowth';
@@ -59,6 +60,7 @@ export function Admin() {
         <AdminGrowth tick={tick} />
         <AdminAccounts onChange={() => setTick((k) => k + 1)} />
         <AdminFunnel />
+        <AdminRatings />
         <AdminErrors />
         <section className="card settings-card">
           <h2 className="section-title">What gets used</h2>

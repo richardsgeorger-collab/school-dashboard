@@ -1637,3 +1637,93 @@
     display: inline;
   }
 }
+
+/* Max marked as what the student had this week; the GCBC line under Plus and Max (2026-10-01). */
+.plan-choice-name .plan-choice-tag {
+  justify-self: start;
+  margin-bottom: 4px;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font: 600 11px/1.2 var(--font-body);
+  letter-spacing: 0.02em;
+}
+.plan-choice-name .gcbc {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  font-style: italic;
+  color: var(--ink-3);
+}
+.gcbc .cup {
+  flex: none;
+  margin-top: 1px;
+  color: var(--accent);
+}
+.trial-rating .field > .trial-rating-q {
+  font: var(--t-heading);
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* "How much did Halo+ help this week?" 1 to 10, skippable. */
+.trial-rating {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-4) 0;
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.trial-rating-q {
+  margin: 0;
+  font: var(--t-heading);
+  color: var(--ink);
+}
+.trial-rating-scale {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+}
+.trial-rating-n {
+  appearance: none;
+  min-height: var(--tap);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2, var(--surface));
+  color: var(--ink);
+  font: 600 15px/1 var(--font-body);
+  cursor: pointer;
+}
+.trial-rating-n:hover {
+  border-color: var(--accent);
+}
+.trial-rating-n:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.trial-rating-ends {
+  display: flex;
+  justify-content: space-between;
+  font: var(--t-small);
+  color: var(--ink-3);
+}
+.trial-rating .hero-inline {
+  justify-self: start;
+}
+.trial-rating .plan-choice-invite {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .trial-rating-scale {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+.plan-choice-name .gcbc span {
+  font: inherit;
+  color: inherit;
+}

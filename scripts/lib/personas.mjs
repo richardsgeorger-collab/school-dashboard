@@ -111,7 +111,7 @@ export function personaKit(env) {
   };
   const cleanup = async () => {
     for (const id of made) {
-      for (const t of ['pending_syncs', 'sync_keys', 'reward_grants', 'subscriptions', 'courses', 'items', 'settings', 'announcements', 'read_ledger', 'usage_log', 'usage_events', 'onboarding_events', 'notification_plan', 'notification_prefs', 'push_subscriptions', 'feedback', 'winback_sends', 'calendar_feeds']) await db.from(t).delete().eq('user_id', id);
+      for (const t of ['pending_syncs', 'sync_keys', 'reward_grants', 'subscriptions', 'courses', 'items', 'settings', 'announcements', 'read_ledger', 'usage_log', 'usage_events', 'onboarding_events', 'notification_plan', 'notification_prefs', 'push_subscriptions', 'feedback', 'winback_sends', 'calendar_feeds', 'trial_ratings']) await db.from(t).delete().eq('user_id', id);
       await db.from('referrals').delete().or(`inviter.eq.${id},invitee.eq.${id}`);
       await db.auth.admin.deleteUser(id);
     }

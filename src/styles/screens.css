@@ -3362,3 +3362,45 @@
     display: inline;
   }
 }
+
+/* Admin: the free week rating (2026-10-01). */
+.ratings-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  margin: 0;
+}
+.ratings-spread {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+  height: 96px;
+  margin: var(--s-3) 0;
+}
+.ratings-col {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: end;
+  justify-items: center;
+  gap: 4px;
+}
+.ratings-bar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+}
+.ratings-bar[data-low] {
+  background: var(--ink-3);
+}
+.ratings-label {
+  font: var(--t-small);
+  color: var(--ink-3);
+}
+.ratings-comments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
