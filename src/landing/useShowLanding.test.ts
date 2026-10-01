@@ -9,6 +9,10 @@ describe('the front door', () => {
   });
   it('waits while the account is being looked up', () => {
     expect(frontFor({ ...base, loading: true })).toBe('pending');
+    expect(frontFor({ ...base, loading: true, maybeSession: true })).toBe('pending');
+  });
+  it('a stranger with no stored session keeps the landing page while the account library starts', () => {
+    expect(frontFor({ ...base, loading: true, maybeSession: false })).toBe('landing');
   });
   it('anyone signed in, or with classes, or who started onboarding here, gets the app', () => {
     expect(frontFor({ ...base, signedIn: true })).toBe('app');

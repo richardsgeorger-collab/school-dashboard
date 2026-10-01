@@ -2,7 +2,9 @@
 // and cached on first use; navigations go to the network first and fall back to the cached shell.
 // sd-3 (2026-09-30): only successful responses are cached. sd-2 cached a code file's 404 during a deploy and served
 // that failure from then on ("This screen could not draw" until the cache went); the new version wipes those.
-const VERSION = 'sd-3';
+// sd-4 (2026-09-30): only the app's own address is saved as the offline shell. Opening /help/… or privacy.html used
+// to overwrite the shell with that page, so the app opened offline as a help page.
+const VERSION = 'sd-4';
 const SHELL = new URL('./', self.location.href).pathname;
 
 self.addEventListener('install', (e) => {
@@ -19,7 +21,8 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then((res) => { if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(SHELL, copy)); } return res; }).catch(() => caches.match(SHELL)));
+    const isShell = url.pathname === SHELL || url.pathname === SHELL + 'index.html';
+    e.respondWith(fetch(req).then((res) => { if (res.ok && isShell) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(SHELL, copy)); } return res; }).catch(() => caches.match(SHELL)));
     return;
   }
   if (url.pathname.includes('/assets/')) {

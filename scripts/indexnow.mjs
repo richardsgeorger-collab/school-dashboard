@@ -4,7 +4,10 @@
 const host = 'haloplus.app';
 const base = `https://${host}/`;
 const key = '2a8e7ee70ccf5046a1a40ff8ba4d0d56';
-const urlList = [base, `${base}privacy.html`, `${base}terms.html`];
+// Every address in the live sitemap (the help pages included, src/help/pages.ts); the three fixed ones if it can't be read.
+const map = await fetch(`${base}sitemap.xml`).then((r) => (r.ok ? r.text() : '')).catch(() => '');
+const fromMap = [...map.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).filter((u) => u.startsWith(base));
+const urlList = fromMap.length ? fromMap : [base, `${base}privacy.html`, `${base}terms.html`];
 const served = await fetch(`${base}${key}.txt`).then((r) => (r.ok ? r.text() : '')).catch(() => '');
 if (served.trim() !== key) {
   console.log(`key file not served yet at ${base}${key}.txt; nothing submitted`);

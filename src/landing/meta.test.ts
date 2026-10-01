@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { renderSitemap } from '../help/pages';
 
 /**
  * What a pasted link shows is the first thing most students ever see of Halo+. The tags live in index.html, outside
@@ -49,7 +50,7 @@ describe('share and search metadata', () => {
   });
   it('robots and the sitemap ship and agree with the site address', () => {
     expect(readFileSync('public/robots.txt', 'utf8')).toContain(`Sitemap: ${SITE}sitemap.xml`);
-    const map = readFileSync('public/sitemap.xml', 'utf8');
+    const map = renderSitemap('2026-09-30');
     expect(map).toContain(`<loc>${SITE}</loc>`);
     expect(map).toContain(`<loc>${SITE}privacy.html</loc>`);
   });

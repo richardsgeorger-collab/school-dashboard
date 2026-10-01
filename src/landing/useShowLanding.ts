@@ -9,9 +9,11 @@ import { useStore } from '../storage/store';
  */
 export type Front = 'landing' | 'app' | 'pending';
 
-export function frontFor(args: { route: string; configured: boolean; loading: boolean; signedIn: boolean; courses: number; onboardingStarted: boolean }): Front {
+export function frontFor(args: { route: string; configured: boolean; loading: boolean; signedIn: boolean; courses: number; onboardingStarted: boolean; /** A session may be on its way: one stored here, or a sign-in link's tokens in the address. Unset counts as maybe. */ maybeSession?: boolean }): Front {
   if (args.route !== 'home') return 'app';
-  if (args.configured && args.loading) return 'pending';
+  // A stranger with nothing stored keeps the pre-rendered landing page on screen while the auth library starts
+  // (2026-09-30): no blank "pending" frame between the HTML Google reads and the same page drawn by React.
+  if (args.configured && args.loading && args.maybeSession !== false) return 'pending';
   if (args.signedIn) return 'app';
   if (args.courses > 0 || args.onboardingStarted) return 'app';
   return 'landing';
@@ -21,5 +23,6 @@ export function useFront(): Front {
   const { route } = useRoute();
   const { auth } = useAccount();
   const { data } = useStore();
-  return frontFor({ route, configured: auth.configured, loading: auth.loading, signedIn: !!auth.session, courses: data.courses.length, onboardingStarted: !!data.settings.onboarding });
+  const maybeSession = !!auth.knownUserId || /access_token|refresh_token|[?&#]code=|error_description/.test(window.location.hash + window.location.search);
+  return frontFor({ route, configured: auth.configured, loading: auth.loading, signedIn: !!auth.session, courses: data.courses.length, onboardingStarted: !!data.settings.onboarding, maybeSession });
 }

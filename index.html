@@ -68,6 +68,22 @@
         ]
       }
     </script>
+    <!-- The landing page is pre-rendered into #root for search engines and first paint (vite.config.ts). Anyone
+         returning (signed in, local classes, or any #/ address) gets the app, so the pre-rendered page stays hidden for them. -->
+    <script>
+      try {
+        var h = location.hash;
+        var ls = window.localStorage, back = false;
+        for (var i = 0; i < ls.length; i++) {
+          var k = ls.key(i) || '';
+          if (/^sb-[a-z0-9]+-auth-token$/.test(k) || (k === 'school-dashboard:v1' && /"courses":\[\{/.test(ls.getItem(k) || ''))) back = true;
+        }
+        if ((h && h !== '#' && h !== '#/') || back) document.documentElement.className += ' booting-app';
+      } catch (e) {}
+    </script>
+    <style>
+      .booting-app #root > .landing { visibility: hidden; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -2,6 +2,7 @@ import { pixel } from '../analytics/pixel';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { HaloDraw } from '../components/HaloDraw';
 import { IconCheck, IconHalo } from '../components/Icons';
+import { HELP_PAGES } from '../help/pages';
 import { CANCEL_LINE, PLAN_LINES, PRICES, TAX_LINE, TIER_NAMES, TRIAL } from '../config/tiers';
 
 /**
@@ -226,6 +227,19 @@ export function Landing() {
       </section>
 
       <footer className="landing-foot">
+        {/* Real pages at real addresses, for students searching about Halo (src/help/pages.ts). */}
+        <nav className="landing-help" aria-label="Help for GCU Halo">
+          <p className="landing-help-title">
+            <a href="./help/">Help for GCU Halo</a>
+          </p>
+          <ul>
+            {HELP_PAGES.map((p) => (
+              <li key={p.slug}>
+                <a href={`./help/${p.slug}/`}>{p.title}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
         <p>Halo+ is an independent planner and is not affiliated with Grand Canyon University. Halo is GCU's learning platform. No GCU marks are used.</p>
         <nav>
           <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="https://github.com/richardsgeorger-collab/school-dashboard" rel="noopener">Code</a> · <a href="#/login">Log in</a>
