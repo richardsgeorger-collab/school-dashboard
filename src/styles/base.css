@@ -5665,6 +5665,29 @@ a.hero-chip:hover {
 .signin-error {
   color: var(--overdue);
 }
+/* GCU blocks Google sign-in for school accounts: a plain, readable note (not fine print, not an alarm). */
+.signin-gcu {
+  display: block;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.field .signin-gcu {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.signin-gcu b {
+  font-weight: 700;
+}
 .signin-pass {
   display: flex;
   align-items: center;

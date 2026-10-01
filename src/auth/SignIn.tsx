@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { supabase } from './client';
 import type { AuthState } from './useAuth';
 
@@ -16,6 +16,18 @@ export function useResetReady(): boolean | null {
   return ready;
 }
 
+/** GCU school addresses: GCU blocks Google sign-in for them ("Access blocked … Error 400: access_not_configured"). */
+export const isGcuEmail = (email: string) => /@(my\.)?gcu\.edu\s*$/i.test(email.trim());
+
+/** Shown under Continue with Google, and again by the email field once a GCU address is typed (George, 2026-09-30). */
+export function GcuGoogleNote({ id }: { id?: string }): ReactNode {
+  return (
+    <span className="signin-gcu" id={id}>
+      Using your GCU email? <b>You can't sign up with Google.</b> GCU blocks it. Use email and password below instead.
+    </span>
+  );
+}
+
 type Mode = 'signup' | 'login' | 'forgot';
 type Status = { kind: 'idle' } | { kind: 'busy' } | { kind: 'sent' } | { kind: 'error'; message: string };
 
@@ -30,6 +42,12 @@ export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }
   const [show, setShow] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const resetReady = useResetReady();
+  const emailRef = useRef<HTMLInputElement>(null);
+  const gcu = isGcuEmail(email);
+  // Google sends a GCU address to its own "Access blocked" page and never comes back, so steer them to the form.
+  useEffect(() => {
+    if (gcu) emailRef.current?.closest('form')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  }, [gcu]);
 
   if (!auth.configured) {
     return (
@@ -114,10 +132,12 @@ export function SignIn({ auth, title, note, mode: first = 'signup', signupHref }
       <button type="button" className="btn" onClick={google} disabled={busy}>
         Continue with Google
       </button>
+      <GcuGoogleNote />
       <p className="muted signin-or">or</p>
       <label className="field">
         <span>Email</span>
-        <input type="email" name="email" autoComplete={signup ? 'email' : 'username'} inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@my.gcu.edu or any email" disabled={busy} />
+        <input type="email" name="email" autoComplete={signup ? 'email' : 'username'} inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@my.gcu.edu or any email" disabled={busy} ref={emailRef} aria-describedby={gcu ? 'signin-gcu-field' : undefined} />
+        {gcu && <GcuGoogleNote id="signin-gcu-field" />}
       </label>
       <label className="field">
         <span>Password</span>
