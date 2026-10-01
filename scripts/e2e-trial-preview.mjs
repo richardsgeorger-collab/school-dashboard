@@ -59,7 +59,6 @@ try {
     await p.waitForSelector('.trial-ended .trial-preview-bar', { timeout: 10000 });
     await p.waitForSelector('.ended-number', { timeout: 15000 }).catch(() => undefined);
     await p.waitForTimeout(1500);
-    const tag = `${dev} ${scheme}`;
     if (dev === 'desk' && scheme === 'light') {
       const lines = (await p.locator('.ended-number').allInnerTexts()).map((l) => l.replace(/\s+/g, ' '));
       check(lines.some((l) => /^3 questions answered/.test(l)) && lines.some((l) => /^1 study plan or practice set built/.test(l)) && lines.some((l) => /^3 announcements read for you/.test(l)) && lines.some((l) => /^6 classes synced/.test(l)), `the admin's own last 7 days: ${lines.join(' | ')}`);
