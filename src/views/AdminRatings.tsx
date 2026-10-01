@@ -23,6 +23,12 @@ export function AdminRatings() {
   return (
     <section className="card settings-card admin-ratings" aria-label="Free week ratings">
       <h2 className="section-title">Free week rating</h2>
+      <p className="ratings-preview">
+        <a className="btn small" href="#/admin?preview=trial-end">
+          Preview the end-of-trial screen
+        </a>
+        <span className="hint">Your account, your last 7 days. Changes nothing.</span>
+      </p>
       {r.n === 0 ? (
         <p className="hint">
           <b>How much did Halo+ help this week?</b> Asked once when a free week ends. No answers yet.

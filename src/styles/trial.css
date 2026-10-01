@@ -1727,3 +1727,26 @@
   font: inherit;
   color: inherit;
 }
+
+/* Admin preview of the end-of-trial screen (2026-10-01): says plainly that nothing here is real. */
+.trial-preview-bar {
+  display: grid;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px dashed var(--accent);
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+}
+.trial-preview-bar p {
+  margin: 0;
+  font: var(--t-small);
+  color: var(--ink);
+}
+.trial-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}

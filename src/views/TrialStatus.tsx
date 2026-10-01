@@ -1,8 +1,9 @@
 import { creditLine, plusCredit, type PlusCredit } from '../referral/credit';
 import { InviteBlock, InviteButton, INVITE_RULE, progressLine, useInviteProgress, useMyGrants } from '../referral/Invite';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { Modal } from '../components/Modal';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
 import { friendGift, trialState } from '../config/flags';
 import { trialCalendar, trialChipShort, trialChipText, trialEndSentence } from '../config/trialCalendar';
@@ -43,6 +44,33 @@ const INCLUDED: { icon: () => React.ReactElement; text: string; plan: 'plus' | '
   { icon: IconColour, text: 'Pick your own color', plan: 'max' },
 ];
 
+/**
+ * Admin preview of the end-of-trial screen (George, 2026-10-01): inside it no button charges, invites, saves a
+ * rating or ends anything. Every live button on the screen reads this.
+ */
+const PreviewMode = createContext(false);
+const noop = () => undefined;
+
+function PlanButton({ tier, label, primary = true }: { tier: 'plus' | 'max'; label: string; primary?: boolean }) {
+  if (useContext(PreviewMode))
+    return (
+      <button type="button" className={primary ? 'btn small primary' : 'btn small'} onClick={noop} title="Preview: nothing is charged">
+        {label}
+      </button>
+    );
+  return <UpgradeButton tier={tier} label={label} primary={primary} cancelNote={false} />;
+}
+
+function Invite({ label }: { label: string }) {
+  if (useContext(PreviewMode))
+    return (
+      <button type="button" className="btn primary" onClick={noop} title="Preview: nothing is shared">
+        {label}
+      </button>
+    );
+  return <InviteButton label={label} />;
+}
+
 /** A paper cup, small or large: the GCBC line beside Plus and Max. */
 function Cup({ size }: { size: 'small' | 'large' }) {
   const h = size === 'small' ? 16 : 22;
@@ -73,7 +101,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
             <span>About a large at GCBC, minus the regret.</span>
           </span>
         </span>
-        <UpgradeButton tier="max" label="Keep Max" cancelNote={false} />
+        <PlanButton tier="max" label="Keep Max" />
       </div>
       <div className="plan-choice">
         <span className="plan-choice-name">
@@ -85,7 +113,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
             <span>About a small at GCBC. Except this one actually helps.</span>
           </span>
         </span>
-        <UpgradeButton tier="plus" label="Choose Plus" primary={false} cancelNote={false} />
+        <PlanButton tier="plus" label="Choose Plus" primary={false} />
       </div>
       {onFree && (
         <div className="plan-choice">
@@ -253,15 +281,17 @@ export function recapLines(n: TrialNumbers | null): [number, string][] {
  */
 function TrialRating({ onHigh }: { onHigh: () => void }) {
   const { data, actions } = useStore();
-  const saved = data.settings.trialRating;
+  const preview = useContext(PreviewMode);
+  const [skipped, setSkipped] = useState(false);
+  const saved = preview ? (skipped ? { rating: null, at: '' } : null) : data.settings.trialRating;
   const [rating, setRating] = useState<number | null>(saved?.rating ?? null);
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const save = (r: number | null) => actions.updateSettings({ trialRating: { rating: r, at: new Date().toISOString() } });
+  const save = (r: number | null) => (preview ? r === null && setSkipped(true) : actions.updateSettings({ trialRating: { rating: r, at: new Date().toISOString() } }));
   const send = async (r: number, comment?: string) => {
     const c = supabase();
-    if (!c) return;
+    if (!c || preview) return;
     await c.rpc('rate_trial', { p_rating: r, p_comment: comment ?? null }).then(() => undefined, () => undefined);
   };
   useEffect(() => {
@@ -309,7 +339,7 @@ function TrialRating({ onHigh }: { onHigh: () => void }) {
             <b>Know someone who'd like it? Invite a friend and you both get 30 days of Plus free.</b>
             <span>{INVITE_RULE}</span>
           </span>
-          <InviteButton label="Invite a friend" />
+          <Invite label="Invite a friend" />
         </div>
       </section>
     );
@@ -354,27 +384,60 @@ function TrialRating({ onHigh }: { onHigh: () => void }) {
  * The first open after the trial ends: one screen that says it ended, what Max did in numbers, what changes, what
  * stays, and the three choices. Seen once; the frozen banner carries on from there as before.
  */
-export function TrialEnded() {
+export interface TrialEndPreview {
+  /** Show it as a student on Plus from a friend's invite, instead of one going back to Free. */
+  gift: boolean;
+  onGift: (gift: boolean) => void;
+  onClose: () => void;
+}
+
+export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
   const { profile, tier } = useAccount();
   const { data, actions } = useStore();
   const tz = data.settings.timezone;
+  // The preview's week: the admin's own last 7 days, so the numbers are real.
+  const [week] = useState(() => ({ since: new Date(Date.now() - 7 * 86_400_000).toISOString(), until: new Date().toISOString() }));
   const real = !!profile?.trialStartedAt && !!profile.trialEndsAt && !profile.friendFrom;
-  const plusAfter = usePlusAfter(profile?.trialEndsAt);
+  const livePlusAfter = usePlusAfter(profile?.trialEndsAt);
+  const plusAfter: PlusCredit | null = preview ? (preview.gift ? { start: week.until, end: new Date(Date.parse(week.until) + 30 * 86_400_000).toISOString(), days: 30, running: true, after: 'trial', from: 'invited' } : null) : livePlusAfter;
   // Free after the week, or Plus from a friend's invite: either way one clear screen, once.
-  const onPlusGift = tier === 'plus' && !!plusAfter;
-  const ended = real && trialState(profile) === 'used' && (tier === 'free' || onPlusGift) && !data.settings.trialEndSeen;
-  const n = useTrialNumbers(profile?.trialStartedAt, profile?.trialEndsAt);
+  const onPlusGift = preview ? preview.gift : tier === 'plus' && !!plusAfter;
+  const ended = !!preview || (real && trialState(profile) === 'used' && (tier === 'free' || onPlusGift) && !data.settings.trialEndSeen);
+  const endsAt = preview ? week.until : profile?.trialEndsAt;
+  const n = useTrialNumbers(preview ? week.since : profile?.trialStartedAt, preview ? week.until : profile?.trialEndsAt);
   const invites = useInviteProgress();
   // A 7 to 10 shows the invite right under the rating, so the card further down would say it twice.
   const [inviteAbove, setInviteAbove] = useState(false);
-  if (!ended || !profile?.trialEndsAt) return null;
-  const done = () => actions.updateSettings({ trialEndSeen: new Date().toISOString() });
+  if (!ended || !endsAt) return null;
+  const done = preview ? preview.onClose : () => actions.updateSettings({ trialEndSeen: new Date().toISOString() });
   const numbers = recapLines(n);
   return (
-    <div className="onboard trial-ended" role="dialog" aria-modal="true" aria-label="Your free trial ended">
+    <PreviewMode.Provider value={!!preview}>
+    <div className="onboard trial-ended" role="dialog" aria-modal="true" aria-label={preview ? 'Preview: your free trial ended' : 'Your free trial ended'}>
       <div className="onboard-inner">
+        {preview && (
+          <div className="trial-preview-bar" role="status">
+            <p>
+              <b>Preview, admin only.</b> Your own last 7 days, real numbers. Nothing here saves, charges, shares or ends anything.
+            </p>
+            <div className="trial-preview-actions">
+              <SegmentedControl
+                label="Show it as"
+                value={preview.gift ? 'gift' : 'free'}
+                options={[
+                  { value: 'free', label: 'Back to Free' },
+                  { value: 'gift', label: "Plus from a friend's invite" },
+                ]}
+                onChange={(v) => preview.onGift(v === 'gift')}
+              />
+              <button type="button" className="btn small" onClick={preview.onClose}>
+                Close preview
+              </button>
+            </div>
+          </div>
+        )}
         <section className="onboard-step">
-          <p className="eyebrow">Ended {fmtDate(dateOf(profile.trialEndsAt, tz), 'long')}</p>
+          <p className="eyebrow">Ended {fmtDate(dateOf(endsAt, tz), 'long')}</p>
           <h1 className="onboard-title">{onPlusGift ? 'Your free week of Max ended. Plus from your friend is on.' : 'Your free trial ended.'}</h1>
           {onPlusGift && plusAfter && <p className="onboard-text">Plus is free until {fmtDate(dateOf(plusAfter.end, tz), 'long')}, from {creditFrom(plusAfter)}: Halo sync, real grades, and every announcement read for you. No card; after that you choose again.</p>}
           {numbers.length > 0 && (
@@ -417,13 +480,14 @@ export function TrialEnded() {
               <span>{INVITE_RULE}</span>
               {progressLine(invites) && <span className="invite-progress">{progressLine(invites)}</span>}
             </span>
-            <InviteButton label="Invite a friend" />
+            <Invite label="Invite a friend" />
           </div>
           )}
           <p className="hint">Nothing charged, and nothing will unless you choose a plan.</p>
         </section>
       </div>
     </div>
+    </PreviewMode.Provider>
   );
 }
 

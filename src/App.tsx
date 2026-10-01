@@ -241,8 +241,8 @@ function useWindowDrop(onFile: (f: File) => void): boolean {
  */
 function OnboardingHost() {
   const { data, actions, sync } = useStore();
-  const { auth, tier, loading, planKnown } = useAccount();
-  const { route } = useRoute();
+  const { auth, tier, loading, planKnown, profile } = useAccount();
+  const { route, params, navigate } = useRoute();
   const front = useFront();
   // Settled: the sign-in is known and, when signed in, the account's first load is done. Before that a signed-in
   // student on a new device looked signed out for a few seconds on a slow network, and onboarding started (audit).
@@ -262,6 +262,10 @@ function OnboardingHost() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.settings.onboarding, data.courses.length, front, route, settled]);
   const ob = data.settings.onboarding;
+  // Admin only (2026-10-01): the end-of-trial screen on the admin's own account and real numbers, changing nothing.
+  const preview = params.get('preview');
+  if (profile?.isAdmin && (preview === 'trial-end' || preview === 'trial-end-gift'))
+    return <TrialEnded preview={{ gift: preview === 'trial-end-gift', onGift: (g) => navigate(route, { preview: g ? 'trial-end-gift' : 'trial-end' }), onClose: () => navigate(route, {}) }} />;
   if (front !== 'app' || route === 'login') return null;
   // An account still arriving on a device with nothing of its own: a quiet wait, never onboarding or an empty Now.
   if (signedIn && !settled && fresh) return <AccountLoading />;
