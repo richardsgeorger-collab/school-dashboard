@@ -17,6 +17,13 @@ for (const fn of ['ai', 'stripe-checkout', 'stripe-portal']) {
   // No auth header: the relay answers 401 before the function runs. That still proves the function exists and is deployed.
   check(post.status === 401 && body.includes('authorization'), `${fn} no-auth POST: ${post.status} ${body.slice(0, 80)}`);
 }
+// The calendar feed (2026-10-01) is read by Google and Apple Calendar with no sign-in: deployed without JWT checks, an
+// unknown link answers the function's own 404, not the relay's 401.
+{
+  const r = await fetch(`${url}/functions/v1/calendar/${'0'.repeat(48)}.ics`).catch((e) => ({ status: 0, text: async () => String(e) }));
+  const body = await r.text();
+  check(r.status === 404 && body.includes('calendar link'), `calendar feed, unknown link: ${r.status} ${body.slice(0, 60)}`);
+}
 // The Sync Halo bookmark is a loader for the site's halo-sync.js; if that file stops being served, every bookmark
 // silently falls back to the copy embedded the day it was saved. Every bookmark saved before 2026-09-29 loads it from
 // the old github.io address, so that one must always answer; haloplus.app is checked once it is live.

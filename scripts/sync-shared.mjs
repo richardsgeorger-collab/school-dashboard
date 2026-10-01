@@ -1,5 +1,5 @@
 // The Edge Functions run the same tier, flag, meter and model code as the client. Deno cannot import from src/, so
-// this copies the four files into supabase/functions/_shared/ with Deno-style imports. `src/config/shared.test.ts`
+// this copies these files into supabase/functions/_shared/ with Deno-style imports. `src/config/shared.test.ts`
 // fails when the copies are out of date, so a changed limit cannot ship to the client alone.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,6 +14,7 @@ export const SHARED = [
   ['src/ai/model.ts', 'model.ts'],
   ['src/ai/meter.ts', 'meter.ts'],
   ['src/billing/subscription.ts', 'subscription.ts'],
+  ['src/ics/feed.ts', 'feed.ts'],
 ];
 
 /** Deno wants explicit extensions on relative imports; the sources all sit in one flat folder there. */

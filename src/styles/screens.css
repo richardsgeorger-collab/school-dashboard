@@ -3329,3 +3329,36 @@
   display: block;
   margin-top: 8px;
 }
+
+/* Add to my calendar app (2026-10-01): the calendar feed's three ways in, the link itself, and the honest refresh line. */
+.feed {
+  display: grid;
+  gap: var(--s-3);
+}
+.feed p {
+  margin: 0;
+}
+.feed-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s-2);
+}
+.feed-link {
+  width: 100%;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.feed .hero-inline {
+  justify-self: start;
+}
+.feed-btn-narrow {
+  display: none;
+}
+@media (max-width: 480px) {
+  .feed-btn-wide {
+    display: none;
+  }
+  .feed-btn-narrow {
+    display: inline;
+  }
+}

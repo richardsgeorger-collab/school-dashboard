@@ -223,7 +223,7 @@ export const FEATURE_LINES: Record<Feature, string> = {
   weeklyRecap: 'Sunday: what you finished, what is coming, where you are behind.',
   gradeProjection: 'What you need on the rest of the term.',
   gamification: 'Points, streaks, and a bar that shows the term filling in.',
-  icsFeed: 'Your deadlines in Google or Apple Calendar, live.',
+  icsFeed: 'Your deadlines in Google Calendar, Apple Calendar or Outlook, kept up to date.',
   aiChat: 'Ask anything about your classes: what to do next, what a professor wants, how a topic works, from your own slides and announcements.',
   promptPanel: 'A ready-made prompt for any assignment, built from its rubric and announcements.',
   flashcards: 'Practice for any quiz or exam: a study plan, a worksheet with answers, quiz me, flashcards, all from your own class material.',

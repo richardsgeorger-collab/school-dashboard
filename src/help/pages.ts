@@ -138,7 +138,7 @@ export const HELP_PAGES: HelpPage[] = [
         body: `<p>An imported file is a snapshot. It won't know when a professor moves a date, it has no grades or points, and it doesn't include what announcements ask for. Re-import every week or two, and keep reading announcements.</p>`,
       },
     ],
-    haloPlus: `Halo+ has its own calendar of your Halo work (month and day-by-day views), and it stays current: each sync re-reads Halo, so a moved date moves. It can also import that same .ics file if you'd rather start that way. The calendar views are free; Halo sync is part of ${TIER_NAMES.plus} (${plus} a month), with ${TIER_NAMES.max} free for ${trial} when you sign up.`,
+    haloPlus: `Halo+ keeps your Halo work in its own calendar (month and day-by-day views), and each sync re-reads Halo, so a moved date moves. It can also put every due date into Google Calendar, Apple Calendar or Outlook through a private link you add once: Apple and Outlook re-read it about every hour, Google a few times a day. The calendar views are free; Halo sync and the calendar link are part of ${TIER_NAMES.plus} (${plus} a month), with ${TIER_NAMES.max} free for ${trial} when you sign up.`,
     faq: [
       {
         q: 'Can I subscribe to my GCU Halo due dates in Google Calendar?',
@@ -477,6 +477,7 @@ Website: ${SITE}
 - Pulls every class's assignments, discussion questions (DQs), quizzes and due dates from Halo into one list, ranked by due date, time it takes and points.
 - Reads every class announcement and puts what it asks for (a moved date, a required format, something to bring) on the assignment it is about, in the professor's words.
 - Shows Halo's real grades for every class and what the student needs on the rest of the term.
+- A private calendar link that puts every due date in Google Calendar, Apple Calendar or Outlook and keeps it up to date (on ${TIER_NAMES.plus}).
 - Reminders and notifications for what is due; works on iPhone, iPad, Android and computers as a Home Screen web app.
 - Study tools (on the Max plan): Ask questions about your own classes, Practice (study plans, worksheets with answers, quiz me, flashcards from your class material), and Check your work against the rubric.
 

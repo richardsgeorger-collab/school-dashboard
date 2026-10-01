@@ -15,6 +15,7 @@ import { AgendaView } from './AgendaView';
 import { MonthView } from './MonthView';
 import { WeekStrip } from './WeekStrip';
 import { WeekGlance } from './WeekGlance';
+import { CalendarFeed } from './CalendarFeed';
 import { useFilteredItems } from './shared';
 
 /** Agenda is the calendar. Month is the map. There is no Week: the seven-day strip on the agenda is what that was for. */
@@ -42,6 +43,8 @@ export function Calendar() {
   const items = useFilteredItems(codes);
   const [open, setOpen] = useState<{ item: Item; isNew: boolean } | null>(null);
   const [filtering, setFiltering] = useState(!!filterParam);
+  // "#/calendar?feed=1" opens Add to my calendar app straight away (from a notification, the help pages, You).
+  const [feedOpen, setFeedOpen] = useState(params.get('feed') === '1');
   const openItem = (item: Item) => setOpen({ item, isNew: false });
 
   const set = (patch: Partial<{ v: View; d: string; c: string | null }>) => {
@@ -128,6 +131,12 @@ export function Calendar() {
                 {codes ? `${codes.size} of ${data.courses.length} classes` : 'Filter'}
               </button>
             )}
+            <button type="button" className="btn small quiet" aria-label="Add to my calendar app" onClick={() => setFeedOpen(true)}>
+              <span className="feed-btn-wide">Add to my calendar app</span>
+              <span className="feed-btn-narrow" aria-hidden>
+                Calendar app
+              </span>
+            </button>
             <button type="button" className="btn small" aria-label="Add item" onClick={() => setOpen({ item: blankItem(data.courses[0]?.id ?? '', data.settings.timezone, today), isNew: true })}>
               <IconPlus />
             </button>
@@ -154,6 +163,7 @@ export function Calendar() {
         {view === 'month' && <MonthView month={month} items={items} onOpen={openItem} />}
       </div>
       {open && <ItemDetail key={open.item.id} item={open.item} isNew={open.isNew} onClose={() => setOpen(null)} />}
+      {feedOpen && <CalendarFeed onClose={() => setFeedOpen(false)} />}
     </>
   );
 }
