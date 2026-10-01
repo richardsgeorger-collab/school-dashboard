@@ -62,8 +62,8 @@ Syncs the signed-in student's own GCU Halo classes, assignments, grades and anno
   sent there, to the signed-in student's own account, so it arrives even when no Halo+ tab is open. This one address,
   nothing else on that host.
 - `host_permissions https://kiacmspgvntzwngijibr.supabase.co/functions/v1/report`: Halo+'s error log. When a sync
-  fails or the extension crashes, it sends what went wrong (the reason, the extension version, the plan, a random id
-  for this browser), never any class data, names or login.
+  fails or the extension crashes, it sends what went wrong (the reason, the extension version, the browser and
+  operating system, the plan, a random id for this browser), never any class data, names or login.
 - `host_permissions https://richardsgeorger-collab.github.io/*`: Halo+'s previous address, kept while students move
   over to haloplus.app; the same use as above.
 - `scripting`: inject the sync script into the Halo tab when a sync is due.
@@ -82,7 +82,9 @@ Syncs the signed-in student's own GCU Halo classes, assignments, grades and anno
   never collects credentials; select only Website content.
 - Data is not sold, not used for purposes unrelated to the single purpose, not used for creditworthiness.
 
-**Privacy policy URL:** https://haloplus.app/privacy.html
+**Privacy policy URL:** https://haloplus.app/privacy.html (its "The Chrome extension" section says the same as this
+page: single purpose, where it runs, Website content only, where it sends it, what it keeps, errors, not sold; keep
+the two in step, src/landing/privacy.test.ts checks the key lines)
 **Homepage URL:** https://haloplus.app/
 **Support:** richards.georger@gmail.com (the same address on the privacy and terms pages)
 

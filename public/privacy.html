@@ -2,38 +2,65 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Privacy · Halo+</title><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet"><style>body{margin:0;background:#f6f7f9;color:#14171c;font:15px/1.55 Inter,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.wrap{max-width:640px;margin:0 auto;padding:24px 20px 64px}h1{font:700 32px/1.1 "Plus Jakarta Sans",Inter,sans-serif;letter-spacing:-.02em;margin:16px 0 8px}h2{font-size:16px;font-weight:600;margin:28px 0 6px}a{color:inherit}ul{padding-left:20px}p,li{color:#4b5261;margin:6px 0}@media(prefers-color-scheme:dark){body{background:#0b0d10;color:#f2f4f7}p,li{color:#a9b0bc}}</style></head><body><div class="wrap"><p><a href="./">← Halo+</a></p>
 <h1>Privacy</h1>
 
-<p>Last updated 2026-09-24. Plain words; the short version is that your data is yours, we keep only what the app needs to work, and you can take it or delete it any time.</p>
+<p>Last updated 2026-10-01. Plain words; the short version is that your data is yours, we keep only what the app needs to work, and you can take it or delete it any time.</p>
 
 <h2>Who we are</h2>
 
 <p>Halo+ is an independent planner made by a student for students who use Halo at Grand Canyon University. It is not affiliated with, endorsed by, or connected to Grand Canyon University. Contact: richards.georger@gmail.com.</p>
 
+<h2>Signing in</h2>
+
+<ul><li><b>Email and password</b>: your password is stored by our sign-in provider (Supabase) as a one-way hash. We never see it, and it is not your GCU password.</li>
+<li><b>Google</b>, for Gmail and other Google accounts: Google tells us your email address, and also the name and picture on your Google account. We use only the email.</li>
+<li>Older accounts made with an email link work the same way and can add a password any time.</li>
+<li>Halo+ never asks for, reads or stores your GCU password.</li>
+</ul>
 <h2>What we collect</h2>
 
-<ul><li><b>Your account</b>: an email address (or the email from your Google account). Never a password: sign-in is by email link or Google.</li>
-<li><b>What you sync from Halo, when you choose to</b>: your classes, assignments, due dates, grades, rubrics, instructor feedback, announcements, class resources and messages. The bookmark or extension reads these from Halo while you are logged in there and sends them to your account. It never sees, reads or stores your GCU password, and your Halo session is never sent anywhere but to Halo.</li>
-<li><b>What you add</b>: items, notes, study hours, preferences, recordings and files you choose to upload, feedback you send.</li>
-<li><b>How the app is used</b>: which onboarding steps were completed or skipped, when a sync ran and from what kind of device, and how much AI each account uses (tokens and cost). This is aggregate operational data; we do not sell it or share it with advertisers.</li>
+<ul><li><b>Your account</b>: your email address.</li>
+<li><b>What you sync from Halo, when you choose to</b>: your classes, assignments, due dates, grades, rubrics, instructor feedback, announcements, class resources and messages. The bookmark or the Chrome extension reads these from Halo while you are logged in there and sends them to your account. You review the changes before they are applied.</li>
+<li><b>What you add</b>: items, notes, study hours, preferences, lecture notes, recordings and files you choose to upload, and feedback you send (with a screenshot if you attach one).</li>
+<li><b>How the app is used</b>: how many times each feature was used each day, which onboarding steps were completed or skipped, when a sync ran and from what kind of device, and how much AI each account uses (tokens and cost). We use this to run and improve Halo+; we do not sell it or share it with advertisers.</li>
 <li><b>Payments</b>: handled by Stripe. We never see or store card numbers. We keep your Stripe customer id and your subscription status.</li>
-<li><b>Notifications</b>: if you turn them on, the push subscription for that device.</li>
+<li><b>Notifications</b>: if you turn them on, the push subscription for that device. Notifications travel through your browser's own push service (Apple, Google or Mozilla).</li>
+<li><b>Calendar link</b>: if you add Halo+ to Google Calendar, Apple Calendar or Outlook, we keep the private link's code and when a calendar app last read it. Anyone who has the link can see your due dates, so keep it to yourself; Calendar → Add to my calendar app → Make a new link stops the old one.</li>
 </ul>
+<h2>The Chrome extension</h2>
+
+<p>The Halo+ extension has one purpose: it syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.</p>
+<ul><li><b>Where it runs</b>: only on halo.gcu.edu and on the Halo+ site. It does not read cookies, history or any other site.</li>
+<li><b>What it collects</b>: website content, meaning your own class data from Halo, read through Halo's own API with the session you already have in that tab. It never collects your password or any other login information.</li>
+<li><b>Where it sends it</b>: only to your own Halo+ account, through Halo+'s server, so a sync arrives even when no Halo+ tab is open. Nothing is sent anywhere else.</li>
+<li><b>What it keeps in Chrome on your computer</b>: when it last synced and how that went, your plan, your account's sync key (it can only deliver a sync to your account, never read anything), a sync waiting to be delivered while your account cannot be reached, and a short list of recent errors.</li>
+<li><b>Errors</b>: when a sync fails or the extension crashes, it sends the reason, the extension's version, the browser and operating system, your plan and a random id for this browser to Halo+'s error log. Never class data, names or login.</li>
+<li>Your data is not sold, not used for anything other than that one purpose, and not used to decide creditworthiness. The extension runs no code from anywhere else: the sync script ships inside it.</li>
+</ul>
+<h2>Error logging</h2>
+
+<p>When something breaks in the app or the extension, it sends a report so it can be fixed: what went wrong and where in the code, the app or extension version, the browser and kind of device (phone or computer), your plan, a random id for this browser, and, if you are signed in, a scrambled id made from your account id so repeated errors for one account group together. It contains no personal content: no classes, assignments, grades, announcements, names or login. Email addresses, tokens, keys, long ids and the query part of web addresses are removed by the app before a report is sent, and by our server before any report is saved. Reports are deleted after 30 days.</p>
+
 <h2>AI features</h2>
 
 <p>On paid plans, some features send text to Anthropic's API through our server: an announcement to be read, a syllabus, a lecture transcript, the slides and lectures you have on file when Practice or Ask build from them, the work you paste or drop into Check, and your question in Ask with a summary of your open work and grades. Only what the feature needs is sent, and Anthropic's API does not train on it. Every call is capped and metered per account.</p>
+<p>If you upload a lecture recording to be turned into text (Max), its audio is sent through our server to Groq to transcribe, and only the text comes back. We keep only how many seconds were transcribed, for the daily limit.</p>
 
 <h2>Cookies and analytics</h2>
 
-<p>The app itself uses browser storage to work offline; no advertising cookies. The landing page may use a Meta Pixel to measure whether ads lead to sign-ups. The app can send a handful of funnel events (sign-up, Halo connected, upgrade) to that pixel; no class data, grades or content ever go to Meta.</p>
+<p>The app uses your browser's storage to keep you signed in and to work offline. There are no advertising cookies and no advertising trackers on the site. If that ever changes (for example, a Meta Pixel to measure whether ads lead to sign-ups), this page will say so before it starts, and no class data, grades or content would ever go to an advertiser.</p>
 
-<h2>Where it lives</h2>
+<h2>Who else handles it</h2>
 
-<p>Data is stored with Supabase (Postgres, in the United States). Each account can read only its own rows; this is enforced by the database, not the app, and tested.</p>
+<ul><li><b>Supabase</b> stores your account and data (Postgres, in the United States) and runs Halo+'s server functions.</li>
+<li><b>Stripe</b> handles payments. <b>Anthropic</b> and <b>Groq</b> handle the AI features above. <b>Resend</b> sends password reset emails.</li>
+<li>The site's pages are served by GitHub Pages and its fonts by Google Fonts, which see the usual details any website host sees, like your IP address.</li>
+</ul>
+<p>Each account can read only its own rows; this is enforced by the database, not the app, and tested. We do not sell your data.</p>
 
 <h2>Your choices</h2>
 
 <ul><li><b>Export</b>: You → Advanced → Export everything gives you one JSON file with all of it.</li>
 <li><b>Delete</b>: You → Advanced → Delete my account removes every row and the account itself, immediately and permanently.</li>
-<li><b>Notifications, AI, sync</b>: each is a switch you control.</li>
+<li><b>Notifications, AI, sync, the calendar link</b>: each is yours to turn on or off.</li>
 </ul>
 <h2>Children</h2>
 
