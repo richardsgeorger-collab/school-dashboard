@@ -36,7 +36,9 @@ async function student() {
   const moved = rows.find((r) => r.id !== lab.id && r.id !== quiz.id && r.data.status !== 'done');
   const src = { kind: 'announcement', id: 'e2e-post', title: 'Lab reminder', quote: 'Bring your own splash goggles', at: ago(6) };
   const put = (r, patch) => db.from('items').update({ data: { ...r.data, ...patch }, updated_at: new Date().toISOString() }).eq('id', r.id);
-  await put(lab, { notes: 'Complete the photosynthesis procedure and record your results.', requirements: [{ id: randomUUID(), text: 'Bring your own splash goggles', dueAt: null, done: false, doneAt: null, gradedOn: true, source: src, addedAt: ago(6) }] });
+  const req = (text, scope) => ({ id: randomUUID(), text, dueAt: null, done: false, doneAt: null, gradedOn: true, scope, source: src, addedAt: ago(6) });
+  // A standing rule first, then two real things to do: the examples must be the things to do.
+  await put(lab, { notes: 'Complete the photosynthesis procedure and record your results.', requirements: [req('Cite any AI-generated content', 'rule'), req('Bring your own splash goggles'), req('Sign the lab safety waiver before lab', 'instance')] });
   await put(quiz, { practicedAt: ago(4) });
   await put(moved, { dateChange: { from: ago(3), at: ago(6), source: src }, dueAt: ago(1) });
   const toCheck = rows.filter((r) => ![lab.id, quiz.id, moved.id].includes(r.id)).slice(0, 23);
@@ -108,6 +110,26 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     rmSync(`${OUT}/frames`, { recursive: true, force: true });
   }
 
+  // On a laptop the rating shows without scrolling (and Continue too).
+  for (const [w, h] of [[1366, 640], [1280, 720], [1440, 780]]) {
+    await resetRating(first.id);
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: 'light' });
+    await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: first.session, key: `sb-${ref}-auth-token` });
+    await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
+    const p = await ctx.newPage();
+    await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
+    await p.waitForSelector('.trial-ended .story-line', { timeout: 30000 });
+    await p.waitForTimeout(5000);
+    const fit = await p.evaluate(() => ({ rating: document.querySelector('.trial-rating').getBoundingClientRect().bottom, cont: document.querySelector('.story-continue').getBoundingClientRect().bottom, scrolled: document.querySelector('.trial-ended').scrollTop, h: window.innerHeight }));
+    check(fit.scrolled === 0 && fit.rating <= fit.h, `${w}x${h}: the rating shows without scrolling (bottom ${Math.round(fit.rating)} of ${fit.h}; Continue ${Math.round(fit.cont)})`);
+    if (w === 1366) for (const scheme of ['light', 'dark']) {
+      await p.emulateMedia({ colorScheme: scheme });
+      await p.waitForTimeout(300);
+      await p.screenshot({ path: `${OUT}/page1-laptop-1366x640-${scheme}.png` });
+    }
+    await ctx.close();
+  }
+
   for (const dev of ['desk', 'phone']) for (const scheme of ['light', 'dark']) {
     await resetRating(first.id);
     const { ctx, p } = await open(first, dev, scheme);
@@ -116,11 +138,11 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     if (dev === 'desk' && scheme === 'light') {
       const lines = (await p.locator('.story-line').allInnerTexts()).map((l) => l.replace(/\s+/g, ' ').trim());
       console.log(`     page 1 lines: ${lines.join(' || ')}`);
-      check(lines.length >= 3 && lines.length <= 5, `3 to 5 lines (${lines.length})`);
-      check(lines.some((l) => /^1 thing your professors only put in an announcement, Halo\+ caught: BIO-181L: Bring your own splash goggles/.test(l)), 'the announcement-only requirement, named');
+      check(lines.length >= 3 && lines.length <= 4, `3 to 4 lines (${lines.length})`);
+      const only = lines.find((l) => /^3 things your professors only put in announcements, Halo\+ caught:/.test(l)) ?? '';
+      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && /BIO-181L: Bring your own splash goggles/.test(only) && !/Cite any AI/.test(only), `the examples are things to do, not the standing rule: "${only}"`);
       check(lines.some((l) => new RegExp(`moved from .+ to .+\\. You knew before it mattered\\.`).test(l) && l.includes(first.moved)), 'the moved date, caught before the old date');
-      check(lines.some((l) => /^You checked off \d+ assignments this week\.$/.test(l)), 'assignments checked off');
-      check(lines.some((l) => l.includes(`Built practice for your`) && l.includes(first.quiz)), 'practice, naming the quiz');
+      check(lines.some((l) => /^(You checked off \d+ assignments this week\.|On time for all \d+ things due this week\.)$/.test(l)), 'checked off or on time');
       check(/Here's what Halo\+ did for you\./.test(await p.locator('.story-title').innerText()), 'the title');
       check((await p.locator('.trial-ended :text("Stay on Free"), .trial-ended [aria-label="Close"]').count()) === 0 && (await p.locator('.story-continue').isVisible()), 'page 1 has no way to Free or close, only Continue');
     }

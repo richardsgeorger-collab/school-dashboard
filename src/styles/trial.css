@@ -2120,3 +2120,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Page 1 fits a laptop screen down to the rating (George, 2026-10-01): a wider column so lines wrap less, and
+   tighter spacing. Phones scroll as before. */
+.trial-ended[data-page='1'] .onboard-inner {
+  max-width: 660px;
+}
+.trial-ended .story {
+  padding-top: var(--s-2);
+}
+.story-title {
+  margin: 4px 0 var(--s-4);
+  font-size: clamp(30px, 4.4vw, 44px);
+}
+.story-lines {
+  gap: var(--s-3);
+}
+.story-text {
+  font-size: clamp(17px, 2.3vw, 20px);
+  line-height: 1.3;
+}
+.story-n {
+  font-size: 1.35em;
+}
+.story-examples {
+  margin-top: 6px;
+  gap: 4px;
+}
+.story-examples li {
+  padding: 5px 10px;
+  font-size: 14px;
+}
+.story-after {
+  margin-top: var(--s-5);
+  gap: var(--s-3);
+}
+.story .trial-rating {
+  gap: 6px;
+  padding: 10px 14px;
+}
+.story .trial-rating-n {
+  min-height: 34px;
+}
+.story-continue {
+  min-height: 46px;
+}

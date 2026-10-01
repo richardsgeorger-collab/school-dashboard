@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course, Item } from '../../domain/types';
-import { inAssignment, storyLines, type StoryInput } from './story';
+import { exampleRank, inAssignment, storyLines, type StoryInput } from './story';
 
 const since = '2026-09-24T07:00:00.000Z';
 const until = '2026-10-01T07:00:00.000Z';
@@ -8,7 +8,7 @@ const now = '2026-10-01T15:00:00.000Z';
 const courses = [{ id: 'eng', code: 'ENG-105', haloSlugId: 'eng-x' }, { id: 'chm', code: 'CHM-113L', haloSlugId: 'chm-x' }] as Course[];
 let n = 0;
 const item = (p: Partial<Item>): Item => ({ id: `i${n++}`, courseId: 'eng', title: 'Item', label: '', type: 'homework', points: 10, dueAt: '2026-10-05T06:59:00.000Z', status: 'todo', completedAt: null, notes: '', source: 'halo', ...p }) as Item;
-const ann = (text: string, addedAt = '2026-09-27T12:00:00.000Z') => ({ id: text, text, dueAt: null, done: false, doneAt: null, gradedOn: true, source: { kind: 'announcement' as const, id: 'p1', title: 't', quote: 'q', at: addedAt }, addedAt });
+const ann = (text: string, addedAt = '2026-09-27T12:00:00.000Z', extra: { scope?: 'instance' | 'rule' | 'reference'; dueAt?: string | null; gradedOn?: boolean } = {}) => ({ id: text, text, dueAt: null, done: false, doneAt: null, gradedOn: true, source: { kind: 'announcement' as const, id: 'p1', title: 't', quote: 'q', at: addedAt }, addedAt, ...extra });
 const base = (items: Item[], recap = { asked: 0, practice: 0, read: 0 }): StoryInput => ({ items, courses, since, until, now, tz: 'America/Phoenix', recap });
 
 describe('only put in an announcement', () => {
@@ -58,12 +58,34 @@ describe('the story', () => {
       ...Array.from({ length: 12 }, () => item({ status: 'done', completedAt: '2026-09-29T00:00:00.000Z', dueAt: '2026-10-08T00:00:00.000Z' })),
     ];
     const lines = storyLines(base(items, { asked: 13, practice: 0, read: 6 }));
-    expect(lines.map((l) => l.key)).toEqual(['only', 'moved', 'checked', 'asked', 'read']);
+    // Four at most, so the rating shows without scrolling on a laptop.
+    expect(lines.map((l) => l.key)).toEqual(['only', 'moved', 'checked', 'asked']);
     expect(lines.find((l) => l.key === 'asked')).toMatchObject({ before: 'Answered ', n: 13, after: ' questions about your classes.' });
     expect(lines.some((l) => l.key === 'practice')).toBe(false);
+    expect(lines.some((l) => l.key === 'read')).toBe(false);
   });
   it('a light week is never empty and claims nothing', () => {
     expect(storyLines(base([])).map((l) => l.key)).toEqual(['light-classes', 'light-next']);
     expect(storyLines({ ...base([]), courses: [] })[0].key).toBe('light-start');
+  });
+});
+
+describe('which announcement requirements make the examples', () => {
+  it('a deadline, a grade or a thing to do beats a standing class rule', () => {
+    expect(exampleRank({ text: 'Reply to 2 classmates by Sunday', dueAt: null, gradedOn: true, scope: 'instance' })).toBeGreaterThan(0);
+    expect(exampleRank({ text: 'Sign the lab safety waiver before lab', dueAt: null, gradedOn: false })).toBeGreaterThan(0);
+    expect(exampleRank({ text: 'Turn in the prelab sheet', dueAt: '2026-10-02T06:59:00.000Z', gradedOn: true })).toBeGreaterThan(0);
+    expect(exampleRank({ text: 'Cite any AI-generated content', dueAt: null, gradedOn: true, scope: 'rule' })).toBeLessThanOrEqual(0);
+    expect(exampleRank({ text: 'Avoid Grammarly on written work', dueAt: null, gradedOn: true })).toBeLessThanOrEqual(0);
+    expect(exampleRank({ text: 'Office hours are on Zoom', dueAt: null, gradedOn: false, scope: 'reference' })).toBeLessThanOrEqual(0);
+  });
+  it('shows actions first, never pads a real action out with a rule, and falls back to rules only when that is all there is', () => {
+    const mixed = storyLines(base([
+      item({ courseId: 'chm', title: 'Lab 4', requirements: [ann('Cite any AI-generated content', undefined, { scope: 'rule' }), ann('Avoid Grammarly on written work'), ann('Sign the lab safety waiver before lab', undefined, { scope: 'instance' })] }),
+    ])).find((l) => l.key === 'only')!;
+    expect(mixed.n).toBe(3);
+    expect(mixed.examples).toEqual(['CHM-113L: Sign the lab safety waiver before lab']);
+    const rulesOnly = storyLines(base([item({ courseId: 'chm', title: 'Lab 4', requirements: [ann('Cite any AI-generated content', undefined, { scope: 'rule' }), ann('Avoid Grammarly on written work')] })])).find((l) => l.key === 'only')!;
+    expect([...rulesOnly.examples!].sort()).toEqual(['CHM-113L: Avoid Grammarly on written work', 'CHM-113L: Cite any AI-generated content']);
   });
 });

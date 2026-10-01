@@ -46,8 +46,30 @@ export function inAssignment(req: Pick<Requirement, 'text'>, item: Pick<Item, 'n
   return w.filter((x) => own.has(x)).length / w.length >= 0.5;
 }
 
+const DAY = '(mon|tues?|wed(nes)?|thu(rs)?|fri|sat(ur)?|sun)(day)?|today|tonight|tomorrow|midnight|noon|\\d{1,2}(:\\d{2})?\\s?(am|pm)|\\d{1,2}/\\d{1,2}';
+const DEADLINE = new RegExp(`\\b(by|before|due|until|no later than)\\b[^.]*\\b(${DAY})\\b|\\bbefore (lab|class|the exam|the quiz|you (submit|arrive))\\b`, 'i');
+const RULE_WORDS = /^(avoid|do not|don't|don’t|never|always|no |cite|use |all )/i;
+
+/**
+ * How good a requirement is as an example (George, 2026-10-01): one with a deadline, a grade on it, or a thing to
+ * do ("reply to 2 classmates by Sunday", "sign the lab safety waiver before lab") beats a standing class rule ("cite
+ * AI content", "avoid Grammarly"). Above zero is an action; zero or below is a rule, shown only when nothing better.
+ */
+export function exampleRank(req: Pick<Requirement, 'text' | 'dueAt' | 'gradedOn' | 'scope'>): number {
+  let r = 0;
+  if (req.dueAt) r += 4;
+  if (DEADLINE.test(req.text)) r += 3;
+  if (req.scope === 'instance') r += 2;
+  if (req.gradedOn && req.scope !== 'rule' && req.scope !== 'reference') r += 1;
+  if (req.scope === 'rule' || req.scope === 'reference') r -= 5;
+  else if (!req.scope && !req.dueAt && RULE_WORDS.test(req.text.trim())) r -= 3;
+  return r;
+}
+
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 const listOf = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+export const MAX_LINES = 4;
 
 export function storyLines(input: StoryInput): StoryLine[] {
   const { items, courses, since, until, now, tz, recap } = input;
@@ -60,7 +82,12 @@ export function storyLines(input: StoryInput): StoryLine[] {
   const found: { item: Item; req: Requirement; only: boolean }[] = [];
   for (const item of items) for (const req of item.requirements ?? []) if (req.source?.kind === 'announcement' && inWeek(req.addedAt)) found.push({ item, req, only: !inAssignment(req, item) });
   const only = found.filter((f) => f.only);
-  const shown = (fs: typeof found) => fs.slice(0, 2).map((f) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`);
+  // Actions first; rules only when there is nothing better, and never padding out a real action.
+  const shown = (fs: typeof found) => {
+    const ranked = fs.map((f, i) => ({ f, i, r: exampleRank(f.req) })).sort((a, b) => b.r - a.r || a.i - b.i);
+    const actions = ranked.filter((x) => x.r > 0);
+    return (actions.length ? actions : ranked).slice(0, 2).map(({ f }) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`);
+  };
   if (only.length > 0) lines.push({ key: 'only', score: 95 + only.length, before: '', n: only.length, after: ` ${plural(only.length, 'thing your professors only put in an announcement', 'things your professors only put in announcements')}, Halo+ caught:`, examples: shown(only) });
   else if (found.length > 0) lines.push({ key: 'found', score: 70 + found.length, before: 'Halo+ put ', n: found.length, after: ` ${plural(found.length, 'instruction', 'instructions')} from announcements on the right assignment:`, examples: shown(found) });
 
@@ -100,7 +127,8 @@ export function storyLines(input: StoryInput): StoryLine[] {
   if (synced > 0 && fromHalo > 0) lines.push({ key: 'synced', score: 30, before: `Pulled all ${synced} of your classes and `, n: fromHalo, after: ` ${plural(fromHalo, 'assignment', 'assignments')} out of Halo into one place.` });
 
   lines.sort((a, b) => b.score - a.score);
-  if (lines.length > 0) return lines.slice(0, 5);
+  // Four at most, so the rating below them shows without scrolling on a laptop (George, 2026-10-01).
+  if (lines.length > 0) return lines.slice(0, MAX_LINES);
 
   // A light week: still about them, still true.
   const classes = courses.length;
