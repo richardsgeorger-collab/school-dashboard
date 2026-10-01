@@ -67,9 +67,20 @@ try {
   const p2 = await back.newPage();
   await p2.route('**/assets/**', (r) => new Promise((res) => setTimeout(res, 1500)).then(() => r.continue()));
   await p2.goto(`${BASE}#/now`, { waitUntil: 'domcontentloaded' });
-  const hidden = await p2.evaluate(() => { const l = document.querySelector('#root > .landing'); return !l || getComputedStyle(l).visibility === 'hidden'; });
+  const hidden = await p2.evaluate(() => { const l = document.querySelector('#root > .prerendered'); return !l || getComputedStyle(l).visibility === 'hidden'; });
   check(hidden, 'at #/now the pre-rendered landing page is hidden before the app loads');
   await back.close();
+  // Every screen the app draws stays visible once it starts (the log-in page wears .landing too).
+  for (const route of ['#/login', '#/start', '#/now', '']) {
+    const c = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    await c.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
+    const pg = await c.newPage();
+    await pg.goto(`${BASE}${route}`, { waitUntil: 'load' });
+    await pg.waitForTimeout(2500);
+    const seen = await pg.evaluate(() => [...document.querySelectorAll('#root *')].filter((e) => e.getBoundingClientRect().height > 0 && getComputedStyle(e).visibility === 'visible').length);
+    check(seen > 5 && !(await pg.$('#root > .prerendered')), `${route || 'the root'}: the app's screen is visible and the pre-rendered copy is gone`);
+    await c.close();
+  }
 
   // 5. The help pages: desktop and phone, light and dark.
   for (const [dev, opts] of [['desk', { viewport: { width: 1280, height: 900 } }], ['phone', { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }]]) {

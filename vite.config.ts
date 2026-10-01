@@ -114,7 +114,9 @@ function prerenderLanding(): Plugin {
         const file = resolve(root, outDir, 'index.html');
         const html = readFileSync(file, 'utf8');
         if (!html.includes('<div id="root"></div>')) throw new Error('prerender: no empty #root in index.html');
-        writeFileSync(file, html.replace('<div id="root"></div>', `<div id="root">${markup}</div>`));
+        // Wrapped in its own marker: the hide rule must match only this copy, never a screen the app draws (the log-in
+        // page also wears .landing, and was hidden by a rule on .landing for 20 minutes on 2026-10-01).
+        writeFileSync(file, html.replace('<div id="root"></div>', `<div id="root"><div class="prerendered">${markup}</div></div>`));
       } finally {
         await server.close();
       }
