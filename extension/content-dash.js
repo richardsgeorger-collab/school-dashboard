@@ -6,8 +6,11 @@
 // comes back into view, and sent only when it changes (2026-09-30: a Max student was reported as Free).
 // The signed-in account's sync key is reported the same way: with it the worker drops every sync into that account,
 // so a sync lands even when no Halo+ tab is open. It can drop off a sync and nothing else.
+// And what a submission on Halo is worth (points and class codes, nothing else) with the Celebrations switch, so the
+// Halo script can say "+50 pts · CHM-113L now 36% done" the moment Halo confirms a submission (0.5.0).
 let last = null;
 let lastKey;
+let lastSnap;
 const read = (k) => {
   try {
     return localStorage.getItem(k);
@@ -26,6 +29,11 @@ const report = () => {
     lastKey = key;
     chrome.runtime.sendMessage({ kind: 'key', key: key || null });
   }
+  const snap = read('school-dashboard:joy-snap');
+  if (snap !== lastSnap && (snap || lastSnap !== undefined)) {
+    lastSnap = snap;
+    chrome.runtime.sendMessage({ kind: 'joy', snap: snap || null });
+  }
 };
 report();
 // Which extension this browser runs, for Halo+'s own error reports.
@@ -36,7 +44,9 @@ try {
 }
 const early = setInterval(report, 2000);
 setTimeout(() => clearInterval(early), 60_000);
-window.addEventListener('storage', (e) => (e.key === 'school-dashboard:tier' || e.key === 'school-dashboard:sync-key') && report());
+// The snapshot changes as work is checked off; a slow look keeps the extension current without a storage event.
+setInterval(report, 30_000);
+window.addEventListener('storage', (e) => (e.key === 'school-dashboard:tier' || e.key === 'school-dashboard:sync-key' || e.key === 'school-dashboard:joy-snap') && report());
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && report());
 
 /** Posts an export to the page until the app says it has it (the app's listener mounts a moment after load). */

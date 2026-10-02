@@ -12,6 +12,12 @@ and keeps it until it can. The extension learns your account from Halo+: open Ha
 After changing any file here, press **Reload** on the extension in chrome://extensions: Chrome keeps running the old
 worker until then (2026-09-30: George's Chrome was still running the loop 154 worker hours after loop 156).
 
+When Halo confirms a submission ("Assignment has been submitted.", "Quiz successfully submitted", or "Discussion post
+has been submitted" from a DQ's submit window), the Halo page gets gold confetti and a small card, "+50 pts · CHM-113L
+now 36% done", from the points Halo+ last handed the extension, and a quiet sync starts so Halo+ shows it (0.5.0;
+Plus and Max; off with You → Display → Celebrations; reduced motion is a glow). The signal is Halo's own success toast,
+read from Halo's code; see the top of `content-halo.js`. Test: `node scripts/e2e-joy-halo.mjs`.
+
 It never sees your password. It runs on Halo only while you are already logged in there; if you are not, it says so.
 
 ## Build

@@ -7,6 +7,7 @@ import { useStore } from '../storage/store';
 import { classProgress, milestoneOf } from './joy';
 import { streakMilestone } from './streak';
 import { BADGE_INFO, BADGES, type BadgeId } from './badges';
+import { JOY_SNAP_SLOT, joySnap } from './extSnapshot';
 
 /**
  * Where the rewards show (2026-10-02). Small things are a toast under the top bar or a glow; the big ones (confetti)
@@ -187,6 +188,17 @@ export function JoyHost() {
     for (const b of earned) if (!seen.includes(b)) joy({ text: `Badge: ${BADGE_INFO[b].name}.` });
     if (earned.join(',') !== [...seen].sort((a, b) => BADGES.indexOf(a as BadgeId) - BADGES.indexOf(b as BadgeId)).join(',')) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), badgesSeen: earned } });
   }, [earnedKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // For the extension: what a submission on Halo is worth here, so Halo itself can say "+50 pts · CHM-113L now 36% done".
+  const snap = useMemo(() => JSON.stringify(joySnap(data.courses, data.items, celebrate)), [data.courses, data.items, celebrate]);
+  useEffect(() => {
+    if (!settled) return;
+    try {
+      localStorage.setItem(JOY_SNAP_SLOT, snap);
+    } catch {
+      /* storage unavailable */
+    }
+  }, [snap, settled]);
 
   const close = () => setQueue((q) => q.slice(1));
   return (

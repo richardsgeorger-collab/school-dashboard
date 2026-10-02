@@ -1,12 +1,12 @@
 # Chrome Web Store listing kit
 
-The listing as it should read for **0.4.0** (auto-sync is Max). 0.3.1 is live
+The listing as it should read for **0.5.0** (confetti on Halo; auto-sync is Max). 0.3.1 is live
 (https://chromewebstore.google.com/detail/halo+/dookepepmkkakmepjabldmgfmfhfcmnn). Every file to upload is in
 `webstore-upload/` (kept out of git):
 
 | File | Where it goes |
 |---|---|
-| `halo-plus-extension-0.4.0.zip` | Package: manifest.json at the top level of the zip |
+| `halo-plus-extension-0.5.0.zip` | Package: manifest.json at the top level of the zip |
 | `store-icon-128.png` | Store icon: 128×128, 96×96 artwork with 16 px transparent padding |
 | `screenshot-1-now.png` … `screenshot-5-sync-review.png` | Screenshots: exactly 1280×800, 24-bit PNG, no transparency |
 | `promo-tile-440x280.png` | Small promo tile: 440×280, 24-bit PNG, no transparency |
@@ -15,6 +15,25 @@ Remake the package: bump `"version"` in `extension/manifest.json` (every upload)
 from inside `extension/`: `zip -qr -X ../webstore-upload/halo-plus-extension-<version>.zip . -x README.md -x ".*"`.
 Test the zip itself: unzip it somewhere and run `EXT_DIR=<there> node scripts/e2e-autosync-max.mjs` and
 `EXT_DIR=<there> LOCAL_SITE=dist-site node scripts/e2e-extension.mjs`.
+
+## What changed in 0.5.0 (what to update in the dashboard)
+
+0.5.0 adds one thing: when Halo confirms a submission, the Halo page shows gold confetti and a small card ("+50 pts ·
+CHM-113L now 36% done") and the extension syncs so Halo+ shows it. No new permission, no new host, no new data sent
+anywhere. If 0.4.0 was never submitted, do the 0.4.0 steps below too (they still apply), with this zip.
+
+1. **Package** tab → Upload new package → `webstore-upload/halo-plus-extension-0.5.0.zip`.
+2. **Store listing** tab → **Description**: replace it with the Description below (one new paragraph, "When you submit
+   on Halo…"). The summary (manifest `description`) is unchanged.
+3. **Privacy** tab:
+   - **Host permission justification**: replace the whole box with the text below (the halo.gcu.edu part adds "and,
+     when Halo shows its own confirmation that the student submitted something, sync right away and show a short
+     celebration on that page").
+   - **storage** justification: replace with the `storage` line below (it adds each Halo assignment's points and class
+     code, and the Celebrations switch).
+   - Everything else is unchanged: single purpose, alarms, scripting, tabs, unlimitedStorage, remote code (No), data
+     usage (Website content only, the three certifications), privacy policy URL (the page already says this).
+4. **Submit for review.**
 
 ## What changed since 0.3.1 (what to update in the dashboard for 0.4.0)
 
@@ -48,6 +67,10 @@ new work is already there, with an Undo. It never takes you away from what you a
 because you opened Halo. The popup shows when it last synced (and, on Max, when it will next). Logged out of Halo?
 It says so in its popup and tries again next time.
 
+When you submit on Halo, Halo+ celebrates right there: the moment Halo confirms your assignment, quiz or discussion
+response went in, a little gold confetti and a card with the points and how much of the class is now done, and a
+sync starts so Halo+ shows it too. Turn it off any time in Halo+ under You → Display → Celebrations.
+
 What you get in Halo+:
 • One screen that says what to do next, with the due date, how long it takes and what it is worth.
 • Announcements read for you: the "due Friday" a professor only posted in an announcement lands on the assignment.
@@ -72,13 +95,14 @@ Syncs the signed-in student's own GCU Halo classes, assignments, grades and anno
 **Permission justifications (Privacy tab; one box per API permission, one box for all host permissions):**
 
 Host permission justification (the whole box):
-halo.gcu.edu: run the sync on Halo's page while the student is logged in; the data is read through Halo's own API with the session that tab already holds. haloplus.app: tell an open Halo+ tab a sync has arrived, and learn which account and plan the student is signed in to on this computer. richardsgeorger-collab.github.io: Halo+'s previous address, kept while students move over to haloplus.app; the same use. kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop: Halo+'s own server; each sync is sent there, to the signed-in student's own account, so it arrives even when no Halo+ tab is open. kiacmspgvntzwngijibr.supabase.co/functions/v1/report: Halo+'s error log; when a sync fails or the extension crashes, it sends what went wrong (the reason, the extension version, the browser and operating system, the plan, a random id for this browser), never any class data, names or login. Only these two addresses on that host.
+halo.gcu.edu: run the sync on Halo's page while the student is logged in; the data is read through Halo's own API with the session that tab already holds; and, when Halo shows its own confirmation that the student submitted something, sync right away and show a short celebration on that page. haloplus.app: tell an open Halo+ tab a sync has arrived, and learn which account and plan the student is signed in to on this computer. richardsgeorger-collab.github.io: Halo+'s previous address, kept while students move over to haloplus.app; the same use. kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop: Halo+'s own server; each sync is sent there, to the signed-in student's own account, so it arrives even when no Halo+ tab is open. kiacmspgvntzwngijibr.supabase.co/functions/v1/report: Halo+'s error log; when a sync fails or the extension crashes, it sends what went wrong (the reason, the extension version, the browser and operating system, the plan, a random id for this browser), never any class data, names or login. Only these two addresses on that host.
 
 - `alarms`: the timed schedule (every three hours while Chrome is open) on Max; on any other plan no alarm is set.
 - `scripting`: inject the sync script into the Halo tab when a sync is due.
 - `tabs`: find the student's Halo tab (or open one in the background and close it after) and find an open Halo+ tab.
-- `storage`: the last sync time, the plan, the account's sync key (it can only deliver a sync to that account), and a
-  sync kept while the account cannot be reached.
+- `storage`: the last sync time, the plan, the account's sync key (it can only deliver a sync to that account), a
+  sync kept while the account cannot be reached, and each Halo assignment's points and class code with the student's
+  Celebrations switch (from Halo+, so a submission on Halo can show "+50 pts · CHM-113L now 36% done").
 - `unlimitedStorage`: a whole term's export (every class, assignment, rubric and announcement) is several megabytes;
   it is kept only until it reaches the account.
 

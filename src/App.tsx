@@ -12,6 +12,7 @@ import { TimeAsk } from './components/TimeAsk';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { loadSyncKey, SYNC_KEY_SLOT, takePending } from './halo/serverSync';
+import { JOY_SNAP_SLOT } from './joy/extSnapshot';
 import { HaloImport } from './views/HaloImport';
 import { QuickCapture } from './views/QuickCapture';
 import { Palette } from './views/Palette';
@@ -138,6 +139,7 @@ function HaloHandoff() {
       if (!account.loading) {
         try {
           localStorage.removeItem(SYNC_KEY_SLOT);
+          localStorage.removeItem(JOY_SNAP_SLOT);
         } catch {
           /* storage unavailable */
         }

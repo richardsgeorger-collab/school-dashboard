@@ -28,10 +28,10 @@
 <h2>The Chrome extension</h2>
 
 <p>The Halo+ extension has one purpose: it syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.</p>
-<ul><li><b>Where it runs</b>: only on halo.gcu.edu and on the Halo+ site. It does not read cookies, history or any other site.</li>
+<ul><li><b>Where it runs</b>: only on halo.gcu.edu and on the Halo+ site. It does not read cookies, history or any other site. On Halo it also watches for Halo's own confirmation that you submitted something ("Assignment has been submitted."), and then syncs so Halo+ shows it, with a short celebration if Celebrations is on in Halo+. It reads nothing else on the page.</li>
 <li><b>What it collects</b>: website content, meaning your own class data from Halo, read through Halo's own API with the session you already have in that tab. It never collects your password or any other login information.</li>
 <li><b>Where it sends it</b>: only to your own Halo+ account, through Halo+'s server, so a sync arrives even when no Halo+ tab is open. Nothing is sent anywhere else.</li>
-<li><b>What it keeps in Chrome on your computer</b>: when it last synced and how that went, your plan, your account's sync key (it can only deliver a sync to your account, never read anything), a sync waiting to be delivered while your account cannot be reached, and a short list of recent errors.</li>
+<li><b>What it keeps in Chrome on your computer</b>: when it last synced and how that went, your plan, your account's sync key (it can only deliver a sync to your account, never read anything), each Halo assignment's points and class code with whether Celebrations is on (from Halo+, for that celebration; no titles, grades or names), a sync waiting to be delivered while your account cannot be reached, and a short list of recent errors.</li>
 <li><b>Errors</b>: when a sync fails or the extension crashes, it sends the reason, the extension's version, the browser and operating system, your plan and a random id for this browser to Halo+'s error log. Never class data, names or login.</li>
 <li>Your data is not sold, not used for anything other than that one purpose, and not used to decide creditworthiness. The extension runs no code from anywhere else: the sync script ships inside it.</li>
 </ul>

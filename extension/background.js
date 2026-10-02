@@ -128,6 +128,22 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       reply({ payload: waiting });
     })();
     return true;
+  } else if (msg.kind === 'joy') {
+    // From Halo+: points and class codes per Halo assignment, and the Celebrations switch. Read by the Halo script.
+    let snap = null;
+    try {
+      snap = msg.snap ? JSON.parse(msg.snap) : null;
+    } catch {
+      /* not ours */
+    }
+    void set({ joySnap: snap && snap.v === 1 ? snap : null });
+    reply({ ok: true });
+  } else if (msg.kind === 'submitted') {
+    // Halo just confirmed a submission in the student's tab: sync now so Halo+ shows it, quietly (it is Sync now for
+    // the plan rules, so it is taken on Plus too, but it focuses nothing and opens nothing: the student is on Halo).
+    // Halo saves the submission before it says so; a few seconds' wait lets the gateway catch up.
+    if (!state.running) setTimeout(() => !state.running && void runSync({ auto: false, quiet: true }), 4000);
+    reply({ ok: true });
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
     // through storage, so the reply does not wait for the sync.
@@ -163,7 +179,7 @@ function explain(raw) {
   return { kind: 'other', text: `Halo sync failed: ${s.replace(/^Halo sync failed:\s*/i, '')}`, quiet: false };
 }
 
-async function runSync({ auto }) {
+async function runSync({ auto, quiet = false }) {
   if (state.running) return;
   state.running = true;
   await set({ running: true, runningSince: new Date().toISOString(), runningAuto: auto, progress: 'Opening Halo…' });
@@ -208,7 +224,7 @@ async function runSync({ auto }) {
       });
     });
     if (!payload || payload.error) return await failed(explain(payload && payload.error), auto);
-    await finish(payload, auto);
+    await finish(payload, auto, quiet);
   } finally {
     state.pending = null;
     state.fail = null;
@@ -288,11 +304,11 @@ async function sendWaiting() {
   await pingTabs();
 }
 
-async function finish(payload, auto) {
+async function finish(payload, auto, quiet = false) {
   payload.auto = auto;
   const readAt = payload.exportedAt || new Date().toISOString();
   await set({ lastCounts: countsOf(payload) });
-  const r = await land(payload, auto);
+  const r = await land(payload, auto, quiet);
   if (r.landed) return markLanded(readAt, r.how);
   const at = clock(readAt);
   const text =
@@ -304,7 +320,7 @@ async function finish(payload, auto) {
   await set({ lastError: text, lastErrorKind: 'not-landed', lastErrorAt: new Date().toISOString() });
   // Never landed (kept in the extension). No key yet is setup, not a fault.
   if (r.kind !== 'no-key') void reportError({ title: 'Extension sync did not reach the account', message: r.why || r.kind, place: auto ? 'scheduled sync' : 'sync now', details: { kind: r.kind || 'unknown', auto } });
-  if (!auto) await chrome.action.setBadgeText({ text: '!' });
+  if (!auto && !quiet) await chrome.action.setBadgeText({ text: '!' });
 }
 
 /** Hands an export to one open Halo+ tab; true when the app said it has it. */
@@ -332,12 +348,14 @@ async function openDash() {
  * The account first; an open Halo+ tab is told to take it now. Sync now also brings Halo+ to the front. Without the
  * account: an open tab by hand, or, for Sync now, a new Halo+ tab; a scheduled sync that has neither waits here.
  */
-async function land(payload, auto) {
+async function land(payload, auto, quiet = false) {
+  // A sync after a submission on Halo never brings Halo+ forward: it is told, and takes it, in the background.
+  const front = !auto && !quiet;
   const saved = await toAccount(payload);
   if (saved.ok) {
     await chrome.storage.local.remove('waiting');
     const tabs = await pingTabs();
-    if (!auto) {
+    if (front) {
       if (tabs[0]) {
         await chrome.tabs.update(tabs[0].id, { active: true });
         await chrome.windows.update(tabs[0].windowId, { focused: true }).catch(() => undefined);
@@ -346,11 +364,11 @@ async function land(payload, auto) {
     return { landed: true, how: 'account' };
   }
   let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;
-  if (tab && !auto) {
+  if (tab && front) {
     await chrome.tabs.update(tab.id, { active: true });
     await chrome.windows.update(tab.windowId, { focused: true }).catch(() => undefined);
   }
-  if (!tab && !auto) tab = await openDash();
+  if (!tab && front) tab = await openDash();
   if (tab && (await handTo(tab, payload))) return { landed: true, how: 'tab' };
   await set({ waiting: payload });
   return { landed: false, kind: saved.kind, why: saved.why };
