@@ -1331,7 +1331,8 @@
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
-  animation: ring-in 700ms var(--ease) both;
+  /* Backwards, not both: once drawn, the ring hands over to its transition, so each thing done fills it smoothly. */
+  animation: ring-in 700ms var(--ease) backwards;
 }
 .ring[data-done='true'] .ring-fill {
   stroke: var(--accent);

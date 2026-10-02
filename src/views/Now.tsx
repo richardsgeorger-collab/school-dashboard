@@ -52,6 +52,7 @@ import { TRIAL } from '../config/tiers';
 import { TrialOffer, useReceipts } from './TrialOffer';
 import { TrialReminder } from './TrialStatus';
 import { ConnectHaloCard, useNeverSynced } from '../onboarding/Setup';
+import { joy, useSettled } from '../joy/JoyHost';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
@@ -349,6 +350,14 @@ export function Now() {
   // The day: what is due today, how much of it is done, and the time of day.
   const dueToday = useMemo(() => clean.filter((i) => i.type !== 'participation' && !isNoise(i) && dateOf(i.dueAt, tz) === today), [clean, tz, today]);
   const doneToday = dueToday.filter((i) => i.status === 'done').length;
+  // "You're clear for today" (2026-10-02): everything due today done, celebrated once a day on any device.
+  const settledJoy = useSettled();
+  useEffect(() => {
+    if (!settledJoy || dueToday.length === 0 || doneToday < dueToday.length || data.settings.joy?.clearDay === today) return;
+    if (isOpen(data.settings.onboarding)) return;
+    joy({ text: "You're clear for today.", big: true });
+    actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), clearDay: today } });
+  }, [settledJoy, doneToday, dueToday.length, today]); // eslint-disable-line react-hooks/exhaustive-deps
   const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date()));
   const daypart = hour < 5 ? 'night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
   const weekday = WEEKDAY_LONG[new Date(`${today}T12:00:00Z`).getUTCDay()];
@@ -705,7 +714,7 @@ export function Now() {
           </h1>
         </div>
         {dueToday.length > 0 && (
-          <div className="now-ring">
+          <div className="now-ring" data-clear={doneToday === dueToday.length || undefined}>
             <Ring value={doneToday} max={dueToday.length} label={`${doneToday} of ${dueToday.length} due today done`} />
             <span className="now-ring-label">
               {doneToday}/{dueToday.length}

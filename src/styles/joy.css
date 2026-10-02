@@ -192,3 +192,19 @@
   font: 700 14px/1.3 var(--font-body);
   color: var(--accent-text);
 }
+
+/* The Now ring when the day is clear: the halo glows. */
+.now-ring[data-clear] .ring {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent));
+  animation: joy-ring-glow 1.6s ease-in-out 2;
+}
+@keyframes joy-ring-glow {
+  50% {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--halo, var(--accent)) 90%, transparent));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .now-ring[data-clear] .ring {
+    animation: none;
+  }
+}

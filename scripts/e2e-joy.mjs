@@ -162,6 +162,70 @@ try {
       await ctx.close();
     }
   }
+
+  // ---------------------------------------------------------------- PHASE 2
+  if (PHASES.includes(2)) {
+    console.log("— Phase 2: the Now ring and \"You're clear\"");
+    const s = await kit.persona('max');
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Phoenix' }).format(new Date());
+    const setupDay = async () => {
+      const rows = await itemsOf(s.id);
+      // Everything due today moved off today, then exactly two open things due tonight.
+      for (const r of rows) if (r.data.dueAt?.slice(0, 10) === today || new Date(r.data.dueAt).toLocaleDateString('en-CA', { timeZone: 'America/Phoenix' }) === today) await putItem(r, { dueAt: '2099-01-01T06:59:00.000Z' });
+      const open = rows.filter((r) => r.data.type === 'homework').slice(0, 2);
+      for (const r of open) await putItem(r, { dueAt: `${today}T23:30:00-07:00`, status: 'todo', completedAt: null, startedAt: null, snoozedUntil: null, award: null });
+      await patchSettings(s.id, { joy: { ...((await settingsOf(s.id)).joy ?? {}), clearDay: null } });
+      return open;
+    };
+    for (const [dev, scheme] of COMBOS) {
+      const two = await setupDay();
+      const { ctx, p } = await open(s, dev, scheme, '#/calendar');
+      await p.waitForSelector('.item-row', { timeout: 30000 });
+      await p.waitForTimeout(3000);
+      await p.evaluate(() => { window.location.hash = '#/now'; });
+      await p.waitForSelector('.now-ring', { timeout: 15000 });
+      await p.waitForTimeout(1200);
+      const label0 = await p.locator('.now-ring-label').innerText();
+      const off0 = await p.locator('.now-ring .ring-fill').evaluate((e) => getComputedStyle(e).strokeDashoffset);
+      // First one done (from Calendar, so Now's own card stays out of the way), then back to Now: the ring fills.
+      await p.evaluate(() => { window.location.hash = '#/calendar'; });
+      await p.locator(`.item-row:has-text("${two[0].data.label}") button.check`).first().click();
+      await p.waitForTimeout(500);
+      await p.evaluate(() => { window.location.hash = '#/now'; });
+      await p.waitForSelector('.now-ring', { timeout: 15000 });
+      await p.waitForTimeout(1200);
+      const label1 = await p.locator('.now-ring-label').innerText();
+      const off1 = await p.locator('.now-ring .ring-fill').evaluate((e) => getComputedStyle(e).strokeDashoffset);
+      const trans = await p.locator('.now-ring .ring-fill').evaluate((e) => getComputedStyle(e).transitionProperty);
+      if (dev === 'desk' && scheme === 'light') {
+        check(label0 === '0/2' && label1 === '1/2' && off0 !== off1 && /stroke-dashoffset|all/.test(trans), `the ring fills as things get done (${label0} → ${label1}, ${off0} → ${off1}, transition: ${trans})`);
+        check((await p.locator('.joy-toast:has-text("clear")').count()) === 0, 'no "clear" moment at 1 of 2');
+      }
+      // The last one, from the Calendar too: clear for today.
+      await p.evaluate(() => { window.location.hash = '#/calendar'; });
+      await p.locator(`.item-row:has-text("${two[1].data.label}") button.check`).first().click();
+      await p.waitForTimeout(400);
+      await p.evaluate(() => { window.location.hash = '#/now'; });
+      await p.waitForSelector('.joy-toast:has-text("You\'re clear for today.")', { timeout: 10000 });
+      const conf = await p.waitForSelector('.joy-confetti i, .joy-glow', { timeout: 3000, state: 'attached' }).then(() => true, () => false);
+      await p.waitForTimeout(500);
+      const glow = await p.locator('.now-ring[data-clear]').count();
+      await p.screenshot({ path: `${OUT}/p2-clear-${dev}-${scheme}.png` });
+      if (dev === 'desk' && scheme === 'light') {
+        check(conf && glow === 1, "at 100%: \"You're clear for today.\", confetti, and the ring glows");
+        await p.waitForTimeout(1500);
+        check((await settingsOf(s.id)).joy?.clearDay === today, 'recorded for today');
+        await ctx.close();
+        const again = await open(s, 'desk', 'light');
+        await again.p.waitForSelector('.now-ring', { timeout: 30000 });
+        await again.p.waitForTimeout(5000);
+        check((await again.p.locator('.joy-toast:has-text("clear")').count()) === 0, 'shown once a day: not again on the next open');
+        await again.ctx.close();
+        continue;
+      }
+      await ctx.close();
+    }
+  }
 } finally {
   await browser.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);

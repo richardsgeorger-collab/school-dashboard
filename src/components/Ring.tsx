@@ -16,7 +16,7 @@ export function Ring({ value, max, label, text, size = 44 }: { value: number; ma
         </linearGradient>
       </defs>
       <circle className="ring-track" cx="22" cy="22" r={r} />
-      <circle className="ring-fill" cx="22" cy="22" r={r} strokeDasharray={c} strokeDashoffset={offset} style={{ '--c': c, '--target': offset } as React.CSSProperties} />
+      <circle className="ring-fill" cx="22" cy="22" r={r} strokeDasharray={c} strokeDashoffset={offset} style={{ '--c': c, '--target': offset, strokeDashoffset: offset } as React.CSSProperties} />
       {text && (
         <text className="ring-text" x="22" y="22" textAnchor="middle" dominantBaseline="central">
           {text}
