@@ -26,6 +26,7 @@ export function ProgressCard() {
           <dt>Daily streak</dt>
           <dd>
             <span aria-hidden>🔥</span> {progress.dailyStreak} day{progress.dailyStreak === 1 ? '' : 's'}
+            <small>{progress.skipUsedThisWeek ? ' · skip day used this week' : ' · 1 skip day left this week'}</small>
           </dd>
         </div>
         <div>

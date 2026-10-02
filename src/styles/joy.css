@@ -208,3 +208,23 @@
     animation: none;
   }
 }
+
+/* The streak in the top bar: small, gold. */
+.streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  color: var(--accent-text);
+  font: 700 13px/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+.streak-chip svg {
+  color: var(--accent);
+}
+.streak-chip:hover {
+  background: var(--accent-soft);
+}

@@ -6,7 +6,6 @@ import { maxOpen } from '../onboarding/maxState';
 import { useSettled } from '../joy/JoyHost';
 
 const LEVEL_KEY = 'school-dashboard:seen-level';
-const STREAK_KEY = 'school-dashboard:seen-streak';
 
 const read = (k: string): number | null => {
   try {
@@ -31,7 +30,6 @@ const write = (k: string, v: number) => {
 export function Celebrations() {
   const { progress, data } = useStore();
   const [level, setLevel] = useState<number | null>(null);
-  const [streak, setStreak] = useState<number | null>(null);
   // A first sync imports a term of submitted work and the level jumps; that is history, not a moment, and the
   // full-screen level-up would land on top of the payoff screen. The first-run screens own the screen.
   const settled = useSettled();
@@ -54,17 +52,6 @@ export function Celebrations() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [level]);
-  useEffect(() => {
-    if (!settled) return;
-    const seen = read(STREAK_KEY) ?? 0;
-    if (progress.dailyStreak >= 2 && progress.dailyStreak > seen) setStreak(progress.dailyStreak);
-    write(STREAK_KEY, progress.dailyStreak);
-  }, [progress.dailyStreak, settled]);
-  useEffect(() => {
-    if (streak === null) return;
-    const t = setTimeout(() => setStreak(null), 3200);
-    return () => clearTimeout(t);
-  }, [streak]);
   return (
     <>
       {level !== null && (
@@ -75,14 +62,6 @@ export function Celebrations() {
             <h2 className="levelup-title">Level {level}.</h2>
             <p className="hint">Tap anywhere to keep going.</p>
           </div>
-        </div>
-      )}
-      {streak !== null && (
-        <div className="streak-toast" role="status">
-          <span className="streak-flame" aria-hidden>
-            🔥
-          </span>
-          <span>{streak}-day streak</span>
         </div>
       )}
     </>

@@ -5,6 +5,7 @@ import { IconCalendar, IconClasses, IconHalo, IconInbox, IconMoon, IconNow, Icon
 import { useAccount } from '../auth/AccountContext';
 import { PlanBadge, TrialChip } from '../views/TrialStatus';
 import { SetupBar, SetupPill } from '../onboarding/Setup';
+import { StreakChip } from '../joy/StreakChip';
 
 const LABEL: Record<Tab, string> = { now: 'Now', calendar: 'Calendar', study: 'Study', classes: 'Classes', inbox: 'Inbox', you: 'You' };
 /** During the trial: what each tab needs to stay (Study is Max; the Inbox's reading is Plus). */
@@ -61,6 +62,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
             <IconPlus />
             <span className="gear-label">Add</span>
           </button>
+          <StreakChip />
           <TrialChip />
           <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync Halo" aria-label="Sync Halo">
             <IconSync />

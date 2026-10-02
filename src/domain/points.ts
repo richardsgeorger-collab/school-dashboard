@@ -1,6 +1,7 @@
 import { addDays, dateOf, weekStart } from './dates';
 import { dayCapacity } from './schedule';
 import type { Award, DateStr, Item, Settings } from './types';
+import { streakFor } from '../joy/streak';
 
 export type BadgeId = 'early_bird' | 'survived_week' | 'clean_sweep';
 export const EARLY_BIRD_TARGET = 5;
@@ -30,6 +31,8 @@ export interface Progress {
   levelFloor: number;
   levelCeil: number;
   dailyStreak: number;
+  /** The week's one free skip day is spent. */
+  skipUsedThisWeek: boolean;
   weeklyCleanStreak: number;
   currentWeekClean: boolean;
   earlyCount: number;
@@ -95,11 +98,9 @@ export function computeProgress(items: Item[], settings: Settings, today: DateSt
   const xp = done.reduce((a, i) => a + awardValue(i.award!), 0);
   const lvl = levelFor(xp);
 
-  // Daily streak
-  const days = new Set(done.filter((i) => i.completedAt).map((i) => dateOf(i.completedAt!, tz)));
-  const yesterday = addDays(today, -1);
-  let dailyStreak = 0;
-  for (let d = days.has(today) ? today : days.has(yesterday) ? yesterday : null; d && days.has(d); d = addDays(d, -1)) dailyStreak += 1;
+  // Daily streak (joy/streak.ts, 2026-10-02): Halo's own submission day first, one skip day a week.
+  const streak = streakFor(items, today, tz, ws);
+  const dailyStreak = streak.days;
 
   // Items by the week they are due
   const thisWeekStart = weekStart(today, ws);
@@ -166,6 +167,7 @@ export function computeProgress(items: Item[], settings: Settings, today: DateSt
     levelFloor: lvl.floor,
     levelCeil: lvl.ceil,
     dailyStreak,
+    skipUsedThisWeek: streak.skipUsedThisWeek,
     weeklyCleanStreak,
     currentWeekClean,
     earlyCount: early.length,

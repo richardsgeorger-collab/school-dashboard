@@ -5,6 +5,7 @@ import { isOpen } from '../onboarding/state';
 import { useAccount } from '../auth/AccountContext';
 import { useStore } from '../storage/store';
 import { classProgress, milestoneOf } from './joy';
+import { streakMilestone } from './streak';
 
 /**
  * Where the rewards show (2026-10-02). Small things are a toast under the top bar or a glow; the big ones (confetti)
@@ -157,6 +158,20 @@ export function JoyHost() {
     }
     if (changed) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), classSeen: seen } });
   }, [progressKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Streak milestones: 3, 7, 14 and 30 days, a toast each, once (on any device). A broken streak can earn them again.
+  const { progress } = useStore();
+  useEffect(() => {
+    if (firstRun) return;
+    const m = streakMilestone(progress.dailyStreak);
+    const seen = data.settings.joy?.streakSeen;
+    if (seen === undefined) {
+      actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), streakSeen: m } });
+      return;
+    }
+    if (m > seen) joy({ text: `${progress.dailyStreak}-day streak going.` });
+    if (m !== seen) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), streakSeen: m } });
+  }, [progress.dailyStreak, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const close = () => setQueue((q) => q.slice(1));
   return (

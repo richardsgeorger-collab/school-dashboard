@@ -226,6 +226,53 @@ try {
       await ctx.close();
     }
   }
+
+  // ---------------------------------------------------------------- PHASE 3
+  if (PHASES.includes(3)) {
+    console.log('— Phase 3: streaks');
+    const s = await kit.persona('max');
+    const tzDay = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Phoenix' }).format(d);
+    const day = (k) => tzDay(new Date(Date.now() + k * 86_400_000));
+    // Everything finished long ago, then: today, yesterday, (the day before missed: the week's skip day), and the day before that.
+    const rows = await itemsOf(s.id);
+    const done = rows.filter((r) => r.data.status === 'done');
+    for (const r of done) await putItem(r, { completedAt: '2026-01-05T19:00:00Z', halo: r.data.halo ? { ...r.data.halo, submittedAt: '2026-01-05T19:00:00Z' } : null });
+    const fresh = await itemsOf(s.id);
+    const picks = fresh.filter((r) => r.data.status === 'done').slice(0, 3);
+    const days = [day(0), day(-1), day(-3)];
+    for (let k = 0; k < 3; k++) await putItem(picks[k], { completedAt: `${days[k]}T19:00:00Z`, halo: picks[k].data.halo ? { ...picks[k].data.halo, submittedAt: `${days[k]}T19:00:00Z` } : null });
+    await patchSettings(s.id, { joy: { ...((await settingsOf(s.id)).joy ?? {}), streakSeen: 0 } });
+    for (const [dev, scheme] of COMBOS) {
+      const { ctx, p } = await open(s, dev, scheme);
+      if (dev === 'desk' && scheme === 'light') {
+        await p.waitForSelector('.joy-toast', { timeout: 30000 });
+        const t = await p.locator('.joy-toast').innerText();
+        check(/^3-day streak going\.$/.test(t.trim()), `streak milestone toast: "${t.trim()}"`);
+        await p.screenshot({ path: `${OUT}/p3-streak-toast-desk-light.png` });
+      } else {
+        await p.waitForSelector('.streak-chip', { timeout: 30000 });
+        await p.waitForTimeout(1500);
+      }
+      const chip = await p.locator('.streak-chip').innerText();
+      if (dev === 'desk' && scheme === 'light') check(chip.trim() === '3', `the top bar shows the streak: ${chip.trim()} (today, yesterday, a skip day, and the day before)`);
+      await p.locator('.topbar').screenshot({ path: `${OUT}/p3-topbar-${dev}-${scheme}.png` });
+      await p.evaluate(() => { window.location.hash = '#/you?s=progress'; });
+      await p.waitForSelector('.progress-card', { timeout: 15000 });
+      await p.waitForTimeout(800);
+      if (dev === 'desk' && scheme === 'light') check(/3 days · skip day used this week|3 days · 1 skip day left this week/.test((await p.locator('.streaks').innerText()).replace(/\s+/g, ' ')), `You shows the streak and the skip day: "${(await p.locator('.streaks').innerText()).replace(/\s+/g, ' ').slice(0, 90)}"`);
+      await p.locator('.progress-card').screenshot({ path: `${OUT}/p3-you-${dev}-${scheme}.png` });
+      await ctx.close();
+    }
+    {
+      // Unchecking takes it back.
+      await putItem(picks[0], { status: 'todo', completedAt: null, halo: null, score: null });
+      const { ctx, p } = await open(s, 'desk', 'light');
+      await p.waitForSelector('.now', { timeout: 30000 });
+      await p.waitForTimeout(3000);
+      check((await p.locator('.streak-chip').innerText().catch(() => '0')).trim() === '2', 'unchecking today takes a day back (3 → 2)');
+      await ctx.close();
+    }
+  }
 } finally {
   await browser.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);
