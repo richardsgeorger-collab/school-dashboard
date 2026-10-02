@@ -70,7 +70,7 @@ try {
       const page = await ctx.newPage();
       await signIn(page, a.session);
       const ask = await page.$eval('.friend-ask', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => null);
-      if (first) check(!!ask && /What's confusing or broken\?/.test(ask) && /Tell George/.test(ask), `day-3 question on Now: ${ask?.slice(0, 80)}`);
+      if (first) check(!!ask && /Got a suggestion, or something broken\?/.test(ask) && /Tell us/.test(ask), `day-3 question on Now: ${ask?.slice(0, 80)}`);
       await page.screenshot({ path: `${OUT}/friend-ask-${vp}-${scheme}.png` });
       await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' }); await page.waitForTimeout(1500);
       const txt = await page.evaluate(() => document.querySelector('.main')?.innerText.replace(/\s+/g, ' ') ?? '');

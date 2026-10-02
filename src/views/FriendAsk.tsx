@@ -16,12 +16,12 @@ export function FriendAsk() {
   if (!gift || !Number.isFinite(joined) || Date.now() - joined < 3 * DAY || data.settings.friendAskedAt) return null;
   const done = () => actions.updateSettings({ friendAskedAt: new Date().toISOString() });
   return (
-    <section className="card friend-ask" aria-label={`A question from ${gift.from}`}>
-      <p className="trial-lead">What's confusing or broken?</p>
-      <p className="hint">You've had Halo+ for a few days. {gift.from} reads every note, and one line helps.</p>
+    <section className="card friend-ask" aria-label="Send feedback">
+      <p className="trial-lead">Got a suggestion, or something broken?</p>
+      <p className="hint">You've had Halo+ for a few days. We read every note, and one line helps.</p>
       <div className="settings-actions">
         <a className="btn small primary" href="#/you?s=feedback" onClick={done}>
-          Tell {gift.from}
+          Tell us
         </a>
         <button type="button" className="btn small" onClick={done}>
           Not now

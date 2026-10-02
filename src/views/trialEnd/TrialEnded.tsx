@@ -140,7 +140,7 @@ function TrialRating() {
     <section className="trial-rating" aria-label="What would make it better">
       {sent ? (
         <p className="trial-rating-q" role="status">
-          Thanks. George reads every one of these.
+          Thanks. We read every one of these.
         </p>
       ) : (
         <>
