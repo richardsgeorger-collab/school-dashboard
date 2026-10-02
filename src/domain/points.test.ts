@@ -108,7 +108,9 @@ describe('computeProgress', () => {
     expect(run(three).dailyStreak).toBe(3);
     const two = [doneAt('2026-09-22T09:00:00-07:00'), doneAt('2026-09-21T09:00:00-07:00')];
     expect(run(two).dailyStreak).toBe(2);
-    expect(run([doneAt('2026-09-21T09:00:00-07:00')]).dailyStreak).toBe(0);
+    // Yesterday missed, the day before finished: the week's one skip day keeps it alive (2026-10-02).
+    expect(run([doneAt('2026-09-21T09:00:00-07:00')]).dailyStreak).toBe(1);
+    expect(run([doneAt('2026-09-20T09:00:00-07:00')]).dailyStreak).toBe(0);
     expect(run([]).dailyStreak).toBe(0);
   });
 
