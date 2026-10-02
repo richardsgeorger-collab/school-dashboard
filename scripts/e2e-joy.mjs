@@ -323,6 +323,61 @@ try {
       await ctx.close();
     }
   }
+
+  // ---------------------------------------------------------------- PHASE 5
+  if (PHASES.includes(5)) {
+    console.log('— Phase 5: the Sunday wrap');
+    const s = await kit.persona('max');
+    // Last week (Mon Sep 28 – Sun Oct 4): four things turned in, 330 pts, more than any week before (a 100-point week).
+    const rows = await itemsOf(s.id);
+    const done = rows.filter((r) => r.data.status === 'done');
+    for (const r of done) await putItem(r, { completedAt: '2026-09-02T19:00:00Z', halo: r.data.halo ? { ...r.data.halo, submittedAt: '2026-09-02T19:00:00Z' } : null, points: 10 });
+    const week = [['2026-09-29', 100], ['2026-09-30', 80], ['2026-10-01', 100], ['2026-10-03', 50]];
+    for (let k = 0; k < week.length; k++) await putItem(done[k], { points: week[k][1], completedAt: `${week[k][0]}T19:00:00Z`, halo: done[k].data.halo ? { ...done[k].data.halo, submittedAt: `${week[k][0]}T19:00:00Z` } : null });
+    await patchSettings(s.id, { reminders: { ...((await settingsOf(s.id)).reminders ?? {}), pushEnabled: true }, joy: { ...((await settingsOf(s.id)).joy ?? {}), wrapSeen: null } });
+    const expected = 'Last week: 4 things turned in, 330 pts. Best week yet.';
+    for (const [dev, scheme] of COMBOS) {
+      const ctx = await browser.newContext({ ...DEV[dev], colorScheme: scheme });
+      await ctx.clock.setFixedTime(new Date('2026-10-05T16:00:00Z')); // Monday 9:00 AM Phoenix
+      // The browser's clock is moved; the server's is not. The session is told it lasts past the moved clock so the
+      // app does not sign out (the token itself is still checked by the server, at the real time).
+      const ses = { ...s.session, expires_at: Math.floor(Date.parse('2026-10-05T16:00:00Z') / 1000) + 3600 };
+      await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses, key: `sb-${ref}-auth-token` });
+      await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
+      const p = await ctx.newPage();
+      await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
+      await p.waitForSelector('.wrap-card', { timeout: 30000 }).catch(async () => {
+        await p.screenshot({ path: `${OUT}/p5-debug.png` });
+        console.log('     page:', (await p.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 300));
+        throw new Error('no wrap card');
+      });
+      await p.waitForTimeout(800);
+      const line = await p.locator('.wrap-line').innerText();
+      if (dev === 'desk' && scheme === 'light') check(line === expected, `Monday on Now: "${line}"`);
+      await p.screenshot({ path: `${OUT}/p5-monday-${dev}-${scheme}.png` });
+      if (dev === 'phone' && scheme === 'dark') {
+        await p.click('.wrap-card button:has-text("Nice")');
+        await p.waitForTimeout(1500);
+        check((await p.locator('.wrap-card').count()) === 0 && (await settingsOf(s.id)).joy?.wrapSeen === '2026-10-04', 'Nice waves it off for the week');
+      }
+      await ctx.close();
+    }
+    {
+      // Sunday: the push says the same, planned for six.
+      const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+      await ctx.clock.setFixedTime(new Date('2026-10-04T17:00:00Z')); // Sunday 10:00 AM Phoenix
+      const ses = { ...s.session, expires_at: Math.floor(Date.parse('2026-10-04T17:00:00Z') / 1000) + 3600 };
+      await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses, key: `sb-${ref}-auth-token` });
+      await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
+      const p = await ctx.newPage();
+      await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
+      await p.waitForSelector('.now', { timeout: 30000 });
+      await p.waitForTimeout(6000);
+      const { data: plan } = await db.from('notification_plan').select('kind, body, send_at').eq('user_id', s.id).eq('kind', 'sunday');
+      check(plan?.[0]?.body === 'This week: 4 things turned in, 330 pts. Best week yet.' && plan[0].send_at.startsWith('2026-10-05T01:00'), `the Sunday push: "${plan?.[0]?.body}" at ${plan?.[0]?.send_at}`);
+      await ctx.close();
+    }
+  }
 } finally {
   await browser.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);

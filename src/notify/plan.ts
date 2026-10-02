@@ -2,6 +2,7 @@ import { participationThisWeek } from '../domain/participationWeek';
 import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
 import { trialCalendar } from '../config/trialCalendar';
 import { weekReview } from '../domain/sunday';
+import { weekWrap, wrapLine } from '../joy/wrap';
 import { partsDueOn } from '../domain/reqClean';
 import { isNoise } from '../domain/requirements';
 import type { Schedule } from '../domain/schedule';
@@ -171,7 +172,9 @@ export function planNotices(input: PlanInput): Notice[] {
   if (input.recap && p.sunday) {
     const sunday = [today, tomorrow].find((d) => weekdayOf(d) === 0);
     if (sunday) {
-      const sentence = weekReview(items, schedule, sunday, tz).sentence;
+      // The wrap first (2026-10-02): "This week: 9 things turned in, 620 pts. Best week yet." (best only when true);
+      // the old review sentence when nothing was turned in.
+      const sentence = wrapLine(weekWrap(input.items, sunday, tz), 'This week') ?? weekReview(items, schedule, sunday, tz).sentence;
       push({ kind: 'sunday', sendAt: at(sunday, '18:00', tz), title: 'Your week', body: sentence, url: '#/now', key: `sunday:${sunday}` });
     }
   }

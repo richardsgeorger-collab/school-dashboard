@@ -258,3 +258,21 @@
   color: var(--accent);
   vertical-align: -2px;
 }
+
+/* Monday's wrap card on Now. */
+.wrap-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+  background: linear-gradient(120deg, var(--accent-soft), var(--surface) 70%);
+}
+.wrap-card[data-best] {
+  box-shadow: 0 10px 30px -14px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.wrap-line {
+  flex: 1;
+  margin: 0;
+  font: 700 16px/1.35 var(--font-body);
+  color: var(--ink);
+}

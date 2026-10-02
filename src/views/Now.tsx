@@ -53,6 +53,7 @@ import { TrialOffer, useReceipts } from './TrialOffer';
 import { TrialReminder } from './TrialStatus';
 import { ConnectHaloCard, useNeverSynced } from '../onboarding/Setup';
 import { joy, useSettled } from '../joy/JoyHost';
+import { WrapCard } from '../joy/WrapCard';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { isIos, isStandalone } from '../notify/push';
@@ -695,6 +696,7 @@ export function Now() {
     );
   return (
     <div className="now">
+      <WrapCard />
       <TrialReminder />
       {trialAvailable && !headsUp.some((h) => h.key === 'read-failed') && data.courses.length > 0 && (
         <p className="hint trial-quiet">
