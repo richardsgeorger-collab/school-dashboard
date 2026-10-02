@@ -204,6 +204,10 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
   const openAsk = () => {
     window.location.hash = `/ask?c=${item.courseId}&i=${item.id}&q=${encodeURIComponent(starterAsk(item))}`;
   };
+  // Ask a question: the same chat scoped to this assignment, empty box focused, nothing sent for them.
+  const openQuestion = () => {
+    window.location.hash = `/ask?c=${item.courseId}&i=${item.id}&m=question`;
+  };
 
   // The pill follows the one colour rule: red late, amber due within a day and untouched, grey otherwise.
   const tone = itemTone(item, new Date().toISOString());
@@ -323,9 +327,14 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
             </a>
           )}
           {course && !isTest(item) && (
-            <button type="button" className="btn hero-study hero-phone-more" onClick={openAsk}>
-              Get help
-            </button>
+            <>
+              <button type="button" className="btn hero-study hero-phone-more" onClick={openAsk}>
+                Get help
+              </button>
+              <button type="button" className="btn hero-study hero-phone-more" onClick={openQuestion}>
+                Ask a question
+              </button>
+            </>
           )}
         </div>
       )}
@@ -345,9 +354,14 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
                   Practice
                 </a>
               ) : (
-                <button type="button" className="btn small" onClick={openAsk}>
-                  Get help
-                </button>
+                <>
+                  <button type="button" className="btn small" onClick={openAsk}>
+                    Get help
+                  </button>
+                  <button type="button" className="btn small" onClick={openQuestion}>
+                    Ask a question
+                  </button>
+                </>
               ))}
               <span className="notnow-anchor">
                 <button type="button" className="hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { assignmentBlocks, haloStep, QUESTION_CHIPS } from '../ask/assignment';
 import { appSteps, askBlocks, askLoadingLine, askSuggestions, sendAsk, type AskScope } from '../ask/ask';
 import { useAccount } from '../auth/AccountContext';
 import { describeError, type ChatTurn } from '../chat/client';
@@ -47,6 +48,8 @@ interface Turn extends ChatTurn {
  * from that class's own material with citations. Every answer ends with buttons for what to do next.
  */
 export function Ask() {
+  // "Ask a question" on an assignment (#/ask?c=&i=&m=question): scoped to it, answers only from its own facts, empty box focused.
+  const inputRef = useRef<HTMLInputElement>(null);
   const { data, schedule, derived, nudges, today, actions } = useStore();
   const { params } = useRoute();
   const { tier } = useAccount();
@@ -56,6 +59,7 @@ export function Ask() {
   const course = data.courses.find((c) => c.id === (params.get('c') ?? item?.courseId)) ?? null;
   const scope: AskScope = useMemo(() => ({ course, item }), [course, item]);
   const topic = params.get('t') ?? item?.topic ?? item?.title ?? '';
+  const question = !!item && params.get('m') === 'question';
 
   const [history, setHistory] = useState<Turn[]>(() => load<Turn[]>(slot(course?.id ?? null), []));
   const [notes, setNotes] = useState<string[]>(() => load<string[]>(NOTES_KEY, []));
@@ -124,6 +128,11 @@ export function Ask() {
   }, [course, data.items, recordings, weak, data.settings.topicLinks, data.courses, today, tz, topic, item, news]);
 
   const ready = allowed && sources !== null;
+  // The box is disabled until the class material has loaded; focus it the moment it can take typing.
+  useEffect(() => {
+    if (question && ready && !busy) inputRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, ready]);
 
   const send = async (text: string) => {
     const userText = text.trim();
@@ -144,6 +153,7 @@ export function Ask() {
         sources: sources ?? [],
         situation,
       });
+      if (question && item) blocks.push(...assignmentBlocks(item, course, tz));
       const reply = await sendAsk({
         apiKey: loadApiKey() || undefined,
         history,
@@ -188,7 +198,7 @@ export function Ask() {
 
   const last = history.length ? history[history.length - 1] : null;
   const lastUser = [...history].reverse().find((t) => t.role === 'user');
-  const steps = last && last.role === 'assistant' && !last.failed ? appSteps(scope, last.text, data.items, today, tz) : [];
+  const steps = last && last.role === 'assistant' && !last.failed ? (question && item ? [haloStep(item, course), ...appSteps(scope, last.text, data.items, today, tz)].slice(0, 2) : appSteps(scope, last.text, data.items, today, tz)) : [];
   const suggestions = askSuggestions(scope, data.items, today, tz);
   const known = [
     `${data.items.filter((i) => i.status !== 'done' && i.type !== 'participation').length} open things`,
@@ -233,7 +243,7 @@ export function Ask() {
       <Locked feature="aiChat" tier={tier}>
         <section className="chat ask-card" aria-label="Ask">
           <div className="chat-log ask-log" ref={logRef}>
-            {history.length === 0 && (
+            {history.length === 0 && !question && (
               <div className="chat-suggest">
                 {suggestions.map((s) => (
                   <button key={s} type="button" className="btn small" disabled={!ready} onClick={() => void send(s)}>
@@ -290,6 +300,24 @@ export function Ask() {
               </div>
             )}
           </div>
+          {question && (
+            <div className="chat-suggest ask-chips" role="group" aria-label="Questions you can start from">
+              {QUESTION_CHIPS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className="btn small"
+                  disabled={!ready || !!busy}
+                  onClick={() => {
+                    setInput(c);
+                    inputRef.current?.focus();
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
           <form
             className="chat-input"
             onSubmit={(e) => {
@@ -297,7 +325,7 @@ export function Ask() {
               void send(input);
             }}
           >
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={course ? `Ask about ${course.code}, or paste where you got stuck` : 'Ask anything about your classes'} aria-label="Your question" disabled={!ready || !!busy} enterKeyHint="send" />
+            <input ref={inputRef} autoFocus={question} value={input} onChange={(e) => setInput(e.target.value)} placeholder={question && item ? `Ask about ${item.label}` : course ? `Ask about ${course.code}, or paste where you got stuck` : 'Ask anything about your classes'} aria-label="Your question" disabled={!ready || !!busy} enterKeyHint="send" />
             <button type="submit" className="btn primary" disabled={!ready || !!busy || !input.trim()}>
               Ask
             </button>

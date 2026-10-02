@@ -307,3 +307,13 @@ a.quiz-chip {
     gap: 6px;
   }
 }
+
+/* "Ask a question" on an assignment: three small tap-to-fill chips right above the box (2026-10-02). */
+.ask-card .ask-chips {
+  gap: 6px;
+}
+.ask-card .ask-chips .btn {
+  min-height: 34px;
+  padding: 4px 12px;
+  font-size: 13px;
+}

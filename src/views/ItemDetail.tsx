@@ -208,6 +208,11 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
                 Get help
               </a>
             )}
+            {!isTest(item) && (
+              <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}&m=question`} onClick={onClose}>
+                Ask a question
+              </a>
+            )}
             {isTest(item) ? (
               <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}`} onClick={onClose}>
                 Ask about it
