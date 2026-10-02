@@ -273,6 +273,56 @@ try {
       await ctx.close();
     }
   }
+
+  // ---------------------------------------------------------------- PHASE 4
+  if (PHASES.includes(4)) {
+    console.log('— Phase 4: levels on the halo, badges, grade ups');
+    const s = await kit.persona('max');
+    // An Early bird: something turned in three days before it was due.
+    const rows = await itemsOf(s.id);
+    const target = rows.find((r) => r.data.status !== 'done' && r.data.type === 'homework');
+    const due = new Date(Date.now() + 5 * 86_400_000);
+    await putItem(target, { status: 'done', completedAt: new Date(due.getTime() - 3 * 86_400_000).toISOString(), dueAt: due.toISOString(), halo: { status: 'SUBMITTED', submittedAt: new Date(Date.now() - 3600_000).toISOString(), checkedAt: new Date().toISOString() } });
+    // XP the way the app records it when something is finished (the seeded term has none): about level 4.
+    for (const r of rows.filter((r) => r.data.status === 'done').slice(0, 12)) await putItem(r, { award: { base: r.data.points, multiplier: 1, earnedAt: r.data.completedAt ?? new Date().toISOString(), scoreFactor: null } });
+    const courses = await coursesOf(s.id);
+    const chm = courses[0];
+    await patchSettings(s.id, { reminders: { ...((await settingsOf(s.id)).reminders ?? {}), pushEnabled: true }, joy: { ...((await settingsOf(s.id)).joy ?? {}), badgesSeen: [], pending: { turnedIn: 0, gradeUps: [{ courseId: chm.id, code: chm.data.code, percent: 91 }], at: new Date().toISOString() }, gradeUpRecent: [{ courseId: chm.id, code: chm.data.code, percent: 91, at: new Date().toISOString() }] } });
+    for (const [dev, scheme] of COMBOS) {
+      const { ctx, p } = await open(s, dev, scheme);
+      if (dev === 'desk' && scheme === 'light') {
+        // The queue: the grade up, then each badge.
+        const seen = [];
+        for (let k = 0; k < 16 && seen.length < 3; k++) {
+          const t = await p.locator('.joy-toast').innerText().catch(() => null);
+          if (t && !seen.includes(t.trim())) {
+            seen.push(t.trim());
+            await p.screenshot({ path: `${OUT}/p4-toast-${seen.length}-desk-light.png` });
+          }
+          await p.waitForTimeout(600);
+        }
+        console.log(`     toasts: ${seen.join(' | ')}`);
+        check(seen.includes(`Your ${chm.data.code} grade went up to 91%.`), 'grade-up toast');
+        check(seen.includes('Badge: Early bird.'), 'badge toast: "Badge: Early bird."');
+        const step = await p.locator('.brand-mark').getAttribute('data-level-step');
+        const sw = await p.locator('.brand-mark svg path').first().evaluate((e) => getComputedStyle(e).strokeWidth);
+        check(Number(step) >= 2 && parseFloat(sw) > 2.4, `the halo in the top bar grows with the level (step ${step}, stroke ${sw})`);
+        await p.waitForTimeout(3000);
+        const { data: plan } = await db.from('notification_plan').select('kind, title, body, sent_at').eq('user_id', s.id).eq('kind', 'grade_up');
+        check(plan?.length === 1 && plan[0].body === `Your ${chm.data.code} grade went up to 91%.`, `the push is queued: "${plan?.[0]?.body}"`);
+      } else await p.waitForTimeout(4000);
+      await p.locator('.topbar .brand').screenshot({ path: `${OUT}/p4-halo-${dev}-${scheme}.png` });
+      await p.evaluate(() => { window.location.hash = '#/you?s=progress'; });
+      await p.waitForSelector('.badges', { timeout: 15000 });
+      await p.waitForTimeout(600);
+      if (dev === 'desk' && scheme === 'light') {
+        const tiles = (await p.locator('.badge-tile').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim());
+        check(tiles.length === 4 && /Early bird Earned/.test(tiles[0]) && /No late work this week/.test(tiles[1]) && /Survived a heavy week/.test(tiles[2]) && /Clean sweep/.test(tiles[3]), `the four badges on You: ${tiles.join(' | ')}`);
+      }
+      await p.locator('.progress-card').screenshot({ path: `${OUT}/p4-badges-${dev}-${scheme}.png` });
+      await ctx.close();
+    }
+  }
 } finally {
   await browser.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);

@@ -31,7 +31,7 @@ function Links({ current }: { current: Tab }) {
 
 export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: () => void }) {
   const { route } = useRoute();
-  const { sync, data, actions } = useStore();
+  const { sync, data, actions, progress } = useStore();
   const { auth } = useAccount();
   const dark = document.documentElement.dataset.theme === 'dark';
   const flipTheme = () => actions.updateSettings({ theme: dark ? 'light' : 'dark' });
@@ -48,7 +48,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
     <header className="topbar">
       <div className="topbar-inner">
         <a href="#/now" className="brand" aria-label="Halo+, go to Now" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <span className="brand-mark" aria-hidden>
+          <span className="brand-mark" aria-hidden data-level-step={Math.min(8, Math.max(1, progress.level))} title={`Level ${progress.level}`}>
             <IconHalo />
           </span>
           <span className="brand-text">Halo+</span>

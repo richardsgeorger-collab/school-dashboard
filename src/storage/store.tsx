@@ -645,7 +645,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const joy = r.data.settings.joy ?? {};
           const pend = joy.pending ?? { at: now };
           const merged = [...(pend.gradeUps ?? []).filter((g) => !ups.some((u) => u.courseId === g.courseId)), ...ups];
-          r.data = { ...r.data, settings: { ...r.data.settings, joy: { ...joy, pending: { turnedIn: (pend.turnedIn ?? 0) + turnedIn, gradeUps: merged, at: now } }, updatedAt: now } };
+          // Grade ups are also kept two days for the push (notify/plan.ts); a sync on the laptop reaches the phone.
+          const twoDays = new Date(Date.parse(now) - 2 * 86_400_000).toISOString();
+          const recent = [...(joy.gradeUpRecent ?? []).filter((g) => g.at > twoDays && !ups.some((u) => u.courseId === g.courseId)), ...ups.map((u) => ({ ...u, at: now }))];
+          r.data = { ...r.data, settings: { ...r.data.settings, joy: { ...joy, pending: { turnedIn: (pend.turnedIn ?? 0) + turnedIn, gradeUps: merged, at: now }, gradeUpRecent: recent }, updatedAt: now } };
           r.ops.push({ kind: 'settings' });
         }
         update(() => r.data);

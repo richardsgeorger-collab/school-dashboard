@@ -1,9 +1,16 @@
-import { BADGE_INFO, EARLY_BIRD_TARGET, type BadgeId } from '../domain/points';
+import { BADGE_INFO, BADGES, CLEAN_SWEEP_DAYS, type BadgeId } from '../joy/badges';
 import { useStore } from '../storage/store';
 import { RecapButton } from './Recap';
+import { Flame } from '../joy/StreakChip';
 import { Ring } from './Ring';
 
-const BADGES: BadgeId[] = ['early_bird', 'survived_week', 'clean_sweep'];
+/** Each badge's mark, drawn in the accent: a sunrise, a shield, a peak, a sparkle. */
+const GLYPH: Record<BadgeId, string> = {
+  early_bird: 'M3 15h18M6 15a6 6 0 0 1 12 0M12 4v3M5.6 7.6l1.8 1.8M18.4 7.6l-1.8 1.8',
+  no_late_week: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3ZM8.5 12l2.5 2.5L15.5 10',
+  heavy_week: 'M3 19l6-10 4 6 2-3 6 7H3Z',
+  clean_sweep: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3ZM18 16l.8 2.2L21 19l-2.2.8L18 22l-.8-2.2L15 19l2.2-.8L18 16Z',
+};
 
 export function ProgressCard() {
   const { progress } = useStore();
@@ -25,7 +32,7 @@ export function ProgressCard() {
         <div>
           <dt>Daily streak</dt>
           <dd>
-            <span aria-hidden>🔥</span> {progress.dailyStreak} day{progress.dailyStreak === 1 ? '' : 's'}
+            <Flame size={16} /> {progress.dailyStreak} day{progress.dailyStreak === 1 ? '' : 's'}
             <small>{progress.skipUsedThisWeek ? ' · skip day used this week' : ' · 1 skip day left this week'}</small>
           </dd>
         </div>
@@ -40,17 +47,18 @@ export function ProgressCard() {
 
       <div className="badges">
         {BADGES.map((id) => {
-          const earned = progress.badges[id];
+          const b = progress.badges[id];
           const info = BADGE_INFO[id];
-          const hint = id === 'early_bird' && !earned ? `${Math.min(progress.earlyCount, EARLY_BIRD_TARGET)} / ${EARLY_BIRD_TARGET}` : null;
+          const earned = !!b.earnedAt;
+          const status = earned ? (b.count > 1 && id !== 'clean_sweep' ? `Earned ${b.count}×` : 'Earned') : id === 'clean_sweep' ? `${Math.min(b.count, CLEAN_SWEEP_DAYS)} / ${CLEAN_SWEEP_DAYS} days` : 'Not yet';
           return (
-            <div key={id} className="badge-tile" data-earned={!!earned} title={info.how}>
-              <span className="badge-glyph" aria-hidden>
-                {info.glyph}
-              </span>
+            <div key={id} className="badge-tile" data-earned={earned} title={info.how}>
+              <svg className="badge-glyph" viewBox="0 0 24 24" width="28" height="28" fill="none" aria-hidden>
+                <path d={GLYPH[id]} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               <b>{info.name}</b>
-              <span className="hint" title={earned ? `Earned ${earned.slice(0, 10)}` : info.how}>
-                {earned ? 'Earned' : (hint ?? 'Locked')}
+              <span className="hint" title={earned ? `First earned ${b.earnedAt!.slice(0, 10)}` : info.how}>
+                {status}
               </span>
             </div>
           );

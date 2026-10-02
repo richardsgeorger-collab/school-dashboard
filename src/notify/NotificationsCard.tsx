@@ -104,6 +104,7 @@ export function NotificationsCard() {
         </div>
         <Toggle checked={prefs.heavyDay !== false} label="A heads-up the night before a heavy day" onChange={(v) => set({ heavyDay: v })} />
         <Toggle checked={prefs.notStarted !== false} label="A nudge when big work is still untouched two days out" onChange={(v) => set({ notStarted: v })} />
+        <Toggle checked={prefs.gradeUp !== false} label="When a class grade goes up in Halo (never when it drops)" onChange={(v) => set({ gradeUp: v })} />
         <Toggle checked={prefs.participation !== false} label="Saturday morning, if participation is still open this week" onChange={(v) => set({ participation: v })} />
         <Toggle checked={prefs.resync !== false} label="A reminder when Halo has not been synced for three days" onChange={(v) => set({ resync: v })} />
         <Toggle checked={prefs.sunday !== false} label={`Sunday at six: last week done and slipped, this week coming${can('weeklyRecap', tier) ? '' : ' (part of Max)'}`} onChange={(v) => set({ sunday: v })} />

@@ -1,17 +1,9 @@
 import { addDays, dateOf, weekStart } from './dates';
-import { dayCapacity } from './schedule';
 import type { Award, DateStr, Item, Settings } from './types';
 import { streakFor } from '../joy/streak';
+import { computeBadges, type BadgeId, type BadgeState } from '../joy/badges';
 
-export type BadgeId = 'early_bird' | 'survived_week' | 'clean_sweep';
-export const EARLY_BIRD_TARGET = 5;
 const XP_PER_LEVEL_UNIT = 60;
-
-export const BADGE_INFO: Record<BadgeId, { name: string; how: string; glyph: string }> = {
-  early_bird: { name: 'Early Bird', how: `Finish ${EARLY_BIRD_TARGET} items on or before their start-by date`, glyph: '🌅' },
-  survived_week: { name: 'Survived the Week', how: 'Clear a week whose estimated work met your full capacity, all on time', glyph: '🏔️' },
-  clean_sweep: { name: 'Clean Sweep', how: 'Finish everything one class had due in a week, on time', glyph: '🧹' },
-};
 
 export interface Recap {
   weekStart: DateStr;
@@ -36,7 +28,8 @@ export interface Progress {
   weeklyCleanStreak: number;
   currentWeekClean: boolean;
   earlyCount: number;
-  badges: Record<BadgeId, string | null>;
+  /** The badges (joy/badges.ts, 2026-10-02): when each was first earned, and how many times. */
+  badges: Record<BadgeId, BadgeState>;
   lastWeek: Recap;
 }
 
@@ -120,24 +113,9 @@ export function computeProgress(items: Item[], settings: Settings, today: DateSt
   const nowMs = ms(now);
   const currentWeekClean = !thisWeek.some((i) => isLate(i) || (i.status !== 'done' && ms(i.dueAt) < nowMs));
 
-  // Badges
-  const early = done.filter((i) => i.award!.multiplier === 1.5).sort((a, b) => a.award!.earnedAt.localeCompare(b.award!.earnedAt));
-  const badges: Record<BadgeId, string | null> = { early_bird: null, survived_week: null, clean_sweep: null };
-  if (early.length >= EARLY_BIRD_TARGET) badges.early_bird = early[EARLY_BIRD_TARGET - 1].award!.earnedAt;
-  for (const wk of completedWeeks) {
-    const weekItems = byWeek.get(wk)!;
-    const weekEnd = addDays(wk, 6);
-    if (!badges.survived_week) {
-      const cap = Array.from({ length: 7 }, (_, k) => dayCapacity(settings, addDays(wk, k))).reduce((a, b) => a + b, 0);
-      const est = weekItems.reduce((a, i) => a + i.estimatedMinutes, 0);
-      if (est >= cap && weekItems.every(onTime)) badges.survived_week = weekEnd;
-    }
-    if (!badges.clean_sweep) {
-      const byCourse = new Map<string, Item[]>();
-      for (const i of weekItems) byCourse.set(i.courseId, [...(byCourse.get(i.courseId) ?? []), i]);
-      if ([...byCourse.values()].some((g) => g.length >= 2 && g.every(onTime))) badges.clean_sweep = weekEnd;
-    }
-  }
+  // Badges (joy/badges.ts): from real submissions, derived each time.
+  const early = done.filter((i) => i.award!.multiplier === 1.5);
+  const badges = computeBadges(items, today, tz, ws);
 
   // Last week's recap
   const lastStart = addDays(thisWeekStart, -7);

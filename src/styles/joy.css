@@ -228,3 +228,33 @@
 .streak-chip:hover {
   background: var(--accent-soft);
 }
+
+/* Badge marks: grey until earned, gold after. */
+.badge-tile svg.badge-glyph {
+  color: var(--ink-3);
+  filter: none;
+}
+.badge-tile[data-earned='true'] svg.badge-glyph {
+  color: var(--accent);
+}
+
+/* The top bar's halo grows with your level: a little thicker and brighter each step, eight steps in all. */
+.brand-mark[data-level-step] svg path:first-child {
+  transition: stroke-width 600ms var(--ease, ease-out), filter 600ms var(--ease, ease-out);
+}
+.brand-mark[data-level-step='2'] svg path:first-child { stroke-width: 2.55; filter: drop-shadow(0 0 0.5px var(--accent)); }
+.brand-mark[data-level-step='3'] svg path:first-child { stroke-width: 2.7; filter: drop-shadow(0 0 1px var(--accent)); }
+.brand-mark[data-level-step='4'] svg path:first-child { stroke-width: 2.85; filter: drop-shadow(0 0 1.5px var(--accent)); }
+.brand-mark[data-level-step='5'] svg path:first-child { stroke-width: 3; filter: drop-shadow(0 0 2px var(--accent)); }
+.brand-mark[data-level-step='6'] svg path:first-child { stroke-width: 3.15; filter: drop-shadow(0 0 2.5px var(--halo, var(--accent))); }
+.brand-mark[data-level-step='7'] svg path:first-child { stroke-width: 3.3; filter: drop-shadow(0 0 3px var(--halo, var(--accent))); }
+.brand-mark[data-level-step='8'] svg path:first-child { stroke-width: 3.45; filter: drop-shadow(0 0 3.5px var(--halo, var(--accent))); }
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark[data-level-step] svg path:first-child {
+    transition: none;
+  }
+}
+.streaks .flame {
+  color: var(--accent);
+  vertical-align: -2px;
+}

@@ -6,6 +6,7 @@ import { useAccount } from '../auth/AccountContext';
 import { useStore } from '../storage/store';
 import { classProgress, milestoneOf } from './joy';
 import { streakMilestone } from './streak';
+import { BADGE_INFO, BADGES, type BadgeId } from './badges';
 
 /**
  * Where the rewards show (2026-10-02). Small things are a toast under the top bar or a glow; the big ones (confetti)
@@ -172,6 +173,20 @@ export function JoyHost() {
     if (m > seen) joy({ text: `${progress.dailyStreak}-day streak going.` });
     if (m !== seen) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), streakSeen: m } });
   }, [progress.dailyStreak, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A badge earned: a toast, once. First look records what is already earned, quietly; one taken back can be earned again.
+  const earnedKey = BADGES.filter((b) => progress.badges[b].earnedAt).join(',');
+  useEffect(() => {
+    if (firstRun) return;
+    const earned = earnedKey ? (earnedKey.split(',') as BadgeId[]) : [];
+    const seen = data.settings.joy?.badgesSeen;
+    if (seen === undefined) {
+      actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), badgesSeen: earned } });
+      return;
+    }
+    for (const b of earned) if (!seen.includes(b)) joy({ text: `Badge: ${BADGE_INFO[b].name}.` });
+    if (earned.join(',') !== [...seen].sort((a, b) => BADGES.indexOf(a as BadgeId) - BADGES.indexOf(b as BadgeId)).join(',')) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), badgesSeen: earned } });
+  }, [earnedKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const close = () => setQueue((q) => q.slice(1));
   return (

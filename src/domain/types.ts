@@ -466,6 +466,8 @@ export interface ReminderPrefs {
   sunday?: boolean;
   /** Saturday at nine when participation is still open this week. */
   participation?: boolean;
+  /** When a class grade from Halo goes up after a sync (never a drop). */
+  gradeUp?: boolean;
   /** The student turned push on from this app (the browser permission is checked separately). */
   pushEnabled?: boolean;
 }
@@ -484,6 +486,8 @@ export interface JoyState {
   badgesSeen?: string[];
   /** The Sunday wrap card's week, once dismissed. */
   wrapSeen?: string | null;
+  /** Grades that went up in a sync, for the push (notify/plan.ts): kept two days. */
+  gradeUpRecent?: { courseId: string; code: string; percent: number; at: string }[];
   /** Halo grades already celebrated, by item id (Phase 7). */
   gradedSeen?: string[];
 }

@@ -131,33 +131,7 @@ describe('computeProgress', () => {
     expect(run([w1a, w2, openOverdue]).currentWeekClean).toBe(false);
   });
 
-  it('awards Early Bird on the fifth early completion', () => {
-    const early = (k: number) => doneAt(`2026-09-1${k}T10:00:00-07:00`, {}, '2026-09-19');
-    const four = [1, 2, 3, 4].map(early);
-    expect(run(four).badges.early_bird).toBeNull();
-    expect(run(four).earlyCount).toBe(4);
-    const five = [...four, early(5)];
-    expect(run(five).badges.early_bird).toBe('2026-09-15T10:00:00-07:00');
-  });
-
-  it('awards Survived the Week when a full-capacity week is cleared on time', () => {
-    const big = [1, 2, 3].map((k) =>
-      doneAt(`2026-09-1${k + 3}T10:00:00-07:00`, { dueAt: '2026-09-19T23:59:00-07:00', estimatedMinutes: 500 }),
-    ); // 1500 min >= 25h capacity
-    expect(run(big).badges.survived_week).toBe('2026-09-19');
-    const small = big.map((i) => ({ ...i, estimatedMinutes: 100 }));
-    expect(run(small).badges.survived_week).toBeNull();
-    const oneLate = [big[0], big[1], doneAt('2026-09-20T10:00:00-07:00', { dueAt: '2026-09-19T23:59:00-07:00', estimatedMinutes: 500 })];
-    expect(run(oneLate).badges.survived_week).toBeNull();
-  });
-
-  it('awards Clean Sweep when one class is fully cleared in a week', () => {
-    const a = doneAt('2026-09-15T10:00:00-07:00', { courseId: 'chem', dueAt: '2026-09-19T23:59:00-07:00' });
-    const b = doneAt('2026-09-16T10:00:00-07:00', { courseId: 'chem', dueAt: '2026-09-19T23:59:00-07:00' });
-    const other = item({ courseId: 'eng', dueAt: '2026-09-19T23:59:00-07:00' });
-    expect(run([a, b, other]).badges.clean_sweep).toBe('2026-09-19');
-    expect(run([a, other]).badges.clean_sweep).toBeNull();
-  });
+  // Badges moved to joy/badges.ts (2026-10-02, George's four); their tests are in joy/badges.test.ts.
 
   it('builds last week’s recap', () => {
     const early = doneAt('2026-09-14T10:00:00-07:00', { points: 40, dueAt: '2026-09-19T23:59:00-07:00' }, '2026-09-19'); // 60

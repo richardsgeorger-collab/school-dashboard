@@ -13,7 +13,7 @@ import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
  * morning note, the night-before heavy-day warning, the not-started nudge, the re-sync reminder, and on Max the
  * Sunday recap; the trial's one reminder has none.
  */
-export type NoticeKind = 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation' | 'welcome_sync' | 'winback_exam' | 'winback_stale';
+export type NoticeKind = 'grade_up' | 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation' | 'welcome_sync' | 'winback_exam' | 'winback_stale';
 
 export interface Notice {
   kind: NoticeKind;
@@ -43,9 +43,11 @@ export interface PlanInput {
   trialRecap?: string | null;
   /** The plan includes the Sunday recap (Max, or the trial). */
   recap?: boolean;
+  /** Class grades that went up in a recent sync (settings.joy.gradeUpRecent). */
+  gradeUps?: { courseId: string; code: string; percent: number; at: string }[];
 }
 
-export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync' | 'sunday' | 'participation'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true, sunday: true, participation: true };
+export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync' | 'sunday' | 'participation' | 'gradeUp'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true, sunday: true, participation: true, gradeUp: true };
 
 export const RESYNC_AFTER_DAYS = 3;
 const HEAVY_DUE = 3;
@@ -91,6 +93,15 @@ export function planNotices(input: PlanInput): Notice[] {
     if (sendAt > now) out.push({ ...n, sendAt });
   };
   const tomorrow = addDays(today, 1);
+
+  // A grade that went up (2026-10-02): one push a day at most, in a minute (or when quiet hours end). Never a drop.
+  if (p.gradeUp && input.gradeUps?.length) {
+    const fresh = input.gradeUps.filter((g) => Date.parse(now) - Date.parse(g.at) < 12 * 3_600_000);
+    if (fresh.length) {
+      const body = fresh.length === 1 ? `Your ${fresh[0].code} grade went up to ${fresh[0].percent}%.` : `Your ${fresh.map((g) => g.code).slice(0, 3).join(' and ')} grades went up.`;
+      push({ kind: 'grade_up', sendAt: new Date(Date.parse(now) + 60_000).toISOString(), title: 'Grade up', body, url: '#/classes', key: `grade_up:${today}` });
+    }
+  }
 
   if (p.morning && p.morningTime && p.morningTime !== 'off') {
     for (const day of [today, tomorrow]) {
