@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TIME_CHOICES } from '../domain/calibration';
+import { awardValue } from '../domain/points';
+import { classProgress, doneLine } from '../joy/joy';
 import { useStore } from '../storage/store';
 
 const ASK_MS = 15_000;
@@ -9,7 +11,7 @@ const ASK_MS = 15_000;
  * mis-tap. Never in the way of the next thing.
  */
 export function TimeAsk() {
-  const { data, justDone, actions } = useStore();
+  const { data, justDone, actions, courseById } = useStore();
   const [other, setOther] = useState(false);
   const [val, setVal] = useState('');
   const at = justDone?.at ?? null;
@@ -26,10 +28,14 @@ export function TimeAsk() {
     if (Number.isFinite(minutes) && minutes > 0) actions.logActual(item.id, minutes);
     actions.dismissTimeAsk();
   };
+  // The reward first (2026-10-02): what it was worth and how much of the class is now done, from Halo's own points.
+  const code = courseById.get(item.courseId)?.code ?? null;
+  const line = doneLine(item.award ? awardValue(item.award) : item.points, code, classProgress(item.courseId, data.items)?.pct ?? null);
   return (
     <div className="time-ask" role="status" aria-live="polite">
+      <span className="time-ask-reward">{line}</span>
       <span className="time-ask-q">
-        Done. How long did <b>{item.label}</b> take?
+        How long did <b>{item.label}</b> take?
       </span>
       <span className="time-ask-btns">
         {TIME_CHOICES.map((c) => (

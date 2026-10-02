@@ -9,6 +9,7 @@ import { dedupeRequirements } from '../domain/requirements';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { applyHaloPlan, type HaloPlan } from '../halo/apply';
+import { gradeUps, turnedInSince } from '../joy/joy';
 import { actualStats, calibrate as calibrateItem, withCalibration, type Calibrated } from '../domain/calibration';
 import { applyOnline, bankedAsItems, ledgerWith, logTiming, resetCourseItems } from '../domain/classAdmin';
 import { recordCheck } from '../halo/verification';
@@ -634,7 +635,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const now = nowIso();
         const tz = dataRef.current.settings.timezone;
         const before = dataRef.current.items;
+        const beforeCourses = dataRef.current.courses;
         const r = applyHaloPlan(dataRef.current, plan, (id) => scheduleRef.current.byItem[id]?.startBy, now, tz);
+        // The rewards (joy/): what this sync newly saw handed in, and grades that went up, celebrated once on the next
+        // open. Added to whatever is still waiting, so a sync applied in two passes is still one celebration.
+        const turnedIn = turnedInSince(before, r.data.items);
+        const ups = gradeUps(beforeCourses, r.data.courses);
+        if (turnedIn > 0 || ups.length > 0) {
+          const joy = r.data.settings.joy ?? {};
+          const pend = joy.pending ?? { at: now };
+          const merged = [...(pend.gradeUps ?? []).filter((g) => !ups.some((u) => u.courseId === g.courseId)), ...ups];
+          r.data = { ...r.data, settings: { ...r.data.settings, joy: { ...joy, pending: { turnedIn: (pend.turnedIn ?? 0) + turnedIn, gradeUps: merged, at: now } }, updatedAt: now } };
+          r.ops.push({ kind: 'settings' });
+        }
         update(() => r.data);
         for (const op of r.ops) mirror(op);
         const batch = diffBatch('Sync', before, r.data.items, now);

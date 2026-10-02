@@ -603,6 +603,10 @@ export function You() {
             <AccentPicker value={data.settings.accent ?? DEFAULT_ACCENT} allowed={can('themes', tier)} onChange={(a) => actions.updateSettings({ accent: a })} />
             {can('themes', tier) && data.settings.accent && data.settings.accent !== DEFAULT_ACCENT && <p className="hint">Gold comes back if Max ends; your choice is kept.</p>}
           </div>
+          <label className="field field-check">
+            <input type="checkbox" checked={data.settings.celebrations !== false} onChange={(e) => actions.updateSettings({ celebrations: e.target.checked })} />
+            <span>Celebrations: confetti and the gold burst when you finish things. Off keeps the small notes only.</span>
+          </label>
           <label className="field">
             <span>Time zone</span>
             <input list="zones" value={data.settings.timezone} onChange={(e) => actions.updateSettings({ timezone: e.target.value })} />

@@ -29,6 +29,7 @@ import './styles/looks.css';
 import './styles/landing.css';
 import './styles/study.css';
 import './styles/trial.css';
+import './styles/joy.css';
 import { Landing } from './landing/Landing';
 import { Login } from './landing/Login';
 import { useFront } from './landing/useShowLanding';
@@ -67,6 +68,7 @@ import { NowTour } from './onboarding/NowTour';
 import { Onboarding } from './onboarding/Onboarding';
 import { Upgrade, upgradeDue } from './onboarding/Upgrade';
 import { TrialEnded } from './views/trialEnd/TrialEnded';
+import { JoyHost } from './joy/JoyHost';
 import { initialState, isOpen, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
@@ -513,6 +515,7 @@ export default function App() {
         <OnboardingHost />
         <NotificationPlanner />
         <Celebrations />
+        <JoyHost />
         <BackgroundRead />
         <SyncParam />
         <OkayHost />

@@ -1,0 +1,194 @@
+/* ===== The rewards (joy/, 2026-10-02). Gold only. Big moments are confetti; everything else is a glow or a toast. */
+
+/* A toast under the top bar, one at a time. */
+.joy-toast {
+  position: fixed;
+  left: 50%;
+  top: calc(var(--topbar-h, 56px) + env(safe-area-inset-top) + 12px);
+  transform: translateX(-50%);
+  z-index: 58;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(92vw, 520px);
+  padding: 10px 16px 10px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 14px/1.3 var(--font-body);
+  box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--accent) 60%, transparent), var(--shadow-2, 0 4px 14px rgb(0 0 0 / 0.08));
+  animation: joy-toast-in 260ms var(--ease, ease-out) both;
+}
+.joy-toast-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+@keyframes joy-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}
+
+/* The check-off burst: two gold rings from the tap, under a second. */
+.joy-burst {
+  position: fixed;
+  z-index: 59;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.joy-burst i {
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--halo, var(--accent)) 70%, transparent);
+  animation: joy-burst 760ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.joy-burst i + i {
+  border-width: 2px;
+  border-color: var(--halo, var(--accent));
+  animation-delay: 90ms;
+}
+@keyframes joy-burst {
+  from {
+    opacity: 0.95;
+    transform: scale(0.35);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* Confetti: gold, from the top, about two seconds. */
+.joy-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  pointer-events: none;
+}
+.joy-confetti i {
+  position: absolute;
+  top: -16px;
+  opacity: 0.95;
+  animation-name: joy-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.5, 0.4, 1);
+  animation-fill-mode: both;
+}
+@keyframes joy-fall {
+  to {
+    transform: translate(var(--drift), 105vh) rotate(var(--rot));
+    opacity: 0.9;
+  }
+}
+/* Reduced motion: one soft gold glow that fades. */
+.joy-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  background: radial-gradient(60% 45% at 50% 20%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 70%);
+  animation: joy-fade 1.6s ease-out both;
+}
+@keyframes joy-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* The finished-class card. */
+.joy-card-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 66;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter, 16px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: joy-fade-in 240ms ease-out both;
+}
+.joy-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 420px;
+  padding: var(--s-6, 32px) var(--s-5, 24px);
+  border-radius: var(--r-xl, 20px);
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  text-align: center;
+  box-shadow: 0 20px 60px -20px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.joy-card-title {
+  margin: 0;
+  font: 800 28px/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.joy-card-body {
+  margin: 0 0 6px;
+  color: var(--ink-2);
+}
+@keyframes joy-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* "X% of class done" on a class card: thin, gold, labelled as work done (not the grade). */
+.class-done {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+.class-done-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.class-done-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--halo, var(--accent)));
+  transition: width 600ms var(--ease, ease-out);
+}
+.class-done-label {
+  font: var(--t-small);
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .joy-toast,
+  .joy-card-wrap {
+    animation: joy-fade-in 200ms ease-out both;
+  }
+  .joy-burst i {
+    animation: joy-fade 600ms ease-out both;
+    transform: scale(1.2);
+  }
+  .class-done-fill {
+    transition: none;
+  }
+}
+
+/* The reward line on the after-done toast. */
+.time-ask-reward {
+  flex-basis: 100%;
+  font: 700 14px/1.3 var(--font-body);
+  color: var(--accent-text);
+}

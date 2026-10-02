@@ -470,7 +470,28 @@ export interface ReminderPrefs {
   pushEnabled?: boolean;
 }
 
+/** The rewards' memory (joy/, 2026-10-02): what has been celebrated, so each moment shows once, on any device. */
+export interface JoyState {
+  /** What a sync found, shown on the next open and then cleared: one celebration per sync, never one per item. */
+  pending?: { turnedIn?: number; gradeUps?: { courseId: string; code: string; percent: number }[]; at: string } | null;
+  /** The last class milestone celebrated (25, 50, 75, 100), per class. A class seen for the first time is recorded silently. */
+  classSeen?: Record<string, number>;
+  /** The day "You're clear for today" was shown. */
+  clearDay?: string | null;
+  /** The last streak milestone toasted (3, 7, 14, 30). */
+  streakSeen?: number;
+  /** Badges already toasted, by id. */
+  badgesSeen?: string[];
+  /** The Sunday wrap card's week, once dismissed. */
+  wrapSeen?: string | null;
+  /** Halo grades already celebrated, by item id (Phase 7). */
+  gradedSeen?: string[];
+}
+
 export interface Settings {
+  /** The big celebrations (confetti, the halo burst); on unless turned off in You → Display. Toasts stay either way. */
+  celebrations?: boolean;
+  joy?: JoyState;
   timezone: string;
   weekdayMinutes: number;
   weekendMinutes: number;

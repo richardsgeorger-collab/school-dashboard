@@ -3,6 +3,7 @@ import { HaloDraw } from '../components/HaloDraw';
 import { useStore } from '../storage/store';
 import { isOpen } from '../onboarding/state';
 import { maxOpen } from '../onboarding/maxState';
+import { useSettled } from '../joy/JoyHost';
 
 const LEVEL_KEY = 'school-dashboard:seen-level';
 const STREAK_KEY = 'school-dashboard:seen-streak';
@@ -33,14 +34,17 @@ export function Celebrations() {
   const [streak, setStreak] = useState<number | null>(null);
   // A first sync imports a term of submitted work and the level jumps; that is history, not a moment, and the
   // full-screen level-up would land on top of the payoff screen. The first-run screens own the screen.
+  const settled = useSettled();
   const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding);
   useEffect(() => {
+    // Nothing is compared until the account has loaded here: an empty planner a moment before is not level 1.
+    if (!settled) return;
     const seen = read(LEVEL_KEY);
     // One level up is a moment. More than one at once is history arriving (a new device loading the account after it
     // started at level 1), never a full-screen celebration on sign-in (audit, 2026-09-30).
     if (seen !== null && progress.level === seen + 1 && !firstRun) setLevel(progress.level);
     write(LEVEL_KEY, progress.level);
-  }, [progress.level, firstRun]);
+  }, [progress.level, firstRun, settled]);
   // Escape and Enter close it too, not only a tap.
   useEffect(() => {
     if (level === null) return;
@@ -51,10 +55,11 @@ export function Celebrations() {
     return () => window.removeEventListener('keydown', onKey);
   }, [level]);
   useEffect(() => {
+    if (!settled) return;
     const seen = read(STREAK_KEY) ?? 0;
     if (progress.dailyStreak >= 2 && progress.dailyStreak > seen) setStreak(progress.dailyStreak);
     write(STREAK_KEY, progress.dailyStreak);
-  }, [progress.dailyStreak]);
+  }, [progress.dailyStreak, settled]);
   useEffect(() => {
     if (streak === null) return;
     const t = setTimeout(() => setStreak(null), 3200);

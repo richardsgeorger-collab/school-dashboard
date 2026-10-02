@@ -4,6 +4,7 @@ import { urgentFor } from '../domain/urgent';
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
+import { classProgress } from '../joy/joy';
 import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
 import { PALETTE } from '../data/courseDefaults';
 import { dateOf, diffDays, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
@@ -30,6 +31,21 @@ function meetingSummary(c: Course): string {
     })
     .join(' · ');
   return c.meetingsFrom === 'section' ? `${slots} · from your Halo section` : slots;
+}
+
+/** "X% of class done": points of the work turned in or checked off over the class's real total from Halo. Not the grade. */
+function ClassDone({ courseId }: { courseId: string }) {
+  const { data } = useStore();
+  const p = classProgress(courseId, data.items);
+  if (!p) return null;
+  return (
+    <div className="class-done" title={`${p.done} of ${p.total} points of Halo work turned in or done. This is work done, not your grade.`}>
+      <span className="class-done-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={p.pct} aria-label={`${p.pct}% of class work done`}>
+        <span className="class-done-fill" style={{ width: `${p.pct}%` }} />
+      </span>
+      <span className="class-done-label">{p.pct}% of class work done</span>
+    </div>
+  );
 }
 
 function ClassCard({ course }: { course: Course }) {
@@ -72,6 +88,7 @@ function ClassCard({ course }: { course: Course }) {
             {paceLine}
           </p>
         )}
+        <ClassDone courseId={course.id} />
       </a>
       {urgent.length > 0 && (
         <button type="button" className="class-urgent" title={urgent[0].line} onClick={() => setOpenItem(data.items.find((i) => i.id === urgent[0].item.id) ?? urgent[0].item)}>
