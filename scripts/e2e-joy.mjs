@@ -261,7 +261,7 @@ try {
       await p.evaluate(() => { window.location.hash = '#/you?s=progress'; });
       await p.waitForSelector('.progress-card', { timeout: 15000 });
       await p.waitForTimeout(800);
-      if (dev === 'desk' && scheme === 'light') check(/3 days · skip day used this week|3 days · 1 skip day left this week/.test((await p.locator('.streaks').innerText()).replace(/\s+/g, ' ')), `You shows the streak and the skip day: "${(await p.locator('.streaks').innerText()).replace(/\s+/g, ' ').slice(0, 90)}"`);
+      if (dev === 'desk' && scheme === 'light') check(/3 days Skip day used this week|3 days 1 skip day left this week/.test((await p.locator('.streaks').innerText()).replace(/\s+/g, ' ')), `You shows the streak and the skip day: "${(await p.locator('.streaks').innerText()).replace(/\s+/g, ' ').slice(0, 90)}"`);
       await p.locator('.progress-card').screenshot({ path: `${OUT}/p3-you-${dev}-${scheme}.png` });
       await ctx.close();
     }

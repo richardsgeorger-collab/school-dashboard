@@ -90,8 +90,6 @@ export function ClassPage() {
   const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz).filter((w) => w.courseId === course.id), 6);
   const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, tz);
   const pace = paceFor(course, data.items, schedule, today);
-  // A class the account synced before per-class pull stamps existed still counts as synced.
-  const pulled = data.settings.haloPulls?.[course.id]?.assessments ?? (course.haloClassId ? (data.settings.lastPull?.at ?? null) : null);
   const clock = (hhmm: string) => { const m = hhmmToMinutes(hhmm); return fmtClock(Math.floor(m / 60), m % 60); };
   const meetings = course.online ? 'Online' : course.meetings.map((m) => `${DAYS[m.day]} ${clock(m.start)}–${clock(m.end)}`).join(', ') || 'No meetings set';
   const paceText = pace.kind === 'behind' ? `${pace.n} item${pace.n === 1 ? '' : 's'} behind` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : 'Nothing open';
@@ -158,11 +156,7 @@ export function ClassPage() {
           </div>
           <div>
             <dt>This week</dt>
-            <dd>{week.length}</dd>
-          </div>
-          <div>
-            <dt>Synced</dt>
-            <dd>{pulled ? fmtDate(dateOf(pulled, tz), 'short') : 'not yet'}</dd>
+            <dd>{week.length === 0 ? 'nothing due' : `${week.length} due`}</dd>
           </div>
         </dl>
         <GradeBreakdown courseId={course.id} items={data.items} total={grade} />

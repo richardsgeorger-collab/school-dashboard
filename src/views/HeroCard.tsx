@@ -292,51 +292,61 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
       )}
 
       {!done && (
-        <div className="hero-actions">
-          {item.startedAt ? (
-            <button type="button" className="btn primary" onClick={finish}>
-              <IconCheck /> Done
-            </button>
-          ) : (
-            <>
-              <button type="button" className="btn primary" onClick={start}>
-                Start
+        <>
+          {/* One clear row: start it, mark it done, or open it in Halo (2026-10-02 clarity pass: seven buttons in two
+              rows was too much to read at a glance). Everything else is a quiet line under it. */}
+          <div className="hero-actions">
+            {item.startedAt ? (
+              <button type="button" className="btn primary" onClick={finish}>
+                <IconCheck /> Done
               </button>
-              <button type="button" className="btn hero-phone-more" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
-                <IconCheck />
-              </button>
-            </>
-          )}
-          {/* One of the most used buttons, so it is in the row, not behind Details (George, 2026-09-29). */}
-          <a className="btn hero-halo" href={halo.href} target="_blank" rel="noreferrer" title={halo.label}>
-            Open in Halo ↗
-          </a>
-          <button type="button" className="btn quiet" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
-            {details ? 'Less' : 'Details'}
-          </button>
-          <span className="notnow-anchor hero-phone-more">
-            <button type="button" className="hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>
-              Not now
-            </button>
-            {notNow && <NotNowMenu onPick={pick} onClose={() => setNotNow(false)} />}
-          </span>
-          {/* The one study button on every card: a test gets Practice, everything else gets help with it. */}
-          {course && isTest(item) && (
-            <a className="btn hero-study hero-phone-more" href={`#/practice?i=${item.id}`}>
-              Practice
+            ) : (
+              <>
+                <button type="button" className="btn primary" onClick={start}>
+                  Start
+                </button>
+                <button type="button" className="btn hero-phone-more hero-done" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
+                  <IconCheck /> Done
+                </button>
+              </>
+            )}
+            {/* One of the most used buttons, so it is in the row, not behind Details (George, 2026-09-29). */}
+            <a className="btn hero-halo" href={halo.href} target="_blank" rel="noreferrer" title={halo.label}>
+              Open in Halo ↗
             </a>
-          )}
-          {course && !isTest(item) && (
-            <>
-              <button type="button" className="btn hero-study hero-phone-more" onClick={openAsk}>
-                Get help
+            {/* The one study button on a test's card. */}
+            {course && isTest(item) && (
+              <a className="btn hero-study hero-phone-more" href={`#/practice?i=${item.id}`}>
+                Practice
+              </a>
+            )}
+            {/* A phone keeps Details in the row; the rest is inside it. */}
+            <button type="button" className="btn quiet hero-phone-only" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
+              {details ? 'Less' : 'Details'}
+            </button>
+          </div>
+          <div className="hero-more">
+            {course && !isTest(item) && (
+              <>
+                <button type="button" className="hero-link" onClick={openAsk}>
+                  Get help
+                </button>
+                <button type="button" className="hero-link" onClick={openQuestion}>
+                  Ask a question
+                </button>
+              </>
+            )}
+            <button type="button" className="hero-link" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
+              {details ? 'Less' : 'Details'}
+            </button>
+            <span className="notnow-anchor">
+              <button type="button" className="hero-link hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>
+                Not now
               </button>
-              <button type="button" className="btn hero-study hero-phone-more" onClick={openQuestion}>
-                Ask a question
-              </button>
-            </>
-          )}
-        </div>
+              {notNow && <NotNowMenu onPick={pick} onClose={() => setNotNow(false)} />}
+            </span>
+          </div>
+        </>
       )}
 
       {details && (

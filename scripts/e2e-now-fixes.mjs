@@ -52,7 +52,7 @@ for (const scheme of ['light', 'dark']) {
     const copy = await p.$('.hero .hero-copy');
     check(!!copy && (await copy.evaluate((e) => getComputedStyle(e).backgroundColor)) === 'rgba(0, 0, 0, 0)', 'Copy a short prompt is a small text link');
     // Not now's menu over the Then cards, as the More menu should have been.
-    await p.click('.hero-notnow');
+    await p.locator('.hero-notnow:visible').first().click();
     const onTop = await p.evaluate(() => { const m = document.querySelector('.notnow-pop').getBoundingClientRect(); return [0.2, 0.5, 0.9].every((f) => document.elementFromPoint(m.x + m.width * f, m.y + m.height * f)?.closest('.notnow-pop')); });
     check(onTop, 'a menu on the card opens above the cards below it');
     await p.keyboard.press('Escape');

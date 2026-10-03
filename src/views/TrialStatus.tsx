@@ -23,10 +23,13 @@ function useTrial() {
   return { state, real, cal, profile };
 }
 
-/** Which plan a feature needs, shown only during the trial so the student always knows what will go away. */
+/**
+ * Which plan a feature needs, shown in the trial's last two days so the student knows what will go away. Not all week:
+ * three tags on the top bar from day one was noise (2026-10-02 clarity pass); the trial sheet always lists it.
+ */
 export function PlanBadge({ plan }: { plan: 'max' | 'plus' }) {
-  const { state, real } = useTrial();
-  if (state !== 'active' || !real) return null;
+  const { state, real, cal } = useTrial();
+  if (state !== 'active' || !real || !cal || cal.daysLeft > 2) return null;
   return (
     <span className="plan-badge" title={plan === 'max' ? 'Part of Max: goes away when the trial ends unless you keep Max' : 'Part of Plus: goes away when the trial ends unless you choose Plus or Max'}>
       {plan === 'max' ? 'Max' : 'Plus'}

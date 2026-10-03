@@ -35,14 +35,14 @@ export function ProgressCard() {
           <dt>Daily streak</dt>
           <dd>
             <Flame size={16} /> {progress.dailyStreak} day{progress.dailyStreak === 1 ? '' : 's'}
-            <small>{progress.skipUsedThisWeek ? ' · skip day used this week' : ' · 1 skip day left this week'}</small>
+            <small>{progress.skipUsedThisWeek ? 'Skip day used this week' : '1 skip day left this week'}</small>
           </dd>
         </div>
         <div>
           <dt>Clean weeks</dt>
           <dd>
             {progress.weeklyCleanStreak} in a row
-            <small>{progress.currentWeekClean ? ' · clean so far this week' : ' · something slipped this week'}</small>
+            <small>{progress.currentWeekClean ? 'Clean so far this week' : 'Something slipped this week'}</small>
           </dd>
         </div>
       </dl>

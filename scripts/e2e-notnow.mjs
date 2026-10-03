@@ -24,7 +24,7 @@ for (const scheme of ['light', 'dark']) {
     const t0 = await heroTitle(p);
     await p.locator('.hero').scrollIntoViewIfNeeded();
     await p.screenshot({ path: `${OUT}/1-link-${name}-${scheme}.png` });
-    const link = await p.$eval('.hero-notnow', (e) => ({ t: e.innerText.trim(), h: e.getBoundingClientRect().height, color: getComputedStyle(e).color, bg: getComputedStyle(e).backgroundColor }));
+    const link = await p.locator('.hero-notnow').first().evaluate((e) => ({ t: e.innerText.trim(), h: e.getBoundingClientRect().height, color: getComputedStyle(e).color, bg: getComputedStyle(e).backgroundColor }));
     if (name === 'desk' && scheme === 'light') check(link.t === 'Not now' && link.h < 36 && link.bg === 'rgba(0, 0, 0, 0)', `one small, muted "Not now" text link beside the buttons (${Math.round(link.h)}px tall, no fill)`);
     if (name === 'phone') {
       // A left swipe on the card opens the same menu.
@@ -36,7 +36,7 @@ for (const scheme of ['light', 'dark']) {
       await p.waitForTimeout(300);
       if (scheme === 'light') check(!!(await p.$('.notnow-pop')), 'on a phone, swiping the card left opens the same menu');
     } else {
-      await p.click('.hero-notnow');
+      await p.locator('.hero-notnow:visible').first().click();
       await p.waitForTimeout(250);
     }
     await p.screenshot({ path: `${OUT}/2-menu-${name}-${scheme}.png` });
@@ -54,14 +54,14 @@ for (const scheme of ['light', 'dark']) {
       await p.waitForTimeout(500);
       check((await heroTitle(p)) === t0, 'Undo puts it back');
       // Not today: gone until tomorrow, with its note on the agenda.
-      await p.click('.hero-notnow');
+      await p.locator('.hero-notnow:visible').first().click();
       await p.click('.notnow-item:has-text("Not today")');
       await p.waitForTimeout(700);
       check((await heroTitle(p)) !== t0 && /back tomorrow/.test(await text(p, '.done-toast')), `Not today: slides on, toast "${await text(p, '.done-toast-text')}"`);
       await p.click('.done-toast-undo');
       await p.waitForTimeout(500);
       // Can't start yet: one quick question, then the next item.
-      await p.click('.hero-notnow');
+      await p.locator('.hero-notnow:visible').first().click();
       await p.click('.notnow-item:has-text("Can\'t start yet")');
       await p.waitForTimeout(250);
       await p.screenshot({ path: `${OUT}/3-waiting-on-what-${name}-${scheme}.png` });
@@ -75,7 +75,9 @@ for (const scheme of ['light', 'dark']) {
       const blocked = await p.evaluate((label) => JSON.parse(localStorage.getItem('school-dashboard:v1')).items.find((i) => i.label === label), t0);
       const due = new Date(blocked.dueAt).getTime();
       const back = new Date(`${blocked.blocked.until}T12:00:00`).getTime();
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      // Tomorrow where the student is (the planner's timezone), not in UTC: in a Phoenix evening UTC is already tomorrow.
+      const tz = await p.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1')).settings.timezone);
+      const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(Date.now() + 86400000));
       check(blocked.blocked?.reason === 'class' && (back <= due - 1.5 * 86400000 || (due - 2 * 86400000 < Date.now() && blocked.blocked.until === tomorrow)), `it comes back ${blocked.blocked.until}: two days before it is due, or tomorrow when that has passed (due ${blocked.dueAt.slice(0, 10)})`);
       await p.goto(`${BASE}#/calendar?v=agenda`, { waitUntil: 'load' });
       await p.waitForTimeout(900);

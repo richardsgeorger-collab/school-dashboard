@@ -45,7 +45,7 @@ export function WeekStrip({ start, selected, items, onPick }: { start: DateStr; 
             <span className="week-strip-dow">{DOW[dow]}</span>
             <span className="week-strip-num">{Number(d.day.slice(8, 10))}</span>
             <span className="week-strip-count" aria-hidden>
-              {d.open > 0 ? d.open : ''}
+              {d.open > 0 ? `${d.open} due` : ''}
             </span>
           </button>
         );

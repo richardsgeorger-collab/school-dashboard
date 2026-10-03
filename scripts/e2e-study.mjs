@@ -111,7 +111,7 @@ const run = async (name, device, scheme) => {
   say(!!(await page.$('.nav-link[href="#/study"]')), 'Study is a tab in the main navigation');
   const nudge = await text('.study-nudge');
   say(/Chem Quiz 2 is in [45] days/.test(nudge) && !!(await page.$('.study-nudge a[href^="#/practice?i="]')), `Now offers Practice for the quiz within five days: "${nudge}"`);
-  say(!!(await page.$('.hero-actions .hero-study')), 'the Now card carries its one study button');
+  say(!!(await page.$('.hero-actions .hero-study, .hero-more .hero-link')), 'the Now card carries its study help');
 
   // ---- Scenario 1: "I have a chem quiz Friday, help me study." Now → Study (1) → Practice on the quiz (2).
   await page.click('.nav-link[href="#/study"] >> visible=true'); await page.waitForTimeout(800);

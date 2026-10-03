@@ -720,7 +720,7 @@ export function Now() {
           <div className="now-ring" data-clear={doneToday === dueToday.length || undefined}>
             <Ring value={doneToday} max={dueToday.length} label={`${doneToday} of ${dueToday.length} due today done`} />
             <span className="now-ring-label">
-              {doneToday}/{dueToday.length}
+              {doneToday}/{dueToday.length} today
             </span>
           </div>
         )}

@@ -74,7 +74,8 @@ function ClassCard({ course }: { course: Course }) {
           {g.pct !== null ? (
             <span className="class-card-grade" title={basis ? `${line}, ${basis}` : line}>
               <Ring value={g.pct} max={100} size={40} text={g.letter ?? `${Math.round(g.pct)}`} label={basis ? `${line}, ${basis}` : line} />
-              <span className="class-card-basis">{basis ?? line}</span>
+              {/* The ring already says the letter; under it, just the number (2026-10-02 clarity pass). */}
+              <span className="class-card-basis">{basis ?? (g.letter ? `${g.pct.toFixed(1)}%` : line)}</span>
             </span>
           ) : (
             <span className="class-card-grade class-card-nograde">{NOT_GRADED}</span>

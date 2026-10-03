@@ -271,7 +271,7 @@ export function Inbox() {
                 <span className="news-meta mono">
                   {c && <CourseChip course={c} />} {a.publishedAt ? fmtDate(dateOf(a.publishedAt, tz), 'short') : ''}
                   {a.author ? ` · ${a.author}` : ''}
-                  {!a.readAt && <span className="news-dot" aria-label="unread" />}
+                  {!a.readAt && <span className="news-dot" aria-label="Not opened yet" title="Not opened yet" />}
                 </span>
               </button>
               {isOpen && (

@@ -746,7 +746,7 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         )}
         {!isNew && (
           <details className="unlocks">
-            <summary className="hint">{item.blocks?.length ? `Unlocks ${item.blocks.length} item${item.blocks.length === 1 ? '' : 's'}` : 'Unlocks nothing yet'}</summary>
+            <summary className="hint">{item.blocks?.length ? `Unlocks ${item.blocks.length} item${item.blocks.length === 1 ? '' : 's'}` : 'Does other work wait on this?'}</summary>
             <p className="hint">Tick anything that cannot start until this is done. A small task that holds up bigger work is treated as urgent.</p>
             <ul className="unlocks-list">
               {data.items

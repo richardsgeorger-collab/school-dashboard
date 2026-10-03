@@ -3430,3 +3430,14 @@
   border-radius: 50%;
   background: var(--done, #2f9e5b);
 }
+
+/* The strip says "2 due", not a bare number under the date (2026-10-02 clarity pass). */
+.week-strip-count {
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.week-strip-day[data-heavy='true'] .week-strip-count {
+  color: var(--accent-text);
+  font-weight: 600;
+}

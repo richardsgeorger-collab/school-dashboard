@@ -154,6 +154,9 @@ function AccountCard({ tier }: { tier: Tier }) {
             <button type="button" className="btn small primary" onClick={() => void manage()}>
               Manage plan
             </button>
+            <a className="btn small" href="#/you?s=plan">
+              See plans
+            </a>
             {/* One click: straight to Stripe's cancel confirmation for this plan. No survey, no retention screens. */}
             {cancellable && (
               <button type="button" className="btn small" onClick={() => void manage('cancel')}>
@@ -413,7 +416,6 @@ export function You() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const active: Section = section === 'plan' || !section ? 'profile' : section;
-  const [showPlans, setShowPlans] = useState(false);
 
   const exportAll = async () => {
     const announcements = await announceDb.list().catch(() => []);
@@ -483,14 +485,8 @@ export function You() {
               {profile?.isAdmin && <FriendLinks />}
               {profile?.isAdmin && <ServerSyncAdmin />}
               {/* A friend's Max is a gift: no plans, no prices, nothing to sell. */}
-              {!gifted && (section === 'plan' || showPlans) && <Plans current={tier} highlight={highlight} />}
-              {!gifted && section !== 'plan' && !showPlans && (
-                <p className="hint">
-                  <button type="button" className="hero-inline" onClick={() => setShowPlans(true)}>
-                    See plans
-                  </button>
-                </p>
-              )}
+              {!gifted && section === 'plan' && <Plans current={tier} highlight={highlight} />}
+              {/* "See plans" is the account card's button (one, not two: 2026-10-02 clarity pass). */}
             </>
           )}
           {active === 'progress' && <ProgressCard />}

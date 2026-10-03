@@ -1202,3 +1202,61 @@
 .invite-line-x:hover {
   opacity: 1;
 }
+
+/* ---- The card's second line (2026-10-02 clarity pass): help, a question, details and Not now as quiet links ---- */
+.hero-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+  margin-top: 12px;
+}
+.hero-link,
+.hero-more .hero-notnow {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: 500 14px/1.2 var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+}
+.hero-link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.hero-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.hero-actions .hero-done {
+  gap: 6px;
+}
+.hero-phone-only {
+  display: none !important;
+}
+@media (max-width: 639px) {
+  .hero-more {
+    display: none;
+  }
+  .hero-actions .hero-phone-only {
+    display: inline-flex !important;
+  }
+}
+
+/* Heads up (2026-10-02 clarity pass): a line that opens is plain text with a light dotted underline, and its button
+   (Open it) sits right after it on the same line, in the accent, not wrapped onto a line of its own. */
+.headsup-tap {
+  display: inline;
+  text-decoration: underline dotted color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 4px;
+}
+.headsup-text .hero-inline {
+  display: inline;
+  color: var(--accent-text);
+  font-weight: 600;
+  white-space: nowrap;
+}

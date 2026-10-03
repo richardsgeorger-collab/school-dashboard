@@ -26,7 +26,7 @@ export function CookMeter({ course, size = 'card' }: { course: Course; size?: 'c
         <span className="cook-track" aria-hidden>
           <span className="cook-fill" style={{ width: `${pct}%`, background: cookColor(cook.fill) }} />
         </span>
-        <span className="cook-label">Cooked meter</span>
+        <span className="cook-label">Cooked meter{size === 'page' ? ' · the next two weeks' : ''}</span>
       </button>
       {open && (
         <p className="cook-why" role="status">

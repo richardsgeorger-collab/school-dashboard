@@ -1,5 +1,6 @@
-// Open in Halo, made obvious (2026-09-29): on the Now card it is a button in the main row right after Start (Start,
-// ✓, Open in Halo, Details, Not now, Get help on the right); Then rows, agenda rows and the item sheet carry a small
+// Open in Halo, made obvious (2026-09-29): on the Now card it is a button in the main row right after Start. Since the
+// 2026-10-02 clarity pass the row is Start, ✓ Done, Open in Halo, and Get help, Ask a question, Details and Not now
+// are a quiet line under it; Then rows, agenda rows and the item sheet carry a small
 // "↗ Halo"; on a phone the row keeps Start and Open in Halo and the rest moves into Details. Also: a line that only
 // restates the assignment ("Author Chemistry Connections Essay using guides" on that essay) is not shown, and
 // ticking one line keeps the others. Sample term (with Halo ids added), light and dark, desk and phone.
@@ -56,8 +57,12 @@ for (const scheme of ['light', 'dark']) {
     const help = await p.$eval('.hero-actions .hero-study', (e) => e.getBoundingClientRect().height).catch(() => 0);
     if (scheme === 'light') {
       if (name === 'desk') {
-        check(row.join(' | ') === 'Start | ✓ | Open in Halo ↗ | Details | Not now | Get help', `the row: ${row.join(' | ')}`);
-        check(/^https:\/\/halo\.gcu\.edu\/(quiz|courses)\//.test(halo.href) && Math.abs(halo.h - help) < 2, `Open in Halo goes to the assignment (${halo.href}) and matches Get help (${Math.round(halo.h)}px)`);
+        check(row.join(' | ') === 'Start | ✓ | Open in Halo ↗' || row.join(' | ') === 'Start | ✓ | Open in Halo ↗ | Practice', `the row: ${row.join(' | ')}`);
+        const more = await text(p, '.hero-more');
+        check(/^(Get help Ask a question )?Details Not now$/.test(more), `the quiet line under it: "${more}"`);
+        const start = await p.$eval('.hero-actions .btn.primary', (e) => e.getBoundingClientRect().height);
+        check(/^https:\/\/halo\.gcu\.edu\/(quiz|courses)\//.test(halo.href) && halo.h >= 40 && start >= halo.h, `Open in Halo goes to the assignment (${halo.href}), a full-size button beside Start (${Math.round(halo.h)}px)`);
+        void help;
         const also = await text(p, '.hero .reqs-compact');
         check(!/Author .* using guides/.test(also) && /Cite two peer-reviewed sources/.test(also), `Also required drops the restatement: "${also}"`);
         await p.click('.hero .reqs-compact input[type=checkbox]');
@@ -68,7 +73,7 @@ for (const scheme of ['light', 'dark']) {
         check(row.join(' | ') === 'Start | Open in Halo ↗ | Details', `phone row: ${row.join(' | ')}`);
       }
     }
-    await p.click('.hero .btn.quiet:has-text("Details")');
+    await p.locator('.hero :is(.hero-link, .btn.quiet):visible', { hasText: 'Details' }).first().click();
     await p.waitForTimeout(400);
     await p.screenshot({ path: `${OUT}/2-hero-details-${name}-${scheme}.png`, fullPage: name === 'phone' });
     if (scheme === 'light' && name === 'phone') {
