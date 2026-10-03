@@ -24,6 +24,9 @@ export const BADGE_INFO: Record<BadgeId, { name: string; how: string }> = {
   clean_sweep: { name: 'Clean sweep', how: `Clear everything due in a day, on time, ${CLEAN_SWEEP_DAYS} times` },
 };
 
+/** The toast for a badge just earned. */
+export const badgeMoment = (b: BadgeId): { text: string } => ({ text: `Badge: ${BADGE_INFO[b].name}.` });
+
 export interface BadgeState {
   earnedAt: string | null;
   /** How many times (weeks, days, items); the progress toward Clean sweep before it is earned. */

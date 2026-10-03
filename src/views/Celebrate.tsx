@@ -43,27 +43,27 @@ export function Celebrations() {
     if (seen !== null && progress.level === seen + 1 && !firstRun) setLevel(progress.level);
     write(LEVEL_KEY, progress.level);
   }, [progress.level, firstRun, settled]);
+  return <>{level !== null && <LevelUp level={level} onClose={() => setLevel(null)} />}</>;
+}
+
+/** The full-screen level-up. The Admin preview shows this same component. */
+export function LevelUp({ level, onClose }: { level: number; onClose: () => void }) {
   // Escape and Enter close it too, not only a tap.
   useEffect(() => {
-    if (level === null) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key === 'Enter') setLevel(null);
+      if (e.key === 'Escape' || e.key === 'Enter') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [level]);
+  }, [onClose]);
   return (
-    <>
-      {level !== null && (
-        <div className="levelup" role="dialog" aria-label={`Level ${level}`} onClick={() => setLevel(null)}>
-          <div className="levelup-card">
-            <HaloDraw size={120} />
-            <p className="eyebrow">Level up</p>
-            <h2 className="levelup-title">Level {level}.</h2>
-            <p className="hint">Tap anywhere to keep going.</p>
-          </div>
-        </div>
-      )}
-    </>
+    <div className="levelup" role="dialog" aria-label={`Level ${level}`} onClick={onClose}>
+      <div className="levelup-card">
+        <HaloDraw size={120} />
+        <p className="eyebrow">Level up</p>
+        <h2 className="levelup-title">Level {level}.</h2>
+        <p className="hint">Tap anywhere to keep going.</p>
+      </div>
+    </div>
   );
 }

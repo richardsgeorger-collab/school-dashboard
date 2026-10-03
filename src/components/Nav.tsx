@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react';
 import { TAB_OF, TABS, useRoute, type Tab } from '../router';
 import { useStore } from '../storage/store';
-import { IconCalendar, IconClasses, IconHalo, IconInbox, IconMoon, IconNow, IconPlus, IconStudy, IconSun, IconSync, IconYou } from './Icons';
+import { BrandMark } from './BrandMark';
+import { IconCalendar, IconClasses, IconInbox, IconMoon, IconNow, IconPlus, IconStudy, IconSun, IconSync, IconYou } from './Icons';
 import { useAccount } from '../auth/AccountContext';
 import { PlanBadge, TrialChip } from '../views/TrialStatus';
 import { SetupBar, SetupPill } from '../onboarding/Setup';
@@ -48,9 +49,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
     <header className="topbar">
       <div className="topbar-inner">
         <a href="#/now" className="brand" aria-label="Halo+, go to Now" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <span className="brand-mark" aria-hidden data-level-step={Math.min(8, Math.max(1, progress.level))} title={`Level ${progress.level}`}>
-            <IconHalo />
-          </span>
+          <BrandMark level={progress.level} />
           <span className="brand-text">Halo+</span>
         </a>
         <nav className="nav-top" aria-label="Primary">

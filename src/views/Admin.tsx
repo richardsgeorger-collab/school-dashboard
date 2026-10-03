@@ -9,6 +9,7 @@ import { AdminFunnel } from './AdminFunnel';
 import { AdminErrors } from './AdminErrors';
 import { AdminGrowth } from './AdminGrowth';
 import { AdminAccounts } from './AdminAccounts';
+import { AdminCelebrations } from './AdminCelebrations';
 
 interface Stats {
   ai_cost_month: number;
@@ -63,6 +64,7 @@ export function Admin() {
         <AdminFunnel />
         <AdminRatings />
         <AdminExtension />
+        <AdminCelebrations />
         <AdminErrors />
         <section className="card settings-card">
           <h2 className="section-title">What gets used</h2>

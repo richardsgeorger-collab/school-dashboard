@@ -1,3 +1,4 @@
+import { gradeUpBody } from '../joy/joy';
 import { participationThisWeek } from '../domain/participationWeek';
 import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
 import { trialCalendar } from '../config/trialCalendar';
@@ -99,7 +100,7 @@ export function planNotices(input: PlanInput): Notice[] {
   if (p.gradeUp && input.gradeUps?.length) {
     const fresh = input.gradeUps.filter((g) => Date.parse(now) - Date.parse(g.at) < 12 * 3_600_000);
     if (fresh.length) {
-      const body = fresh.length === 1 ? `Your ${fresh[0].code} grade went up to ${fresh[0].percent}%.` : `Your ${fresh.map((g) => g.code).slice(0, 3).join(' and ')} grades went up.`;
+      const body = gradeUpBody(fresh);
       push({ kind: 'grade_up', sendAt: new Date(Date.parse(now) + 60_000).toISOString(), title: 'Grade up', body, url: '#/classes', key: `grade_up:${today}` });
     }
   }

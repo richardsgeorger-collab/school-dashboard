@@ -17,12 +17,16 @@ export function WrapCard() {
   const w = weekWrap(data.items, sunday, data.settings.timezone);
   const line = wrapLine(w, 'Last week');
   if (!line) return null;
-  const done = () => actions.updateJoy({ wrapSeen: sunday });
+  return <WrapCardView line={line} best={w.best} onDone={() => actions.updateJoy({ wrapSeen: sunday })} />;
+}
+
+/** The card itself. The Admin preview shows this same component with a sample week. */
+export function WrapCardView({ line, best, onDone }: { line: string; best: boolean; onDone: () => void }) {
   return (
-    <section className="card wrap-card" data-best={w.best || undefined} aria-label="Last week">
+    <section className="card wrap-card" data-best={best || undefined} aria-label="Last week">
       <HaloDraw size={34} />
       <p className="wrap-line">{line}</p>
-      <button type="button" className="btn small" onClick={done}>
+      <button type="button" className="btn small" onClick={onDone}>
         Nice
       </button>
     </section>

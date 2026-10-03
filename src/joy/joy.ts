@@ -128,3 +128,32 @@ export function daysEarly(dueAt: string | null, at: string): number | null {
   const d = Math.floor((Date.parse(dueAt) - Date.parse(at)) / 86_400_000);
   return d >= 1 ? d : null;
 }
+
+// ---- the moments, as events (shared by the app and the Admin preview, so they cannot drift) ---------------------------
+
+export interface JoyEvent {
+  text: string;
+  /** Confetti with it (a real submission, a clear day, a finished class). */
+  big?: boolean;
+  /** A card instead of a toast: the finished class. */
+  card?: { title: string; body: string };
+  /** Admin preview only: shown whatever the Celebrations switch says. */
+  preview?: boolean;
+  /** Admin preview only: a card that closes itself after this many milliseconds (Play all). */
+  hold?: number;
+}
+
+export const syncMoment = (n: number): JoyEvent => ({ text: `Nice. ${n} ${n === 1 ? 'thing' : 'things'} turned in since last sync.`, big: true });
+export const gradeUpMoment = (g: { code: string; percent: number }): JoyEvent => ({ text: `Your ${g.code} grade went up to ${g.percent}%.` });
+export const CLEAR_MOMENT: JoyEvent = { text: "You're clear for today.", big: true };
+export const streakMoment = (days: number): JoyEvent => ({ text: `${days}-day streak going.` });
+export const topicMoment = (code: string | null | undefined, topic: string): JoyEvent => ({ text: `${code ? `${code} · ` : ''}${topic} cleared.` });
+export const gradedMoment = (g: GradedWell): JoyEvent => ({ text: gradedLine(g) });
+/** 25, 50 and 75 are a toast; 100 is the finished-class card with confetti. */
+export function classMilestoneMoment(code: string, name: string, m: 25 | 50 | 75 | 100, total: number): JoyEvent {
+  if (m !== 100) return { text: `${code} is ${m}% done.` };
+  return { text: `You finished ${code}.`, big: true, card: { title: `You finished ${code}.`, body: `Every Halo assignment in ${name || code} is turned in or done: ${total} points of work.` } };
+}
+
+/** What the grade-up push says: one class by name and number, several by name. Used by the planner and the preview. */
+export const gradeUpBody = (ups: { code: string; percent: number }[]): string => (ups.length === 1 ? `Your ${ups[0].code} grade went up to ${ups[0].percent}%.` : `Your ${ups.map((g) => g.code).slice(0, 3).join(' and ')} grades went up.`);

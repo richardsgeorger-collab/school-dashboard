@@ -276,3 +276,84 @@
   font: 700 16px/1.35 var(--font-body);
   color: var(--ink);
 }
+
+/* ===== Admin → Celebrations preview. */
+.admin-celebrations .pv-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0 12px;
+}
+.pv-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.pv-group {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.pv-label {
+  font: 600 12px/1.2 var(--font-body);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pv-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pv-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+  margin: 14px 0 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.pv-item {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.pv-push {
+  max-width: 320px;
+  padding: 8px 12px;
+  border-radius: var(--r-md, 10px);
+  border: 1px solid var(--line);
+  background: var(--surface-2, var(--surface));
+}
+.pv-stage .wrap-card {
+  flex-basis: 100%;
+}
+
+/* "Preview reduced motion" (Admin): the same reduced-motion rules, asked for by the page instead of the device. */
+:root[data-preview-reduced] .joy-toast,
+:root[data-preview-reduced] .joy-card-wrap {
+  animation: joy-fade-in 200ms ease-out both;
+}
+:root[data-preview-reduced] .joy-burst i {
+  animation: joy-fade 600ms ease-out both;
+  transform: scale(1.2);
+}
+:root[data-preview-reduced] .class-done-fill,
+:root[data-preview-reduced] .brand-mark[data-level-step] svg path:first-child {
+  transition: none;
+}
+:root[data-preview-reduced] .now-ring[data-clear] .ring {
+  animation: none;
+}
+:root[data-preview-reduced] .ring-fill {
+  animation: none;
+  transition: none;
+}
+:root[data-preview-reduced] .levelup,
+:root[data-preview-reduced] .levelup-card {
+  animation: none;
+}

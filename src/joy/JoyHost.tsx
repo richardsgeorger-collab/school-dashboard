@@ -4,9 +4,10 @@ import { maxOpen } from '../onboarding/maxState';
 import { isOpen } from '../onboarding/state';
 import { useAccount } from '../auth/AccountContext';
 import { useStore } from '../storage/store';
-import { classProgress, gradedLine, milestoneOf, topicsCleared } from './joy';
+import { badgeMoment } from './badges';
+import { classMilestoneMoment, classProgress, gradeUpMoment, gradedMoment, milestoneOf, streakMoment, syncMoment, topicMoment, topicsCleared, type JoyEvent } from './joy';
 import { streakMilestone } from './streak';
-import { BADGE_INFO, BADGES, type BadgeId } from './badges';
+import { BADGES, type BadgeId } from './badges';
 import { JOY_SNAP_SLOT, joySnap } from './extSnapshot';
 
 /**
@@ -15,19 +16,23 @@ import { JOY_SNAP_SLOT, joySnap } from './extSnapshot';
  * Display). Reduced motion gets a soft fade instead of movement. No sounds; a light tap of haptics on phones that
  * have it. Other screens ask for a moment with joy(): one event, so every moment goes through the same rules.
  */
-export interface JoyEvent {
-  text: string;
-  /** Confetti with it (a real submission, a clear day, a finished class). */
-  big?: boolean;
-  /** A card instead of a toast: the finished class. */
-  card?: { title: string; body: string };
-}
+export type { JoyEvent };
 
 export function joy(e: JoyEvent): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent<JoyEvent>('halo-joy', { detail: e }));
 }
 
-export const reducedMotion = (): boolean => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+/** Admin's Celebrations preview can ask for the reduced-motion versions on a device that has not asked for them. */
+let previewReduced = false;
+export const setPreviewReducedMotion = (on: boolean): void => {
+  previewReduced = on;
+};
+export const reducedMotion = (): boolean => previewReduced || (typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+
+/** A check-off burst at a screen position (the real burst; the preview asks for it where its button is). */
+export function burstAt(x: number, y: number): void {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('halo-joy-burst', { detail: { x, y } }));
+}
 
 export function haptic(ms = 12): void {
   try {
@@ -71,7 +76,7 @@ export function JoyHost() {
   const settled = useSettled();
   const firstRun = !settled || isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding);
   const [queue, setQueue] = useState<(JoyEvent & { id: number })[]>([]);
-  const [confetti, setConfetti] = useState<number | null>(null);
+  const [confetti, setConfetti] = useState<{ id: number; forced: boolean } | null>(null);
   const [burst, setBurst] = useState<{ x: number; y: number; key: number } | null>(null);
   const pointer = useRef<{ x: number; y: number; at: number } | null>(null);
   const seq = useRef(0);
@@ -100,10 +105,10 @@ export function JoyHost() {
   // One at a time: a toast for three and a half seconds; a card until it is closed.
   useEffect(() => {
     if (!current) return;
-    if (current.big && celebrate) setConfetti(current.id);
+    if (current.big && (celebrate || current.preview)) setConfetti({ id: current.id, forced: !!current.preview });
     haptic(current.big ? 20 : 10);
-    if (current.card) return;
-    const t = setTimeout(() => setQueue((q) => q.slice(1)), 3500);
+    if (current.card && !current.hold) return;
+    const t = setTimeout(() => setQueue((q) => q.slice(1)), current.hold ?? 3500);
     return () => clearTimeout(t);
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -111,6 +116,17 @@ export function JoyHost() {
     const t = setTimeout(() => setConfetti(null), 2600);
     return () => clearTimeout(t);
   }, [confetti]);
+
+  // The preview asks for the same burst at a position (Admin → Celebrations preview), whatever the switch says.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ x: number; y: number }>).detail;
+      setBurst({ x: d.x, y: d.y, key: Date.now() });
+      setTimeout(() => setBurst(null), 900);
+    };
+    window.addEventListener('halo-joy-burst', on);
+    return () => window.removeEventListener('halo-joy-burst', on);
+  }, []);
 
   // A check-off: a short gold halo burst where it was tapped (under a second).
   useEffect(() => {
@@ -128,11 +144,11 @@ export function JoyHost() {
   useEffect(() => {
     if (!pending || firstRun) return;
     const n = pending.turnedIn ?? 0;
-    if (n > 0) joy({ text: `Nice. ${n} ${n === 1 ? 'thing' : 'things'} turned in since last sync.`, big: true });
-    for (const g of pending.gradeUps ?? []) joy({ text: `Your ${g.code} grade went up to ${g.percent}%.` });
+    if (n > 0) joy(syncMoment(n));
+    for (const g of pending.gradeUps ?? []) joy(gradeUpMoment(g));
     // Work that came back graded well (90% or better), best first; three at most, then a count.
     const graded = [...(pending.graded ?? [])].sort((a, b) => b.score / b.points - a.score / a.points);
-    for (const g of graded.slice(0, 3)) joy({ text: gradedLine(g) });
+    for (const g of graded.slice(0, 3)) joy(gradedMoment(g));
     if (graded.length > 3) joy({ text: `${graded.length - 3} more graded at 90% or better.` });
     actions.updateJoy({ pending: null });
   }, [pending?.at, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -155,8 +171,7 @@ export function JoyHost() {
       } else if (m > was) {
         seen[c.id] = m;
         changed = true;
-        if (m === 100) joy({ text: `You finished ${c.code}.`, big: true, card: { title: `You finished ${c.code}.`, body: `Every Halo assignment in ${c.name || c.code} is turned in or done: ${p.total} points of work.` } });
-        else joy({ text: `${c.code} is ${m}% done.` });
+        joy(classMilestoneMoment(c.code, c.name, m as 25 | 50 | 75 | 100, p.total));
       } else if (m < was) {
         seen[c.id] = m;
         changed = true;
@@ -180,7 +195,7 @@ export function JoyHost() {
     const fresh = topicsNow.filter((t) => !seen.includes(t.key));
     for (const t of fresh.slice(0, 2)) {
       const code = data.courses.find((c) => c.id === t.courseId)?.code;
-      joy({ text: `${code ? `${code} · ` : ''}${t.topic} cleared.` });
+      joy(topicMoment(code, t.topic));
     }
     if (fresh.length > 0 || seen.some((k) => !keys.includes(k))) actions.updateJoy({ topicSeen: keys });
   }, [topicKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -195,7 +210,7 @@ export function JoyHost() {
       actions.updateJoy({ streakSeen: m });
       return;
     }
-    if (m > seen) joy({ text: `${progress.dailyStreak}-day streak going.` });
+    if (m > seen) joy(streakMoment(progress.dailyStreak));
     if (m !== seen) actions.updateJoy({ streakSeen: m });
   }, [progress.dailyStreak, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -209,7 +224,7 @@ export function JoyHost() {
       actions.updateJoy({ badgesSeen: earned });
       return;
     }
-    for (const b of earned) if (!seen.includes(b)) joy({ text: `Badge: ${BADGE_INFO[b].name}.` });
+    for (const b of earned) if (!seen.includes(b)) joy(badgeMoment(b));
     if (earned.join(',') !== [...seen].sort((a, b) => BADGES.indexOf(a as BadgeId) - BADGES.indexOf(b as BadgeId)).join(',')) actions.updateJoy({ badgesSeen: earned });
   }, [earnedKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -233,7 +248,7 @@ export function JoyHost() {
           <i />
         </span>
       )}
-      {confetti !== null && celebrate && <Confetti seed={confetti} />}
+      {confetti !== null && (celebrate || confetti.forced) && <Confetti seed={confetti.id} />}
       {current && !current.card && (
         <div className="joy-toast" role="status" aria-live="polite" key={current.id}>
           <span className="joy-toast-mark" aria-hidden>

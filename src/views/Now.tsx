@@ -53,6 +53,7 @@ import { TrialOffer, useReceipts } from './TrialOffer';
 import { TrialReminder } from './TrialStatus';
 import { ConnectHaloCard, useNeverSynced } from '../onboarding/Setup';
 import { joy, useSettled } from '../joy/JoyHost';
+import { CLEAR_MOMENT } from '../joy/joy';
 import { WrapCard } from '../joy/WrapCard';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
@@ -356,7 +357,7 @@ export function Now() {
   useEffect(() => {
     if (!settledJoy || dueToday.length === 0 || doneToday < dueToday.length || data.settings.joy?.clearDay === today) return;
     if (isOpen(data.settings.onboarding)) return;
-    joy({ text: "You're clear for today.", big: true });
+    joy(CLEAR_MOMENT);
     actions.updateJoy({ clearDay: today });
   }, [settledJoy, doneToday, dueToday.length, today]); // eslint-disable-line react-hooks/exhaustive-deps
   const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date()));
