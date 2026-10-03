@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TIME_CHOICES } from '../domain/calibration';
-import { classProgress, daysEarly, doneLine } from '../joy/joy';
+import { joy } from '../joy/JoyHost';
+import { classProgress, daysEarly, doneLine, fasterMoment } from '../joy/joy';
 import { useStore } from '../storage/store';
 
 const ASK_MS = 15_000;
@@ -24,7 +25,12 @@ export function TimeAsk() {
   const item = justDone ? data.items.find((i) => i.id === justDone.id) : null;
   if (!justDone || !item || item.status !== 'done') return null;
   const log = (minutes: number) => {
-    if (Number.isFinite(minutes) && minutes > 0) actions.logActual(item.id, minutes);
+    if (Number.isFinite(minutes) && minutes > 0) {
+      actions.logActual(item.id, minutes);
+      // Quicker than planned is worth saying; slower never is.
+      const quick = fasterMoment(minutes, item.estimatedMinutes);
+      if (quick) joy(quick);
+    }
     actions.dismissTimeAsk();
   };
   // The reward first (2026-10-02): the assignment's own points (Halo's, not XP) and how much of the class is now done.

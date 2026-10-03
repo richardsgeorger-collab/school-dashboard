@@ -475,7 +475,7 @@ export interface ReminderPrefs {
 /** The rewards' memory (joy/, 2026-10-02): what has been celebrated, so each moment shows once, on any device. */
 export interface JoyState {
   /** What a sync found, shown on the next open and then cleared: one celebration per sync, never one per item. */
-  pending?: { turnedIn?: number; gradeUps?: { courseId: string; code: string; percent: number }[]; graded?: { id: string; label: string; score: number; points: number }[]; at: string } | null;
+  pending?: { turnedIn?: number; gradeUps?: { courseId: string; code: string; percent: number; letter?: string | null }[]; graded?: { id: string; label: string; score: number; points: number }[]; at: string } | null;
   /** The last class milestone celebrated (25, 50, 75, 100), per class. A class seen for the first time is recorded silently. */
   classSeen?: Record<string, number>;
   /** The day "You're clear for today" was shown. */
@@ -487,9 +487,15 @@ export interface JoyState {
   /** The Sunday wrap card's week, once dismissed. */
   wrapSeen?: string | null;
   /** Grades that went up in a sync, for the push (notify/plan.ts): kept two days. */
-  gradeUpRecent?: { courseId: string; code: string; percent: number; at: string }[];
+  gradeUpRecent?: { courseId: string; code: string; percent: number; letter?: string | null; at: string }[];
   /** Halo topics already celebrated as cleared ("courseId|unitId"). First look records them quietly (Phase 7). */
   topicSeen?: string[];
+  /** The last term milestone (things turned in) celebrated; first look records it quietly. */
+  countSeen?: number;
+  /** The best day already celebrated: the day and its count. */
+  bestDaySeen?: { day: string; n: number } | null;
+  /** The week (its first day) already celebrated as cleared. */
+  weekSeen?: string | null;
 }
 
 export interface Settings {

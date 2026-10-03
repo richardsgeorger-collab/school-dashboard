@@ -3,6 +3,7 @@ import { useStore } from '../storage/store';
 import { RecapButton } from './Recap';
 import { Flame } from '../joy/StreakChip';
 import { Ring } from './Ring';
+import { useCountUp } from '../joy/useCountUp';
 
 /** Each badge's mark, drawn in the accent: a sunrise, a shield, a peak, a sparkle. */
 const GLYPH: Record<BadgeId, string> = {
@@ -16,6 +17,7 @@ export function ProgressCard() {
   const { progress } = useStore();
   const span = progress.levelCeil - progress.levelFloor;
   const pct = span > 0 ? ((progress.xp - progress.levelFloor) / span) * 100 : 0;
+  const xp = useCountUp(progress.xp);
   return (
     <section className="card progress-card" aria-label="Progress" title="Points: item value × 1.5 if done by start-by, × 1 by the due time, × 0.5 late, × your score once graded. Locked at first completion.">
       <div className="progress-head">
@@ -23,7 +25,7 @@ export function ProgressCard() {
         <div className="progress-xp">
           <span className="section-title">Level {progress.level}</span>
           <span className="mono">
-            {progress.xp} XP <span className="muted">· {progress.levelCeil - progress.xp} to level {progress.level + 1}</span>
+            {xp} XP <span className="muted">· {progress.levelCeil - progress.xp} to level {progress.level + 1}</span>
           </span>
         </div>
       </div>

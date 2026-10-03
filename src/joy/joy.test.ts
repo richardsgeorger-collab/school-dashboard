@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course, Item } from '../domain/types';
+import { bestDay, fasterMoment, gradeUpBody, gradeUpText, termMilestone, turnedInCount, weekCleared } from './joy';
 import { classProgress, daysEarly, doneLine, gradedLine, gradedWell, gradeUps, isTurnedIn, milestoneOf, topicsCleared, turnedInSince } from './joy';
 
 let n = 0;
@@ -67,5 +68,49 @@ describe('phase 7: graded well, topics cleared, days early', () => {
     expect(daysEarly(null, '2026-10-04T20:00:00Z')).toBeNull();
     expect(doneLine(50, 'CHM-113L', 34, 2)).toBe('+50 pts done, 2 days early · CHM-113L is 34% complete');
     expect(doneLine(50, 'CHM-113L', 34, 1)).toBe('+50 pts done, 1 day early · CHM-113L is 34% complete');
+  });
+});
+
+describe('round two: letters, full marks, the term, best day, week cleared, faster', () => {
+  const scale = [{ label: 'A', minPercent: 93, maxPercent: null }, { label: 'A-', minPercent: 90, maxPercent: 92.99 }, { label: 'B+', minPercent: 87, maxPercent: 89.99 }];
+  const withScale = (id: string, pct: number) => ({ ...course(id, pct), gradeScale: scale }) as unknown as Course;
+  it('names the letter only when the rise crossed into a new one', () => {
+    expect(gradeUps([withScale('a', 91)], [withScale('a', 93.4)])).toEqual([{ courseId: 'a', code: 'A', percent: 93, letter: 'A' }]);
+    expect(gradeUps([withScale('a', 93.1)], [withScale('a', 95)])).toEqual([{ courseId: 'a', code: 'A', percent: 95 }]);
+    expect(gradeUpText({ courseId: 'a', code: 'BIO-181', percent: 93, letter: 'A' })).toBe('Your BIO-181 grade went up to 93%, now an A.');
+    expect(gradeUpText({ courseId: 'a', code: 'BIO-181', percent: 88, letter: 'B+' })).toBe('Your BIO-181 grade went up to 88%, now a B+.');
+    expect(gradeUpBody([{ courseId: 'a', code: 'BIO-181', percent: 93, letter: 'A' }])).toBe('Your BIO-181 grade went up to 93%, now an A.');
+  });
+  it('says full marks for a perfect score', () => {
+    expect(gradedLine({ id: 'x', label: 'Lab 3', score: 50, points: 50 })).toBe('Full marks: 50/50 on Lab 3.');
+  });
+  it('counts things turned in on Halo for the term marks', () => {
+    const items = Array.from({ length: 26 }, (_, k) => it_({ halo: { status: 'SUBMITTED', submittedAt: '2026-09-01T00:00:00Z', checkedAt: '' }, id: `t${k}` }));
+    expect(turnedInCount([...items, it_({ status: 'done', source: 'manual' }), it_({})])).toBe(26);
+    expect(termMilestone(26)).toBe(25);
+    expect(termMilestone(9)).toBe(0);
+  });
+  it('finds a best day only after a week of history, with three or more, beating every earlier day', () => {
+    const tz = 'America/Phoenix';
+    const on = (day: string, n: number) => Array.from({ length: n }, () => it_({ status: 'done', completedAt: `${day}T19:00:00Z` }));
+    const history = ['2026-09-20', '2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26'].flatMap((d) => on(d, 2));
+    expect(bestDay([...history, ...on('2026-10-02', 3)], '2026-10-02', tz)).toEqual({ today: 3, best: 2, record: true });
+    expect(bestDay([...history, ...on('2026-10-02', 2)], '2026-10-02', tz).record).toBe(false);
+    expect(bestDay([...history.slice(2), ...on('2026-10-02', 3)], '2026-10-02', tz).record).toBe(false);
+  });
+  it('clears the week with a day to spare, not on its last day, and never with one thing left', () => {
+    const tz = 'America/Phoenix';
+    const due = (d: string, done: boolean) => it_({ dueAt: `${d}T06:59:00Z`, status: done ? 'done' : 'todo', completedAt: done ? '2026-09-30T19:00:00Z' : null });
+    // Monday-start week of Sep 28 to Oct 4 (Phoenix): due Oct 1 and Oct 3.
+    expect(weekCleared([due('2026-10-02', true), due('2026-10-04', true)], '2026-10-01', tz, 1)).toBe('2026-09-28');
+    expect(weekCleared([due('2026-10-02', true), due('2026-10-04', false)], '2026-10-01', tz, 1)).toBeNull();
+    expect(weekCleared([due('2026-10-02', true), due('2026-10-04', true)], '2026-10-04', tz, 1)).toBeNull();
+    expect(weekCleared([due('2026-10-02', true)], '2026-10-01', tz, 1)).toBeNull();
+  });
+  it('says faster only when it was a quarter quicker, never slower', () => {
+    expect(fasterMoment(30, 60)?.text).toBe('Faster than planned: 30m, planned 1h.');
+    expect(fasterMoment(50, 60)).toBeNull();
+    expect(fasterMoment(90, 60)).toBeNull();
+    expect(fasterMoment(5, 15)).toBeNull();
   });
 });

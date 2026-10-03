@@ -4,7 +4,9 @@ import { maxOpen } from '../onboarding/maxState';
 import { isOpen } from '../onboarding/state';
 import { useAccount } from '../auth/AccountContext';
 import { useStore } from '../storage/store';
+import { weekStart as weekStartOf } from '../domain/dates';
 import { badgeMoment } from './badges';
+import { bestDay, bestDayMoment, termMilestone, termMoment, turnedInCount, weekCleared, weekMoment } from './joy';
 import { classMilestoneMoment, classProgress, gradeUpMoment, gradedMoment, milestoneOf, streakMoment, syncMoment, topicMoment, topicsCleared, type JoyEvent } from './joy';
 import { streakMilestone } from './streak';
 import { BADGES, type BadgeId } from './badges';
@@ -42,6 +44,7 @@ export function haptic(ms = 12): void {
   }
 }
 
+const MAX_WAITING = 4;
 const GOLD = ['var(--accent)', 'var(--halo, #f2c14e)', '#f6d77a', '#e0a526', 'var(--accent-soft)'];
 
 /** Gold confetti from the top, gone in about two seconds. Reduced motion: one soft gold glow that fades. */
@@ -71,7 +74,7 @@ export function Confetti({ seed }: { seed: number }) {
 }
 
 export function JoyHost() {
-  const { data, justDone, actions } = useStore();
+  const { data, justDone, actions, today } = useStore();
   const celebrate = data.settings.celebrations !== false;
   const settled = useSettled();
   const firstRun = !settled || isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding);
@@ -97,7 +100,14 @@ export function JoyHost() {
       // The id is taken now, not inside the state update: two moments queued in the same tick must not share one.
       seq.current += 1;
       const id = seq.current;
-      setQueue((q) => [...q, { ...d, id }]);
+      // Never a pile-up: four small moments waiting at most (one check-off can finish a class, a week and a best day at
+      // once). The newest is kept, since it answers what was just done; the oldest waiting one is let go. Its "shown
+      // once" mark is already kept, so it does not come back later. A card and the Admin preview never push one out.
+      setQueue((q) => {
+        if (d.card || d.preview || q.filter((x) => !x.card).length < MAX_WAITING) return [...q, { ...d, id }];
+        const drop = q.findIndex((x, k) => k > 0 && !x.card && !x.preview);
+        return drop < 0 ? [...q, { ...d, id }] : [...q.slice(0, drop), ...q.slice(drop + 1), { ...d, id }];
+      });
     };
     window.addEventListener('halo-joy', on);
     return () => window.removeEventListener('halo-joy', on);
@@ -108,7 +118,8 @@ export function JoyHost() {
     if (current.big && (celebrate || current.preview)) setConfetti({ id: current.id, forced: !!current.preview });
     haptic(current.big ? 20 : 10);
     if (current.card && !current.hold) return;
-    const t = setTimeout(() => setQueue((q) => q.slice(1)), current.hold ?? 3500);
+    // With more waiting, each says its piece a little quicker.
+    const t = setTimeout(() => setQueue((q) => q.slice(1)), current.hold ?? (queue.length > 1 ? 2200 : 3500));
     return () => clearTimeout(t);
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -199,6 +210,41 @@ export function JoyHost() {
     }
     if (fresh.length > 0 || seen.some((k) => !keys.includes(k))) actions.updateJoy({ topicSeen: keys });
   }, [topicKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Things turned in this term: 10, 25, 50, 100, 150, 200, a toast each, once. First look is quiet; a count that went
+  // back down (unchecked, or a sync that took one back) lowers the mark so it can be reached again.
+  const termCount = useMemo(() => turnedInCount(data.items), [data.items]);
+  useEffect(() => {
+    if (firstRun) return;
+    const m = termMilestone(termCount);
+    const seen = data.settings.joy?.countSeen;
+    if (seen === undefined) return void actions.updateJoy({ countSeen: m });
+    if (m > seen) joy(termMoment(m));
+    if (m !== seen) actions.updateJoy({ countSeen: m });
+  }, [termCount, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Best day yet: more finished today than on any earlier day (three or more, after a week of history). Once a day:
+  // the first time today beats the record; going higher later the same day stays quiet.
+  const best = useMemo(() => bestDay(data.items, today, data.settings.timezone), [data.items, today, data.settings.timezone]);
+  useEffect(() => {
+    if (firstRun || !best.record) return;
+    const seen = data.settings.joy?.bestDaySeen;
+    if (seen?.day === today) return;
+    joy(bestDayMoment(best.today));
+    actions.updateJoy({ bestDaySeen: { day: today, n: best.today } });
+  }, [best.today, best.record, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Week cleared: everything due this week done with a day or more to spare. Once a week; undone, it can come again.
+  const ws = data.settings.weekStartsOn;
+  const cleared = useMemo(() => weekCleared(data.items, today, data.settings.timezone, ws), [data.items, today, data.settings.timezone, ws]);
+  useEffect(() => {
+    if (firstRun) return;
+    const seen = data.settings.joy?.weekSeen ?? null;
+    if (cleared && seen !== cleared) {
+      joy(weekMoment(ws));
+      actions.updateJoy({ weekSeen: cleared });
+    } else if (!cleared && seen && seen === weekStartOf(today, ws)) actions.updateJoy({ weekSeen: null });
+  }, [cleared, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Streak milestones: 3, 7, 14 and 30 days, a toast each, once (on any device). A broken streak can earn them again.
   const { progress } = useStore();

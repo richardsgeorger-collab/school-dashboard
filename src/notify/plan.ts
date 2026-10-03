@@ -46,7 +46,7 @@ export interface PlanInput {
   /** The plan includes the Sunday recap (Max, or the trial). */
   recap?: boolean;
   /** Class grades that went up in a recent sync (settings.joy.gradeUpRecent). */
-  gradeUps?: { courseId: string; code: string; percent: number; at: string }[];
+  gradeUps?: { courseId: string; code: string; percent: number; letter?: string | null; at: string }[];
 }
 
 export const DEFAULT_PREFS: Required<Pick<ReminderPrefs, 'morningTime' | 'quietFrom' | 'quietTo' | 'morning' | 'heavyDay' | 'notStarted' | 'resync' | 'sunday' | 'participation' | 'gradeUp'>> = { morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00', morning: true, heavyDay: true, notStarted: true, resync: true, sunday: true, participation: true, gradeUp: true };

@@ -1,0 +1,22 @@
+import { readFileSync } from 'node:fs';
+import { createClient } from '@supabase/supabase-js';
+import { chromium } from 'playwright-core';
+const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
+const admin = createClient(env.VITE_SUPABASE_URL, env.SERVICE_ROLE, { auth: { persistSession: false } });
+const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];
+const { data: link } = await admin.auth.admin.generateLink({ type: 'magiclink', email: 'richards.georger+review@gmail.com' });
+const c = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+const { data: s } = await c.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
+const b = await chromium.launch({ channel: 'chrome', headless: true });
+const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
+await ctx.addInitScript(({ s, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(s)); }, { s: s.session, key: `sb-${ref}-auth-token` });
+const p = await ctx.newPage();
+await p.goto(`${process.env.BASE}#/now`, { waitUntil: 'load' });
+await p.waitForTimeout(4000);
+// "A deploy happens": every code file this tab has not loaded yet is gone from the server.
+await ctx.route('**/assets/*.js', (route) => route.fulfill({ status: 404, body: 'not found' }));
+await p.click('a[href="#/calendar"]').catch(() => p.goto(`${process.env.BASE}#/calendar`));
+await p.waitForTimeout(3000);
+console.log('after the deploy, opening Calendar:', (await p.$eval('.app-failed', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => 'no error screen')).slice(0, 220));
+console.log('url now:', p.url());
+await b.close();

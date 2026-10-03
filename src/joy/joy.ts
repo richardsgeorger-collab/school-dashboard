@@ -1,4 +1,6 @@
-import type { Course, Item } from '../domain/types';
+import { addDays, dateOf, fmtMinutes, weekStart } from '../domain/dates';
+import { letterFor } from '../domain/grades';
+import type { Course, DateStr, Item } from '../domain/types';
 
 /**
  * The rewards (George, 2026-10-02: "the dopamine system"). Pure, so every claim is tested. Everything here comes from
@@ -52,17 +54,34 @@ export function turnedInSince(before: Item[], after: Item[]): number {
   }).length;
 }
 
+export interface GradeUp {
+  courseId: string;
+  code: string;
+  percent: number;
+  /** The new letter, only when the rise crossed into it ("now an A"). */
+  letter?: string | null;
+}
+
 /** Classes whose grade from Halo went up in a sync. Never a drop; never a class with no grade before. */
-export function gradeUps(before: Course[], after: Course[]): { courseId: string; code: string; percent: number }[] {
-  const was = new Map(before.map((c) => [c.id, c.haloGrade?.percent ?? null]));
+export function gradeUps(before: Course[], after: Course[]): GradeUp[] {
+  const was = new Map(before.map((c) => [c.id, c]));
+  const letter = (c: Course) => letterFor(c.haloGrade?.percent ?? null, c.gradeScale) ?? c.haloGrade?.letter ?? null;
   return after
     .filter((c) => {
-      const b = was.get(c.id);
+      const b = was.get(c.id)?.haloGrade?.percent ?? null;
       const a = c.haloGrade?.percent ?? null;
-      return b !== null && b !== undefined && a !== null && a - b >= 0.5;
+      return b !== null && a !== null && a - b >= 0.5;
     })
-    .map((c) => ({ courseId: c.id, code: c.code, percent: Math.round(c.haloGrade!.percent!) }));
+    .map((c) => {
+      const from = letter(was.get(c.id)!);
+      const to = letter(c);
+      return { courseId: c.id, code: c.code, percent: Math.round(c.haloGrade!.percent!), ...(to && from && to !== from ? { letter: to } : {}) };
+    });
 }
+
+const article = (l: string) => (/^[AEFHILMNORSX]/.test(l) ? 'an' : 'a');
+/** "Your BIO-181 grade went up to 93%, now an A." */
+export const gradeUpText = (g: GradeUp): string => `Your ${g.code} grade went up to ${g.percent}%${g.letter ? `, now ${article(g.letter)} ${g.letter}` : ''}.`;
 
 /** The line under a check-off: "+50 pts done · CHM-113L is 34% complete", with "2 days early" when it was. */
 export function doneLine(points: number, code: string | null, pct: number | null, early: number | null = null): string {
@@ -97,8 +116,8 @@ export function gradedWell(before: Item[], after: Item[]): GradedWell[] {
     .map((i) => ({ id: i.id, label: i.label || i.title, score: i.score!, points: i.points }));
 }
 
-/** "Graded: 47/50 on Lab 3." */
-export const gradedLine = (g: GradedWell): string => `Graded: ${+g.score.toFixed(1)}/${g.points} on ${g.label}.`;
+/** "Graded: 47/50 on Lab 3.", or "Full marks: 50/50 on Lab 3." */
+export const gradedLine = (g: GradedWell): string => `${g.score >= g.points ? 'Full marks' : 'Graded'}: ${+g.score.toFixed(1)}/${g.points} on ${g.label}.`;
 
 export interface TopicDone {
   key: string;
@@ -144,7 +163,7 @@ export interface JoyEvent {
 }
 
 export const syncMoment = (n: number): JoyEvent => ({ text: `Nice. ${n} ${n === 1 ? 'thing' : 'things'} turned in since last sync.`, big: true });
-export const gradeUpMoment = (g: { code: string; percent: number }): JoyEvent => ({ text: `Your ${g.code} grade went up to ${g.percent}%.` });
+export const gradeUpMoment = (g: GradeUp): JoyEvent => ({ text: gradeUpText(g) });
 export const CLEAR_MOMENT: JoyEvent = { text: "You're clear for today.", big: true };
 export const streakMoment = (days: number): JoyEvent => ({ text: `${days}-day streak going.` });
 export const topicMoment = (code: string | null | undefined, topic: string): JoyEvent => ({ text: `${code ? `${code} · ` : ''}${topic} cleared.` });
@@ -156,4 +175,51 @@ export function classMilestoneMoment(code: string, name: string, m: 25 | 50 | 75
 }
 
 /** What the grade-up push says: one class by name and number, several by name. Used by the planner and the preview. */
-export const gradeUpBody = (ups: { code: string; percent: number }[]): string => (ups.length === 1 ? `Your ${ups[0].code} grade went up to ${ups[0].percent}%.` : `Your ${ups.map((g) => g.code).slice(0, 3).join(' and ')} grades went up.`);
+export const gradeUpBody = (ups: GradeUp[]): string => (ups.length === 1 ? gradeUpText(ups[0]) : `Your ${ups.map((g) => g.code).slice(0, 3).join(' and ')} grades went up.`);
+
+// ---- more moments (2026-10-02, round two) ----------------------------------------------------------------------------
+
+/** Things turned in on Halo this term, counted at 10, 25, 50, 100, 150 and 200. */
+export const TERM_MILESTONES = [10, 25, 50, 100, 150, 200] as const;
+export const turnedInCount = (items: Item[]): number => items.filter((i) => i.source === 'halo' && isTurnedIn(i)).length;
+export const termMilestone = (n: number): number => [...TERM_MILESTONES].reverse().find((m) => n >= m) ?? 0;
+export const termMoment = (m: number): JoyEvent => ({ text: `${m} things turned in this term.` });
+
+/** When something was finished: Halo's submission time when there is one, else the check-off. */
+const finishedAt = (i: Item): string | null => (isWorkDone(i) ? (i.halo?.submittedAt ?? (i.status === 'done' ? i.completedAt : null)) : null);
+
+/**
+ * Today's count against every earlier day. A best day needs three things today, more than any earlier day, and at
+ * least a week of earlier days with something finished, so the first week of term is not a string of records.
+ */
+export function bestDay(items: Item[], today: DateStr, tz: string): { today: number; best: number; record: boolean } {
+  const per = new Map<DateStr, number>();
+  for (const i of items) {
+    const at = finishedAt(i);
+    if (at && !Number.isNaN(Date.parse(at))) per.set(dateOf(at, tz), (per.get(dateOf(at, tz)) ?? 0) + 1);
+  }
+  const n = per.get(today) ?? 0;
+  const earlier = [...per].filter(([d]) => d < today);
+  const best = earlier.reduce((m, [, c]) => Math.max(m, c), 0);
+  return { today: n, best, record: n >= 3 && n > best && earlier.length >= 7 };
+}
+export const bestDayMoment = (n: number): JoyEvent => ({ text: `Best day yet: ${n} things done today.` });
+
+/**
+ * Everything due this week (two or more things) done with at least a day of the week left: the week start, else null.
+ * On the last day it is just a clear day, which has its own moment.
+ */
+export function weekCleared(items: Item[], today: DateStr, tz: string, weekStartsOn: 0 | 1 = 1): DateStr | null {
+  const start = weekStart(today, weekStartsOn);
+  const end = addDays(start, 6);
+  if (today >= end) return null;
+  const due = items.filter((i) => i.dueAt && dateOf(i.dueAt, tz) >= start && dateOf(i.dueAt, tz) <= end);
+  return due.length >= 2 && due.every(isWorkDone) ? start : null;
+}
+export const weekMoment = (weekStartsOn: 0 | 1 = 1): JoyEvent => ({ text: `Week cleared. Nothing else due until ${weekStartsOn === 1 ? 'Monday' : 'Sunday'}.` });
+
+/** After the time tap: quicker than planned by a quarter or more. Never anything about being slower. */
+export function fasterMoment(actual: number, planned: number): JoyEvent | null {
+  if (!(actual > 0) || planned < 20 || actual > planned * 0.75) return null;
+  return { text: `Faster than planned: ${fmtMinutes(actual)}, planned ${fmtMinutes(planned)}.` };
+}

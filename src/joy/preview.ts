@@ -1,5 +1,5 @@
 import { BADGES, badgeMoment, type BadgeId } from './badges';
-import { classMilestoneMoment, CLEAR_MOMENT, doneLine, gradeUpBody, gradedMoment, gradeUpMoment, streakMoment, syncMoment, topicMoment, type JoyEvent } from './joy';
+import { bestDayMoment, classMilestoneMoment, CLEAR_MOMENT, doneLine, fasterMoment, gradeUpBody, gradedMoment, gradeUpMoment, streakMoment, syncMoment, termMoment, topicMoment, weekMoment, type JoyEvent } from './joy';
 import { haloDoneLine, type JoySnap } from './extSnapshot';
 import { wrapLine } from './wrap';
 
@@ -44,7 +44,8 @@ const NAME = 'Introductory Chemistry Lab';
 export const SAMPLE_SNAP: JoySnap = { v: 1, celebrate: true, items: { 'sample-1': [50, '0', 0] }, classes: { '0': [CODE, 22, 200] } };
 export const HALO_CARD_LINE = haloDoneLine(SAMPLE_SNAP, 'sample-1') as string;
 export const SAMPLE_WRAP_LINE = wrapLine({ weekStart: '2026-09-21', weekEnd: '2026-09-27', turnedIn: 9, points: 620, best: true }, 'Last week') as string;
-const GRADE_UP = { code: 'CHM-113', percent: 91 };
+const GRADE_UP = { courseId: 'sample', code: 'CHM-113', percent: 91 };
+const GRADE_LETTER = { courseId: 'sample', code: 'BIO-181', percent: 93, letter: 'A' };
 
 const say = (e: JoyEvent, auto: boolean): JoyEvent => ({ ...e, preview: true, ...(e.card && auto ? { hold: 3200 } : {}) });
 const toast = (id: string, group: string, label: string, e: () => JoyEvent): Moment => ({ id, group, label, play: (s, o) => (s.say(say(e(), o.auto)), TOAST_MS) });
@@ -59,7 +60,13 @@ export const MOMENTS: Moment[] = [
   { id: 'levels', group: 'Level up', label: 'All 8 levels', play: (s) => { for (let n = 1; n <= 8; n++) setTimeout(() => s.level(n, n > 1, true), (n - 1) * 1400); return 8 * 1400; } },
   ...BADGES.map((b: BadgeId) => toast(`badge-${b}`, 'Badges', b === 'early_bird' ? 'Early bird' : b === 'no_late_week' ? 'No late work this week' : b === 'heavy_week' ? 'Survived a heavy week' : 'Clean sweep', () => badgeMoment(b))),
   { id: 'grade-up', group: 'Grades', label: 'Grade up + push', play: (s, o) => (s.say(say(gradeUpMoment(GRADE_UP), o.auto)), s.push('Grade up', gradeUpBody([GRADE_UP])), TOAST_MS) },
+  { id: 'grade-letter', group: 'Grades', label: 'Grade up to a new letter', play: (s, o) => (s.say(say(gradeUpMoment(GRADE_LETTER), o.auto)), s.push('Grade up', gradeUpBody([GRADE_LETTER])), TOAST_MS) },
   toast('graded', 'Grades', 'Graded well', () => gradedMoment({ id: 'sample', label: 'Lab 3', score: 47, points: 50 })),
+  toast('full-marks', 'Grades', 'Full marks', () => gradedMoment({ id: 'sample', label: 'Lab 3', score: 50, points: 50 })),
+  toast('faster', 'Check-off', 'Faster than planned', () => fasterMoment(30, 60) as JoyEvent),
+  ...[10, 25, 50, 100].map((n) => toast(`term-${n}`, 'This term', `${n} turned in`, () => termMoment(n))),
+  toast('best-day', 'Records', 'Best day yet', () => bestDayMoment(6)),
+  toast('week-cleared', 'The week', 'Week cleared', () => weekMoment(1)),
   toast('topic', 'Topics', 'Topic cleared', () => topicMoment('CHM-113', 'Topic 4')),
   { id: 'monday', group: 'The week', label: 'Monday "Last week" card', play: (s) => (s.wrap(), 3000) },
   { id: 'halo', group: 'Extension', label: 'Confetti on Halo', play: (s) => (s.haloCard(HALO_CARD_LINE), 4500) },

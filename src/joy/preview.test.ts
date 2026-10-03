@@ -105,6 +105,12 @@ describe('the Celebrations preview changes nothing', () => {
     expect(BADGES.map((b) => said(`badge-${b}`)[0])).toEqual(['Badge: Early bird.', 'Badge: No late work this week.', 'Badge: Survived a heavy week.', 'Badge: Clean sweep.']);
     expect(said('grade-up')).toEqual(['Your CHM-113 grade went up to 91%.', 'Grade up: Your CHM-113 grade went up to 91%.']);
     expect(said('graded')).toEqual(['Graded: 47/50 on Lab 3.']);
+    expect(said('full-marks')).toEqual(['Full marks: 50/50 on Lab 3.']);
+    expect(said('grade-letter')).toEqual(['Your BIO-181 grade went up to 93%, now an A.', 'Grade up: Your BIO-181 grade went up to 93%, now an A.']);
+    expect(said('faster')).toEqual(['Faster than planned: 30m, planned 1h.']);
+    expect(said('term-25')).toEqual(['25 things turned in this term.']);
+    expect(said('best-day')).toEqual(['Best day yet: 6 things done today.']);
+    expect(said('week-cleared')).toEqual(['Week cleared. Nothing else due until Monday.']);
     expect(said('topic')).toEqual(['CHM-113 · Topic 4 cleared.']);
     expect(said('halo')).toEqual(['+50 pts · CHM-113L now 36% done']);
     expect(HALO_CARD_LINE).toBe('+50 pts · CHM-113L now 36% done');
@@ -114,8 +120,9 @@ describe('the Celebrations preview changes nothing', () => {
 
   it('is the same code students see, not a copy', () => {
     const host = read('src/joy/JoyHost.tsx');
-    for (const b of ['syncMoment(', 'gradeUpMoment(', 'gradedMoment(', 'classMilestoneMoment(', 'topicMoment(', 'streakMoment(', 'badgeMoment(']) expect(host).toContain(b);
+    for (const b of ['termMoment(', 'bestDayMoment(', 'weekMoment(', 'syncMoment(', 'gradeUpMoment(', 'gradedMoment(', 'classMilestoneMoment(', 'topicMoment(', 'streakMoment(', 'badgeMoment(']) expect(host).toContain(b);
     expect(read('src/views/Now.tsx')).toContain('joy(CLEAR_MOMENT)');
+    expect(read('src/components/TimeAsk.tsx')).toContain('fasterMoment(minutes, item.estimatedMinutes)');
     expect(read('src/notify/plan.ts')).toContain('gradeUpBody(fresh)');
     expect(read('src/views/Celebrate.tsx')).toContain('<LevelUp');
     expect(read('src/components/Nav.tsx')).toContain('<BrandMark');

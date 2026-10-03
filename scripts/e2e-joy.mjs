@@ -10,7 +10,7 @@ const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split(
 const BASE = process.env.BASE ?? 'http://localhost:4174/school-dashboard/';
 const OUT = 'docs/screens/joy';
 mkdirSync(OUT, { recursive: true });
-const PHASES = (process.env.PHASES ?? '1,2,3,4,5,7').split(',').map(Number);
+const PHASES = (process.env.PHASES ?? '1,2,3,4,5,7,8').split(',').map(Number);
 const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];
 const kit = personaKit(env);
 const db = kit.db;
@@ -438,6 +438,90 @@ try {
         let left = 'waiting';
         for (let i = 0; i < 12 && left !== null; i++) { await p.waitForTimeout(1000); left = (await settingsOf(s.id)).joy?.pending ?? null; }
         check(left === null, `shown once, then cleared (${JSON.stringify(left)})`);
+      }
+      await ctx.close();
+    }
+  }
+  // ---------------------------------------------------------------- PHASE 8 (round two)
+  if (PHASES.includes(8)) {
+    console.log('— Phase 8: week cleared, faster than planned, best day, the term, a new letter');
+    const s = await kit.persona('max');
+    {
+      const { ctx, p } = await open(s, 'desk', 'light');
+      await settle(p);
+      await ctx.close();
+    }
+    const j0 = (await settingsOf(s.id)).joy ?? {};
+    check(typeof j0.countSeen === 'number' && j0.weekSeen === undefined, `first look records the term count quietly (countSeen ${j0.countSeen}), nothing celebrated`);
+    const tz = 'America/Phoenix';
+    const day = (iso) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(iso));
+    const today = day(new Date().toISOString());
+    const wd = new Date(`${today}T12:00:00Z`).getUTCDay(); // 0 Sunday
+    const ws = (await settingsOf(s.id)).weekStartsOn ?? 0;
+    const start = new Date(Date.parse(`${today}T12:00:00Z`) - ((wd - ws + 7) % 7) * 86_400_000).toISOString().slice(0, 10);
+    const end = new Date(Date.parse(`${start}T12:00:00Z`) + 6 * 86_400_000).toISOString().slice(0, 10);
+    if (today >= end) console.log('  (today is the last day of the week: week cleared is a clear day instead; skipped)');
+    else {
+      // This week: everything done except one thing due on the week's last day, planned at an hour.
+      let rows = await itemsOf(s.id);
+      const inWeek = rows.filter((r) => r.data.dueAt && day(r.data.dueAt) >= start && day(r.data.dueAt) <= end);
+      const last = rows.find((r) => r.data.source === 'halo' && r.data.points > 0 && r.data.status !== 'done' && r.data.score === null && !r.data.halo?.submittedAt);
+      for (const r of inWeek) if (r.id !== last.id) await putItem(r, { status: 'done', completedAt: new Date(Date.now() - 3_600_000).toISOString() });
+      await putItem(last, { dueAt: `${end}T23:00:00-07:00`, status: 'todo', completedAt: null, estimatedMinutes: 60, estimateOverridden: true, snoozedUntil: null });
+      // A best day: today one short of beating every earlier day, and the check-off below makes it.
+      rows = await itemsOf(s.id);
+      const per = new Map();
+      for (const r of rows) { const at = r.data.halo?.submittedAt ?? (r.data.status === 'done' ? r.data.completedAt : null); if (at) per.set(day(at), (per.get(day(at)) ?? 0) + 1); }
+      const best = Math.max(0, ...[...per].filter(([d]) => d < today).map(([, n]) => n));
+      const need = Math.max(2, best) - (per.get(today) ?? 0);
+      const spare = rows.filter((r) => r.id !== last.id && r.data.status !== 'done' && !(r.data.dueAt && day(r.data.dueAt) >= start && day(r.data.dueAt) <= end)).slice(0, Math.max(0, need));
+      for (const r of spare) await putItem(r, { status: 'done', completedAt: new Date(Date.now() - 1_800_000).toISOString() });
+      await patchSettings(s.id, { joy: { ...((await settingsOf(s.id)).joy ?? {}), weekSeen: null, bestDaySeen: null, clearDay: today } });
+      const { ctx, p } = await open(s, 'desk', 'light', '#/calendar');
+      await p.waitForSelector('.item-row', { timeout: 30000 });
+      await p.waitForTimeout(4000);
+      const seen = new Set();
+      // A finished class's card can come first (it waits for Nice, as it does for a student).
+      const watch = setInterval(async () => { const t = await p.locator('.joy-toast').innerText().catch(() => ''); if (t) seen.add(t.replace(/\s+/g, ' ').trim()); if (await p.locator('.joy-card').count().catch(() => 0)) { seen.add(`card: ${await p.locator('.joy-card-title').innerText().catch(() => '')}`); await p.locator('.joy-card button:has-text("Nice")').click().catch(() => undefined); } }, 150);
+      const row = p.locator('.item-row', { hasText: last.data.label }).first();
+      await row.scrollIntoViewIfNeeded();
+      await row.locator('button.check').click();
+      await p.waitForSelector('.time-ask', { timeout: 6000 });
+      await p.waitForTimeout(600);
+      if (await p.locator('.levelup').count()) { await p.locator('.levelup').click(); await p.waitForTimeout(400); }
+      if (await p.locator('.joy-card').count()) await p.locator('.joy-card button:has-text("Nice")').click().catch(() => undefined);
+      await p.locator('.time-ask button:has-text("30m")').click();
+      for (let i = 0; i < 60 && !(seen.has('Faster than planned: 30m, planned 1h.') && [...seen].some((t) => t.startsWith('Week cleared.'))); i++) await p.waitForTimeout(250);
+      await p.waitForSelector('.joy-toast', { timeout: 15000 }).catch(() => undefined);
+      await p.screenshot({ path: `${OUT}/p8-round-two-desk-light.png` });
+      for (let i = 0; i < 40; i++) await p.waitForTimeout(250);
+      clearInterval(watch);
+      const list = [...seen];
+      check(list.some((t) => /^Week cleared\. Nothing else due until (Sunday|Monday)\.$/.test(t)), `week cleared: ${JSON.stringify(list.filter((t) => t.startsWith('Week')))}`);
+      check(list.includes('Faster than planned: 30m, planned 1h.'), 'faster than planned after the time tap');
+      check(list.filter((t) => /^Best day yet: \d+ things done today\.$/.test(t)).length === 1, `best day, once: ${JSON.stringify(list.filter((t) => t.startsWith('Best')))} (earlier best ${best})`);
+      check(((await settingsOf(s.id)).joy?.weekSeen ?? null) === start, 'the week is recorded once');
+      await ctx.close();
+      // Taking it back: the week is open again, so it can be celebrated again.
+      await putItem((await itemsOf(s.id)).find((r) => r.id === last.id), { status: 'todo', completedAt: null });
+      const r2 = await open(s, 'desk', 'light', '#/calendar');
+      await r2.p.waitForSelector('.item-row', { timeout: 30000 });
+      await r2.p.waitForTimeout(6000);
+      check(((await settingsOf(s.id)).joy?.weekSeen ?? null) === null, 'undoing the last one opens the week again');
+      await r2.ctx.close();
+    }
+    // The term mark (a sync brought the count past one), and a grade up into a new letter: light and dark, desk and phone.
+    for (const [dev, scheme] of COMBOS) {
+      const n = (await itemsOf(s.id)).filter((r) => r.data.source === 'halo' && (r.data.halo?.submittedAt || r.data.score !== null || ['SUBMITTED', 'PUBLISHED'].includes(r.data.halo?.status))).length;
+      const mark = [10, 25, 50, 100, 150, 200].reverse().find((m) => n >= m) ?? 0;
+      const bio = (await coursesOf(s.id)).find((c) => c.data.code === 'BIO-181');
+      await patchSettings(s.id, { joy: { ...((await settingsOf(s.id)).joy ?? {}), countSeen: 0, pending: { turnedIn: 0, gradeUps: [{ courseId: bio.id, code: 'BIO-181', percent: 93, letter: 'A' }], at: new Date().toISOString() } } });
+      const { ctx, p } = await open(s, dev, scheme);
+      const seen = new Set();
+      for (let i = 0; i < 80 && seen.size < 2; i++) { const t = await p.locator('.joy-toast').innerText().catch(() => ''); if (t) seen.add(t.replace(/\s+/g, ' ').trim()); if (seen.size === 1 && i % 8 === 0) await p.screenshot({ path: `${OUT}/p8-letter-${dev}-${scheme}.png` }); await p.waitForTimeout(200); }
+      if (dev === 'desk' && scheme === 'light') {
+        check(seen.has('Your BIO-181 grade went up to 93%, now an A.'), `grade up into a new letter: ${JSON.stringify([...seen])}`);
+        check(mark === 0 || seen.has(`${mark} things turned in this term.`), `the term mark: "${mark} things turned in this term."`);
       }
       await ctx.close();
     }
