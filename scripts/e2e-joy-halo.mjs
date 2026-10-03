@@ -187,7 +187,7 @@ try {
 
   // The extension asks for nothing new.
   const manifest = JSON.parse(readFileSync(join(EXT, 'manifest.json'), 'utf8'));
-  check(manifest.version === '0.5.0' && JSON.stringify(manifest.permissions) === JSON.stringify(['alarms', 'storage', 'unlimitedStorage', 'scripting', 'tabs']), `manifest ${manifest.version}, permissions unchanged`);
+  check(manifest.version >= '0.5.0' && JSON.stringify(manifest.permissions) === JSON.stringify(['alarms', 'storage', 'unlimitedStorage', 'scripting', 'tabs']), `manifest ${manifest.version}, permissions unchanged`);
 } finally {
   await ectx.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);

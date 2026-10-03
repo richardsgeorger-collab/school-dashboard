@@ -18,6 +18,12 @@ now 36% done", from the points Halo+ last handed the extension, and a quiet sync
 Plus and Max; off with You → Display → Celebrations; reduced motion is a glow). The signal is Halo's own success toast,
 read from Halo's code; see the top of `content-halo.js`. Test: `node scripts/e2e-joy-halo.mjs`.
 
+Auto-sync never goes quiet (0.5.1, 2026-10-02): before each sync the worker checks the Halo tab still has its relay
+(`content-halo.js`) and adds it if not, since a tab opened before an install or update has none and every sync through
+it used to stall. A scheduled sync that finds Halo logged out pauses auto-sync: Halo+ says "Auto-sync paused: log in to
+Halo" under the synced line, Admin → Errors hears of it once per stretch, and opening Halo logged in syncs at once.
+Test: `node scripts/e2e-autosync-alarm.mjs` (the popup is never opened; the schedule is 30 seconds in a copy).
+
 It never sees your password. It runs on Halo only while you are already logged in there; if you are not, it says so.
 
 ## Build

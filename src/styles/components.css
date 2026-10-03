@@ -1162,3 +1162,14 @@ input[type='range']::-webkit-slider-thumb {
   color: var(--accent-ink);
   font-weight: 700;
 }
+
+/* Auto-sync paused (the extension found Halo logged out): one calm line under the synced line. */
+.autosync-paused {
+  margin: 4px 0 var(--s-3);
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font: var(--t-small, 500 14px/1.4 var(--font-body));
+}

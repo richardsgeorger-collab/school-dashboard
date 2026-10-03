@@ -55,19 +55,23 @@ const get = (keys) => chrome.storage.local.get(keys);
 const set = (obj) => chrome.storage.local.set(obj);
 
 // ---- the schedule ---------------------------------------------------------------------------------------------------
-async function ensureSchedule() {
+async function ensureSchedule({ wake = false } = {}) {
   const { lastSyncAt, tier } = await get(['lastSyncAt', 'tier']);
   // Not on Max: no schedule at all (a plan that moved down from Max loses its alarm here).
   if (!AUTO.includes(tier)) {
     await chrome.alarms.clear(ALARM);
     return;
   }
-  const due = !lastSyncAt || Date.now() - new Date(lastSyncAt).getTime() > PERIOD_MINUTES * 60_000;
   const alarm = await chrome.alarms.get(ALARM);
+  // Every time the worker wakes (0.5.1): a schedule that is there and sane is left alone; one Chrome dropped (alarms are
+  // not guaranteed to survive a restart) is made again. Never pushed later just because the worker woke up.
+  if (wake && alarm && alarm.periodInMinutes === PERIOD_MINUTES && alarm.scheduledTime - Date.now() <= PERIOD_MINUTES * 60_000) return;
+  const due = !lastSyncAt || Date.now() - new Date(lastSyncAt).getTime() > PERIOD_MINUTES * 60_000;
   // Overdue (Chrome was closed past the time): one run shortly after start, then every three hours from there.
   if (due) await chrome.alarms.create(ALARM, { delayInMinutes: 1, periodInMinutes: PERIOD_MINUTES });
-  else if (!alarm) await chrome.alarms.create(ALARM, { when: new Date(lastSyncAt).getTime() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
+  else if (!alarm || wake) await chrome.alarms.create(ALARM, { when: new Date(lastSyncAt).getTime() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
 }
+void ensureSchedule({ wake: true });
 chrome.runtime.onInstalled.addListener(async (d) => {
   // Before 0.3.0 a sync was stamped "Last synced" whether or not it reached Halo+; that time cannot be trusted.
   if (d.reason === 'update' && d.previousVersion && d.previousVersion < '0.3.0') await chrome.storage.local.remove(['lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt']);
@@ -144,6 +148,20 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     // Halo saves the submission before it says so; a few seconds' wait lets the gateway catch up.
     if (!state.running) setTimeout(() => !state.running && void runSync({ auto: false, quiet: true }), 4000);
     reply({ ok: true });
+  } else if (msg.kind === 'halo-here') {
+    // A Halo page opened. Auto-sync paused on a logged-out Halo picks up now instead of waiting up to three hours.
+    void (async () => {
+      const { tier, autoPaused, lastAttemptAt } = await get(['tier', 'autoPaused', 'lastAttemptAt']);
+      if (!AUTO.includes(tier) || !autoPaused || state.running) return;
+      if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < 2 * 60_000) return;
+      await sleep(3000);
+      if (!state.running) await runSync({ auto: true });
+    })();
+    reply({ ok: true });
+  } else if (msg.kind === 'status') {
+    // Halo+ asks whether auto-sync is paused, to say so on Now.
+    void get(['autoPaused']).then(({ autoPaused }) => reply({ autoPaused: autoPaused || null }));
+    return true;
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
     // through storage, so the reply does not wait for the sync.
@@ -182,7 +200,7 @@ function explain(raw) {
 async function runSync({ auto, quiet = false }) {
   if (state.running) return;
   state.running = true;
-  await set({ running: true, runningSince: new Date().toISOString(), runningAuto: auto, progress: 'Opening Halo…' });
+  await set({ running: true, runningSince: new Date().toISOString(), runningAuto: auto, progress: 'Opening Halo…', lastAttemptAt: new Date().toISOString() });
   let haloTab = null;
   let opened = false;
   try {
@@ -199,6 +217,9 @@ async function runSync({ auto, quiet = false }) {
     }
     // Halo sent the tab to its login page: logged out.
     if (!isHalo(haloTab.url ?? haloTab.pendingUrl)) return await failed(explain('logged out'), auto);
+    // The tab carries the export back through content-halo.js; a tab opened before this extension was installed or
+    // updated has none, and every sync that used it went silent for two minutes (2026-10-02). Ask, and add it if not.
+    await ensureRelay(haloTab.id);
     state.lastProgressAt = Date.now();
     const started = Date.now();
     const payload = await new Promise((resolve) => {
@@ -234,8 +255,31 @@ async function runSync({ auto, quiet = false }) {
   }
 }
 
+/** Makes sure the Halo tab can carry a sync back: content-halo.js answers a ping, or is added now. */
+async function ensureRelay(tabId) {
+  const there = await chrome.tabs.sendMessage(tabId, { kind: 'ping' }).then((r) => !!(r && r.ok)).catch(() => false);
+  if (there) return;
+  await chrome.scripting.executeScript({ target: { tabId }, files: ['celebrate.js', 'content-halo.js'] }).catch(() => undefined);
+}
+
+/** Auto-sync paused (logged out of Halo) or running again: kept, and told to every open Halo+ tab. */
+async function setPaused(why) {
+  const { autoPaused } = await get('autoPaused');
+  const next = why ? { why, at: (autoPaused && autoPaused.why === why && autoPaused.at) || new Date().toISOString() } : null;
+  await set({ autoPaused: next });
+  const tabs = await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` });
+  for (const t of tabs) chrome.tabs.sendMessage(t.id, { kind: 'ext-status', autoPaused: next }).catch(() => undefined);
+}
+
 async function failed(e, auto) {
   await set({ lastError: e.text, lastErrorKind: e.kind, lastErrorAt: new Date().toISOString() });
+  // Logged out of Halo on a scheduled run (Halo's sign-in times out): auto-sync is paused until Halo is open again.
+  // Not silent any more (2026-10-02): Halo+ says so on Now, and Admin → Errors hears of it once per stretch.
+  if (e.kind === 'logged-out' && auto) {
+    const { autoPaused } = await get('autoPaused');
+    await setPaused('logged-out');
+    if (!autoPaused) void reportError({ title: 'Extension auto-sync paused: logged out of Halo', message: 'A scheduled sync found Halo logged out. Auto-sync waits until Halo is open and logged in again.', place: 'scheduled sync', details: { kind: 'logged-out', auto: true } });
+  }
   // Logged out and offline are the student's state, not a fault.
   if (!e.quiet) void reportError({ title: `Extension sync failed: ${{ stalled: 'Halo stopped answering', 'no-classes': 'Halo showed no classes', delivery: 'Halo+ did not take it', other: 'Halo returned an error' }[e.kind] || e.kind}`, message: e.text, place: auto ? 'scheduled sync' : 'sync now', details: { kind: e.kind, auto } });
   // Nothing to nag about when logged out or offline; a Sync now that failed shows a mark until the popup is opened.
@@ -281,6 +325,8 @@ async function toAccount(payload) {
 /** A sync reached the account (or an open Halo+ tab): now, and only now, it is "Last synced". */
 async function markLanded(readAt, how) {
   await set({ lastSyncAt: readAt, lastLanded: how, lastError: null, lastErrorKind: null });
+  const { autoPaused } = await get('autoPaused');
+  if (autoPaused) await setPaused(null);
   const { tier } = await get('tier');
   if (AUTO.includes(tier)) await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
   await chrome.action.setBadgeText({ text: '' });

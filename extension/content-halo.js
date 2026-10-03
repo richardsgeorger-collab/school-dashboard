@@ -17,91 +17,117 @@
 //    Halo's toasts are react-toastify; the text is matched, not the styling, so a restyle does not break it.
 //    Nothing here reads the page beyond those toasts and the address; nothing is sent anywhere but the worker.
 
-// The sync script also says how far it has got ('halo-progress') and when it failed ('halo-failed'). A real account
-// takes minutes, not seconds: the worker waits for as long as progress keeps coming, and shows Halo's own error.
-window.addEventListener('message', (e) => {
-  if (e.source !== window || !e.data) return;
-  if (e.data.kind === 'halo-progress' || e.data.kind === 'halo-failed') {
-    chrome.runtime.sendMessage({ kind: e.data.kind, text: String(e.data.text || '').slice(0, 300) }).catch(() => undefined);
-    return;
-  }
-  if (e.data.kind !== 'halo-export') return;
-  window.postMessage({ kind: 'halo-received', exportedAt: e.data.exportedAt }, location.origin);
-  chrome.runtime.sendMessage({ kind: 'halo-export', payload: e.data });
-});
+// 3. It answers the worker's "are you here?" (0.5.1, 2026-10-02). A Halo tab opened before the extension was installed
+//    or updated has no copy of this script (Chrome adds content scripts only to pages loaded after), so a sync that
+//    reused that tab heard nothing and gave up as "Halo stopped answering" two minutes later. The worker now asks
+//    first and, with no answer, adds this script itself (the scripting permission it already has). That can put a
+//    second copy beside an old one orphaned by an update, so everything here runs once per live extension: a copy whose
+//    extension was replaced steps aside for the new one.
+// 4. Opening Halo while auto-sync is paused because Halo was logged out tells the worker, which syncs then.
 
-// ---- a confirmed submission -----------------------------------------------------------------------------------------
-const DONE = [
-  { re: /^Assignment has been submitted\./, kind: 'assignment' },
-  { re: /^Quiz successfully submitted/, kind: 'quiz' },
-  { re: /^Discussion post has been submitted/, kind: 'discussion' },
-];
-
-// Which assessment the page is on. Halo closes the submit modal (clearing the address) a moment before its toast, so
-// the last one seen in the last few minutes is kept.
-let seen = { id: null, kind: null, at: 0 };
-function look() {
-  const h = location.hash;
-  let m = /(?:^#|\/)assignment-submission\/([^/?#]+)/.exec(h);
-  if (m) return (seen = { id: decodeURIComponent(m[1]), kind: 'assignment', at: Date.now() });
-  m = /(?:^#|\/)discussion-submission\/([^/?#]+)/.exec(h);
-  if (m) return (seen = { id: decodeURIComponent(m[1]), kind: 'discussion', at: Date.now() });
-  m = /^\/quiz\/([^/?#]+)/.exec(location.pathname);
-  if (m) return (seen = { id: decodeURIComponent(m[1]), kind: 'quiz', at: Date.now() });
-}
-look();
-setInterval(look, 700);
-window.addEventListener('hashchange', look);
-
-let lastMoment = 0;
-function onToast(text) {
-  const hit = DONE.find((d) => d.re.test(text));
-  if (!hit) return;
-  look();
-  const fresh = Date.now() - seen.at < 5 * 60_000 && seen.kind === hit.kind;
-  // A reply in a discussion shows the same toast as a DQ response; only the response (its modal) is a submission.
-  if (hit.kind === 'discussion' && !fresh) return;
-  // One moment per submission, whatever else Halo re-renders.
-  if (Date.now() - lastMoment < 8000) return;
-  lastMoment = Date.now();
-  const id = fresh ? seen.id : null;
-  void celebrate(id);
-}
-
-const observer = new MutationObserver((records) => {
-  for (const r of records)
-    for (const n of r.addedNodes) {
-      if (n.nodeType !== 1) continue;
-      const t = (n.textContent || '').trim();
-      if (t && t.length < 400) onToast(t);
+(function () {
+  const alive = () => {
+    try {
+      return !!chrome.runtime?.id;
+    } catch {
+      return false;
     }
-});
-observer.observe(document.documentElement, { childList: true, subtree: true });
+  };
+  const prev = globalThis.__haloPlusHalo;
+  if (prev && prev.alive()) return;
+  globalThis.__haloPlusHalo = { alive };
+  chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+    if (msg && msg.kind === 'ping') reply({ ok: true });
+  });
+  // A real Halo page (not its sign-in), so the worker can pick up a paused auto-sync now.
+  if (!/^\/(login|auth|admin\/login|halo-admin\/login)/.test(location.pathname)) chrome.runtime.sendMessage({ kind: 'halo-here' }).catch(() => undefined);
 
-async function celebrate(haloId) {
-  let s = {};
-  try {
-    s = await chrome.storage.local.get(['joySnap', 'tier']);
-  } catch {
-    /* the extension was updated under this page */
+  // The sync script also says how far it has got ('halo-progress') and when it failed ('halo-failed'). A real account
+  // takes minutes, not seconds: the worker waits for as long as progress keeps coming, and shows Halo's own error.
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data) return;
+    if (e.data.kind === 'halo-progress' || e.data.kind === 'halo-failed') {
+      chrome.runtime.sendMessage({ kind: e.data.kind, text: String(e.data.text || '').slice(0, 300) }).catch(() => undefined);
+      return;
+    }
+    if (e.data.kind !== 'halo-export') return;
+    window.postMessage({ kind: 'halo-received', exportedAt: e.data.exportedAt }, location.origin);
+    chrome.runtime.sendMessage({ kind: 'halo-export', payload: e.data });
+  });
+
+  // ---- a confirmed submission -----------------------------------------------------------------------------------------
+  const DONE = [
+    { re: /^Assignment has been submitted\./, kind: 'assignment' },
+    { re: /^Quiz successfully submitted/, kind: 'quiz' },
+    { re: /^Discussion post has been submitted/, kind: 'discussion' },
+  ];
+
+  // Which assessment the page is on. Halo closes the submit modal (clearing the address) a moment before its toast, so
+  // the last one seen in the last few minutes is kept.
+  let seen = { id: null, kind: null, at: 0 };
+  function look() {
+    const h = location.hash;
+    let m = /(?:^#|\/)assignment-submission\/([^/?#]+)/.exec(h);
+    if (m) return (seen = { id: decodeURIComponent(m[1]), kind: 'assignment', at: Date.now() });
+    m = /(?:^#|\/)discussion-submission\/([^/?#]+)/.exec(h);
+    if (m) return (seen = { id: decodeURIComponent(m[1]), kind: 'discussion', at: Date.now() });
+    m = /^\/quiz\/([^/?#]+)/.exec(location.pathname);
+    if (m) return (seen = { id: decodeURIComponent(m[1]), kind: 'quiz', at: Date.now() });
   }
-  // Plus and Max (a Max trial is Max here). Free has no sync to update, so nothing happens there.
-  if (s.tier !== 'plus' && s.tier !== 'max') return;
-  chrome.runtime.sendMessage({ kind: 'submitted' }).catch(() => undefined);
-  const snap = s.joySnap || null;
-  if (snap && snap.celebrate === false) return;
-  globalThis.haloPlusCelebrate(lineFor(snap, haloId));
-}
+  look();
+  setInterval(look, 700);
+  window.addEventListener('hashchange', look);
 
-/** "+50 pts · CHM-113L now 36% done": the class after this one, from the real Halo total. Mirrors src/joy/extSnapshot.ts. */
-function lineFor(snap, haloId) {
-  const it = snap && haloId ? snap.items[haloId] : null;
-  if (!it) return 'Turned in. Halo+ is syncing it now.';
-  const [points, key, done] = it;
-  const c = snap.classes[key];
-  if (!c) return `+${points} pts`;
-  const pct = Math.min(100, Math.floor(((c[1] + (done ? 0 : points)) / c[2]) * 100));
-  return `+${points} pts · ${c[0]} now ${pct}% done`;
-}
+  let lastMoment = 0;
+  function onToast(text) {
+    const hit = DONE.find((d) => d.re.test(text));
+    if (!hit) return;
+    look();
+    const fresh = Date.now() - seen.at < 5 * 60_000 && seen.kind === hit.kind;
+    // A reply in a discussion shows the same toast as a DQ response; only the response (its modal) is a submission.
+    if (hit.kind === 'discussion' && !fresh) return;
+    // One moment per submission, whatever else Halo re-renders.
+    if (Date.now() - lastMoment < 8000) return;
+    lastMoment = Date.now();
+    const id = fresh ? seen.id : null;
+    void celebrate(id);
+  }
 
-// The confetti and the card are celebrate.js (loaded just before this file, see manifest.json).
+  const observer = new MutationObserver((records) => {
+    for (const r of records)
+      for (const n of r.addedNodes) {
+        if (n.nodeType !== 1) continue;
+        const t = (n.textContent || '').trim();
+        if (t && t.length < 400) onToast(t);
+      }
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  async function celebrate(haloId) {
+    let s = {};
+    try {
+      s = await chrome.storage.local.get(['joySnap', 'tier']);
+    } catch {
+      /* the extension was updated under this page */
+    }
+    // Plus and Max (a Max trial is Max here). Free has no sync to update, so nothing happens there.
+    if (s.tier !== 'plus' && s.tier !== 'max') return;
+    chrome.runtime.sendMessage({ kind: 'submitted' }).catch(() => undefined);
+    const snap = s.joySnap || null;
+    if (snap && snap.celebrate === false) return;
+    globalThis.haloPlusCelebrate(lineFor(snap, haloId));
+  }
+
+  /** "+50 pts · CHM-113L now 36% done": the class after this one, from the real Halo total. Mirrors src/joy/extSnapshot.ts. */
+  function lineFor(snap, haloId) {
+    const it = snap && haloId ? snap.items[haloId] : null;
+    if (!it) return 'Turned in. Halo+ is syncing it now.';
+    const [points, key, done] = it;
+    const c = snap.classes[key];
+    if (!c) return `+${points} pts`;
+    const pct = Math.min(100, Math.floor(((c[1] + (done ? 0 : points)) / c[2]) * 100));
+    return `+${points} pts · ${c[0]} now ${pct}% done`;
+  }
+
+  // The confetti and the card are celebrate.js (loaded just before this file, see manifest.json).
+})();

@@ -3,6 +3,7 @@ import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
 import { HowYouSync } from './HowYouSync';
+import { AutoSyncPaused } from '../halo/AutoSyncPaused';
 
 /**
  * The trust line: when what is on screen last matched Halo, or that it never has. Always present, always one line,
@@ -40,9 +41,12 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
   // three-hourly sync is landing.
   const via = !courseId && data.settings.lastPull?.via === 'extension' && data.settings.lastPull.at === at ? ' via extension' : '';
   return (
-    <p className="synced mono" data-level="ok">
-      Synced from Halo {when}
-      {via}.
-    </p>
+    <>
+      <p className="synced mono" data-level="ok">
+        Synced from Halo {when}
+        {via}.
+      </p>
+      {!courseId && <AutoSyncPaused />}
+    </>
   );
 }

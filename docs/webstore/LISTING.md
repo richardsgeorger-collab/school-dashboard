@@ -1,12 +1,12 @@
 # Chrome Web Store listing kit
 
-The listing as it should read for **0.5.0** (confetti on Halo; auto-sync is Max). 0.3.1 is live
+The listing as it should read for **0.5.1** (auto-sync fix; confetti on Halo; auto-sync is Max). 0.3.1 is live
 (https://chromewebstore.google.com/detail/halo+/dookepepmkkakmepjabldmgfmfhfcmnn). Every file to upload is in
 `webstore-upload/` (kept out of git):
 
 | File | Where it goes |
 |---|---|
-| `halo-plus-extension-0.5.0.zip` | Package: manifest.json at the top level of the zip |
+| `halo-plus-extension-0.5.1.zip` | Package: manifest.json at the top level of the zip |
 | `store-icon-128.png` | Store icon: 128×128, 96×96 artwork with 16 px transparent padding |
 | `screenshot-1-now.png` … `screenshot-5-sync-review.png` | Screenshots: exactly 1280×800, 24-bit PNG, no transparency |
 | `promo-tile-440x280.png` | Small promo tile: 440×280, 24-bit PNG, no transparency |
@@ -15,6 +15,20 @@ Remake the package: bump `"version"` in `extension/manifest.json` (every upload)
 from inside `extension/`: `zip -qr -X ../webstore-upload/halo-plus-extension-<version>.zip . -x README.md -x ".*"`.
 Test the zip itself: unzip it somewhere and run `EXT_DIR=<there> node scripts/e2e-autosync-max.mjs` and
 `EXT_DIR=<there> LOCAL_SITE=dist-site node scripts/e2e-extension.mjs`.
+
+## What changed in 0.5.1 (upload this one; 0.5.0 was never submitted)
+
+0.5.1 is 0.5.0 (confetti on Halo) plus an auto-sync fix: a Halo tab opened before the extension was installed or
+updated made every scheduled sync stall, and a logged-out Halo stopped auto-sync without a word. Now the worker adds its
+Halo relay to such a tab itself (the scripting permission it already has), and a logged-out Halo shows "Auto-sync
+paused: log in to Halo" in Halo+, is reported to Halo+'s error log once, and syncs again as soon as Halo is opened.
+No new permission, no new host, no new data leaves the computer.
+
+1. **Package**: upload `webstore-upload/halo-plus-extension-0.5.1.zip`.
+2. **Store listing**: the 0.5.0 description below (nothing new needed for 0.5.1).
+3. **Privacy**: the 0.5.0 changes below, and in the `storage` line the words "and whether auto-sync is paused because
+   Halo was logged out" (already in the `storage` line below).
+4. **Submit for review.**
 
 ## What changed in 0.5.0 (what to update in the dashboard)
 
@@ -102,7 +116,8 @@ halo.gcu.edu: run the sync on Halo's page while the student is logged in; the da
 - `tabs`: find the student's Halo tab (or open one in the background and close it after) and find an open Halo+ tab.
 - `storage`: the last sync time, the plan, the account's sync key (it can only deliver a sync to that account), a
   sync kept while the account cannot be reached, and each Halo assignment's points and class code with the student's
-  Celebrations switch (from Halo+, so a submission on Halo can show "+50 pts · CHM-113L now 36% done").
+  Celebrations switch (from Halo+, so a submission on Halo can show "+50 pts · CHM-113L now 36% done"), and whether
+  auto-sync is paused because Halo was logged out.
 - `unlimitedStorage`: a whole term's export (every class, assignment, rubric and announcement) is several megabytes;
   it is kept only until it reaches the account.
 

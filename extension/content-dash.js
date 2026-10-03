@@ -68,8 +68,25 @@ function handOver(payload, done) {
   }, 400);
 }
 
+// Auto-sync paused (Halo was logged out on a scheduled run) or running again: the page says so on Now (0.5.1).
+const showStatus = (autoPaused) => {
+  try {
+    if (autoPaused) localStorage.setItem('school-dashboard:ext-status', JSON.stringify({ autoPaused }));
+    else localStorage.removeItem('school-dashboard:ext-status');
+  } catch {
+    /* storage unavailable */
+  }
+  window.postMessage({ kind: 'halo-ext-status', autoPaused: autoPaused || null }, location.origin);
+};
+chrome.runtime.sendMessage({ kind: 'status' }).then((r) => showStatus(r && r.autoPaused)).catch(() => undefined);
+
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (!msg) return;
+  if (msg.kind === 'ext-status') {
+    showStatus(msg.autoPaused);
+    reply({ ok: true });
+    return;
+  }
   // A sync just went to the account: the app takes it from there now, not on its next load.
   if (msg.kind === 'pending') {
     window.postMessage({ kind: 'halo-pending' }, location.origin);

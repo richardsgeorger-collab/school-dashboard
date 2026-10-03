@@ -126,7 +126,7 @@ try {
         check(!/mono|Menlo|Courier/i.test(font) && /Inter/.test(font), `the popup uses the app's font: ${font.split(',')[0]}`);
         check(mid.disabled && /Reading|Checking|rubric|Finishing/i.test(mid.step), `while it runs: real progress ("${mid.step}", bar ${mid.fill || 'moving'})`);
         check(!st.lastError && codes.join() === 'CHM-113,CHM-113L', `Sync now finished a ${secs}s sync with no error; classes landed: ${codes.join(', ')}`);
-        check(/^Last synced \d{1,2}:\d{2}\s?[AP]M\s*Next sync around \d{1,2}:\d{2}\s?[AP]M$/.test(status), `the popup says "${status}"`);
+        check(/^Last synced \d{1,2}:\d{2}\s?[AP]M\s*Next sync around (?:[A-Z][a-z]{2} \d{1,2}, )?\d{1,2}:\d{2}\s?[AP]M$/.test(status), `the popup says "${status}"`);
         // Three hours on, never the same minute (the first alarm after install was a minute out).
         const mins = [...status.matchAll(/(\d{1,2}):(\d{2})\s?([AP])M/g)].map(([, h, m, ap]) => ((Number(h) % 12) + (ap === 'P' ? 12 : 0)) * 60 + Number(m));
         const gap = mins.length === 2 ? (mins[1] - mins[0] + 1440) % 1440 : -1;
