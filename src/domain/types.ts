@@ -475,7 +475,7 @@ export interface ReminderPrefs {
 /** The rewards' memory (joy/, 2026-10-02): what has been celebrated, so each moment shows once, on any device. */
 export interface JoyState {
   /** What a sync found, shown on the next open and then cleared: one celebration per sync, never one per item. */
-  pending?: { turnedIn?: number; gradeUps?: { courseId: string; code: string; percent: number }[]; at: string } | null;
+  pending?: { turnedIn?: number; gradeUps?: { courseId: string; code: string; percent: number }[]; graded?: { id: string; label: string; score: number; points: number }[]; at: string } | null;
   /** The last class milestone celebrated (25, 50, 75, 100), per class. A class seen for the first time is recorded silently. */
   classSeen?: Record<string, number>;
   /** The day "You're clear for today" was shown. */
@@ -488,8 +488,8 @@ export interface JoyState {
   wrapSeen?: string | null;
   /** Grades that went up in a sync, for the push (notify/plan.ts): kept two days. */
   gradeUpRecent?: { courseId: string; code: string; percent: number; at: string }[];
-  /** Halo grades already celebrated, by item id (Phase 7). */
-  gradedSeen?: string[];
+  /** Halo topics already celebrated as cleared ("courseId|unitId"). First look records them quietly (Phase 7). */
+  topicSeen?: string[];
 }
 
 export interface Settings {

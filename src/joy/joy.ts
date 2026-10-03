@@ -64,8 +64,67 @@ export function gradeUps(before: Course[], after: Course[]): { courseId: string;
     .map((c) => ({ courseId: c.id, code: c.code, percent: Math.round(c.haloGrade!.percent!) }));
 }
 
-/** The line under a check-off: "+50 pts done · CHM-113L is 34% complete". */
-export function doneLine(points: number, code: string | null, pct: number | null): string {
-  const pts = `+${points} pts done`;
+/** The line under a check-off: "+50 pts done · CHM-113L is 34% complete", with "2 days early" when it was. */
+export function doneLine(points: number, code: string | null, pct: number | null, early: number | null = null): string {
+  const pts = `+${points} pts done${early ? `, ${early} ${early === 1 ? 'day' : 'days'} early` : ''}`;
   return code && pct !== null ? `${pts} · ${code} is ${pct}% complete` : pts;
+}
+
+// ---- Phase 7 (2026-10-02): three of our own ------------------------------------------------------------------------
+
+/** A grade worth celebrating: 90% or better. Only ever up, as with class grades; a lower score is never a moment. */
+export const GRADED_WELL = 0.9;
+
+export interface GradedWell {
+  id: string;
+  label: string;
+  score: number;
+  points: number;
+}
+
+/**
+ * Work that came back graded well in a sync: a Halo score where there was none, on something with points, at 90% or
+ * better. Nothing on a first sync (a whole term of grades arriving is history), and never a lower score.
+ */
+export function gradedWell(before: Item[], after: Item[]): GradedWell[] {
+  if (!before.some((i) => i.source === 'halo')) return [];
+  const was = new Map(before.map((i) => [i.id, i]));
+  return after
+    .filter((i) => {
+      const b = was.get(i.id);
+      return !!b && b.score === null && i.score !== null && i.points > 0 && i.score / i.points >= GRADED_WELL;
+    })
+    .map((i) => ({ id: i.id, label: i.label || i.title, score: i.score!, points: i.points }));
+}
+
+/** "Graded: 47/50 on Lab 3." */
+export const gradedLine = (g: GradedWell): string => `Graded: ${+g.score.toFixed(1)}/${g.points} on ${g.label}.`;
+
+export interface TopicDone {
+  key: string;
+  courseId: string;
+  topic: string;
+}
+
+/**
+ * Halo topics (units) where every assignment with points is turned in or done. A topic of one assignment is that
+ * assignment, so it takes two. Derived fresh each time, so unchecking one takes the topic back.
+ */
+export function topicsCleared(items: Item[]): TopicDone[] {
+  const units = new Map<string, Item[]>();
+  for (const i of items) {
+    if (i.source !== 'halo' || !i.haloUnitId || i.points <= 0) continue;
+    const k = `${i.courseId}|${i.haloUnitId}`;
+    units.set(k, [...(units.get(k) ?? []), i]);
+  }
+  return [...units]
+    .filter(([, list]) => list.length >= 2 && list.every(isWorkDone))
+    .map(([key, list]) => ({ key, courseId: list[0].courseId, topic: list.find((i) => i.topic)?.topic ?? 'A topic' }));
+}
+
+/** Whole days between now and the due time, when it was done at least a day ahead; null otherwise. */
+export function daysEarly(dueAt: string | null, at: string): number | null {
+  if (!dueAt) return null;
+  const d = Math.floor((Date.parse(dueAt) - Date.parse(at)) / 86_400_000);
+  return d >= 1 ? d : null;
 }

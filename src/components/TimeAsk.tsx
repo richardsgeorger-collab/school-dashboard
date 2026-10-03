@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TIME_CHOICES } from '../domain/calibration';
-import { classProgress, doneLine } from '../joy/joy';
+import { classProgress, daysEarly, doneLine } from '../joy/joy';
 import { useStore } from '../storage/store';
 
 const ASK_MS = 15_000;
@@ -29,7 +29,7 @@ export function TimeAsk() {
   };
   // The reward first (2026-10-02): the assignment's own points (Halo's, not XP) and how much of the class is now done.
   const code = courseById.get(item.courseId)?.code ?? null;
-  const line = doneLine(item.points, code, classProgress(item.courseId, data.items)?.pct ?? null);
+  const line = doneLine(item.points, code, classProgress(item.courseId, data.items)?.pct ?? null, daysEarly(item.dueAt, item.completedAt ?? new Date().toISOString()));
   return (
     <div className="time-ask" role="status" aria-live="polite">
       <span className="time-ask-reward">{line}</span>

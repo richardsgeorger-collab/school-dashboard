@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course, Item } from '../domain/types';
-import { classProgress, doneLine, gradeUps, isTurnedIn, milestoneOf, turnedInSince } from './joy';
+import { classProgress, daysEarly, doneLine, gradedLine, gradedWell, gradeUps, isTurnedIn, milestoneOf, topicsCleared, turnedInSince } from './joy';
 
 let n = 0;
 const it_ = (p: Partial<Item>): Item => ({ id: `i${n++}`, courseId: 'c', title: 't', label: 't', points: 10, dueAt: '2026-10-05T06:59:00Z', status: 'todo', completedAt: null, score: null, source: 'halo', halo: null, ...p }) as Item;
@@ -39,5 +39,33 @@ describe('what a sync found', () => {
   it('the line under a check-off', () => {
     expect(doneLine(50, 'CHM-113L', 34)).toBe('+50 pts done · CHM-113L is 34% complete');
     expect(doneLine(20, null, null)).toBe('+20 pts done');
+  });
+});
+
+describe('phase 7: graded well, topics cleared, days early', () => {
+  it('celebrates a new Halo score of 90% or better, never a lower one, never on a first sync', () => {
+    const a = it_({ points: 50, label: 'Lab 3', status: 'done' });
+    const b = it_({ points: 50, label: 'Lab 4', status: 'done' });
+    const c = it_({ points: 50, label: 'Lab 5', status: 'done', score: 40 });
+    const after = [{ ...a, score: 47 }, { ...b, score: 44 }, { ...c, score: 49 }];
+    const got = gradedWell([a, b, c], after);
+    expect(got.map((g) => g.label)).toEqual(['Lab 3']);
+    expect(gradedLine(got[0])).toBe('Graded: 47/50 on Lab 3.');
+    expect(gradedWell([], after)).toEqual([]);
+  });
+  it('clears a topic only when every assignment with points in it is done, and takes it back when one is unchecked', () => {
+    const t1 = it_({ haloUnitId: 'u4', topic: 'Topic 4', status: 'done' });
+    const t2 = it_({ haloUnitId: 'u4', topic: 'Topic 4', halo: { status: 'SUBMITTED', submittedAt: '2026-10-01T00:00:00Z', checkedAt: '' } });
+    const zero = it_({ haloUnitId: 'u4', points: 0 });
+    const solo = it_({ haloUnitId: 'u5', status: 'done' });
+    expect(topicsCleared([t1, t2, zero, solo])).toEqual([{ key: 'c|u4', courseId: 'c', topic: 'Topic 4' }]);
+    expect(topicsCleared([{ ...t1, status: 'todo' }, t2])).toEqual([]);
+  });
+  it('says days early only when it was at least a day ahead', () => {
+    expect(daysEarly('2026-10-05T06:59:00Z', '2026-10-02T20:00:00Z')).toBe(2);
+    expect(daysEarly('2026-10-05T06:59:00Z', '2026-10-04T20:00:00Z')).toBeNull();
+    expect(daysEarly(null, '2026-10-04T20:00:00Z')).toBeNull();
+    expect(doneLine(50, 'CHM-113L', 34, 2)).toBe('+50 pts done, 2 days early · CHM-113L is 34% complete');
+    expect(doneLine(50, 'CHM-113L', 34, 1)).toBe('+50 pts done, 1 day early · CHM-113L is 34% complete');
   });
 });

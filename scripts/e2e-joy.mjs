@@ -203,6 +203,8 @@ try {
       }
       // The last one, from the Calendar too: clear for today.
       await p.evaluate(() => { window.location.hash = '#/calendar'; });
+      // A level-up from the first one may be showing (it depends on the throwaway's XP); it closes on a tap, as for a student.
+      if (await p.locator('.levelup').count()) { await p.locator('.levelup').click(); await p.waitForTimeout(400); }
       await p.locator(`.item-row:has-text("${two[1].data.label}") button.check`).first().click();
       await p.waitForTimeout(400);
       await p.evaluate(() => { window.location.hash = '#/now'; });
@@ -375,6 +377,68 @@ try {
       await p.waitForTimeout(6000);
       const { data: plan } = await db.from('notification_plan').select('kind, body, send_at').eq('user_id', s.id).eq('kind', 'sunday');
       check(plan?.[0]?.body === 'This week: 4 things turned in, 330 pts. Best week yet.' && plan[0].send_at.startsWith('2026-10-05T01:00'), `the Sunday push: "${plan?.[0]?.body}" at ${plan?.[0]?.send_at}`);
+      await ctx.close();
+    }
+  }
+  // ---------------------------------------------------------------- PHASE 7
+  if (PHASES.includes(7)) {
+    console.log('— Phase 7: graded well, topic cleared, days early');
+    const s = await kit.persona('max');
+    {
+      const { ctx, p } = await open(s, 'desk', 'light');
+      await settle(p);
+      await ctx.close();
+    }
+    const courses = await coursesOf(s.id);
+    for (const [dev, scheme] of COMBOS) {
+      // A topic of two: one already turned in, one open and due three days out. Checking the open one off clears it.
+      const rows = (await itemsOf(s.id)).filter((r) => r.data.source === 'halo' && r.data.points > 0);
+      const open1 = rows.find((r) => r.data.status !== 'done' && !r.data.halo?.submittedAt && r.data.score === null && r.data.type === 'homework') ?? rows.find((r) => r.data.status !== 'done' && r.data.score === null);
+      const mate = rows.find((r) => r.id !== open1.id && r.data.courseId === open1.data.courseId);
+      const due = new Date(Date.now() + 3 * 86_400_000 + 3_600_000).toISOString();
+      await putItem(open1, { haloUnitId: 'u-e2e', topic: 'Topic 4', status: 'todo', completedAt: null, dueAt: due, snoozedUntil: null });
+      await putItem(mate, { haloUnitId: 'u-e2e', topic: 'Topic 4', status: 'done', completedAt: new Date().toISOString() });
+      // Everything else in that course leaves the topic.
+      for (const r of rows) if (r.id !== open1.id && r.id !== mate.id && r.data.haloUnitId === 'u-e2e') await putItem(r, { haloUnitId: null });
+      await patchSettings(s.id, { joy: { ...((await settingsOf(s.id)).joy ?? {}), topicSeen: [], pending: null } });
+      const code = courses.find((c) => c.id === open1.data.courseId).data.code;
+      const { ctx, p } = await open(s, dev, scheme, '#/calendar');
+      await p.waitForSelector('.item-row', { timeout: 30000 });
+      await p.waitForTimeout(3500);
+      const row = p.locator('.item-row', { hasText: open1.data.label }).first();
+      await row.scrollIntoViewIfNeeded();
+      await row.locator('button.check').click();
+      await p.waitForSelector('.time-ask-reward', { timeout: 6000 });
+      const line = await p.locator('.time-ask-reward').innerText();
+      await p.waitForSelector(`.joy-toast:has-text("Topic 4 cleared.")`, { timeout: 8000 }).catch(() => undefined);
+      const toast = await p.locator('.joy-toast').innerText().catch(() => null);
+      await p.waitForTimeout(600);
+      await p.screenshot({ path: `${OUT}/p7-early-topic-${dev}-${scheme}.png` });
+      if (dev === 'desk' && scheme === 'light') {
+        check(new RegExp(`^\\+${open1.data.points} pts done, (2|3) days early · ${code} is \\d+% complete$`).test(line), `days early on the check-off: "${line}"`);
+        check(toast === `${code} · Topic 4 cleared.`, `topic cleared: "${toast}"`);
+        // Undo takes the topic back.
+        if (await p.locator('.levelup').count()) { await p.locator('.levelup').click(); await p.waitForTimeout(400); }
+        await p.locator('.time-ask button:has-text("undo")').click();
+        await p.waitForTimeout(2500);
+        check(!((await settingsOf(s.id)).joy?.topicSeen ?? []).includes(`${open1.data.courseId}|u-e2e`), 'unchecking takes the topic back');
+      }
+      await ctx.close();
+    }
+    // Graded well: what a sync found waits in settings.joy.pending (as store.applyHaloSync writes it).
+    for (const [dev, scheme] of COMBOS) {
+      await patchSettings(s.id, { joy: { ...((await settingsOf(s.id)).joy ?? {}), pending: { turnedIn: 0, gradeUps: [], graded: [{ id: 'x1', label: 'Lab 3: Stoichiometry', score: 47, points: 50 }], at: new Date().toISOString() } } });
+      const { ctx, p } = await open(s, dev, scheme);
+      await p.waitForSelector('.joy-toast', { timeout: 30000 });
+      const t = await p.locator('.joy-toast').innerText();
+      await p.waitForTimeout(600);
+      await p.screenshot({ path: `${OUT}/p7-graded-${dev}-${scheme}.png` });
+      if (dev === 'desk' && scheme === 'light') {
+        check(t === 'Graded: 47/50 on Lab 3: Stoichiometry.', `graded well: "${t}"`);
+        let left = 'waiting';
+        for (let i = 0; i < 12 && left !== null; i++) { await p.waitForTimeout(1000); left = (await settingsOf(s.id)).joy?.pending ?? null; }
+        check(left === null, `shown once, then cleared (${JSON.stringify(left)})`);
+      }
       await ctx.close();
     }
   }

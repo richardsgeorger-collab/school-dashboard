@@ -4,7 +4,7 @@ import { maxOpen } from '../onboarding/maxState';
 import { isOpen } from '../onboarding/state';
 import { useAccount } from '../auth/AccountContext';
 import { useStore } from '../storage/store';
-import { classProgress, milestoneOf } from './joy';
+import { classProgress, gradedLine, milestoneOf, topicsCleared } from './joy';
 import { streakMilestone } from './streak';
 import { BADGE_INFO, BADGES, type BadgeId } from './badges';
 import { JOY_SNAP_SLOT, joySnap } from './extSnapshot';
@@ -130,7 +130,11 @@ export function JoyHost() {
     const n = pending.turnedIn ?? 0;
     if (n > 0) joy({ text: `Nice. ${n} ${n === 1 ? 'thing' : 'things'} turned in since last sync.`, big: true });
     for (const g of pending.gradeUps ?? []) joy({ text: `Your ${g.code} grade went up to ${g.percent}%.` });
-    actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), pending: null } });
+    // Work that came back graded well (90% or better), best first; three at most, then a count.
+    const graded = [...(pending.graded ?? [])].sort((a, b) => b.score / b.points - a.score / a.points);
+    for (const g of graded.slice(0, 3)) joy({ text: gradedLine(g) });
+    if (graded.length > 3) joy({ text: `${graded.length - 3} more graded at 90% or better.` });
+    actions.updateJoy({ pending: null });
   }, [pending?.at, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Class milestones: 25, 50 and 75 are a toast; 100 is the finished-class card with confetti. A class seen for the
@@ -158,8 +162,28 @@ export function JoyHost() {
         changed = true;
       }
     }
-    if (changed) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), classSeen: seen } });
+    if (changed) actions.updateJoy({ classSeen: seen });
   }, [progressKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A Halo topic cleared: every assignment with points in it turned in or done. A toast each, once; first look is quiet;
+  // one that is no longer clear (unchecked) can be cleared again.
+  const topicsNow = useMemo(() => topicsCleared(data.items), [data.items]);
+  const topicKey = topicsNow.map((t) => t.key).join(',');
+  useEffect(() => {
+    if (firstRun) return;
+    const seen = data.settings.joy?.topicSeen;
+    const keys = topicsNow.map((t) => t.key);
+    if (seen === undefined) {
+      actions.updateJoy({ topicSeen: keys });
+      return;
+    }
+    const fresh = topicsNow.filter((t) => !seen.includes(t.key));
+    for (const t of fresh.slice(0, 2)) {
+      const code = data.courses.find((c) => c.id === t.courseId)?.code;
+      joy({ text: `${code ? `${code} · ` : ''}${t.topic} cleared.` });
+    }
+    if (fresh.length > 0 || seen.some((k) => !keys.includes(k))) actions.updateJoy({ topicSeen: keys });
+  }, [topicKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Streak milestones: 3, 7, 14 and 30 days, a toast each, once (on any device). A broken streak can earn them again.
   const { progress } = useStore();
@@ -168,11 +192,11 @@ export function JoyHost() {
     const m = streakMilestone(progress.dailyStreak);
     const seen = data.settings.joy?.streakSeen;
     if (seen === undefined) {
-      actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), streakSeen: m } });
+      actions.updateJoy({ streakSeen: m });
       return;
     }
     if (m > seen) joy({ text: `${progress.dailyStreak}-day streak going.` });
-    if (m !== seen) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), streakSeen: m } });
+    if (m !== seen) actions.updateJoy({ streakSeen: m });
   }, [progress.dailyStreak, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A badge earned: a toast, once. First look records what is already earned, quietly; one taken back can be earned again.
@@ -182,11 +206,11 @@ export function JoyHost() {
     const earned = earnedKey ? (earnedKey.split(',') as BadgeId[]) : [];
     const seen = data.settings.joy?.badgesSeen;
     if (seen === undefined) {
-      actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), badgesSeen: earned } });
+      actions.updateJoy({ badgesSeen: earned });
       return;
     }
     for (const b of earned) if (!seen.includes(b)) joy({ text: `Badge: ${BADGE_INFO[b].name}.` });
-    if (earned.join(',') !== [...seen].sort((a, b) => BADGES.indexOf(a as BadgeId) - BADGES.indexOf(b as BadgeId)).join(',')) actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), badgesSeen: earned } });
+    if (earned.join(',') !== [...seen].sort((a, b) => BADGES.indexOf(a as BadgeId) - BADGES.indexOf(b as BadgeId)).join(',')) actions.updateJoy({ badgesSeen: earned });
   }, [earnedKey, firstRun]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // For the extension: what a submission on Halo is worth here, so Halo itself can say "+50 pts · CHM-113L now 36% done".

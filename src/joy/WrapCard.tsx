@@ -17,7 +17,7 @@ export function WrapCard() {
   const w = weekWrap(data.items, sunday, data.settings.timezone);
   const line = wrapLine(w, 'Last week');
   if (!line) return null;
-  const done = () => actions.updateSettings({ joy: { ...(data.settings.joy ?? {}), wrapSeen: sunday } });
+  const done = () => actions.updateJoy({ wrapSeen: sunday });
   return (
     <section className="card wrap-card" data-best={w.best || undefined} aria-label="Last week">
       <HaloDraw size={34} />

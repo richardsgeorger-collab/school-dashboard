@@ -9,13 +9,13 @@ import { dedupeRequirements } from '../domain/requirements';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { applyHaloPlan, type HaloPlan } from '../halo/apply';
-import { gradeUps, turnedInSince } from '../joy/joy';
+import { gradedWell, gradeUps, turnedInSince } from '../joy/joy';
 import { actualStats, calibrate as calibrateItem, withCalibration, type Calibrated } from '../domain/calibration';
 import { applyOnline, bankedAsItems, ledgerWith, logTiming, resetCourseItems } from '../domain/classAdmin';
 import { recordCheck } from '../halo/verification';
 import { recordAnswer } from '../quiz/stats';
 import { diffBatch, loadUndo, revert, saveUndo, type UndoBatch } from './undo';
-import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type HaloCheckRecord, type Item, type ItemStatus, type Settings } from '../domain/types';
+import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type HaloCheckRecord, type Item, type ItemStatus, type JoyState, type Settings } from '../domain/types';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
 import { ENV } from '../env';
@@ -36,6 +36,8 @@ export interface StoreActions {
   upsertCourse(course: Course): void;
   deleteCourse(id: string): void;
   updateSettings(patch: Partial<Settings>): void;
+  /** Merges into settings.joy as it is now, not as a render saw it: two moments in one tick must not undo each other. */
+  updateJoy(patch: Partial<JoyState>): void;
   importParsed(course: Course, items: Item[], mode: 'replace' | 'merge'): void;
   resetToSeed(): void;
   /** Wipe every class and item, keep settings. The account mirror gets the deletions. */
@@ -556,6 +558,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         update((d) => ({ ...d, settings: { ...d.settings, ...patch, updatedAt: nowIso() } }));
         mirror({ kind: 'settings' });
       },
+      updateJoy(patch) {
+        update((d) => ({ ...d, settings: { ...d.settings, joy: { ...(d.settings.joy ?? {}), ...patch }, updatedAt: nowIso() } }));
+        mirror({ kind: 'settings' });
+      },
       importParsed(course, items, mode) {
         const now = nowIso();
         const existing = dataRef.current.items.filter((i) => i.courseId === course.id);
@@ -641,14 +647,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // open. Added to whatever is still waiting, so a sync applied in two passes is still one celebration.
         const turnedIn = turnedInSince(before, r.data.items);
         const ups = gradeUps(beforeCourses, r.data.courses);
-        if (turnedIn > 0 || ups.length > 0) {
+        const graded = gradedWell(before, r.data.items);
+        if (turnedIn > 0 || ups.length > 0 || graded.length > 0) {
           const joy = r.data.settings.joy ?? {};
           const pend = joy.pending ?? { at: now };
           const merged = [...(pend.gradeUps ?? []).filter((g) => !ups.some((u) => u.courseId === g.courseId)), ...ups];
           // Grade ups are also kept two days for the push (notify/plan.ts); a sync on the laptop reaches the phone.
           const twoDays = new Date(Date.parse(now) - 2 * 86_400_000).toISOString();
           const recent = [...(joy.gradeUpRecent ?? []).filter((g) => g.at > twoDays && !ups.some((u) => u.courseId === g.courseId)), ...ups.map((u) => ({ ...u, at: now }))];
-          r.data = { ...r.data, settings: { ...r.data.settings, joy: { ...joy, pending: { turnedIn: (pend.turnedIn ?? 0) + turnedIn, gradeUps: merged, at: now }, gradeUpRecent: recent }, updatedAt: now } };
+          r.data = { ...r.data, settings: { ...r.data.settings, joy: { ...joy, pending: { turnedIn: (pend.turnedIn ?? 0) + turnedIn, gradeUps: merged, graded: [...(pend.graded ?? []).filter((g) => !graded.some((x) => x.id === g.id)), ...graded], at: now }, gradeUpRecent: recent }, updatedAt: now } };
           r.ops.push({ kind: 'settings' });
         }
         update(() => r.data);
