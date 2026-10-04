@@ -2,46 +2,63 @@ import { describe, expect, it } from 'vitest';
 import { mkItem, TZ } from '../halo/fixtures';
 import { cookMeter } from './cook';
 
+// "How much unfinished work this class needs from me in the next 7 days" (George, 2026-10-04).
 const at = (d: string) => `${d}T23:59:00-07:00`;
 const today = '2026-09-17';
 let n = 0;
-const item = (type: Parameters<typeof mkItem>[0]['type'], due: string, minutes = 30, extra = {}) => mkItem({ id: `i${(n += 1)}`, courseId: 'c', title: `${type} ${n}`, label: `${type} ${n}`, type, points: 10, dueAt: at(due), estimatedMinutes: minutes, ...extra });
+const item = (type: Parameters<typeof mkItem>[0]['type'], due: string, minutes = 60, extra = {}) => mkItem({ id: `i${(n += 1)}`, courseId: 'c', title: `${type} ${n}`, label: `${type} ${n}`, type, points: 10, dueAt: at(due), estimatedMinutes: minutes, ...extra });
 
-describe('the Cook meter', () => {
-  it('is Chillin with nothing due, and says so', () => {
+describe('the Cooked meter', () => {
+  it('is green with nothing due this week, and says so', () => {
     const c = cookMeter([], today, TZ);
-    expect(c.level).toBe('Chillin');
-    expect(c.fill).toBe(0);
-    expect(c.why).toBe('Nothing due in the next 2 weeks.');
+    expect(c).toMatchObject({ level: 'green', items: 0, hours: 0 });
+    expect(c.fill).toBeGreaterThan(0);
+    expect(c.why).toBe('Nothing due in the next 7 days.');
   });
-  it('counts a discussion post a little', () => {
-    const c = cookMeter([item('discussion', '2026-09-19', 25)], today, TZ);
-    expect(c.level).toBe('Chillin');
-    expect(c.why).toBe('A discussion post in the next 2 days.');
+  it('counts only the next 7 days: something due in 8 days is not this week', () => {
+    expect(cookMeter([item('paper', '2026-09-25', 600)], today, TZ).items).toBe(0);
+    expect(cookMeter([item('paper', '2026-09-23', 120)], today, TZ).items).toBe(1);
   });
-  it('names the heaviest things first: 2 essays and a quiz in the next 10 days', () => {
-    const c = cookMeter([item('paper', '2026-09-22', 180), item('paper', '2026-09-27', 180), item('quiz', '2026-09-24', 60)], today, TZ);
-    expect(c.why).toBe('2 essays and a quiz in the next 10 days.');
-    expect(['Cooking', 'Cooked']).toContain(c.level);
+  it('never counts work that is checked off, submitted on Halo or graded', () => {
+    const c = cookMeter(
+      [
+        item('homework', '2026-09-20', 120, { status: 'done', completedAt: '2026-09-16T10:00:00Z' }),
+        item('homework', '2026-09-20', 120, { halo: { status: 'SUBMITTED', submittedAt: '2026-09-16T10:00:00Z', checkedAt: '' } }),
+        item('homework', '2026-09-20', 120, { score: 9 }),
+        item('homework', '2026-09-20', 90),
+      ],
+      today,
+      TZ,
+    );
+    expect(c.items).toBe(1);
+    expect(c.why).toBe('1 item, ~1.5h this week.');
   });
-  it('weighs an exam more as it gets close', () => {
-    const far = cookMeter([item('exam', '2026-09-26', 60)], today, TZ).score;
-    const near = cookMeter([item('exam', '2026-09-19', 60)], today, TZ).score;
-    expect(near).toBeGreaterThan(far);
+  it('weighs by hours, not by kind: a short essay is lighter than a long homework', () => {
+    const essay = cookMeter([item('paper', '2026-09-22', 30)], today, TZ).load;
+    const hw = cookMeter([item('homework', '2026-09-22', 150)], today, TZ).load;
+    expect(hw).toBeGreaterThan(essay);
   });
-  it('ignores what is done and what is beyond two weeks', () => {
-    const c = cookMeter([item('paper', '2026-09-20', 180, { status: 'done' }), item('exam', '2026-10-20', 60)], today, TZ);
-    expect(c.score).toBe(0);
+  it('bumps overdue work and work due in the next 48 hours, and says so', () => {
+    const later = cookMeter([item('homework', '2026-09-22', 120)], today, TZ).load;
+    const soon = cookMeter([item('homework', '2026-09-18', 120)], today, TZ);
+    const late = cookMeter([item('homework', '2026-09-15', 120)], today, TZ);
+    expect(soon.load).toBeGreaterThan(later);
+    expect(late.load).toBeGreaterThan(soon.load);
+    expect(late.why).toBe('1 item, ~2h this week, 1 overdue.');
+    expect(soon.why).toBe('1 item, ~2h this week, 1 due in the next 48 hours.');
+    // Overdue for more than two weeks is history, not this week's load.
+    expect(cookMeter([item('homework', '2026-08-30', 120)], today, TZ).items).toBe(0);
   });
-  it('adds overdue work, and says it', () => {
-    const c = cookMeter([item('homework', '2026-09-15', 60), item('lab', '2026-09-20', 120)], today, TZ);
-    expect(c.why).toBe('A lab in the next 3 days, plus 1 overdue.');
+  it('goes green, yellow, red by hours: under 3, from 3, from 6', () => {
+    expect(cookMeter([item('homework', '2026-09-22', 150)], today, TZ).level).toBe('green');
+    expect(cookMeter([item('homework', '2026-09-22', 200)], today, TZ).level).toBe('yellow');
+    expect(cookMeter([item('paper', '2026-09-22', 240), item('homework', '2026-09-21', 150)], today, TZ).level).toBe('red');
   });
-  it('is Cooked under a pile, red only then', () => {
-    const pile = [item('exam', '2026-09-18', 120), item('paper', '2026-09-19', 240), item('project', '2026-09-20', 240), item('lab', '2026-09-21', 120), item('homework', '2026-09-16', 60)];
-    const c = cookMeter(pile, today, TZ);
-    expect(c.level).toBe('Cooked');
-    expect(c.fill).toBe(1);
-    expect(c.why).toBe('An exam, an essay, a project and 1 more in the next 4 days, plus 1 overdue.');
+  it('counts half of something already started, and uses the estimate it is given', () => {
+    expect(cookMeter([item('homework', '2026-09-22', 120, { status: 'in_progress' })], today, TZ).hours).toBe(1);
+    expect(cookMeter([item('homework', '2026-09-22', 120)], today, TZ, () => 30).hours).toBe(0.5);
+  });
+  it('leaves out an unexplained participation check-in', () => {
+    expect(cookMeter([item('participation', '2026-09-19', 20)], today, TZ).items).toBe(0);
   });
 });

@@ -1,90 +1,75 @@
 import { dateOf, diffDays } from './dates';
 import { isNoise } from './requirements';
-import type { DateStr, Item, ItemType } from './types';
+import { isWorkDone } from '../joy/joy';
+import type { DateStr, Item } from './types';
 
 /**
- * The Cook meter: how heavy the next two weeks are in one class. Each open thing due in the next 14 days counts by
- * how heavy its kind is (a discussion a little, a lab more, an essay, project or exam a lot), counts less in the second
- * week, and a quiz or exam counts more as it gets close. Estimated hours add to it, and so does anything overdue (up to
- * a cap, so a backlog alone never reads Cooked).
+ * The Cooked meter (rebuilt 2026-10-04, George: "isn't accurate"). It means one thing: how much unfinished work this
+ * class needs from you in the next 7 days, in hours.
+ *
+ * - Counts only work that is still owed: not submitted or graded on Halo, not checked off here (joy.isWorkDone, the
+ *   same rule as the class progress bar), and not an unexplained participation check-in.
+ * - Counts what is due today through six days from now, and anything overdue from the last two weeks (older than that
+ *   is history, not this week's load).
+ * - Weighs each by its time estimate (the same ~estimate the rows show, calibrated by your own timings when there are
+ *   enough). Something already started counts half. Overdue counts 1.5x, and due in the next 48 hours 1.25x.
+ * - Green under 3 weighted hours, yellow from 3, red from 6. The bar is full at 9. Nothing owed is green.
+ *
+ * The old meter scored kinds of work (an essay was 5 whatever its length) over 14 days, so a class with 3 hours of
+ * real work this week could read Cooked from what was due the week after.
  */
-export type CookLevel = 'Chillin' | 'Warm' | 'Cooking' | 'Cooked';
+export type CookLevel = 'green' | 'yellow' | 'red';
 
-const WEIGHT: Record<ItemType, number> = { discussion: 1, participation: 0, homework: 2, other: 1.5, lab: 3, quiz: 5, paper: 5, project: 5, exam: 6 };
-/** What each kind is called in the why line. */
-const NOUN: Record<ItemType, [string, string]> = {
-  paper: ['essay', 'essays'],
-  project: ['project', 'projects'],
-  exam: ['exam', 'exams'],
-  quiz: ['quiz', 'quizzes'],
-  lab: ['lab', 'labs'],
-  homework: ['assignment', 'assignments'],
-  discussion: ['discussion post', 'discussion posts'],
-  other: ['other thing', 'other things'],
-  participation: ['check-in', 'check-ins'],
-};
-const HORIZON = 14;
-/** Score where each level starts; the bar is full at FULL. */
-const LEVELS: [number, CookLevel][] = [
-  [0, 'Chillin'],
-  [5, 'Warm'],
-  [11, 'Cooking'],
-  [18, 'Cooked'],
-];
-const FULL = 24;
+export const WINDOW_DAYS = 7;
+const OVERDUE_LOOKBACK = 14;
+export const YELLOW_AT = 3;
+export const RED_AT = 6;
+const FULL_AT = 9;
 
 export interface Cook {
   level: CookLevel;
   /** 0 to 1, how full the bar is. */
   fill: number;
-  score: number;
-  /** One line on why, e.g. "2 essays and a quiz in the next 10 days." */
+  /** Weighted hours: the estimate, with the bumps for overdue and due soon. */
+  load: number;
+  /** Plain hours of work owed (the estimates, not weighted). */
+  hours: number;
+  items: number;
+  overdue: number;
+  soon: number;
+  /** One line on why: "4 items, ~5h this week, 1 overdue". */
   why: string;
 }
 
-const count = (n: number, noun: string): string => (n === 1 ? `${/^[aeiou]/.test(noun) ? 'an' : 'a'} ${noun}` : `${n} ${noun}`);
-const list = (parts: string[]): string => (parts.length <= 1 ? parts.join('') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`);
+const fmtHours = (h: number): string => (h < 1 ? `~${Math.max(5, Math.round((h * 60) / 5) * 5)}m` : `~${h < 10 ? Math.round(h * 10) / 10 : Math.round(h)}h`);
 
-export function cookMeter(items: Item[], today: DateStr, tz: string): Cook {
-  let score = 0;
+/** `minutesOf` gives an item's estimate (the store's calibrated one in the app); the raw estimate otherwise. */
+export function cookMeter(items: Item[], today: DateStr, tz: string, minutesOf: (i: Item) => number = (i) => i.estimatedMinutes): Cook {
+  let load = 0;
   let minutes = 0;
+  let n = 0;
   let overdue = 0;
-  let last = 0;
-  /** Overdue work adds, but a backlog alone tops out at Warm-to-Cooking, never Cooked. */
-  let late = 0;
-  const kinds = new Map<ItemType, number>();
+  let soon = 0;
   for (const i of items) {
-    if (i.status === 'done' || isNoise(i) || i.type === 'participation') continue;
+    if (isWorkDone(i) || isNoise(i)) continue;
     const days = diffDays(today, dateOf(i.dueAt, tz));
-    if (days < 0) {
-      overdue += 1;
-      late += 1 + WEIGHT[i.type] * 0.4;
-      continue;
-    }
-    if (days > HORIZON) continue;
-    let w = WEIGHT[i.type] * (days <= 7 ? 1 : 0.6);
-    if ((i.type === 'quiz' || i.type === 'exam') && days <= 3) w *= 1.6;
-    else if ((i.type === 'quiz' || i.type === 'exam') && days <= 7) w *= 1.25;
-    score += w;
-    minutes += Math.max(0, i.estimatedMinutes || 0) * (i.status === 'in_progress' ? 0.5 : 1);
-    kinds.set(i.type, (kinds.get(i.type) ?? 0) + 1);
-    last = Math.max(last, days);
+    if (days >= WINDOW_DAYS || days < -OVERDUE_LOOKBACK) continue;
+    const m = Math.max(0, minutesOf(i) || 0) * (i.status === 'in_progress' ? 0.5 : 1);
+    const bump = days < 0 ? 1.5 : days <= 1 ? 1.25 : 1;
+    if (days < 0) overdue += 1;
+    else if (days <= 1) soon += 1;
+    n += 1;
+    minutes += m;
+    load += (m / 60) * bump;
   }
-  score += minutes / 60 / 2 + Math.min(late, 8);
-  score = Math.round(score * 10) / 10;
-  const level = [...LEVELS].reverse().find(([at]) => score >= at)?.[1] ?? 'Chillin';
-  const fill = score <= 0 ? 0 : Math.max(0.06, Math.min(1, score / FULL));
-
-  // The why: the heaviest kinds first, at most three named, the rest as "N more".
-  const ranked = [...kinds.entries()].sort((a, b) => WEIGHT[b[0]] - WEIGHT[a[0]] || b[1] - a[1]);
-  const named = ranked.slice(0, 3).map(([k, n]) => count(n, NOUN[k][n === 1 ? 0 : 1]));
-  const rest = ranked.slice(3).reduce((s, [, n]) => s + n, 0);
-  if (rest > 0) named.push(`${rest} more`);
-  const when = last === 0 ? 'today' : last === 1 ? 'by tomorrow' : `in the next ${last} days`;
-  const lateText = overdue > 0 ? `${overdue} overdue` : '';
-  let why: string;
-  if (named.length === 0) why = lateText ? `${lateText}, nothing else due in the next 2 weeks.` : 'Nothing due in the next 2 weeks.';
-  else why = `${list(named)} ${when}${lateText ? `, plus ${lateText}` : ''}.`;
-  why = why.charAt(0).toUpperCase() + why.slice(1);
-  return { level, fill, score, why };
+  const hours = minutes / 60;
+  load = Math.round(load * 100) / 100;
+  const level: CookLevel = load >= RED_AT ? 'red' : load >= YELLOW_AT ? 'yellow' : 'green';
+  // Nothing owed this week still shows: a short green bar, not an empty grey track that reads as broken.
+  const fill = Math.max(0.06, Math.min(1, load / FULL_AT));
+  const why =
+    n === 0
+      ? 'Nothing due in the next 7 days.'
+      : [`${n} ${n === 1 ? 'item' : 'items'}, ${fmtHours(hours)} this week`, overdue ? `${overdue} overdue` : '', soon ? `${soon} due in the next 48 hours` : ''].filter(Boolean).join(', ') + '.';
+  return { level, fill, load, hours, items: n, overdue, soon, why };
 }
