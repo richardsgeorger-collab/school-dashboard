@@ -1,5 +1,5 @@
 import { courseGrade } from './grades';
-import type { Item } from './types';
+import type { Course, Item } from './types';
 
 const LETTERS: [string, number][] = [
   ['A', 90],
@@ -19,8 +19,10 @@ export interface GradeFloor {
 }
 
 /** Is a bad score survivable? The average needed on the rest for each letter, and what a zero on the next big thing would do. */
-export function gradeFloor(courseId: string, items: Item[]): GradeFloor {
-  const g = courseGrade(courseId, items);
+export function gradeFloor(courseId: string, items: Item[], course?: Pick<Course, 'haloGrade'> | null): GradeFloor {
+  // Halo's own points when the class has them (2026-10-05: on items alone, CHM-113 at 95% read "a zero on Quiz 2 would
+  // drop you to 43%", because only 20 of Halo's 200 graded points had a score in the planner).
+  const g = courseGrade(courseId, items, course);
   if (g.possibleGraded === 0 || g.totalPossible === 0) return { line: null, zeroLine: null, letter: null };
   const letter = g.pct === null ? null : letterFor(g.pct);
   const need = (min: number) => (g.remaining > 0 ? ((min / 100) * g.totalPossible - g.earned) / g.remaining : null);
@@ -43,8 +45,15 @@ export function gradeFloor(courseId: string, items: Item[]): GradeFloor {
     const restAvg = g.pct / 100;
     const rest = g.remaining - nextBig.points;
     const pct = ((g.earned + rest * restAvg) / g.totalPossible) * 100;
-    zeroLine = `Even a zero on ${nextBig.label} keeps you at ${/^[AEIOU]/.test(letterFor(pct)) ? 'an' : 'a'} ${letterFor(pct)} (${round(pct)}%) if the rest holds.`;
-    if (pct < 70) zeroLine = `A zero on ${nextBig.label} would drop you to ${round(pct)}%. It matters.`;
+    // "Even a zero… keeps you at" only when it really keeps the letter; a drop is said as a drop.
+    const after = letterFor(pct);
+    const an = (l: string) => (/^[AEIOU]/.test(l) ? 'an' : 'a');
+    zeroLine =
+      letter && after === letter
+        ? `Even a zero on ${nextBig.label} keeps you at ${an(after)} ${after} (${round(pct)}%) if the rest holds.`
+        : pct < 70
+          ? `${nextBig.label} carries a lot: a zero would take you to ${round(pct)}%.`
+          : `${nextBig.label} carries a lot: a zero would take you to ${an(after)} ${after} (${round(pct)}%).`;
   }
   return { line, zeroLine, letter };
 }

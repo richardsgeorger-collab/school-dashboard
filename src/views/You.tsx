@@ -481,7 +481,8 @@ export function You() {
             <>
               <AccountCard tier={tier} />
               <TrialReceipts />
-              <TrialOffer />
+              {/* On the Plan section the plans themselves are the offer: one "Keep Max", not two (2026-10-05). */}
+              {section !== 'plan' && <TrialOffer />}
               {profile?.isAdmin && <FriendLinks />}
               {profile?.isAdmin && <ServerSyncAdmin />}
               {/* A friend's Max is a gift: no plans, no prices, nothing to sell. */}

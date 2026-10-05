@@ -69,12 +69,26 @@ describe('the grade floor', () => {
     const f = gradeFloor('c1', graded);
     // total 300, earned 39 of 50; A needs 270 → 231 of the remaining 250 → 92%
     expect(f.line).toBe("Still an A if you average 92% on what's left.");
-    expect(f.zeroLine).toBe('A zero on Chem Exam 1 would drop you to 39%. It matters.');
+    expect(f.zeroLine).toBe('Chem Exam 1 carries a lot: a zero would take you to 39%.');
     expect(f.letter).toBe('C');
     const strong = gradeFloor('c1', graded.map((i) => (i.id === 'g1' ? { ...i, score: 20 } : i.id === 'g2' ? { ...i, score: 30 } : i)));
     expect(strong.line).toBe("On track for an A: 88% on what's left keeps it.");
     expect(gradeFloor('c1', graded.map((i) => (i.score !== null ? { ...i, score: 5 } : i))).line).toBe("An A is out of reach now; a B needs 92% on what's left.");
     expect(gradeFloor('c2', graded).line).toBeNull();
+  });
+  it('uses Halo\'s own points when the class has them, not only the items scored here', () => {
+    const halo = { haloGrade: { letter: 'A', percent: 95, points: 190, maxPoints: 200, at: '2026-10-05T00:00:00Z' } };
+    const items = [
+      mkItem({ id: 'q', courseId: 'c3', title: 'Quiz 1', points: 20, score: 18, status: 'done', dueAt: at('2026-09-08') }),
+      mkItem({ id: 'q2', courseId: 'c3', title: 'Quiz 2', label: 'Chem Quiz 2', type: 'quiz', points: 50, dueAt: at('2026-10-09') }),
+      mkItem({ id: 'h', courseId: 'c3', title: 'HW', points: 25, dueAt: at('2026-10-12') }),
+    ];
+    // 190 of 200 graded, 75 open of 275. A zero on the quiz and 95% on the rest: (190 + 23.75) / 275 = 77.7%, a C.
+    expect(gradeFloor('c3', items, halo).zeroLine).toBe('Chem Quiz 2 carries a lot: a zero would take you to a C (78%).');
+    expect(gradeFloor('c3', items).zeroLine).toMatch(/carries a lot/);
+    // A big gradebook already: the zero really does keep the A.
+    const deep = { haloGrade: { letter: 'A', percent: 95, points: 950, maxPoints: 1000, at: '2026-10-05T00:00:00Z' } };
+    expect(gradeFloor('c3', items, deep).zeroLine).toBe('Even a zero on Chem Quiz 2 keeps you at an A (91%) if the rest holds.');
   });
 });
 

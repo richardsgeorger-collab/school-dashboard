@@ -38,7 +38,7 @@ export function amIOkay(data: AppData, schedule: Schedule, today: DateStr, now: 
     .filter((i) => unlocks(i, items).length > 0 && diffDays(today, dateOf(i.dueAt, tz)) <= 7)
     .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const risky = data.courses
-    .map((c) => ({ c, floor: gradeFloor(c.id, items), weak: weakSpots(c.id, items) }))
+    .map((c) => ({ c, floor: gradeFloor(c.id, items, c), weak: weakSpots(c.id, items) }))
     .filter((x) => x.floor.letter !== null && x.floor.line !== null && /out of reach|cannot lift|needs \d+% on what's left/.test(x.floor.line) && x.weak.length > 0);
   const lastCheck = [...(data.settings.haloChecks ?? [])].sort((a, b) => a.at.localeCompare(b.at)).at(-1);
   const lastSync = data.settings.syncedAt ?? null;

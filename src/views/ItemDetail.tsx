@@ -683,7 +683,8 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
         )}
         {!isNew && <RulesOnItem item={item} />}
         {!isNew && course && <WorkPanel item={item} course={course} />}
-        {!isNew && (
+        {/* Only when there is something to study with: an empty "Study with" heading read as broken (2026-10-05). */}
+        {!isNew && (decks.length > 0 || recs.length > 0 || !!sylLine) && (
           <div className="study">
             <p className="hint">
               <b>Study with</b>

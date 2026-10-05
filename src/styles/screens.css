@@ -3718,11 +3718,6 @@
     display: none;
   }
 }
-.ext-nudge {
-  margin: 2px 0 var(--s-3);
-  font: var(--t-small, 500 14px/1.4 var(--font-body));
-  color: var(--ink-3);
-}
 /* A link that is the step's big button (Add to Chrome, Open Halo) is as wide as one. */
 .onboard a.btn.onboard-big {
   display: flex;

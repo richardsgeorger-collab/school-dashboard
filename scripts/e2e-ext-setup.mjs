@@ -97,33 +97,17 @@ try {
     }
   }
 
-  // 2. Skip for now: the line on Now for 7 days, then not.
+  // 2. Skip for now: never the sheet again; the top-bar chip (8) is what stays until it is connected.
   {
     const plus = await person('plus');
-    for (const scheme of ['light', 'dark']) {
-      if (scheme === 'dark') await patch(plus.id, { extSetup: { shownAt: new Date().toISOString(), skippedAt: new Date().toISOString() } });
-      const { ctx, p } = await open(plus, { scheme });
-      if (scheme === 'light') {
-        await p.click('.ext-setup-sheet .onboard-head button:has-text("Skip for now")');
-        await p.waitForTimeout(1500);
-      }
-      // A Sunday review held back while the setup was up opens now; closed as a student would.
-      for (let k = 0; k < 2; k++) if (await p.locator('.modal [aria-label="Close"], .modal button:has-text("Close")').count()) { await p.keyboard.press('Escape'); await p.waitForTimeout(500); }
-      const line = await p.locator('.ext-nudge').innerText().catch(() => '');
-      if (scheme === 'light') check(/Get the extension and Halo syncs on its own every 3 hours\./.test(line.replace(/\s+/g, ' ')) && (await sheet(p).count()) === 0, `Skip for now: "${line.replace(/\s+/g, ' ')}" on Now`);
-      await p.locator('.ext-nudge').scrollIntoViewIfNeeded().catch(() => undefined);
-      await shot(p, `7-now-line-${scheme}`);
-      if (scheme === 'light') {
-        await p.click('.ext-nudge a');
-        await p.waitForTimeout(800);
-        check((await sheet(p).count()) === 1, 'the line opens the setup again');
-      }
-      await ctx.close();
-    }
-    await patch(plus.id, { extSetup: { shownAt: new Date(Date.now() - 8 * 864e5).toISOString(), skippedAt: new Date(Date.now() - 8 * 864e5).toISOString() } });
-    const later = await open(plus);
-    check((await later.p.locator('.ext-nudge').count()) === 0 && (await sheet(later.p).count()) === 0, '8 days later: no line, no sheet');
-    await later.ctx.close();
+    const { ctx, p } = await open(plus);
+    await p.click('.ext-setup-sheet .onboard-head button:has-text("Skip for now")');
+    await p.waitForTimeout(1500);
+    check((await sheet(p).count()) === 0 && (await p.locator('.topbar .autosync-chip').count()) === 1, 'Skip for now: the sheet goes, the top-bar chip stays');
+    await ctx.close();
+    const again = await open(plus);
+    check((await sheet(again.p).count()) === 0, 'never the sheet twice');
+    await again.ctx.close();
   }
 
   // 3. Already connected: no sheet.

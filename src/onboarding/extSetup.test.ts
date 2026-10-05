@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extNudgeDue, extSetupDue } from './extSetup';
+import { extSetupDue } from './extSetup';
 
 const base = { settings: {}, browser: 'Chrome' as const, touch: false, installed: null, storeUrl: 'https://chromewebstore.google.com/detail/x' };
 
@@ -22,14 +22,5 @@ describe('who sees the extension setup', () => {
   });
   it('no store address set in Admin: no setup', () => {
     expect(extSetupDue({ ...base, storeUrl: null })).toBeNull();
-  });
-  it('after Skip for now, the line on Now lasts 7 days and then stops', () => {
-    const at = Date.parse('2026-10-04T12:00:00Z');
-    const settings = { extSetup: { shownAt: '2026-10-04T12:00:00Z', skippedAt: '2026-10-04T12:00:00Z' } };
-    expect(extNudgeDue(settings, 'Chrome', null, at + 6.9 * 86_400_000)).toBe(true);
-    expect(extNudgeDue(settings, 'Chrome', null, at + 7.1 * 86_400_000)).toBe(false);
-    expect(extNudgeDue(settings, 'Chrome', '0.5.2', at)).toBe(false);
-    expect(extNudgeDue(settings, null, null, at)).toBe(false);
-    expect(extNudgeDue({ extSetup: { shownAt: 'x', doneAt: 'x' } }, 'Chrome', null, at)).toBe(false);
   });
 });

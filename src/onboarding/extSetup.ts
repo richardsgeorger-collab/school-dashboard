@@ -29,12 +29,3 @@ export function extSetupDue({ settings, browser, touch, installed, storeUrl }: E
   if (!browser) return 'needs-chrome';
   return storeUrl ? 'setup' : null;
 }
-
-export const NUDGE_DAYS = 7;
-
-/** After "Skip for now": a small "Get the extension" line on Now for 7 days, then never again. */
-export function extNudgeDue(settings: Pick<Settings, 'extSetup' | 'lastPull'>, browser: ExtensionBrowser | null, installed: string | null, now = Date.now()): boolean {
-  const skipped = settings.extSetup?.skippedAt;
-  if (!skipped || !browser || settings.extSetup?.doneAt || extConnected(settings, installed)) return false;
-  return now - Date.parse(skipped) < NUDGE_DAYS * 86_400_000;
-}

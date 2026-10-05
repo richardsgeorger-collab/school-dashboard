@@ -30,7 +30,7 @@ export function upgradeDue(tier: Tier, seen: Settings['upgradeSeen'], oldMax?: M
 
 /**
  * The celebration after an upgrade, three screens at most, on the student's own data. Plus: what is now on, what it
- * found in their real announcements, then notifications one tap each (auto-sync is Max: the row offers Max). Max: welcome, pick a colour on a
+ * found in their real announcements, then notifications one tap each (the extension has its own setup since 2026-10-04). Max: welcome, pick a colour on a
  * live copy of their Now, then their next quiz or exam with a study plan and a practice worksheet, and Ask in
  * one line. Shown once each, ever.
  */

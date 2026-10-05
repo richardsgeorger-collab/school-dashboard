@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { installedVersion, useExtension } from '../config/extension';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
@@ -25,13 +25,28 @@ export function AutoSyncChip() {
   const { route } = useRoute();
   const [version, setVersion] = useState(installedVersion);
   const [callout, setCallout] = useState(() => readDay() !== today);
+  const shown = !!ext.url && !!ext.browser && !isTouchDevice() && !extConnected(data.settings, version);
+  // A pop-up for the screen it appeared on: moving to another screen lets it go (the chip stays).
+  const firstRoute = useRef(route);
+  useEffect(() => {
+    if (route !== firstRoute.current) setCallout(false);
+  }, [route]);
+  // Seen once is seen for the day: the pop-up shows on the first screen today, not on every screen after it.
+  useEffect(() => {
+    if (!shown || !callout) return;
+    try {
+      localStorage.setItem(CALLOUT, today);
+    } catch {
+      /* storage unavailable */
+    }
+  }, [shown, callout, today]);
   // The extension can arrive while Halo+ is open (its script writes its version here): the chip goes by itself.
   useEffect(() => {
     if (version) return;
     const iv = window.setInterval(() => setVersion(installedVersion()), 3000);
     return () => window.clearInterval(iv);
   }, [version]);
-  if (!ext.url || !ext.browser || isTouchDevice() || extConnected(data.settings, version)) return null;
+  if (!shown) return null;
   const open = () => {
     try {
       localStorage.setItem(CALLOUT, today);

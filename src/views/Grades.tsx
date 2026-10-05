@@ -45,7 +45,7 @@ function CourseCard({ course }: { course: Course }) {
   const color = useCourseColor(course);
   const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, data.settings.timezone).filter((w) => w.courseId === course.id), 6);
   const weak = concept ?? weakLine(course, data.items, data.settings.quizStats, today, data.settings.timezone);
-  const floor = gradeFloor(course.id, data.items);
+  const floor = gradeFloor(course.id, data.items, course);
   const g = courseGrade(course.id, data.items, course);
   const [expanded, setExpanded] = useState(false);
   const [whatIf, setWhatIf] = useState(false);
