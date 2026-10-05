@@ -436,3 +436,74 @@
   margin: 0;
 }
 
+
+/* ---- 2026-10-05 polish: icons on the features, the setup as three cards, the friend card and the questions fill
+   the page instead of sitting in its left half. ---- */
+.landing-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.landing-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.landing-how {
+  list-style: none;
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  display: grid;
+  gap: var(--s-3);
+}
+.landing-how li {
+  padding: var(--s-4);
+}
+.landing-how h3 {
+  font: var(--t-heading);
+  margin: 10px 0 4px;
+}
+.landing-how p {
+  margin: 0;
+  color: var(--ink-2);
+}
+.landing-step {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink, #1b1400);
+  font: 700 15px/1 var(--font-body);
+}
+.landing-invite.card {
+  margin-top: var(--s-7);
+  padding: var(--s-5);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface) 70%);
+}
+.landing-invite .landing-lede,
+.landing-invite .hint {
+  max-width: 70ch;
+}
+.landing-faq dl {
+  max-width: none;
+  display: grid;
+  gap: 0 var(--s-6);
+}
+.landing-faq dl > div {
+  break-inside: avoid;
+}
+@media (min-width: 768px) {
+  .landing-how {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .landing-faq dl {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

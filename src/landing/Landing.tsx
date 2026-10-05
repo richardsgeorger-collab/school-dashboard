@@ -1,7 +1,7 @@
 import { pixel } from '../analytics/pixel';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { HaloDraw } from '../components/HaloDraw';
-import { IconCheck, IconHalo } from '../components/Icons';
+import { IconCheck, IconClasses, IconGift, IconHalo, IconInbox, IconNow, IconStudy } from '../components/Icons';
 import { HELP_PAGES } from '../help/pages';
 import { EXTENSION_URL } from '../config/extension';
 import { CANCEL_LINE, PLAN_LINES, PRICES, TAX_LINE, TIER_NAMES, TRIAL } from '../config/tiers';
@@ -34,7 +34,7 @@ export function Landing() {
             Log in
           </a>
           <a className="btn primary" href="#/start" onClick={signUp}>
-            Sign up
+            Try it free
           </a>
         </nav>
       </header>
@@ -42,20 +42,19 @@ export function Landing() {
       <section className="landing-hero" aria-label="What Halo+ is">
         <div className="landing-copy">
           <p className="eyebrow">The planner built for Halo</p>
-          <h1 className="landing-title">All of Halo, read for you. Even the announcements. Then the one thing to do next.</h1>
+          <h1 className="landing-title">Every GCU deadline in one place. Even the ones hidden in announcements.</h1>
           <p className="landing-lede">
-            One bookmark pulls your GCU classes, assignments, grades and every announcement. The “due Friday” your professor only posted in an announcement lands on the assignment. One screen says what to do right now: due
-            date, how long it takes, what it is worth. Never your password.
+            Halo+ reads your Halo classes, grades and every announcement, then tells you the one thing to do next: when it's due, how long it takes, what it's worth. It syncs itself every 3 hours and never asks for your password.
           </p>
           <div className="landing-cta">
             <a className="btn primary" href="#/start" onClick={signUp}>
-              Sign up
+              Try it free
             </a>
             <a className="btn" href="#/login">
               Log in
             </a>
           </div>
-          <p className="hint">Max free for {TRIAL.days} days when you sign up. No card. After it, you choose what to keep; Free stays free.</p>
+          <p className="hint">Every feature free for {TRIAL.days} days. No card, nothing to cancel.</p>
         </div>
 
         {/* The picture is the app: the same classes and tokens Now uses, so the landing wears whatever gold the app wears. */}
@@ -148,41 +147,66 @@ export function Landing() {
         <h2 className="landing-h2">What it does</h2>
         <div className="landing-grid">
           <article className="card landing-feature">
+            <span className="landing-icon" aria-hidden>
+              <IconNow />
+            </span>
             <h3>Says what to do now</h3>
-            <p>One thing at a time, ranked by due date, the time it really takes, and points. What is due today underneath. Nothing you have to sort.</p>
+            <p>One thing at a time, ranked by due date, real time and points. Nothing to sort, nothing to forget.</p>
           </article>
           <article className="card landing-feature">
-            <h3>Reads the announcements</h3>
-            <p>At GCU the real instructions live in announcements. Halo+ reads every one and puts what it asks for on the assignment, in the professor's own words.</p>
+            <span className="landing-icon" aria-hidden>
+              <IconInbox />
+            </span>
+            <h3>Reads every announcement</h3>
+            <p>The “due Friday” your professor only posted in an announcement lands on the assignment, in their own words.</p>
           </article>
           <article className="card landing-feature">
-            <h3>Knows where you stand</h3>
-            <p>Every item says when it last matched Halo. A moved deadline moves here too. A heavy week gets a warning while there is still time.</p>
+            <span className="landing-icon" aria-hidden>
+              <IconClasses />
+            </span>
+            <h3>Your real grades</h3>
+            <p>Halo's grades for every class on one screen, and what you need on the rest of the term.</p>
           </article>
           <article className="card landing-feature">
+            <span className="landing-icon" aria-hidden>
+              <IconStudy />
+            </span>
             <h3>Studies with you</h3>
-            <p>One Study tab. Ask anything about your classes and get a short answer with what to do next. Practice for any quiz or exam with a plan, a worksheet with answers and quiz me, all from your own slides and lectures. Check your work against the rubric before you turn it in.</p>
+            <p>A study plan and practice worksheet for your next quiz, from your own slides. Check your work against the rubric first.</p>
           </article>
         </div>
       </section>
 
-      <section className="landing-section" aria-label="How the sync works">
-        <h2 className="landing-h2">How the sync works</h2>
-        <ol className="landing-steps">
-          <li>Drag the {BOOKMARK_NAME} bookmark to your bookmarks bar. On a phone, the app walks you through it.</li>
-          <li>Open halo.gcu.edu and log in as you always do.</li>
-          <li>Click the bookmark. Your classes, assignments, grades and announcements arrive here, and you approve them before anything changes.</li>
+      <section className="landing-section" aria-label="How it works">
+        <h2 className="landing-h2">Set up in two minutes</h2>
+        <ol className="landing-how">
+          <li className="card">
+            <span className="landing-step">1</span>
+            <h3>Sign up</h3>
+            <p>Email or Google. No card.</p>
+          </li>
+          <li className="card">
+            <span className="landing-step">2</span>
+            <h3>Connect Halo</h3>
+            <p>
+              Add the{' '}
+              {EXTENSION_URL ? (
+                <a href={EXTENSION_URL} target="_blank" rel="noopener">
+                  Halo+ Chrome extension
+                </a>
+              ) : (
+                'Halo+ Chrome extension'
+              )}
+              . On an iPad or phone, the {BOOKMARK_NAME} bookmark does it in one tap.
+            </p>
+          </li>
+          <li className="card">
+            <span className="landing-step">3</span>
+            <h3>That's it</h3>
+            <p>It syncs every 3 hours on its own. Open Halo+ and do the next thing.</p>
+          </li>
         </ol>
-        <p className="hint">The bookmark runs on Halo's own page while you are logged in there. It never sees your password. Halo sync is part of Plus, and the free week of Max includes it; on Plus and Max a small{' '}
-          {EXTENSION_URL ? (
-            <a href={EXTENSION_URL} target="_blank" rel="noopener">
-              Chrome extension
-            </a>
-          ) : (
-            'Chrome extension'
-          )}{' '}
-          syncs by itself every 3 hours while Chrome is open, and any time you press Sync now.
-        </p>
+        <p className="hint">It reads Halo with the session you already have in your browser. It never sees your password, and Halo sync is part of Plus (the free week includes it).</p>
       </section>
 
       <section className="landing-section" aria-label="Plans">
@@ -216,7 +240,10 @@ export function Landing() {
         </p>
       </section>
 
-      <section className="landing-section landing-invite" aria-label="Bring a friend">
+      <section className="landing-section landing-invite card" aria-label="Bring a friend">
+        <span className="landing-icon" aria-hidden>
+          <IconGift />
+        </span>
         <h2 className="landing-h2">Bring a friend, both get a month</h2>
         <p className="landing-lede">Everyone gets a link on their You page. When a friend signs up with yours, they get their free week of Max like everyone, then 30 days of Plus free, and you get 30 days of Plus too: Halo sync, real grades, and every announcement read for you.</p>
         <p className="hint">Your month starts after any free week or paid plan you have, so none is wasted. Theirs starts after their own free week of Max. Invite as many friends as you like; each one adds another 30 days.</p>
@@ -225,14 +252,22 @@ export function Landing() {
       <section className="landing-section landing-faq" aria-label="Questions">
         <h2 className="landing-h2">Questions</h2>
         <dl>
-          <dt>Does it need my GCU password?</dt>
-          <dd>No, and it never asks. The bookmark works because you are already logged in to Halo in that browser. The code is public on GitHub, so anyone can check.</dd>
-          <dt>Is this from GCU?</dt>
-          <dd>No. Halo+ is an independent planner made by a student. It is not affiliated with, endorsed by, or connected to Grand Canyon University. Halo is GCU's learning platform.</dd>
-          <dt>What happens to my data?</dt>
-          <dd>It is yours. Export everything as one file any time, or delete the account and all of it in one tap. AI features send only the text they need and nothing is kept by the model provider.</dd>
-          <dt>Does it work on my phone?</dt>
-          <dd>Yes. Add it to your Home Screen and it works like an app, notifications included. The bookmark works on a phone too.</dd>
+          <div>
+            <dt>Does it need my GCU password?</dt>
+            <dd>No, and it never asks. The extension and the bookmark use the Halo session you already have in your browser. The code is public on GitHub, so anyone can check.</dd>
+          </div>
+          <div>
+            <dt>Is this from GCU?</dt>
+            <dd>No. Halo+ is an independent planner made by a student. It is not affiliated with, endorsed by, or connected to Grand Canyon University. Halo is GCU's learning platform.</dd>
+          </div>
+          <div>
+            <dt>What happens to my data?</dt>
+            <dd>It is yours. Export everything as one file any time, or delete the account and all of it in one tap. AI features send only the text they need and nothing is kept by the model provider.</dd>
+          </div>
+          <div>
+            <dt>Does it work on my phone?</dt>
+            <dd>Yes. Add it to your Home Screen and it works like an app, notifications included. The bookmark works on a phone too.</dd>
+          </div>
         </dl>
       </section>
 
