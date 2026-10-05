@@ -195,6 +195,43 @@ try {
     await shot(p, '5b-not-seeing-it-light');
     await ctx.close();
   }
+  // 8. The top-bar chip (2026-10-05): "Turn on auto-sync" beside the streak until it is connected, a pop-up once a day.
+  for (const scheme of ['light', 'dark']) {
+    const plus = await person('plus');
+    await patch(plus.id, { extSetup: { shownAt: new Date().toISOString(), skippedAt: new Date(Date.now() - 9 * 864e5).toISOString() } });
+    const { ctx, p } = await open(plus, { scheme });
+    const chip = p.locator('.topbar .autosync-chip');
+    const order = await p.evaluate(() => { const c = document.querySelector('.topbar .autosync-chip-wrap'); return c?.nextElementSibling?.className ?? null; });
+    if (scheme === 'light') check((await chip.count()) === 1 && /Turn on auto-sync/.test(await chip.innerText()) && (await p.locator('.autosync-callout').count()) === 1, `the chip is in the top bar beside the streak (next: ${order}), with its pop-up`);
+    await shot(p, `10-chip-popup-${scheme}`);
+    if (scheme === 'light') {
+      await p.click('.autosync-callout button:has-text("Turn it on")');
+      await p.waitForTimeout(800);
+      check((await sheet(p).count()) === 1, 'Turn it on opens the setup');
+      await p.click('.ext-setup-sheet .onboard-head button:has-text("Skip for now")');
+      await p.waitForTimeout(800);
+      await p.reload({ waitUntil: 'load' });
+      await p.waitForTimeout(5000);
+      check((await chip.count()) === 1 && (await p.locator('.autosync-callout').count()) === 0, 'still in the top bar; the pop-up once a day');
+      await p.evaluate(() => localStorage.setItem('school-dashboard:ext-version', '0.5.2'));
+      await p.waitForTimeout(3500);
+      check((await chip.count()) === 0, 'the extension shows up: the chip goes by itself');
+    }
+    await ctx.close();
+  }
+  {
+    const max = await kit.persona('max');
+    const a = await open(max);
+    check((await a.p.locator('.autosync-chip').count()) === 0, 'connected (a sync via the extension): no chip');
+    await a.ctx.close();
+    const plus = await person('plus');
+    const b = await open(plus, { device: devices['iPhone 14'] });
+    check((await b.p.locator('.autosync-chip').count()) === 0, 'an iPhone: no chip');
+    await b.ctx.close();
+    const c = await open(plus, { ua: UA.safari });
+    check((await c.p.locator('.autosync-chip').count()) === 0, 'Safari: no chip');
+    await c.ctx.close();
+  }
 } finally {
   await browser.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);

@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { TAB_OF, TABS, useRoute, type Tab } from '../router';
 import { useStore } from '../storage/store';
 import { BrandMark } from './BrandMark';
+import { AutoSyncChip } from '../onboarding/AutoSyncChip';
 import { IconCalendar, IconClasses, IconInbox, IconMoon, IconNow, IconPlus, IconStudy, IconSun, IconSync, IconYou } from './Icons';
 import { useAccount } from '../auth/AccountContext';
 import { PlanBadge, TrialChip } from '../views/TrialStatus';
@@ -61,6 +62,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
             <IconPlus />
             <span className="gear-label">Add</span>
           </button>
+          <AutoSyncChip />
           <StreakChip />
           <TrialChip />
           <button type="button" className="topbar-gear topbar-sync" onClick={onSync} title="Sync Halo" aria-label="Sync Halo">
