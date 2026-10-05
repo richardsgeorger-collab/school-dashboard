@@ -51,7 +51,7 @@ const say = (e: JoyEvent, auto: boolean): JoyEvent => ({ ...e, preview: true, ..
 const toast = (id: string, group: string, label: string, e: () => JoyEvent): Moment => ({ id, group, label, play: (s, o) => (s.say(say(e(), o.auto)), TOAST_MS) });
 
 export const MOMENTS: Moment[] = [
-  { id: 'checkoff', group: 'Check-off', label: 'Check-off burst', play: (s, o) => (s.burst(), s.say(say({ text: doneLine(50, CODE, 34, 3) }, o.auto)), TOAST_MS) },
+  { id: 'checkoff', group: 'Check-off', label: 'Check-off burst', play: (s, o) => (s.burst(), s.say(say({ text: doneLine(50, CODE, 34, 3), big: true }, o.auto)), TOAST_MS) },
   toast('sync', 'Sync', 'Sync celebration', () => syncMoment(3)),
   ...([25, 50, 75, 100] as const).map((m) => toast(`class-${m}`, 'Class milestones', m === 100 ? '100% · You finished' : `${m}%`, () => classMilestoneMoment(CODE, NAME, m, 640))),
   { id: 'ring', group: 'Now', label: 'Ring fills · clear for today', play: (s) => (s.ring(), 1400 + TOAST_MS) },

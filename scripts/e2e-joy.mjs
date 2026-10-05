@@ -74,6 +74,7 @@ try {
       await p.waitForSelector('.time-ask-reward', { timeout: 6000 });
       await p.waitForTimeout(180);
       const burst = await p.locator('.joy-burst').count();
+      const rain = await p.locator('.joy-confetti i').count();
       await p.screenshot({ path: `${OUT}/p1-checkoff-${dev}-${scheme}.png` });
       const line = await p.locator('.time-ask-reward').innerText();
       if (dev === 'desk' && scheme === 'light') {
@@ -83,6 +84,9 @@ try {
         check(/^\+\d+ pts done · \S+ is \d+% complete$/.test(line), `check-off toast: "${line}"`);
         check(!!course && Number(code[2]) === pctOf(rows, course.id), `the class % matches Halo's own points (${code?.[2]}% vs ${course ? pctOf(rows, course.id) : '?'}%)`);
         check(burst === 1, 'a gold halo burst where it was tapped');
+        // It falls from the top edge of the screen: a full-screen layer, each piece starting just above it.
+        const from = await p.evaluate(() => { const c = document.querySelector('.joy-confetti'); const i = c?.querySelector('i'); return c && i ? { fixed: getComputedStyle(c).position === 'fixed', top: c.getBoundingClientRect().top, start: getComputedStyle(i).top } : null; });
+        check(rain > 40 && !!from && from.fixed && from.top === 0 && from.start === '-16px', `an assignment checked off: gold confetti from the top of the screen (${rain} pieces, ${JSON.stringify(from)})`);
       }
       await ctx.close();
     }

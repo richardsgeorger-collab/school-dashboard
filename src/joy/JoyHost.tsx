@@ -139,9 +139,17 @@ export function JoyHost() {
     return () => window.removeEventListener('halo-joy-burst', on);
   }, []);
 
-  // A check-off: a short gold halo burst where it was tapped (under a second).
+  // A check-off: a short gold halo burst where it was tapped (under a second). An assignment (something with points,
+  // not a participation check-in) also gets gold confetti from the top of the screen (George, 2026-10-04: "add confetti
+  // whenever you submit an assignment… from the top of the screen"). Still off with Celebrations; a glow under reduced
+  // motion; nothing is kept, so Undo has nothing to take back.
   useEffect(() => {
     if (!justDone || !celebrate) return;
+    const done = data.items.find((i) => i.id === justDone.id);
+    if (done && done.points > 0 && done.type !== 'participation') {
+      seq.current += 1;
+      setConfetti({ id: seq.current, forced: false });
+    }
     haptic(12);
     const p = pointer.current;
     if (!p || Date.now() - p.at > 2500) return;
