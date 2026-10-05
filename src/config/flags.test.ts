@@ -53,17 +53,19 @@ describe('feature flags', () => {
     expect(Object.values(FEATURES)).not.toContain('pro');
   });
 
-  it('the plans are what George set on 2026-09-28 (auto-sync moved to Max on 2026-10-01)', () => {
+  it('the plans are what George set on 2026-09-28 (auto-sync: Max on 2026-10-01, Plus and Max on 2026-10-04)', () => {
     expect(PRICES.plus.month).toBe(4.99);
     expect(PRICES.max.month).toBe(7.99);
     expect(TRIAL.days).toBe(7);
     for (const f of ['syllabusDrop', 'manualItems', 'monthView', 'agendaView', 'nowBasic'] as const) expect(FEATURES[f]).toBe('free');
     for (const f of ['haloManualSync', 'haloGrades', 'announcementAI', 'reminders', 'weeklyRecap'] as const) expect(FEATURES[f]).toBe('plus');
-    for (const f of ['haloAutoSync', 'aiChat', 'promptPanel', 'flashcards', 'examPlans', 'lectures', 'themes'] as const) expect(FEATURES[f]).toBe('max');
+    for (const f of ['aiChat', 'promptPanel', 'flashcards', 'examPlans', 'lectures', 'themes'] as const) expect(FEATURES[f]).toBe('max');
     // Plus syncs by hand; only Max syncs on its own. A trial or a friend link is Max, so it auto-syncs.
     expect(can('haloAutoSync', effectiveTier({ tier: 'free', trialEndsAt: '2099-01-01T00:00:00.000Z' }))).toBe(true);
     expect(can('haloAutoSync', effectiveTier({ tier: 'free', rewardTier: 'max', rewardUntil: '2099-01-01T00:00:00.000Z', friendFrom: 'A' }))).toBe(true);
-    expect(can('haloAutoSync', 'plus')).toBe(false);
+    expect(FEATURES.haloAutoSync).toBe('plus');
+    expect(can('haloAutoSync', 'plus')).toBe(true);
+    expect(can('haloAutoSync', 'free')).toBe(false);
     expect(can('haloManualSync', 'plus')).toBe(true);
   });
 

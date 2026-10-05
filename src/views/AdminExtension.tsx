@@ -32,7 +32,7 @@ export function AdminExtension() {
   return (
     <section className="card settings-card admin-extension" aria-label="Chrome extension">
       <h2 className="section-title">Chrome extension</h2>
-      <p className="hint">The Web Store address. While it is set, students on desktop Chrome, Edge or Brave see Enable auto-sync (Max) and Add to Chrome; everyone else sees nothing.</p>
+      <p className="hint">The Web Store address. While it is set, students on desktop Chrome, Edge or Brave see Enable auto-sync (Plus and Max) and Add to Chrome; everyone else sees nothing.</p>
       <label className="field">
         <span>Store URL</span>
         <input className="field-input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://chromewebstore.google.com/detail/…" />

@@ -1,6 +1,6 @@
 # Halo+ for Halo (Chrome extension)
 
-Desktop auto-sync for Max (Plus syncs by hand with Sync now; 2026-10-01). Every three hours while Chrome is running it runs the same sync the bookmark runs,
+Desktop auto-sync for Plus and Max (2026-10-04; it was Max only from 2026-10-01). Every three hours while Chrome is running it runs the same sync the bookmark runs,
 on your own Halo tab if one is open or on one it opens quietly in the background and closes after. Nothing takes
 focus. Every sync goes to your account first (the pending slot the iPad bookmark uses), so it lands with Halo+ closed:
 an open Halo+ tab takes it at once, a closed one when it next opens, and either applies it with a small "Synced from

@@ -4,8 +4,8 @@ import { DASH_ORIGIN, PERIOD_MINUTES } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const PAID = ['plus', 'pro', 'max'];
-// Auto-sync is Max (2026-10-01): on Plus the popup says so, with the way to Max, and Sync now still works.
-const AUTO = ['max'];
+// Auto-sync is Plus and Max (2026-10-04; Max only from 2026-10-01). Free has no Halo sync: the popup says so.
+const AUTO = ['plus', 'max'];
 const PLAN_NAMES = { plus: 'Plus', pro: 'Pro', max: 'Max' };
 $('open').href = `${DASH_ORIGIN}/#/now`;
 
@@ -48,11 +48,11 @@ async function render() {
   const nextAt = alarm ? Math.max(alarm.scheduledTime, s.lastSyncAt ? new Date(s.lastSyncAt).getTime() + PERIOD_MINUTES * 60_000 : 0) : null;
   const next = auto && nextAt ? `<span class="next">Next sync around ${when(new Date(nextAt).toISOString())}</span>` : '';
   $('status').innerHTML = s.running ? (s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b><span class="next">Syncing now</span>` : 'Syncing now') : last + next;
-  // Plus: auto-sync is Max. Free: syncing at all is Plus. Nothing to say on Max or before the plan is known.
+  // Free: Halo sync (and auto-sync) is part of Plus. Nothing to say on Plus or Max, or before the plan is known.
   $('plus').hidden = auto || !s.tier;
-  $('plusText').textContent = paid ? 'Auto-sync is part of Max. Sync now still works on Plus.' : 'Halo sync is part of Plus, and auto-sync every 3 hours is part of Max.';
-  $('upgrade').textContent = paid ? 'Get Max' : 'See plans';
-  $('upgrade').href = `${DASH_ORIGIN}/#/you?s=plan&to=${paid ? 'max' : 'plus'}`;
+  $('plusText').textContent = 'Halo sync, on its own every 3 hours, is part of Plus.';
+  $('upgrade').textContent = 'See plans';
+  $('upgrade').href = `${DASH_ORIGIN}/#/you?s=plan&to=plus`;
 
   $('sync').disabled = !!s.running;
   $('sync').textContent = s.running ? 'Syncing…' : 'Sync now';

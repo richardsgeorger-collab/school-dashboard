@@ -301,7 +301,7 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
                     Max <span>${PRICES.max.month.toFixed(2)} a month</span>
                   </h2>
                   <p className="gcbc-plan-what">
-                    <b>Syncs Halo on its own every 3 hours,</b> plus everything from this week: announcements read for you, and Study, Ask and Check.
+                    <b>Everything from this week:</b> auto-sync every 3 hours, announcements read for you, and Study, Ask and Check.
                   </p>
                   <div className="gcbc-plan-cta">
                     <PlanButton tier="max" label="Keep Max" />
@@ -313,7 +313,7 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
                   <h2 className="gcbc-plan-name">
                     Plus <span>${PRICES.plus.month.toFixed(2)} a month</span>
                   </h2>
-                  <p className="gcbc-plan-what">Halo sync when you tap it, real grades, and every announcement read for you. No auto-sync or study tools.</p>
+                  <p className="gcbc-plan-what">Halo syncs on its own every 3 hours, real grades, and every announcement read for you. No study tools.</p>
                   <div className="gcbc-plan-cta">{onPlusGift && plusAfter ? <p className="gcbc-covered">Free until {fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} />}</div>
                 </article>
               </div>
@@ -332,7 +332,7 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
                 <button type="button" className="gcbc-free-link" onClick={done}>
                   {onPlusGift ? 'Continue with Plus free' : 'Stay on Free'}
                 </button>
-                <p className="hint">{onPlusGift ? 'Auto-sync, Study, Ask and Check lock; Halo sync by hand and announcements keep going.' : 'Free keeps your classes from your syllabi and what you add yourself. Halo sync pauses; everything you have stays.'} Nothing charges unless you choose a plan.</p>
+                <p className="hint">{onPlusGift ? 'Study, Ask and Check lock; auto-sync and announcements keep going.' : 'Free keeps your classes from your syllabi and what you add yourself. Halo sync pauses; everything you have stays.'} Nothing charges unless you choose a plan.</p>
               </div>
             </section>
           )}

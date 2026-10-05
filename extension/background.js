@@ -1,5 +1,5 @@
-// The service worker. Every three hours while Chrome is open (auto-sync is Max, 2026-10-01: Max, a Max trial or a
-// friend-link Max), or at once from the popup's
+// The service worker. Every three hours while Chrome is open (auto-sync is Plus and Max since 2026-10-04: Plus, Max,
+// a trial or a friend link; Free has no Halo sync), or at once from the popup's
 // Sync now, it runs the same sync the bookmark runs on a Halo page (the student's own Halo tab if one is open,
 // otherwise one it opens quietly in the background and closes after) and carries the export to Halo+.
 //
@@ -13,8 +13,8 @@
 // a 6:08 AM sync read Halo, found no Halo+ tab, was lost, and the popup still said "Last synced 6:08 AM").
 import { DASH_ORIGIN, DASH_URL, DROP_URL, PERIOD_MINUTES, REPORT_URL } from './config.js';
 
-// Scheduled syncs run only on Max; Sync now runs on any plan (the app and the server apply the same rule).
-const AUTO = ['max'];
+// Scheduled syncs run on Plus and Max; Sync now runs on any plan (the app and the server apply the same rule).
+const AUTO = ['plus', 'max'];
 const HALO = 'https://halo.gcu.edu/';
 const ALARM = 'auto-sync';
 // A real account takes minutes to read: the worker waits as long as the sync keeps reporting progress, and gives up

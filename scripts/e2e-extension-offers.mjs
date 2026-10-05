@@ -1,7 +1,7 @@
 // The extension is on the Web Store (George, 2026-10-01): the store address is an Admin setting, and with it the
 // install offers turn on for desktop Chrome, Edge and Brave only. On the real backend with throwaway accounts:
 // Admin shows the address and refuses one that is not the Web Store; Max gets "Enable auto-sync" on You → Halo and an
-// "Add to Chrome" step in the Max welcome; Plus gets "Auto-sync is part of Max" with Get Max and Add to Chrome; an
+// "Add to Chrome" step in the Max welcome; Plus gets the same Enable auto-sync (2026-10-04); an
 // installed extension shows "Auto-sync is on"; Safari, Firefox and an iPad get none of it; the landing page links it.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-extension-offers.mjs
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -68,13 +68,13 @@ try {
     await p.locator('.autosync-card').screenshot({ path: `${OUT}/you-max-on-dark.png` });
     await ctx.close();
   }
-  // Plus: auto-sync is part of Max.
+  // Plus: auto-sync is Plus too (2026-10-04): the same Enable auto-sync as Max.
   const plus = await kit.persona('plus');
   {
     const { ctx, p } = await open(plus);
     const card = p.locator('.autosync-card');
     const t = await card.innerText();
-    check(/Auto-sync is part of Max/.test(t) && (await card.locator('a:has-text("Get Max")').getAttribute('href')) === '#/you?s=plan&to=max' && (await card.locator('a:has-text("Add to Chrome")').getAttribute('href')) === STORE && !/Enable auto-sync/.test(t), 'Plus: auto-sync is part of Max, with Get Max and Add to Chrome');
+    check((await card.locator('a:has-text("Enable auto-sync")').getAttribute('href')) === STORE && !/part of Max/.test(t), 'Plus: Enable auto-sync opens the store (no "part of Max")');
     await card.screenshot({ path: `${OUT}/you-plus.png` });
     await ctx.close();
   }

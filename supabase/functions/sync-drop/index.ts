@@ -4,7 +4,7 @@
 // OFF for the bookmark unless an admin has turned it on for the account (or for everyone), and never under the kill
 // switch. The Chrome extension's syncs (via: 'extension') are always taken, kill switch aside (George, 2026-09-30:
 // a scheduled sync at 6:08 AM read Halo, found no Halo+ tab open, and was lost; now it waits here for Halo+), except
-// a scheduled one from an account not on Max (auto-sync is Max, 2026-10-01).
+// a scheduled one from an account with no Halo sync (auto-sync is Plus and Max since 2026-10-04; Max only before).
 // A new drop replaces every older one: the newest sync is the whole picture, and an older one applied after it would
 // put stale dates back.
 import { admin } from '../_shared/admin.ts';
@@ -61,11 +61,11 @@ Deno.serve(async (req) => {
       ? await db.from('app_switches').select('enabled').eq('name', 'server_sync_kill').maybeSingle().then(({ data }) => ({ data: !data?.enabled }))
       : await db.rpc('server_sync_on', { uid: owner.user_id });
     if (!on) return reply(origin, 200, { ok: false, off: true, why: 'Sending straight to your account is not switched on.' });
-    // Auto-sync is Max (2026-10-01): the extension's scheduled syncs (payload.auto, sent by every extension build since
-    // 0.2) are taken only for an account on Max, a Max trial or a friend-link Max. Sync now (auto false) on any plan.
+    // Auto-sync is Plus and Max (2026-10-04): the extension's scheduled syncs (payload.auto, sent by every extension
+    // build since 0.2) are taken for Plus, Max, a trial or a friend link; not for Free. Sync now (auto false) as before.
     if (fromExtension && p.auto === true) {
       const { data: plan } = await db.rpc('plan_of', { uid: owner.user_id });
-      if (!can('haloAutoSync', ((plan as Tier) ?? 'free'))) return reply(origin, 403, { ok: false, plan: 'max', why: 'Automatic syncs are part of Max. Press Sync now to sync by hand.' });
+      if (!can('haloAutoSync', ((plan as Tier) ?? 'free'))) return reply(origin, 403, { ok: false, plan: 'plus', why: 'Automatic syncs are part of Plus and Max.' });
     }
     const since = new Date(Date.now() - 3_600_000).toISOString();
     const { count } = await db.from('pending_syncs').select('id', { count: 'exact', head: true }).eq('user_id', owner.user_id).gte('created_at', since);

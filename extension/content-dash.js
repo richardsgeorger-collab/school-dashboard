@@ -1,4 +1,4 @@
-// Runs on the dashboard. Tells the service worker which plan this device is on (auto-sync is Max) and the account's
+// Runs on the dashboard. Tells the service worker which plan this device is on (auto-sync is Plus and Max) and the account's
 // sync key, tells the page when a sync is waiting in the account, and hands a kept export to the page exactly the way
 // the bookmark would: a postMessage from the page's own origin.
 // The page writes its plan once the account has loaded, which is after this script first runs, and a page's own

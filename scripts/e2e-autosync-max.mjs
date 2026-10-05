@@ -1,12 +1,11 @@
-// Auto-sync is Max (George, 2026-10-01). On the real backend with throwaway accounts:
-//   1. The server (sync-drop): a scheduled extension sync (payload.auto, sent by every extension build including the
-//      0.3.x in review) is refused on Plus with "part of Max", and taken on Max, a Max trial and a friend-link Max;
-//      Sync now (auto false) is taken on Plus.
-//   2. The app: a scheduled sync handed straight to an open Halo+ tab by an older extension is ignored on Plus, while
-//      the same export by hand opens the review.
-//   3. The extension (this repo's build, loaded unpacked, not uploaded): on Plus no schedule, a scheduled alarm does
-//      not sync, the popup says "Auto-sync is part of Max" with Get Max, and Sync now still runs; on Max the schedule
-//      is on. Screens of the Plus popup, light and dark.
+// Auto-sync is Plus and Max (George, 2026-10-04; it was Max only from 2026-10-01). On the real backend, throwaways:
+//   1. The server (sync-drop): a scheduled extension sync (payload.auto) is taken on Plus, Max, a Max trial and a
+//      friend-link Max, and refused on Free with "part of Plus and Max".
+//   2. The app: a scheduled sync handed straight to an open Halo+ tab by an older extension is ignored on Free, while
+//      the same export by hand opens the review (Free's peek).
+//   3. The extension (this repo's build, loaded unpacked, not uploaded): on Plus and Max the schedule is on; on Free
+//      no schedule, a scheduled alarm does not sync, and the popup says "Halo sync, on its own every 3 hours, is part
+//      of Plus." with See plans. Screens of the Free popup, light and dark.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-autosync-max.mjs
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -34,36 +33,34 @@ const drop = async (key, auto) => {
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   // 1. The server.
-  const people = { plus: await kit.persona('plus'), max: await kit.persona('max'), trial: await kit.persona('synced'), friend: await kit.persona('friend') };
+  const people = { plus: await kit.persona('plus'), max: await kit.persona('max'), trial: await kit.persona('synced'), friend: await kit.persona('friend'), free: await kit.persona('free') };
   for (const [name, p] of Object.entries(people)) {
     const { c } = await kit.signIn(p.email);
     const { data } = await c.rpc('my_sync_key');
     p.key = data.key;
     const r = await drop(p.key, true);
-    if (name === 'plus') check(r.status === 403 && /Automatic syncs are part of Max/.test(r.body.why ?? ''), `server: a scheduled sync on Plus is refused (${r.status} "${r.body.why}")`);
-    else check(r.status === 200 && r.body.ok === true, `server: a scheduled sync on ${name === 'trial' ? 'a Max trial' : name === 'friend' ? 'a friend-link Max' : 'Max'} is taken (${r.status})`);
+    if (name === 'free') check(r.status === 403 && /Automatic syncs are part of Plus and Max/.test(r.body.why ?? ''), `server: a scheduled sync on Free is refused (${r.status} "${r.body.why}")`);
+    else check(r.status === 200 && r.body.ok === true, `server: a scheduled sync on ${name === 'trial' ? 'a Max trial' : name === 'friend' ? 'a friend-link Max' : name === 'plus' ? 'Plus' : 'Max'} is taken (${r.status})`);
   }
   const manual = await drop(people.plus.key, false);
-  check(manual.status === 200 && manual.body.ok === true, `server: Sync now on Plus is taken (${manual.status})`);
+  check(manual.status === 200 && manual.body.ok === true, `server: Sync now on Plus is still taken (${manual.status})`);
   await db.from('pending_syncs').delete().in('user_id', Object.values(people).map((p) => p.id));
 
-  // 2. The app: a scheduled sync handed straight to the tab is ignored on Plus; by hand it opens the review.
-  {
+  // 2. The app: a scheduled sync handed straight to an open tab is applied on Plus and ignored on Free.
+  for (const who of ['plus', 'free']) {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
-    await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: people.plus.session, key: `sb-${ref}-auth-token` });
+    await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: people[who].session, key: `sb-${ref}-auth-token` });
     await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
     const p = await ctx.newPage();
     await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
-    await p.waitForSelector('.now', { timeout: 20000 });
+    await p.waitForSelector('.now, .empty', { timeout: 20000 });
     await p.waitForTimeout(3000);
     const before = await p.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1') || '{}').settings?.lastPull?.at ?? null);
     await p.evaluate((x) => window.postMessage(x, location.origin), exportOf(true));
-    await p.waitForTimeout(4000);
+    await p.waitForTimeout(6000);
     const after = await p.evaluate(() => JSON.parse(localStorage.getItem('school-dashboard:v1') || '{}').settings?.lastPull?.at ?? null);
-    check(after === before && (await p.locator('.modal-backdrop').count()) === 0, 'app: a scheduled sync handed to an open tab on Plus is ignored');
-    await p.evaluate((x) => window.postMessage(x, location.origin), exportOf(false, 'bookmarklet'));
-    await p.waitForSelector('.modal-backdrop', { timeout: 8000 }).catch(() => undefined);
-    check((await p.locator('.modal-backdrop').count()) > 0, 'app: the same export by hand opens the review');
+    if (who === 'plus') check(after !== before, `app: a scheduled sync handed to an open tab on Plus is applied (last pull ${before} → ${after})`);
+    else check(after === before && (await p.locator('.modal-backdrop').count()) === 0, 'app: a scheduled sync handed to an open tab on Free is ignored');
     await ctx.close();
   }
 
@@ -90,11 +87,13 @@ try {
     await setTier('max');
     check(await alarm(), 'extension: on Max the 3-hour schedule is on');
     await setTier('plus');
-    check(!(await alarm()), 'extension: on Plus there is no schedule');
-    // Even an alarm that is somehow there does not sync on Plus.
+    check(await alarm(), 'extension: on Plus the 3-hour schedule is on too');
+    await setTier('free');
+    check(!(await alarm()), 'extension: on Free there is no schedule');
+    // Even an alarm that is somehow there does not sync on Free.
     await worker.evaluate(async () => { await chrome.storage.local.remove('lastSyncAt'); await chrome.alarms.create('auto-sync', { when: Date.now() + 1000, periodInMinutes: 180 }); });
     await page.waitForTimeout(6000);
-    check(calls.n === 0 && !(await alarm()), `extension: a scheduled alarm on Plus does not sync, and is cleared (Halo calls ${calls.n})`);
+    check(calls.n === 0 && !(await alarm()), `extension: a scheduled alarm on Free does not sync, and is cleared (Halo calls ${calls.n})`);
     for (const scheme of ['light', 'dark']) {
       await page.emulateMedia({ colorScheme: scheme });
       await page.setViewportSize({ width: 320, height: 340 });
@@ -103,19 +102,16 @@ try {
       if (scheme === 'light') {
         const note = await page.locator('#plus').innerText();
         const href = await page.locator('#upgrade').getAttribute('href');
-        check(!(await page.locator('#plus').isHidden()) && /Auto-sync is part of Max\. Sync now still works on Plus\./.test(note) && /Get Max/.test(note) && /#\/you\?s=plan&to=max$/.test(href ?? ''), `extension popup on Plus: "${note.replace(/\s+/g, ' ')}" → ${href}`);
-        check(!/Next sync around/.test(await page.locator('#status').innerText()) && (await page.locator('#sync').isEnabled()), 'extension popup on Plus: no "next sync", Sync now is there');
+        check(!(await page.locator('#plus').isHidden()) && /Halo sync, on its own every 3 hours, is part of Plus\./.test(note) && /See plans/.test(note) && /#\/you\?s=plan&to=plus$/.test(href ?? ''), `extension popup on Free: "${note.replace(/\s+/g, ' ')}" → ${href}`);
       }
-      await page.screenshot({ path: `${OUT}/popup-plus-${scheme}.png` });
+      await page.screenshot({ path: `${OUT}/popup-free-${scheme}.png` });
     }
-    // Sync now still runs on Plus.
-    await page.click('#sync');
-    await page.waitForTimeout(8000);
-    check(calls.n > 0, `extension: Sync now runs on Plus (Halo calls ${calls.n})`);
-    await setTier('max');
-    await page.reload({ waitUntil: 'load' });
-    await page.waitForTimeout(600);
-    check(await page.locator('#plus').isHidden(), 'extension popup on Max: no Max note');
+    for (const t of ['plus', 'max']) {
+      await setTier(t);
+      await page.reload({ waitUntil: 'load' });
+      await page.waitForTimeout(600);
+      check(await page.locator('#plus').isHidden(), `extension popup on ${t}: no plan note`);
+    }
   } finally {
     await ectx.close();
   }

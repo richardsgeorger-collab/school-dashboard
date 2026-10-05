@@ -68,13 +68,13 @@ export function Upgrade({ kind }: { kind: 'plus' | 'max' }) {
             Skip
           </button>
         </header>
-        {kind === 'plus' ? <PlusScreens i={i} next={next} done={done} /> : <MaxScreens i={i} next={next} done={done} extStep={extStep} />}
+        {kind === 'plus' ? <PlusScreens i={i} next={next} /> : <MaxScreens i={i} next={next} done={done} extStep={extStep} />}
       </div>
     </div>
   );
 }
 
-function PlusScreens({ i, next, done }: { i: number; next: () => void; done: (to?: string) => void }) {
+function PlusScreens({ i, next }: { i: number; next: () => void }) {
   const ext = useExtension();
   const { data, courseById, actions } = useStore();
   const reading = useReadStatus();
@@ -132,14 +132,10 @@ function PlusScreens({ i, next, done }: { i: number; next: () => void; done: (to
     <section className="onboard-step" aria-label="Two taps">
       <h1 className="onboard-title">{isTouchDevice() ? 'One more tap.' : 'Two things, one tap each.'}</h1>
       <div className="upgrade-rows">
-        {/* Auto-sync is Max (2026-10-01): on Plus this row offers Max instead of setting it up. Plus syncs with one
-            click: the bookmark, or Sync now in the extension. */}
-        {!isTouchDevice() && (
+        {/* Auto-sync is Plus and Max (2026-10-04): the extension syncs every 3 hours on its own. */}
+        {!isTouchDevice() && ext.offer && (
           <div>
-            <b>Sync on its own.</b> Auto-sync every 3 hours is part of Max. On Plus, Halo syncs when you click the bookmark{ext.url && ext.browser ? ' or Sync now in the Halo+ extension' : ''}.{' '}
-            <button type="button" className="btn small" onClick={() => done('#/you?s=plan&to=max')}>
-              Get Max
-            </button>
+            <b>Sync on its own.</b> The Halo+ extension syncs Halo every 3 hours while {ext.browser} is open.{' '}
             {ext.offer && (
               <a className="btn small quiet" href={ext.url!} target="_blank" rel="noopener">
                 Add to {ext.browser}
