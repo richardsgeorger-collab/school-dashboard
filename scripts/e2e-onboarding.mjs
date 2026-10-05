@@ -79,8 +79,15 @@ const run = async (name, device, scheme) => {
   await page.waitForTimeout(2500);
   const phone = name === 'phone';
   if (!phone) {
+    // Since 2026-10-05 desktop Chrome starts with the extension; the bookmark is one tap away (e2e-onboarding-ext covers
+    // the extension path itself).
+    const extFirst = await page.$('.onboard [aria-label="Add the extension"]');
+    if (name === 'desk' && scheme === 'light') check(!!extFirst, 'after sign-in, desktop Chrome starts with "Connect Halo the easy way" (the extension)');
+    await shot(page, 'ext');
+    await page.click('.onboard button:has-text("bookmark instead")');
+    await page.waitForTimeout(500);
     const bar = await page.$('.onboard [aria-label="Show your bookmarks bar"]');
-    if (name === 'desk' && scheme === 'light') check(!!bar, 'after sign-in it resumes at the bookmarks-bar step (headless has no bar to read)');
+    if (name === 'desk' && scheme === 'light') check(!!bar, '"Use the bookmark instead" goes to the bookmarks-bar step');
     await shot(page, 'bar');
     await page.click('button:has-text("I see my bookmarks bar")');
     await shot(page, 'drag');

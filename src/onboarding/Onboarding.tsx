@@ -1,5 +1,7 @@
 import { InviteButton } from '../referral/Invite';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { installedVersion, useExtension } from '../config/extension';
+import { IconCheck } from '../components/Icons';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
 import { pendingFriend, pendingRef } from '../auth/referral';
@@ -42,8 +44,10 @@ import { track } from './track';
  * with the likely fixes after a minute). A phone gets its own path, since a phone has no bookmarks bar to drag to.
  */
 
-type Screen = 'bar' | 'drag' | 'open' | 'wait' | 'p-copy' | 'p-save' | 'p-edit' | 'p-open' | 'p-wait' | IPadScreen;
+type Screen = 'ext' | 'ext-wait' | 'bar' | 'drag' | 'open' | 'wait' | 'p-copy' | 'p-save' | 'p-edit' | 'p-open' | 'p-wait' | IPadScreen;
 const DESKTOP: Screen[] = ['bar', 'drag', 'open', 'wait'];
+/** Desktop Chrome, Edge or Brave with the store address set: the extension first, the bookmark one tap away (2026-10-05). */
+const DESKTOP_EXT: Screen[] = ['ext', 'ext-wait', ...DESKTOP];
 const PHONE: Screen[] = ['p-copy', 'p-save', 'p-edit', 'p-open', 'p-wait'];
 /** A minute with nothing arriving is when a student starts to wonder; that is when the fixes show. */
 export const WAIT_MS = 60_000;
@@ -106,7 +110,9 @@ export function Onboarding() {
   const step = ob.step;
   // An iPad gets its own setup and stays on the iPad (2026-09-29); an iPad that started on the phone steps keeps them.
   const path = ob.path ?? (isIPad() ? 'ipad' : isPhoneDevice() ? 'phone' : 'desktop');
-  const screens: Screen[] = path === 'ipad' ? ipadScreens() : path === 'phone' ? PHONE : DESKTOP;
+  const ext = useExtension();
+  const extFirst = path === 'desktop' && !!ext.url && !!ext.browser && !ext.installed;
+  const screens: Screen[] = path === 'ipad' ? ipadScreens() : path === 'phone' ? PHONE : extFirst ? DESKTOP_EXT : DESKTOP;
   const screen = (screens as string[]).includes(ob.screen ?? '') ? (ob.screen as Screen) : screens[0];
   const [paste, setPaste] = useState(false);
 
@@ -264,7 +270,7 @@ export function Onboarding() {
         {step === 'syllabus' && !synced && <SyllabusStep onTrial={() => go('halo')} canTry={trialState(profile) === 'available'} />}
 
         {step === 'halo' && !synced && path === 'desktop' && (
-          <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />
+          <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} storeUrl={ext.url} browser={ext.browser} />
         )}
         {step === 'halo' && !synced && path === 'phone' && <PhoneHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />}
         {step === 'halo' && !synced && path === 'ipad' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
@@ -355,7 +361,7 @@ function MiniBrowser({ bar, children, label, slot = true }: { bar: boolean; chil
   );
 }
 
-function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void }) {
+function DesktopHalo({ screen, show, switchPath, onPaste, storeUrl, browser }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void; storeUrl: string | null; browser: string | null }) {
   const [note, setNote] = useState<string | null>(null);
   const keys = isMac() ? '⌘ Command + Shift + B' : 'Ctrl + Shift + B';
   const safari = isSafari();
@@ -386,6 +392,23 @@ function DesktopHalo({ screen, show, switchPath, onPaste }: { screen: Screen; sh
 
   return (
     <>
+      {screen === 'ext' && storeUrl && (
+        <section className="onboard-step" aria-label="Add the extension">
+          <p className="eyebrow">Connect Halo</p>
+          <h1 className="onboard-title">Connect Halo the easy way.</h1>
+          <p className="onboard-text">Add the Halo+ extension to {browser ?? 'Chrome'}. It reads Halo in the background and syncs every 3 hours, so you never have to click anything. It never sees your password.</p>
+          <a className="btn primary block onboard-big" href={storeUrl} target="_blank" rel="noopener" onClick={() => show('ext-wait')}>
+            Add to {browser ?? 'Chrome'}
+          </a>
+          <p className="hint">
+            It opens the Chrome Web Store: press Add to {browser ?? 'Chrome'}, then come back here.{' '}
+            <button type="button" className="hero-inline" onClick={() => show('bar')}>
+              Use the {BOOKMARK_NAME} bookmark instead
+            </button>
+          </p>
+        </section>
+      )}
+      {screen === 'ext-wait' && <ExtensionWait browser={browser ?? 'Chrome'} onBookmark={() => show('bar')} onPaste={onPaste} />}
       {screen === 'bar' && (
         <section className="onboard-step" aria-label="Show your bookmarks bar">
           <h1 className="onboard-title">Show your bookmarks bar.</h1>
@@ -820,6 +843,77 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads, invited = 
         <p className="hint">You both get Plus free for 30 days, after your free weeks.</p>
       </div>
       {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free week of Max is on. {invited ? "Then 30 days of Plus free, from your friend's invite." : TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync, announcements and the study tools are Max; try it free for 7 days any time from You.</p> : null}
+    </section>
+  );
+}
+
+/**
+ * After "Add to Chrome" in onboarding: waits for the extension to say hello from this page, asks it for the first
+ * sync, and says to open Halo logged in. The sync lands in the account and the payoff takes over on its own. An
+ * extension from before 0.5.2 starts its first sync within a minute of learning the plan; a logged-out Halo picks up
+ * the moment Halo is opened logged in.
+ */
+function ExtensionWait({ browser, onBookmark, onPaste }: { browser: string; onBookmark: () => void; onPaste: () => void }) {
+  const [version, setVersion] = useState<string | null>(installedVersion);
+  const [late, setLate] = useState(false);
+  const asked = useRef(false);
+  useEffect(() => {
+    if (version) return;
+    const t0 = Date.now();
+    const iv = window.setInterval(() => {
+      const v = installedVersion();
+      if (v) setVersion(v);
+      else if (Date.now() - t0 > 60_000) setLate(true);
+    }, 1000);
+    return () => window.clearInterval(iv);
+  }, [version]);
+  useEffect(() => {
+    if (!version || asked.current) return;
+    asked.current = true;
+    track('halo:ext-connected', 'complete');
+    window.postMessage({ kind: 'halo-ext-first-sync' }, location.origin);
+  }, [version]);
+  if (!version)
+    return (
+      <section className="onboard-step" aria-label="Waiting for the extension" aria-live="polite">
+        <h1 className="onboard-title">Press Add to {browser}, then come back.</h1>
+        <p className="onboard-text">This page moves on by itself as soon as the extension is added.</p>
+        <span className="ext-wait" aria-hidden>
+          <i />
+          <i />
+          <i />
+        </span>
+        {late && (
+          <p className="hint">
+            <b>Not seeing it?</b> Reload this page: an extension added while a page is open shows up after a reload.{' '}
+            <button type="button" className="hero-inline" onClick={() => window.location.reload()}>
+              Reload
+            </button>
+          </p>
+        )}
+        <p className="hint">
+          <button type="button" className="hero-inline" onClick={onBookmark}>
+            Use the {BOOKMARK_NAME} bookmark instead
+          </button>
+        </p>
+      </section>
+    );
+  return (
+    <section className="onboard-step" aria-label="Open Halo" aria-live="polite">
+      <span className="ext-check" aria-hidden>
+        <IconCheck />
+      </span>
+      <h1 className="onboard-title">Now open Halo and log in.</h1>
+      <p className="onboard-text">The extension is reading your classes in a quiet background tab. Halo+ fills in here by itself, usually in a minute or two.</p>
+      <a className="btn primary block onboard-big" href="https://halo.gcu.edu/" target="_blank" rel="noopener">
+        Open Halo ↗
+      </a>
+      <p className="hint">
+        Already logged in? Just wait here.{' '}
+        <button type="button" className="hero-inline" onClick={onPaste}>
+          Paste a sync instead
+        </button>
+      </p>
     </section>
   );
 }
