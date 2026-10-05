@@ -23,7 +23,7 @@ describe('landing page', () => {
   });
   it('states the disclaimer and never asks for a password', () => {
     expect(src).toContain('not affiliated with');
-    expect(src).toContain('Never your password');
+    expect(src).toContain('never asks for your password');
     expect(src).not.toMatch(/gcu\.edu\/[a-z]*logo|GCU logo/i);
   });
   it('the old /landing/ address forwards to the root', () => {

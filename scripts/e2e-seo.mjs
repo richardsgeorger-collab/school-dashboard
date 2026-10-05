@@ -14,7 +14,7 @@ const text = async (path) => (await fetch(new URL(path, BASE))).text();
 
 // 1. The raw HTML, as a crawler that runs no JavaScript gets it.
 const raw = await text('');
-for (const s of ['All of Halo, read for you', 'What it does', 'How the sync works', 'Does it need my GCU password?', 'not affiliated with Grand Canyon University', 'Help for GCU Halo']) check(raw.includes(s), `raw HTML has "${s}"`);
+for (const s of ['Every GCU deadline in one place', 'What it does', 'Set up in two minutes', 'Does it need my GCU password?', 'not affiliated with Grand Canyon University', 'Help for GCU Halo']) check(raw.includes(s), `raw HTML has "${s}"`);
 const helpLinks = [...raw.matchAll(/href="\.\/help\/([a-z0-9-]+)\/"/g)].map((m) => m[1]);
 check(helpLinks.length >= 6, `raw HTML links ${helpLinks.length} help pages`);
 const map = await text('sitemap.xml');
@@ -34,7 +34,7 @@ try {
   const nojs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 860 } });
   const p0 = await nojs.newPage();
   await p0.goto(BASE);
-  check(await p0.getByRole('heading', { name: /All of Halo, read for you/ }).isVisible(), 'with JavaScript off, the landing page is there');
+  check(await p0.getByRole('heading', { name: /Every GCU deadline in one place/ }).isVisible(), 'with JavaScript off, the landing page is there');
   await p0.screenshot({ path: `${OUT}/landing-no-js.png` });
   await nojs.close();
 
