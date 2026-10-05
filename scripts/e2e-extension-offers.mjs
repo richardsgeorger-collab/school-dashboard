@@ -1,7 +1,7 @@
 // The extension is on the Web Store (George, 2026-10-01): the store address is an Admin setting, and with it the
 // install offers turn on for desktop Chrome, Edge and Brave only. On the real backend with throwaway accounts:
 // Admin shows the address and refuses one that is not the Web Store; Max gets "Enable auto-sync" on You → Halo and an
-// "Add to Chrome" step in the Max welcome; Plus gets the same Enable auto-sync (2026-10-04); an
+// the Max welcome (3 screens; the extension has its own setup since 2026-10-04); Plus gets the same Enable auto-sync; an
 // installed extension shows "Auto-sync is on"; Safari, Firefox and an iPad get none of it; the landing page links it.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-extension-offers.mjs
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -84,25 +84,16 @@ try {
     check((await p.locator('.autosync-card').count()) === 0, `${name}: no extension offer`);
     await ctx.close();
   }
-  // The Max welcome: an "Add to Chrome" step on Chrome, none on Safari.
-  for (const [name, ua, scheme] of [['Chrome', UA.chrome, 'light'], ['Chrome', UA.chrome, 'dark'], ['Safari', UA.safari, 'light']]) {
+  // The Max welcome is 3 screens everywhere now (2026-10-04): the extension has its own setup, after the welcome.
+  for (const [name, ua] of [['Chrome', UA.chrome], ['Safari', UA.safari]]) {
     const fresh = await kit.persona('max');
     const { data: st } = await db.from('settings').select('data').eq('user_id', fresh.id).single();
     const { maxOnboarding: _m, ...rest } = st.data;
     await db.from('settings').update({ data: { ...rest, upgradeSeen: { plus: new Date().toISOString() } } }).eq('user_id', fresh.id);
-    const { ctx, p } = await open(fresh, { ua, scheme, route: '#/now' });
+    const { ctx, p } = await open(fresh, { ua, route: '#/now' });
     await p.waitForSelector('.onboard.upgrade', { timeout: 15000 });
-    const count = (await p.locator('.onboard.upgrade .onboard-count').innerText()).trim();
-    if (name === 'Chrome') {
-      await p.click('.onboard.upgrade button:has-text("Let\'s go")', { timeout: 8000 });
-      await p.click('.onboard.upgrade .onboard-actions button:has-text("Keep")');
-      await p.waitForSelector('[aria-label="Add to Chrome"]', { timeout: 5000 });
-      const step = p.locator('[aria-label="Add to Chrome"]');
-      check(count === '1 of 4' && /Let Halo sync itself\./.test(await step.innerText()) && (await step.locator('a:has-text("Add to Chrome")').getAttribute('href')) === STORE, `Max welcome on Chrome (${scheme}): an "Add to Chrome" step, 4 screens`);
-      await p.screenshot({ path: `${OUT}/max-welcome-step-${scheme}.png` });
-      await p.click('[aria-label="Add to Chrome"] button:has-text("Maybe later")');
-      check(!!(await p.$('[aria-label="Your next test"]')), 'Maybe later goes on to the next screen');
-    } else check(count === '1 of 3', `Max welcome on Safari: no extension step (${count})`);
+    const count = (await p.locator('.onboard.upgrade .onboard-count').first().innerText()).trim();
+    check(count === '1 of 3' && (await p.locator('[aria-label="Add to Chrome"]').count()) === 0, `Max welcome on ${name}: 3 screens, no Add to Chrome step (${count})`);
     await ctx.close();
   }
   // The landing page links it.

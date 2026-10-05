@@ -76,7 +76,17 @@ chrome.runtime.onInstalled.addListener(async (d) => {
   // Before 0.3.0 a sync was stamped "Last synced" whether or not it reached Halo+; that time cannot be trusted.
   if (d.reason === 'update' && d.previousVersion && d.previousVersion < '0.3.0') await chrome.storage.local.remove(['lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt']);
   await ensureSchedule();
+  // Tabs already open get this extension's scripts now (0.5.2), not after a reload: an open Halo+ tab learns the plan
+  // and the account at once (the setup screen sees the extension in seconds), and an open Halo tab can carry a sync.
+  await addToOpenTabs();
 });
+
+async function addToOpenTabs() {
+  const dash = await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }).catch(() => []);
+  for (const t of dash) await chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['content-dash.js'] }).catch(() => undefined);
+  const halo = await chrome.tabs.query({ url: `${HALO}*` }).catch(() => []);
+  for (const t of halo) if (!t.discarded) await chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['celebrate.js', 'content-halo.js'] }).catch(() => undefined);
+}
 chrome.runtime.onStartup.addListener(() => void ensureSchedule());
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
@@ -162,6 +172,12 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     // Halo+ asks whether auto-sync is paused, to say so on Now.
     void get(['autoPaused']).then(({ autoPaused }) => reply({ autoPaused: autoPaused || null }));
     return true;
+  } else if (msg.kind === 'first-sync') {
+    // The extension setup in Halo+ just saw this extension: the first sync now, quietly (Halo+ is already in front).
+    void get(['tier']).then(({ tier }) => {
+      if (!state.running && ['plus', 'pro', 'max'].includes(tier)) void runSync({ auto: false, quiet: true });
+    });
+    reply({ ok: true });
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
     // through storage, so the reply does not wait for the sync.

@@ -1,3 +1,7 @@
+import { ExtensionSetup } from './onboarding/ExtensionSetup';
+import { extSetupDue } from './onboarding/extSetup';
+import { installedVersion, useExtension } from './config/extension';
+import { isTouchDevice } from './ui/device';
 import { WinbackOpens } from './winback/WinbackHooks';
 import { HaloDraw } from './components/HaloDraw';
 import { DuplicateFold } from './halo/DuplicateFold';
@@ -35,7 +39,7 @@ import { Landing } from './landing/Landing';
 import { Login } from './landing/Login';
 import { useFront } from './landing/useShowLanding';
 import { accentToShow, applyAccent } from './config/accents';
-import { can } from './config/flags';
+import { can, trialState } from './config/flags';
 import { useAccount } from './auth/AccountContext';
 import { IconHalo } from './components/Icons';
 import { AppFailed, ErrorBoundary } from './components/ErrorBoundary';
@@ -254,6 +258,7 @@ function OnboardingHost() {
   const { auth, tier, loading, planKnown, profile } = useAccount();
   const { route, params, navigate } = useRoute();
   const front = useFront();
+  const ext = useExtension();
   // Settled: the sign-in is known and, when signed in, the account's first load is done. Before that a signed-in
   // student on a new device looked signed out for a few seconds on a slow network, and onboarding started (audit).
   const signedIn = !!auth.session || !!auth.knownUserId;
@@ -286,9 +291,25 @@ function OnboardingHost() {
   // Never on a plan still loading: the free tier it reads for a moment is not a downgrade, and the welcome waits.
   const due = loading || !planKnown ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
   if (due) return <Upgrade kind={due} />;
-  // The first open after a trial ends: one clear screen (it renders nothing unless that is now).
-  if (!loading) return <TrialEnded />;
-  return null;
+  if (loading || !planKnown) return null;
+  // The first open after a trial ends: one clear screen, before anything else.
+  if (trialState(profile) === 'used' && tier === 'free' && !!profile?.trialEndsAt && !profile.friendFrom && !data.settings.trialEndSeen) return <TrialEnded />;
+  // The Chrome extension setup (2026-10-04): once for everyone on a computer without it (after sign-up for someone new),
+  // and again from the "Get the extension" line on Now (#/now?ext=1).
+  const again = params.get('ext') === '1';
+  const extKind = again ? (ext.browser ? 'setup' : 'needs-chrome') : extSetupDue({ settings: data.settings, browser: ext.browser, touch: isTouchDevice(), installed: installedVersion(), storeUrl: ext.url });
+  if (extKind && (!again || !isTouchDevice()))
+    return (
+      <ExtensionSetup
+        kind={extKind}
+        onClose={(how) => {
+          const now = new Date().toISOString();
+          actions.updateSettings({ extSetup: { ...(data.settings.extSetup ?? {}), shownAt: data.settings.extSetup?.shownAt ?? now, ...(how === 'done' ? { doneAt: now } : { skippedAt: data.settings.extSetup?.skippedAt ?? now }) } });
+          if (again) navigate(route, {});
+        }}
+      />
+    );
+  return <TrialEnded />;
 }
 
 /** A signed-in student's classes on their way to a new device. */

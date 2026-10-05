@@ -3441,3 +3441,285 @@
   color: var(--accent-text);
   font-weight: 600;
 }
+
+/* ===== The Chrome extension setup (2026-10-04): the onboarding's look, two small browser mock-ups that loop. ===== */
+.ext-setup .eyebrow {
+  margin-top: var(--s-2);
+}
+.ext-setup .ext-big {
+  min-height: 52px;
+  padding: 0 28px;
+  font-size: 17px;
+}
+.ext-note {
+  margin: var(--s-3) 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.ext-check {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink, #1b1400);
+  animation: ext-pop 420ms var(--ease, ease-out) both;
+}
+.ext-check svg {
+  width: 32px;
+  height: 32px;
+}
+@keyframes ext-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+.ext-wait {
+  display: inline-flex;
+  gap: 6px;
+  margin: var(--s-3) 0;
+}
+.ext-wait i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: ext-dot 1.2s ease-in-out infinite;
+}
+.ext-wait i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.ext-wait i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes ext-dot {
+  50% {
+    opacity: 0.25;
+    transform: translateY(-3px);
+  }
+}
+.ext-late {
+  margin-top: var(--s-3);
+}
+
+/* The mock browser window. */
+.ext-demo {
+  margin: var(--s-3) 0 var(--s-4);
+}
+.ext-win {
+  position: relative;
+  max-width: 420px;
+  height: 190px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-2, 0 8px 24px rgb(0 0 0 / 0.08));
+  overflow: hidden;
+  font: 500 13px/1.3 var(--font-body);
+  color: var(--ink);
+}
+.ext-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2, var(--bg));
+}
+.ext-bar > i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.ext-url {
+  flex: 1;
+  margin-left: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.ext-page {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 18px;
+}
+.ext-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ext-store-btn,
+.ext-add {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #1a73e8;
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+}
+.ext-dialog {
+  position: absolute;
+  top: 44px;
+  right: 14px;
+  width: 210px;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  opacity: 0;
+  animation: ext-dialog 6s ease-in-out infinite;
+}
+.ext-dialog-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.ext-ghost {
+  padding: 6px 10px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.ext-cursor {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--ink);
+  border: 2px solid var(--surface);
+  transform: rotate(-45deg);
+}
+.ext-demo-install .ext-cursor {
+  animation: ext-cursor-install 6s ease-in-out infinite;
+}
+@keyframes ext-cursor-install {
+  0% { left: 40%; top: 85%; }
+  20%, 30% { left: 82%; top: 60px; }
+  45% { left: 82%; top: 60px; }
+  60%, 75% { left: 88%; top: 112px; }
+  100% { left: 88%; top: 112px; }
+}
+@keyframes ext-dialog {
+  0%, 30% { opacity: 0; transform: translateY(-4px); }
+  36%, 82% { opacity: 1; transform: none; }
+  90%, 100% { opacity: 0; }
+}
+.ext-demo-install .ext-store-btn {
+  animation: ext-press 6s ease-in-out infinite;
+}
+@keyframes ext-press {
+  0%, 26% { transform: none; }
+  29% { transform: scale(0.94); }
+  33%, 100% { transform: none; }
+}
+
+/* Pin it. */
+.ext-url-wide {
+  flex: 1;
+}
+.ext-puzzle,
+.ext-pinned {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--ink-2);
+}
+.ext-pinned {
+  opacity: 0;
+  animation: ext-pinned 6s ease-in-out infinite;
+}
+@keyframes ext-pinned {
+  0%, 62% { opacity: 0; transform: scale(0.6); }
+  68%, 100% { opacity: 1; transform: none; }
+}
+.ext-menu {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  width: 200px;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.18);
+  opacity: 0;
+  animation: ext-menu 6s ease-in-out infinite;
+}
+@keyframes ext-menu {
+  0%, 20% { opacity: 0; }
+  26%, 66% { opacity: 1; }
+  72%, 100% { opacity: 0; }
+}
+.ext-menu-title {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.ext-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ext-pin {
+  margin-left: auto;
+  color: var(--ink-3);
+  animation: ext-pin 6s ease-in-out infinite;
+}
+@keyframes ext-pin {
+  0%, 52% { color: var(--ink-3); }
+  56%, 100% { color: #1a73e8; }
+}
+.ext-demo-pin .ext-cursor {
+  animation: ext-cursor-pin 6s ease-in-out infinite;
+}
+@keyframes ext-cursor-pin {
+  0% { left: 45%; top: 80%; }
+  18%, 24% { left: calc(100% - 22px); top: 18px; }
+  45%, 56% { left: calc(100% - 30px); top: 66px; }
+  80%, 100% { left: calc(100% - 52px); top: 18px; }
+}
+
+/* Reduced motion: the last frame, still. */
+@media (prefers-reduced-motion: reduce) {
+  .ext-dialog,
+  .ext-menu {
+    animation: none;
+    opacity: 1;
+  }
+  .ext-pinned {
+    animation: none;
+    opacity: 1;
+  }
+  .ext-pin {
+    animation: none;
+    color: #1a73e8;
+  }
+  .ext-cursor,
+  .ext-wait i,
+  .ext-store-btn,
+  .ext-check {
+    animation: none;
+  }
+  .ext-cursor {
+    display: none;
+  }
+}
+.ext-nudge {
+  margin: 2px 0 var(--s-3);
+  font: var(--t-small, 500 14px/1.4 var(--font-body));
+  color: var(--ink-3);
+}

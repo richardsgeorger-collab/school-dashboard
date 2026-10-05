@@ -57,6 +57,10 @@ import { CLEAR_MOMENT } from '../joy/joy';
 import { WrapCard } from '../joy/WrapCard';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
+import { ExtensionNudge } from '../onboarding/ExtensionNudge';
+import { extSetupDue } from '../onboarding/extSetup';
+import { isTouchDevice } from '../ui/device';
+import { installedVersion, useExtension } from '../config/extension';
 import { isIos, isStandalone } from '../notify/push';
 import { planOf } from '../config/tiers';
 import { AsOf } from './PlanWall';
@@ -326,7 +330,10 @@ export function Now() {
   // Sunday review: offered once a Sunday, waved off twice means off. Never with nothing to review, and never
   // under the first-run screens: its backdrop sits above them and a new student on a Sunday could not tap Sign up.
   const [sunday, setSunday] = useState(false);
-  const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding);
+  // The extension setup is a first-run screen too (2026-10-04): the review waits for the next open rather than sit on it.
+  const extInfo = useExtension();
+  const extDue = !!extSetupDue({ settings: data.settings, browser: extInfo.browser, touch: isTouchDevice(), installed: installedVersion(), storeUrl: extInfo.url });
+  const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding) || extDue;
   useEffect(() => {
     if (work.length === 0 || firstRun) return;
     if (shouldOfferSunday(data.settings.sundayReview, today, work.length)) {
@@ -754,6 +761,7 @@ export function Now() {
         <InviteNowCard />
         {/* The trust line, always: when what is on screen last matched Halo, or that it is out of date, with the one button. */}
         {data.courses.length > 0 && <SyncedLine stale={stale} />}
+        <ExtensionNudge />
         <HeadsUp lines={headsUp} />
         {data.courses.length > 0 && (
           <a className="coach-ask" href="#/ask">

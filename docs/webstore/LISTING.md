@@ -19,6 +19,8 @@ Test the zip itself: unzip it somewhere and run `EXT_DIR=<there> node scripts/e2
 ## What changed in 0.5.2 (upload this one; 0.5.0 and 0.5.1 were never submitted)
 
 0.5.2 is 0.5.1 with auto-sync on Plus as well as Max (George, 2026-10-04). Free has no Halo sync. Prices unchanged.
+It also adds its scripts to Halo+ and Halo tabs already open when it is installed or updated (so Halo+'s new setup
+screen sees it in seconds and starts the first sync; same scripting and host permissions, nothing new).
 
 1. **Package**: upload `webstore-upload/halo-plus-extension-0.5.2.zip`. The summary under the name changes with it
    (manifest `description`): "Syncs Halo+ with Halo: classes, assignments, grades and announcements, on its own every

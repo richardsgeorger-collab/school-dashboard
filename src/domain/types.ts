@@ -553,6 +553,8 @@ export interface Settings {
   upgradeSeen?: { plus?: string | null; max?: string | null };
   /** When the "Your free trial ended" screen was seen (once, the first open after the trial). */
   trialEndSeen?: string | null;
+  /** The Chrome extension setup (2026-10-04): shown once; skipped puts a "Get the extension" line on Now for 7 days. */
+  extSetup?: { shownAt?: string | null; skippedAt?: string | null; doneAt?: string | null };
   /** The end-of-week "How much did Halo+ help?" answer: the number, or null when skipped. Asked once. */
   trialRating?: { rating: number | null; at: string } | null;
   /** When a friend-link student was asked, once, what is confusing or broken (day 3). */
