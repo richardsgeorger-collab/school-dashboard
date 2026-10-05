@@ -1,3 +1,5 @@
+import { classNext, whenLine } from '../domain/classNext';
+import { isWorkDone } from '../joy/joy';
 import { CookMeter } from './CookMeter';
 import { ItemDetail } from './ItemDetail';
 import { urgentFor } from '../domain/urgent';
@@ -7,7 +9,7 @@ import { EmptyState } from '../components/EmptyState';
 import { classProgress } from '../joy/joy';
 import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
 import { PALETTE } from '../data/courseDefaults';
-import { dateOf, diffDays, fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
+import { fmtClock, fmtDate, hhmmToMinutes } from '../domain/dates';
 import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import { Ring } from '../components/Ring';
@@ -53,19 +55,19 @@ function ClassCard({ course }: { course: Course }) {
   const tz = data.settings.timezone;
   const color = useCourseColor(course);
   const items = data.items.filter((i) => i.courseId === course.id);
-  const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
-  // Participation is attendance, not the next thing to do.
-  const next = [...open].filter((i) => i.type !== 'participation' && dateOf(i.dueAt, tz) >= today).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0];
-  const overdue = open.filter((i) => dateOf(i.dueAt, tz) < today).length;
+  const open = items.filter((i) => !isWorkDone(i) && !isNoise(i));
+  // Overdue first, then the soonest unfinished thing, participation included (domain/classNext.ts).
+  const { next, overdue: late } = classNext(items, today, tz);
+  const overdue = late.length;
   const g = courseGrade(course.id, data.items, course);
   const urgent = urgentFor(course.id, data.items, today, tz);
   const [openItem, setOpenItem] = useState<Item | null>(null);
   const line = gradeLine(g, course.gradeScale);
   const basis = basedOn(g);
-  const nextLine = next ? `${next.label} · ${diffDays(today, dateOf(next.dueAt, tz)) === 0 ? 'today' : diffDays(today, dateOf(next.dueAt, tz)) === 1 ? 'tomorrow' : fmtDate(dateOf(next.dueAt, tz), 'short')}` : open.length === 0 ? 'Nothing open' : null;
+  const nextLine = next ? `${next.label} · ${whenLine(next, today, tz, (d) => fmtDate(d, 'short'))}` : open.length === 0 ? 'Nothing open' : null;
   // One pace line per class: late counts as late; otherwise on pace or ahead.
   const pace = paceFor(course, data.items, schedule, today);
-  const paceLine = overdue > 0 ? `${overdue} late` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : pace.kind === 'behind' ? `${pace.n} behind` : null;
+  const paceLine = overdue > 0 ? `Behind: ${overdue} overdue` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : pace.kind === 'behind' ? `${pace.n} behind` : null;
   return (
     <li className="class-card-wrap" data-urgent={urgent.length > 0 || undefined}>
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>

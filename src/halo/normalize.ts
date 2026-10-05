@@ -153,7 +153,10 @@ export interface ToItemOptions {
 export function assessmentIssue(a: HaloAssessment, opts: ToItemOptions): string | null {
   if (!a.title?.trim()) return 'no title';
   if (!parseHaloDate(a.dueDate, opts.tz, opts.bareAs)) return 'no due date';
-  if (!opts.includeZeroPoint && !(Number(a.points) > 0)) return 'worth 0 points';
+  // A day's participation post or a discussion with no points of its own still counts: it feeds the week's graded
+  // participation, and Halo marks it overdue when it is missed (2026-10-04: CHM-113's "Week 4, Day 2 Participation",
+  // two days overdue in Halo, never reached Halo+). Other zero-point work stays out unless asked for.
+  if (!opts.includeZeroPoint && !(Number(a.points) > 0) && a.type !== 'DISCUSSION_QUESTION' && a.type !== 'PARTICIPATION') return 'worth 0 points';
   return null;
 }
 

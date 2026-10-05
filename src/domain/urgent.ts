@@ -1,3 +1,4 @@
+import { isWorkDone } from '../joy/joy';
 import { addDays, dateOf, diffDays, weekdayOf } from './dates';
 import { shortLine } from './shortLine';
 import type { DateStr, Item, Requirement } from './types';
@@ -32,7 +33,9 @@ export function urgentFor(courseId: string, items: Item[], today: DateStr, tz: s
     return day === today ? 'today' : day === addDays(today, 1) ? 'tomorrow' : WEEKDAYS[weekdayOf(day)];
   };
   for (const item of items) {
-    if (item.courseId !== courseId) continue;
+    // Only live work: nothing on something already turned in, graded or checked off (2026-10-04: ENG-105 said
+    // "+18 more", most of them on finished assignments).
+    if (item.courseId !== courseId || isWorkDone(item)) continue;
     for (const r of item.requirements ?? []) {
       if (r.done || r.scope === 'reference' || r.scope === 'rule' || r.source?.kind !== 'announcement') continue;
       const gate = PREREQ.test(r.text);
@@ -48,5 +51,18 @@ export function urgentFor(courseId: string, items: Item[], today: DateStr, tz: s
       out.push({ item, req: null, due: item.dueAt, line: `Don't forget: ${line}${DATED.test(line) ? '' : ` by ${when(item.dueAt)}`}` });
     }
   }
-  return out.sort((a, b) => a.due.localeCompare(b.due));
+  // The same line from two announcements is one line, and an assignment with three or more (a checklist) is one line: "13 things for
+  // English Rhetorical Final by Wednesday", not thirteen reminders on one class card (2026-10-04).
+  const seen = new Set<string>();
+  const unique = out.sort((a, b) => a.due.localeCompare(b.due)).filter((u) => {
+    const k = u.line.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  const byItem = new Map<string, Urgent[]>();
+  for (const u of unique) byItem.set(u.item.id, [...(byItem.get(u.item.id) ?? []), u]);
+  return [...byItem.values()]
+    .flatMap((list) => (list.length < 3 ? list : [{ ...list[0], req: null, line: `Don't forget: ${list.length} things for ${list[0].item.label} by ${when(list[list.length - 1].due)}` }]))
+    .sort((a, b) => a.due.localeCompare(b.due));
 }

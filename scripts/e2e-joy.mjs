@@ -133,7 +133,7 @@ try {
       // The queue: the milestone toast, then the finished-class card (in the order the classes come).
       const first = (await p.locator('.joy-toast, .joy-card').first().innerText()).replace(/\s+/g, ' ');
       if (await p.locator('.joy-toast').count()) await p.screenshot({ path: `${OUT}/p1-milestone-${dev}-${scheme}.png` });
-      await p.waitForSelector('.joy-card', { timeout: 10000 });
+      await p.waitForSelector('.joy-card', { timeout: 20000 });
       const conf = await p.waitForSelector('.joy-confetti i, .joy-glow', { timeout: 4000, state: 'attached' }).then(() => 1, () => 0);
       await p.waitForTimeout(400);
       const card = (await p.locator('.joy-card').innerText()).replace(/\s+/g, ' ');

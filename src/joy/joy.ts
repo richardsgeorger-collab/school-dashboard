@@ -85,7 +85,7 @@ export const gradeUpText = (g: GradeUp): string => `Your ${g.code} grade went up
 
 /** The line under a check-off: "+50 pts done · CHM-113L is 34% complete", with "2 days early" when it was. */
 export function doneLine(points: number, code: string | null, pct: number | null, early: number | null = null): string {
-  const pts = `+${points} pts done${early ? `, ${early} ${early === 1 ? 'day' : 'days'} early` : ''}`;
+  const pts = `${points > 0 ? `+${points} pts done` : 'Done'}${early ? `, ${early} ${early === 1 ? 'day' : 'days'} early` : ''}`;
   return code && pct !== null ? `${pts} · ${code} is ${pct}% complete` : pts;
 }
 

@@ -55,6 +55,8 @@ const RULES: Rule[] = [
   [/^topic (\d+) quiz$/i, (m) => `Quiz ${m[1]}`],
   [/^exam (\d+)$/i, (m) => `Exam ${m[1]}`],
   [/^topic (\d+) dq (\d+)$/i, (m) => `DQ ${m[1]}.${m[2]}`],
+  // A day's participation post: "Week 4, Day 2 Participation" → "Participation W4 Day 2" (beside the week's own).
+  [/^week (\d+),? day (\d+) participation\.?$/i, (m) => `Participation W${m[1]} Day ${m[2]}`],
   [/^week (\d+) participation$/i, (m) => `Participation W${m[1]}`],
   [/^topic (\d+) participation$/i, (m) => `Participation ${m[1]}`],
   [/^matlab:\s*(.+)$/i, (m) => `MATLAB ${first(m[1])}`],
