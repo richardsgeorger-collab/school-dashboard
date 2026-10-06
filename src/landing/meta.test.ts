@@ -11,6 +11,21 @@ const SITE = 'https://haloplus.app/';
 const meta = (attr: 'name' | 'property', key: string) => html.match(new RegExp(`<meta ${attr}="${key}" content="([^"]*)"`))?.[1] ?? null;
 
 describe('share and search metadata', () => {
+  it('links square favicons Google can use (multiples of 48px, an .ico at the root, an SVG) in the HTML itself, at stable names', () => {
+    const icons = [...html.matchAll(/<link rel="icon" href="\.\/([^"]+)"/g)].map((m) => m[1]);
+    expect(icons).toEqual(['favicon.ico', 'favicon.svg', 'favicon-48.png', 'favicon-96.png', 'favicon-192.png']);
+    for (const size of [48, 96, 192]) {
+      const png = readFileSync(`public/favicon-${size}.png`);
+      expect(png.readUInt32BE(16)).toBe(size);
+      expect(png.readUInt32BE(20)).toBe(size);
+    }
+    const ico = readFileSync('public/favicon.ico');
+    expect([ico.readUInt16LE(2), ico.readUInt16LE(4)]).toEqual([1, 3]);
+    expect(readFileSync('public/favicon.svg', 'utf8')).toMatch(/<rect width="64" height="64" fill="#0b0d10"\/>/);
+    // The help pages carry the same links; robots.txt blocks none of it.
+    expect(readFileSync('src/help/pages.ts', 'utf8')).toContain('favicon-48.png');
+    expect(readFileSync('public/robots.txt', 'utf8')).not.toMatch(/Disallow:\s*\/\S/);
+  });
   it('has a title, a description under 320 characters, and a canonical address', () => {
     expect(html).toContain('<title>Halo+: the planner built for Halo</title>');
     const d = meta('name', 'description') ?? '';

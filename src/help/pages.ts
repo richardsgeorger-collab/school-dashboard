@@ -372,7 +372,11 @@ function shell(o: { title: string; description: string; canonical: string; base:
 <title>${esc(o.title)} · Halo+</title>
 <meta name="description" content="${esc(o.description)}" />
 <link rel="canonical" href="${o.canonical}" />
-<link rel="icon" href="${o.base}icon.svg" type="image/svg+xml" />
+<link rel="icon" href="${o.base}favicon.ico" sizes="16x16 32x32 48x48" />
+<link rel="icon" href="${o.base}favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="${o.base}favicon-48.png" sizes="48x48" type="image/png" />
+<link rel="icon" href="${o.base}favicon-96.png" sizes="96x96" type="image/png" />
+<link rel="icon" href="${o.base}favicon-192.png" sizes="192x192" type="image/png" />
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="Halo+" />
 <meta property="og:title" content="${esc(o.title)}" />
