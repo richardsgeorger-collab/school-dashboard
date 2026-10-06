@@ -3,7 +3,7 @@ import { TAB_OF, TABS, useRoute, type Tab } from '../router';
 import { useStore } from '../storage/store';
 import { BrandMark } from './BrandMark';
 import { AutoSyncChip } from '../onboarding/AutoSyncChip';
-import { IconCalendar, IconClasses, IconInbox, IconMoon, IconNow, IconPlus, IconStudy, IconSun, IconSync, IconYou } from './Icons';
+import { IconCalendar, IconClasses, IconInbox, IconNow, IconPlus, IconStudy, IconSync, IconYou } from './Icons';
 import { useAccount } from '../auth/AccountContext';
 import { PlanBadge, TrialChip } from '../views/TrialStatus';
 import { SetupBar, SetupPill } from '../onboarding/Setup';
@@ -33,10 +33,8 @@ function Links({ current }: { current: Tab }) {
 
 export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: () => void }) {
   const { route } = useRoute();
-  const { sync, data, actions, progress } = useStore();
+  const { sync, data, progress } = useStore();
   const { auth } = useAccount();
-  const dark = document.documentElement.dataset.theme === 'dark';
-  const flipTheme = () => actions.updateSettings({ theme: dark ? 'light' : 'dark' });
   const initial = (auth.email ?? '').trim().charAt(0).toUpperCase();
   void data;
   const syncTitle = {
@@ -70,9 +68,7 @@ export function TopBar({ onSync, onCapture }: { onSync: () => void; onCapture: (
             <span className="gear-label">Sync</span>
             <PlanBadge plan="plus" />
           </button>
-          <button type="button" className="topbar-gear topbar-icon" onClick={flipTheme} title={dark ? 'Switch to light' : 'Switch to dark'} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>
-            {dark ? <IconSun /> : <IconMoon />}
-          </button>
+          {/* Light and dark live in You → Display now (2026-10-05): the top bar keeps what is used every day. */}
           <a href="#/you" className="topbar-gear topbar-avatar" title={`Account · ${syncTitle}`} aria-label={`Account. ${syncTitle}`}>
             {initial ? <span className="avatar">{initial}</span> : <IconYou />}
             <span className="sync-dot" data-status={sync.status} />

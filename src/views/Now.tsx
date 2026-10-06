@@ -57,6 +57,7 @@ import { CLEAR_MOMENT } from '../joy/joy';
 import { WrapCard } from '../joy/WrapCard';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
+import { SinceLastLooked } from './SinceLastLooked';
 import { extSetupDue } from '../onboarding/extSetup';
 import { isTouchDevice } from '../ui/device';
 import { installedVersion, useExtension } from '../config/extension';
@@ -731,6 +732,7 @@ export function Now() {
           </div>
         )}
       </header>
+      <SinceLastLooked onOpen={setOpen} />
       {soonTest && !back && (!exam || exam.exam.id !== soonTest.id) && (
         <p className="study-nudge" role="note">
           <b>{soonTest.label}</b> is {inDays(soonTest, today, tz)}.{' '}

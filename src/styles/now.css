@@ -1260,3 +1260,93 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* "Since you last looked" (2026-10-05): one line under the day's heading, a list on a tap. */
+.since-looked {
+  margin: -4px 0 var(--s-3);
+}
+.since-looked-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: var(--t-small, 500 14px/1.4 var(--font-body));
+  text-align: left;
+  cursor: pointer;
+}
+.since-looked-line b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.since-looked-line:hover {
+  border-color: var(--line-strong);
+}
+.since-looked-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.since-looked-caret {
+  margin-left: auto;
+  color: var(--ink-3);
+  font-size: 16px;
+  line-height: 1;
+}
+.since-looked-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.since-looked-item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: var(--t-small, 500 14px/1.4 var(--font-body));
+  text-align: left;
+  cursor: pointer;
+}
+.since-looked-item:hover {
+  background: var(--surface-2, var(--bg));
+}
+.since-looked-kind {
+  color: var(--accent-text);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.since-looked-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.since-looked-detail {
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+@media (max-width: 639px) {
+  .since-looked-item {
+    grid-template-columns: 64px minmax(0, 1fr);
+    row-gap: 0;
+  }
+  .since-looked-detail {
+    grid-column: 2;
+  }
+}

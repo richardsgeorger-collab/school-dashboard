@@ -217,7 +217,7 @@ export function Ask() {
             ← Study
           </a>
           <h1 className="page-title">Ask</h1>
-          <p className="hint study-lead">Anything about your classes: what to do next, what a professor wants, how a topic works. It knows your assignments, grades, slides, lectures and announcements. Pick a class to have it teach from that class's material.</p>
+          <p className="hint study-lead">What to do next, what a professor wants, how a topic works. Pick a class to answer from its slides and announcements.</p>
         </div>
       </div>
 

@@ -317,3 +317,9 @@ a.quiz-chip {
   padding: 4px 12px;
   font-size: 13px;
 }
+
+/* Before the first question there is nothing to scroll: the starters sit right above the box (2026-10-05). */
+.ask-card .chat-log:not(:has(.chat-msg)) {
+  min-height: 0;
+  padding-bottom: 0;
+}

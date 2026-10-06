@@ -69,7 +69,7 @@ describe('the grade floor', () => {
     const f = gradeFloor('c1', graded);
     // total 300, earned 39 of 50; A needs 270 → 231 of the remaining 250 → 92%
     expect(f.line).toBe("Still an A if you average 92% on what's left.");
-    expect(f.zeroLine).toBe('Chem Exam 1 carries a lot: a zero would take you to 39%.');
+    expect(f.zeroLine).toBe('Chem Exam 1 carries a lot: a zero would take you to 39.0%.');
     expect(f.letter).toBe('C');
     const strong = gradeFloor('c1', graded.map((i) => (i.id === 'g1' ? { ...i, score: 20 } : i.id === 'g2' ? { ...i, score: 30 } : i)));
     expect(strong.line).toBe("On track for an A: 88% on what's left keeps it.");
@@ -84,11 +84,20 @@ describe('the grade floor', () => {
       mkItem({ id: 'h', courseId: 'c3', title: 'HW', points: 25, dueAt: at('2026-10-12') }),
     ];
     // 190 of 200 graded, 75 open of 275. A zero on the quiz and 95% on the rest: (190 + 23.75) / 275 = 77.7%, a C.
-    expect(gradeFloor('c3', items, halo).zeroLine).toBe('Chem Quiz 2 carries a lot: a zero would take you to a C (78%).');
+    expect(gradeFloor('c3', items, halo).zeroLine).toBe('Chem Quiz 2 carries a lot: a zero would take you to a C (77.7%).');
     expect(gradeFloor('c3', items).zeroLine).toMatch(/carries a lot/);
     // A big gradebook already: the zero really does keep the A.
     const deep = { haloGrade: { letter: 'A', percent: 95, points: 950, maxPoints: 1000, at: '2026-10-05T00:00:00Z' } };
-    expect(gradeFloor('c3', items, deep).zeroLine).toBe('Even a zero on Chem Quiz 2 keeps you at an A (91%) if the rest holds.');
+    expect(gradeFloor('c3', items, deep).zeroLine).toBe('Even a zero on Chem Quiz 2 keeps you at an A (90.6%) if the rest holds.');
+  });
+  it('draws the letters where the class does (GCU: A at 93), and says nothing for a weighted class', () => {
+    const scale = [{ label: 'A', minPercent: 93, maxPercent: null }, { label: 'A-', minPercent: 90, maxPercent: 92.99 }, { label: 'B', minPercent: 83, maxPercent: 86.99 }, { label: 'C', minPercent: 70, maxPercent: 76.99 }];
+    const items = [mkItem({ id: 'w', courseId: 'c4', title: 'HW', points: 100, dueAt: at('2026-10-12') })];
+    const g = (pct: number, pts: number, max: number) => ({ haloGrade: { letter: null, percent: pct, points: pts, maxPoints: max, at: '' }, gradeScale: scale });
+    // 92 of 100 graded, 100 open: an A at 93 needs 94 of the 100 left.
+    expect(gradeFloor('c4', items, g(92, 92, 100)).line).toBe("Still an A if you average 94% on what's left.");
+    // Halo says 88% but the points say 92%: categories are weighted; no guess.
+    expect(gradeFloor('c4', items, g(88, 92, 100))).toEqual({ line: null, zeroLine: null, letter: null });
   });
 });
 

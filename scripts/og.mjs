@@ -11,7 +11,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
   .top { display: flex; align-items: center; gap: 20px; }
   .mark { width: 64px; height: 64px; }
   .eyebrow { font: 600 22px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #946800; white-space: nowrap; }
-  h1 { margin: 0; align-self: center; font: 800 78px/1.04 "Plus Jakarta Sans", Inter, sans-serif; letter-spacing: -0.03em; max-width: 1040px; }
+  h1 { margin: 0; align-self: center; font: 800 70px/1.06 "Plus Jakarta Sans", Inter, sans-serif; letter-spacing: -0.03em; max-width: 1040px; }
   h1 b { color: #946800; font-weight: 800; }
   .bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; }
   .lede { margin: 0; font: 500 28px/1.35 Inter, sans-serif; color: #4b535e; max-width: 900px; }
@@ -22,11 +22,11 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
   <div class="top">
     <svg class="mark" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="14" fill="#0b0d10"/><path d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" fill="none" stroke="#f2b84b" stroke-width="6" stroke-linecap="round"/><path d="M47.1 9.3v15.2M39.5 16.9h15.2" stroke="#f2f4f7" stroke-width="6.5" stroke-linecap="round"/></svg>
     <span class="eyebrow">Halo+ · built for Halo</span>
-    <span class="url">richardsgeorger-collab.github.io/school-dashboard</span>
+    <span class="url">haloplus.app</span>
   </div>
-  <h1>All of Halo, read for you. <b>Even the announcements.</b></h1>
+  <h1>Every GCU deadline in one place. <b>Even the ones hidden in announcements.</b></h1>
   <div class="bottom">
-    <p class="lede">Then the one thing to do next. Your GCU classes, assignments, grades and every announcement on one screen. One bookmark syncs it. Never your password.</p>
+    <p class="lede">Your Halo classes, grades and every announcement, then the one thing to do next. Syncs itself every 3 hours. Never your password.</p>
   </div>
 </div></body></html>`;
 
