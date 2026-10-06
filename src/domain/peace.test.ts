@@ -67,13 +67,13 @@ describe('the grade floor', () => {
   ];
   it('says what average keeps an A, and what a zero on the next big thing would do', () => {
     const f = gradeFloor('c1', graded);
-    // total 300, earned 39 of 50; A needs 270 → 231 of the remaining 250 → 92%
-    expect(f.line).toBe("Still an A if you average 92% on what's left.");
+    // No scale from Halo: GCU's (A at 93). Total 300, earned 39 of 50; an A needs 279 → 240 of the remaining 250 → 96%.
+    expect(f.line).toBe("Still an A if you average 96% on what's left.");
     expect(f.zeroLine).toBe('Chem Exam 1 carries a lot: a zero would take you to 39.0%.');
-    expect(f.letter).toBe('C');
+    expect(f.letter).toBe('C+');
     const strong = gradeFloor('c1', graded.map((i) => (i.id === 'g1' ? { ...i, score: 20 } : i.id === 'g2' ? { ...i, score: 30 } : i)));
-    expect(strong.line).toBe("On track for an A: 88% on what's left keeps it.");
-    expect(gradeFloor('c1', graded.map((i) => (i.score !== null ? { ...i, score: 5 } : i))).line).toBe("An A is out of reach now; a B needs 92% on what's left.");
+    expect(strong.line).toBe("On track for an A: 92% on what's left keeps it.");
+    expect(gradeFloor('c1', graded.map((i) => (i.score !== null ? { ...i, score: 5 } : i))).line).toBe("An A is out of reach now; a B needs 96% on what's left.");
     expect(gradeFloor('c2', graded).line).toBeNull();
   });
   it('uses Halo\'s own points when the class has them, not only the items scored here', () => {
@@ -84,11 +84,13 @@ describe('the grade floor', () => {
       mkItem({ id: 'h', courseId: 'c3', title: 'HW', points: 25, dueAt: at('2026-10-12') }),
     ];
     // 190 of 200 graded, 75 open of 275. A zero on the quiz and 95% on the rest: (190 + 23.75) / 275 = 77.7%, a C.
-    expect(gradeFloor('c3', items, halo).zeroLine).toBe('Chem Quiz 2 carries a lot: a zero would take you to a C (77.7%).');
+    expect(gradeFloor('c3', items, halo).zeroLine).toBe('Chem Quiz 2 carries a lot: a zero would take you to a C+ (77.7%).');
     expect(gradeFloor('c3', items).zeroLine).toMatch(/carries a lot/);
-    // A big gradebook already: the zero really does keep the A.
+    // A big gradebook already: 90.6% is still an A on a 90 scale, an A- on GCU's.
     const deep = { haloGrade: { letter: 'A', percent: 95, points: 950, maxPoints: 1000, at: '2026-10-05T00:00:00Z' } };
-    expect(gradeFloor('c3', items, deep).zeroLine).toBe('Even a zero on Chem Quiz 2 keeps you at an A (90.6%) if the rest holds.');
+    expect(gradeFloor('c3', items, deep).zeroLine).toBe('Chem Quiz 2 carries a lot: a zero would take you to an A- (90.6%).');
+    const ninety = [{ label: 'A', minPercent: 90, maxPercent: null }, { label: 'B', minPercent: 80, maxPercent: 89.99 }, { label: 'C', minPercent: 70, maxPercent: 79.99 }, { label: 'F', minPercent: 0, maxPercent: 69.99 }];
+    expect(gradeFloor('c3', items, { ...deep, gradeScale: ninety }).zeroLine).toBe('Even a zero on Chem Quiz 2 keeps you at an A (90.6%) if the rest holds.');
   });
   it('draws the letters where the class does (GCU: A at 93), and says nothing for a weighted class', () => {
     const scale = [{ label: 'A', minPercent: 93, maxPercent: null }, { label: 'A-', minPercent: 90, maxPercent: 92.99 }, { label: 'B', minPercent: 83, maxPercent: 86.99 }, { label: 'C', minPercent: 70, maxPercent: 76.99 }];
@@ -98,6 +100,16 @@ describe('the grade floor', () => {
     expect(gradeFloor('c4', items, g(92, 92, 100)).line).toBe("Still an A if you average 94% on what's left.");
     // Halo says 88% but the points say 92%: categories are weighted; no guess.
     expect(gradeFloor('c4', items, g(88, 92, 100))).toEqual({ line: null, zeroLine: null, letter: null });
+  });
+  it('shows the letter Halo shows; a scale that disagrees with it is not used for letters', () => {
+    const items = [mkItem({ id: 'w', courseId: 'c5', title: 'Final paper', label: 'Final paper', points: 100, dueAt: at('2026-10-12') })];
+    // Halo says A- at 91% and the class has no scale: GCU's agrees, so its letters are used.
+    const agree = gradeFloor('c5', items, { haloGrade: { letter: 'A-', percent: 91, points: 91, maxPoints: 100, at: '' } });
+    expect(agree.letter).toBe('A-');
+    expect(agree.line).toBe("Still an A if you average 95% on what's left.");
+    // Halo says B at 88%; GCU would call it B+, so this professor's scale is different: Halo's letter, percents only.
+    const own = gradeFloor('c5', items, { haloGrade: { letter: 'B', percent: 88, points: 88, maxPoints: 100, at: '' } });
+    expect(own).toEqual({ letter: 'B', line: null, zeroLine: 'Final paper carries a lot: a zero would take you to 44.0%.' });
   });
 });
 
