@@ -1350,3 +1350,57 @@
     grid-column: 2;
   }
 }
+
+/* The sync reminder (2026-10-06): pinned at the top of Now while the planner is out of date; red from three days. */
+.sync-reminder {
+  position: sticky;
+  top: 72px;
+  z-index: 15;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 var(--s-4, 16px);
+  padding: 12px 16px;
+  border: 1px solid var(--warn);
+  border-radius: var(--r-md, 12px);
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+  box-shadow: 0 0 0 6px var(--bg);
+  color: var(--ink);
+  font-size: 15px;
+}
+.sync-reminder[data-level='red'] {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+}
+.sync-reminder[data-level='ok'] {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, var(--surface));
+}
+.sync-reminder p {
+  flex: 1 1 320px;
+  margin: 0;
+}
+.sync-reminder b {
+  font-weight: 700;
+}
+.sync-reminder[data-level='red'] b {
+  color: var(--danger);
+}
+.sync-reminder[data-level='ok'] b {
+  color: var(--ok);
+}
+.sync-reminder-note {
+  color: var(--ink-2);
+}
+@media (max-width: 700px) {
+  .sync-reminder {
+    top: 64px;
+    padding: 10px 12px;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .sync-reminder p {
+    flex: 1 1 100%;
+  }
+}

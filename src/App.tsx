@@ -1,5 +1,6 @@
 import { ExtensionSetup } from './onboarding/ExtensionSetup';
 import { extSetupDue } from './onboarding/extSetup';
+import { NeverSyncedSheet } from './onboarding/Setup';
 import { installedVersion, useExtension } from './config/extension';
 import { isTouchDevice } from './ui/device';
 import { WinbackOpens } from './winback/WinbackHooks';
@@ -309,7 +310,12 @@ function OnboardingHost() {
         }}
       />
     );
-  return <TrialEnded />;
+  return (
+    <>
+      <TrialEnded />
+      <NeverSyncedSheet />
+    </>
+  );
 }
 
 /** A signed-in student's classes on their way to a new device. */

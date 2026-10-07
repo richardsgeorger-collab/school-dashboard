@@ -1173,3 +1173,42 @@ input[type='range']::-webkit-slider-thumb {
   color: var(--ink);
   font: var(--t-small, 500 14px/1.4 var(--font-body));
 }
+
+/* "You haven't synced Halo yet!" (2026-10-06): the full-screen sheet on every open until the first sync. */
+.never-synced-step {
+  text-align: center;
+  align-items: center;
+}
+.never-synced-step .connect-halo-mark {
+  margin: 0 auto 8px;
+}
+.never-synced-title {
+  font-size: clamp(30px, 6vw, 44px);
+}
+.never-synced-step .onboard-actions {
+  justify-content: center;
+  width: 100%;
+}
+.never-synced-later {
+  margin-top: 18px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.never-synced-check {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 8px;
+  border-radius: 50%;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 32px;
+  font-weight: 700;
+}

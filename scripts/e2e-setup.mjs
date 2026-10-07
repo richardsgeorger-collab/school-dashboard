@@ -23,7 +23,7 @@ const DEVICES = {
   phone: { ...devices['iPhone 14'], deviceScaleFactor: 2 },
   ipad: { ...devices['iPad (gen 7)'], deviceScaleFactor: 2 },
 };
-const HALO_STEP = { desk: '[aria-label="Show your bookmarks bar"]', phone: '[aria-label="Copy the bookmark"]', ipad: '.ipad-step' };
+const HALO_STEP = { desk: '[aria-label="Add the extension"]', phone: '[aria-label="Copy the bookmark"]', ipad: '.ipad-step' };
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = async (dev, scheme, session) => {
@@ -53,6 +53,12 @@ try {
     // It moves on by itself; Go to Now is there to go sooner.
     const t0 = Date.now();
     await p.waitForSelector('.onboard', { state: 'detached', timeout: 9000 }).catch(() => undefined);
+    // Desktop Chrome, once (2026-10-04): the extension setup comes next; skipping it, no "You haven't synced" on top
+    // in the same visit (2026-10-06: that waits for the next open).
+    if (await p.$('.ext-setup-sheet')) {
+      await p.click('.ext-setup-sheet button.btn:has-text("Skip for now")');
+      await p.waitForTimeout(1500);
+    }
     check(!(await p.$('.onboard')) && /#\/now/.test(p.url()) && Date.now() - t0 > 2000, `${tag}: goes on to Now by itself after a few seconds (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
     // 2. Now before the first sync: one card, and the pill.
     await p.waitForTimeout(800);
@@ -117,7 +123,10 @@ try {
     await p.waitForSelector('.onboard .onboard-skip', { timeout: 20000 });
     await p.click('.onboard .onboard-skip');
     await p.click('.skip-note button:has-text("Go to Now")');
+    await p.waitForTimeout(1500);
+    if (await p.$('.ext-setup-sheet')) await p.click('.ext-setup-sheet button:has-text("Skip for now")');
     await p.waitForSelector('.setup-pill', { timeout: 8000 });
+    check((await p.locator('.never-synced').count()) === 0, 'signed out: no "You haven\'t synced" sheet (it is for accounts with sync)');
     await p.click('.setup-pill');
     await p.waitForSelector('.onboard form.signin', { timeout: 8000 });
     check(/Sign up, then connect Halo/.test(await p.locator('.onboard-head').innerText()), 'signed out: Set up asks for an account first, then Halo');

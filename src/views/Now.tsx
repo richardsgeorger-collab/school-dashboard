@@ -58,6 +58,7 @@ import { WrapCard } from '../joy/WrapCard';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { SinceLastLooked } from './SinceLastLooked';
+import { SyncReminder, useSyncReminder } from './SyncReminder';
 import { extSetupDue } from '../onboarding/extSetup';
 import { isTouchDevice } from '../ui/device';
 import { installedVersion, useExtension } from '../config/extension';
@@ -255,6 +256,8 @@ export function Now() {
   const { data, schedule, derived, today, actions, progress, previewAward, calibrate, justDone } = useStore();
   const { profile, auth } = useAccount();
   const neverSynced = useNeverSynced();
+  // One sync prompt at a time: while the reminder is up, the synced line (its Sync now, the paused note) waits.
+  const reminding = !!useSyncReminder();
   const trialDays = trialDaysLeft(profile);
   const onTrial = trialState(profile) === 'active';
   const trialAvailable = auth.configured && trialState(profile) === 'available';
@@ -704,6 +707,7 @@ export function Now() {
     );
   return (
     <div className="now">
+      <SyncReminder />
       <WrapCard />
       <TrialReminder />
       {trialAvailable && !headsUp.some((h) => h.key === 'read-failed') && data.courses.length > 0 && (
@@ -761,7 +765,7 @@ export function Now() {
         <NotifyReask />
         <InviteNowCard />
         {/* The trust line, always: when what is on screen last matched Halo, or that it is out of date, with the one button. */}
-        {data.courses.length > 0 && <SyncedLine stale={stale} />}
+        {data.courses.length > 0 && !reminding && <SyncedLine stale={stale} />}
         <HeadsUp lines={headsUp} />
         {data.courses.length > 0 && (
           <a className="coach-ask" href="#/ask">
