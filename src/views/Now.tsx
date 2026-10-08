@@ -2,6 +2,7 @@ import { ExamWeekCard } from '../winback/ExamWeekCard';
 import { NotifyReask } from './NotifyReask';
 import { InviteLine, InviteNowCard } from './InviteNowCard';
 import { ParticipationWeek } from './ParticipationWeek';
+import { isParticipation } from '../domain/participation';
 import { useEffect, useMemo, useState } from 'react';
 import { ItemRow } from '../components/ItemRow';
 import { Modal } from '../components/Modal';
@@ -278,8 +279,9 @@ export function Now() {
   const now = new Date().toISOString();
   const minuteKey = now.slice(0, 16);
 
-  // Participation is attendance, not work: it stays in the calendar and grades, never here.
-  const work = useMemo(() => data.items.filter((i) => i.type !== 'participation'), [data.items]);
+  // Participation is attendance, not work: it stays in the calendar, grades and its own line, never the hero or Then
+  // (Halo's PARTICIPATION type, or "participation" in the title: CHM-113's daily ones are discussions in Halo).
+  const work = useMemo(() => data.items.filter((i) => !isParticipation(i)), [data.items]);
   // "Show me something else" passes over an item for the rest of today, on this device only.
   const passKey = `school-dashboard:passed:${today}`;
   const [passed, setPassed] = useState<string[]>(() => {
@@ -360,7 +362,7 @@ export function Now() {
   const why = hero ? whyLine(pickReason(hero, work, schedule, today, now, tz, derived)) : null;
 
   // The day: what is due today, how much of it is done, and the time of day.
-  const dueToday = useMemo(() => clean.filter((i) => i.type !== 'participation' && !isNoise(i) && dateOf(i.dueAt, tz) === today), [clean, tz, today]);
+  const dueToday = useMemo(() => clean.filter((i) => !isParticipation(i) && !isNoise(i) && dateOf(i.dueAt, tz) === today), [clean, tz, today]);
   const doneToday = dueToday.filter((i) => i.status === 'done').length;
   // "You're clear for today" (2026-10-02): everything due today done, celebrated once a day on any device.
   const settledJoy = useSettled();

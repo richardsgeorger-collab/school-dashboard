@@ -3727,3 +3727,32 @@
   box-sizing: border-box;
   text-decoration: none;
 }
+
+/* A missed participation, on the line and its row (2026-10-08): red, never a hero card. */
+.pw-late {
+  color: var(--danger);
+  font-weight: 700;
+}
+.pw-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pw-day input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.pw-day .mono {
+  margin-left: auto;
+  font-size: 11px;
+}
+.pw-day[data-done='true'] .pw-day-label {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}

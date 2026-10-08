@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, fmtMinutes, fmtTime, weekdayOf } from './dates';
+import { isParticipation } from './participation';
 import { isNoise } from './requirements';
 import type { Schedule } from './schedule';
 import { effectivePoints, gatingLine } from './gating';
@@ -107,7 +108,7 @@ export function todayLine(items: Item[], schedule: Schedule, today: DateStr, now
  * contradict. "Today's done." is todayDone(): everything due today done and nothing overdue.
  */
 export function statusLine(items: Item[], today: DateStr, now: string, tz: string): { text: string; needs: number; tone: 'late' | null } {
-  const work = items.filter((i) => i.type !== 'participation' && !isNoise(i) && i.status !== 'done' && !isBlocked(i, today));
+  const work = items.filter((i) => !isParticipation(i) && !isNoise(i) && i.status !== 'done' && !isBlocked(i, today));
   const nowMs = ms(now);
   const overdue = work.filter((i) => ms(i.dueAt) < nowMs).length;
   const soon = work.filter((i) => ms(i.dueAt) >= nowMs && ms(i.dueAt) - nowMs <= 24 * 60 * 60 * 1000 && i.status === 'todo').length;
@@ -152,7 +153,7 @@ export function pickReason(item: Item, items: Item[], schedule: Schedule, today:
  * done must use this, so a banner about work still open today can never sit under that title.
  */
 export function todayDone(items: Item[], today: DateStr, now: string, tz: string): boolean {
-  const work = items.filter((i) => i.type !== 'participation' && !isNoise(i));
+  const work = items.filter((i) => !isParticipation(i) && !isNoise(i));
   if (work.some((i) => i.status !== 'done' && ms(i.dueAt) < ms(now))) return false;
   const due = work.filter((i) => dateOf(i.dueAt, tz) === today);
   return due.length > 0 && due.every((i) => i.status === 'done');

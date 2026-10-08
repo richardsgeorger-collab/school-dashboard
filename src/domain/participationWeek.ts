@@ -1,4 +1,5 @@
 import { dateOf, diffDays } from './dates';
+import { isParticipation } from './participation';
 import type { Course, DateStr, Item, Requirement } from './types';
 
 /**
@@ -32,24 +33,53 @@ export interface WeekEntry {
   lines: Requirement[];
   /** Lines still open; an item with no lines counts as one until it is marked done. */
   left: number;
+  /** A day's participation (CHM-113's "Week 5, Day 1 Participation"): one tick, no checklist. */
+  day: boolean;
+  /** Past its due time and not done. */
+  late: boolean;
 }
 
-/** Each class's participation item for the week: the first one due today or in the next six days. */
+/** How far back a missed day's participation still shows as late on the line. */
+const LATE_DAYS = 7;
+
+/**
+ * Each class's participation item for the week (the first one due today or in the next six days), and its day-by-day
+ * participation (2026-10-08): items with "participation" in the title that Halo files as discussions or assignments,
+ * due this week, or missed in the past week (late).
+ */
 export function participationThisWeek(items: Item[], courses: Course[], today: DateStr, tz: string, now: string): WeekEntry[] {
   const byCourse = new Map(courses.map((c) => [c.id, c]));
   const picked = new Map<string, Item>();
+  const days: Item[] = [];
+  const nowMs = Date.parse(now);
   for (const i of [...items].sort((a, b) => a.dueAt.localeCompare(b.dueAt))) {
-    if (i.type !== 'participation' || picked.has(i.courseId)) continue;
+    if (!isParticipation(i)) continue;
     const k = diffDays(today, dateOf(i.dueAt, tz));
+    if (i.type !== 'participation') {
+      const missed = i.status !== 'done' && Date.parse(i.dueAt) < nowMs && k >= -LATE_DAYS;
+      // A late one ticked off today stays for the day, so it can be unticked where it was ticked.
+      const caughtUp = i.status === 'done' && k < 0 && k >= -LATE_DAYS && !!i.completedAt && dateOf(i.completedAt, tz) === today;
+      if ((k >= 0 && k <= 6) || missed || caughtUp) days.push(i);
+      continue;
+    }
+    if (picked.has(i.courseId)) continue;
     if (k >= 0 && k <= 6) picked.set(i.courseId, i);
   }
-  return [...picked.values()].map((item) => {
+  const late = (i: Item) => i.status !== 'done' && Date.parse(i.dueAt) < nowMs;
+  const weeks: WeekEntry[] = [...picked.values()].map((item) => {
     const course = byCourse.get(item.courseId);
     const lines = checklistFor(item, course, now);
     const left = item.status === 'done' ? 0 : lines.length === 0 ? 1 : lines.filter((r) => !r.done).length || 1;
-    return { item, course, lines, left };
+    return { item, course, lines, left, day: false, late: late(item) };
   });
+  const dayEntries: WeekEntry[] = days.map((item) => ({ item, course: byCourse.get(item.courseId), lines: [], left: item.status === 'done' ? 0 : 1, day: true, late: late(item) }));
+  // Class by class: its week's item, then its days in order.
+  const code = (e: WeekEntry) => e.course?.code ?? '';
+  return [...weeks, ...dayEntries].sort((a, b) => code(a).localeCompare(code(b)) || Number(a.day) - Number(b.day) || a.item.dueAt.localeCompare(b.item.dueAt));
 }
+
+/** How many are late: "1 late" in red on the line. */
+export const lateCount = (entries: WeekEntry[]): number => entries.filter((e) => e.late).length;
 
 /** "Participation this week: 3 left" or "Participation done this week." */
 export function weekLine(entries: WeekEntry[]): string | null {

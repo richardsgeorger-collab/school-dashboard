@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { mkCourse, mkItem, TZ } from '../halo/fixtures';
-import { checklistFor, participationThisWeek, policyLine, tickLine, weekLine } from './participationWeek';
+import { isParticipation } from './participation';
+import { statusLine } from './now';
+import { checklistFor, lateCount, participationThisWeek, policyLine, tickLine, weekLine } from './participationWeek';
 import type { Requirement } from './types';
 
 const NOW = '2026-09-29T15:00:00.000Z';
@@ -39,5 +41,37 @@ describe('participation this week', () => {
     const t = tickLine(a, lines, lines[1].id, NOW);
     expect(t.allDone).toBe(true);
     expect(t.item.requirements?.map((r) => [r.text, r.done])).toEqual([['Acknowledge', true], ['2 forum posts on 2 different days', true]]);
+  });
+});
+
+describe('day-by-day participation (CHM-113, 2026-10-08)', () => {
+  // As Halo sends them: 0-point discussions with a dropbox, "participation" only in the title.
+  const day = (id: string, title: string, due: string, status: 'todo' | 'done' = 'todo') => mkItem({ id, courseId: 'chm', title, label: title, type: 'discussion', points: 0, dueAt: due, status, source: 'halo' });
+  const d1 = day('d1', 'Week 5, Day 1 Participation', '2026-09-28T23:59:00-07:00');
+  const d2 = day('d2', 'Week 5 Day 2 participation', '2026-09-30T09:00:00-07:00');
+  const old = day('d0', 'Week 3, Day 1 Participation', '2026-09-14T23:59:00-07:00');
+  const real = mkItem({ id: 'r', courseId: 'chm', title: 'Summary of Current Course Content Knowledge', type: 'discussion', points: 20, dueAt: '2026-09-30T08:00:00-07:00', notes: 'Your reply counts toward participation this week.' });
+
+  it('is participation by Halo’s type or by title, any case; never by its instructions', () => {
+    expect([d1, d2].every(isParticipation)).toBe(true);
+    expect(isParticipation(p('w', 'chm', '2026-10-04'))).toBe(true);
+    expect(isParticipation(real)).toBe(false);
+  });
+  it('joins the participation line: due this week, or missed in the past week as late; the hero never sees it', () => {
+    const week = participationThisWeek([d1, d2, old, real, p('c5', 'chm', '2026-10-04')], [chm], today, TZ, NOW);
+    expect(week.map((e) => [e.item.id, e.day, e.late])).toEqual([
+      ['c5', false, false],
+      ['d1', true, true],
+      ['d2', true, false],
+    ]);
+    expect(weekLine(week)).toBe('Participation this week: 3 left');
+    expect(lateCount(week)).toBe(1);
+    // Done: off the count, still on the line to untick; no longer late.
+    const after = participationThisWeek([{ ...d1, status: 'done' as const, completedAt: NOW }, d2, { ...old, status: 'done' as const, completedAt: '2026-09-15T01:00:00Z' }], [chm], today, TZ, NOW);
+    expect(after.map((e) => [e.item.id, e.left, e.late])).toEqual([['d1', 0, false], ['d2', 1, false]]);
+  });
+  it('a late day is not "1 thing needs you" on Now', () => {
+    expect(statusLine([d1], today, NOW, TZ).needs).toBe(0);
+    expect(statusLine([d1, { ...real, dueAt: '2026-09-28T23:59:00-07:00' }], today, NOW, TZ).needs).toBe(1);
   });
 });

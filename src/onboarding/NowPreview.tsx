@@ -3,6 +3,7 @@ import { useCourseColor } from '../components/CourseChip';
 import type { AccentId } from '../config/accents';
 import { dateOf, fmtDate, fmtMinutes } from '../domain/dates';
 import { rankItems, statusLine } from '../domain/now';
+import { isParticipation } from '../domain/participation';
 import { cleanAll } from '../domain/reqClean';
 import { TYPE_LABELS } from '../domain/types';
 import { useStore } from '../storage/store';
@@ -17,7 +18,7 @@ export function NowPreview({ accent }: { accent: AccentId }) {
   const { data, schedule, courseById, today } = useStore();
   const tz = data.settings.timezone;
   const now = new Date().toISOString();
-  const hero = useMemo(() => rankItems(data.items.filter((i) => i.type !== 'participation'), schedule, now, tz)[0] ?? null, [data.items, schedule, tz, now.slice(0, 16)]);
+  const hero = useMemo(() => rankItems(data.items.filter((i) => !isParticipation(i)), schedule, now, tz)[0] ?? null, [data.items, schedule, tz, now.slice(0, 16)]);
   const course = hero ? courseById.get(hero.courseId) : undefined;
   const color = useCourseColor(course);
   const status = statusLine(cleanAll(data.items).items, today, now, tz);

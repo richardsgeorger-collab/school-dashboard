@@ -162,8 +162,9 @@ export function planNotices(input: PlanInput): Notice[] {
       const left = week.reduce((s, e) => s + e.left, 0);
       const sendAt = at(saturday, '09:00', tz);
       if (left > 0 && sendAt > now) {
-        const codes = week.map((e) => e.course?.code ?? e.item.label).slice(0, 3).join(', ');
-        push({ kind: 'participation', sendAt, title: 'Participation still open', body: `${left} thing${left === 1 ? '' : 's'} left this week in ${codes}${week.length > 3 ? ` and ${week.length - 3} more` : ''}. Open the list on Now.`, url: '#/now?pw=1', key: `participation:${saturday}` });
+        const names = [...new Set(week.map((e) => e.course?.code ?? e.item.label))];
+        const codes = names.slice(0, 3).join(', ');
+        push({ kind: 'participation', sendAt, title: 'Participation still open', body: `${left} thing${left === 1 ? '' : 's'} left this week in ${codes}${names.length > 3 ? ` and ${names.length - 3} more` : ''}. Open the list on Now.`, url: '#/now?pw=1', key: `participation:${saturday}` });
       }
     }
   }

@@ -13,6 +13,15 @@ const PARTICIPATION =
 /** Real deliverables stay work even when the sentence mentions the forum or class. */
 const DELIVERABLE = /\b(quiz|exam|test|midterm|final|essay|paper|lab report|report|project|worksheet|problem set|homework)\b/i;
 
+/**
+ * Participation as an item: Halo's PARTICIPATION type, or "participation" in its title (George, 2026-10-08: CHM-113
+ * publishes each day's "Week 5, Day 1 Participation" as a 0-point DISCUSSION_QUESTION with a dropbox, so it synced
+ * as a discussion and became Now's Late hero). The title only: an assignment whose instructions mention
+ * participation is still work. It keeps its own type, so grades, the Cooked meter, pace and class progress count it
+ * as before; only Now's hero, Then and the day's count leave it to the participation line.
+ */
+export const isParticipation = (i: Pick<Item, 'type' | 'title'>): boolean => i.type === 'participation' || /participation/i.test(i.title);
+
 export function isParticipationWork(text: string): boolean {
   return PARTICIPATION.test(text) && !DELIVERABLE.test(text);
 }

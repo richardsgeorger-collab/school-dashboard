@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CourseChip } from '../components/CourseChip';
-import { checklistFor, participationThisWeek, tickLine, weekLine } from '../domain/participationWeek';
+import { dateOf, fmtDate, fmtTime } from '../domain/dates';
+import { checklistFor, lateCount, participationThisWeek, tickLine, weekLine, type WeekEntry } from '../domain/participationWeek';
 import type { Item } from '../domain/types';
 import { useStore } from '../storage/store';
 import { ReqLine } from './Requirements';
@@ -47,17 +48,29 @@ export function ParticipationWeek() {
   const line = weekLine(week);
   if (!line) return null;
   const done = week.every((e) => e.left === 0);
+  const late = lateCount(week);
   return (
     <section className="pw" data-done={done} aria-label="Participation this week">
       <button type="button" className="pw-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span>{line}</span>
+        <span>
+          {line}
+          {late > 0 && (
+            <>
+              {' · '}
+              <span className="pw-late">{late} late</span>
+            </>
+          )}
+        </span>
         <span className="pw-caret" aria-hidden>
           {open ? '▴' : '▾'}
         </span>
       </button>
       {open && (
         <div className="pw-body">
-          {week.map((e) => (
+          {week.map((e) =>
+            e.day ? (
+              <ParticipationDay key={e.item.id} entry={e} />
+            ) : (
             <div key={e.item.id} className="pw-class" data-done={e.left === 0}>
               <p className="pw-class-head">
                 {e.course && <CourseChip course={e.course} />} <span>{e.item.label}</span>
@@ -65,9 +78,25 @@ export function ParticipationWeek() {
               </p>
               <ParticipationChecklist item={e.item} />
             </div>
-          ))}
+            ),
+          )}
         </div>
       )}
     </section>
+  );
+}
+
+/** A day's participation on the line: one tick, its due day, "late" in red when it was missed. */
+function ParticipationDay({ entry }: { entry: WeekEntry }) {
+  const { data, actions } = useStore();
+  const tz = data.settings.timezone;
+  const item = entry.item;
+  const done = item.status === 'done';
+  return (
+    <label className="pw-class pw-day" data-done={done}>
+      <input type="checkbox" checked={done} onChange={() => actions.setStatus(item.id, done ? 'todo' : 'done')} />
+      {entry.course && <CourseChip course={entry.course} />} <span className="pw-day-label">{item.label}</span>
+      {entry.late ? <span className="pw-late mono">late</span> : <span className="mono muted">{done ? 'done' : `${fmtDate(dateOf(item.dueAt, tz), 'short')} ${fmtTime(item.dueAt, tz)}`}</span>}
+    </label>
   );
 }
