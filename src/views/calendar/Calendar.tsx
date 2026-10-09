@@ -21,6 +21,14 @@ import { useFilteredItems } from './shared';
 
 /** Agenda is the calendar. Month is the map. There is no Week: the seven-day strip on the agenda is what that was for. */
 type View = 'agenda' | 'month';
+const VIEW_KEY = 'school-dashboard:calendar-view';
+const rememberedView = (): View => {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'month' ? 'month' : 'agenda';
+  } catch {
+    return 'agenda';
+  }
+};
 
 const isDay = (s: string | null): s is string => !!s && s.length === 10 && !Number.isNaN(Date.parse(`${s}T12:00:00Z`));
 
@@ -37,7 +45,8 @@ function FilterChip({ course, active, onToggle }: { course: Course; active: bool
 export function Calendar() {
   const { data, today } = useStore();
   const { params, navigate } = useRoute();
-  const view: View = params.get('v') === 'month' ? 'month' : 'agenda';
+  // The last view chosen is the one that opens (2026-10-08): a student who lives in Month got Agenda every time.
+  const view: View = params.get('v') === 'month' ? 'month' : params.get('v') === 'agenda' ? 'agenda' : rememberedView();
   const anchor = isDay(params.get('d')) ? params.get('d')! : today;
   const filterParam = params.get('c');
   const codes = useMemo(() => (filterParam ? new Set(filterParam.split(',')) : null), [filterParam]);
@@ -55,6 +64,13 @@ export function Calendar() {
     for (const [k, val] of Object.entries(patch)) {
       if (val === null || val === undefined) delete next[k];
       else next[k] = val;
+    }
+    if (patch.v) {
+      try {
+        localStorage.setItem(VIEW_KEY, patch.v);
+      } catch {
+        /* storage unavailable */
+      }
     }
     navigate('calendar', next);
   };

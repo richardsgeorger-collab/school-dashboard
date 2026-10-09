@@ -1114,15 +1114,20 @@
   display: none;
 }
 @media (max-width: 639px) {
-  /* A phone keeps Start and Open in Halo (and the Details toggle) in the row; the rest moves into Details. */
-  .hero-actions .hero-phone-more {
+  /* A phone keeps Start, Done and Open in Halo (and the Details toggle) in the row; the rest moves into Details.
+     Done stayed in the row on 2026-10-08: it was two taps away (Details, then Done) for the most common thing. */
+  .hero-actions .hero-phone-more:not(.hero-done) {
     display: none !important;
+  }
+  .hero-actions .hero-done {
+    padding: 0 14px;
   }
   .hero-actions .btn.primary {
     padding: 0 22px;
   }
+  /* Three buttons do not fit a phone's width on one line: Open in Halo wraps under Start and Done. */
   .hero-actions {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
   .hero-phone-row {
     display: flex;

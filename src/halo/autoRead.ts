@@ -4,7 +4,6 @@ import { newId } from '../domain/ids';
 import { shortLabel } from '../domain/labels';
 import { mergeNotes, mergeRequirements } from '../domain/requirements';
 import { overlap, readingCovers } from '../domain/reqClean';
-import { money } from './readCost';
 import type { Course, Item, ReqSource } from '../domain/types';
 import type { Action } from './actions';
 import { fileParticipation, routeActions } from './actions';
@@ -312,10 +311,12 @@ export function autoResultLine(o: AutoOutcome): string | null {
 
   const approval = p.needsApproval.length ? ` ${p.needsApproval.length} removal${p.needsApproval.length === 1 ? '' : 's'} needs your approval below.` : '';
   const rest = o.failed ? ` ${posts(o.failed)} could not be read, so Halo+ does not know yet what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why}` : '';
-  const spent = o.read > 0 && o.cost > 0 ? ` Read ${o.read} announcement${o.read === 1 ? '' : 's'}, ${o.cost < 0.01 ? 'under a cent' : `about ${money(o.cost)}`}.` : '';
+  // How many were read, without the cents (2026-10-08): reading is part of the plan, and "about $0.02" on a student's
+  // Inbox read like a bill.
+  const spent = o.read > 0 ? ` Read ${o.read} announcement${o.read === 1 ? '' : 's'}.` : '';
   if (parts.length) return `From your announcements: ${parts.join(', ')}.${approval}${rest}${spent}`;
   // Nothing landed. With a failure in the pass that is not the same as nothing being there, so the failure leads
   // and the clean claim is never made at all.
-  if (o.failed) return `${posts(o.failed)} could not be read, so Halo+ does not know yet what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why} The other ${o.read === 1 ? 'one asks' : `${o.read} ask`} nothing of you.${approval}${spent}`;
-  return `Nothing in ${o.read === 1 ? 'the new announcement' : `the ${o.read} new announcements`} asks anything of you.${approval}${spent}`;
+  if (o.failed) return `${posts(o.failed)} could not be read, so Halo+ does not know yet what ${o.failed === 1 ? 'that one asks' : 'those ask'}.${why} The other ${o.read === 1 ? 'one asks' : `${o.read} ask`} nothing of you.${approval}`;
+  return `Nothing in ${o.read === 1 ? 'the new announcement' : `the ${o.read} new announcements`} asks anything of you.${approval}`;
 }

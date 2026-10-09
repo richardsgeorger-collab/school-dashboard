@@ -239,7 +239,16 @@ export function ItemDetail({ item, isNew = false, onClose }: { item: Item; isNew
               { value: 'in_progress', label: 'In progress' },
               { value: 'done', label: 'Done' },
             ]}
-            onChange={(v) => set('status', v)}
+            onChange={(v) => {
+              set('status', v);
+              // A status tap is an action, not an edit waiting for Save (2026-10-08 day walkthrough: Done then Save
+              // then close was three taps, and nothing celebrated). Done applies at once, as the card's own Done does,
+              // and the sheet goes so the reward line shows; the other two apply at once too.
+              if (!isNew && v !== item.status) {
+                actions.setStatus(item.id, v);
+                if (v === 'done') onClose();
+              }
+            }}
           />
         </div>
         {isNew ? (
