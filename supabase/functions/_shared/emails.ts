@@ -1,5 +1,24 @@
 // The emails a student can get, as text (George, 2026-10-09): the day before the free week ends, and a sync broken
 // for three days. Pure: no Deno, no network, so the words are tested. Every one carries a one-click unsubscribe.
+/** Every kind that may ever be sent; anything else is blocked at the send function (George, 2026-10-09). */
+export const ACCOUNT_KINDS = ['market_setup'] as const;
+export const ALLOWED_KINDS = ['market_setup', 'trial_ending', 'sync_broken', 'reminder'] as const;
+export const isAccountKind = (kind: string): boolean => (ACCOUNT_KINDS as readonly string[]).includes(kind);
+export const isAllowedKind = (kind: string): boolean => (ALLOWED_KINDS as readonly string[]).includes(kind);
+
+/**
+ * May this row go now? Account mail always. Anything else: never within seven days of another non-account email,
+ * and a reminder never to a student who opened Halo+ in the last three days.
+ */
+export function maySend(kind: string, facts: { lastNonAccountSentAt: string | null; lastOpenedAt: string | null; now: string }): { ok: true } | { ok: false; why: string } {
+  if (!isAllowedKind(kind)) return { ok: false, why: 'not an email Halo+ sends' };
+  if (isAccountKind(kind)) return { ok: true };
+  const now = Date.parse(facts.now);
+  if (facts.lastNonAccountSentAt && now - Date.parse(facts.lastNonAccountSentAt) < 7 * 86_400_000) return { ok: false, why: 'one non-account email a week' };
+  if (kind === 'reminder' && facts.lastOpenedAt && now - Date.parse(facts.lastOpenedAt) < 3 * 86_400_000) return { ok: false, why: 'opened Halo+ in the last three days' };
+  return { ok: true };
+}
+
 export interface Rendered {
   subject: string;
   text: string;
@@ -34,6 +53,14 @@ export function renderEmail(kind: string, meta: Record<string, unknown>, unsubUr
         "Or stay on Free. That's fine too.",
       ],
       { label: 'See the plans', url: `${SITE}/#/you?s=plan` },
+      unsubUrl,
+    );
+  }
+  if (kind === 'reminder') {
+    return wrap(
+      "Don't forget about Halo+",
+      ['Your classes, deadlines and grades from Halo are still in one place at Halo+. Open it when you have a minute; nothing has changed on your account.'],
+      { label: 'Open Halo+', url: `${SITE}/#/now` },
       unsubUrl,
     );
   }

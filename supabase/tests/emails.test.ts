@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderEmail, unsubToken, unsubUrlFor } from '../functions/_shared/emails';
+import { isAllowedKind, maySend, renderEmail, unsubToken, unsubUrlFor } from '../functions/_shared/emails';
 
 describe('the two student emails (George, 2026-10-09)', () => {
   const unsub = 'https://x.supabase.co/functions/v1/email-unsub?u=abc&t=123';
@@ -35,5 +35,18 @@ describe('the two student emails (George, 2026-10-09)', () => {
     expect(a).not.toBe(c);
     expect(a).toMatch(/^[0-9a-f]{40}$/);
     expect(await unsubUrlFor('https://x.supabase.co', 'u-1', 's')).toBe(`https://x.supabase.co/functions/v1/email-unsub?u=u-1&t=${await unsubToken('u-1', 's')}`);
+  });
+
+  it('the allowlist and the week (George, 2026-10-09): account mail always; one non-account a week; no reminder to someone who opened Halo+ in three days', () => {
+    const now = '2026-10-09T20:00:00Z';
+    expect(isAllowedKind('newsletter')).toBe(false);
+    expect(maySend('newsletter', { lastNonAccountSentAt: null, lastOpenedAt: null, now })).toEqual({ ok: false, why: 'not an email Halo+ sends' });
+    expect(maySend('market_setup', { lastNonAccountSentAt: '2026-10-09T10:00:00Z', lastOpenedAt: '2026-10-09T10:00:00Z', now })).toEqual({ ok: true });
+    expect(maySend('trial_ending', { lastNonAccountSentAt: '2026-10-05T10:00:00Z', lastOpenedAt: null, now }).ok).toBe(false);
+    expect(maySend('trial_ending', { lastNonAccountSentAt: '2026-10-01T10:00:00Z', lastOpenedAt: null, now }).ok).toBe(true);
+    expect(maySend('reminder', { lastNonAccountSentAt: null, lastOpenedAt: '2026-10-08T12:00:00Z', now }).ok).toBe(false);
+    expect(maySend('reminder', { lastNonAccountSentAt: null, lastOpenedAt: '2026-10-03T12:00:00Z', now }).ok).toBe(true);
+    expect(maySend('sync_broken', { lastNonAccountSentAt: null, lastOpenedAt: '2026-10-09T12:00:00Z', now }).ok).toBe(true);
+    expect(renderEmail('reminder', {}, 'https://u')!.subject).toBe("Don't forget about Halo+");
   });
 });

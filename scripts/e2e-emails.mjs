@@ -29,6 +29,11 @@ try {
   const ds = (await db.from('settings').select('data').eq('user_id', D.id).single()).data.data;
   await db.from('settings').update({ data: { ...ds, lastPull: { ...(ds.lastPull ?? {}), at: hours(-4 * 24) } } }).eq('user_id', D.id);
   await db.from('email_outbox').insert({ user_id: D.id, to_email: D.email, kind: 'trial_ending', sent_at: hours(-48), created_at: hours(-49) });
+  // C2: on a free week (not paying), last sync four days ago → nothing: sync-broken mail is for paying Plus and Max.
+  const C2 = await kit.persona('synced');
+  await db.from('profiles').update({ trial_started_at: hours(-48), trial_ends_at: hours(72) }).eq('user_id', C2.id);
+  const c2s = (await db.from('settings').select('data').eq('user_id', C2.id).single()).data.data;
+  await db.from('settings').update({ data: { ...c2s, lastPull: { ...(c2s.lastPull ?? {}), at: hours(-4 * 24) } } }).eq('user_id', C2.id);
   // E: Free, never on a plan that syncs, last sync four days ago → nothing (sync is not theirs to have).
   const E = await kit.persona('free');
   const es = (await db.from('settings').select('data').eq('user_id', E.id).maybeSingle()).data?.data ?? {};
@@ -45,6 +50,7 @@ try {
   const d = await outbox(D.id);
   check(d.length === 1 && d[0].kind === 'trial_ending', 'D: already had an email this week, so no second one');
   check((await outbox(E.id)).length === 0, 'E: Free without sync on their plan, nothing queued');
+  check((await outbox(C2.id)).length === 0, 'C2: on a free week, not paying, nothing queued');
   const { data: r2 } = await db.rpc('email_queue_tick');
   check(r2.trial_ending === 0 && r2.sync_broken === 0 && (await outbox(A.id)).length === 1 && (await outbox(C.id)).length === 1, 'a second tick queues nothing more: once each');
 

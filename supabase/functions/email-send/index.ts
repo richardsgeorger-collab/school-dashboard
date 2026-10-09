@@ -3,7 +3,7 @@
 // Needs RESEND_API_KEY and RESEND_FROM ("Halo+ <hello@haloplus.app>", a domain verified at Resend). Without them it
 // sends nothing and says so; the rows wait.
 import { admin, json } from '../_shared/admin.ts';
-import { renderEmail, unsubUrlFor } from '../_shared/emails.ts';
+import { isAccountKind, maySend, renderEmail, unsubUrlFor } from '../_shared/emails.ts';
 
 const SECRET = Deno.env.get('NOTIFY_CRON_SECRET') ?? '';
 const KEY = Deno.env.get('RESEND_API_KEY') ?? '';
@@ -66,7 +66,16 @@ Deno.serve(async (req) => {
   if (error) return json(500, { error: error.message });
   let sent = 0;
   for (const r of (rows ?? []) as Row[]) {
-    // Account emails (the market setup) carry no unsubscribe; the trial and sync ones carry a one-click one.
+    // The allowlist and the week's one, enforced here whatever queued the row (George, 2026-10-09).
+    const nowIso = new Date().toISOString();
+    const { data: lastSent } = isAccountKind(r.kind) ? { data: null } : await db.from('email_outbox').select('sent_at').eq('user_id', r.user_id).neq('id', r.id).not('sent_at', 'is', null).not('kind', 'in', '("market_setup")').order('sent_at', { ascending: false }).limit(1).maybeSingle();
+    const { data: opened } = r.kind === 'reminder' ? await db.from('usage_events').select('day').eq('user_id', r.user_id).order('day', { ascending: false }).limit(1).maybeSingle() : { data: null };
+    const verdict = maySend(r.kind, { lastNonAccountSentAt: (lastSent as { sent_at?: string } | null)?.sent_at ?? null, lastOpenedAt: (opened as { day?: string } | null)?.day ? `${(opened as { day: string }).day}T12:00:00Z` : null, now: nowIso });
+    if (!verdict.ok) {
+      await db.from('email_outbox').update({ attempts: 5, last_error: `blocked: ${verdict.why}` }).eq('id', r.id);
+      continue;
+    }
+    // Account emails (the market setup) carry no unsubscribe; the others carry a one-click one.
     let m: { subject: string; text: string; html: string } | null = null;
     const headers: Record<string, string> = {};
     if (r.kind === 'market_setup') m = marketSetup();
