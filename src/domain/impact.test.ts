@@ -30,4 +30,15 @@ describe('what skipping one thing does to the grade', () => {
     expect(skipImpact(base({ id: 'p', points: 200, status: 'done' }), items)).toBeNull();
     expect(skipImpact(base({ id: 'p', points: 200, score: 150 }), items)).toBeNull();
   });
+  it('says nothing for a class whose Halo percent is not its points share (weighted categories), and letters follow the class scale', () => {
+    const paper = base({ id: 'p', points: 200 });
+    const items = [...graded, paper, base({ id: 'rest', points: 300 })];
+    // Halo's points agree with the three graded items (270 of 300); a weighted class says 84% over the same points.
+    const pointsBased = { haloGrade: { letter: 'A-', percent: 90, points: 270, maxPoints: 300, at: '' } };
+    const weightedClass = { haloGrade: { letter: 'B', percent: 84, points: 270, maxPoints: 300, at: '' } };
+    expect(skipImpact(paper, items, weightedClass)).toBeNull();
+    const s = skipImpact(paper, items, pointsBased)!;
+    expect(s.from).toBe(90);
+    expect(s.fromLetter).toBe('A-');
+  });
 });

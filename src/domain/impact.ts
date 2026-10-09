@@ -1,3 +1,4 @@
+import { GCU_SCALE, weighted } from './floor';
 import { courseGrade, letterFor } from './grades';
 import type { Course, Item } from './types';
 
@@ -18,8 +19,11 @@ export interface SkipImpact {
   toLetter: string | null;
 }
 
-export function skipImpact(item: Pick<Item, 'id' | 'courseId' | 'points' | 'status' | 'score'>, items: Item[], course?: Pick<Course, 'haloGrade'> | null): SkipImpact | null {
+export function skipImpact(item: Pick<Item, 'id' | 'courseId' | 'points' | 'status' | 'score'>, items: Item[], course?: Pick<Course, 'haloGrade' | 'gradeScale'> | null): SkipImpact | null {
   if (item.points <= 0 || item.status === 'done' || item.score !== null) return null;
+  // A class whose Halo percent is not its points share weighs categories Halo does not tell us: no number is better
+  // than a wrong one (George, 2026-10-08).
+  if (weighted(course)) return null;
   // Halo's own class grade when the last sync carried it, so this line and the class card start from one number.
   const g = courseGrade(item.courseId, items, course);
   if (!g.enough || g.pct === null || g.totalPossible <= 0 || g.remaining < item.points) return null;
@@ -28,7 +32,8 @@ export function skipImpact(item: Pick<Item, 'id' | 'courseId' | 'points' | 'stat
   const rest = g.remaining - item.points;
   const from = ((g.earned + (rest + item.points) * avg) / g.totalPossible) * 100;
   const to = ((g.earned + rest * avg) / g.totalPossible) * 100;
-  return { from: Math.round(from), to: Math.round(to), fromLetter: letterFor(from, undefined), toLetter: letterFor(to, undefined) };
+  const scale = course?.gradeScale?.length ? course.gradeScale : GCU_SCALE;
+  return { from: Math.round(from), to: Math.round(to), fromLetter: letterFor(from, scale), toLetter: letterFor(to, scale) };
 }
 
 /** "Skip it and CHM-113 goes from 88% to 84%." or with the letter when it changes; null when the drop is under a point. */
