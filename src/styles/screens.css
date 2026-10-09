@@ -3756,3 +3756,318 @@
   color: var(--ink-3);
   text-decoration: line-through;
 }
+
+/* ---- the assignment sheet (2026-10-08 redesign): header, one checklist, one action, folds ---- */
+.sheet {
+  gap: var(--s-3);
+}
+.sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.sheet-head-main {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.sheet-course {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.sheet-type {
+  color: var(--ink-3);
+}
+.sheet-when {
+  margin: 0;
+  font: 600 15px/1.35 var(--font-body);
+  color: var(--ink);
+}
+.sheet-nudge {
+  margin: 0;
+  font-size: 14px;
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.sheet-head-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.sheet-done {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.sheet-done[data-done] {
+  color: var(--ok);
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.sheet-head-actions .halo-jump {
+  font-size: 13px;
+}
+.sheet-quiet {
+  margin: -6px 0 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.sheet-blocked {
+  color: var(--ink-2);
+}
+.sheet-todo {
+  border-left: 2px solid var(--accent);
+  padding-left: 12px;
+}
+.sheet-todo-head {
+  margin: 0 0 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+}
+.sheet-todo-head .mono {
+  font-size: 12px;
+}
+.sheet-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.sheet-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.sheet-line-row {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+}
+.sheet-line-row input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.sheet-line-main {
+  flex: 1;
+  min-width: 0;
+}
+.sheet-line-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sheet-line-text {
+  all: unset;
+  color: var(--ink);
+  line-height: 1.4;
+  font-size: 15px;
+}
+button.sheet-line-text {
+  cursor: pointer;
+  text-decoration: underline dotted var(--line-strong);
+  text-underline-offset: 3px;
+}
+button.sheet-line-text:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.sheet-line[data-done='true'] .sheet-line-text {
+  text-decoration: line-through;
+  color: var(--ink-3);
+}
+.sheet-tag {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font: 600 10px/1.6 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sheet-tag[data-tag='announcement'] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.sheet-line-detail {
+  margin: 4px 0 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.sheet-line-detail p {
+  margin: 0 0 4px;
+}
+.sheet-line-detail a {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.sheet-needs,
+.sheet-rules {
+  margin: 8px 0 0;
+}
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 0;
+}
+.sheet-actions .btn.primary {
+  min-height: 44px;
+  padding: 0 20px;
+}
+.sheet-actions-quiet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sheet-actions-quiet .btn.small {
+  min-height: 36px;
+  background: none;
+  border-color: transparent;
+  color: var(--ink-2);
+  padding: 0 10px;
+}
+.sheet-actions-quiet .btn.small:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.fold {
+  border-top: 1px solid var(--line);
+}
+.fold-head {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+.fold-head::-webkit-details-marker {
+  display: none;
+}
+.fold-head::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 4px 0 2px;
+  border-right: 1.5px solid var(--ink-3);
+  border-bottom: 1.5px solid var(--ink-3);
+  transform: rotate(-45deg);
+  transition: transform var(--dur-1) var(--ease);
+}
+.fold[open] > .fold-head::before {
+  transform: rotate(45deg);
+}
+.fold-title {
+  font-weight: 600;
+}
+.fold-meta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: right;
+}
+.fold-body {
+  padding: 0 0 12px;
+  display: grid;
+  gap: 10px;
+}
+.sheet-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.sheet-form {
+  display: grid;
+  gap: var(--s-3);
+}
+.fold-body .source-block {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+@media (max-width: 639px) {
+  .sheet-head-actions .halo-jump {
+    display: none;
+  }
+  .sheet-done {
+    padding: 0 14px;
+  }
+  .sheet-actions .btn.primary {
+    flex: 1 1 100%;
+  }
+}
+.sheet-quiet .hero-inline {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+/* In the sheet the top Done is the one; the participation checklist's own "Mark done" would be a second. */
+.sheet-todo .pw-list > .hero-inline {
+  display: none;
+}
+.sheet > .source-block {
+  margin: 2px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.sheet > .source-block p {
+  margin: 0 0 2px;
+}
+/* The status line lives under Done, in the header's right column (2026-10-08): no row of its own. */
+.sheet-head-actions .sheet-quiet {
+  margin: 0;
+  text-align: right;
+  font-size: 12px;
+}
+.sheet > .source-block,
+.sheet > .source-block p {
+  background: none;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+@media (max-width: 639px) {
+  .sheet-line-text {
+    font-size: 14px;
+  }
+  .sheet-lines {
+    gap: 6px;
+  }
+  .sheet-tag[data-tag='Halo'] {
+    display: none;
+  }
+  .sheet-actions-quiet {
+    gap: 2px;
+  }
+  .sheet-actions-quiet .btn.small {
+    padding: 0 8px;
+    font-size: 13px;
+  }
+}
+.sheet-head-actions .sheet-quiet .hero-inline {
+  font-size: 12px;
+}

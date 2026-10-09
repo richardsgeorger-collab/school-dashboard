@@ -27,16 +27,14 @@ export async function rubricTextFor(item: Item, decks: Deck[]): Promise<string> 
  * What the work actually is: what it asks for and what earns points, the steps inside it. Lives inside the item.
  * Checking a draft or a method against it is Check (views/Check.tsx). Nothing here makes a new row anywhere.
  */
-export function WorkPanel({ item: given, course }: { item: Item; course: Course }) {
-  const { actions, data } = useStore();
-  const item = data.items.find((i) => i.id === given.id) ?? given;
+/** Reads the brief once (what it asks for, what earns points, the steps), when there is something to read it from. */
+export function useBrief(item: Item, course: Course): { reading: boolean; note: string | null } {
+  const { actions } = useStore();
   const hasKey = useAiAllowed('aiChat');
   const [reading, setReading] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const description = item.notes?.trim() ?? '';
   const big = isMilestoneWork(item);
-
-  // The brief, once, when there is something to read it from.
   useEffect(() => {
     if (item.brief || reading) return;
     if (!description && !hasKey) return;
@@ -63,6 +61,15 @@ export function WorkPanel({ item: given, course }: { item: Item; course: Course 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, item.brief, description, hasKey]);
+  return { reading, note };
+}
+
+export function WorkPanel({ item: given, course }: { item: Item; course: Course }) {
+  const { actions, data } = useStore();
+  const item = data.items.find((i) => i.id === given.id) ?? given;
+  const { reading, note } = useBrief(item, course);
+  const description = item.notes?.trim() ?? '';
+  const big = isMilestoneWork(item);
 
   const steps = useMemo(() => (big ? stepsFor(item) : []), [item, big]);
   const progress = stepProgress(steps);

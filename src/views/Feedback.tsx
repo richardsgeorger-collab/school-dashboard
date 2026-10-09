@@ -72,14 +72,26 @@ export function Feedback({ item }: { item: Item }) {
 }
 
 /** Halo's own rubric, when the sync brought one. The graded truth, not an inference from the description. */
+export const rubricTotal = (item: Item): number => (item.rubric?.criteria ?? []).reduce((n, c) => n + (c.points ?? 0), 0);
+
 export function RubricBlock({ item }: { item: Item }) {
   if (!item.rubric?.criteria.length) return null;
-  const total = item.rubric.criteria.reduce((n, c) => n + (c.points ?? 0), 0);
+  const total = rubricTotal(item);
   return (
     <details className="rubric-block">
       <summary className="hint">
         <b>The rubric it is graded against</b> <span className="mono muted">· {item.rubric.criteria.length} criteria{total > 0 ? `, ${total} pts` : ''} · from Halo</span>
       </summary>
+      <RubricList item={item} />
+    </details>
+  );
+}
+
+/** The criteria alone, for the sheet's own fold. */
+export function RubricList({ item }: { item: Item }) {
+  if (!item.rubric?.criteria.length) return null;
+  return (
+    <>
       <ul className="rubric-list">
         {item.rubric.criteria.map((c) => (
           <li key={c.id}>
@@ -99,6 +111,6 @@ export function RubricBlock({ item }: { item: Item }) {
           </li>
         ))}
       </ul>
-    </details>
+    </>
   );
 }

@@ -137,6 +137,8 @@ export interface Item {
   dateChange?: { from: string; at: string; source: ReqSource };
   /** The steps inside a big assignment. One item everywhere; this is just its inside. */
   steps?: Step[];
+  /** Lines of the sheet's checklist the student ticked that are not requirements or steps (what Halo's description asks for, what to do first), by key (domain/sheet.ts askKey). */
+  askDone?: string[];
   /** What the assignment asks for, read from its description and rubric. */
   brief?: Brief | null;
   /** The AI pass's read of this item, once applied. Raw Halo data never lives here. */
