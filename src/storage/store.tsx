@@ -6,6 +6,8 @@ import { DERIVED_DEADLINES } from '../domain/flags';
 import { estimateMinutes } from '../domain/estimate';
 import { labelCarriesSection, shortLabel } from '../domain/labels';
 import { dedupeRequirements } from '../domain/requirements';
+import { pruneOrphanPosts } from '../halo/announce';
+import { dedupeData } from '../halo/dedupe';
 import { completeItem, computeProgress, previewAward, reopenItem, withScore, type Progress } from '../domain/points';
 import { computeSchedule, type Schedule } from '../domain/schedule';
 import { applyHaloPlan, type HaloPlan } from '../halo/apply';
@@ -352,6 +354,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const local = dataRef.current;
       const result = mergeData(local, remote, { preferRemoteSettings: first && fresh(local) });
       result.merged = normalizeData(result.merged);
+      // Two copies of one class (the Sept 30 move left them in George's account): folded into one, removals mirrored.
+      const folded = dedupeData(result.merged);
+      if (folded.removedCourses.length || folded.removedItems.length) {
+        result.merged = folded.data;
+        const at = nowIso();
+        for (const id of folded.removedItems) mirror({ kind: 'deleteItem', id, deletedAt: at });
+        for (const id of folded.removedCourses) mirror({ kind: 'deleteCourse', id, deletedAt: at });
+        mirror({ kind: 'courses', ids: folded.data.courses.map((c) => c.id) });
+        mirror({ kind: 'items', ids: folded.data.items.map((i) => i.id) });
+        mirror({ kind: 'settings' });
+        void pruneOrphanPosts(folded.data.courses.map((c) => c.id));
+      }
       // Connection details never come from the server. Every setting the account's saved copy predates gets its
       // default: a copy without weekStartsOn made the Calendar's days NaN and re-render until the tab died (audit).
       result.merged.settings = {
@@ -384,6 +398,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       setSync((s) => ({ ...s, email }));
+      // Whose planner is on this device? Another account's: it is cleared, with everything else of that account's,
+      // before a single row could merge into or be sent to this one; the page reloads clean and takes this account
+      // from the server. A planner made before any sign-in merges into the first account, as before. (George, 2026-10-09:
+      // a sign-in to a second account carried his queued changes into it and its state back into his.)
+      if (repo.accountId) {
+        const owner = localCache.owner();
+        if (owner && owner !== 'local' && owner !== repo.accountId) {
+          localCache.clearForSwitch();
+          localCache.claim(repo.accountId);
+          if (typeof window !== 'undefined') window.location.reload();
+          return;
+        }
+        localCache.claim(repo.accountId);
+      }
       await syncNow();
     },
     [syncNow],

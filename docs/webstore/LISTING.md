@@ -122,6 +122,12 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
+## 0.6.2 (2026-10-09): one student's Halo, one account
+
+Version 0.6.2; no permission change. An export kept in the extension while the account could not be reached is bound
+to the sync key it was read for: when another account signs into Halo+ on the same computer, that export is dropped
+rather than sent to the new account. Nothing to change in the listing text.
+
 ## 0.6.1 (2026-10-09): the help kit tries harder
 
 Version 0.6.1; no permission change. A file the worker cannot fetch is tried from the student's Halo tab, then from a

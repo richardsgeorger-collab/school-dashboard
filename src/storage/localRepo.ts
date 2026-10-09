@@ -1,11 +1,16 @@
 import { DEMO_DATA_KEY, DEMO_PENDING_KEY, isDemo } from '../demo/demo';
 import type { AppData } from '../domain/types';
+import { claimDatabases } from './scope';
 
 // The demo student (demo/demo.ts) lives under keys of its own, so the real planner on this device is never touched.
 const DATA_KEY = isDemo() ? DEMO_DATA_KEY : 'school-dashboard:v1';
 const PENDING_KEY = isDemo() ? DEMO_PENDING_KEY : 'school-dashboard:pending';
 /** Accounts this device has loaded from the server at least once. */
 const SEEN_KEY = 'school-dashboard:accounts-seen';
+/** Whose planner the cache holds: an account id, or 'local' before any sign-in. */
+const OWNER_KEY = 'school-dashboard:owner';
+/** Everything else on this device that belongs to one account and must not meet the next one (George, 2026-10-09). */
+const PER_ACCOUNT_KEYS = ['school-dashboard:pending', 'school-dashboard:sync-key', 'school-dashboard:joy-snap', 'school-dashboard:skips', 'school-dashboard:undo', 'school-dashboard:tier', 'school-dashboard:plan-cache', 'school-dashboard:last-sync'];
 
 export type PendingOp =
   | { kind: 'items'; ids: string[] }
@@ -88,6 +93,27 @@ export const localCache = {
   },
   savePending(ops: PendingOp[]): void {
     safeSet(PENDING_KEY, JSON.stringify(ops));
+  },
+  /** The account this device's cache belongs to; null when the cache has never been claimed. */
+  owner(): string | null {
+    return safeGet(OWNER_KEY);
+  },
+  claim(id: string): void {
+    safeSet(OWNER_KEY, id);
+    claimDatabases(id);
+  },
+  /**
+   * Another account is signing in on this device: the planner, the queue of unsent changes, and the sync key the
+   * extension reads all belong to the account before, so none of it may merge into, or be sent to, the next one.
+   */
+  clearForSwitch(): void {
+    try {
+      localStorage.removeItem(DATA_KEY);
+      for (const k of PER_ACCOUNT_KEYS) localStorage.removeItem(k);
+      localStorage.removeItem(OWNER_KEY);
+    } catch {
+      /* ignore */
+    }
   },
   seenAccount(id: string): boolean {
     try {

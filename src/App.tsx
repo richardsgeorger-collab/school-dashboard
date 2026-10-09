@@ -141,6 +141,11 @@ function HaloHandoff() {
   // The account's sync key, for the Chrome extension on this computer (its content script reads it here): with it the
   // extension drops each sync into this account. It can drop off a sync and nothing else. Gone when signed out.
   const userId = account.session?.user.id ?? null;
+  // A sync handed over for one account is not shown past its sign-out: the next sign-in on this computer may be someone
+  // else's (George, 2026-10-09).
+  useEffect(() => {
+    if (!userId && !account.loading) setPayload(null);
+  }, [userId, account.loading]);
   useEffect(() => {
     if (!userId) {
       if (!account.loading) {

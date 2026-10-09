@@ -1,3 +1,4 @@
+import { dbSuffix } from '../storage/scope';
 /** Syllabus text per class, kept in this browser for the coach to quote. Reference only: never parsed for assignments. */
 export interface SyllabusDoc {
   courseId: string;
@@ -9,7 +10,7 @@ export interface SyllabusDoc {
   addedAt: string;
 }
 
-const DB_NAME = 'school-dashboard-syllabi';
+const DB_NAME = `school-dashboard-syllabi${dbSuffix()}`;
 let opening: Promise<IDBDatabase> | null = null;
 function open(): Promise<IDBDatabase> {
   if (opening) return opening;

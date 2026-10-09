@@ -1,5 +1,6 @@
 import type { LectureNotes } from './notes';
 import { FLUSH_MS } from './support';
+import { dbSuffix } from '../storage/scope';
 
 export type RecordingStatus = 'recording' | 'interrupted' | 'done';
 
@@ -41,7 +42,7 @@ export interface Segment {
   text: string;
 }
 
-const DB_NAME = 'school-dashboard-recordings';
+const DB_NAME = `school-dashboard-recordings${dbSuffix()}`;
 const DB_VERSION = 1;
 let opening: Promise<IDBDatabase> | null = null;
 

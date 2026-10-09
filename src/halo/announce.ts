@@ -5,6 +5,7 @@ import type { Course, DateStr, Item } from '../domain/types';
 import type { Confidence, Mention, MentionKind } from '../record/notes';
 import { stripHtml } from './normalize';
 import type { HaloAlert, HaloAnnouncement, HaloExport, HaloMessage, HaloResource } from './types';
+import { dbSuffix } from '../storage/scope';
 
 /**
  * Announcements, kept because at GCU the week's real work is often posted here and never reaches the gradebook.
@@ -47,7 +48,7 @@ export interface StoredResource extends HaloResource {
 }
 
 // The demo student's posts go in a database of their own (demo/demo.ts).
-const DB_NAME = isDemo() ? DEMO_DB_NAME : 'school-dashboard-announcements';
+const DB_NAME = isDemo() ? DEMO_DB_NAME : `school-dashboard-announcements${dbSuffix()}`;
 let opening: Promise<IDBDatabase> | null = null;
 function open(): Promise<IDBDatabase> {
   if (opening) return opening;
@@ -94,6 +95,26 @@ const finished = (t: IDBTransaction) =>
     t.oncomplete = () => res();
     t.onerror = () => rej(t.error);
   });
+
+/**
+ * Posts filed under a class this planner does not have: a folded duplicate's, or another account's that reached this
+ * browser's database before accounts kept databases apart (George, 2026-10-09). Gone, so the Inbox shows one of each.
+ */
+export async function pruneOrphanPosts(courseIds: string[]): Promise<number> {
+  if (typeof indexedDB === 'undefined') return 0;
+  const keep = new Set(courseIds);
+  const db = await open();
+  const posts = await wait(db.transaction('posts').objectStore('posts').getAll() as IDBRequest<StoredAnnouncement[]>);
+  const gone = posts.filter((p) => !keep.has(p.courseId));
+  if (gone.length === 0) return 0;
+  const t = db.transaction('posts', 'readwrite');
+  for (const p of gone) t.objectStore('posts').delete(p.id);
+  await new Promise<void>((res, rej) => {
+    t.oncomplete = () => res();
+    t.onerror = () => rej(t.error);
+  });
+  return gone.length;
+}
 
 export const announceDb = {
   async list(): Promise<StoredAnnouncement[]> {

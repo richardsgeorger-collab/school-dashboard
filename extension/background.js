@@ -106,7 +106,15 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     reply({ ok: true });
   } else if (msg.kind === 'key') {
     // The signed-in account's sync key, from an open Halo+ tab: it can drop a sync into that account and nothing else.
-    void set({ syncKey: msg.key || null }).then(() => msg.key && sendWaiting());
+    // A key for a different account than the kept export was read for drops that export (0.6.2): one student's Halo
+    // never lands in another account.
+    void (async () => {
+      const { syncKey: before, waitingKey } = await get(['syncKey', 'waitingKey']);
+      const next = msg.key || null;
+      if (next && (waitingKey || before) && next !== (waitingKey || before)) await chrome.storage.local.remove(['waiting', 'waitingKey']);
+      await set({ syncKey: next });
+      if (next) await sendWaiting();
+    })();
     reply({ ok: true });
   } else if (msg.kind === 'landed') {
     // An open Halo+ tab took a kept export by hand.
@@ -128,8 +136,14 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     // A Halo+ tab just opened: an export kept here goes to the account (the tab takes it from there), or, when the
     // account still cannot be reached, straight to the tab.
     void (async () => {
+      const { waiting, waitingKey } = await get(['waiting', 'waitingKey']);
+      if (msg.key && waiting && waitingKey && waitingKey !== msg.key) {
+        // Read for another account on this computer: it is not this account's to take (0.6.2).
+        await chrome.storage.local.remove(['waiting', 'waitingKey']);
+        await set({ syncKey: msg.key });
+        return reply({});
+      }
       if (msg.key) await set({ syncKey: msg.key });
-      const { waiting } = await get('waiting');
       if (!waiting) return reply({});
       await chrome.storage.local.remove('waiting');
       // Older than half a day: the next sync is fresher than this one, so it is dropped rather than applied late.
@@ -466,6 +480,8 @@ async function toAccount(payload) {
     }
     const why = (j && j.why) || `Halo+ answered ${r.status}`;
     await set({ lastDrop: { ...note, ok: false, why } });
+    // A Halo that belongs to another Halo+ account (409, 0.6.2): the server has already recorded it; nothing to retry.
+    if (j && j.foreign) return { ok: false, kind: 'foreign', why };
     void reportError({ title: `Extension could not deliver to the pending slot (${r.status})`, message: why, place: 'sync-drop', status: r.status, details: { mb: Math.round(note.bytes / 100_000) / 10, sentMb: Math.round((note.sent || 0) / 100_000) / 10 } });
     return { ok: false, kind: 'refused', why };
   } catch (e) {
@@ -561,6 +577,12 @@ async function land(payload, auto, quiet = false) {
     }
     return { landed: true, how: 'account' };
   }
+  if (saved.kind === 'foreign') {
+    // Someone else's Halo+ account is signed in: this student's Halo goes nowhere, not into a tab, not kept (0.6.2).
+    await chrome.storage.local.remove(['waiting', 'waitingKey']);
+    await set({ lastError: saved.why, lastErrorKind: 'foreign' });
+    return { landed: false, kind: 'foreign', why: saved.why };
+  }
   let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;
   if (tab && front) {
     await chrome.tabs.update(tab.id, { active: true });
@@ -568,6 +590,8 @@ async function land(payload, auto, quiet = false) {
   }
   if (!tab && front) tab = await openDash();
   if (tab && (await handTo(tab, payload))) return { landed: true, how: 'tab' };
-  await set({ waiting: payload });
+  // Kept for the account whose key was in hand when it was read: another account's key never takes it (0.6.2).
+  const { syncKey: keyNow } = await get('syncKey');
+  await set({ waiting: payload, waitingKey: keyNow || null });
   return { landed: false, kind: saved.kind, why: saved.why };
 }

@@ -1,4 +1,5 @@
 import type { DateStr } from '../domain/types';
+import { dbSuffix } from '../storage/scope';
 
 export interface Deck {
   id: string;
@@ -25,7 +26,7 @@ export interface DeckPage {
   text: string;
 }
 
-const DB_NAME = 'school-dashboard-library';
+const DB_NAME = `school-dashboard-library${dbSuffix()}`;
 let opening: Promise<IDBDatabase> | null = null;
 function open(): Promise<IDBDatabase> {
   if (opening) return opening;

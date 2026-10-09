@@ -1,8 +1,9 @@
+import { dbSuffix } from '../storage/scope';
 /**
  * The AI layer's cache: class plans, the term pass, lecture knowledge, cross-class links, study kits. Keyed strings, one
  * store, this browser only. Nothing here is the planner's truth; the planner keeps what the user approved.
  */
-const DB_NAME = 'school-dashboard-ai';
+const DB_NAME = `school-dashboard-ai${dbSuffix()}`;
 let opening: Promise<IDBDatabase> | null = null;
 
 function open(): Promise<IDBDatabase> {

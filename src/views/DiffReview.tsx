@@ -466,10 +466,10 @@ export function DiffReview({
       </Section>
 
       {source === 'halo' && (
-        <Section title="Submitted in Halo, not done here" count={diff.submitted.length} onAll={() => setAll('submitted', diff.submitted.map((e) => e.key))} onNone={() => setAll('submitted', [])}>
+        <Section title="Submitted in Halo, marked done here" count={diff.submitted.length}>
           {diff.submitted.map((e) => (
             <label key={e.key} className="diff-row">
-              <input type="checkbox" checked={sel.submitted.has(e.key)} onChange={() => toggle('submitted', e.key)} />
+              <input type="checkbox" checked readOnly disabled aria-label="Halo says it is handed in, so it is done here" />
               <div>
                 <div className="title">
                   {e.title} <CourseChip course={e.course} />

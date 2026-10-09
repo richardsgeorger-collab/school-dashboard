@@ -67,6 +67,21 @@ Deno.serve(async (req) => {
       const { data: plan } = await db.rpc('plan_of', { uid: owner.user_id });
       if (!can('haloAutoSync', ((plan as Tier) ?? 'free'))) return reply(origin, 403, { ok: false, plan: 'plus', why: 'Automatic syncs are part of Plus and Max.' });
     }
+    // One Halo account, one Halo+ account (George, 2026-10-09: his extension, signed into a second account, sent his
+    // Halo there). The classes carry Halo's class ids; if any other account already holds them and this one holds
+    // none of them, this is someone else's Halo, and it is refused with the way out.
+    const classIds = (p.classes as { id?: unknown }[]).map((c) => (typeof c?.id === 'string' ? c.id : '')).filter(Boolean).slice(0, 20);
+    if (classIds.length) {
+      const { data: holders } = await db.from('courses').select('user_id').in('data->>haloClassId', classIds).is('deleted_at', null).limit(200);
+      const held = [...new Set((holders ?? []).map((h: { user_id: string }) => h.user_id))].filter((u) => u !== owner.user_id);
+      // Only accounts that still exist count: rows left behind by deleted accounts hold nothing.
+      const { data: live } = held.length ? await db.from('profiles').select('user_id').in('user_id', held) : { data: [] };
+      const users = new Set((live ?? []).map((h: { user_id: string }) => h.user_id));
+      if (users.size > 0) {
+        await db.rpc('error_record', { e: { fingerprint: 'sync-drop:foreign-halo', kind: 'server', title: 'Sync refused: this Halo is linked to another Halo+ account', message: `${classIds.length} classes already belong to ${users.size} other account(s); refused for ${owner.user_id.slice(0, 8)}`, place: 'sync-drop', status: 409, details: { owner: owner.user_id, holders: users.size, classes: classIds.length, via: fromExtension ? 'extension' : 'bookmark' } } }).then(() => undefined, () => undefined);
+        return reply(origin, 409, { ok: false, foreign: true, why: 'This Halo account is already linked to a different Halo+ account. Sign in to that Halo+ account to sync, or write to support to move it.' });
+      }
+    }
     const since = new Date(Date.now() - 3_600_000).toISOString();
     const { count } = await db.from('pending_syncs').select('id', { count: 'exact', head: true }).eq('user_id', owner.user_id).gte('created_at', since);
     if ((count ?? 0) >= PER_HOUR) return reply(origin, 429, { ok: false, why: 'Too many syncs in the last hour. Wait a few minutes, then tap Sync Halo again.' });

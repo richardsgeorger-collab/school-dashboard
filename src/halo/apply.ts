@@ -39,8 +39,9 @@ export function planFromDiff(diff: HaloDiff, sel: Selection): HaloPlan {
   for (const e of diff.changed) if (sel.changed.has(e.key)) upserts.push(e.next);
   for (const e of diff.unchanged) upserts.push(e.next);
   const ids = new Set(upserts.map((i) => i.id));
+  // Handed in or graded in Halo is done here, whatever the review's boxes say: Halo's word wins over "to do" (George, 2026-10-09).
   const complete = diff.submitted
-    .filter((e) => sel.submitted.has(e.key) && (!e.isNew || ids.has(e.id)))
+    .filter((e) => !e.isNew || ids.has(e.id))
     .map((e) => ({ id: e.id, at: e.at, score: e.score }));
   const deletes = diff.missing.filter((e) => sel.missing.has(e.key)).map((e) => e.key);
   const scores = diff.graded.filter((e) => sel.graded.has(e.key) && (!e.isNew || ids.has(e.id))).map((e) => ({ id: e.id, score: e.score, at: e.at }));

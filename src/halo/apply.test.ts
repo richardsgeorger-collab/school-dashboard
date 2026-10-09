@@ -54,7 +54,7 @@ describe('plan and apply', () => {
     expect(r.data.courses[0].haloClassId).toBe('hc1');
     expect(r.ops.map((o) => o.kind)).toEqual(['courses', 'items', 'deleteItem']);
   });
-  it('respects deselection', () => {
+  it('respects deselection, except that handed in on Halo is done here whatever the box says (George, 2026-10-09)', () => {
     const sel = defaultSelection(diff);
     sel.missing.clear();
     sel.submitted.clear();
@@ -64,7 +64,7 @@ describe('plan and apply', () => {
     const r = applyHaloPlan(data, plan, () => undefined, NOW, TZ);
     const byId = new Map(r.data.items.map((i) => [i.id, i]));
     expect(byId.has('gone')).toBe(true);
-    expect(byId.get('turned')?.status).toBe('todo');
+    expect(byId.get('turned')?.status).toBe('done');
     expect(byId.has(haloItemId('h-new'))).toBe(false);
     expect(byId.get('moved')?.points).toBe(10);
   });
@@ -83,7 +83,7 @@ describe('plan and apply', () => {
     const sel = defaultSelection(diff);
     sel.submitted.clear();
     const plan = planFromDiff(diff, sel);
-    expect(plan.complete).toEqual([]);
+    expect(plan.complete.map((c) => c.id)).toEqual(['turned']);
     expect(plan.scores).toEqual([{ id: 'turned', score: 4, at: '2026-09-10T13:00:00-07:00' }]);
     const r = applyHaloPlan(data, plan, () => '2026-09-09', NOW, TZ);
     const turned = r.data.items.find((i) => i.id === 'turned')!;

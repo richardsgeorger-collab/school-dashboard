@@ -19,7 +19,9 @@ describe('an extension sync always lands', () => {
     const land = bg.slice(bg.indexOf('async function land('));
     expect(land.indexOf('toAccount(payload)')).toBeGreaterThan(-1);
     expect(land.indexOf('toAccount(payload)')).toBeLessThan(land.indexOf('handTo('));
-    expect(land).toContain('await set({ waiting: payload })');
+    // Kept with the key it was read for (0.6.2): another account's key on the same computer never takes it.
+    expect(land).toContain('await set({ waiting: payload, waitingKey: keyNow || null })');
+    expect(bg).toContain("waitingKey !== msg.key");
     expect(bg).toContain("via: 'extension'");
     expect(manifest.host_permissions.some((h) => h.endsWith('/functions/v1/sync-drop'))).toBe(true);
     expect(manifest.version >= '0.3.0').toBe(true);
