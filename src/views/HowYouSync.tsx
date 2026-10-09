@@ -5,10 +5,13 @@ import { useStore } from '../storage/store';
 export function HowYouSync({ bare = false }: { bare?: boolean }) {
   const { data } = useStore();
   const how = data.settings.syncHow;
-  if (!how) return null;
-  return bare ? <span className="synced-how">{howYouSync(how)}</span> : (
+  // A student whose last sync came from the extension (2026-10-08): on a phone the bookmark line read as a chore
+  // they had to do; what actually happens is the laptop's extension syncing on its own.
+  const line = data.settings.lastPull?.via === 'extension' ? 'The Halo+ extension on your computer syncs every 3 hours by itself while Chrome is open. For fresh data right away, press Sync now in the extension there.' : how ? howYouSync(how) : null;
+  if (!line) return null;
+  return bare ? <span className="synced-how">{line}</span> : (
     <p className="how-you-sync">
-      <b>How you sync:</b> {howYouSync(how)}
+      <b>How you sync:</b> {line}
     </p>
   );
 }

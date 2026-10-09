@@ -55,6 +55,8 @@ interface Args {
   tier: Parameters<typeof can>[1];
   tz: string;
   upsertItem: (i: Item) => void;
+  /** The item as the planner has it right now, for a write that lands after the student touched it. */
+  latestItem?: (id: string) => Item | undefined;
   upsertCourse: (c: Course) => void;
   approved?: boolean;
 }
@@ -138,7 +140,8 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
         if (!got.ok) throw got.e;
         const r = got.r;
         const p = planFromActions({ actions: r.actions, announcement: a, course: courses.find((c) => c.id === a.courseId) ?? course, items, courses, now: at, tz: args.tz });
-        for (const i of p.upserts) {
+        for (const raw of p.upserts) {
+          const i = withStudentState(args.latestItem?.(raw.id), raw);
           args.upsertItem(i);
           items = [...items.filter((x) => x.id !== i.id), i];
         }
@@ -225,7 +228,7 @@ async function rewriteOld(args: Args & { onFile: StoredAnnouncement[]; ledger: M
           for (const [itemId, map] of byItem) {
             const item = items.find((i) => i.id === itemId);
             if (!item) continue;
-            const next = { ...item, requirements: (item.requirements ?? []).map((q) => (map.has(q.id) ? { ...q, text: map.get(q.id)!.text, detail: map.get(q.id)!.detail || undefined } : q)) };
+            const next = withStudentState(args.latestItem?.(itemId), { ...item, requirements: (item.requirements ?? []).map((q) => (map.has(q.id) ? { ...q, text: map.get(q.id)!.text, detail: map.get(q.id)!.detail || undefined } : q)) });
             args.upsertItem(next);
             items = items.map((i) => (i.id === itemId ? next : i));
           }
@@ -259,6 +262,17 @@ const SETTLE_MS = 900;
 const FIRST_MS = 1500;
 
 /** Mounted once in the app: reads the backlog after a sync lands, and once on open in case a run was interrupted. */
+/**
+ * The reader works from the planner as it was when it started, and a read takes seconds: a check-off made meanwhile
+ * was written back as "to do" with the new parts attached (2026-10-08, a Done on Now undone half a minute later).
+ * Its write carries only what it found (the parts, a moved date, changed points); everything the student owns comes
+ * from the item as it is now.
+ */
+export function withStudentState(live: Item | undefined, next: Item): Item {
+  if (!live) return next;
+  return { ...live, requirements: next.requirements, dueAt: next.dueAt, dateChange: next.dateChange, points: next.points, updatedAt: next.updatedAt };
+}
+
 export function useBackgroundRead(): void {
   const { data, actions } = useStore();
   const demo = isDemo();
@@ -272,7 +286,7 @@ export function useBackgroundRead(): void {
       const { data: d, actions: a, tier: t, planKnown: known } = latest.current;
       // Not before the plan is known: a run that saw the loading placeholder marked everything "part of Plus".
       if (d.courses.length === 0 || !known) return;
-      void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse });
+      void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse, latestItem: (id) => latest.current.data.items.find((i) => i.id === id) });
     };
     const later = (ms: number) => {
       if (timer) window.clearTimeout(timer);
@@ -296,7 +310,7 @@ export function useBackgroundRead(): void {
     if (!canRead) return;
     const { data: d, actions: a, tier: t } = latest.current;
     if (d.courses.length === 0) return;
-    const timer = window.setTimeout(() => void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse }), SETTLE_MS);
+    const timer = window.setTimeout(() => void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse, latestItem: (id) => latest.current.data.items.find((i) => i.id === id) }), SETTLE_MS);
     return () => window.clearTimeout(timer);
   }, [canRead]);
 }
