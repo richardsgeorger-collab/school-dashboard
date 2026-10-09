@@ -122,6 +122,12 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
+## 0.6.3 (2026-10-09): the kit leaves the student where they were
+
+Version 0.6.3; no permission change. After the allow page is answered, the Halo+ tab the kit was asked from is brought
+back to the front and the allow tab closed by the extension; a quiet Halo tab is closed only if the extension opened it
+and it is still a Halo tab. Nothing to change in the listing text.
+
 ## 0.6.2 (2026-10-09): one student's Halo, one account
 
 Version 0.6.2; no permission change. An export kept in the extension while the account could not be reached is bound

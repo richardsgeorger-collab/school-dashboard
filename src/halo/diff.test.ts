@@ -240,5 +240,9 @@ describe('keepsNotes (George, 2026-10-09: an unedited note follows Halo)', () =>
     expect(keepsNotes({ notes: 'halo said this', haloNotes: 'halo said this' }, { notes: 'halo says something else' })).toBe(false);
     expect(keepsNotes({ notes: '' }, { notes: 'anything' })).toBe(false);
     expect(keepsNotes({ notes: 'kept when Halo goes blank' }, { notes: '' })).toBe(true);
+    // An early sync cut the text at 2000 characters with an ellipsis, or collapsed its lines: still Halo's words.
+    expect(keepsNotes({ notes: 'This is a CLC assignment. In the engineering process, demonstrations play a role…' }, { notes: 'This is a CLC assignment.\nIn the engineering process, demonstrations play a role in conveying the work.' })).toBe(false);
+    expect(keepsNotes({ notes: 'In the engineering process, demonstrations play a role. Submit by Friday.' }, { notes: 'This is a CLC assignment.\nIn the engineering process, demonstrations play a role. Submit by Friday.' })).toBe(false);
+    expect(keepsNotes({ notes: 'In the engineering process, demonstrations play a role. Remember to bring the sensor kit from my dorm.' }, { notes: 'This is a CLC assignment.\nIn the engineering process, demonstrations play a role.' })).toBe(true);
   });
 });

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { forgetStrayKey } from './chat/key';
 import { installErrorMonitor, prefetchScreens } from './monitor/install';
+import { startUpdateWatch } from './monitor/update';
 import { CANONICAL_ORIGIN, LEGACY_ORIGIN } from './config/site';
 import { LegacyMove } from './move/LegacyMove';
 import { canonicalHref, hasLocalData, MOVED_KEY, receiveMove } from './move/move';
@@ -12,6 +13,7 @@ import { canonicalHref, hasLocalData, MOVED_KEY, receiveMove } from './move/move
 forgetStrayKey();
 // Anything that breaks from here on is reported (monitor/): crashes, rejected promises, failed server calls.
 installErrorMonitor();
+startUpdateWatch();
 
 // The Sync Halo bookmark opens the dashboard in a window named 'school-dashboard'. Naming this tab that makes the
 // bookmark come back to the tab the student is already in (onboarding included) instead of opening a second one.

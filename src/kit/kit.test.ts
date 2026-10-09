@@ -118,6 +118,17 @@ describe('the help kit (2026-10-08, second pass 2026-10-09)', () => {
     expect(syllabusSection('Nothing relevant here at all.', item, siblings)).toBeNull();
     expect(syllabusSection(syllabus, { title: 'AI-Assisted Career Reflection', label: 'UNV Career Reflection', topic: 'Topic 3' }, siblings)).toContain('draft three career questions');
   });
+  it('a reading the assignment or its prerequisites name by author or title is never weak (George, 2026-10-09)', () => {
+    const basics = { title: 'Digital Safety Basics: How to Secure Your Cyber Identity', unit, description: '<p>Read "Digital Safety Basics," by Sfoglia, from <em>Insurance Advocate</em> (2021).</p>', files: [{ id: 'res-11', name: 'https://lopes.idm.oclc.org/login?url=https://search.ebscohost.com/dsb', kind: 'URL', type: 'course_class_unit_resource' }] };
+    const story = { title: 'Storytelling That Drives Bold Change', unit, description: '<p>Read "Storytelling That Drives Bold Change," by Frei and Morriss (2023).</p>', files: [{ id: 'res-12', name: 'https://lopes.idm.oclc.org/login?url=https://search.ebscohost.com/st', kind: 'URL', type: 'course_class_unit_resource' }] };
+    const plain = { ...item, notes: 'Make the slides.', plan: { at: '2026-09-16T00:00:00Z', asks: 'Create the slides.', prerequisites: [{ text: 'Read digital privacy/security resources (Shaw 2023, Sfoglia 2021, NYT video)', itemId: null, source: 'syllabus' }] } as never };
+    const ranked = rankResources([story, basics], plain, course, siblings, 'Read digital privacy/security resources (Shaw 2023, Sfoglia 2021, NYT video)');
+    expect(ranked.map((r) => r.resource.title)).toEqual(['Digital Safety Basics: How to Secure Your Cyber Identity', 'Storytelling That Drives Bold Change']);
+    expect(ranked[0].named).toBe(true);
+    const k = buildKit({ item: plain, course, tz: TZ, lines: [], announcements: [], resources: [story, basics], syllabusText: null, siblings });
+    expect(k.links.find((f) => f.name.startsWith('Digital Safety'))?.why).not.toMatch(/may not bear/);
+    expect(k.links.find((f) => f.name.startsWith('Storytelling'))?.why).toMatch(/may not bear/);
+  });
   it('the type and the bring-in wording', () => {
     expect(kitType({ title: 'Final Video Reflection', notes: '', type: 'project', haloType: 'ASSIGNMENT' })).toBe('Video (Halo lists it as an Assignment)');
     expect(kitType({ title: 'Topic 6 Quiz', notes: '', type: 'quiz', haloType: 'QUIZ' })).toBe('Quiz');

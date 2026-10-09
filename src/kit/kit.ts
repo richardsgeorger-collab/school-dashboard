@@ -53,6 +53,8 @@ export interface KitInput {
   syllabusText: string | null;
   /** The course's other assignments, so a reading or a syllabus paragraph about one of them is not mistaken for this one. */
   siblings?: { title: string; label: string }[];
+  /** Other words of the assignment's own: its prerequisites and plan, which name readings by author and title. */
+  mentions?: string;
 }
 
 export interface KitFile {
@@ -230,14 +232,20 @@ export const fileKey = (name: string): string => name.toLowerCase().replace(/\.[
  * course, a reading the professor tied to a discussion question (and a reading with the same name), and anything that
  * fits another assignment better.
  */
-export function rankResources(resources: KitResource[], item: Pick<Item, 'title' | 'notes' | 'label'>, course: Pick<Course, 'code'>, siblings: { title: string; label: string }[] = []): { resource: KitResource; score: number }[] {
+/** Words that name a reading rather than describe one: an author's surname, a title word. Not "read", "chapter", "video". */
+const READING_NOISE = new Set(['read', 'reading', 'chapter', 'video', 'watch', 'article', 'film', 'films', 'media', 'group', 'press', 'journal', 'review', 'university', 'collection', 'resource', 'resources', 'topic', 'from', 'this', 'that', 'with', 'about']);
+
+export function rankResources(resources: KitResource[], item: Pick<Item, 'title' | 'notes' | 'label'>, course: Pick<Course, 'code'>, siblings: { title: string; label: string }[] = [], mentions = ''): { resource: KitResource; score: number; named: boolean }[] {
   const mine = keyTerms(`${item.title} ${item.label}`);
   const body = keyTerms(md(item.notes)).slice(0, 40);
+  // What the assignment itself, its What-to-do lines and its prerequisites name (an author, a title): never weak.
+  const named = new Set(keyTerms(`${md(item.notes)} ${mentions}`).filter((w) => w.length >= 4 && !READING_NOISE.has(w)));
+  const isNamed = (r: KitResource): boolean => keyTerms(`${r.title} ${strip(r.description)}`).some((w) => w.length >= 4 && !READING_NOISE.has(w) && named.has(w));
   const others = siblings.filter((s) => s.title !== item.title).map((s) => keyTerms(`${s.title} ${s.label}`));
   const text = (r: KitResource) => `${r.title} ${strip(r.description)}`;
   const dq = resources.filter((r) => DQ_READING.test(text(r)) && !/\bassignment\b/i.test(text(r)));
   const dqTerms = dq.map((r) => keyTerms(r.title));
-  const out: { resource: KitResource; score: number }[] = [];
+  const out: { resource: KitResource; score: number; named: boolean }[] = [];
   for (const r of resources) {
     const t = text(r);
     const names = r.files.map((f) => f.name).join(' ');
@@ -247,14 +255,16 @@ export function rankResources(resources: KitResource[], item: Pick<Item, 'title'
     if (own.length > 0 && dqTerms.some((d) => own.every((w) => d.includes(w)))) continue;
     const forMe = overlap(t, mine);
     if (others.some((o) => overlap(t, o) > forMe && overlap(t, o) >= 2)) continue;
-    const score = forMe * 3 + (/\bassignment\b/i.test(t) ? 3 : 0) + Math.min(3, overlap(t, body)) + (r.files.some((f) => (f.kind ?? '').toUpperCase() === 'FILE') ? 1 : 0);
-    out.push({ resource: r, score });
+    // A resource the professor tied to "the assignment" outranks a reading that merely shares a word with the title.
+    const score = forMe * 3 + (/\bassignment\b/i.test(t) ? 5 : 0) + Math.min(3, overlap(t, body)) + (r.files.some((f) => (f.kind ?? '').toUpperCase() === 'FILE') ? 1 : 0);
+    out.push({ resource: r, score, named: isNamed(r) });
   }
-  return out.sort((a, b) => b.score - a.score);
+  return out.sort((a, b) => b.score + (b.named ? 1 : 0) - (a.score + (a.named ? 1 : 0)));
 }
 
 export function buildKit(input: KitInput): Kit {
-  const { item, course, tz, lines, announcements, resources, syllabusText, outcome, siblings = [] } = input;
+  const { item, course, tz, lines, announcements, resources, syllabusText, outcome, siblings = [], mentions = '' } = input;
+  const named = `${mentions} ${lines.map((l) => l.text).join(' ')} ${(item.plan?.prerequisites ?? []).map((p) => p.text).join(' ')} ${item.plan?.asks ?? ''}`;
   const files: KitFile[] = [];
   const links: KitFile[] = [];
   const seen = new Map<string, KitFile>();
@@ -270,11 +280,11 @@ export function buildKit(input: KitInput): Kit {
     (f.resourceId ? files : links).push(f);
   };
   for (const a of item.attachments ?? []) if (a.resourceId) add({ name: a.title || 'attachment', resourceId: a.resourceId, altIds: [], url: null, why: 'Attached to the assignment in Halo.' });
-  for (const { resource: r, score } of rankResources(resources, item, course, siblings)) {
+  for (const { resource: r, score, named: isNamed } of rankResources(resources, item, course, siblings, named)) {
     const about = strip(r.description);
     for (const f of r.files) {
       const isUrl = /^https?:\/\//i.test(f.name) || (f.kind ?? '').toUpperCase() === 'URL';
-      if (isUrl) add({ name: r.title, resourceId: null, altIds: [], url: f.name, why: `A ${OFFSITE.test(f.name) ? 'reading behind the library or a publisher site' : 'reading'} from the same topic (${r.unit ?? 'this topic'})${score > 0 ? '' : '; may not bear on this assignment'}${about ? `: ${about.slice(0, 160)}` : '.'}` });
+      if (isUrl) add({ name: r.title, resourceId: null, altIds: [], url: f.name, why: `A ${OFFSITE.test(f.name) ? 'reading behind the library or a publisher site' : 'reading'} from the same topic (${r.unit ?? 'this topic'})${score > 0 || isNamed ? '' : '; may not bear on this assignment'}${about ? `: ${about.slice(0, 160)}` : '.'}` });
       else add({ name: f.name || r.title, resourceId: f.id, altIds: [], url: null, why: `From the same topic in Halo (${r.unit ?? 'this topic'}): ${r.title}${about ? ` — ${about.slice(0, 160)}` : ''}` });
     }
   }

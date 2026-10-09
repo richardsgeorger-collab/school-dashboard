@@ -140,16 +140,28 @@ function appVersion(): string {
   return `${new Date().toISOString().slice(0, 10)}.${sha}`;
 }
 
+/** version.txt beside the app: an open tab asks for it and reloads itself when a new build is up (monitor/update.ts). */
+function versionFile(version: string): Plugin {
+  return {
+    name: 'version-file',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.txt', source: version });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('VITE_')) as [string, string][]) };
   const problems = checkPublicEnv(env);
   if (problems.length && mode !== 'test') throw new Error(`Refusing to build:\n- ${problems.join('\n- ')}`);
+  const version = mode === 'test' ? 'test' : appVersion();
   return {
     // Two sites from one build step (2026-09-29): haloplus.app at the root (SITE_BASE=/), and the old github.io
     // address under /school-dashboard/, which keeps serving the sync script old bookmarks load and moves students over.
     base: SITE_BASE,
-    define: { __APP_VERSION__: JSON.stringify(mode === 'test' ? 'test' : appVersion()) },
-    plugins: [react(), haloSyncScript(SITE_BASE, env.VITE_SUPABASE_URL ?? ''), helpSite(SITE_BASE), ...(mode === 'test' ? [] : [prerenderLanding()])],
+    define: { __APP_VERSION__: JSON.stringify(version) },
+    plugins: [react(), haloSyncScript(SITE_BASE, env.VITE_SUPABASE_URL ?? ''), helpSite(SITE_BASE), versionFile(version), ...(mode === 'test' ? [] : [prerenderLanding()])],
     build: { target: 'es2022' },
     test: {
       environment: 'node',

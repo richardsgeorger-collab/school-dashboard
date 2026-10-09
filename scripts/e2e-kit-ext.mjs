@@ -88,7 +88,8 @@ try {
   await allow.locator('#later').click();
   check((await permissionSeen) === false, '"Not now" reaches the Halo+ tab as granted:false, so it builds the links-only kit');
   await sleep(1800);
-  check(!ctx.pages().some((pg) => pg.url().endsWith('/allow.html')), 'the allow tab closed itself');
+  check(!ctx.pages().some((pg) => pg.url().endsWith('/allow.html')), 'the allow tab is closed');
+  check(!p.isClosed() && (await p.evaluate(() => document.visibilityState)) === 'visible', 'the Halo+ tab is still open and is the active tab again (George, 2026-10-09)');
   // The grant itself is Chrome's own prompt on a real click, which headless Chrome cannot answer, so the fetch half runs
   // in George's Chrome. What can be proven here: the mint step, the shipped function run in the (mocked) Halo tab.
   const src = readFileSync(join(EXT, 'background.js'), 'utf8');

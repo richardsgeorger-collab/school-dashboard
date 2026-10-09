@@ -199,7 +199,18 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     return true;
   } else if (msg.kind === 'kit-allowed') {
     // The allow page: the student answered Chrome's prompt; every open Halo+ tab hears, and the kit goes on by itself.
-    void chrome.tabs.query({ url: [`${DASH_ORIGIN}/*`] }).then((tabs) => { for (const t of tabs) chrome.tabs.sendMessage(t.id, { kind: 'kit-permission', granted: !!msg.granted }).catch(() => undefined); });
+    // Focus goes back to the Halo+ tab the kit was asked from, with its sheet still open (George, 2026-10-09).
+    void (async () => {
+      const { kitDashTab } = await get('kitDashTab');
+      const tabs = await chrome.tabs.query({ url: [`${DASH_ORIGIN}/*`] });
+      for (const t of tabs) chrome.tabs.sendMessage(t.id, { kind: 'kit-permission', granted: !!msg.granted }).catch(() => undefined);
+      const back = tabs.find((t) => t.id === kitDashTab) ?? tabs[0];
+      if (back) {
+        await chrome.tabs.update(back.id, { active: true }).catch(() => undefined);
+        await chrome.windows.update(back.windowId, { focused: true }).catch(() => undefined);
+      }
+      if (sender.tab && sender.tab.id !== undefined) chrome.tabs.remove(sender.tab.id).catch(() => undefined);
+    })();
     reply({ ok: true });
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
@@ -358,6 +369,7 @@ async function kitFiles(msg, dashTabId) {
   const files = Array.isArray(msg.files) ? msg.files.filter((f) => f && f.resourceId).slice(0, 20).map((f) => ({ resourceId: String(f.resourceId), name: String(f.name || 'file'), alts: Array.isArray(f.alts) ? f.alts.filter(Boolean).map(String).slice(0, 3) : [] })) : [];
   const granted = await chrome.permissions.contains({ origins: [FILE_HOST] }).catch(() => false);
   if (!granted) {
+    await set({ kitDashTab: dashTabId });
     await chrome.tabs.create({ url: chrome.runtime.getURL('allow.html'), active: true }).catch(() => undefined);
     return { requestId, status: 'need-permission' };
   }
@@ -417,7 +429,15 @@ async function kitFiles(msg, dashTabId) {
   } catch (e) {
     return { requestId, status: 'error', error: String((e && e.message) || e) };
   } finally {
-    if (opened && haloTab) chrome.tabs.remove(haloTab.id).catch(() => undefined);
+    // Only the quiet Halo tab this worker opened, and only if it is still a Halo tab; the Halo+ tab stays where it is.
+    if (opened && haloTab) {
+      const t = await chrome.tabs.get(haloTab.id).catch(() => null);
+      if (t && isHalo(t.url ?? t.pendingUrl)) chrome.tabs.remove(haloTab.id).catch(() => undefined);
+    }
+    if (dashTabId !== null) {
+      const d = await chrome.tabs.get(dashTabId).catch(() => null);
+      if (d && !d.active) chrome.tabs.update(dashTabId, { active: true }).catch(() => undefined);
+    }
   }
 }
 

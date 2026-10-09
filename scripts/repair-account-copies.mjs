@@ -80,8 +80,8 @@ for (const id of folded.removedItems) await db.from('items').upsert({ id, user_i
 for (const id of folded.removedCourses) await db.from('courses').upsert({ id, user_id: USER, data: { id }, updated_at: now, deleted_at: now }, { onConflict: 'user_id,id' });
 await db.from('settings').update({ data: { ...folded.data.settings, updatedAt: now }, updated_at: now }).eq('user_id', USER);
 // Halo's latest sync goes back in the mailbox, so the next open tab applies grades, rubrics and facts to the kept copies.
-if (latest) await db.from('pending_syncs').update({ consumed_at: null }).eq('id', latest.id);
-console.log(`\nwritten: ${folded.data.courses.length} courses, ${folded.data.items.length} items, ${folded.removedCourses.length} course tombstones, ${folded.removedItems.length} item tombstones; latest sync re-queued`);
+if (latest && process.env.NO_REQUEUE !== '1') await db.from('pending_syncs').update({ consumed_at: null }).eq('id', latest.id);
+console.log(`\nwritten: ${folded.data.courses.length} courses, ${folded.data.items.length} items, ${folded.removedCourses.length} course tombstones, ${folded.removedItems.length} item tombstones${latest && process.env.NO_REQUEUE !== '1' ? '; latest sync re-queued' : ''}`);
 
 // The account that received this student's Halo by mistake: its planner is emptied and its sync key reset.
 let OTHER = process.env.WIPE_OTHER;

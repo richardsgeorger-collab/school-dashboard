@@ -151,11 +151,18 @@ const flat = (s: string | null | undefined): string => (s ?? '').replace(/\s+/g,
  * the first line, as George's did), the fresh description comes in. (George's kit, 2026-10-09.)
  */
 export function keepsNotes(existing: Pick<Item, 'notes' | 'haloNotes'>, next: Pick<Item, 'notes'>): boolean {
-  const mine = flat(existing.notes);
+  const mine = flat(existing.notes).replace(/…$/, '').trim();
   if (!mine) return false;
-  if (!flat(next.notes)) return true;
-  if (existing.haloNotes !== undefined && flat(existing.haloNotes) === mine) return false;
-  return !flat(next.notes).startsWith(mine);
+  const theirs = flat(next.notes);
+  if (!theirs) return true;
+  if (existing.haloNotes !== undefined && flat(existing.haloNotes).replace(/…$/, '').trim() === mine) return false;
+  if (theirs.startsWith(mine)) return false;
+  // Never stamped before: the note is the student's only if it says something Halo's description does not.
+  if (existing.haloNotes === undefined) {
+    const own = mine.split(/(?<=[.!?:;])\s+|\n/).map((x) => x.trim()).filter((x) => x.length > 12);
+    return (own.length ? own : [mine]).some((x) => !theirs.includes(x));
+  }
+  return true;
 }
 
 /** Halo's facts onto the local item. Everything the user owns stays: status, score, award, estimate and label overrides, start-by, snooze, the student's own notes. */
