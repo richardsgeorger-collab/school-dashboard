@@ -364,9 +364,10 @@
   }
   .topbar-date .trial-chip {
     margin: 0 2px 0 0;
-    padding: 0 7px;
+    padding: 0 9px;
     font-size: 11px;
-    min-height: 26px;
+    /* A thumb-sized tap, like Add and Sync beside it (2026-10-08 first-run audit: it was 26px). */
+    min-height: 40px;
   }
 }
 
@@ -2164,4 +2165,16 @@
 }
 .story-continue {
   min-height: 46px;
+}
+
+/* First-run audit on phones (2026-10-08): the plan story's Free/Plus/Max tabs were 39px; the gift's mark took a
+   third of the screen and pushed Connect Halo under the fold. */
+@media (max-width: 700px) {
+  .story-tabs button {
+    min-height: 40px;
+  }
+  .halo-up svg[data-viz] {
+    width: 84px;
+    height: 84px;
+  }
 }
