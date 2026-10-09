@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Halo+ · course files</title>
+<link rel="stylesheet" href="popup.css" />
+<style>
+  body { min-width: 0; max-width: 480px; margin: 0 auto; padding: 28px 24px; }
+  h1 { font-size: 20px; margin: 12px 0 8px; }
+  p { color: var(--ink-2, #b8bcc6); line-height: 1.5; margin: 0 0 12px; }
+  .row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn { padding: 10px 16px; border-radius: 10px; border: 1px solid #3a3d44; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+  .btn.primary { background: #f2b84b; color: #141414; border-color: #f2b84b; font-weight: 700; }
+  .done { color: #6fcf97; }
+</style>
+</head>
+<body>
+  <svg viewBox="0 0 64 64" width="40" height="40" aria-hidden="true"><path d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" fill="none" stroke="#f2b84b" stroke-width="6" stroke-linecap="round"/><path d="M47.1 9.3v15.2M39.5 16.9h15.2" stroke="#f2f4f7" stroke-width="6.5" stroke-linecap="round"/></svg>
+  <h1>Let Halo+ fetch your course files</h1>
+  <p>Your help kit includes the files your professor attached in Halo. Halo keeps those files on a separate file host, so Chrome asks once before Halo+ can download from it. Nothing is uploaded anywhere: the files go straight into the zip on your computer.</p>
+  <div class="row">
+    <button type="button" class="btn primary" id="allow">Allow course files</button>
+    <button type="button" class="btn" id="later">Not now</button>
+  </div>
+  <p id="status" role="status"></p>
+  <script src="allow.js"></script>
+</body>
+</html>

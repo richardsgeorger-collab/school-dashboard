@@ -185,6 +185,7 @@ export function toItem(a: HaloAssessment, course: Course, opts: ToItemOptions): 
     score: null,
     notes: stripHtml(a.description),
     topic: a.unit ?? null,
+    ...(a.attachments?.length ? { attachments: a.attachments.map((f) => ({ id: f.id, resourceId: f.resourceId ?? null, title: f.title })) } : {}),
     flags: course.online ? { ...haloFlags(a), inClass: false } : haloFlags(a),
     source,
     haloId: source === 'halo' ? a.id : null,

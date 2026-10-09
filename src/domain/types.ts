@@ -137,6 +137,8 @@ export interface Item {
   dateChange?: { from: string; at: string; source: ReqSource };
   /** The steps inside a big assignment. One item everywhere; this is just its inside. */
   steps?: Step[];
+  /** Files Halo attached to the assignment (id, Halo's resource id, name); the help kit fetches them through the extension (2026-10-08). */
+  attachments?: { id: string; resourceId: string | null; title: string }[];
   /** Lines of the sheet's checklist the student ticked that are not requirements or steps (what Halo's description asks for, what to do first), by key (domain/sheet.ts askKey). */
   askDone?: string[];
   /** What the assignment asks for, read from its description and rubric. */

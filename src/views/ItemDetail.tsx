@@ -30,6 +30,7 @@ import { Sure } from './PlanReview';
 import { PromptPanel } from './PromptPanel';
 import { SourceBlock } from './SourceBlock';
 import { useBrief } from './WorkPanel';
+import { HelpKitButton } from '../kit/HelpKit';
 
 interface Draft {
   title: string;
@@ -599,6 +600,7 @@ export function ItemDetail({ item: passed, isNew = false, onClose }: { item: Ite
                   </button>
                 </>
               )}
+              <HelpKitButton item={item} course={course} />
             </span>
           </div>
         )}

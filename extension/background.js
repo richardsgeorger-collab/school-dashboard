@@ -178,6 +178,15 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       if (!state.running && ['plus', 'pro', 'max'].includes(tier)) void runSync({ auto: false, quiet: true });
     });
     reply({ ok: true });
+  } else if (msg.kind === 'kit-files') {
+    // Halo+ asks for the bytes of an assignment's files (0.6.0, the help kit): minted in the student's Halo tab the
+    // way the sync reads Halo, fetched here. The file host is an optional permission: the first time, Chrome asks.
+    void kitFiles(msg, sender.tab ? sender.tab.id : null).then(reply);
+    return true;
+  } else if (msg.kind === 'kit-allowed') {
+    // The allow page: the student answered Chrome's prompt; every open Halo+ tab hears, and the kit goes on by itself.
+    void chrome.tabs.query({ url: [`${DASH_ORIGIN}/*`] }).then((tabs) => { for (const t of tabs) chrome.tabs.sendMessage(t.id, { kind: 'kit-permission', granted: !!msg.granted }).catch(() => undefined); });
+    reply({ ok: true });
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
     // through storage, so the reply does not wait for the sync.
@@ -268,6 +277,95 @@ async function runSync({ auto, quiet = false }) {
     state.running = false;
     if (opened && haloTab) chrome.tabs.remove(haloTab.id).catch(() => undefined);
     await set({ running: false, progress: null });
+  }
+}
+
+// ---- the help kit's files (0.6.0) -----------------------------------------------------------------------------------
+const FILE_HOST = 'https://gce-lms-resource-prod.s3.us-west-2.amazonaws.com/*';
+const FILE_MAX = 25 * 1024 * 1024;
+
+/** Runs inside the Halo page (MAIN world): a download link per resource id, with the session that page holds. */
+function mintDownloadUrls(ids) {
+  return (async () => {
+    const out = [];
+    try {
+      const nd = JSON.parse((document.getElementById('__NEXT_DATA__') || {}).textContent || 'null');
+      const orch = (nd && nd.runtimeConfig && nd.runtimeConfig.orchestrationApiEndpoint) || '';
+      if (!orch) return { error: 'No orchestrationApiEndpoint on the page' };
+      const s = await (await fetch('/api/auth/session', { credentials: 'include' })).json();
+      if (!s || !s.authToken) return { error: 'No Halo session' };
+      for (const id of ids) {
+        try {
+          const r = await fetch(orch + 'downloadUrl/' + id, { headers: { Authorization: 'Bearer ' + s.authToken, ContextToken: 'Bearer ' + s.contextToken } });
+          const j = await r.json();
+          const url = (j && (j.downloadUrl || (j.result && j.result.downloadUrl))) || '';
+          out.push({ id, url, error: url ? null : 'Halo gave no download link' });
+        } catch (e) {
+          out.push({ id, url: '', error: String((e && e.message) || e) });
+        }
+      }
+      return { urls: out };
+    } catch (e) {
+      return { error: String((e && e.message) || e) };
+    }
+  })();
+}
+
+const toBase64 = (buf) => {
+  const bytes = new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+
+async function kitFiles(msg, dashTabId) {
+  const requestId = msg.requestId;
+  const files = Array.isArray(msg.files) ? msg.files.filter((f) => f && f.resourceId).slice(0, 20) : [];
+  const granted = await chrome.permissions.contains({ origins: [FILE_HOST] }).catch(() => false);
+  if (!granted) {
+    await chrome.tabs.create({ url: chrome.runtime.getURL('allow.html'), active: true }).catch(() => undefined);
+    return { requestId, status: 'need-permission' };
+  }
+  if (state.running) return { requestId, status: 'busy' };
+  const say = (note) => { if (dashTabId !== null) chrome.tabs.sendMessage(dashTabId, { kind: 'kit-progress', requestId, note }).catch(() => undefined); };
+  let haloTab = null;
+  let opened = false;
+  try {
+    haloTab = (await chrome.tabs.query({ url: `${HALO}*` })).find((t) => !t.discarded) ?? null;
+    if (!haloTab) {
+      haloTab = await chrome.tabs.create({ url: HALO, active: false, index: 9999 });
+      opened = true;
+      await chrome.tabs.update(haloTab.id, { muted: true }).catch(() => undefined);
+      await waitForLoad(haloTab.id);
+      await sleep(1500);
+      haloTab = await chrome.tabs.get(haloTab.id);
+    }
+    if (!isHalo(haloTab.url ?? haloTab.pendingUrl)) return { requestId, status: 'error', error: "You're logged out of Halo. Log in at halo.gcu.edu and try again." };
+    say(`Asking Halo for ${files.length} download link${files.length === 1 ? '' : 's'}…`);
+    const [{ result }] = await chrome.scripting.executeScript({ target: { tabId: haloTab.id }, world: 'MAIN', func: mintDownloadUrls, args: [files.map((f) => f.resourceId)] });
+    if (!result || result.error) return { requestId, status: 'error', error: (result && result.error) || 'Halo did not answer' };
+    const out = [];
+    let n = 0;
+    for (const f of files) {
+      n += 1;
+      const minted = result.urls.find((u) => u.id === f.resourceId);
+      if (!minted || !minted.url) { out.push({ resourceId: f.resourceId, name: f.name, ok: false, error: (minted && minted.error) || 'no link' }); continue; }
+      say(`Grabbing ${n} of ${files.length} from Halo: ${f.name}`);
+      try {
+        const res = await fetch(minted.url);
+        if (!res.ok) throw new Error(`Halo's file host answered ${res.status}`);
+        const buf = await res.arrayBuffer();
+        if (buf.byteLength > FILE_MAX) throw new Error('over 25 MB');
+        out.push({ resourceId: f.resourceId, name: f.name, ok: true, type: res.headers.get('content-type'), base64: toBase64(buf) });
+      } catch (e) {
+        out.push({ resourceId: f.resourceId, name: f.name, ok: false, error: String((e && e.message) || e) });
+      }
+    }
+    return { requestId, status: 'done', files: out };
+  } catch (e) {
+    return { requestId, status: 'error', error: String((e && e.message) || e) };
+  } finally {
+    if (opened && haloTab) chrome.tabs.remove(haloTab.id).catch(() => undefined);
   }
 }
 

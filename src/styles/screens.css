@@ -4071,3 +4071,18 @@ button.sheet-line-text:focus-visible {
 .sheet-head-actions .sheet-quiet .hero-inline {
   font-size: 12px;
 }
+/* The help kit's note under the quiet row (2026-10-08). */
+.kit {
+  display: contents;
+}
+.kit-note {
+  flex: 1 1 100%;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.kit-note[data-phase='done'] {
+  color: var(--ok);
+}
+.kit-note[data-phase='error'] {
+  color: var(--danger);
+}

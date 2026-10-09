@@ -122,6 +122,22 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
+## 0.6.0 (2026-10-08): the help kit's course files
+
+What changed for the listing:
+- **Version** 0.6.0.
+- **Optional host permission** (new, under Permissions): `https://gce-lms-resource-prod.s3.us-west-2.amazonaws.com/*`,
+  the host Halo serves course files from. It is optional: installing or updating asks nothing; the first time a student
+  presses "Download help kit" in Halo+, the extension opens a small page of its own where they can allow it (Chrome's
+  own prompt). Declined, the kit lists the files as links instead and nothing else changes.
+- **Host permission justification box**, add this sentence: "gce-lms-resource-prod.s3.us-west-2.amazonaws.com (optional,
+  asked only when the student first downloads a help kit): fetch the files the professor attached to one assignment in
+  Halo, using a download link Halo's own API hands the student's session, so they go into a zip on the student's
+  computer. Never without the student allowing it; nothing is uploaded."
+- **Description**, add one line: "Download help kit: one zip with an assignment's instructions, rubric, the announcements
+  about it, the part of the syllabus about it, and the files your professor attached, ready to hand to an AI tutor."
+- **Single purpose** text: unchanged (still syncing the student's own Halo data; the kit reads the same data).
+
 **Permission justifications (Privacy tab; one box per API permission, one box for all host permissions):**
 
 Host permission justification (the whole box):

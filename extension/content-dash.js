@@ -109,6 +109,16 @@
       reply({ ok: true });
       return;
     }
+    if (msg.kind === 'kit-progress') {
+      window.postMessage({ kind: 'halo-kit-progress', requestId: msg.requestId, note: msg.note }, location.origin);
+      reply({ ok: true });
+      return;
+    }
+    if (msg.kind === 'kit-permission') {
+      window.postMessage({ kind: 'halo-kit-permission', granted: !!msg.granted }, location.origin);
+      reply({ ok: true });
+      return;
+    }
     if (msg.kind !== 'deliver') return;
     handOver(msg.payload, (ok) => reply({ ok }));
     return true;
@@ -124,6 +134,15 @@
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data || e.data.kind !== 'halo-ext-first-sync') return;
     chrome.runtime.sendMessage({ kind: 'first-sync' }).catch(() => undefined);
+  });
+  // The help kit (0.6.0): the page asks for an assignment's files; the answer, and progress on the way, come back here.
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.kind !== 'halo-kit-files') return;
+    const requestId = e.data.requestId;
+    chrome.runtime
+      .sendMessage({ kind: 'kit-files', requestId, files: e.data.files })
+      .then((r) => window.postMessage({ kind: 'halo-kit-files-result', ...(r || { status: 'error', error: 'no answer' }), requestId }, location.origin))
+      .catch((err) => window.postMessage({ kind: 'halo-kit-files-result', requestId, status: 'error', error: String(err) }, location.origin));
   });
 
 })();

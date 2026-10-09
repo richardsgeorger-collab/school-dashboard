@@ -2,15 +2,74 @@
   "manifest_version": 3,
   "name": "Halo+",
   "description": "Syncs Halo+ with Halo: classes, assignments, grades and announcements, on its own every three hours, or with Sync now.",
-  "version": "0.5.2",
-  "permissions": ["alarms", "storage", "unlimitedStorage", "scripting", "tabs"],
-  "host_permissions": ["https://halo.gcu.edu/*", "https://haloplus.app/*", "https://richardsgeorger-collab.github.io/*", "https://kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop", "https://kiacmspgvntzwngijibr.supabase.co/functions/v1/report"],
-  "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_popup": "popup.html", "default_title": "Halo+", "default_icon": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" } },
-  "icons": { "16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png" },
-  "content_scripts": [
-    { "matches": ["https://halo.gcu.edu/*"], "js": ["celebrate.js", "content-halo.js"], "run_at": "document_idle" },
-    { "matches": ["https://haloplus.app/*", "https://richardsgeorger-collab.github.io/*"], "js": ["content-dash.js"], "run_at": "document_idle" }
+  "version": "0.6.0",
+  "permissions": [
+    "alarms",
+    "storage",
+    "unlimitedStorage",
+    "scripting",
+    "tabs"
   ],
-  "web_accessible_resources": [{ "resources": ["sync-inject.js"], "matches": ["https://halo.gcu.edu/*"] }]
+  "host_permissions": [
+    "https://halo.gcu.edu/*",
+    "https://haloplus.app/*",
+    "https://richardsgeorger-collab.github.io/*",
+    "https://kiacmspgvntzwngijibr.supabase.co/functions/v1/sync-drop",
+    "https://kiacmspgvntzwngijibr.supabase.co/functions/v1/report"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Halo+",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://halo.gcu.edu/*"
+      ],
+      "js": [
+        "celebrate.js",
+        "content-halo.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://haloplus.app/*",
+        "https://richardsgeorger-collab.github.io/*"
+      ],
+      "js": [
+        "content-dash.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "sync-inject.js"
+      ],
+      "matches": [
+        "https://halo.gcu.edu/*"
+      ]
+    }
+  ],
+  "optional_host_permissions": [
+    "https://gce-lms-resource-prod.s3.us-west-2.amazonaws.com/*"
+  ]
 }
