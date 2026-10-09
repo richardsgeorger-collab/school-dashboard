@@ -318,9 +318,30 @@ const toBase64 = (buf) => {
   return btoa(s);
 };
 
+/** Runs inside the Halo page (MAIN world): fetches a download link from there, for a host the worker could not reach. */
+function fetchInHaloTab(url) {
+  return (async () => {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return { ok: false, error: 'answered ' + r.status };
+      const buf = await r.arrayBuffer();
+      if (buf.byteLength > 25 * 1024 * 1024) return { ok: false, error: 'over 25 MB' };
+      const bytes = new Uint8Array(buf);
+      let s = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return { ok: true, type: r.headers.get('content-type'), base64: btoa(s) };
+    } catch (e) {
+      return { ok: false, error: String((e && e.message) || e) };
+    }
+  })();
+}
+
+const hostOf = (url) => { try { return new URL(url).host; } catch { return '?'; } };
+
 async function kitFiles(msg, dashTabId) {
   const requestId = msg.requestId;
-  const files = Array.isArray(msg.files) ? msg.files.filter((f) => f && f.resourceId).slice(0, 20) : [];
+  // Each file: its resource id and, in reserve, other ids that hold the same file (an announcement's copy).
+  const files = Array.isArray(msg.files) ? msg.files.filter((f) => f && f.resourceId).slice(0, 20).map((f) => ({ resourceId: String(f.resourceId), name: String(f.name || 'file'), alts: Array.isArray(f.alts) ? f.alts.filter(Boolean).map(String).slice(0, 3) : [] })) : [];
   const granted = await chrome.permissions.contains({ origins: [FILE_HOST] }).catch(() => false);
   if (!granted) {
     await chrome.tabs.create({ url: chrome.runtime.getURL('allow.html'), active: true }).catch(() => undefined);
@@ -341,25 +362,42 @@ async function kitFiles(msg, dashTabId) {
       haloTab = await chrome.tabs.get(haloTab.id);
     }
     if (!isHalo(haloTab.url ?? haloTab.pendingUrl)) return { requestId, status: 'error', error: "You're logged out of Halo. Log in at halo.gcu.edu and try again." };
-    say(`Asking Halo for ${files.length} download link${files.length === 1 ? '' : 's'}…`);
-    const [{ result }] = await chrome.scripting.executeScript({ target: { tabId: haloTab.id }, world: 'MAIN', func: mintDownloadUrls, args: [files.map((f) => f.resourceId)] });
+    const ids = [...new Set(files.flatMap((f) => [f.resourceId, ...f.alts]))];
+    say(`Asking Halo for ${ids.length} download link${ids.length === 1 ? '' : 's'}…`);
+    const [{ result }] = await chrome.scripting.executeScript({ target: { tabId: haloTab.id }, world: 'MAIN', func: mintDownloadUrls, args: [ids] });
     if (!result || result.error) return { requestId, status: 'error', error: (result && result.error) || 'Halo did not answer' };
+    // One file: the worker fetches the link; if its host is one the worker may not reach, the Halo tab tries; then the next copy.
+    const grab = async (url) => {
+      let first;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`answered ${res.status}`);
+        const buf = await res.arrayBuffer();
+        if (buf.byteLength > FILE_MAX) throw new Error('over 25 MB');
+        return { ok: true, type: res.headers.get('content-type'), base64: toBase64(buf) };
+      } catch (e) {
+        first = String((e && e.message) || e);
+      }
+      const [{ result: inTab }] = await chrome.scripting.executeScript({ target: { tabId: haloTab.id }, world: 'MAIN', func: fetchInHaloTab, args: [url] }).catch(() => [{ result: null }]);
+      if (inTab && inTab.ok) return inTab;
+      return { ok: false, error: `${hostOf(url)}: ${first}${inTab && inTab.error ? `; from the Halo tab: ${inTab.error}` : ''}` };
+    };
     const out = [];
     let n = 0;
     for (const f of files) {
       n += 1;
-      const minted = result.urls.find((u) => u.id === f.resourceId);
-      if (!minted || !minted.url) { out.push({ resourceId: f.resourceId, name: f.name, ok: false, error: (minted && minted.error) || 'no link' }); continue; }
       say(`Grabbing ${n} of ${files.length} from Halo: ${f.name}`);
-      try {
-        const res = await fetch(minted.url);
-        if (!res.ok) throw new Error(`Halo's file host answered ${res.status}`);
-        const buf = await res.arrayBuffer();
-        if (buf.byteLength > FILE_MAX) throw new Error('over 25 MB');
-        out.push({ resourceId: f.resourceId, name: f.name, ok: true, type: res.headers.get('content-type'), base64: toBase64(buf) });
-      } catch (e) {
-        out.push({ resourceId: f.resourceId, name: f.name, ok: false, error: String((e && e.message) || e) });
+      const reasons = [];
+      let got = null;
+      for (const id of [f.resourceId, ...f.alts]) {
+        const minted = result.urls.find((u) => u.id === id);
+        if (!minted || !minted.url) { reasons.push((minted && minted.error) || 'no link'); continue; }
+        const r = await grab(minted.url);
+        if (r.ok) { got = r; break; }
+        reasons.push(r.error);
       }
+      if (got) out.push({ resourceId: f.resourceId, name: f.name, ok: true, type: got.type, base64: got.base64 });
+      else out.push({ resourceId: f.resourceId, name: f.name, ok: false, error: reasons.join(' | ') || 'not fetched' });
     }
     return { requestId, status: 'done', files: out };
   } catch (e) {

@@ -6,7 +6,7 @@ import { announceDb, announceStores } from '../halo/announce';
 import { useStore } from '../storage/store';
 import { syllabiDb } from '../syllabus/db';
 import { extensionCanFetch, fetchViaExtension, waitForPermission } from './extFiles';
-import { buildKit, type KitAnnouncement, type KitOutcome, type KitResource } from './kit';
+import { buildKit, fileKey, type KitAnnouncement, type KitOutcome, type KitResource } from './kit';
 
 type Phase = 'idle' | 'building' | 'done' | 'partial' | 'links' | 'error';
 
@@ -37,25 +37,32 @@ export function HelpKitButton({ item, course }: { item: Item; course: Course }) 
       for (const r of item.requirements ?? []) if (r.source.kind === 'announcement' && r.source.id) postIds.add(r.source.id);
       if (item.origin?.kind === 'announcement' && item.origin.id) postIds.add(item.origin.id);
       if (item.dateChange?.source.kind === 'announcement' && item.dateChange.source.id) postIds.add(item.dateChange.source.id);
+      const all = await announceStores.resources().catch(() => []);
+      const resources: KitResource[] = all.filter((r) => r.courseId === item.courseId && !!item.topic && r.unit === item.topic).map((r) => ({ title: r.title, unit: r.unit, description: r.description, files: r.files }));
+      // Also any post in this class that carries one of the assignment's files (the professor's copy of a walk-through).
+      const topicKeys = new Set([...resources.flatMap((r) => r.files.filter((f) => (f.kind ?? '').toUpperCase() !== 'URL').map((f) => fileKey(f.name))), ...(item.attachments ?? []).map((a) => fileKey(a.title))]);
+      const posts = (await announceDb.list().catch(() => [])).filter((a) => a.courseId === item.courseId);
+      for (const a of posts) if ((a.resources ?? []).some((f) => (f.kind ?? '').toUpperCase() !== 'URL' && topicKeys.has(fileKey(f.name)))) postIds.add(a.id);
       const announcements: KitAnnouncement[] = [];
       for (const id of postIds) {
-        const a = await announceDb.get(id).catch(() => null);
-        if (a) announcements.push({ id: a.id, title: a.title, text: a.text, author: a.author, publishedAt: a.publishedAt });
+        const a = posts.find((p) => p.id === id) ?? (await announceDb.get(id).catch(() => null));
+        if (a) announcements.push({ id: a.id, title: a.title, text: a.text, author: a.author, publishedAt: a.publishedAt, resources: a.resources ?? [] });
       }
-      const all = await announceStores.resources().catch(() => []);
-      const resources: KitResource[] = all.filter((r) => r.courseId === item.courseId && !!item.topic && r.unit === item.topic).map((r) => ({ title: r.title, unit: r.unit, files: r.files }));
+      announcements.sort((a, b) => (a.publishedAt ?? '').localeCompare(b.publishedAt ?? ''));
+      const siblings = data.items.filter((i) => i.courseId === item.courseId && i.id !== item.id).map((i) => ({ title: i.title, label: i.label }));
       const syllabusText = (await syllabiDb.get(item.courseId).catch(() => null))?.text ?? null;
-      const draft = buildKit({ item, course, tz, lines, announcements, resources, syllabusText });
+      const draft = buildKit({ item, course, tz, lines, announcements, resources, syllabusText, siblings });
 
       // Halo's files, through the extension; the first time Chrome asks the student to allow the file host.
       const outcome: KitOutcome = { got: [], failed: {}, noExtension: !extensionCanFetch() };
       const bytes = new Map<string, { name: string; bytes: Uint8Array }>();
       if (draft.files.length > 0 && !outcome.noExtension) {
-        let r = await fetchViaExtension(draft.files.map((f) => ({ resourceId: f.resourceId!, name: f.name })), setNote);
+        const wanted = draft.files.map((f) => ({ resourceId: f.resourceId!, name: f.name, alts: f.altIds }));
+        let r = await fetchViaExtension(wanted, setNote);
         if (r.status === 'need-permission') {
           setNote('Chrome is asking to let Halo+ fetch course files. Allow it to include them.');
           const granted = await waitForPermission();
-          r = granted ? await fetchViaExtension(draft.files.map((f) => ({ resourceId: f.resourceId!, name: f.name })), setNote) : { status: 'error', error: 'not allowed' };
+          r = granted ? await fetchViaExtension(wanted, setNote) : { status: 'error', error: 'not allowed' };
         }
         if (r.status === 'done') {
           for (const f of r.files) {
@@ -67,7 +74,7 @@ export function HelpKitButton({ item, course }: { item: Item; course: Course }) 
         } else if (r.status === 'busy') for (const f of draft.files) outcome.failed[f.resourceId!] = 'a sync is running, try again in a minute';
         else if (r.status === 'error') for (const f of draft.files) outcome.failed[f.resourceId!] = r.error;
       }
-      const kit = buildKit({ item, course, tz, lines, announcements, resources, syllabusText, outcome });
+      const kit = buildKit({ item, course, tz, lines, announcements, resources, syllabusText, siblings, outcome });
 
       setNote('Zipping…');
       const { default: JSZip } = await import('jszip');
@@ -105,7 +112,8 @@ export function HelpKitButton({ item, course }: { item: Item; course: Course }) 
         setNote(`Help kit saved: ${got} file${got === 1 ? '' : 's'} from Halo${parts.length ? `, ${parts.join(' and ')}` : ''}.`);
       } else {
         setPhase('partial');
-        setNote(`Help kit saved with ${got} of ${total} files; ${total - got} listed as link${total - got === 1 ? '' : 's'} instead.`);
+        const missed = draft.files.filter((f) => !outcome.got.includes(f.resourceId!));
+        setNote(`Help kit saved with ${got} of ${total} files; not fetched: ${missed.map((f) => `${f.name} (${outcome.failed[f.resourceId!] ?? 'no reason given'})`).join('; ')}. They are listed in START-HERE with where to find them in Halo.`);
       }
     } catch (e) {
       setPhase('error');

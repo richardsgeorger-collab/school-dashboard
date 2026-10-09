@@ -144,7 +144,21 @@ export function findMatch(candidates: Item[], next: Item, tz: string): Item | un
   return best?.item;
 }
 
-/** Halo's facts onto the local item. Everything the user owns stays: status, score, award, estimate and label overrides, start-by, snooze, notes. */
+const flat = (s: string | null | undefined): string => (s ?? '').replace(/\s+/g, ' ').trim();
+/**
+ * The student's notes stay when they wrote them. Halo's own description is not theirs: when the notes are still what
+ * Halo said last time, or an opening part of what Halo says now (the professor expanded it, or an early sync kept only
+ * the first line, as George's did), the fresh description comes in. (George's kit, 2026-10-09.)
+ */
+export function keepsNotes(existing: Pick<Item, 'notes' | 'haloNotes'>, next: Pick<Item, 'notes'>): boolean {
+  const mine = flat(existing.notes);
+  if (!mine) return false;
+  if (!flat(next.notes)) return true;
+  if (existing.haloNotes !== undefined && flat(existing.haloNotes) === mine) return false;
+  return !flat(next.notes).startsWith(mine);
+}
+
+/** Halo's facts onto the local item. Everything the user owns stays: status, score, award, estimate and label overrides, start-by, snooze, the student's own notes. */
 export function mergeItem(existing: Item, next: Item, course: Course, now: string, source: SyncSource = 'halo'): Item {
   const points = next.points > 0 ? next.points : existing.points;
   const merged: Item = {
@@ -168,7 +182,8 @@ export function mergeItem(existing: Item, next: Item, course: Course, now: strin
       timed: existing.flags.timed || next.flags.timed,
       practice: existing.flags.practice || next.flags.practice,
     },
-    notes: existing.notes?.trim() ? existing.notes : next.notes,
+    notes: keepsNotes(existing, next) ? existing.notes : next.notes,
+    haloNotes: next.notes,
     topic: existing.topic ?? next.topic,
     source: existing.source === 'manual' ? 'manual' : source,
     updatedAt: now,

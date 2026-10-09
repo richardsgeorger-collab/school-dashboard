@@ -29,7 +29,7 @@ function decode(b64: string): Uint8Array {
   return out;
 }
 
-export function fetchViaExtension(files: { resourceId: string; name: string }[], onProgress: (note: string) => void, timeoutMs = 120_000): Promise<ExtFetch> {
+export function fetchViaExtension(files: { resourceId: string; name: string; alts?: string[] }[], onProgress: (note: string) => void, timeoutMs = 120_000): Promise<ExtFetch> {
   if (!extensionCanFetch()) return Promise.resolve({ status: 'no-extension' });
   const requestId = `kit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   onProgress(`Grabbing ${files.length} file${files.length === 1 ? '' : 's'} from Halo…`);

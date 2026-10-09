@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Halo+",
   "description": "Syncs Halo+ with Halo: classes, assignments, grades and announcements, on its own every three hours, or with Sync now.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "permissions": [
     "alarms",
     "storage",

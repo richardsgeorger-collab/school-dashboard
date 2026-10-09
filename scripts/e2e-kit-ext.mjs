@@ -50,6 +50,7 @@ try {
     const auth = route.request().headers()['authorization'];
     if (!u.pathname.startsWith('/downloadUrl/') || auth !== 'Bearer A') return route.fulfill({ status: 401, body: '{}' });
     minted += 1;
+    if (u.pathname.endsWith('-dead')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ downloadUrl: `${S3}/files/${u.pathname.split('/').pop()}.docx?X-Amz-Signature=test` }) });
   });
   let fetched = 0;
@@ -94,9 +95,12 @@ try {
   const fn = src.slice(src.indexOf('function mintDownloadUrls('), src.indexOf('\nconst toBase64'));
   const halo = await ctx.newPage();
   await halo.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
-  const r = await halo.evaluate(`(${fn})(['res-42', 'res-43'])`);
-  check(!r.error && r.urls?.length === 2 && r.urls.every((u) => u.url.startsWith(S3 + '/files/')), `mint in the Halo tab: ${r.error ?? r.urls?.map((u) => u.url.replace(/\?.*$/, '')).join(', ')}`);
-  check(minted === 2, `two download links asked of Halo's API with the page's own session (${minted})`);
+  const r = await halo.evaluate(`(${fn})(['res-42', 'res-43', 'res-dead'])`);
+  check(!r.error && r.urls?.length === 3 && r.urls.slice(0, 2).every((u) => u.url.startsWith(S3 + '/files/')) && r.urls[2].url === '' && /no download link/.test(r.urls[2].error), `mint in the Halo tab: ${r.error ?? r.urls?.map((u) => u.url.replace(/\?.*$/, '') || u.error).join(', ')}`);
+  check(minted === 3, `three download links asked of Halo's API with the page's own session (${minted})`);
+  const fn2 = src.slice(src.indexOf('function fetchInHaloTab('), src.indexOf('\nconst hostOf'));
+  const inTab = await halo.evaluate(`(${fn2})(${JSON.stringify(S3 + '/files/res-42.docx?X-Amz-Signature=test')})`);
+  check(inTab.ok && Buffer.from(inTab.base64, 'base64').equals(DOCX), `the fallback fetch inside the Halo tab returns the bytes (${inTab.ok ? Buffer.from(inTab.base64, 'base64').length + ' B' : inTab.error})`);
   await halo.close();
   const sw = ctx.serviceWorkers().find((w) => w.url().startsWith('chrome-extension://')) ?? null;
   if (sw) check((await sw.evaluate(() => chrome.permissions.contains({ origins: ['https://gce-lms-resource-prod.s3.us-west-2.amazonaws.com/*'] }))) === false, 'the file host is still not granted (the kit stays links-only until the student allows it)');

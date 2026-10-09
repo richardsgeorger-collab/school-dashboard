@@ -98,6 +98,8 @@ export interface Item {
   completedAt: string | null;
   score: number | null;
   notes: string;
+  /** What Halo's description said at the last sync, so an unedited note can follow it. */
+  haloNotes?: string;
   topic: string | null;
   flags: ItemFlags;
   source: 'parsed' | 'manual' | 'halo' | 'ics';

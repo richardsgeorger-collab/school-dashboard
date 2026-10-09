@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffHalo, findMatch, mergeItem } from './diff';
+import { diffHalo, findMatch, keepsNotes, mergeItem } from './diff';
 import { mkAssessment, mkClass, mkCourse, mkData, mkExport, mkItem, NOW, TZ } from './fixtures';
 import { haloItemId, toItem } from './normalize';
 
@@ -230,5 +230,15 @@ describe('a lecture and its lab (2026-09-30)', () => {
     const eng = mkCourse({ id: 'e', code: 'ENG-105', haloClassId: 'eng', online: false, meetings: [{ day: 3, start: '11:00', end: '12:45' }, { day: 5, start: '11:00', end: '12:45' }] });
     const diff = diffHalo(mkExport([mkClass({ id: 'eng', courseCode: 'ENG-105', classCode: 'ENG-105-ONL4', slugId: 'ENG-105-ONL4-20260914', modality: 'ONLINE' })]), mkData([eng], []), opts);
     expect(diff.courses.linked[0]).toMatchObject({ online: true, meetings: [] });
+  });
+});
+
+describe('keepsNotes (George, 2026-10-09: an unedited note follows Halo)', () => {
+  it('keeps notes the student wrote, takes a description that grew past what an early sync kept, follows Halo when nothing was edited', () => {
+    expect(keepsNotes({ notes: 'my notes', haloNotes: 'halo said this' }, { notes: 'halo says more now' })).toBe(true);
+    expect(keepsNotes({ notes: 'Objective: Develop proficiency in PowerPoint.' }, { notes: 'Objective:\nDevelop proficiency in PowerPoint.\nInstructions:\n1. Research' })).toBe(false);
+    expect(keepsNotes({ notes: 'halo said this', haloNotes: 'halo said this' }, { notes: 'halo says something else' })).toBe(false);
+    expect(keepsNotes({ notes: '' }, { notes: 'anything' })).toBe(false);
+    expect(keepsNotes({ notes: 'kept when Halo goes blank' }, { notes: '' })).toBe(true);
   });
 });

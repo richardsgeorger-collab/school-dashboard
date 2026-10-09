@@ -122,6 +122,11 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
+## 0.6.1 (2026-10-09): the help kit tries harder
+
+Version 0.6.1; no permission change. A file the worker cannot fetch is tried from the student's Halo tab, then from a
+second copy (an announcement's attachment), and a failure names the file host so it can be reported.
+
 ## 0.6.0 (2026-10-08): the help kit's course files
 
 What changed for the listing:
