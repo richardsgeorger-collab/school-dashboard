@@ -20,7 +20,7 @@ export function CookMeter({ course, size = 'card' }: { course: Course; size?: 'c
   const [open, setOpen] = useState(false);
   const pct = Math.round(cook.fill * 100);
   return (
-    <div className="cook" data-size={size}>
+    <div className="cook" data-size={size} data-tour={`cook-${course.code}`}>
       <button type="button" className="cook-btn" data-level={cook.level} title={cook.why} onClick={() => setOpen(!open)} aria-expanded={open} aria-label={`Cooked meter, ${cook.level}: ${cook.why}`}>
         <span className="cook-track" aria-hidden>
           <span className="cook-fill" style={{ width: `${pct}%`, background: cookColor(cook.level) }} />

@@ -10,6 +10,7 @@ import { AdminErrors } from './AdminErrors';
 import { AdminGrowth } from './AdminGrowth';
 import { AdminAccounts } from './AdminAccounts';
 import { AdminCelebrations } from './AdminCelebrations';
+import { AdminDemo } from './AdminDemo';
 
 interface Stats {
   ai_cost_month: number;
@@ -59,6 +60,7 @@ export function Admin() {
     <>
       <h1 className="page-title">Admin</h1>
       <div className="settings-grid admin-grid">
+        <AdminDemo />
         <AdminGrowth tick={tick} />
         <AdminAccounts onChange={() => setTick((k) => k + 1)} />
         <AdminFunnel />

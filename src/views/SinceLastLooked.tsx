@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
+import { isDemo } from '../demo/demo';
 import { changesLine, changesSince, snapshotOf, type Change, type Snapshot } from '../domain/changes';
 import { fmtDate } from '../domain/dates';
 import type { Item } from '../domain/types';
@@ -25,7 +26,7 @@ const VERB: Record<Change['kind'], string> = { new: 'New', moved: 'Moved', grade
 export function SinceLastLooked({ onOpen }: { onOpen: (i: Item) => void }) {
   const { data } = useStore();
   const { auth } = useAccount();
-  const who = auth.session?.user.id ?? auth.knownUserId ?? 'local';
+  const who = isDemo() ? 'demo' : (auth.session?.user.id ?? auth.knownUserId ?? 'local');
   const tz = data.settings.timezone;
   const [before] = useState(() => read(who));
   const [open, setOpen] = useState(false);

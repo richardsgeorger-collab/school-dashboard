@@ -16,6 +16,7 @@ import { recordCheck } from '../halo/verification';
 import { recordAnswer } from '../quiz/stats';
 import { diffBatch, loadUndo, revert, saveUndo, type UndoBatch } from './undo';
 import { DEFAULT_SETTINGS, type AppData, type Course, type DateStr, type HaloCheckRecord, type Item, type ItemStatus, type JoyState, type Settings } from '../domain/types';
+import { isDemo } from '../demo/demo';
 import { localCache, type PendingOp } from './localRepo';
 import { mergeData, type Repository } from './repository';
 import { ENV } from '../env';
@@ -377,7 +378,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     async (repo: Repository | null, email: string | null) => {
       remoteRef.current = repo;
       if (!repo) {
-        setSync((s) => ({ ...s, status: dataRef.current.settings.supabaseUrl ? 'signed_out' : 'off', email: null }));
+        // The demo student (demo/demo.ts) has no mirror and is complete as loaded: "synced", so the moments a sync
+        // leaves behind (the grade that went up) play as they would for a real student.
+        setSync((s) => ({ ...s, status: isDemo() ? 'synced' : dataRef.current.settings.supabaseUrl ? 'signed_out' : 'off', email: null }));
         return;
       }
       setSync((s) => ({ ...s, email }));

@@ -1,4 +1,5 @@
 import { trialState } from '../config/flags';
+import { isDemo } from '../demo/demo';
 import { planWinback } from '../winback/rules';
 import { useInviteProgress, useMyGrants } from '../referral/Invite';
 import { useEffect } from 'react';
@@ -18,6 +19,7 @@ import { registerSw } from './push';
  */
 export function NotificationPlanner() {
   const { data, schedule, today } = useStore();
+  const demo = isDemo();
   const { auth, tier, profile, planKnown } = useAccount();
   // What Max did during the trial, for its reminders (counted from the trial's start).
   const recap = useReceipts(profile?.trialStartedAt ?? undefined);
@@ -32,7 +34,7 @@ export function NotificationPlanner() {
   useEffect(() => {
     // Plans that include reminders get the full plan; Free gets only the win-back pushes (2026-09-29), and only with
     // notifications on.
-    if (!auth.session || !auth.userId || !prefs?.pushEnabled) return;
+    if (demo || !auth.session || !auth.userId || !prefs?.pushEnabled) return;
     const full = can('reminders', tier);
     const c = supabase();
     if (!c) return;

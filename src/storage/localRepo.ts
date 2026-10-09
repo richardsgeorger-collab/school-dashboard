@@ -1,7 +1,9 @@
+import { DEMO_DATA_KEY, DEMO_PENDING_KEY, isDemo } from '../demo/demo';
 import type { AppData } from '../domain/types';
 
-const DATA_KEY = 'school-dashboard:v1';
-const PENDING_KEY = 'school-dashboard:pending';
+// The demo student (demo/demo.ts) lives under keys of its own, so the real planner on this device is never touched.
+const DATA_KEY = isDemo() ? DEMO_DATA_KEY : 'school-dashboard:v1';
+const PENDING_KEY = isDemo() ? DEMO_PENDING_KEY : 'school-dashboard:pending';
 /** Accounts this device has loaded from the server at least once. */
 const SEEN_KEY = 'school-dashboard:accounts-seen';
 

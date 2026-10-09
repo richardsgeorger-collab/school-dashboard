@@ -1,4 +1,6 @@
 import { ExtensionSetup } from './onboarding/ExtensionSetup';
+import { isDemo } from './demo/demo';
+import { DemoHost } from './demo/DemoHost';
 import { extSetupDue } from './onboarding/extSetup';
 import { NeverSyncedSheet } from './onboarding/Setup';
 import { installedVersion, useExtension } from './config/extension';
@@ -115,7 +117,7 @@ function HaloHandoff() {
   const lastAt = useRef<string | null>(null);
   lastAt.current = data.settings.lastPull?.at ?? null;
   useEffect(() => {
-    if (!account.session) return;
+    if (!account.session || isDemo()) return;
     let live = true;
     const look = () =>
       void takePending()
@@ -548,6 +550,7 @@ export default function App() {
         <BackgroundRead />
         <SyncParam />
         <OkayHost />
+        <DemoHost />
         <SyncHost
           open={syncOpen}
           file={syncFile}

@@ -1,4 +1,5 @@
 import { supabase } from '../auth/client';
+import { isDemo } from '../demo/demo';
 
 /**
  * Which screens and buttons get used, counted, nothing more. Keys are short names ("screen:now", "sync",
@@ -23,7 +24,7 @@ export async function flush(): Promise<void> {
   const counts = keys.map((k) => pending.get(k) ?? 1);
   pending.clear();
   const c = supabase();
-  if (!c) return;
+  if (!c || isDemo()) return;
   try {
     const { data } = await c.auth.getSession();
     if (!data.session) return;

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { isDemo } from '../demo/demo';
 import { useStore } from '../storage/store';
 import { SupabaseRepo } from '../storage/supabaseRepo';
 import { supabase } from './client';
@@ -12,7 +13,8 @@ export function useAccountSync() {
   const { actions } = useStore();
   useEffect(() => {
     const client = supabase();
-    if (!client) {
+    // The demo student never meets the account mirror: nothing made up goes up, nothing real comes down over it.
+    if (!client || isDemo()) {
       void actions.connectRemote(null, null);
       return;
     }

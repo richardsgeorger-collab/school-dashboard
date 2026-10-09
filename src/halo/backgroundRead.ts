@@ -10,6 +10,7 @@ import { SYNC_EVENT } from '../ingest/auto';
 import { ACCOUNT_SYNCED_EVENT, useStore } from '../storage/store';
 import { readActions, rewriteLines } from './actions';
 import { announceDb, bodyHash, healEntries, READER_VERSION, readLedger, readState, type ReadEntry, type StoredAnnouncement } from './announce';
+import { isDemo } from '../demo/demo';
 import { pushLedgerEntry, syncLedger } from './ledgerSync';
 import { syncPosts } from './postsSync';
 import { emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from './autoRead';
@@ -260,10 +261,12 @@ const FIRST_MS = 1500;
 /** Mounted once in the app: reads the backlog after a sync lands, and once on open in case a run was interrupted. */
 export function useBackgroundRead(): void {
   const { data, actions } = useStore();
+  const demo = isDemo();
   const { tier, planKnown } = useAccount();
   const latest = useRef({ data, actions, tier, planKnown });
   latest.current = { data, actions, tier, planKnown };
   useEffect(() => {
+    if (demo) return;
     let timer: number | null = null;
     const run = () => {
       const { data: d, actions: a, tier: t, planKnown: known } = latest.current;
@@ -288,7 +291,7 @@ export function useBackgroundRead(): void {
   }, []);
   // The profile lands after the first run on a slow connection, and a run that saw Free left the backlog marked
   // "part of Plus" until the next Halo sync. When the plan turns out to read, run again.
-  const canRead = planKnown && can('announcementAI', tier);
+  const canRead = planKnown && can('announcementAI', tier) && !demo;
   useEffect(() => {
     if (!canRead) return;
     const { data: d, actions: a, tier: t } = latest.current;

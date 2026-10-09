@@ -1,4 +1,5 @@
 import { callTool, arr, confidence, isoDate, num, obj, str, type ToolSpec } from '../ai/client';
+import { DEMO_DB_NAME, isDemo } from '../demo/demo';
 import { dateOf, fmtDate } from '../domain/dates';
 import type { Course, DateStr, Item } from '../domain/types';
 import type { Confidence, Mention, MentionKind } from '../record/notes';
@@ -45,7 +46,8 @@ export interface StoredResource extends HaloResource {
   pulledAt: string;
 }
 
-const DB_NAME = 'school-dashboard-announcements';
+// The demo student's posts go in a database of their own (demo/demo.ts).
+const DB_NAME = isDemo() ? DEMO_DB_NAME : 'school-dashboard-announcements';
 let opening: Promise<IDBDatabase> | null = null;
 function open(): Promise<IDBDatabase> {
   if (opening) return opening;

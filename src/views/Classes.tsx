@@ -69,7 +69,7 @@ function ClassCard({ course }: { course: Course }) {
   const pace = paceFor(course, data.items, schedule, today);
   const paceLine = overdue > 0 ? `Behind: ${overdue} overdue` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : pace.kind === 'behind' ? `${pace.n} behind` : null;
   return (
-    <li className="class-card-wrap" data-urgent={urgent.length > 0 || undefined}>
+    <li className="class-card-wrap" data-urgent={urgent.length > 0 || undefined} data-tour={`class-${course.code}`}>
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />

@@ -305,7 +305,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
                 <button type="button" className="btn primary" onClick={start}>
                   Start
                 </button>
-                <button type="button" className="btn hero-phone-more hero-done" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
+                <button type="button" className="btn hero-phone-more hero-done" data-tour="done" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
                   <IconCheck /> Done
                 </button>
               </>

@@ -32,7 +32,7 @@ export function Requirements({ item: passed, compact = false, onMore }: { item: 
   const fromPosts = all.some((r) => r.source.kind === 'announcement');
   const hidden = compact ? all.filter((r) => !r.done).length - list.length : 0;
   return (
-    <section className={compact ? 'reqs reqs-compact' : 'reqs'} aria-label="What this also requires">
+    <section className={compact ? 'reqs reqs-compact' : 'reqs'} aria-label="What this also requires" data-tour="reqs">
       <p className="hint">
         <b>Also required</b> <span className="mono muted">· {compact && fromPosts ? `${all.length} part${all.length === 1 ? '' : 's'} from announcements` : partsLine(item)}</span>
         {!compact && open.length > 0 && item.status === 'done' && <span className="reqs-warn">not finished: {open.length} part{open.length === 1 ? '' : 's'} still open</span>}
