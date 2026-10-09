@@ -5,6 +5,8 @@ import { IconCheck } from '../components/Icons';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
 import { pendingFriend, pendingRef } from '../auth/referral';
+import { forgetSource, pendingSource } from '../auth/source';
+import { MarketHandoff } from './MarketHandoff';
 import { CourseChip } from '../components/CourseChip';
 import { HaloDraw } from '../components/HaloDraw';
 import { friendGift, trialState } from '../config/flags';
@@ -133,6 +135,7 @@ export function Onboarding() {
   // Skipping is safe (2026-10-01): one line on how to come back, then Now. The free week keeps running either way.
   const [leaving, setLeaving] = useState(false);
   const leave = () => {
+    forgetSource();
     const now = new Date().toISOString();
     // One write: the skip, and (on the free week) the Max welcome marked seen, as finishing does. Skipping used to land
     // on "Welcome to Max", three more setup screens about classes that were not there yet (2026-10-01).
@@ -155,6 +158,7 @@ export function Onboarding() {
   const gift = friendGift(profile);
   const finish = () => {
     track('payoff', 'complete');
+    forgetSource();
     pixel('CompleteRegistration');
     const now = new Date().toISOString();
     set({ step: 'done', doneAt: now, focus: null });
@@ -180,7 +184,12 @@ export function Onboarding() {
   const welcoming = auth.configured && !!auth.session && !gift && !pendingFriend() && trialState(profile) === 'active' && !profile?.friendFrom;
   // The account step passes itself the moment someone is signed in (including coming back from the email link).
   useEffect(() => {
-    if (step === 'account' && (!auth.configured || auth.session)) set({ step: focus ? 'halo' : 'compare' });
+    if (step === 'account' && (!auth.configured || auth.session)) {
+      // From the market's QR code (2026-10-08): no fifteen-second story, the gift, then on a phone or iPad the
+      // "finish on your laptop" screen before the Halo steps.
+      const market = pendingSource() === 'market';
+      set({ step: focus ? 'halo' : market ? 'offer' : 'compare', ...(market && isTouchDevice() ? { handoff: 'pending' as const } : {}) });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, auth.configured, auth.session]);
   // Nothing to choose (a friend's link, a trial already used or running, a paid plan, no accounts on this build):
@@ -269,11 +278,25 @@ export function Onboarding() {
         {step === 'offer' && !synced && welcoming && <Gift onNext={() => go('halo')} invited={!!profile?.referredBy || !!pendingRef()} />}
         {step === 'syllabus' && !synced && <SyllabusStep onTrial={() => go('halo')} canTry={trialState(profile) === 'available'} />}
 
-        {step === 'halo' && !synced && path === 'desktop' && (
+        {step === 'halo' && !synced && ob.handoff !== 'pending' && path === 'desktop' && (
           <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} storeUrl={ext.url} browser={ext.browser} />
         )}
-        {step === 'halo' && !synced && path === 'phone' && <PhoneHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />}
-        {step === 'halo' && !synced && path === 'ipad' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
+        {step === 'halo' && !synced && ob.handoff === 'pending' && (
+          <MarketHandoff
+            email={auth.session?.user.email ?? null}
+            onHere={() => set({ handoff: 'done' })}
+            onLater={() => {
+              track('market-handoff', 'complete');
+              forgetSource();
+              const now = new Date().toISOString();
+              const seen = trialState(profile) === 'active' && !data.settings.upgradeSeen?.max ? { upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } } : {};
+              actions.updateSettings({ onboarding: { ...ob, handoff: 'done', step: 'done', doneAt: now, focus: null }, ...seen });
+              navigate('now');
+            }}
+          />
+        )}
+        {step === 'halo' && !synced && ob.handoff !== 'pending' && path === 'phone' && <PhoneHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />}
+        {step === 'halo' && !synced && ob.handoff !== 'pending' && path === 'ipad' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
 
         {/* A sync that lands on any screen (a student who clicked the bookmark early) goes straight to the payoff. */}
         {synced && after === 'payoff' && <Payoff onStart={afterPayoff} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} invited={!!profile?.referredBy || !!pendingRef()} />}

@@ -13,6 +13,8 @@ export interface Growth {
   paying: { tier: string; interval: string }[];
   per_day: { day: string; n: number }[];
   tests: number;
+  /** Sign-ups from the student market's QR code, and the "finish on your laptop" emails (2026-10-08). */
+  market?: { total: number; week: number; emails_sent: number; emails_waiting: number };
 }
 export type Bucket = 'trial' | 'free' | 'plus_paid' | 'plus_referral' | 'max_paid' | 'max_friend';
 
@@ -83,6 +85,11 @@ export function AdminGrowth({ tick }: { tick: number }) {
         </div>
       </div>
 
+      {g.market && (
+        <p className="hint growth-market">
+          From the market (QR code): <b>{g.market.total}</b> student{g.market.total === 1 ? '' : 's'}, <b>{g.market.week}</b> this week · laptop emails: {g.market.emails_sent} sent{g.market.emails_waiting ? `, ${g.market.emails_waiting} waiting` : ''}.
+        </p>
+      )}
       <h3 className="growth-sub">Plans</h3>
       <ul className="growth-plans">
         {BUCKETS.map(([k, label]) => (

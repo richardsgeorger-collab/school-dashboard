@@ -1328,3 +1328,25 @@ input[type='range']::-webkit-slider-thumb {
     bottom: 76px;
   }
 }
+
+/* The market hand-off (2026-10-08): signed up on a phone at the table, the setup finishes on a laptop. */
+.market-handoff {
+  text-align: center;
+  align-items: center;
+}
+.market-handoff .connect-halo-mark {
+  margin: 0 auto 8px;
+}
+.market-handoff .onboard-actions {
+  justify-content: center;
+  width: 100%;
+}
+.market-handoff .onboard-text b {
+  color: var(--ink);
+}
+.market-mail {
+  color: var(--ink-2);
+}
+.market-here {
+  margin-top: 16px;
+}

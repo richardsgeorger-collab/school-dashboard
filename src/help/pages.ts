@@ -469,6 +469,30 @@ ${siteUrls()
 }
 
 /** llms.txt (llmstxt.org): Halo+ in plain words for AI assistants, with links to the pages that answer questions. */
+/**
+ * haloplus.app/market (2026-10-08): the address on the student market's QR code and table sign. A plain page that
+ * sends the phone straight to sign-up with the source remembered (#/start?src=market); a link for anything that
+ * does not run scripts.
+ */
+export function renderMarketPage(base = '/'): string {
+  const to = `${base}#/start?src=market`;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<meta http-equiv="refresh" content="0; url=${to}" />
+<title>Halo+ · Try it free</title>
+<link rel="icon" href="${base}favicon.ico" sizes="16x16 32x32 48x48" />
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0d10;color:#f2f4f7;font:17px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;text-align:center;padding:24px}a{color:#f2b84b}</style>
+<script>location.replace(${JSON.stringify(to)});</script>
+</head>
+<body><p>Opening Halo+… <a href="${to}">Tap here if nothing happens.</a></p></body>
+</html>
+`;
+}
+
 export function renderLlmsTxt(): string {
   return `# Halo+
 

@@ -440,6 +440,8 @@ export interface OnboardingState {
   after?: 'payoff' | 'notify' | 'home' | null;
   /** Opened from "Set up" (2026-10-01): only the Halo steps (and sign-up first when there is no account), not the whole welcome. */
   focus?: 'halo' | null;
+  /** From the market's QR code on a phone (2026-10-08): the "finish on your laptop" screen, until it is answered. */
+  handoff?: 'pending' | 'done' | null;
   doneAt: string | null;
   skippedAt: string | null;
   tourDoneAt: string | null;

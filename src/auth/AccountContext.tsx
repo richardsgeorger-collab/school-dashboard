@@ -3,6 +3,7 @@ import type { Tier } from '../config/tiers';
 import { syncAccess } from '../config/flags';
 import { pixelOnce } from '../analytics/pixel';
 import { captureFriend, captureRef, claimPendingFriend, claimPendingRef, rememberTier } from './referral';
+import { captureSource, claimPendingSource } from './source';
 import { useAuth, type AuthState } from './useAuth';
 import { useProfile, type ProfileState } from './useProfile';
 
@@ -35,6 +36,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     captureRef();
     captureFriend();
+    captureSource();
   }, []);
   useEffect(() => {
     if (!auth.session) return;
@@ -42,6 +44,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     pixelOnce('Lead');
     pixelOnce('StartTrial');
     void claimPendingRef().then((r) => r?.ok && p.reload());
+    // Where the account came from (the market's QR code), written once on the profile.
+    void claimPendingSource();
     // A friend link: Max from George. Claimed before anything else reads the plan, then the profile is read again.
     void claimPendingFriend().then((r) => {
       if (r) p.reload();
