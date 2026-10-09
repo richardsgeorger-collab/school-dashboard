@@ -3,6 +3,7 @@ import { NotifyReask } from './NotifyReask';
 import { InviteLine, InviteNowCard } from './InviteNowCard';
 import { ParticipationWeek } from './ParticipationWeek';
 import { isParticipation } from '../domain/participation';
+import { afterDone, arrange, emptySkips, forDay, skip, unskip, type SkipState } from '../domain/skips';
 import { useEffect, useMemo, useState } from 'react';
 import { ItemRow } from '../components/ItemRow';
 import { Modal } from '../components/Modal';
@@ -253,6 +254,8 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
  * then anything that needs a word, then the trust line. The three directions (?design=a|b|c) share every piece of
  * logic and differ only in how the day is laid out; see DESIGN.md for which shipped and why.
  */
+const SKIPS_KEY = 'school-dashboard:skips';
+
 export function Now() {
   const { data, schedule, derived, today, actions, progress, previewAward, calibrate, justDone } = useStore();
   const { profile, auth } = useAccount();
@@ -282,28 +285,26 @@ export function Now() {
   // Participation is attendance, not work: it stays in the calendar, grades and its own line, never the hero or Then
   // (Halo's PARTICIPATION type, or "participation" in the title: CHM-113's daily ones are discussions in Halo).
   const work = useMemo(() => data.items.filter((i) => !isParticipation(i)), [data.items]);
-  // "Show me something else" passes over an item for the rest of today, on this device only.
-  const passKey = `school-dashboard:passed:${today}`;
-  const [passed, setPassed] = useState<string[]>(() => {
+  // Not now as a quick skip (domain/skips.ts): today's skips, on this device, reset with the day.
+  const [skips, setSkipsState] = useState<SkipState>(() => {
     try {
-      return JSON.parse(sessionStorage.getItem(passKey) ?? '[]') as string[];
+      return forDay(JSON.parse(localStorage.getItem(SKIPS_KEY) ?? 'null') as SkipState | null, today);
     } catch {
-      return [];
+      return emptySkips(today);
     }
   });
-  const savePassed = (ids: string[]) => {
-    setPassed(ids);
+  const setSkips = (next: SkipState) => {
+    setSkipsState(next);
     try {
-      sessionStorage.setItem(passKey, JSON.stringify(ids));
+      localStorage.setItem(SKIPS_KEY, JSON.stringify(next));
     } catch {
       /* storage unavailable: it still holds for this visit */
     }
   };
-  const ranked = useMemo(() => {
-    const all = rankItems(work, schedule, now, tz);
-    const rest = all.filter((i) => !passed.includes(i.id));
-    return rest.length > 0 ? rest : all;
-  }, [work, schedule, tz, minuteKey, passed]);
+  const todaySkips = skips.day === today ? skips : emptySkips(today);
+  const arranged = useMemo(() => arrange(rankItems(work, schedule, now, tz), todaySkips), [work, schedule, tz, minuteKey, todaySkips]);
+  const ranked = useMemo(() => [...arranged.ahead, ...arranged.bench], [arranged]);
+  const skippedRow = arranged.row;
   const top = useLinger(ranked.slice(0, 2), work);
   const hero = top[0];
   const counts = useMemo(() => openCountByDay(work, schedule, today), [work, schedule, today]);
@@ -377,7 +378,11 @@ export function Now() {
   const weekday = WEEKDAY_LONG[new Date(`${today}T12:00:00Z`).getUTCDay()];
   // "Today's done" is earned (domain/now.ts todayDone): everything due today done and nothing overdue.
   const eveningWrap = (daypart === 'evening' || daypart === 'night') && todayDone(clean, today, now, tz);
-  const then = useMemo(() => ranked.filter((i) => i.id !== hero?.id && i.status !== 'done' && !isBlocked(i, today)).slice(0, 3), [ranked, hero?.id, today]);
+  // Then: the next three, and anything benched by three skips today at the end, without a word about it.
+  const then = useMemo(() => {
+    const live = (i: Item) => i.id !== hero?.id && i.status !== 'done' && !isBlocked(i, today);
+    return [...arranged.ahead.filter(live).slice(0, 3), ...arranged.bench.filter(live).slice(0, 2)];
+  }, [arranged, hero?.id, today]);
 
   // Not now. "Not today" pushes it to tomorrow (and plans it to start then), "Can't start yet" blocks it until what it
   // waits on likely clears, "Show me something else" passes over it for today. The card slides away first, and
@@ -397,7 +402,7 @@ export function Now() {
         actions.upsertItem({ ...i, blocked, startedAt: null });
         setSkipped({ before: i, line: `${i.label}: back ${blocked.until === addDays(today, 1) ? 'tomorrow' : fmtDate(blocked.until, 'short')}`, pass: false });
       } else {
-        savePassed([...passed, i.id]);
+        setSkips(skip(todaySkips, i.id));
         setSkipped({ before: i, line: `Skipped ${i.label} for now`, pass: true });
       }
       setLeaving(null);
@@ -406,7 +411,7 @@ export function Now() {
   };
   const undoSkip = () => {
     if (!skipped) return;
-    if (skipped.pass) savePassed(passed.filter((id) => id !== skipped.before.id));
+    if (skipped.pass) setSkips(unskip(todaySkips, skipped.before.id));
     else actions.upsertItem(skipped.before);
     setSkipped(null);
   };
@@ -426,6 +431,8 @@ export function Now() {
       actions.setStatus(i.id, 'done');
       setLeaving(null);
       setJustFinished(i);
+      // Something got finished: the skipped come back (the benched stay down unless they are urgent).
+      setSkips(afterDone(todaySkips, work, Date.now()));
     }, LEAVE_MS);
   };
   const undoFinish = () => {
@@ -748,6 +755,16 @@ export function Now() {
         </p>
       )}
       {primary}
+      {skippedRow.length > 0 && !back && !exam && (
+        <p className="skipped-row" role="status">
+          <span className="skipped-row-label">Skipped</span>
+          {skippedRow.map((i) => (
+            <button key={i.id} type="button" className="skipped-chip" onClick={() => setSkips(unskip(todaySkips, i.id))} title="Back to the top">
+              {i.label} ↩
+            </button>
+          ))}
+        </p>
+      )}
 
       {then.length > 0 && !back && !exam && (mode.mode === 'urgent' || showAnyway) && (
         <section className="then" aria-label="Then">

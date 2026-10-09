@@ -76,7 +76,7 @@ function useMaterial(item: Item, tz: string): Material {
   return m;
 }
 
-/** The small menu behind "Not now": three plain choices, and one quick question for "Can't start yet". */
+/** The longer ways to put it off, behind the caret beside Not now: not today, or can't start yet (with what it waits on). */
 function NotNowMenu({ onPick, onClose }: { onPick: (c: NotNow) => void; onClose: () => void }) {
   const [asking, setAsking] = useState(false);
   const first = useRef<HTMLButtonElement>(null);
@@ -99,10 +99,6 @@ function NotNowMenu({ onPick, onClose }: { onPick: (c: NotNow) => void; onClose:
             <button type="button" role="menuitem" className="notnow-item" onClick={() => setAsking(true)}>
               <b>Can't start yet</b>
               <span>Comes back when it can</span>
-            </button>
-            <button type="button" role="menuitem" className="notnow-item" onClick={() => onPick({ kind: 'pass' })}>
-              <b>Show me something else</b>
-              <span>Just the next thing</span>
             </button>
           </>
         ) : (
@@ -324,6 +320,18 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
             <button type="button" className="btn quiet hero-phone-only" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
               {details ? 'Less' : 'Details'}
             </button>
+            {/* A phone gets the quick skip in the row too (2026-10-08): one tap, not Details first. */}
+            {!done && (
+              <span className="notnow-anchor hero-phone-only">
+                <button type="button" className="btn quiet hero-notnow" onClick={() => pick({ kind: 'pass' })}>
+                  Not now
+                </button>
+                <button type="button" className="btn quiet hero-notnow hero-notnow-more" aria-haspopup="menu" aria-expanded={notNow} aria-label="More ways to put it off" onClick={() => setNotNow((o) => !o)}>
+                  ▾
+                </button>
+                {notNow && <NotNowMenu onPick={pick} onClose={() => setNotNow(false)} />}
+              </span>
+            )}
           </div>
           <div className="hero-more">
             {course && !isTest(item) && (
@@ -340,8 +348,12 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
               {details ? 'Less' : 'Details'}
             </button>
             <span className="notnow-anchor">
-              <button type="button" className="hero-link hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>
+              {/* Not now is a quick skip (2026-10-08): the next thing takes the card at once. The longer choices wait behind the caret. */}
+              <button type="button" className="hero-link hero-notnow" onClick={() => pick({ kind: 'pass' })}>
                 Not now
+              </button>
+              <button type="button" className="hero-link hero-notnow-more" aria-haspopup="menu" aria-expanded={notNow} aria-label="More ways to put it off" onClick={() => setNotNow((o) => !o)}>
+                ▾
               </button>
               {notNow && <NotNowMenu onPick={pick} onClose={() => setNotNow(false)} />}
             </span>
@@ -373,12 +385,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
                   </button>
                 </>
               ))}
-              <span className="notnow-anchor">
-                <button type="button" className="hero-notnow" aria-haspopup="menu" aria-expanded={notNow} onClick={() => setNotNow((o) => !o)}>
-                  Not now
-                </button>
-                {notNow && <NotNowMenu onPick={pick} onClose={() => setNotNow(false)} />}
-              </span>
             </div>
           )}
           {asks && <p className="hero-asks">{asks}</p>}

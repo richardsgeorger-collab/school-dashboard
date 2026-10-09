@@ -1409,3 +1409,44 @@
     flex: 1 1 100%;
   }
 }
+
+/* Not now as a quick skip (2026-10-08): the caret beside it, and the row of skipped things under the card. */
+.hero-notnow-more {
+  padding: 6px 4px;
+  margin-left: -2px;
+  text-decoration: none;
+  font-size: 12px;
+}
+.skipped-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: -6px 0 var(--s-3);
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.skipped-row-label {
+  font-weight: 600;
+}
+.skipped-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 500 13px/1.3 var(--font-body);
+  cursor: pointer;
+}
+.skipped-chip:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.hero-actions .notnow-anchor {
+  gap: 0;
+}
+.hero-actions .hero-notnow-more {
+  min-width: 0;
+  padding: 0 8px;
+  margin-left: -8px;
+}
