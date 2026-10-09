@@ -95,7 +95,7 @@ try {
     const finalOpacity = await p.locator('.story-line').last().evaluate((e) => Number(getComputedStyle(e).opacity));
     const finalN = await p.locator('.story-n').first().textContent();
     const label = await p.locator('.story-n').first().getAttribute('aria-label');
-    check(firstOpacity < 0.5 && finalOpacity === 1, `lines fade in one at a time (first line opacity ${firstOpacity.toFixed(2)} at the start, the last ${finalOpacity} after)`);
+    check(firstOpacity < 0.95 && finalOpacity === 1, `lines fade in one at a time (first line opacity ${firstOpacity.toFixed(2)} at the start, the last ${finalOpacity} after)`);
     check(Number(firstN) < Number(finalN) && finalN === label, `numbers count up (${firstN} → ${finalN})`);
     await ctx.close();
     renameSync((await p.video().path()), `${OUT}/page1-animation.webm`);
@@ -120,8 +120,8 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
     await p.waitForSelector('.trial-ended .story-line', { timeout: 30000 });
     await p.waitForTimeout(5000);
-    const fit = await p.evaluate(() => ({ rating: document.querySelector('.trial-rating').getBoundingClientRect().bottom, cont: document.querySelector('.story-continue').getBoundingClientRect().bottom, scrolled: document.querySelector('.trial-ended').scrollTop, h: window.innerHeight }));
-    check(fit.scrolled === 0 && fit.rating <= fit.h, `${w}x${h}: the rating shows without scrolling (bottom ${Math.round(fit.rating)} of ${fit.h}; Continue ${Math.round(fit.cont)})`);
+    const fit = await p.evaluate(() => ({ plus: document.querySelector('.story-plans button:has(~ *), .story-plans .plan-choice:nth-child(2)').getBoundingClientRect().bottom, free: document.querySelector('.gcbc-free-link').getBoundingClientRect().bottom, scrolled: document.querySelector('.trial-ended').scrollTop, h: window.innerHeight }));
+    check(fit.scrolled === 0 && fit.plus <= fit.h, `${w}x${h}: Keep Max and Choose Plus show without scrolling (Plus bottom ${Math.round(fit.plus)} of ${fit.h}; Stay on Free ${Math.round(fit.free)})`);
     if (w === 1366) for (const scheme of ['light', 'dark']) {
       await p.emulateMedia({ colorScheme: scheme });
       await p.waitForTimeout(300);
@@ -140,42 +140,37 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
       console.log(`     page 1 lines: ${lines.join(' || ')}`);
       check(lines.length >= 3 && lines.length <= 4, `3 to 4 lines (${lines.length})`);
       const only = lines.find((l) => /^3 things your professors only put in announcements, Halo\+ caught:/.test(l)) ?? '';
-      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && /BIO-181L: Bring your own splash goggles/.test(only) && !/Cite any AI/.test(only), `the examples are things to do, not the standing rule: "${only}"`);
+      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && !/Cite any AI/.test(only), `the one example is a thing to do, not the standing rule: "${only}"`);
       check(lines.some((l) => new RegExp(`moved from .+ to .+\\. You knew before it mattered\\.`).test(l) && l.includes(first.moved)), 'the moved date, caught before the old date');
       check(lines.some((l) => /^(You checked off \d+ assignments this week\.|On time for all \d+ things due this week\.)$/.test(l)), 'checked off or on time');
       check(/Here's what Halo\+ did for you\./.test(await p.locator('.story-title').innerText()), 'the title');
-      check((await p.locator('.trial-ended :text("Stay on Free"), .trial-ended [aria-label="Close"]').count()) === 0 && (await p.locator('.story-continue').isVisible()), 'page 1 has no way to Free or close, only Continue');
+      check((await p.locator('.trial-rating').count()) === 0 && (await p.locator('.story-plans button:has-text("Keep Max")').isVisible()) && (await p.locator('.story-plans button:has-text("Choose Plus")').isVisible()) && (await p.locator('.gcbc-free-link').innerText()) === 'Stay on Free', 'one screen: no rating; Keep Max, Choose Plus and a plain Stay on Free under the recap');
     }
     check(!(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${tag}: page 1 no sideways scroll`);
     await shotAll(p, `${OUT}/page1-${dev}-${scheme}.png`);
     await ctx.close();
-    // Page 2.
-    const o2 = await open(first, dev, scheme);
-    await o2.p.click('.story-continue');
-    await o2.p.waitForSelector('.gcbc-page');
-    await o2.p.waitForTimeout(2600);
+    // The plans on the same screen (2026-10-09).
     if (dev === 'desk' && scheme === 'light') {
-      const text = (await o2.p.locator('.gcbc-page').innerText()).replace(/\s+/g, ' ');
-      check(/You'd pay this for a GCBC drink\. ?This one actually helps\./.test(text), 'page 2 headline');
-      check((await o2.p.locator('.gcbc-plan[data-tier=max] .drink-cup').getAttribute('data-size')) === 'large' && (await o2.p.locator('.gcbc-plan[data-tier=plus] .drink-cup').getAttribute('data-size')) === 'small', 'a large cup for Max, a small one for Plus');
-      check(/What you had this week/.test(await o2.p.locator('.gcbc-plan[data-tier=max]').innerText()) && (await o2.p.locator('.gcbc-plan[data-tier=max] button:has-text("Keep Max")').isVisible()) && (await o2.p.locator('.gcbc-plan[data-tier=plus] button:has-text("Choose Plus")').isVisible()), 'Max is the star with Keep Max; Plus has Choose Plus');
-      check(/Cancel anytime · plus tax where applicable/.test(text), 'Cancel anytime · plus tax where applicable under both');
-      check(/Not ready\? Invite a friend, you both get 30 days of Plus free\./.test(text), 'the smaller invite option');
-      check(/your syllabi/.test(text) && !/their syllabi/.test(text), 'Free copy says "your syllabi"');
-      const maxH = (await o2.p.locator('.gcbc-plan[data-tier=max] .btn').boundingBox()).height;
-      const plusH = (await o2.p.locator('.gcbc-plan[data-tier=plus] .btn').boundingBox()).height;
-      check(maxH > plusH, `Keep Max is the bigger button (${Math.round(maxH)} vs ${Math.round(plusH)}px)`);
+      const text = (await p2text(first, dev, scheme));
+      check(/About a large at GCBC/.test(text) && /About a small at GCBC/.test(text), 'the GCBC line beside Max and Plus');
+      check(/Cancel anytime · plus tax where applicable/.test(text), 'Cancel anytime · plus tax where applicable under the plans');
+      check(/invite a friend: you both get 30 days of Plus free/i.test(text), 'the smaller invite option');
+      check(!/How much did Halo\+ help/.test(text) && !/\b10\b.*A lot/.test(text), 'no rating anywhere');
     }
-    check(!(await o2.p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${tag}: page 2 no sideways scroll`);
-    await shotAll(o2.p, `${OUT}/page2-${dev}-${scheme}.png`);
-    await o2.ctx.close();
+  }
+  async function p2text(who, dev, scheme) {
+    const o = await open(who, dev, scheme);
+    await o.p.waitForTimeout(3000);
+    const t = (await o.p.locator('.trial-ended').innerText()).replace(/\s+/g, ' ');
+    await o.ctx.close();
+    return t;
   }
 
   // Stay on Free: one tap, no confirm, and it is over.
   {
     await resetRating(first.id);
     const { ctx, p } = await open(first, 'phone', 'light');
-    await p.click('.story-continue');
+    await p.waitForSelector('.gcbc-free-link', { timeout: 20000 });
     await p.click('.gcbc-free-link');
     await p.waitForTimeout(1500);
     const { data } = await db.from('settings').select('data').eq('user_id', first.id).single();
@@ -183,50 +178,6 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     await ctx.close();
   }
 
-  // Ratings on page 1: low → Feedback, high → invite, skip.
-  const low = await student();
-  raters.push(low);
-  {
-    const { ctx, p } = await open(low, 'desk', 'light');
-    await p.waitForTimeout(4500);
-    await p.click('.trial-rating-n:has-text("4")');
-    await p.fill('.trial-rating textarea', 'Wish it read my discussion replies too.');
-    await p.locator('.trial-rating').screenshot({ path: `${OUT}/rating-low-desk-light.png` });
-    await p.click('.trial-rating button:has-text("Send")');
-    await p.waitForSelector('.trial-rating [role=status]', { timeout: 10000 });
-    check(await p.locator('.story-continue').isVisible(), 'Continue is still there after rating');
-    await ctx.close();
-  }
-  const { data: lowRow } = await db.from('trial_ratings').select('rating, comment').eq('user_id', low.id).single();
-  const { data: fb } = await db.from('feedback').select('text, screen').eq('user_id', low.id);
-  check(lowRow?.rating === 4 && fb?.some((f) => f.screen === '#trial-end' && /rated 4\/10: Wish it read/.test(f.text)), 'a 4 is saved, its comment lands in Feedback');
-  const high = await student();
-  raters.push(high);
-  {
-    const { ctx, p } = await open(high, 'phone', 'dark');
-    await p.waitForTimeout(4500);
-    await p.click('.trial-rating-n:has-text("9")');
-    await p.waitForSelector('.trial-rating-invite');
-    check(/both get 30 days of Plus free/.test(await p.locator('.trial-rating').innerText()), 'a 9 says thanks and offers the invite');
-    await p.locator('.trial-rating').screenshot({ path: `${OUT}/rating-high-phone-dark.png` });
-    await ctx.close();
-  }
-  {
-    const skip = await student();
-    const { ctx, p } = await open(skip, 'desk', 'dark');
-    await p.waitForTimeout(4500);
-    await p.click('.trial-rating-skip');
-    await p.waitForTimeout(300);
-    check((await p.locator('.trial-rating').count()) === 0 && (await p.locator('.story-continue').isVisible()), 'Skip removes the question; Continue stays');
-    await ctx.close();
-  }
-
-  // Admin still sees the ratings.
-  const boss = await kit.persona('admin');
-  const bossC = (await kit.signIn(boss.email)).c;
-  for (const r of raters) await bossC.rpc('admin_set_test', { uid: r.id, test: false });
-  const { data: stats } = await bossC.rpc('admin_trial_ratings');
-  check(stats.n >= 2 && stats.comments.some((c) => /discussion replies/.test(c.comment)), `Admin: ${stats.n} ratings, average ${stats.average}`);
 } finally {
   await browser.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);

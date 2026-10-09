@@ -2178,3 +2178,117 @@
     height: 84px;
   }
 }
+
+/* One screen at the end of the free week (George, 2026-10-09): recap, then the plans, no scrolling on a laptop. */
+.trial-ended[data-one='true'] .onboard-inner {
+  max-width: 720px;
+}
+.story-one .story-title {
+  margin: 2px 0 var(--s-3);
+  font-size: clamp(26px, 3.6vw, 38px);
+}
+.story-one .story-lines {
+  gap: var(--s-2);
+}
+.story-one .story-line {
+  padding-left: var(--s-3);
+}
+.story-one .story-text {
+  font-size: clamp(15px, 2vw, 18px);
+  line-height: 1.3;
+}
+.story-one .story-n {
+  font-size: 1.3em;
+}
+.story-one .story-examples {
+  margin-top: 4px;
+}
+.story-one .story-examples li {
+  padding: 5px 10px;
+  font: var(--t-small);
+}
+.story-lines[data-real='false'] .story-line {
+  border-left-color: var(--line-strong);
+}
+.story-plans {
+  margin-top: var(--s-4);
+  display: grid;
+  gap: var(--s-2);
+  animation: story-in 500ms ease-out both;
+}
+.story-plans-lede {
+  margin: 0;
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.story-plans .plan-choice {
+  padding: 10px 12px;
+}
+.story-plans .plan-choice-name span {
+  font: var(--t-small);
+}
+.story-plans .gcbc-terms {
+  margin: 0;
+  font: var(--t-small);
+  color: var(--ink-3);
+}
+.story-plans .gcbc-free {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px var(--s-3);
+  margin-top: 2px;
+}
+.story-plans .gcbc-free-link {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font: var(--t-body);
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.gcbc-invite-line {
+  font: var(--t-small);
+  color: var(--ink-3);
+}
+.gcbc-invite-line .btn {
+  margin-left: 6px;
+}
+.gcbc-covered {
+  margin: 0;
+  font: var(--t-small);
+  color: var(--accent-text);
+}
+.btn.is-opening {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+.checkout-error {
+  display: block;
+  color: var(--danger-text, #b42318);
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 639px) {
+  .story-one .story-title {
+    font-size: 26px;
+  }
+  .story-plans .plan-choice {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

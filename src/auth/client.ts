@@ -40,9 +40,33 @@ export function supabase(): SupabaseClient | null {
   return client;
 }
 
-export async function getAccessToken(): Promise<string | null> {
+/** The stored session, read straight from storage: what getSession would hand back once it gets its lock. */
+function storedAccessToken(): string | null {
+  const cfg = supabaseConfig();
+  if (!cfg) return null;
+  try {
+    const ref = new URL(cfg.url).hostname.split('.')[0];
+    const raw = localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as { access_token?: string; expires_at?: number };
+    if (!s.access_token || (s.expires_at && s.expires_at * 1000 < Date.now() + 30_000)) return null;
+    return s.access_token;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The signed-in session's token. getSession waits on a lock shared by every tab; when another tab holds it (a
+ * refresh in flight), that wait has run to tens of seconds (George's 30-second checkout, 2026-10-09). With a limit,
+ * the stored session's own token stands in once the wait passes it.
+ */
+export async function getAccessToken(limitMs?: number): Promise<string | null> {
   const c = supabase();
   if (!c) return null;
-  const { data } = await c.auth.getSession();
-  return data.session?.access_token ?? null;
+  const viaClient = c.auth.getSession().then(({ data }) => data.session?.access_token ?? null);
+  if (!limitMs) return viaClient;
+  const fallback = new Promise<string | null>((resolve) => setTimeout(() => resolve(storedAccessToken()), limitMs));
+  const first = await Promise.race([viaClient, fallback]);
+  return first ?? (await viaClient);
 }

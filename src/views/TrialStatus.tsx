@@ -1,6 +1,7 @@
 import { creditLine, plusCredit, type PlusCredit } from '../referral/credit';
 import { InviteBlock, InviteButton, useMyGrants } from '../referral/Invite';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { warmCheckout } from '../billing/client';
 import { useAccount } from '../auth/AccountContext';
 import { Modal } from '../components/Modal';
 import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
@@ -90,7 +91,11 @@ export function Cup({ size }: { size: 'small' | 'large' }) {
  * the student has (or had) this week. The GCBC line (George, 2026-10-01): Plus costs about a small drink at the Grand
  * Canyon Beverage Company, Max about a large, except these help.
  */
-export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now' }: { onFree?: () => void; freeLabel?: string; maxTag?: string }) {
+export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now', plusCovered }: { onFree?: () => void; freeLabel?: string; maxTag?: string; /** Plus is already paid for (a friend's invite): shown in place of the Plus button. */ plusCovered?: string }) {
+  // The checkout function and the session are woken as the choice appears, so the press itself is quick (2026-10-09).
+  useEffect(() => {
+    warmCheckout();
+  }, []);
   return (
     <div className="plan-choices">
       <div className="plan-choice" data-best="true">
@@ -116,7 +121,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
             <span>About a small at GCBC. Except this one actually helps.</span>
           </span>
         </span>
-        <PlanButton tier="plus" label="Choose Plus" primary={false} />
+        {plusCovered ? <p className="gcbc-covered">{plusCovered}</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} />}
       </div>
       {onFree && (
         <div className="plan-choice">

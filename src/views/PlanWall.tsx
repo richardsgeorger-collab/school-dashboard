@@ -1,6 +1,6 @@
 import { bump } from '../analytics/usage';
 import { syncPress } from '../ui/presses';
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { startCheckout } from '../billing/client';
@@ -50,18 +50,29 @@ export function useShortDate(): (iso: string | null) => string | null {
 /** One tap to Stripe for a plan, monthly. Coming back, the webhook has set the plan and sync, grades and colour return. */
 export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, taxNote, source, next }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** "plus tax where applicable": on by default whenever the button shows a price. */ taxNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string }) {
   const { planKnown } = useAccount();
-  const [busy, setBusy] = useState(false);
+  const opening = useCheckoutOpening();
+  const mine = opening === tier;
+  const [slow, setSlow] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Pressed: this button shows the work, every other plan button waits (George, 2026-10-09: 30 s with no sign).
   const go = async () => {
-    setBusy(true);
+    if (opening) return;
+    setCheckoutOpening(tier);
     setErr(null);
+    setSlow(false);
     if (source) bump(`winback:upgrade:${source}`);
+    bump(`plan:click:${tier}`);
+    const slowTimer = window.setTimeout(() => setSlow(true), 10_000);
     const r = await startCheckout(tier, 'month', next);
-    if (r.ok) window.location.href = r.url;
-    else {
-      setErr(r.error);
-      setBusy(false);
+    window.clearTimeout(slowTimer);
+    if (r.ok) {
+      bump('checkout:open');
+      window.location.href = r.url;
+      return;
     }
+    setErr(r.error);
+    setSlow(false);
+    setCheckoutOpening(null);
   };
   const text = label ?? `Get ${TIER_NAMES[tier]}, $${PRICES[tier].month.toFixed(2)} a month`;
   const tax = taxNote ?? text.includes('$');
@@ -69,12 +80,44 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
   if (!planKnown) return null;
   return (
     <>
-      <button type="button" className={primary ? 'btn small primary' : 'btn small'} disabled={busy} onClick={() => void go()}>
-        {busy ? 'Opening checkout…' : text}
+      <button type="button" className={`${primary ? 'btn small primary' : 'btn small'}${mine ? ' is-opening' : ''}`} disabled={!!opening} aria-busy={mine || undefined} onClick={() => void go()}>
+        {mine ? (
+          <>
+            <span className="spinner" aria-hidden />
+            {slow ? 'Still working, almost there…' : 'Opening secure checkout…'}
+          </>
+        ) : (
+          text
+        )}
       </button>
-      {note && <span className="cancel-note">{note}</span>}
-      {err && <span className="hint">{err}</span>}
+      {note && !mine && <span className="cancel-note">{note}</span>}
+      {err && (
+        <span className="hint checkout-error" role="alert">
+          {err}{' '}
+          <button type="button" className="hero-inline" onClick={() => void go()}>
+            Try again
+          </button>
+        </span>
+      )}
     </>
+  );
+}
+
+// One checkout at a time, across every plan button on the screen.
+let openingTier: 'plus' | 'max' | null = null;
+const openingListeners = new Set<() => void>();
+function setCheckoutOpening(t: 'plus' | 'max' | null): void {
+  openingTier = t;
+  for (const l of openingListeners) l();
+}
+function useCheckoutOpening(): 'plus' | 'max' | null {
+  return useSyncExternalStore(
+    (cb) => {
+      openingListeners.add(cb);
+      return () => openingListeners.delete(cb);
+    },
+    () => openingTier,
+    () => null,
   );
 }
 
