@@ -14,6 +14,8 @@ export interface TierSource {
   trialEndsAt?: string | null;
   /** Set the moment a trial was started; null means one is still available. */
   trialStartedAt?: string | null;
+  /** When the first sync restarted the free week's clock (2026-10-09). */
+  trialSyncedAt?: string | null;
   /** Set by the Stripe webhook when a payment fails; the paid tier is kept until it passes. */
   graceUntil?: string | null;
   /** A referral reward: this tier until this time, on top of whatever is paid for. */

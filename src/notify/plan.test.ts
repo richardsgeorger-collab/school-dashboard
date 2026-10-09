@@ -107,3 +107,21 @@ describe('the Saturday participation reminder', () => {
     expect(planNotices({ ...base, today: '2026-09-23', now: '2026-09-23T20:00:00.000Z', items: [part('todo')] }).filter((x) => x.kind === 'participation')).toHaveLength(0);
   });
 });
+
+describe('day 3 of the free week: what Halo+ caught (2026-10-09)', () => {
+  const start = '2026-09-22T15:00:00.000Z';
+  const caughtItem: Item = { ...item('Lab 3', '2026-09-30', 50), notes: 'Do the lab.', requirements: [{ id: 'r1', text: 'Bring your own splash goggles', done: false, scope: 'do', source: { kind: 'announcement', id: 'a1', title: 'Lab note', at: '2026-09-23T15:00:00.000Z', quote: 'Bring your own splash goggles' }, addedAt: '2026-09-23T15:00:00.000Z' } as never] };
+  const base = { items: [caughtItem], courses: [course], schedule: schedule(), prefs: { morningTime: '07:30' }, tz: TZ, today: '2026-09-25', now: '2026-09-25T13:00:00.000Z', lastPull: NOW, trialStartedAt: start, trialEndsAt: '2026-09-27T15:00:00.000Z' };
+  it('one notice on day 3, with the real catch, keyed once', () => {
+    const n = planNotices(base).filter((x) => x.kind === 'caught');
+    expect(n).toHaveLength(1);
+    expect(n[0].title).toBe('Halo+ caught 1 thing your professors only put in announcements');
+    expect(n[0].body).toContain('splash goggles');
+    expect(n[0].key).toBe('caught:trial');
+    expect(n[0].sendAt > base.now).toBe(true);
+  });
+  it('nothing when nothing was caught, and nothing after the week', () => {
+    expect(planNotices({ ...base, items: [item('Lab 3', '2026-09-30', 50)] }).filter((x) => x.kind === 'caught')).toHaveLength(0);
+    expect(planNotices({ ...base, today: '2026-09-29', now: '2026-09-29T13:00:00.000Z' }).filter((x) => x.kind === 'caught')).toHaveLength(0);
+  });
+});

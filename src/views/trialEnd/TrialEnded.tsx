@@ -165,7 +165,8 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
                   {onPlusGift ? 'Continue with Plus free' : 'Stay on Free'}
                 </button>
                 <span className="gcbc-invite-line">
-                  Or invite a friend: you both get 30 days of Plus free. {INVITE_RULE} <Invite label="Invite a friend" />
+                  <span>Or invite a friend: you both get 30 days of Plus free. {INVITE_RULE}</span>
+                  <Invite label="Invite a friend" />
                 </span>
               </div>
             </div>

@@ -2250,11 +2250,14 @@
   cursor: pointer;
 }
 .gcbc-invite-line {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
   font: var(--t-small);
   color: var(--ink-3);
 }
 .gcbc-invite-line .btn {
-  margin-left: 6px;
+  margin: 0;
 }
 .gcbc-covered {
   margin: 0;
@@ -2291,4 +2294,46 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* Day 3 of the free week: what Halo+ caught (2026-10-09). */
+.caught-card {
+  margin: 0 0 var(--s-4);
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  display: grid;
+  gap: 8px;
+}
+.caught-title {
+  margin: 0;
+  font: var(--t-heading);
+}
+.caught-title b {
+  color: var(--accent-text);
+}
+.caught-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.caught-list li {
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  background: var(--surface-2, var(--bg));
+  border: 1px solid var(--line);
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.caught-foot {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+  font: var(--t-small);
+  color: var(--ink-3);
 }

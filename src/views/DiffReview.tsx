@@ -21,6 +21,7 @@ import type { HaloClass, HaloExport } from '../halo/types';
 import { useStore } from '../storage/store';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { useAccount } from '../auth/AccountContext';
+import { supabase } from '../auth/client';
 import { REFERRAL, TIER_NAMES } from '../config/tiers';
 
 type Group = keyof Selection;
@@ -111,7 +112,7 @@ export function DiffReview({
   keepRemovals?: boolean;
 }) {
   const { data, actions, undo } = useStore();
-  const { auth, profile } = useAccount();
+  const { auth, profile, reloadProfile } = useAccount();
   const tz = data.settings.timezone;
   const [bareAs, setBareAs] = useState<BareDateMode>('utc');
   const [includeZero, setIncludeZero] = useState(false);
@@ -171,7 +172,13 @@ export function DiffReview({
       // 6:08. Never in the future (a clock ahead of this one), and it says where it came from.
       const readAt = payload.exportedAt && Date.parse(payload.exportedAt) < Date.parse(at) ? new Date(payload.exportedAt).toISOString() : at;
       const via = payload.source === 'extension' ? 'extension' : payload.source === 'paste' ? 'paste' : 'bookmark';
+      const firstEver = !data.settings.lastPull;
       actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, readAt), lastPull: { at: readAt, build: payload.build ?? null, counts: { ...pullCounts(payload) }, via } });
+      // The free week is worth nothing until Halo is connected: the first sync restarts its clock (2026-10-09).
+      if (firstEver && profile?.trialStartedAt && !profile.trialSyncedAt) {
+        const c = supabase();
+        if (c) void c.rpc('trial_sync_started').then(({ data: r }) => { if ((r as { ok?: boolean } | null)?.ok) reloadProfile(); }, () => undefined);
+      }
       setKept({ facts: plan.facts.length, classes: plan.courses.length, announcements: ann.saved, fresh: ann.fresh, messages: extra.messages, resources: extra.resources, alerts: extra.alerts });
       // The sync event is what starts the background read (halo/backgroundRead.ts): new and edited posts are read
       // now, by the app, whether or not this sheet stays open.

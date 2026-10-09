@@ -69,6 +69,17 @@ export function exampleRank(req: Pick<Requirement, 'text' | 'dueAt' | 'gradedOn'
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 const listOf = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
+/** Things only an announcement said, put on the right assignment, since a moment: the count and up to three examples. */
+export function announcementCatches(items: Item[], courses: Course[], since: string, until: string): { n: number; examples: string[] } {
+  const inWeek = (at: string | null | undefined) => !!at && at >= since && at <= until;
+  const code = (i: Item) => courses.find((c) => c.id === i.courseId)?.code ?? '';
+  const found: { item: Item; req: Requirement }[] = [];
+  for (const item of items) for (const req of item.requirements ?? []) if (req.source?.kind === 'announcement' && inWeek(req.addedAt) && !inAssignment(req, item)) found.push({ item, req });
+  const ranked = found.map((f, i) => ({ f, i, r: exampleRank(f.req) })).sort((a, b) => b.r - a.r || a.i - b.i);
+  const actions = ranked.filter((x) => x.r > 0);
+  return { n: found.length, examples: (actions.length ? actions : ranked).slice(0, 3).map(({ f }) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`) };
+}
+
 export const MAX_LINES = 4;
 
 export function storyLines(input: StoryInput): StoryLine[] {

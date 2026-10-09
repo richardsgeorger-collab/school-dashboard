@@ -478,6 +478,8 @@ export interface ReminderPrefs {
   gradeUp?: boolean;
   /** The student turned push on from this app (the browser permission is checked separately). */
   pushEnabled?: boolean;
+  /** Emails about the trial and a broken sync (never account emails). Off = unsubscribed. */
+  email?: boolean;
 }
 
 /** The rewards' memory (joy/, 2026-10-02): what has been celebrated, so each moment shows once, on any device. */
@@ -550,6 +552,8 @@ export interface Settings {
    * nothing here has not been synced, which is not the same as having nothing due.
    */
   haloPulls?: Record<string, HaloPull>;
+  /** The day-3 "what Halo+ caught" card was dismissed (2026-10-09). */
+  caughtCardSeen?: string | null;
   /** What the last Halo sync actually brought back, kept so the answer outlives the review screen. */
   /** The newest sync applied: `at` is when Halo was read (not when it was applied), `via` where it came from. */
   lastPull?: { at: string; build: string | null; counts: Record<string, number>; via?: 'extension' | 'bookmark' | 'paste' };

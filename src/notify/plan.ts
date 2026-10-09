@@ -1,4 +1,5 @@
 import { gradeUpBody } from '../joy/joy';
+import { announcementCatches } from '../views/trialEnd/story';
 import { participationThisWeek } from '../domain/participationWeek';
 import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
 import { trialCalendar } from '../config/trialCalendar';
@@ -15,7 +16,7 @@ import type { Course, DateStr, Item, ReminderPrefs } from '../domain/types';
  * morning note, the night-before heavy-day warning, the not-started nudge, the re-sync reminder, and on Max the
  * Sunday recap; the trial's one reminder has none.
  */
-export type NoticeKind = 'grade_up' | 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'sunday' | 'participation' | 'welcome_sync' | 'winback_exam' | 'winback_stale';
+export type NoticeKind = 'grade_up' | 'morning' | 'heavy_day' | 'not_started' | 'resync' | 'trial_ends' | 'caught' | 'sunday' | 'participation' | 'welcome_sync' | 'winback_exam' | 'winback_stale';
 
 export interface Notice {
   kind: NoticeKind;
@@ -184,6 +185,19 @@ export function planNotices(input: PlanInput): Notice[] {
   // The trial: two reminders, two days before it ends (the evening) and the morning of the last day, each with what
   // Max actually did (the recap line is filled in by the app from the student's own records).
   if (input.trialEndsAt && input.trialEndsAt > now) {
+    // Day 3 of the free week: what Halo+ caught, real things only, once (George, 2026-10-09: 13 of 23 left by day 2).
+    if (input.trialStartedAt) {
+      const start = Date.parse(input.trialStartedAt);
+      const day3 = new Date(start + 3 * 86_400_000).toISOString();
+      const caught = announcementCatches(items, courses, input.trialStartedAt, now);
+      if (caught.n > 0 && Date.parse(now) < start + 5 * 86_400_000) {
+        const pp = { ...DEFAULT_PREFS, ...(input.prefs ?? {}) };
+        const hm = pp.morningTime && pp.morningTime !== 'off' ? pp.morningTime : '07:30';
+        const onDay = makeIso(dateOf(day3 > now ? day3 : now, tz), hm, tz);
+        const at = outsideQuiet(onDay > now ? onDay : makeIso(addDays(dateOf(now, tz), 1), hm, tz), tz, pp.quietFrom, pp.quietTo);
+        push({ kind: 'caught', sendAt: at, title: `Halo+ caught ${caught.n} ${caught.n === 1 ? 'thing' : 'things'} your professors only put in announcements`, body: caught.examples.slice(0, 2).join(' · '), url: '#/now', key: 'caught:trial' });
+      }
+    }
     const cal = trialCalendar(input.trialEndsAt, tz, now);
     const recap = input.trialRecap ? ` ${input.trialRecap}` : '';
     for (const r of cal.reminders) {

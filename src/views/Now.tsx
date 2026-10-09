@@ -61,6 +61,7 @@ import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { SinceLastLooked } from './SinceLastLooked';
 import { SyncReminder, useSyncReminder } from './SyncReminder';
+import { CaughtCard } from './trialEnd/CaughtCard';
 import { extSetupDue } from '../onboarding/extSetup';
 import { isTouchDevice } from '../ui/device';
 import { installedVersion, useExtension } from '../config/extension';
@@ -719,6 +720,7 @@ export function Now() {
       <SyncReminder />
       <WrapCard />
       <TrialReminder />
+      <CaughtCard />
       {trialAvailable && !headsUp.some((h) => h.key === 'read-failed') && data.courses.length > 0 && (
         <p className="hint trial-quiet">
           {TRIAL.offer} <TrialOffer variant="inline" label="Start my free week" />
