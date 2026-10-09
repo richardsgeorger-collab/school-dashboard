@@ -89,6 +89,8 @@ Deno.serve(async (req) => {
     if (error || !row) return reply(origin, 500, { ok: false, why: `Halo+ could not save it (${error?.message ?? 'no row'}). Tap Sync Halo again, or use Copy and paste it into Halo+.` });
     // A mailbox, not a history: the newest sync replaces every older one, taken or not.
     await db.from('pending_syncs').delete().eq('user_id', owner.user_id).neq('id', row.id);
+    // Halo is heard from again: the "sync broken" email may be sent once more if it breaks again (2026-10-09).
+    await db.from('email_outbox').delete().eq('user_id', owner.user_id).eq('kind', 'sync_broken').then(() => undefined, () => undefined);
     return reply(origin, 200, { ok: true, id: row.id });
   } catch (e) {
     return reply(origin, 500, { ok: false, why: `Halo+ could not save it (${e instanceof Error ? e.message : String(e)}). Tap Sync Halo again, or use Copy and paste it into Halo+.` });

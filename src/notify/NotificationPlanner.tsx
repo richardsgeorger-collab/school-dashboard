@@ -66,6 +66,8 @@ export function NotificationPlanner() {
         heavy_day: prefs.heavyDay !== false,
         not_started: prefs.notStarted !== false,
         resync: prefs.resync !== false,
+        // The email switch only when the student set it here; an unsubscribe made from an email link stays otherwise.
+        ...(prefs.email !== undefined ? { email: prefs.email, email_unsub_at: prefs.email ? null : now } : {}),
         updated_at: now,
       });
     }, 3000);

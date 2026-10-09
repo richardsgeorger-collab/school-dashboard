@@ -3,6 +3,7 @@
 // Needs RESEND_API_KEY and RESEND_FROM ("Halo+ <hello@haloplus.app>", a domain verified at Resend). Without them it
 // sends nothing and says so; the rows wait.
 import { admin, json } from '../_shared/admin.ts';
+import { renderEmail, unsubUrlFor } from '../_shared/emails.ts';
 
 const SECRET = Deno.env.get('NOTIFY_CRON_SECRET') ?? '';
 const KEY = Deno.env.get('RESEND_API_KEY') ?? '';
@@ -12,10 +13,13 @@ const SITE = 'https://haloplus.app';
 
 interface Row {
   id: string;
+  user_id: string;
   to_email: string;
   kind: string;
   attempts: number;
+  meta: Record<string, unknown> | null;
 }
+const BASE = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '');
 
 /** The one email so far: made an account on a phone at the market, the setup finishes on a laptop. */
 function marketSetup(): { subject: string; text: string; html: string } {
@@ -58,17 +62,29 @@ Deno.serve(async (req) => {
   const { count } = await db.from('email_outbox').select('id', { count: 'exact', head: true }).gte('sent_at', hourAgo);
   const room = Math.max(0, PER_HOUR - (count ?? 0));
   if (room === 0) return json(200, { sent: 0, waited: 'the hour is full' });
-  const { data: rows, error } = await db.from('email_outbox').select('id, to_email, kind, attempts').is('sent_at', null).lt('attempts', 5).order('created_at').limit(room);
+  const { data: rows, error } = await db.from('email_outbox').select('id, user_id, to_email, kind, attempts, meta').is('sent_at', null).lt('attempts', 5).order('created_at').limit(room);
   if (error) return json(500, { error: error.message });
   let sent = 0;
   for (const r of (rows ?? []) as Row[]) {
-    if (r.kind !== 'market_setup') continue;
-    const m = marketSetup();
+    // Account emails (the market setup) carry no unsubscribe; the trial and sync ones carry a one-click one.
+    let m: { subject: string; text: string; html: string } | null = null;
+    const headers: Record<string, string> = {};
+    if (r.kind === 'market_setup') m = marketSetup();
+    else {
+      const unsub = await unsubUrlFor(BASE, r.user_id, SECRET);
+      m = renderEmail(r.kind, r.meta ?? {}, unsub);
+      headers['List-Unsubscribe'] = `<${unsub}>`;
+      headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+    }
+    if (!m) {
+      await db.from('email_outbox').update({ attempts: 5, last_error: `no template for ${r.kind}` }).eq('id', r.id);
+      continue;
+    }
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ from: FROM, to: [r.to_email], subject: m.subject, text: m.text, html: m.html }),
+        body: JSON.stringify({ from: FROM, to: [r.to_email], subject: m.subject, text: m.text, html: m.html, headers }),
       });
       if (!res.ok) throw new Error(`Resend ${res.status}: ${(await res.text()).slice(0, 200)}`);
       await db.from('email_outbox').update({ sent_at: new Date().toISOString(), attempts: r.attempts + 1, last_error: null }).eq('id', r.id);

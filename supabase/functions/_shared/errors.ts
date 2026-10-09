@@ -100,10 +100,19 @@ export async function recordError(db: SupabaseClient, raw: ErrorEntry): Promise<
     }
     const r = data as { is_new: boolean; reopened: boolean; recent: number; alerted_at: string | null };
     const reason = r.is_new ? 'new' : r.reopened ? 'reopened' : e.kind === 'silent' ? 'silent' : r.recent >= 10 ? 'spike' : e.kind === 'test' ? 'test' : null;
-    const quiet = r.alerted_at && Date.now() - Date.parse(r.alerted_at) < HOUR;
+    // A sync problem (the extension, sync-drop, Halo reads, announcements, grades) is a push and a row in Admin >
+    // Errors, never an email, and one alert a day per problem (George, 2026-10-09: the inbox was all sync).
+    const syncish = /sync|halo|announcement|grade|extension|worker|class/i.test(`${e.place ?? ''} ${e.title}`);
+    const quiet = r.alerted_at && Date.now() - Date.parse(r.alerted_at) < (syncish ? 24 * HOUR : HOUR);
     if (!reason || (quiet && e.kind !== 'test')) return { ok: true, alerted: null };
     await db.from('error_issues').update({ alerted_at: new Date().toISOString() }).eq('fingerprint', e.fingerprint);
-    await alert(db, e, reason, r.recent);
+    // Email only for something new, back after a deploy, or spiking, and never more than three a day in all.
+    let email = !syncish && (reason === 'new' || reason === 'reopened' || reason === 'spike' || reason === 'test');
+    if (email) {
+      const { count } = await db.from('error_alerts').select('fingerprint', { count: 'exact', head: true }).eq('channel', 'email').eq('ok', true).gte('created_at', new Date(Date.now() - 24 * HOUR).toISOString());
+      if ((count ?? 0) >= 3 && reason !== 'test') email = false;
+    }
+    await alert(db, e, reason, r.recent, email);
     return { ok: true, alerted: reason };
   } catch (err) {
     console.error('recordError', err instanceof Error ? err.message : String(err));
@@ -131,7 +140,7 @@ function subjectOf(e: ErrorEntry, reason: string, recent: number): string {
   return `Halo+: new problem: ${what}`;
 }
 
-async function alert(db: SupabaseClient, e: ErrorEntry, reason: string, recent: number) {
+async function alert(db: SupabaseClient, e: ErrorEntry, reason: string, recent: number, email = true) {
   const subject = subjectOf(e, reason, recent).slice(0, 150);
   const lines = [
     subject.replace(/^Halo\+: /, ''),
@@ -146,10 +155,11 @@ async function alert(db: SupabaseClient, e: ErrorEntry, reason: string, recent: 
   ].filter((l, i, a) => l !== '' || a[i - 1] !== '');
   const log = (channel: string, ok: boolean, detail: string | null) => db.from('error_alerts').insert({ fingerprint: e.fingerprint, reason, subject, channel, ok, detail: detail ? detail.slice(0, 300) : null });
 
-  // Email, through Resend.
+  // Email, through Resend: only when this problem earns one (see recordError).
   const key = Deno.env.get('RESEND_API_KEY');
   const to = Deno.env.get('ALERT_EMAIL') ?? 'richards.georger@gmail.com';
-  if (!key) await log('email', false, 'RESEND_API_KEY is not set');
+  if (!email) await log('email-held', true, 'not emailed: a sync problem, or three already today; push and Admin > Errors');
+  else if (!key) await log('email', false, 'RESEND_API_KEY is not set');
   else {
     try {
       const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ from: 'Halo+ alerts <noreply@haloplus.app>', to: [to], subject, text: lines.join('\n') }) });

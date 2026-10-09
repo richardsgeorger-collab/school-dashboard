@@ -118,8 +118,15 @@ export function NotificationsCard() {
             <input type="time" value={prefs.quietTo} onChange={(e) => set({ quietTo: e.target.value })} />
           </label>
         </div>
-        <p className="hint">Nothing arrives during quiet hours; it waits until they end. Email is not wired yet; when it is, it will be a switch here.</p>
+        <p className="hint">Nothing arrives during quiet hours; it waits until they end.</p>
       </Locked>
+      {auth.session && (
+        <div className="email-prefs">
+          <p className="section-title">Email</p>
+          <Toggle checked={prefs.email !== false} label="Two emails at most: the day before a free week ends, and when Halo has not been heard from for three days" onChange={(v) => set({ email: v })} />
+          <p className="hint">Never more than one a week. Account emails (password resets, receipts) always arrive. Every email has a one-click unsubscribe.</p>
+        </div>
+      )}
       {!isStandalone() && (
         <div className="install-card">
           <p className="section-title">Put it on your Home Screen</p>
