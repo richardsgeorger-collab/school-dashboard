@@ -58,8 +58,8 @@ export function warmCheckout(): void {
 const returnTo = () => `${window.location.origin}${import.meta.env.BASE_URL}`;
 
 /** Stripe Checkout for a plan. On success the browser leaves for Stripe and comes back to You. */
-export const startCheckout = async (tier: Paid, interval: Interval, next?: string): Promise<Result> => {
-  const r = await call('stripe-checkout', { tier, interval, returnTo: returnTo(), next });
+export const startCheckout = async (tier: Paid, interval: Interval, next?: string, offer?: 'intro'): Promise<Result> => {
+  const r = await call('stripe-checkout', { tier, interval, returnTo: returnTo(), next, ...(offer ? { offer } : {}) });
   // Watched from here: back with success and no plan change in 5 minutes is reported (monitor/planWatch.tsx).
   if (r.ok) watchCheckout(tier);
   return r;

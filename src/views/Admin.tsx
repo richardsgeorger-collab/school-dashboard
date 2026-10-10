@@ -3,6 +3,7 @@ import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { EmptyState } from '../components/EmptyState';
 import { ResetEmailAdmin } from './ResetEmailAdmin';
+import { AdminIntro } from './AdminIntro';
 import { AdminRatings } from './AdminRatings';
 import { AdminExtension } from './AdminExtension';
 import { AdminFunnel } from './AdminFunnel';
@@ -65,6 +66,7 @@ export function Admin() {
         <AdminAccounts onChange={() => setTick((k) => k + 1)} />
         <AdminFunnel />
         <AdminRatings />
+        <AdminIntro />
         <AdminExtension />
         <AdminCelebrations />
         <AdminErrors />

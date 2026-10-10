@@ -1,4 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
+import { supabase } from '../../auth/client';
 import { useAccount } from '../../auth/AccountContext';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { trialState } from '../../config/flags';
@@ -69,7 +70,7 @@ function Line({ line, i }: { line: StoryLine; i: number }) {
       </p>
       {line.examples && line.examples.length > 0 && (
         <ul className="story-examples">
-          {line.examples.slice(0, 1).map((e) => (
+          {line.examples.slice(0, line.key === 'only' ? 2 : 1).map((e) => (
             <li key={e}>{e}</li>
           ))}
         </ul>
@@ -107,6 +108,14 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
     [since, until, n, data.items, data.courses, tz],
   );
   const recap = recapLines(lines);
+  // The intro offer: the server says whether this account may have it; the preview shows it as a student would see it.
+  const [intro, setIntro] = useState<boolean | null>(preview ? true : null);
+  useEffect(() => {
+    if (preview || !ended) return;
+    const c = supabase();
+    if (!c) return setIntro(false);
+    void c.rpc('intro_offer_state').then(({ data }) => setIntro(!!(data as { eligible?: boolean } | null)?.eligible), () => setIntro(false));
+  }, [preview, ended]);
   if (!ended || !since || !until) return null;
   const done = preview ? preview.onClose : () => actions.updateSettings({ trialEndSeen: new Date().toISOString() });
   const after = recap ? FIRST_MS + recap.lines.length * STEP_MS + 150 : 0;
@@ -155,8 +164,8 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
             )}
 
             <div className="story-plans" style={{ animationDelay: `${after}ms` }}>
-              <p className="story-plans-lede">{onPlusGift && plusAfter ? `Your friend's invite already covers Plus until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}. Keep Max, or carry on with Plus free.` : 'Keep going, or carry on with Free. Nothing charges unless you choose a plan.'}</p>
-              <PlanChoices maxTag="What you had this week" plusCovered={onPlusGift && plusAfter ? `Free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.` : undefined} />
+              <p className="story-plans-lede">{onPlusGift && plusAfter ? `Your friend's invite already covers Plus until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}. Keep Max, or carry on with Plus free.` : 'Nothing charges unless you choose a plan.'}</p>
+              <PlanChoices maxTag="What you had this week" cups intro={intro === true && !onPlusGift} plusCovered={onPlusGift && plusAfter ? `Free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.` : undefined} />
               <p className="gcbc-terms">
                 {CANCEL_LINE} · {TAX_LINE}
               </p>

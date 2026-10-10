@@ -48,7 +48,7 @@ export function useShortDate(): (iso: string | null) => string | null {
 }
 
 /** One tap to Stripe for a plan, monthly. Coming back, the webhook has set the plan and sync, grades and colour return. */
-export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, taxNote, source, next }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** "plus tax where applicable": on by default whenever the button shows a price. */ taxNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string }) {
+export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, taxNote, source, next, offer }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** "plus tax where applicable": on by default whenever the button shows a price. */ taxNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string; /** The intro offer (Max, first month $2.99); the server checks the account may have it. */ offer?: 'intro' }) {
   const { planKnown } = useAccount();
   const opening = useCheckoutOpening();
   const mine = opening === tier;
@@ -63,11 +63,13 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
     if (source) bump(`winback:upgrade:${source}`);
     bump(`plan:click:${tier}`);
     const slowTimer = window.setTimeout(() => setSlow(true), 10_000);
-    const r = await startCheckout(tier, 'month', next);
+    const r = await startCheckout(tier, 'month', next, offer);
     window.clearTimeout(slowTimer);
     if (r.ok) {
       bump('checkout:open');
       window.location.href = r.url;
+      // Back from Stripe without a reload (Back, or a same-origin address): the buttons wake up again.
+      window.setTimeout(() => setCheckoutOpening(null), 8000);
       return;
     }
     setErr(r.error);
@@ -105,6 +107,7 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
 
 // One checkout at a time, across every plan button on the screen.
 let openingTier: 'plus' | 'max' | null = null;
+if (typeof window !== 'undefined') window.addEventListener('pageshow', () => setCheckoutOpening(null));
 const openingListeners = new Set<() => void>();
 function setCheckoutOpening(t: 'plus' | 'max' | null): void {
   openingTier = t;

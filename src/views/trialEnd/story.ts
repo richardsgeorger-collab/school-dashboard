@@ -94,8 +94,10 @@ export function storyLines(input: StoryInput): StoryLine[] {
   for (const item of items) for (const req of item.requirements ?? []) if (req.source?.kind === 'announcement' && inWeek(req.addedAt)) found.push({ item, req, only: !inAssignment(req, item) });
   const only = found.filter((f) => f.only);
   // Actions first; rules only when there is nothing better, and never padding out a real action.
+  // The most impressive first (George, 2026-10-09): a date, then the assignment's points, then the kind of ask.
+  const impress = (f: { item: Item; req: Requirement }) => (f.req.dueAt ? 1000 : 0) + Math.min(500, (f.item.points ?? 0) * 5) + exampleRank(f.req) * 10;
   const shown = (fs: typeof found) => {
-    const ranked = fs.map((f, i) => ({ f, i, r: exampleRank(f.req) })).sort((a, b) => b.r - a.r || a.i - b.i);
+    const ranked = fs.map((f, i) => ({ f, i, r: exampleRank(f.req), s: impress(f) })).sort((a, b) => b.s - a.s || a.i - b.i);
     const actions = ranked.filter((x) => x.r > 0);
     return (actions.length ? actions : ranked).slice(0, 2).map(({ f }) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`);
   };

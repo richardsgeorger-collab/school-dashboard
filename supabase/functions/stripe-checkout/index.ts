@@ -3,6 +3,7 @@
 import Stripe from 'npm:stripe@18';
 import { admin, json, guard, userFromRequest } from '../_shared/admin.ts';
 import { OFFERED_INTERVALS, STRIPE_LIVE_PRICE_IDS, STRIPE_PRICE_IDS, type Interval } from '../_shared/tiers.ts';
+import { introCoupon, introEligible } from '../_shared/intro.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
@@ -24,7 +25,7 @@ Deno.serve(guard(async (req) => {
   const user = await userFromRequest(req);
   if (!user) return json(401, { error: 'Sign in first.' });
 
-  const body = (await req.json().catch(() => ({}))) as { tier?: string; interval?: string; returnTo?: string; next?: string };
+  const body = (await req.json().catch(() => ({}))) as { tier?: string; interval?: string; returnTo?: string; next?: string; offer?: string };
   // Where to land after paying: a route inside Halo+ only (the exam-week offer lands in Practice for that quiz).
   const next = typeof body.next === 'string' && /^\/(practice|now|study|you)(\?[A-Za-z0-9=&_.-]*)?$/.test(body.next) ? body.next : '/you?s=plan';
   // A live key sells the live prices; a test key the sandbox ones.
@@ -39,8 +40,20 @@ Deno.serve(guard(async (req) => {
   if (!returnTo) return json(400, { error: 'Missing return address.' });
 
   const db = admin();
-  const { data: profile } = await db.from('profiles').select('stripe_customer_id').eq('user_id', user.id).maybeSingle();
+  const { data: profile } = await db.from('profiles').select('stripe_customer_id, trial_started_at, intro_offer_at').eq('user_id', user.id).maybeSingle();
   let customer = profile?.stripe_customer_id as string | null;
+  // The intro offer (2026-10-09): Max's first month at $2.99 through a coupon, for an account finishing its free week
+  // that never paid, once. The client may ask; this decides. Not eligible: a plain checkout, and the client is told.
+  let intro = false;
+  if (body.offer === 'intro') {
+    const { data: sub } = await db.from('subscriptions').select('user_id').eq('user_id', user.id).maybeSingle();
+    const ok = introEligible({ tier, interval, trialStartedAt: (profile?.trial_started_at as string | null) ?? null, introOfferAt: (profile?.intro_offer_at as string | null) ?? null, everPaid: !!sub });
+    if (!ok.ok) return json(409, { error: `The first-month offer is not available on this account (${ok.why}). The regular price applies; choose the plan again.`, offer: 'unavailable' });
+    intro = true;
+    const c = introCoupon();
+    const have = await stripe.coupons.retrieve(c.id).catch(() => null);
+    if (!have || (have as { deleted?: boolean }).deleted) await stripe.coupons.create(c);
+  }
   // A customer made in test mode does not exist in live mode (and one can be deleted): make a new one then.
   if (customer && !(await customerExists(stripe, customer))) customer = null;
   if (!customer) {
@@ -53,11 +66,12 @@ Deno.serve(guard(async (req) => {
     mode: 'subscription',
     customer,
     line_items: [{ price, quantity: 1 }],
-    allow_promotion_codes: true,
+    // Stripe takes a discount or a promotion-code box, not both.
+    ...(intro ? { discounts: [{ coupon: introCoupon().id }] } : { allow_promotion_codes: true }),
     success_url: `${returnTo}#${next}${next.includes('?') ? '&' : '?'}checkout=success`,
     cancel_url: `${returnTo}#/you?s=plan&checkout=cancel`,
-    metadata: { user_id: user.id },
-    subscription_data: { metadata: { user_id: user.id } },
+    metadata: { user_id: user.id, ...(intro ? { offer: 'intro' } : {}) },
+    subscription_data: { metadata: { user_id: user.id, ...(intro ? { offer: 'intro' } : {}) } },
   });
   return json(200, { url: session.url });
 }, 'stripe-checkout'));

@@ -25,8 +25,10 @@ try {
   await ctx.route('**/functions/v1/report', async (r) => { try { reports.push(JSON.parse(r.request().postData() || '{}')); } catch { /* ignore */ } return r.fulfill({ status: 200, body: '{}' }); });
   let mode = 'slow-fail';
   let warmups = 0;
+  const bodies = [];
   await ctx.route('**/functions/v1/stripe-checkout', async (r) => {
     if (r.request().method() === 'OPTIONS') { warmups += 1; return r.fulfill({ status: 204 }); }
+    try { bodies.push(JSON.parse(r.request().postData() || '{}')); } catch { /* ignore */ }
     if (mode === 'slow-fail') { await sleep(12500); return r.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Stripe could not be reached.' }) }); }
     return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: `${BASE}#/you?s=plan&checkout=mocked` }) });
   });
@@ -55,6 +57,17 @@ try {
   await p.locator('.checkout-error button:has-text("Try again")').click();
   await p.waitForURL(/checkout=mocked/, { timeout: 15000 });
   check(p.url().includes('checkout=mocked'), 'Try again, success: the browser leaves for the address checkout gave');
+  check(bodies.every((b) => b.tier === 'plus' && !b.offer), `Choose Plus asks for Plus with no offer (${bodies.length} calls)`);
+  // Keep Max from the same screen asks for the intro offer; the server decides (an ended free week, never paid: yes).
+  const state = (await (await kit.signIn(who.email)).c.rpc('intro_offer_state')).data;
+  check(state?.eligible === true, `the account may have the intro offer (${JSON.stringify(state)})`);
+  await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
+  await p.waitForSelector('.trial-ended .story-plans', { timeout: 30000 });
+  await sleep(2000);
+  check(/\$2\.99 your first month, then \$7\.99\/mo/.test(await p.locator('.plan-choice[data-tier=max]').innerText()), 'Max shows $2.99 your first month, then $7.99/mo');
+  await max.click();
+  await p.waitForURL(/checkout=mocked/, { timeout: 15000 });
+  check(bodies[bodies.length - 1]?.tier === 'max' && bodies[bodies.length - 1]?.offer === 'intro', `Keep Max asks for Max with offer:intro (${JSON.stringify(bodies[bodies.length - 1])})`);
   await ctx.close();
 } finally {
   await browser.close();

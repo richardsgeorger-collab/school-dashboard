@@ -81,6 +81,7 @@ try {
     await p.waitForSelector('.story-plans', { timeout: 15000 });
     await p.waitForTimeout(2500);
     check((await p.locator('.trial-rating').count()) === 0 && (await p.locator('.story-continue').count()) === 0, 'one screen: no rating, no Continue (2026-10-09)');
+    check(/\$2\.99 your first month/.test(await p.locator('.plan-choice[data-tier=max]').innerText()) && (await p.locator('.story-plans .drink-cup').count()) === 2, 'the preview shows the intro offer and the cups');
     await p.click('button:has-text("Keep Max")');
     await p.click('button:has-text("Choose Plus")');
     await p.click('.gcbc-invite-line button:has-text("Invite a friend")');

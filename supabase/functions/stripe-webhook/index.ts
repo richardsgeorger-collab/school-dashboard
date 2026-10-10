@@ -54,6 +54,8 @@ Deno.serve(guard(async (req) => {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       if (typeof session.subscription === 'string') await apply(db, await stripe.subscriptions.retrieve(session.subscription), now);
+      // The intro offer (2026-10-09): used once its checkout completes; Admin counts these.
+      if (session.metadata?.offer === 'intro' && session.metadata?.user_id) await db.from('profiles').update({ intro_offer_at: now }).eq('user_id', session.metadata.user_id).is('intro_offer_at', null);
       break;
     }
     case 'customer.subscription.created':

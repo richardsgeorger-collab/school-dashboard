@@ -32,6 +32,8 @@ export const PRICES: Record<Paid, { month: number } & Partial<Record<Interval, n
   plus: { month: 4.99 },
   max: { month: 7.99 },
 };
+/** The intro offer (2026-10-09): Max's first month, a Stripe coupon at checkout; the base price is unchanged. */
+export const INTRO_FIRST_MONTH = 2.99;
 
 /** Said right beside every price. */
 export const CANCEL_LINE = 'Cancel anytime';

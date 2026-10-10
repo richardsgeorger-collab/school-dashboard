@@ -120,7 +120,8 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
     await p.waitForSelector('.trial-ended .story-line', { timeout: 30000 });
     await p.waitForTimeout(5000);
-    const fit = await p.evaluate(() => ({ plus: document.querySelector('.story-plans button:has(~ *), .story-plans .plan-choice:nth-child(2)').getBoundingClientRect().bottom, free: document.querySelector('.gcbc-free-link').getBoundingClientRect().bottom, scrolled: document.querySelector('.trial-ended').scrollTop, h: window.innerHeight }));
+    const fit = await p.evaluate(() => ({ plus: document.querySelector('.story-plans .plan-choice[data-tier=plus]').getBoundingClientRect().bottom, free: document.querySelector('.gcbc-free-link').getBoundingClientRect().bottom, scrolled: document.querySelector('.trial-ended').scrollTop, h: window.innerHeight, cups: document.querySelectorAll('.story-plans .drink-cup').length, big: document.querySelector('.story-plans .plan-choice[data-tier=max] .drink-cup').getBoundingClientRect().height }));
+    check(fit.cups === 2 && fit.big >= 60, `${w}x${h}: two animated cups, Max's ${Math.round(fit.big)}px tall`);
     check(fit.scrolled === 0 && fit.plus <= fit.h, `${w}x${h}: Keep Max and Choose Plus show without scrolling (Plus bottom ${Math.round(fit.plus)} of ${fit.h}; Stay on Free ${Math.round(fit.free)})`);
     if (w === 1366) for (const scheme of ['light', 'dark']) {
       await p.emulateMedia({ colorScheme: scheme });
@@ -140,7 +141,7 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
       console.log(`     page 1 lines: ${lines.join(' || ')}`);
       check(lines.length >= 3 && lines.length <= 4, `3 to 4 lines (${lines.length})`);
       const only = lines.find((l) => /^3 things your professors only put in announcements, Halo\+ caught:/.test(l)) ?? '';
-      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && !/Cite any AI/.test(only), `the one example is a thing to do, not the standing rule: "${only}"`);
+      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && /BIO-181L: Bring your own splash goggles/.test(only) && !/Cite any AI/.test(only), `two examples, things to do, not the standing rule: "${only}"`);
       check(lines.some((l) => new RegExp(`moved from .+ to .+\\. You knew before it mattered\\.`).test(l) && l.includes(first.moved)), 'the moved date, caught before the old date');
       check(lines.some((l) => /^(You checked off \d+ assignments this week\.|On time for all \d+ things due this week\.)$/.test(l)), 'checked off or on time');
       check(/Here's what Halo\+ did for you\./.test(await p.locator('.story-title').innerText()), 'the title');
@@ -152,7 +153,10 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     // The plans on the same screen (2026-10-09).
     if (dev === 'desk' && scheme === 'light') {
       const text = (await p2text(first, dev, scheme));
-      check(/About a large at GCBC/.test(text) && /About a small at GCBC/.test(text), 'the GCBC line beside Max and Plus');
+      check(/Less than a small at GCBC\./.test(text) && /About a small at GCBC\. Except this one actually helps\./.test(text), 'the GCBC lines: Max "Less than a small", Plus "About a small"');
+      check(/\$2\.99 your first month, then \$7\.99\/mo/.test(text) && /Plus · \$4\.99 a month/.test(text), 'the intro offer on Max, same line as the price; Plus unchanged');
+      check(/Only \$3 more than Plus for the study tools/.test(text), 'the $3-more line');
+      check(/Nothing charges unless you choose a plan\./.test(text) && !/Keep going, or carry on with Free/.test(text), 'the lede is only "Nothing charges unless you choose a plan."');
       check(/Cancel anytime · plus tax where applicable/.test(text), 'Cancel anytime · plus tax where applicable under the plans');
       check(/invite a friend: you both get 30 days of Plus free/i.test(text), 'the smaller invite option');
       check(!/How much did Halo\+ help/.test(text) && !/\b10\b.*A lot/.test(text), 'no rating anywhere');

@@ -2,6 +2,8 @@ import { creditLine, plusCredit, type PlusCredit } from '../referral/credit';
 import { InviteBlock, InviteButton, useMyGrants } from '../referral/Invite';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { warmCheckout } from '../billing/client';
+import { INTRO_FIRST_MONTH } from '../config/tiers';
+import { DrinkCup } from './trialEnd/DrinkCup';
 import { useAccount } from '../auth/AccountContext';
 import { Modal } from '../components/Modal';
 import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
@@ -55,14 +57,14 @@ const INCLUDED: { icon: () => React.ReactElement; text: string; plan: 'plus' | '
 export const PreviewMode = createContext(false);
 const noop = () => undefined;
 
-export function PlanButton({ tier, label, primary = true }: { tier: 'plus' | 'max'; label: string; primary?: boolean }) {
+export function PlanButton({ tier, label, primary = true, offer }: { tier: 'plus' | 'max'; label: string; primary?: boolean; offer?: 'intro' }) {
   if (useContext(PreviewMode))
     return (
       <button type="button" className={primary ? 'btn small primary' : 'btn small'} onClick={noop} title="Preview: nothing is charged">
         {label}
       </button>
     );
-  return <UpgradeButton tier={tier} label={label} primary={primary} cancelNote={false} />;
+  return <UpgradeButton tier={tier} label={label} primary={primary} cancelNote={false} offer={offer} />;
 }
 
 export function Invite({ label }: { label: string }) {
@@ -91,35 +93,50 @@ export function Cup({ size }: { size: 'small' | 'large' }) {
  * the student has (or had) this week. The GCBC line (George, 2026-10-01): Plus costs about a small drink at the Grand
  * Canyon Beverage Company, Max about a large, except these help.
  */
-export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now', plusCovered }: { onFree?: () => void; freeLabel?: string; maxTag?: string; /** Plus is already paid for (a friend's invite): shown in place of the Plus button. */ plusCovered?: string }) {
+export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now', plusCovered, intro = false, cups = false }: { onFree?: () => void; freeLabel?: string; maxTag?: string; /** Plus is already paid for (a friend's invite): shown in place of the Plus button. */ plusCovered?: string; /** The intro offer: Max $2.99 for the first month, then $7.99 (2026-10-09). */ intro?: boolean; /** The animated GCBC cups as each plan's visual. */ cups?: boolean }) {
   // The checkout function and the session are woken as the choice appears, so the press itself is quick (2026-10-09).
   useEffect(() => {
     warmCheckout();
   }, []);
   return (
-    <div className="plan-choices">
-      <div className="plan-choice" data-best="true">
+    <div className="plan-choices" data-cups={cups || undefined}>
+      <div className="plan-choice" data-best="true" data-tier="max">
+        {cups && <DrinkCup size="large" />}
         <span className="plan-choice-name">
           <span className="plan-choice-tag">{maxTag}</span>
-          <b>Max · ${PRICES.max.month.toFixed(2)} a month</b>
+          {intro ? (
+            <b className="plan-price">
+              <span className="plan-price-intro">${INTRO_FIRST_MONTH.toFixed(2)} your first month,</span> then ${PRICES.max.month.toFixed(2)}/mo
+            </b>
+          ) : (
+            <b className="plan-price">Max · ${PRICES.max.month.toFixed(2)} a month</b>
+          )}
+          {cups && <span className="gcbc-line">{intro ? 'Less than a small at GCBC.' : 'About a large at GCBC, minus the regret.'}</span>}
           <small className="tax-note">{TAX_LINE}</small>
           <span>Everything you had this week: auto-sync, announcements read for you, and the study tools. {CANCEL_LINE}.</span>
-          <span className="gcbc">
-            <Cup size="large" />
-            <span>About a large at GCBC, minus the regret.</span>
-          </span>
+          <span className="plan-choice-more">Only $3 more than Plus for the study tools{intro ? ' (after the first month)' : ''}.</span>
+          {!cups && (
+            <span className="gcbc">
+              <Cup size="large" />
+              <span>About a large at GCBC, minus the regret.</span>
+            </span>
+          )}
         </span>
-        <PlanButton tier="max" label="Keep Max" />
+        <PlanButton tier="max" label="Keep Max" offer={intro ? 'intro' : undefined} />
       </div>
-      <div className="plan-choice">
+      <div className="plan-choice" data-tier="plus">
+        {cups && <DrinkCup size="small" />}
         <span className="plan-choice-name">
-          <b>Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
+          <b className="plan-price">Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
+          {cups && <span className="gcbc-line">About a small at GCBC. Except this one actually helps.</span>}
           <small className="tax-note">{TAX_LINE}</small>
           <span>Auto-sync every 3 hours, real grades, announcements read for you. No study tools. {CANCEL_LINE}.</span>
-          <span className="gcbc">
-            <Cup size="small" />
-            <span>About a small at GCBC. Except this one actually helps.</span>
-          </span>
+          {!cups && (
+            <span className="gcbc">
+              <Cup size="small" />
+              <span>About a small at GCBC. Except this one actually helps.</span>
+            </span>
+          )}
         </span>
         {plusCovered ? <p className="gcbc-covered">{plusCovered}</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} />}
       </div>
