@@ -3,6 +3,7 @@ import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
 import { EmptyState } from '../components/EmptyState';
 import { ResetEmailAdmin } from './ResetEmailAdmin';
+import { AdminEndTrial } from './AdminEndTrial';
 import { AdminIntro } from './AdminIntro';
 import { AdminRatings } from './AdminRatings';
 import { AdminExtension } from './AdminExtension';
@@ -67,6 +68,7 @@ export function Admin() {
         <AdminFunnel />
         <AdminRatings />
         <AdminIntro />
+        <AdminEndTrial />
         <AdminExtension />
         <AdminCelebrations />
         <AdminErrors />

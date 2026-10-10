@@ -38,7 +38,7 @@ async function student() {
   const put = (r, patch) => db.from('items').update({ data: { ...r.data, ...patch }, updated_at: new Date().toISOString() }).eq('id', r.id);
   const req = (text, scope) => ({ id: randomUUID(), text, dueAt: null, done: false, doneAt: null, gradedOn: true, scope, source: src, addedAt: ago(6) });
   // A standing rule first, then two real things to do: the examples must be the things to do.
-  await put(lab, { notes: 'Complete the photosynthesis procedure and record your results.', requirements: [req('Cite any AI-generated content', 'rule'), req('Bring your own splash goggles'), req('Sign the lab safety waiver before lab', 'instance')] });
+  await put(lab, { points: 50, notes: 'Complete the photosynthesis procedure and record your results.', requirements: [req('Cite any AI-generated content', 'rule'), req('Acknowledge this announcement after reading it'), req('Bring your own splash goggles'), req('Sign the lab safety waiver before lab', 'instance')] });
   await put(quiz, { practicedAt: ago(4) });
   await put(moved, { dateChange: { from: ago(3), at: ago(6), source: src }, dueAt: ago(1) });
   const toCheck = rows.filter((r) => ![lab.id, quiz.id, moved.id].includes(r.id)).slice(0, 23);
@@ -79,6 +79,8 @@ const resetRating = async (id) => {
 try {
   const raters = [];
   const first = await student();
+  // A real free week has a start as well as an end: the intro offer needs it.
+  await db.from('profiles').update({ trial_started_at: new Date(Date.now() - 7 * 864e5).toISOString() }).eq('user_id', first.id).is('trial_started_at', null);
   raters.push(first);
 
   // Page 1's animation: a video, and frames for a GIF.
@@ -140,21 +142,31 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
       const lines = (await p.locator('.story-line').allInnerTexts()).map((l) => l.replace(/\s+/g, ' ').trim());
       console.log(`     page 1 lines: ${lines.join(' || ')}`);
       check(lines.length >= 3 && lines.length <= 4, `3 to 4 lines (${lines.length})`);
-      const only = lines.find((l) => /^3 things your professors only put in announcements, Halo\+ caught:/.test(l)) ?? '';
-      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && /BIO-181L: Bring your own splash goggles/.test(only) && !/Cite any AI/.test(only), `two examples, things to do, not the standing rule: "${only}"`);
+      const only = lines.find((l) => /^4 things your professors only put in announcements, Halo\+ caught:/.test(l)) ?? '';
+      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && /BIO-181L: Bring your own splash goggles/.test(only) && !/Cite any AI/.test(only) && !/Acknowledge this announcement/.test(only), `two examples on a 50-point lab, never the standing rule or "acknowledge this announcement": "${only}"`);
       check(lines.some((l) => new RegExp(`moved from .+ to .+\\. You knew before it mattered\\.`).test(l) && l.includes(first.moved)), 'the moved date, caught before the old date');
       check(lines.some((l) => /^(You checked off \d+ assignments this week\.|On time for all \d+ things due this week\.)$/.test(l)), 'checked off or on time');
       check(/Here's what Halo\+ did for you\./.test(await p.locator('.story-title').innerText()), 'the title');
       check((await p.locator('.trial-rating').count()) === 0 && (await p.locator('.story-plans button:has-text("Keep Max")').isVisible()) && (await p.locator('.story-plans button:has-text("Choose Plus")').isVisible()) && (await p.locator('.gcbc-free-link').innerText()) === 'Stay on Free', 'one screen: no rating; Keep Max, Choose Plus and a plain Stay on Free under the recap');
     }
     check(!(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${tag}: page 1 no sideways scroll`);
+    if (dev === 'phone') await p.locator('.story-plans .plan-choice[data-tier=max]').screenshot({ path: `${OUT}/max-card-phone-${scheme}.png` });
     await shotAll(p, `${OUT}/page1-${dev}-${scheme}.png`);
     await ctx.close();
     // The plans on the same screen (2026-10-09).
     if (dev === 'desk' && scheme === 'light') {
       const text = (await p2text(first, dev, scheme));
       check(/Less than a small at GCBC\./.test(text) && /About a small at GCBC\. Except this one actually helps\./.test(text), 'the GCBC lines: Max "Less than a small", Plus "About a small"');
-      check(/\$2\.99 your first month, then \$7\.99\/mo/.test(text) && /Plus · \$4\.99 a month/.test(text), 'the intro offer on Max, same line as the price; Plus unchanged');
+      const o3 = await open(first, dev, scheme);
+      await o3.p.waitForTimeout(3500);
+      const maxCard = o3.p.locator('.story-plans .plan-choice[data-tier=max]');
+      const hero = await maxCard.evaluate((el) => el.querySelector('.intro-price') === null ? { price: null, pricePx: 0, badge: null, thenLine: null, was: null, thenPx: 0, biggest: 0, cup: null, sparkle: 0 } : ({ price: el.querySelector('.intro-price')?.textContent, pricePx: parseFloat(getComputedStyle(el.querySelector('.intro-price')).fontSize), badge: el.querySelector('.intro-badge')?.textContent, thenLine: el.querySelector('.intro-then')?.textContent, was: el.querySelector('.intro-was')?.textContent, thenPx: parseFloat(getComputedStyle(el.querySelector('.intro-then')).fontSize), biggest: Math.max(...[...el.querySelectorAll('*')].map((n) => parseFloat(getComputedStyle(n).fontSize))), cup: el.querySelector('.drink-cup')?.getAttribute('data-size'), sparkle: el.querySelectorAll('.cup-sparkle').length }));
+      check(hero.price === '$2.99' && hero.pricePx >= 28 && hero.pricePx === hero.biggest, `$2.99 is the hero: ${hero.pricePx}px, the largest text on the card`);
+      check(hero.badge === 'First month' && hero.was === '$7.99' && /then \$7\.99\/mo · cancel anytime/.test(hero.thenLine ?? '') && hero.thenPx < hero.pricePx / 1.8, `the badge, the struck $7.99, and "${hero.thenLine}" smaller (${hero.thenPx}px)`);
+      check(hero.cup === 'small' && hero.sparkle === 1, 'the Max cup is a small one with a sparkle, matching "Less than a small"');
+      check(/Plus · \$4\.99 a month/.test(text), 'Plus unchanged');
+      await maxCard.screenshot({ path: `${OUT}/max-card-desk-light.png` });
+      await o3.ctx.close();
       check(/Only \$3 more than Plus for the study tools/.test(text), 'the $3-more line');
       check(/Nothing charges unless you choose a plan\./.test(text) && !/Keep going, or carry on with Free/.test(text), 'the lede is only "Nothing charges unless you choose a plan."');
       check(/Cancel anytime · plus tax where applicable/.test(text), 'Cancel anytime · plus tax where applicable under the plans');

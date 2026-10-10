@@ -69,15 +69,27 @@ export function exampleRank(req: Pick<Requirement, 'text' | 'dueAt' | 'gradedOn'
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 const listOf = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
+/** "Acknowledge this announcement", "read the topic readings": true, and not worth a line (George, 2026-10-10). */
+const GENERIC_CATCH = /\b(acknowledge|read(ing)? (the )?(topic|assigned|weekly|course)? ?(readings?|materials?|chapters?|announcement|syllabus)|review (the )?(syllabus|announcement|rubric)|check (the )?(syllabus|announcements?)|log ?in|participate|post (an )?introduction)\b/i;
+/** A catch worth showing: a date of its own (a hidden deadline), or a new requirement on an assignment worth 20 points or more. */
+export const worthShowing = (f: { item: Pick<Item, 'points'>; req: Pick<Requirement, 'text' | 'dueAt' | 'scope'> }): boolean => !GENERIC_CATCH.test(f.req.text) && f.req.scope !== 'rule' && f.req.scope !== 'reference' && (!!f.req.dueAt || (f.item.points ?? 0) >= 20);
+/** The two most impressive catches: a date first, then the assignment's points. None worth it: one that is not generic, or nothing. */
+export function bestCatches<T extends { item: Pick<Item, 'points'>; req: Pick<Requirement, 'text' | 'dueAt' | 'scope' | 'gradedOn'> }>(fs: T[]): T[] {
+  const impress = (f: T) => (f.req.dueAt ? 1000 : 0) + Math.min(500, (f.item.points ?? 0) * 5) + exampleRank(f.req) * 10;
+  const ranked = fs.map((f, i) => ({ f, i, s: impress(f) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.f);
+  const worthy = ranked.filter(worthShowing);
+  if (worthy.length) return worthy.slice(0, 2);
+  const plain = ranked.find((f) => !GENERIC_CATCH.test(f.req.text) && f.req.scope !== 'rule' && f.req.scope !== 'reference');
+  return plain ? [plain] : [];
+}
+
 /** Things only an announcement said, put on the right assignment, since a moment: the count and up to three examples. */
 export function announcementCatches(items: Item[], courses: Course[], since: string, until: string): { n: number; examples: string[] } {
   const inWeek = (at: string | null | undefined) => !!at && at >= since && at <= until;
   const code = (i: Item) => courses.find((c) => c.id === i.courseId)?.code ?? '';
   const found: { item: Item; req: Requirement }[] = [];
   for (const item of items) for (const req of item.requirements ?? []) if (req.source?.kind === 'announcement' && inWeek(req.addedAt) && !inAssignment(req, item)) found.push({ item, req });
-  const ranked = found.map((f, i) => ({ f, i, r: exampleRank(f.req) })).sort((a, b) => b.r - a.r || a.i - b.i);
-  const actions = ranked.filter((x) => x.r > 0);
-  return { n: found.length, examples: (actions.length ? actions : ranked).slice(0, 3).map(({ f }) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`) };
+  return { n: found.length, examples: bestCatches(found).map((f) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`) };
 }
 
 export const MAX_LINES = 4;
@@ -94,13 +106,7 @@ export function storyLines(input: StoryInput): StoryLine[] {
   for (const item of items) for (const req of item.requirements ?? []) if (req.source?.kind === 'announcement' && inWeek(req.addedAt)) found.push({ item, req, only: !inAssignment(req, item) });
   const only = found.filter((f) => f.only);
   // Actions first; rules only when there is nothing better, and never padding out a real action.
-  // The most impressive first (George, 2026-10-09): a date, then the assignment's points, then the kind of ask.
-  const impress = (f: { item: Item; req: Requirement }) => (f.req.dueAt ? 1000 : 0) + Math.min(500, (f.item.points ?? 0) * 5) + exampleRank(f.req) * 10;
-  const shown = (fs: typeof found) => {
-    const ranked = fs.map((f, i) => ({ f, i, r: exampleRank(f.req), s: impress(f) })).sort((a, b) => b.s - a.s || a.i - b.i);
-    const actions = ranked.filter((x) => x.r > 0);
-    return (actions.length ? actions : ranked).slice(0, 2).map(({ f }) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`);
-  };
+  const shown = (fs: typeof found) => bestCatches(fs).map((f) => `${code(f.item) ? `${code(f.item)}: ` : ''}${f.req.text.replace(/\.$/, '')}`);
   if (only.length > 0) lines.push({ key: 'only', score: 95 + only.length, before: '', n: only.length, after: ` ${plural(only.length, 'thing your professors only put in an announcement', 'things your professors only put in announcements')}, Halo+ caught:`, examples: shown(only) });
   else if (found.length > 0) lines.push({ key: 'found', score: 70 + found.length, before: 'Halo+ put ', n: found.length, after: ` ${plural(found.length, 'instruction', 'instructions')} from announcements on the right assignment:`, examples: shown(found) });
 

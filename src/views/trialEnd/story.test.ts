@@ -20,7 +20,7 @@ describe('only put in an announcement', () => {
   it('names the real requirements, two at most, and counts only the ones the assignment did not say', () => {
     const lines = storyLines(base([
       item({ title: 'Topic 3 DQ', notes: 'Reply to two classmates.', requirements: [ann('Reply to 2 classmates on 2 different days')] }),
-      item({ courseId: 'chm', title: 'Lab 4', requirements: [ann('Bring your own splash goggles'), ann('Print the prelab sheet')] }),
+      item({ courseId: 'chm', title: 'Lab 4', points: 50, requirements: [ann('Bring your own splash goggles'), ann('Print the prelab sheet')] }),
     ]));
     const only = lines.find((l) => l.key === 'only')!;
     expect(only.n).toBe(2);
@@ -86,6 +86,20 @@ describe('which announcement requirements make the examples', () => {
     expect(mixed.n).toBe(3);
     expect(mixed.examples).toEqual(['CHM-113L: Sign the lab safety waiver before lab']);
     const rulesOnly = storyLines(base([item({ courseId: 'chm', title: 'Lab 4', requirements: [ann('Cite any AI-generated content', undefined, { scope: 'rule' }), ann('Avoid Grammarly on written work')] })])).find((l) => l.key === 'only')!;
-    expect([...rulesOnly.examples!].sort()).toEqual(['CHM-113L: Avoid Grammarly on written work', 'CHM-113L: Cite any AI-generated content']);
+    // Nothing worth a line (a 10-point lab, no date): one that is not generic, never the standing rule (2026-10-10).
+    expect(rulesOnly.examples).toEqual(['CHM-113L: Avoid Grammarly on written work']);
+  });
+  it('never shows a generic catch; shows a hidden deadline or a requirement on a 20-point-plus assignment, two at most, else one or none (George, 2026-10-10)', () => {
+    const generic = storyLines(base([item({ courseId: 'chm', title: 'Lab 4', points: 50, requirements: [ann('Acknowledge this announcement after reading it'), ann('Read the topic readings before class')] })])).find((l) => l.key === 'only')!;
+    expect(generic.n).toBe(2);
+    expect(generic.examples).toEqual([]);
+    const mixed = storyLines(base([
+      item({ courseId: 'chm', title: 'Quiz', points: 5, requirements: [ann('Bring a calculator'), ann('Upload your work by Friday 5 PM', undefined, { dueAt: '2026-10-03T00:00:00.000Z' })] }),
+      item({ courseId: 'chm', title: 'Lab 4', points: 50, requirements: [ann('Acknowledge this announcement after reading it'), ann('Bring your own splash goggles')] }),
+    ])).find((l) => l.key === 'only')!;
+    expect(mixed.n).toBe(4);
+    expect(mixed.examples).toEqual(['CHM-113L: Upload your work by Friday 5 PM', 'CHM-113L: Bring your own splash goggles']);
+    const small = storyLines(base([item({ courseId: 'chm', title: 'Quiz', points: 5, requirements: [ann('Bring a calculator'), ann('Bring a pencil')] })])).find((l) => l.key === 'only')!;
+    expect(small.examples).toHaveLength(1);
   });
 });

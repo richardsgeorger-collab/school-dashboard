@@ -101,19 +101,27 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
   return (
     <div className="plan-choices" data-cups={cups || undefined}>
       <div className="plan-choice" data-best="true" data-tier="max">
-        {cups && <DrinkCup size="large" />}
+        {cups && <DrinkCup size={intro ? 'small' : 'large'} deal={intro} />}
         <span className="plan-choice-name">
           <span className="plan-choice-tag">{maxTag}</span>
           {intro ? (
-            <b className="plan-price">
-              <span className="plan-price-intro">${INTRO_FIRST_MONTH.toFixed(2)} your first month,</span> then ${PRICES.max.month.toFixed(2)}/mo
-            </b>
+            <span className="intro-hero">
+              <span className="intro-badge">First month</span>
+              <span className="intro-price-row">
+                <b className="intro-price">${INTRO_FIRST_MONTH.toFixed(2)}</b>
+                <s className="intro-was" aria-label={`instead of $${PRICES.max.month.toFixed(2)}`}>${PRICES.max.month.toFixed(2)}</s>
+                {cups && <span className="gcbc-line">Less than a small at GCBC.</span>}
+              </span>
+              <span className="intro-then">
+                Max · then ${PRICES.max.month.toFixed(2)}/mo · {CANCEL_LINE.toLowerCase()}
+              </span>
+            </span>
           ) : (
             <b className="plan-price">Max · ${PRICES.max.month.toFixed(2)} a month</b>
           )}
-          {cups && <span className="gcbc-line">{intro ? 'Less than a small at GCBC.' : 'About a large at GCBC, minus the regret.'}</span>}
+          {cups && !intro && <span className="gcbc-line">About a large at GCBC, minus the regret.</span>}
           <small className="tax-note">{TAX_LINE}</small>
-          <span>Everything you had this week: auto-sync, announcements read for you, and the study tools. {CANCEL_LINE}.</span>
+          <span>Everything you had this week: auto-sync, announcements read for you, and the study tools.{intro ? '' : ` ${CANCEL_LINE}.`}</span>
           <span className="plan-choice-more">Only $3 more than Plus for the study tools{intro ? ' (after the first month)' : ''}.</span>
           {!cups && (
             <span className="gcbc">

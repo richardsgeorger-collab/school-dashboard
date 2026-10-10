@@ -1,6 +1,7 @@
 /** A GCBC-style paper cup with a lid, a sleeve and a straw: it fills, then a little steam rises (reduced motion: just the cup). */
-export function DrinkCup({ size }: { size: 'small' | 'large' }) {
-  const id = `cup-${size}`;
+/** `deal`: a small sparkle at the rim, for the first-month offer. */
+export function DrinkCup({ size, deal = false }: { size: 'small' | 'large'; deal?: boolean }) {
+  const id = `cup-${size}${deal ? '-deal' : ''}`;
   return (
     <svg className="drink-cup" data-size={size} viewBox="0 0 120 170" width={size === 'large' ? 124 : 92} height={size === 'large' ? 176 : 130} aria-hidden fill="none">
       <defs>
@@ -24,6 +25,12 @@ export function DrinkCup({ size }: { size: 'small' | 'large' }) {
         {size === 'small' ? 'S' : 'L'}
       </text>
       <rect className="cup-lid" x="16" y="34" width="88" height="12" rx="5" />
+      {deal && (
+        <g className="cup-sparkle">
+          <path d="M100 14l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" />
+          <path d="M112 36l1.6 3.6 3.6 1.6-3.6 1.6-1.6 3.6-1.6-3.6-3.6-1.6 3.6-1.6z" />
+        </g>
+      )}
     </svg>
   );
 }
