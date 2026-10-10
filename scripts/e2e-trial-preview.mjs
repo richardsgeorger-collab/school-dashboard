@@ -55,6 +55,8 @@ try {
     await ctx.route('**/rest/v1/rpc/rate_trial', (r) => { checkout += 1000; return r.continue(); });
     const p = await ctx.newPage();
     await p.goto(`${BASE}#/admin`, { waitUntil: 'load' });
+    // The Admin page loads several cards from the server first; the ratings card (with this link) is one of them.
+    await p.waitForSelector('a:has-text("Preview the end-of-trial screen")', { timeout: 60000 });
     await p.click('a:has-text("Preview the end-of-trial screen")', { timeout: 20000 });
     await p.waitForSelector('.trial-ended .trial-preview-bar', { timeout: 10000 });
     await p.waitForSelector('.story-line', { timeout: 15000 }).catch(() => undefined);
