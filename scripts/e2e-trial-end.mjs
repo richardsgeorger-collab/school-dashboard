@@ -123,7 +123,7 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     await p.waitForSelector('.trial-ended .story-line', { timeout: 30000 });
     await p.waitForTimeout(5000);
     const fit = await p.evaluate(() => ({ plus: document.querySelector('.story-plans .plan-choice[data-tier=plus]').getBoundingClientRect().bottom, free: document.querySelector('.gcbc-free-link').getBoundingClientRect().bottom, scrolled: document.querySelector('.trial-ended').scrollTop, h: window.innerHeight, cups: document.querySelectorAll('.story-plans .drink-cup').length, big: document.querySelector('.story-plans .plan-choice[data-tier=max] .drink-cup').getBoundingClientRect().height }));
-    check(fit.cups === 2 && fit.big >= 60, `${w}x${h}: two animated cups, Max's ${Math.round(fit.big)}px tall`);
+    check(fit.cups === 2 && fit.big >= 44, `${w}x${h}: two animated cups, Max's ${Math.round(fit.big)}px tall`);
     check(fit.scrolled === 0 && fit.plus <= fit.h, `${w}x${h}: Keep Max and Choose Plus show without scrolling (Plus bottom ${Math.round(fit.plus)} of ${fit.h}; Stay on Free ${Math.round(fit.free)})`);
     if (w === 1366) for (const scheme of ['light', 'dark']) {
       await p.emulateMedia({ colorScheme: scheme });
@@ -163,7 +163,8 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
       const hero = await maxCard.evaluate((el) => el.querySelector('.intro-price') === null ? { price: null, pricePx: 0, badge: null, thenLine: null, was: null, thenPx: 0, biggest: 0, cup: null, sparkle: 0 } : ({ price: el.querySelector('.intro-price')?.textContent, pricePx: parseFloat(getComputedStyle(el.querySelector('.intro-price')).fontSize), badge: el.querySelector('.intro-badge')?.textContent, thenLine: el.querySelector('.intro-then')?.textContent, was: el.querySelector('.intro-was')?.textContent, thenPx: parseFloat(getComputedStyle(el.querySelector('.intro-then')).fontSize), biggest: Math.max(...[...el.querySelectorAll('*')].map((n) => parseFloat(getComputedStyle(n).fontSize))), cup: el.querySelector('.drink-cup')?.getAttribute('data-size'), sparkle: el.querySelectorAll('.cup-sparkle').length }));
       check(hero.price === '$2.99' && hero.pricePx >= 28 && hero.pricePx === hero.biggest, `$2.99 is the hero: ${hero.pricePx}px, the largest text on the card`);
       check(hero.badge === 'First month' && hero.was === '$7.99' && /then \$7\.99\/mo · cancel anytime/.test(hero.thenLine ?? '') && hero.thenPx < hero.pricePx / 1.8, `the badge, the struck $7.99, and "${hero.thenLine}" smaller (${hero.thenPx}px)`);
-      check(hero.cup === 'small' && hero.sparkle === 1, 'the Max cup is a small one with a sparkle, matching "Less than a small"');
+      const cups = await o3.p.evaluate(() => ({ max: document.querySelector('.plan-choice[data-tier=max] .drink-cup').getBoundingClientRect().height, plus: document.querySelector('.plan-choice[data-tier=plus] .drink-cup').getBoundingClientRect().height, word: document.querySelector('.plan-choice[data-tier=max] .cup-word')?.textContent }));
+      check(hero.cup === 'xsmall' && cups.word === 'XS' && hero.sparkle === 1 && cups.max < cups.plus, `the Max cup is an XS with a sparkle, smaller than Plus's S (${Math.round(cups.max)} vs ${Math.round(cups.plus)}px)`);
       check(/Plus · \$4\.99 a month/.test(text), 'Plus unchanged');
       await maxCard.screenshot({ path: `${OUT}/max-card-desk-light.png` });
       await o3.ctx.close();

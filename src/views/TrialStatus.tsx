@@ -101,7 +101,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
   return (
     <div className="plan-choices" data-cups={cups || undefined}>
       <div className="plan-choice" data-best="true" data-tier="max">
-        {cups && <DrinkCup size={intro ? 'small' : 'large'} deal={intro} />}
+        {cups && <DrinkCup size={intro ? 'xsmall' : 'large'} deal={intro} />}
         <span className="plan-choice-name">
           <span className="plan-choice-tag">{maxTag}</span>
           {intro ? (

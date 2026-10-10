@@ -1,9 +1,9 @@
 /** A GCBC-style paper cup with a lid, a sleeve and a straw: it fills, then a little steam rises (reduced motion: just the cup). */
-/** `deal`: a small sparkle at the rim, for the first-month offer. */
-export function DrinkCup({ size, deal = false }: { size: 'small' | 'large'; deal?: boolean }) {
+/** `deal`: a small sparkle at the rim, for the first-month offer. `xsmall`: the offer's cup, an XS a little under the S (2026-10-10). */
+export function DrinkCup({ size, deal = false }: { size: 'xsmall' | 'small' | 'large'; deal?: boolean }) {
   const id = `cup-${size}${deal ? '-deal' : ''}`;
   return (
-    <svg className="drink-cup" data-size={size} viewBox="0 0 120 170" width={size === 'large' ? 124 : 92} height={size === 'large' ? 176 : 130} aria-hidden fill="none">
+    <svg className="drink-cup" data-size={size} viewBox="0 0 120 170" width={size === 'large' ? 124 : size === 'small' ? 92 : 80} height={size === 'large' ? 176 : size === 'small' ? 130 : 113} aria-hidden fill="none">
       <defs>
         <clipPath id={id}>
           <path d="M22 44h76l-9 112a8 8 0 0 1-8 7H39a8 8 0 0 1-8-7L22 44Z" />
@@ -22,7 +22,7 @@ export function DrinkCup({ size, deal = false }: { size: 'small' | 'large'; deal
       <path className="cup-body" d="M22 44h76l-9 112a8 8 0 0 1-8 7H39a8 8 0 0 1-8-7L22 44Z" />
       <path className="cup-sleeve" d="M28 86h64l-3 34H31Z" />
       <text className="cup-word" x="60" y="108" textAnchor="middle">
-        {size === 'small' ? 'S' : 'L'}
+        {size === 'large' ? 'L' : size === 'small' ? 'S' : 'XS'}
       </text>
       <rect className="cup-lid" x="16" y="34" width="88" height="12" rx="5" />
       {deal && (
