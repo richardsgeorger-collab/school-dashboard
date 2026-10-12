@@ -59,6 +59,7 @@ import { CLEAR_MOMENT } from '../joy/joy';
 import { WrapCard } from '../joy/WrapCard';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
+import { RatePrompt } from './RatePrompt';
 import { SinceLastLooked } from './SinceLastLooked';
 import { SyncReminder, useSyncReminder } from './SyncReminder';
 import { CaughtCard } from './trialEnd/CaughtCard';
@@ -791,6 +792,7 @@ export function Now() {
       {quiet && !eveningWrap && <DailyQuestion />}
 
       <aside className="now-side">
+        <RatePrompt />
         <ExamWeekCard />
         <NotifyReask />
         <InviteNowCard />

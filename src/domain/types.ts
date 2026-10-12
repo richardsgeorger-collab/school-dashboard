@@ -559,6 +559,10 @@ export interface Settings {
   lastPull?: { at: string; build: string | null; counts: Record<string, number>; via?: 'extension' | 'bookmark' | 'paste' };
   /** The day the account last opened Now, on any device: "days away" counts from this, not one device's (2026-10-12). */
   lastSeenDay?: DateStr;
+  /** How many Halo syncs this account has applied (any device; only goes up). */
+  syncCount?: number;
+  /** The "rate us on the Chrome Web Store" card was answered (Rate or Not now): never shown again. */
+  ratePromptAt?: string | null;
   /** How this student runs the bookmark, set when they set it up, so every sync hint shows their own steps. */
   syncHow?: SyncHow | null;
   onboarding?: OnboardingState;

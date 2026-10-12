@@ -100,6 +100,11 @@ export function mergeSettings(local: Settings, remote: Settings): Settings {
       pulls[course] = next;
     }
   if (Object.keys(pulls).length) out.haloPulls = pulls;
+  const count = Math.max(local.syncCount ?? 0, remote.syncCount ?? 0);
+  if (count) out.syncCount = count;
+  // Answered on any device is answered.
+  const rated = later(local.ratePromptAt ?? undefined, remote.ratePromptAt ?? undefined);
+  if (rated) out.ratePromptAt = rated;
   out.updatedAt = later(local.updatedAt, remote.updatedAt) ?? winner.updatedAt;
   return out;
 }

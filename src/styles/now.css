@@ -1450,3 +1450,25 @@
   padding: 0 8px;
   margin-left: -8px;
 }
+
+/* "Enjoying Halo+?" once, a week in (2026-10-12). */
+.rate-prompt {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.rate-prompt p {
+  margin: 0;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.rate-prompt b {
+  color: var(--ink);
+}
+.rate-prompt-actions {
+  display: flex;
+  gap: 8px;
+}

@@ -1,5 +1,56 @@
 # Chrome Web Store listing kit
 
+## The listing now: 0.7.2 (2026-10-12): paste exactly this
+
+Written to be found next to the other GCU Halo extensions (Better Halo, Halo Global Calendar): the words students type
+(Halo, GCU, Grand Canyon, assignments, due dates, calendar, planner) are in the title, the summary and the first lines.
+No code and no permission changed; the title and the summary live in the package, so they ship as 0.7.2.
+
+| Where in the dashboard | What |
+|---|---|
+| **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.7.2.zip` (sets the **title** and the **summary** below; nothing else changed) |
+| **Store listing → Description** | the Description block below, all of it |
+| **Store listing → Screenshots** | remove the old five, add `webstore-upload/screenshots/1-whats-due-next.png` … `5-ask-a-question.png` in that order (1280×800, 24-bit) |
+| **Store listing → Category** | Education → "Tools" (unchanged) |
+| **Privacy** | unchanged from 0.6.x (no new permission; the optional file host stays optional) |
+| Then | **Submit for review** |
+
+**Title** (manifest `name`, 52 of 75 characters):
+
+```
+Halo+ for GCU: Every Due Date, Even in Announcements
+```
+
+**Summary** (manifest `description`, 121 of 132 characters):
+
+```
+Every GCU Halo due date in one planner, even ones buried in announcements. Works on your phone and shows what's due next.
+```
+
+**Description** (Store listing → Description):
+
+```
+Halo buries your due dates in five places: the assignment page, the gradebook, the syllabus, a discussion thread, and the announcements your professor posts on a Tuesday night that move a quiz or add "bring goggles to lab." Miss one and it costs you points.
+
+Halo+ reads all of it and gives every GCU class one plan: what's due next, what changed, and what to start today.
+
+What Halo+ does that a plain calendar can't:
+• Reads your Halo announcements for you. A due date that moved, a new requirement, "closed-toe shoes for Lab 4": caught and put on the right assignment.
+• Tells you what's due next, not just what's due. One card says what to start now, with how long it takes and what it's worth.
+• Your real Halo grades for every class, and what an assignment does to your grade before you turn it in.
+• Works on your phone. Your laptop syncs Halo; open Halo+ on your phone and the whole week is there.
+• Syncs on its own every 3 hours while Chrome is open (Plus and Max), or press Sync now.
+
+7 days free, no card.
+
+Built for Grand Canyon University students who use Halo: assignments, due dates, a calendar and a planner in one place. The extension reads only your own Halo, while you're logged in, and sends it to your own Halo+ account. Free keeps your classes from your syllabi; Plus adds Halo sync and announcements read for you; Max adds the study tools.
+
+Not affiliated with GCU.
+```
+
+## Earlier listings (for reference)
+
+
 The listing as it should read for **0.5.2** (auto-sync on Plus and Max; the 0.5.1 auto-sync fix; confetti on Halo). 0.3.1 is live
 (https://chromewebstore.google.com/detail/halo+/dookepepmkkakmepjabldmgfmfhfcmnn). Every file to upload is in
 `webstore-upload/` (kept out of git):
