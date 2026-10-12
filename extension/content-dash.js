@@ -109,6 +109,11 @@
       reply({ ok: true });
       return;
     }
+    if (msg.kind === 'sync-result') {
+      window.postMessage({ kind: 'halo-ext-sync-result', ok: !!msg.ok, at: msg.at || null, errorKind: msg.ok ? null : msg.errorKind || null, why: msg.why || null, auto: !!msg.auto }, location.origin);
+      reply({ ok: true });
+      return;
+    }
     if (msg.kind === 'kit-progress') {
       window.postMessage({ kind: 'halo-kit-progress', requestId: msg.requestId, note: msg.note }, location.origin);
       reply({ ok: true });
@@ -130,6 +135,14 @@
     else if (r && r.payload) handOver(r.payload, (ok) => ok && chrome.runtime.sendMessage({ kind: 'landed', exportedAt: r.payload.exportedAt }));
   }).catch(() => undefined);
 
+  // Halo+'s Sync now (0.6.5): the run starts, or joins one already running; how it ends comes back as sync-result.
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.kind !== 'halo-ext-sync-now') return;
+    chrome.runtime
+      .sendMessage({ kind: 'page-sync' })
+      .then((r) => window.postMessage({ kind: 'halo-ext-sync-started', busy: !!(r && r.busy) }, location.origin))
+      .catch((err) => window.postMessage({ kind: 'halo-ext-sync-result', ok: false, errorKind: 'extension', why: String(err) }, location.origin));
+  });
   // The extension setup's last step asks for the first sync now (0.5.2).
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data || e.data.kind !== 'halo-ext-first-sync') return;

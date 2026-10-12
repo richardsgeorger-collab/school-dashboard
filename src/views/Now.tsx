@@ -786,7 +786,7 @@ export function Now() {
         <NotifyReask />
         <InviteNowCard />
         {/* The trust line, always: when what is on screen last matched Halo, or that it is out of date, with the one button. */}
-        {data.courses.length > 0 && !reminding && <SyncedLine stale={stale} />}
+        {data.courses.length > 0 && <SyncedLine stale={reminding ? null : stale} />}
         <HeadsUp lines={headsUp} />
         {data.courses.length > 0 && (
           <a className="coach-ask" href="#/ask">

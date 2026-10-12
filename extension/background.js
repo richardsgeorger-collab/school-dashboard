@@ -212,6 +212,11 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       if (sender.tab && sender.tab.id !== undefined) chrome.tabs.remove(sender.tab.id).catch(() => undefined);
     })();
     reply({ ok: true });
+  } else if (msg.kind === 'page-sync') {
+    // Halo+'s Sync now (0.6.5): runs at once, or joins the sync already running; either way the tab hears how it ended.
+    const busy = state.running;
+    if (!busy) void runSync({ auto: false, quiet: true });
+    reply({ started: !busy, busy });
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
     // through storage, so the reply does not wait for the sync.
@@ -459,6 +464,7 @@ async function setPaused(why) {
 
 async function failed(e, auto) {
   await set({ lastError: e.text, lastErrorKind: e.kind, lastErrorAt: new Date().toISOString() });
+  void tellTabs({ ok: false, kind: e.kind, why: e.text, auto });
   // Logged out of Halo on a scheduled run (Halo's sign-in times out): auto-sync is paused until Halo is open again.
   // Not silent any more (2026-10-02): Halo+ says so on Now, and Admin → Errors hears of it once per stretch.
   if (e.kind === 'logged-out' && auto) {
@@ -513,11 +519,22 @@ async function toAccount(payload) {
 /** A sync reached the account (or an open Halo+ tab): now, and only now, it is "Last synced". */
 async function markLanded(readAt, how) {
   await set({ lastSyncAt: readAt, lastLanded: how, lastError: null, lastErrorKind: null });
+  void tellTabs({ ok: true, at: readAt, how });
   const { autoPaused } = await get('autoPaused');
   if (autoPaused) await setPaused(null);
   const { tier } = await get('tier');
   if (AUTO.includes(tier)) await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
   await chrome.action.setBadgeText({ text: '' });
+}
+
+/**
+ * How a sync ended, told to every open Halo+ tab (0.6.5): the banner's Sync now shows it instead of "Syncing…" forever.
+ * { ok: true, at } when it reached the account; { ok: false, kind, why } when it did not, in the words the popup uses.
+ */
+async function tellTabs(result) {
+  const tabs = await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` });
+  const { kind: errorKind = null, ...rest } = result;
+  for (const t of tabs) chrome.tabs.sendMessage(t.id, { ...rest, kind: 'sync-result', errorKind }).catch(() => undefined);
 }
 
 /** Tells every open Halo+ tab a sync is waiting in the account, so it takes it now. */
@@ -551,7 +568,9 @@ async function finish(payload, auto, quiet = false) {
       : r.kind === 'offline'
         ? `Read Halo at ${at}, but your Halo+ account could not be reached (no connection). It is kept here and goes in when Halo+ opens.`
         : `Read Halo at ${at}, but it did not reach your account: ${String(r.why || 'unknown error').replace(/\.$/, '')}. It is kept here; press Sync now to try again.`;
-  await set({ lastError: text, lastErrorKind: 'not-landed', lastErrorAt: new Date().toISOString() });
+  await set({ lastError: r.kind === 'foreign' ? r.why : text, lastErrorKind: r.kind === 'foreign' ? (r.offer ? 'move' : 'foreign') : 'not-landed', lastErrorAt: new Date().toISOString() });
+  void tellTabs({ ok: false, kind: r.kind === 'foreign' ? (r.offer ? 'move' : 'foreign') : r.kind || 'not-landed', why: r.kind === 'foreign' ? r.why : text, auto });
+  if (r.kind === 'foreign') return;
   // Never landed (kept in the extension). No key yet is setup, not a fault.
   if (r.kind !== 'no-key') void reportError({ title: 'Extension sync did not reach the account', message: r.why || r.kind, place: auto ? 'scheduled sync' : 'sync now', details: { kind: r.kind || 'unknown', auto } });
   if (!auto && !quiet) await chrome.action.setBadgeText({ text: '!' });
@@ -611,7 +630,7 @@ async function land(payload, auto, quiet = false) {
         } else await chrome.tabs.create({ url: DASH_URL, active: true });
       }
     }
-    return { landed: false, kind: 'foreign', why: saved.why };
+    return { landed: false, kind: 'foreign', why: saved.why, offer: !!saved.offer };
   }
   let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;
   if (tab && front) {

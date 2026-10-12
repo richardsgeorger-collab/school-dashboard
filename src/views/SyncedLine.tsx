@@ -1,4 +1,5 @@
-import { dateOf, diffDays, fmtDate, fmtTime } from '../domain/dates';
+import { relTime } from '../halo/syncWords';
+import { useNow } from '../ui/useNow';
 import { loadLastSync } from '../halo/handoff';
 import { useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
@@ -12,6 +13,7 @@ import { AutoSyncPaused } from '../halo/AutoSyncPaused';
 export function SyncedLine({ stale, courseId }: { stale?: string | null; courseId?: string }) {
   const { data, today } = useStore();
   const tz = data.settings.timezone;
+  const now = useNow(30_000);
   // A class synced before per-class pull stamps existed falls back to the account's last sync (it is Halo-linked).
   const linked = !!courseId && !!data.courses.find((c) => c.id === courseId)?.haloClassId;
   const at = (courseId ? (data.settings.haloPulls?.[courseId]?.assessments ?? (linked ? data.settings.lastPull?.at : null)) : data.settings.lastPull?.at) ?? loadLastSync()?.at ?? null;
@@ -27,24 +29,24 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
       </p>
     );
   }
-  const day = dateOf(at, tz);
-  const k = diffDays(day, today);
-  const when = k === 0 ? `today ${fmtTime(at, tz)}` : k === 1 ? `yesterday ${fmtTime(at, tz)}` : `${fmtDate(day, 'short')} ${fmtTime(at, tz)}`;
-  if (stale) {
-    return (
-      <p className="synced mono" data-level="amber">
-        <span>{stale}</span> {sync} <HowYouSync bare />
-      </p>
-    );
-  }
-  // The account's line says where the last sync came from when it was the extension, so a student can tell the
-  // three-hourly sync is landing.
+  // Always the time, live ("5 min ago", "yesterday 12:48 PM"), even while a sync banner shows (George, 2026-10-11); an
+  // out-of-date note goes beside it, never instead of it.
+  const when = relTime(at, now, tz, today);
+  // Where the last sync came from when it was the extension, so a student can tell the three-hourly sync is landing.
   const via = !courseId && data.settings.lastPull?.via === 'extension' && data.settings.lastPull.at === at ? ' via extension' : '';
   return (
     <>
-      <p className="synced mono" data-level="ok">
-        Synced from Halo {when}
-        {via}.
+      <p className="synced mono" data-level={stale ? 'amber' : 'ok'}>
+        <span className="synced-when">
+          Synced from Halo {when}
+          {via}.
+        </span>
+        {stale && (
+          <>
+            {' '}
+            <span>{stale}</span> {sync} <HowYouSync bare />
+          </>
+        )}
       </p>
       {!courseId && <AutoSyncPaused />}
     </>

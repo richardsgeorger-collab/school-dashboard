@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCan } from '../config/useCan';
 import { installedVersion } from '../config/extension';
-import { dateOf, diffDays, fmtDate, fmtTime } from '../domain/dates';
+import { todayStr as todayOf } from '../domain/dates';
+import { failWords, relTime, SYNC_TIMEOUT_MS } from '../halo/syncWords';
+import { useNow } from '../ui/useNow';
 import { EXT_STATUS_SLOT, readAutoPaused } from '../halo/autoSyncStatus';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { loadLastSync } from '../halo/handoff';
@@ -25,92 +27,136 @@ export function useSyncReminder(): Reminder | null {
   const { data } = useStore();
   const allowed = useSyncAccess().allowed;
   const autoPlan = useCan('haloAutoSync');
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const onShow = () => document.visibilityState === 'visible' && setNow(Date.now());
-    document.addEventListener('visibilitychange', onShow);
-    const iv = window.setInterval(() => setNow(Date.now()), 5 * 60_000);
-    return () => {
-      document.removeEventListener('visibilitychange', onShow);
-      window.clearInterval(iv);
-    };
-  }, []);
+  const now = useNow(30_000);
   const lastAt = data.settings.lastPull?.at ?? loadLastSync()?.at ?? null;
   // A sync the merged-classes banner already asks for: one sync prompt at a time.
   if (mergedClasses(data.courses).length > 0) return null;
   return syncReminder({ lastAt, now, allowed, extInstalled: !!installedVersion(), autoPlan, paused: pausedNow() });
 }
 
+/** Which way to ask for a sync on this computer: the extension's own Sync now (0.6.5), its setup handshake, or Halo. */
+const askExtension = (): 'page-sync' | 'first-sync' | null => {
+  const v = installedVersion();
+  if (!v) return null;
+  const [a, b, c] = v.split('.').map(Number);
+  return a > 0 || b > 6 || (b === 6 && (c ?? 0) >= 5) ? 'page-sync' : 'first-sync';
+};
+
+type Phase = { k: 'idle' } | { k: 'running'; since: number } | { k: 'halo' } | { k: 'done' } | { k: 'failed'; text: string; halo: boolean } | { k: 'timeout' };
+
 /**
  * The bold line pinned at the top of Now while the planner is out of date (see halo/syncReminder.ts). Sync now asks the
- * extension on this computer to sync through the same relay its setup uses; without it, Halo opens in a new tab for
- * the bookmark. When the sync lands it says "Synced" for a moment and goes.
+ * extension on this computer to sync; without it, Halo opens in a new tab for the bookmark. It never says "Syncing…"
+ * forever (George, 2026-10-11): a sync that lands turns it into "✓ Synced just now" and it goes; one the extension says
+ * failed or was refused says why with a next step; nothing heard in two minutes says so, with Try again.
  */
 export function SyncReminder() {
-  const { data, today } = useStore();
-  const tz = data.settings.timezone;
+  const { data } = useStore();
   const r = useSyncReminder();
   const last = data.settings.lastPull?.at ?? null;
-  const [asked, setAsked] = useState<'ext' | 'halo' | null>(null);
-  const [synced, setSynced] = useState(false);
-  // The last sync as it was while the reminder was on screen; a different one is a sync that landed.
-  const shownFor = useRef<string | null>(null);
-  // A sync landed while the reminder was up: the check, then nothing.
+  const [phase, setPhase] = useState<Phase>({ k: 'idle' });
+  // The last sync as it was when the reminder showed or Sync now was pressed; a different one is a sync that landed.
+  const seen = useRef<string | null>(last);
   useEffect(() => {
-    if (shownFor.current === null || last === shownFor.current) return;
-    shownFor.current = null;
-    setAsked(null);
-    setSynced(true);
-    const t = window.setTimeout(() => setSynced(false), 2500);
+    if (last === seen.current) return;
+    seen.current = last;
+    setPhase((p) => (p.k === 'idle' && !r ? p : { k: 'done' }));
+  }, [last, r]);
+  useEffect(() => {
+    if (phase.k !== 'done') return;
+    const t = window.setTimeout(() => setPhase({ k: 'idle' }), 4000);
     return () => window.clearTimeout(t);
-  }, [last]);
+  }, [phase.k]);
+  // Nothing heard in two minutes: say so, with Try again.
   useEffect(() => {
-    if (r && shownFor.current === null) shownFor.current = last;
-  }, [r, last]);
-  // The extension's quiet sync did not land in time (Halo logged out, Chrome offline): say what to do.
-  useEffect(() => {
-    if (asked !== 'ext') return;
-    const t = window.setTimeout(() => setAsked('halo'), 150_000);
+    if (phase.k !== 'running') return;
+    const t = window.setTimeout(() => setPhase({ k: 'timeout' }), Math.max(0, phase.since + SYNC_TIMEOUT_MS - Date.now()));
     return () => window.clearTimeout(t);
-  }, [asked]);
-  if (synced)
+  }, [phase]);
+  // How the extension's run ended (0.6.5). Landed: the planner takes it from the account and the check above shows.
+  useEffect(() => {
+    const on = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || (e.data as { kind?: string } | null)?.kind !== 'halo-ext-sync-result') return;
+      const d = e.data as { ok: boolean; errorKind: string | null; why: string | null; auto?: boolean };
+      if (d.ok) return;
+      setPhase((p) => (p.k === 'running' || (!d.auto && p.k !== 'done') ? { k: 'failed', ...failWords(d.errorKind, d.why) } : p));
+    };
+    window.addEventListener('message', on);
+    return () => window.removeEventListener('message', on);
+  }, []);
+
+  if (phase.k === 'done')
     return (
       <div className="sync-reminder" data-level="ok" role="status">
         <p>
-          <b>✓ Synced.</b> You're up to date.
+          <b>✓ Synced just now.</b> You're up to date.
         </p>
       </div>
     );
-  if (!r) return null;
+  if (!r && phase.k !== 'failed' && phase.k !== 'timeout') return null;
   const syncNow = () => {
-    if (installedVersion()) {
-      window.postMessage({ kind: 'halo-ext-first-sync' }, location.origin);
-      setAsked('ext');
+    seen.current = last;
+    const how = askExtension();
+    if (how) {
+      window.postMessage({ kind: how === 'page-sync' ? 'halo-ext-sync-now' : 'halo-ext-first-sync' }, location.origin);
+      setPhase({ k: 'running', since: Date.now() });
     } else {
       window.open(HALO, '_blank', 'noopener');
-      setAsked('halo');
+      setPhase({ k: 'halo' });
     }
   };
-  const when = (at: string) => {
-    const k = diffDays(dateOf(at, tz), today);
-    return k === 0 ? `${fmtTime(at, tz)} today` : k === 1 ? `yesterday ${fmtTime(at, tz)}` : `${fmtDate(dateOf(at, tz), 'short')} ${fmtTime(at, tz)}`;
-  };
+  const tryAgain = (
+    <button type="button" className="btn small primary" onClick={syncNow}>
+      Try again
+    </button>
+  );
+  if (phase.k === 'failed')
+    return (
+      <div className="sync-reminder" data-level="red" role="alert">
+        <p>
+          <b>Sync didn't finish.</b> {phase.text}
+        </p>
+        <span className="sync-reminder-actions">
+          {phase.halo && (
+            <a className="btn small" href={HALO} target="_blank" rel="noreferrer">
+              Open Halo ↗
+            </a>
+          )}
+          {tryAgain}
+        </span>
+      </div>
+    );
+  if (phase.k === 'timeout')
+    return (
+      <div className="sync-reminder" data-level="red" role="alert">
+        <p>
+          <b>Sync didn't finish in 2 minutes.</b> Check that you're logged in to Halo in this browser, then try again.
+        </p>
+        <span className="sync-reminder-actions">
+          <a className="btn small" href={HALO} target="_blank" rel="noreferrer">
+            Open Halo ↗
+          </a>
+          {tryAgain}
+        </span>
+      </div>
+    );
+  if (!r) return null;
   return (
     <div className="sync-reminder" data-level={r.red ? 'red' : 'amber'} role="status">
       {r.kind === 'stale' ? (
         <p>
           <b>{staleText(r.days)}</b> Sync now so you don't miss anything.
-          {asked === 'ext' && <span className="sync-reminder-note"> Syncing in the background…</span>}
-          {asked === 'halo' && <span className="sync-reminder-note"> On Halo, log in and click {BOOKMARK_NAME}.</span>}
+          {phase.k === 'running' && <span className="sync-reminder-note"> Syncing: reading Halo in the background. This takes up to a minute.</span>}
+          {phase.k === 'halo' && <span className="sync-reminder-note"> On Halo, log in and click {BOOKMARK_NAME}.</span>}
         </p>
       ) : (
         <p>
-          <b>{r.paused ? 'Auto-sync paused: log in to Halo.' : `Auto-sync hasn't run since ${when(r.since)}.`}</b> Open Halo once to wake it up.
+          <b>{r.paused ? 'Auto-sync paused: log in to Halo.' : `Auto-sync hasn't run since ${relTime(r.since, Date.now(), data.settings.timezone, todayOf(data.settings.timezone))}.`}</b> Open Halo once to wake it up.
         </p>
       )}
       {r.kind === 'stale' ? (
-        <button type="button" className="btn small primary" onClick={syncNow} disabled={asked === 'ext'}>
-          {asked === 'ext' ? 'Syncing…' : 'Sync now'}
+        <button type="button" className="btn small primary" onClick={syncNow} disabled={phase.k === 'running'}>
+          {phase.k === 'running' ? 'Syncing…' : 'Sync now'}
         </button>
       ) : (
         <a className="btn small primary" href={HALO} target="_blank" rel="noreferrer">

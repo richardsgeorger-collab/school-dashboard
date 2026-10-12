@@ -122,6 +122,12 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
+## 0.6.5 (2026-10-12): Sync now on Halo+ says how it ended
+
+Version 0.6.5; no permission change. Halo+'s own Sync now button asks the extension to sync (on any plan, joining a
+sync already running), and the extension tells open Halo+ tabs how each sync ended (landed, Halo logged out, refused,
+no connection), so the page never says "Syncing…" forever. Nothing to change in the listing text.
+
 ## 0.6.4 (2026-10-11): one Halo student, one Halo+ account, and a way to move it
 
 Version 0.6.4; no permission change. Each sync now carries a one-way hash of the Halo student's identity (never the
