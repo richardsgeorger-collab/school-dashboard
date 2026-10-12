@@ -34,13 +34,8 @@ export function useSyncReminder(): Reminder | null {
   return syncReminder({ lastAt, now, allowed, extInstalled: !!installedVersion(), autoPlan, paused: pausedNow() });
 }
 
-/** Which way to ask for a sync on this computer: the extension's own Sync now (0.6.5), its setup handshake, or Halo. */
-const askExtension = (): 'page-sync' | 'first-sync' | null => {
-  const v = installedVersion();
-  if (!v) return null;
-  const [a, b, c] = v.split('.').map(Number);
-  return a > 0 || b > 6 || (b === 6 && (c ?? 0) >= 5) ? 'page-sync' : 'first-sync';
-};
+/** An extension is on this computer (its Halo+ script wrote its version); without one, Halo opens for the bookmark. */
+const askExtension = (): boolean => !!installedVersion();
 
 type Phase = { k: 'idle' } | { k: 'running'; since: number } | { k: 'halo' } | { k: 'done' } | { k: 'failed'; text: string; halo: boolean } | { k: 'timeout' };
 
@@ -98,7 +93,18 @@ export function SyncReminder() {
     seen.current = last;
     const how = askExtension();
     if (how) {
-      window.postMessage({ kind: how === 'page-sync' ? 'halo-ext-sync-now' : 'halo-ext-first-sync' }, location.origin);
+      // Asked by what the extension answers, not by its version number (a store build can carry any number, 2026-10-12):
+      // the page Sync now (0.6.5+) acknowledges at once; no word in 1.5 s, and the older handshake is used instead.
+      let acked = false;
+      const onAck = (e: MessageEvent) => {
+        if (e.origin === window.location.origin && (e.data as { kind?: string } | null)?.kind === 'halo-ext-sync-started') acked = true;
+      };
+      window.addEventListener('message', onAck);
+      window.postMessage({ kind: 'halo-ext-sync-now' }, location.origin);
+      window.setTimeout(() => {
+        window.removeEventListener('message', onAck);
+        if (!acked) window.postMessage({ kind: 'halo-ext-first-sync' }, location.origin);
+      }, 1500);
       setPhase({ k: 'running', since: Date.now() });
     } else {
       window.open(HALO, '_blank', 'noopener');

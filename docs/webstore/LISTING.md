@@ -122,7 +122,7 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
-## 0.6.6 (2026-10-12): the popup never says "Syncing…" forever
+## 0.7.1 (2026-10-12): the popup never says "Syncing…" forever (built as 0.6.6; the store already had 0.7)
 
 Version 0.6.6; no permission change. A sync the extension finishes after Chrome restarted it now clears its "Syncing"
 state like any other; the popup treats two minutes with no word from Halo as stopped, says so, and offers Try again;

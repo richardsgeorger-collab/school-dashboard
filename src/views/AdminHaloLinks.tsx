@@ -61,7 +61,7 @@ export function AdminHaloLinks() {
           {note}
         </p>
       )}
-      {rows && rows.length === 0 && <p className="hint">No links yet. A link is made at a real account's first sync with the current sync script (extension 0.6.4, or the bookmark).</p>}
+      {rows && rows.length === 0 && <p className="hint">No links yet. A link is made at a real account's first sync with the current sync script (extension 0.6.4 or later, or the bookmark).</p>}
       {rows && rows.length > 0 && (
         <ul className="halo-links">
           {rows.map((l) => (

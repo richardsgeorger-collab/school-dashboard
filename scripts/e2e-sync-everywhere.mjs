@@ -71,7 +71,7 @@ try {
   const cdp = await browser.newBrowserCDPSession();
   const loaded = await cdp.send('Extensions.loadUnpacked', { path: EXT });
   const ver = await until(() => p.evaluate(() => localStorage.getItem('school-dashboard:ext-version')), 20000);
-  check(ver === '0.6.6', `the extension is on this computer (${ver})`);
+  check(ver === JSON.parse(readFileSync(join(EXT, 'manifest.json'), 'utf8')).version, `the extension is on this computer (${ver})`);
   await until(async () => (await p.evaluate(() => localStorage.getItem('school-dashboard:sync-key'))) !== null, 15000);
   const extId = loaded.id;
   const pop = await ctx.newPage();
