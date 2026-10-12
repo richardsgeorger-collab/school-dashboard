@@ -126,3 +126,14 @@ describe('the stale-sync line', () => {
     expect(stalenessLine({ never: [], stale: [{ kind: 'assessments', courses: [course], days: 4 }] }, 1)).toBe('Last Halo sync was 4 days ago.');
   });
 });
+
+describe('a field-only build bump holds nothing (George, 2026-10-12)', () => {
+  it('an extension still sending 2026-09-28a reads as current under 2026-10-11a; anything before the floor is still older', async () => {
+    const { bookmarkAge, COMPATIBLE_SINCE } = await import('./freshness');
+    expect(COMPATIBLE_SINCE).toBe('2026-09-28a');
+    expect(bookmarkAge({ build: '2026-09-28a', pulls: [], source: 'extension' }, '2026-10-11a')).toBeNull();
+    expect(bookmarkAge({ build: '2026-10-11a', pulls: [], source: 'extension' }, '2026-10-11a')).toBeNull();
+    expect(bookmarkAge({ build: '2026-09-20a', pulls: [], source: 'extension' }, '2026-10-11a')?.kind).toBe('older');
+    expect(bookmarkAge({ build: '2026-10-20a', pulls: [], source: 'extension' }, '2026-10-11a')?.kind).toBe('newer');
+  });
+});

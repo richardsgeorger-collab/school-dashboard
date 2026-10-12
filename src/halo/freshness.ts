@@ -113,9 +113,18 @@ export interface BookmarkAge {
  * indistinguishable from eleven failures unless the build is stamped, which is why it is. Builds are date-stamped
  * ('2026-09-27a'), so string order is age order; a payload newer than the app means the tab itself is stale.
  */
+/**
+ * The oldest sync-script build whose exports read exactly like today's. A build that only adds an optional field (2026-10-11a
+ * added the Halo student's hash) must not turn every earlier copy into "older": that held every Web Store extension's
+ * sync behind "Update the extension" for students who cannot update it (George, 2026-10-12). Raise this only when the
+ * data an export carries changes meaning.
+ */
+export const COMPATIBLE_SINCE = '2026-09-28a';
+
 export function bookmarkAge(payload: Pick<HaloExport, 'build' | 'pulls'> & { source?: HaloExport['source'] }, current: string): BookmarkAge | null {
   const build = payload.build ?? null;
   if (build === current) return null;
+  if (build && build >= COMPATIBLE_SINCE && build < current) return null;
   const ext = payload.source === 'extension';
   const what = ext ? 'Halo+ extension' : `${BOOKMARK_NAME} bookmark`;
   if (build && build > current) {
