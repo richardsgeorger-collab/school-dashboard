@@ -4,7 +4,7 @@ import { InviteLine, InviteNowCard } from './InviteNowCard';
 import { ParticipationWeek } from './ParticipationWeek';
 import { isParticipation } from '../domain/participation';
 import { afterDone, arrange, emptySkips, forDay, skip, unskip, type SkipState } from '../domain/skips';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ItemRow } from '../components/ItemRow';
 import { Modal } from '../components/Modal';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
@@ -40,8 +40,8 @@ import { isOpen } from '../onboarding/state';
 import { maxOpen } from '../onboarding/maxState';
 import { WelcomeBack } from './WelcomeBack';
 import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, statusLine, todayDone } from '../domain/now';
-import type { Course, Item } from '../domain/types';
-import { useStore } from '../storage/store';
+import type { Course, DateStr, Item } from '../domain/types';
+import { useAccountChecked, useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
 import { DailyQuestion } from './DailyQuestion';
 import { HeroCard, type NotNow } from './HeroCard';
@@ -323,16 +323,25 @@ export function Now() {
   const heavy = useMemo(() => pileupAhead(work, schedule, today), [work, schedule, today]);
   const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
   const clean = useMemo(() => cleanAll(data.items).items, [data.items]);
-  const stale = useMemo(() => stalenessLine(staleness(data.courses, data.settings, today), data.courses.length), [data.courses, data.settings, today]);
+  const checked = useAccountChecked();
+  const stale = useMemo(() => (checked ? stalenessLine(staleness(data.courses, data.settings, today), data.courses.length) : null), [checked, data.courses, data.settings, today]);
   const chase = useMemo(() => blockedLine(work, data.courses, schedule, today, tz), [work, data.courses, schedule, today, tz]);
   const waiting = useMemo(() => work.filter((i) => i.status !== 'done' && isBlocked(i, today)), [work, today]);
   // Back after days away: one card that says what changed, then the normal screen behind one button.
-  const [lastSeen] = useState(() => readLastSeen());
+  // "Days away" is the account's, not this device's (George, 2026-10-12: a phone opened after ten days said "10 days away"
+  // while the laptop was used daily): the later of this device's last open and the account's (any device), read once
+  // the account's copy is here, and only then stamped as today.
+  const [deviceSeen] = useState(() => readLastSeen());
+  const accountSeen = useRef<DateStr | null | undefined>(undefined);
+  if (checked && accountSeen.current === undefined) accountSeen.current = data.settings.lastSeenDay ?? null;
+  const lastSeen = !checked ? null : [deviceSeen, accountSeen.current ?? null].filter((d): d is DateStr => !!d).sort().pop() ?? null;
   const [welcomed, setWelcomed] = useState(false);
-  const showWelcome = !welcomed && lastSeen !== null && awayDays(lastSeen, today) >= AWAY_DAYS;
+  const showWelcome = checked && !welcomed && lastSeen !== null && awayDays(lastSeen, today) >= AWAY_DAYS;
   useEffect(() => {
-    if (!showWelcome) stampLastSeen(today);
-  }, [showWelcome, today]);
+    if (!checked || showWelcome) return;
+    stampLastSeen(today);
+    if (data.settings.lastSeenDay !== today) actions.updateSettings({ lastSeenDay: today });
+  }, [checked, showWelcome, today, data.settings.lastSeenDay, actions]);
   const back = useMemo(() => (showWelcome && lastSeen ? welcomeBack(work, schedule, lastSeen, today) : null), [showWelcome, lastSeen, work, schedule, today]);
   // Sunday review: offered once a Sunday, waved off twice means off. Never with nothing to review, and never
   // under the first-run screens: its backdrop sits above them and a new student on a Sunday could not tap Sign up.

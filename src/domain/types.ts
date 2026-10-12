@@ -557,6 +557,8 @@ export interface Settings {
   /** What the last Halo sync actually brought back, kept so the answer outlives the review screen. */
   /** The newest sync applied: `at` is when Halo was read (not when it was applied), `via` where it came from. */
   lastPull?: { at: string; build: string | null; counts: Record<string, number>; via?: 'extension' | 'bookmark' | 'paste' };
+  /** The day the account last opened Now, on any device: "days away" counts from this, not one device's (2026-10-12). */
+  lastSeenDay?: DateStr;
   /** How this student runs the bookmark, set when they set it up, so every sync hint shows their own steps. */
   syncHow?: SyncHow | null;
   onboarding?: OnboardingState;

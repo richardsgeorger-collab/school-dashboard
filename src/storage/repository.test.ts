@@ -91,7 +91,24 @@ describe('a device loading an account for the first time', () => {
     const first = mergeData(device, { settings: saved }, { preferRemoteSettings: true });
     expect(first.merged.settings.lastPull?.via).toBe('extension');
     expect(first.pushSettings).toBe(false);
-    // Without it (a device already in use), newer still wins, as before.
-    expect(mergeData(device, { settings: saved }).merged.settings.lastPull).toBeUndefined();
+    // Without it (a device already in use), the newer copy wins per key, but the last sync only moves forward: a device
+    // without one never erases the account's (George, 2026-10-12).
+    expect(mergeData(device, { settings: saved }).merged.settings.lastPull?.at).toBe('2026-09-30T19:35:00Z');
+  });
+});
+
+describe("settings merge key by key; what Halo said only moves forward (George, 2026-10-12)", () => {
+  it("a phone's ten-day-old copy, written a moment ago, never takes the account back to its old last sync", async () => {
+    const { mergeData } = await import('./repository');
+    const account = { ...DEFAULT_SETTINGS, updatedAt: '2026-10-12T23:08:31Z', lastPull: { at: '2026-10-12T23:08:24Z', build: 'b', counts: {}, via: 'extension' as const }, haloPulls: { c1: { assessments: '2026-10-12T23:08:24Z', grades: '2026-10-12T23:08:24Z' } }, reminders: { morning: false }, extSetup: { doneAt: 'x' } as never };
+    const phone: AppData = { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, updatedAt: '2026-10-12T23:20:58Z', lastPull: { at: '2026-10-01T21:55:41Z', build: 'b', counts: {}, via: 'extension' as const }, haloPulls: { c1: { assessments: '2026-10-01T21:55:41Z', announcements: '2026-10-01T21:55:41Z' } }, theme: 'dark' as never } };
+    const r = mergeData(phone, { settings: account });
+    expect(r.merged.settings.lastPull?.at).toBe('2026-10-12T23:08:24Z');
+    expect(r.merged.settings.haloPulls?.c1).toEqual({ assessments: '2026-10-12T23:08:24Z', grades: '2026-10-12T23:08:24Z', announcements: '2026-10-01T21:55:41Z' });
+    expect(r.merged.settings.reminders).toEqual({ morning: false });
+    expect((r.merged.settings as { extSetup?: unknown }).extSetup).toEqual({ doneAt: 'x' });
+    expect(r.merged.settings.theme).toBe('dark');
+    expect(r.merged.settings.updatedAt).toBe('2026-10-12T23:20:58Z');
+    expect(r.pushSettings).toBe(true);
   });
 });

@@ -9,7 +9,8 @@ import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { loadLastSync } from '../halo/handoff';
 import { mergedClasses } from '../halo/repairMerged';
 import { staleText, syncReminder, type SyncReminder as Reminder } from '../halo/syncReminder';
-import { useStore } from '../storage/store';
+import { useAccountChecked, useStore } from '../storage/store';
+import { syncPress } from '../ui/presses';
 import { useSyncAccess } from './PlanWall';
 
 const HALO = 'https://halo.gcu.edu/';
@@ -28,7 +29,10 @@ export function useSyncReminder(): Reminder | null {
   const allowed = useSyncAccess().allowed;
   const autoPlan = useCan('haloAutoSync');
   const now = useNow(30_000);
+  const checked = useAccountChecked();
   const lastAt = data.settings.lastPull?.at ?? loadLastSync()?.at ?? null;
+  // Never from an unchecked device copy (2026-10-12): the account's own last sync first.
+  if (!checked) return null;
   // A sync the merged-classes banner already asks for: one sync prompt at a time.
   if (mergedClasses(data.courses).length > 0) return null;
   return syncReminder({ lastAt, now, allowed, extInstalled: !!installedVersion(), autoPlan, paused: pausedNow() });
@@ -37,7 +41,14 @@ export function useSyncReminder(): Reminder | null {
 /** An extension is on this computer (its Halo+ script wrote its version); without one, Halo opens for the bookmark. */
 const askExtension = (): boolean => !!installedVersion();
 
-type Phase = { k: 'idle' } | { k: 'running'; since: number } | { k: 'halo' } | { k: 'done' } | { k: 'failed'; text: string; halo: boolean } | { k: 'timeout' };
+type Phase = { k: 'idle' } | { k: 'running'; since: number } | { k: 'halo' } | { k: 'phone' } | { k: 'done' } | { k: 'failed'; text: string; halo: boolean } | { k: 'timeout' };
+
+/** A phone or an iPad (an iPad says Macintosh, with touch): no extension there, and Sync now must not pretend. */
+const onPhone = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  return /iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+};
 
 /**
  * The bold line pinned at the top of Now while the planner is out of date (see halo/syncReminder.ts). Sync now asks the
@@ -106,6 +117,9 @@ export function SyncReminder() {
         if (!acked) window.postMessage({ kind: 'halo-ext-first-sync' }, location.origin);
       }, 1500);
       setPhase({ k: 'running', since: Date.now() });
+    } else if (onPhone()) {
+      // Never pretend (2026-10-12): syncs run on the laptop; this phone can sync itself through the phone flow.
+      setPhase({ k: 'phone' });
     } else {
       window.open(HALO, '_blank', 'noopener');
       setPhase({ k: 'halo' });
@@ -116,6 +130,19 @@ export function SyncReminder() {
       Try again
     </button>
   );
+  if (phase.k === 'phone')
+    return (
+      <div className="sync-reminder" data-level="amber" data-phase="phone" role="status">
+        <p>
+          <b>Syncs happen on your laptop.</b> {last ? `Last synced ${relTime(last, Date.now(), data.settings.timezone, todayOf(data.settings.timezone))}.` : 'Not synced yet.'} Open Halo+ on your laptop with the extension, or sync from this phone.
+        </p>
+        <span className="sync-reminder-actions">
+          <button type="button" className="btn small primary" onClick={() => syncPress.current?.()}>
+            Sync on this phone
+          </button>
+        </span>
+      </div>
+    );
   if (phase.k === 'failed')
     return (
       <div className="sync-reminder" data-level="red" data-phase={phase.k} role="alert">

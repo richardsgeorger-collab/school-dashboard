@@ -16,7 +16,9 @@ import { fresh, type OnboardingState } from './state';
  * The first sync sets lastPull, and all of it is gone for good.
  */
 export function useNeverSynced(): boolean {
-  const { data } = useStore();
+  const { data, sync } = useStore();
+  // Only once the account's own copy is here (2026-10-12): a device's empty or old cache is not "never synced".
+  if (!sync.checked) return false;
   return !data.settings.lastPull && !data.courses.some((c) => c.haloClassId);
 }
 

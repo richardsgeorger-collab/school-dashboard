@@ -6,7 +6,7 @@ import { useNow } from '../ui/useNow';
 import { todayStr as todayOf } from '../domain/dates';
 import { loadLastSync } from '../halo/handoff';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
-import { useStore } from '../storage/store';
+import { useAccountChecked, useStore } from '../storage/store';
 import { PlanWall, useSyncAccess } from './PlanWall';
 import { HaloImport } from './HaloImport';
 import { SyncAssignments } from './SyncAssignments';
@@ -118,6 +118,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
   const [note, setNote] = useState<string | null>(null);
   const last = data.settings.lastPull?.at ?? loadLastSync()?.at ?? null;
   const now = useNow(30_000);
+  const checked = useAccountChecked();
   const walled = !useSyncAccess().allowed;
   if (walled) {
     // Free (2026-09-29): Sync still works as a peek. Run the bookmark and Halo+ counts what changed, adding nothing.
@@ -140,7 +141,7 @@ export function SyncSheet({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Sync Halo" onClose={onClose}>
       <div className="modal-body sync-sheet">
-        <p className="hint synced-when">{last ? `Synced from Halo ${relTime(last, now, tz, todayOf(tz))}${data.settings.lastPull?.via === 'extension' && data.settings.lastPull.at === last ? ' via extension' : ''}.` : 'Not synced yet.'}</p>
+        <p className="hint synced-when">{!checked && data.settings.supabaseUrl ? 'Checking your last sync…' : last ? `Synced from Halo ${relTime(last, now, tz, todayOf(tz))}${data.settings.lastPull?.via === 'extension' && data.settings.lastPull.at === last ? ' via extension' : ''}.` : 'Not synced yet.'}</p>
         <HowYouSync />
         <p className="hint">
           The <b>{BOOKMARK_NAME}</b> bookmark runs on Halo&apos;s own page while you are logged in there and sends your classes, assignments, grades and announcements here. It never sees your password. You approve every change before it applies.

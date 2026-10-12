@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Course, Item, Settings } from '../domain/types';
-import type { RemoteData, Repository } from './repository';
+import { mergeSettings, type RemoteData, type Repository } from './repository';
 
 let cached: { key: string; client: SupabaseClient } | null = null;
 
@@ -20,6 +20,9 @@ interface Row<T> {
 }
 
 /** Settings fields that stay on the device: connection details never round-trip. */
+/** The server's timestamp in the app's own format ('…T23:20:58.841Z'), so both sides compare as times. */
+const iso = (t: string): string => (Number.isFinite(Date.parse(t)) ? new Date(t).toISOString() : t);
+
 function remoteSettings(s: Settings): Omit<Settings, 'supabaseUrl' | 'supabaseAnonKey'> {
   const { supabaseUrl: _u, supabaseAnonKey: _k, ...rest } = s;
   return rest;
@@ -61,7 +64,7 @@ export class SupabaseRepo implements Repository {
       items: i.live,
       deletedCourseIds: c.dead,
       deletedItemIds: i.dead,
-      settings: settings.data ? ({ ...(settings.data.data as Settings), updatedAt: settings.data.updated_at } as Settings) : undefined,
+      settings: settings.data ? ({ ...(settings.data.data as Settings), updatedAt: iso(settings.data.updated_at as string) } as Settings) : undefined,
     };
   }
 
@@ -93,10 +96,37 @@ export class SupabaseRepo implements Repository {
   deleteCourse(id: string, deletedAt: string) {
     return this.tombstone('courses', id, deletedAt);
   }
-  async saveSettings(settings: Settings) {
-    const { error } = await this.client
-      .from('settings')
-      .upsert({ user_id: this.userId, data: remoteSettings(settings), updated_at: settings.updatedAt }, { onConflict: 'user_id' });
+  async settingsStamp(): Promise<string | null> {
+    const { data, error } = await this.client.from('settings').select('updated_at').eq('user_id', this.userId).maybeSingle();
     if (error) throw new Error(error.message);
+    return (data?.updated_at as string | undefined) ?? null;
+  }
+  /**
+   * Never a blind overwrite (George, 2026-10-12): this wrote the device's whole settings over the account's, so a phone
+   * holding a ten-day-old copy that changed one small setting put "last synced Oct 1" back on the account before it had
+   * even read it, and every other device took it from there. Now the account's copy is read and merged key by key first.
+   */
+  async saveSettings(settings: Settings) {
+    // Written only if nobody wrote in between (another device's sync landing that same moment): otherwise read, merge
+    // and try again, so the newer write is merged in, never overwritten.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { data: cur, error: readErr } = await this.client.from('settings').select('data,updated_at').eq('user_id', this.userId).maybeSingle();
+      if (readErr) throw new Error(readErr.message);
+      if (!cur) {
+        const { error } = await this.client.from('settings').upsert({ user_id: this.userId, data: remoteSettings(settings), updated_at: settings.updatedAt }, { onConflict: 'user_id' });
+        if (error) throw new Error(error.message);
+        return;
+      }
+      const merged = mergeSettings(settings, { ...(cur.data as Settings), updatedAt: iso(cur.updated_at as string) });
+      const { data: wrote, error } = await this.client
+        .from('settings')
+        .update({ data: remoteSettings(merged), updated_at: merged.updatedAt })
+        .eq('user_id', this.userId)
+        .eq('updated_at', cur.updated_at as string)
+        .select('user_id');
+      if (error) throw new Error(error.message);
+      if (wrote && wrote.length > 0) return;
+    }
+    throw new Error('Settings kept changing on another device; they will be saved on the next change.');
   }
 }

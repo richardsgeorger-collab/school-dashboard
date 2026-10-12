@@ -86,7 +86,8 @@ export function startUpdateWatch(opts: { base?: string; fetchVersion?: () => Pro
   };
   const timer = window.setInterval(() => void look(), EVERY);
   document.addEventListener('visibilitychange', onVisible);
-  window.setTimeout(() => void look(), 60_000);
+  // On open: a phone that last ran Halo+ days ago gets today's build in seconds (2026-10-12).
+  window.setTimeout(() => void look(), 3_000);
   return () => {
     window.clearInterval(timer);
     if (quietTimer !== null) window.clearTimeout(quietTimer);

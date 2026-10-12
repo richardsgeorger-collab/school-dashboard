@@ -1,4 +1,4 @@
-import type { AppData, Course, Item, Settings } from '../domain/types';
+import type { AppData, Course, HaloPull, Item, Settings } from '../domain/types';
 
 /** What a remote store hands back on load. Tombstones let deletions win over stale local rows. */
 export interface RemoteData extends Partial<AppData> {
@@ -16,6 +16,8 @@ export interface Repository {
   deleteItem(id: string, deletedAt: string): Promise<void>;
   deleteCourse(id: string, deletedAt: string): Promise<void>;
   saveSettings(settings: Settings): Promise<void>;
+  /** The account settings' last-written stamp, one small read (2026-10-12). */
+  settingsStamp?(): Promise<string | null>;
 }
 
 export interface MergeResult {
@@ -63,15 +65,41 @@ export function mergeData(local: AppData, remote: RemoteData, opts: { preferRemo
   const courses = mergeRows(local.courses, remote.courses, remote.deletedCourseIds);
   const items = mergeRows(local.items, remote.items, remote.deletedItemIds);
   const remoteSettings = remote.settings;
-  const useRemoteSettings = !!remoteSettings && (!!opts.preferRemoteSettings || remoteSettings.updatedAt > local.settings.updatedAt);
+  if (!remoteSettings) return { merged: { courses: courses.merged, items: items.merged, settings: local.settings }, pushCourses: courses.push, pushItems: items.push, pushSettings: true };
+  const settings = opts.preferRemoteSettings ? remoteSettings : mergeSettings(local.settings, remoteSettings);
   return {
-    merged: {
-      courses: courses.merged,
-      items: items.merged,
-      settings: useRemoteSettings ? remoteSettings : local.settings,
-    },
+    merged: { courses: courses.merged, items: items.merged, settings },
     pushCourses: courses.push,
     pushItems: items.push,
-    pushSettings: !useRemoteSettings,
+    pushSettings: settings.updatedAt > remoteSettings.updatedAt || JSON.stringify({ ...settings, updatedAt: '' }) !== JSON.stringify({ ...remoteSettings, updatedAt: '' }),
   };
+}
+
+const later = (a: string | null | undefined, b: string | null | undefined): string | null | undefined => (!a ? b : !b ? a : a > b ? a : b);
+
+/**
+ * Settings, merged key by key (George, 2026-10-12). They used to travel as one blob, newest-written wins: a phone holding
+ * a ten-day-old copy changed one small setting on open, so its whole old copy won and went to the account, "last synced
+ * Oct 1" and all, and every other device took it from there; keys the old copy never had (reminders, the extension
+ * setup) were lost. Now: the newer copy wins per key, a key one copy lacks is kept from the other, and what Halo said
+ * (the last sync, each class's pull stamps) only ever moves forward, whichever device wrote last.
+ */
+export function mergeSettings(local: Settings, remote: Settings): Settings {
+  const localNewer = local.updatedAt > remote.updatedAt;
+  const [winner, loser] = localNewer ? [local, remote] : [remote, local];
+  const out: Settings = { ...loser, ...winner };
+  const lp = [local.lastPull, remote.lastPull].filter(Boolean).sort((a, b) => (a!.at < b!.at ? 1 : -1))[0];
+  if (lp) out.lastPull = lp;
+  else delete out.lastPull;
+  const pulls: Record<string, HaloPull> = {};
+  for (const src of [remote.haloPulls ?? {}, local.haloPulls ?? {}])
+    for (const [course, p] of Object.entries(src)) {
+      const had = pulls[course] ?? {};
+      const next: HaloPull = { ...had };
+      for (const k of Object.keys(p) as (keyof HaloPull)[]) next[k] = later(had[k], p[k]) ?? null;
+      pulls[course] = next;
+    }
+  if (Object.keys(pulls).length) out.haloPulls = pulls;
+  out.updatedAt = later(local.updatedAt, remote.updatedAt) ?? winner.updatedAt;
+  return out;
 }

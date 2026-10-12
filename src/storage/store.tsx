@@ -30,6 +30,12 @@ export interface SyncState {
   error: string | null;
   email: string | null;
   pending: number;
+  /**
+   * The account's own copy has been loaded and merged this session, or there is no account to check (signed out, the
+   * demo, no backend). Until then the planner is this device's cache, which can be days old: nothing alarming is said
+   * from it (George, 2026-10-12: a phone's old copy showed "Last synced 11 days ago" in red).
+   */
+  checked: boolean;
 }
 
 export interface StoreActions {
@@ -211,10 +217,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(initialData);
   const [today, setToday] = useState<DateStr>(() => todayStr(data.settings.timezone));
   const [undo, setUndoState] = useState<UndoBatch | null>(() => loadUndo());
-  const [sync, setSync] = useState<SyncState>({ status: 'off', lastSync: null, error: null, email: null, pending: localCache.loadPending().length });
+  const [sync, setSync] = useState<SyncState>({ status: 'off', lastSync: null, error: null, email: null, pending: localCache.loadPending().length, checked: false });
   const [isDark, setIsDark] = useState(false);
   const [justDone, setJustDone] = useState<{ id: string; at: string } | null>(null);
   const remoteRef = useRef<Repository | null>(null);
+  /** The account's settings stamp as last merged here: a different one on the server is another device's write. */
+  const remoteStamp = useRef<string | null>(null);
   const dataRef = useRef(data);
   dataRef.current = data;
 
@@ -380,7 +388,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (result.pushItems.length) await repo.saveItems(result.pushItems);
       if (result.pushSettings) await repo.saveSettings(result.merged.settings);
       if (repo.accountId) localCache.markAccountSeen(repo.accountId);
-      setSync((s) => ({ ...s, status: 'synced', lastSync: nowIso(), error: null }));
+      setSync((s) => ({ ...s, status: 'synced', lastSync: nowIso(), error: null, checked: true }));
+      remoteStamp.current = result.merged.settings.updatedAt;
       // The account's rows are here now; anything that waits for them (the announcement reader) may go.
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(ACCOUNT_SYNCED_EVENT));
     } catch (e) {
@@ -394,7 +403,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!repo) {
         // The demo student (demo/demo.ts) has no mirror and is complete as loaded: "synced", so the moments a sync
         // leaves behind (the grade that went up) play as they would for a real student.
-        setSync((s) => ({ ...s, status: isDemo() ? 'synced' : dataRef.current.settings.supabaseUrl ? 'signed_out' : 'off', email: null }));
+        setSync((s) => ({ ...s, status: isDemo() ? 'synced' : dataRef.current.settings.supabaseUrl ? 'signed_out' : 'off', email: null, checked: true }));
         return;
       }
       setSync((s) => ({ ...s, email }));
@@ -416,6 +425,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     [syncNow],
   );
+
+  // Another device's sync, picked up within a minute without a reload (2026-10-12): every applied sync stamps the
+  // account's settings, so one small read of that stamp says whether there is anything new to load.
+  useEffect(() => {
+    const iv = window.setInterval(() => {
+      const repo = remoteRef.current;
+      if (!repo?.settingsStamp || document.visibilityState !== 'visible') return;
+      void repo
+        .settingsStamp()
+        .then((stamp) => {
+          if (stamp && remoteStamp.current && Date.parse(stamp) > Date.parse(remoteStamp.current)) void syncNow();
+        })
+        .catch(() => undefined);
+    }, 45_000);
+    return () => window.clearInterval(iv);
+  }, [syncNow]);
 
   // Back online: what was changed offline goes up now, not at the next change or reload (audit, 2026-09-30).
   useEffect(() => {
@@ -720,4 +745,9 @@ export function useStore(): Store {
   const ctx = useContext(StoreContext);
   if (!ctx) throw new Error('useStore must be used inside StoreProvider');
   return ctx;
+}
+
+/** The account has been checked this session (or there is none to check): only then may anything alarming be said. */
+export function useAccountChecked(): boolean {
+  return useStore().sync.checked;
 }

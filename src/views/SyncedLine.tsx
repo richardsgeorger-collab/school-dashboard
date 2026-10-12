@@ -1,7 +1,7 @@
 import { relTime } from '../halo/syncWords';
 import { useNow } from '../ui/useNow';
 import { loadLastSync } from '../halo/handoff';
-import { useStore } from '../storage/store';
+import { useAccountChecked, useStore } from '../storage/store';
 import { syncPress } from '../ui/presses';
 import { HowYouSync } from './HowYouSync';
 import { AutoSyncPaused } from '../halo/AutoSyncPaused';
@@ -17,6 +17,13 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
   // A class synced before per-class pull stamps existed falls back to the account's last sync (it is Halo-linked).
   const linked = !!courseId && !!data.courses.find((c) => c.id === courseId)?.haloClassId;
   const at = (courseId ? (data.settings.haloPulls?.[courseId]?.assessments ?? (linked ? data.settings.lastPull?.at : null)) : data.settings.lastPull?.at) ?? loadLastSync()?.at ?? null;
+  const checked = useAccountChecked();
+  if (!checked && data.settings.supabaseUrl)
+    return (
+      <p className="synced mono" data-level="ok">
+        <span className="synced-when">Checking your last sync…</span>
+      </p>
+    );
   const sync = (
     <button type="button" className="verify-nudge" onClick={() => syncPress.current?.()}>
       Sync now
