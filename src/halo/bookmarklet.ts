@@ -94,7 +94,7 @@ const Q_OVERVIEW =
  * deploying new code does not update it. Stamping the payload is the only way the app can tell the user their
  * bookmark is old rather than quietly showing them three queries' worth of data and calling it eleven.
  */
-export const BOOKMARKLET_BUILD = '2026-09-28a';
+export const BOOKMARKLET_BUILD = '2026-10-11a';
 
 /**
  * Asked only when something already failed. If the gateway allows introspection this settles every remaining
@@ -164,6 +164,12 @@ try{
 say('Checking your Halo login\u2026');
 var s=await (await fetch('/api/auth/session',{credentials:'include'})).json();
 if(!s||!s.authToken||!s.contextToken){throw new Error('No Halo session found. Log in to Halo, then '+AGAIN+'.');}
+var haloUser='',haloUserFrom='';
+try{var su=s.user||{};var jp=null;try{var pt=String(s.authToken).split('.');if(pt.length===3){var b64=pt[1].replace(/-/g,'+').replace(/_/g,'/');while(b64.length%4){b64+='=';}jp=JSON.parse(atob(b64));}}catch(e){jp=null;}
+var cand=[['user.email',su.email],['jwt.email',jp&&(jp.email||jp.preferred_username||jp.upn)],['user.id',su.id],['jwt.sub',jp&&jp.sub]];
+for(var hc=0;hc<cand.length;hc++){var hv=cand[hc][1];if(typeof hv!=='string'||!hv.trim()){continue;}if(cand[hc][0].indexOf('email')>=0&&hv.indexOf('@')<1){continue;}
+var hd=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('halo-user:'+hv.trim().toLowerCase()));
+haloUser=Array.from(new Uint8Array(hd)).map(function(x){return x.toString(16).padStart(2,'0');}).join('').slice(0,40);haloUserFrom=cand[hc][0];break;}}catch(e){haloUser='';haloUserFrom='';}
 var gql=async function(op,q,v){
 var r=await fetch(${JSON.stringify(GATEWAY)},{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.authToken,'ContextToken':'Bearer '+s.contextToken,'transaction-id':(crypto.randomUUID?crypto.randomUUID():String(Date.now()))},body:JSON.stringify({operationName:op,variables:v,query:q})});
 var j=null;try{j=await r.json();}catch(e){}
@@ -371,7 +377,7 @@ var PTs=probeTypes.map(function(n){return pre(gql('HaloTypeProbe',QT,{name:n}));
 for(var ti=0;ti<probeTypes.length;ti++){try{var TR=await PTs[ti];var T=(TR||{}).__type;
 if(T){var fl=[];var ff2=T.fields||T.inputFields||[];for(var fi3=0;fi3<ff2.length;fi3++){if(ff2[fi3]){fl.push(ff2[fi3].name);}}schema.types[probeTypes[ti]]=fl.sort();}}catch(e){schema.types[probeTypes[ti]]='could not read: '+((e&&e.message)||e);}}
 }catch(e){schema={introspection:'refused',why:(e&&e.message)?String(e.message).slice(0,300):String(e)};prob(null,'schema probe',e);}}
-var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),source:MODE==='open'?'bookmarklet':'extension',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','class grade','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
+var payload={kind:'halo-export',version:1,build:${JSON.stringify(BOOKMARKLET_BUILD)},exportedAt:new Date().toISOString(),haloUser:haloUser||undefined,haloUserFrom:haloUserFrom||undefined,source:MODE==='open'?'bookmarklet':'extension',classes:classes,alerts:alerts,problems:problems,schema:schema,pulls:['assessments','grades','class grade','instructors','announcements','class facts','instructor feedback','rubrics','class resources','discussions','quiz results','alerts','inbox']};
 var n=0;for(var q=0;q<classes.length;q++){n+=(classes[q].assessments||[]).length;}
 say('Read '+n+' assignment'+(n===1?'':'s')+' in '+classes.length+' class'+(classes.length===1?'':'es')+(problems.length?', '+problems.length+' thing'+(problems.length===1?'':'s')+' Halo would not give up':'')+'. Sending to the dashboard\\u2026');
 if(SRV){say('Sending to your Halo+ account\u2026');var dr=await drop(payload);

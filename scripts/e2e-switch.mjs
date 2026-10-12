@@ -131,27 +131,28 @@ try {
   const titlesA = await until(async () => { const t = await cacheTitles(); return t.includes(aOnly) ? t : null; }, 20000);
   check(!!titlesA && !titlesA.includes(bOnly), `A sees A's items and none of B's (${titlesA?.length ?? 0} items)`);
   const aAfter = (await db.from('items').select('id, data, updated_at, deleted_at').eq('user_id', A.id)).data;
-  const changed = aAfter.filter((r) => aItems.find((x) => x.id === r.id)?.updated_at !== r.updated_at);
+  // The announcement reader works on A's own rows while A is signed in (requirements from posts, estimates): that is
+  // A's account doing its job. Anything else changed, a status, a tombstone, a missing or extra row, is a leak.
+  const READER = new Set(['updatedAt', 'requirements', 'estimatedMinutes', 'brief', 'plan', 'dateChange', 'origin']);
+  const changed = aAfter
+    .map((r) => {
+      const b = aItems.find((x) => x.id === r.id);
+      if (!b || b.updated_at === r.updated_at) return null;
+      const keys = [...new Set([...Object.keys(b.data), ...Object.keys(r.data)])].filter((k) => JSON.stringify(b.data[k]) !== JSON.stringify(r.data[k]));
+      return { title: r.data.title, keys, other: keys.filter((k) => !READER.has(k)) };
+    })
+    .filter(Boolean);
   const added = aAfter.filter((r) => !aItems.some((x) => x.id === r.id));
-  check(aAfter.length === aItems.length && aAfter.every((r) => !r.deleted_at) && changed.length === 0, `A's rows on the server are untouched: ${aItems.length} → ${aAfter.length} rows, ${aAfter.filter((r) => r.deleted_at).length} tombstones, ${changed.length} changed${added.length ? `, added: ${added.map((r) => r.data.title).join(', ')}` : ''}${changed.length ? `, e.g. ${changed[0].data.title} ${aItems.find((x) => x.id === changed[0].id)?.data.status} → ${changed[0].data.status}` : ''}`);
+  const bad = changed.filter((c) => c.other.length);
+  check(aAfter.length === aItems.length && aAfter.every((r) => !r.deleted_at) && added.length === 0 && bad.length === 0, `A's rows on the server are intact: ${aItems.length} → ${aAfter.length} rows, ${aAfter.filter((r) => r.deleted_at).length} tombstones, ${changed.length} touched by A's own announcement reader${bad.length ? `, UNEXPECTED: ${bad.map((c) => `${c.title} (${c.other.join(', ')})`).join('; ')}` : ''}`);
   const bLeak = (await db.from('items').select('id').eq('user_id', B.id).in('id', aItems.map((i) => i.id))).data ?? [];
   check(bLeak.length === 0, "none of A's rows exist under B");
-  // A's extension sync now reads the same Halo class B already holds: refused, never landed.
-  haloTag = 'b';
-  const t1 = Date.now();
-  await p.evaluate(() => window.postMessage({ kind: 'halo-ext-first-sync' }, location.origin));
-  await sleep(15000);
-  const landedA = (await db.from('pending_syncs').select('id').eq('user_id', A.id).gte('created_at', new Date(t1).toISOString())).data ?? [];
-  check(landedA.length === 0, "a Halo already linked to B's account is refused for A (nothing landed)");
-  const psy = (await db.from('courses').select('id').eq('user_id', A.id).eq('data->>haloClassId', 'hc-b')).data ?? [];
-  check(psy.length === 0 && (await p.evaluate(() => document.querySelectorAll('.modal-backdrop').length)) === 0, "the refused export was not handed to A's tab either (no PSY-102 in A, no review open)");
-  const refused = (await db.from('error_events').select('id, title').eq('fingerprint', 'sync-drop:foreign-halo').gte('created_at', new Date(t1).toISOString())).data ?? [];
-  check(refused.length >= 1, `the refusal is in Admin > Errors (${refused[0]?.title ?? 'none'})`);
+  // Which Halo student belongs to which account (and the move between them) is e2e-halo-move.mjs (2026-10-11): class ids
+  // are sections shared by classmates, so they no longer decide anything here.
 } finally {
   clearTimeout(hard);
   await browser.close().catch(() => undefined);
   proc.kill();
-  await db.from('error_events').delete().eq('fingerprint', 'sync-drop:foreign-halo').gte('created_at', new Date(Date.now() - 600000).toISOString()).then(() => undefined, () => undefined);
   console.log(`removed ${await kit.cleanup()} throwaways`);
 }
 console.log(checks.every(Boolean) ? 'PASS' : 'FAIL');

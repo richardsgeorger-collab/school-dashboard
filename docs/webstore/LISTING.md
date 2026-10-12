@@ -122,6 +122,13 @@ platform.
 **Single purpose (for the review form):**
 Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
 
+## 0.6.4 (2026-10-11): one Halo student, one Halo+ account, and a way to move it
+
+Version 0.6.4; no permission change. Each sync now carries a one-way hash of the Halo student's identity (never the
+identity itself) so Halo+ can tell students in the same class apart. When a Halo account is linked to a different
+Halo+ account, the extension opens Halo+, which asks the student whether to move it. Nothing to change in the listing
+text; if a reviewer asks about data, the hash is the only new field and it is not reversible.
+
 ## 0.6.3 (2026-10-09): the kit leaves the student where they were
 
 Version 0.6.3; no permission change. After the allow page is answered, the Halo+ tab the kit was asked from is brought

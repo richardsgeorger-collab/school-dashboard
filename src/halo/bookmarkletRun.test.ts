@@ -260,7 +260,8 @@ describe('the guards themselves', () => {
     // keeps its own error so the failure message can tell a blocked pop-up from a tab that never answered.
     // The server path (2026-09-28) adds two, neither silent in effect: an unreadable reply becomes "Halo+ answered
     // <status>" on the next line, and a network failure is returned as the reason the student sees.
-    expect(silent).toEqual(['openErr=e;', 'j=null;', "return {ok:false,why:'Could not reach Halo+ ('+((e&&e.message)||e)+'). Check your connection.'};", '', '', '', '']);
+    // The Halo student's hash (2026-10-11) adds two with nothing to lose: no identity, and the sync goes without one.
+    expect(silent).toEqual(['openErr=e;', 'j=null;', "return {ok:false,why:'Could not reach Halo+ ('+((e&&e.message)||e)+'). Check your connection.'};", '', 'jp=null;', "haloUser='';haloUserFrom='';", '', '', '']);
   });
 
   it('the per-class body is wrapped, so one bad class cannot end the run', () => {

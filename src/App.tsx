@@ -18,6 +18,8 @@ import { BottomNav, TopBar } from './components/Nav';
 import { TimeAsk } from './components/TimeAsk';
 import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
+import { HaloMovePrompt, type MoveAsk } from './halo/HaloMove';
+import { supabase } from './auth/client';
 import { loadSyncKey, SYNC_KEY_SLOT, takePending } from './halo/serverSync';
 import { JOY_SNAP_SLOT } from './joy/extSnapshot';
 import { HaloImport } from './views/HaloImport';
@@ -102,11 +104,30 @@ function HaloHandoff() {
   const { tier: planTier, planKnown: tierKnown } = useAccount();
   const autoOk = useRef(true);
   autoOk.current = !tierKnown || can('haloAutoSync', planTier);
-  const receive = useCallback((p: HaloExport) => {
-    if ((p as HaloExport & { auto?: boolean }).auto === true && !autoOk.current) return;
+  // One Halo student, one Halo+ account (2026-10-11): a sync handed straight to this tab whose Halo is linked to another
+  // Halo+ account is held behind the Move prompt; one from this account's own mailbox was already checked by the server.
+  const [ask, setAsk] = useState<MoveAsk | null>(null);
+  const signedIn = useRef(false);
+  const accept = useCallback((p: HaloExport) => {
     setFirstSync(first.current);
     setPayload(p);
   }, []);
+  const receive = useCallback(
+    (p: HaloExport, fromMailbox = false) => {
+      if ((p as HaloExport & { auto?: boolean }).auto === true && !autoOk.current) return;
+      const c = supabase();
+      if (fromMailbox || !p.haloUser || !c || !signedIn.current) return accept(p);
+      void c.rpc('halo_link_state', { p_halo_user: p.haloUser, p_class_ids: p.classes.map((k) => k.id) }).then(
+        ({ data }) => {
+          const d = data as { state?: string; holder_masked?: string; can_move?: boolean } | null;
+          if (d?.state === 'other') setAsk({ from: 'tab', payload: p, masked: d.holder_masked ?? 'another account', canMove: !!d.can_move });
+          else accept(p);
+        },
+        () => accept(p),
+      );
+    },
+    [accept],
+  );
   useHaloHandoff(receive);
   // A sync the bookmark dropped on the server (iPad, phones): picked up on load, when the tab comes back, and when the
   // bookmark sends the student here with ?pending=1. Only ever there when the server path is on for them.
@@ -124,12 +145,27 @@ function HaloHandoff() {
         .then((p) => {
           if (!live || !p) return;
           if (lastAt.current && p.exportedAt && Date.parse(p.exportedAt) < Date.parse(lastAt.current)) return;
-          receive(p);
+          receive(p, true);
         })
         .catch(() => undefined);
+    const lookOffers = () => {
+      const c = supabase();
+      if (!c) return;
+      void c
+        .from('halo_move_offers')
+        .select('id, holder_masked, expires_at')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .then(({ data: rows }) => {
+          const o = rows?.[0] as { id: string; holder_masked: string } | undefined;
+          if (live && o) setAsk((cur) => cur ?? { from: 'offer', offerId: o.id, masked: o.holder_masked, canMove: true });
+        });
+    };
     look();
-    const onShow = () => document.visibilityState === 'visible' && look();
-    const onPing = (e: MessageEvent) => e.origin === window.location.origin && (e.data as { kind?: string } | null)?.kind === 'halo-pending' && look();
+    lookOffers();
+    const onShow = () => document.visibilityState === 'visible' && (look(), lookOffers());
+    const onPing = (e: MessageEvent) => e.origin === window.location.origin && (e.data as { kind?: string } | null)?.kind === 'halo-pending' && (look(), lookOffers());
     document.addEventListener('visibilitychange', onShow);
     window.addEventListener('message', onPing);
     return () => {
@@ -141,6 +177,7 @@ function HaloHandoff() {
   // The account's sync key, for the Chrome extension on this computer (its content script reads it here): with it the
   // extension drops each sync into this account. It can drop off a sync and nothing else. Gone when signed out.
   const userId = account.session?.user.id ?? null;
+  signedIn.current = !!userId;
   // A sync handed over for one account is not shown past its sign-out: the next sign-in on this computer may be someone
   // else's (George, 2026-10-09).
   useEffect(() => {
@@ -177,6 +214,18 @@ function HaloHandoff() {
   }, [expecting, payload]);
   return (
     <>
+      {ask && (
+        <HaloMovePrompt
+          ask={ask}
+          onClose={() => setAsk(null)}
+          onMoved={(p) => {
+            setAsk(null);
+            // An offer's sync was put in this account's mailbox by the move: take it now. A tab sync applies as it came.
+            if (p) accept(p);
+            else window.postMessage({ kind: 'halo-pending' }, window.location.origin);
+          }}
+        />
+      )}
       {waiting && (
         <div className="halo-banner" role="status">
           Waiting for Halo. Keep this tab open. If nothing arrives, open You, Halo, and paste the export.

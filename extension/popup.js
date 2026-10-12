@@ -78,7 +78,7 @@ async function render() {
   if (problem) {
     $('problemText').textContent = s.lastError;
     $('problem').dataset.tone = s.lastErrorKind === 'logged-out' || s.lastErrorKind === 'offline' ? 'calm' : 'alert';
-    const action = s.lastErrorKind === 'logged-out' ? ['Log in to Halo', 'https://halo.gcu.edu/'] : s.lastErrorKind === 'delivery' || s.lastErrorKind === 'not-landed' ? ['Open Halo+', `${DASH_ORIGIN}/#/now`] : null;
+    const action = s.lastErrorKind === 'logged-out' ? ['Log in to Halo', 'https://halo.gcu.edu/'] : s.lastErrorKind === 'delivery' || s.lastErrorKind === 'not-landed' || s.lastErrorKind === 'move' ? ['Open Halo+', `${DASH_ORIGIN}/#/now`] : null;
     $('problemAction').hidden = !action;
     if (action) [$('problemAction').textContent, $('problemAction').href] = action;
   }

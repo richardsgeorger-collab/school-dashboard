@@ -500,8 +500,8 @@ async function toAccount(payload) {
     }
     const why = (j && j.why) || `Halo+ answered ${r.status}`;
     await set({ lastDrop: { ...note, ok: false, why } });
-    // A Halo that belongs to another Halo+ account (409, 0.6.2): the server has already recorded it; nothing to retry.
-    if (j && j.foreign) return { ok: false, kind: 'foreign', why };
+    // A Halo that belongs to another Halo+ account (409): nothing to retry. With a move offer waiting (0.6.4), Halo+ asks.
+    if (j && j.foreign) return { ok: false, kind: 'foreign', why, offer: !!j.offer };
     void reportError({ title: `Extension could not deliver to the pending slot (${r.status})`, message: why, place: 'sync-drop', status: r.status, details: { mb: Math.round(note.bytes / 100_000) / 10, sentMb: Math.round((note.sent || 0) / 100_000) / 10 } });
     return { ok: false, kind: 'refused', why };
   } catch (e) {
@@ -598,9 +598,19 @@ async function land(payload, auto, quiet = false) {
     return { landed: true, how: 'account' };
   }
   if (saved.kind === 'foreign') {
-    // Someone else's Halo+ account is signed in: this student's Halo goes nowhere, not into a tab, not kept (0.6.2).
+    // This Halo is linked to another Halo+ account: it goes nowhere, not into a tab, not kept (0.6.2). When the server
+    // kept a move offer, an open Halo+ tab is told to look now (and brought forward on Sync now) so it can ask (0.6.4).
     await chrome.storage.local.remove(['waiting', 'waitingKey']);
-    await set({ lastError: saved.why, lastErrorKind: 'foreign' });
+    await set({ lastError: saved.why, lastErrorKind: saved.offer ? 'move' : 'foreign' });
+    if (saved.offer) {
+      const tabs = await pingTabs();
+      if (front) {
+        if (tabs[0]) {
+          await chrome.tabs.update(tabs[0].id, { active: true });
+          await chrome.windows.update(tabs[0].windowId, { focused: true }).catch(() => undefined);
+        } else await chrome.tabs.create({ url: DASH_URL, active: true });
+      }
+    }
     return { landed: false, kind: 'foreign', why: saved.why };
   }
   let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;

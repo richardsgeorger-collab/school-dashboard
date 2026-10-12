@@ -3,6 +3,13 @@ export interface HaloExport {
   kind: 'halo-export';
   version: 1;
   exportedAt: string;
+  /**
+   * Which Halo student read this (2026-10-11): the first 40 hex characters of SHA-256("halo-user:" + the session's
+   * email, or its id), never the identity itself. One Halo student is linked to one Halo+ account (sync-drop).
+   */
+  haloUser?: string;
+  /** Where in the Halo session that identity came from ('user.email', 'jwt.sub', …), to check the session's shape. */
+  haloUserFrom?: string;
   /** 'extension' when the Chrome extension ran the same script and carried the export over. */
   source: 'bookmarklet' | 'extension' | 'paste' | 'ics';
   /** Sent by the extension on its own schedule, not by a tap: applied quietly, removals left for a review. */
