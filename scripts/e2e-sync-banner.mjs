@@ -66,7 +66,7 @@ try {
   const cdp = await browser.newBrowserCDPSession();
   await cdp.send('Extensions.loadUnpacked', { path: EXT });
   const ver = await until(() => p.evaluate(() => localStorage.getItem('school-dashboard:ext-version')), 20000);
-  check(ver === '0.6.5', `the extension is on this computer (${ver})`);
+  check(ver === '0.6.6', `the extension is on this computer (${ver})`);
   await until(async () => (await p.evaluate(() => localStorage.getItem('school-dashboard:sync-key'))) !== null, 15000);
 
   // Whatever opens over Now on its own (the Sunday review on a Sunday evening, a celebration) is closed first.

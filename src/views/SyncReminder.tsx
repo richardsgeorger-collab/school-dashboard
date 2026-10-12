@@ -87,7 +87,7 @@ export function SyncReminder() {
 
   if (phase.k === 'done')
     return (
-      <div className="sync-reminder" data-level="ok" role="status">
+      <div className="sync-reminder" data-level="ok" data-phase={phase.k} role="status">
         <p>
           <b>✓ Synced just now.</b> You're up to date.
         </p>
@@ -112,7 +112,7 @@ export function SyncReminder() {
   );
   if (phase.k === 'failed')
     return (
-      <div className="sync-reminder" data-level="red" role="alert">
+      <div className="sync-reminder" data-level="red" data-phase={phase.k} role="alert">
         <p>
           <b>Sync didn't finish.</b> {phase.text}
         </p>
@@ -128,7 +128,7 @@ export function SyncReminder() {
     );
   if (phase.k === 'timeout')
     return (
-      <div className="sync-reminder" data-level="red" role="alert">
+      <div className="sync-reminder" data-level="red" data-phase={phase.k} role="alert">
         <p>
           <b>Sync didn't finish in 2 minutes.</b> Check that you're logged in to Halo in this browser, then try again.
         </p>
@@ -142,7 +142,7 @@ export function SyncReminder() {
     );
   if (!r) return null;
   return (
-    <div className="sync-reminder" data-level={r.red ? 'red' : 'amber'} role="status">
+    <div className="sync-reminder" data-level={r.red ? 'red' : 'amber'} data-phase={phase.k} role="status">
       {r.kind === 'stale' ? (
         <p>
           <b>{staleText(r.days)}</b> Sync now so you don't miss anything.

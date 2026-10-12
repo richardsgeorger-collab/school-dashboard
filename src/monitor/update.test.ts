@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newerVersion, quietMoment } from './update';
+import { hiddenMoment, newerVersion, quietMoment } from './update';
 
 describe('an open tab takes a new build by itself (George, 2026-10-09)', () => {
   it('reloads only for a real, different version, never from a dev or test build', () => {
@@ -18,5 +18,12 @@ describe('an open tab takes a new build by itself (George, 2026-10-09)', () => {
     expect(quietMoment(doc(false, { tagName: 'DIV', isContentEditable: true }))).toBe(false);
     expect(quietMoment(doc(false, { tagName: 'BUTTON' }))).toBe(true);
     expect(quietMoment(doc(false, null, 'hidden'))).toBe(false);
+  });
+  it('leaving the tab is a quiet moment even with a sheet open, unless something is being typed (2026-10-12)', () => {
+    const doc = (vis: string, active: { tagName: string } | null) => ({ visibilityState: vis as DocumentVisibilityState, activeElement: active as Element | null });
+    expect(hiddenMoment(doc('hidden', null))).toBe(true);
+    expect(hiddenMoment(doc('hidden', { tagName: 'BUTTON' }))).toBe(true);
+    expect(hiddenMoment(doc('hidden', { tagName: 'TEXTAREA' }))).toBe(false);
+    expect(hiddenMoment(doc('visible', null))).toBe(false);
   });
 });

@@ -444,7 +444,8 @@ describe('extension delivery', () => {
     expect(r.failed).toBeNull();
     expect(r.opened).toBe(0);
     expect(r.payload?.source).toBe('extension');
-    expect(r.said.at(-1)).toContain('Sent to the dashboard');
+    // In the extension nothing is reviewed in a dashboard: it says where the sync is going (2026-10-12).
+    expect(r.said.at(-1)).toContain('Saving it to your Halo+ account');
   });
 });
 

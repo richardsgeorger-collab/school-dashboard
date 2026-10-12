@@ -174,6 +174,9 @@ export function DiffReview({
       const via = payload.source === 'extension' ? 'extension' : payload.source === 'paste' ? 'paste' : 'bookmark';
       const firstEver = !data.settings.lastPull;
       actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, readAt), lastPull: { at: readAt, build: payload.build ?? null, counts: { ...pullCounts(payload) }, via } });
+      // Every sync that lands, whatever brought it (the bookmark too), tells the extension on this computer, so its
+      // popup stops saying "Syncing" and shows this as the last sync (extension 0.6.6; older ones ignore it).
+      if (typeof window !== 'undefined') window.postMessage({ kind: 'halo-sync-applied', at: readAt, via }, window.location.origin);
       // The free week is worth nothing until Halo is connected: the first sync restarts its clock (2026-10-09).
       if (firstEver && profile?.trialStartedAt && !profile.trialSyncedAt) {
         const c = supabase();

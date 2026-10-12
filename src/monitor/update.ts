@@ -26,6 +26,16 @@ export function quietMoment(doc: Pick<Document, 'visibilityState' | 'querySelect
   return true;
 }
 
+/**
+ * Leaving the tab is also a quiet moment, whatever is open on it (George's tab sat on an old build all evening behind an
+ * open sheet, 2026-10-12): it reloads while nobody is looking, unless something is being typed.
+ */
+export function hiddenMoment(doc: Pick<Document, 'visibilityState' | 'activeElement'>): boolean {
+  if (doc.visibilityState !== 'hidden') return false;
+  const a = doc.activeElement;
+  return !(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || (a as HTMLElement).isContentEditable));
+}
+
 export function startUpdateWatch(opts: { base?: string; fetchVersion?: () => Promise<string | null>; reload?: () => void } = {}): () => void {
   if (typeof window === 'undefined') return () => undefined;
   const base = opts.base ?? import.meta.env.BASE_URL ?? '/';
@@ -72,6 +82,7 @@ export function startUpdateWatch(opts: { base?: string; fetchVersion?: () => Pro
   };
   const onVisible = () => {
     if (document.visibilityState === 'visible') void look();
+    else if (pending && hiddenMoment(document)) reload();
   };
   const timer = window.setInterval(() => void look(), EVERY);
   document.addEventListener('visibilitychange', onVisible);

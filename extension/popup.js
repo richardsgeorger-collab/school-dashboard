@@ -34,8 +34,13 @@ function fraction(text) {
   return /rubric|files/i.test(text) ? 0.85 + 0.12 * f : 0.08 + 0.75 * f;
 }
 
+const STUCK_MS = 120_000;
+
 async function render() {
-  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'lastCounts', 'syncKey']);
+  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey']);
+  // "Syncing" is believed only while Halo keeps talking: two minutes of nothing is a sync that stopped (0.6.6).
+  const stuck = !!s.running && Date.now() - Date.parse(s.progressAt || s.runningSince || 0) > STUCK_MS;
+  if (stuck) s.running = false;
   const alarm = await chrome.alarms.get('auto-sync');
   const paid = PAID.includes(s.tier);
   const auto = AUTO.includes(s.tier);
@@ -55,7 +60,9 @@ async function render() {
   $('upgrade').href = `${DASH_ORIGIN}/#/you?s=plan&to=plus`;
 
   $('sync').disabled = !!s.running;
-  $('sync').textContent = s.running ? 'Syncing…' : 'Sync now';
+  $('sync').textContent = s.running ? 'Syncing…' : stuck ? 'Try again' : 'Sync now';
+  $('sync').dataset.force = stuck ? '1' : '';
+  if (stuck) $('status').innerHTML = `${s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b>` : 'Not synced from here yet'}<span class="next">The last sync stopped partway: nothing came from Halo for 2 minutes.</span>`;
   $('progress').hidden = !s.running;
   if (s.running) {
     const f = fraction(s.progress);
@@ -76,7 +83,9 @@ async function render() {
     $('problemAction').hidden = false;
   }
   if (problem) {
-    $('problemText').textContent = s.lastError;
+    // Something only the student can do in Halo+ (move this Halo here, sign in there): said as exactly that.
+    const inHaloPlus = s.lastErrorKind === 'move' || s.lastErrorKind === 'no-key';
+    $('problemText').textContent = inHaloPlus ? `Waiting for you in Halo+. ${s.lastError}` : s.lastError;
     $('problem').dataset.tone = s.lastErrorKind === 'logged-out' || s.lastErrorKind === 'offline' ? 'calm' : 'alert';
     const action = s.lastErrorKind === 'logged-out' ? ['Log in to Halo', 'https://halo.gcu.edu/'] : s.lastErrorKind === 'delivery' || s.lastErrorKind === 'not-landed' || s.lastErrorKind === 'move' ? ['Open Halo+', `${DASH_ORIGIN}/#/now`] : null;
     $('problemAction').hidden = !action;
@@ -91,10 +100,12 @@ $('sync').addEventListener('click', async () => {
   $('fill').parentElement.setAttribute('data-indeterminate', '');
   $('step').textContent = 'Opening Halo…';
   $('problem').hidden = true;
-  await chrome.runtime.sendMessage({ kind: 'sync-now' });
+  await chrome.runtime.sendMessage({ kind: 'sync-now', force: $('sync').dataset.force === '1' });
 });
 
 // Opening the popup is seeing the problem: the toolbar mark goes.
 void chrome.action.setBadgeText({ text: '' });
 chrome.storage.onChanged.addListener(() => void render());
+// Re-checked while open, so a sync that goes quiet turns into "stopped partway" without reopening the popup.
+setInterval(() => void render(), 10_000);
 void render();

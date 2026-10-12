@@ -4103,3 +4103,20 @@ button.sheet-line-text:focus-visible {
 .halo-move-q {
   font: var(--t-heading);
 }
+
+/* A sync that waits for the student (removals to OK) is a card at the very top, under the bar, not a toast at the
+   bottom (George, 2026-10-12). */
+.done-toast[data-wait] {
+  top: calc(var(--topbar-h, 56px) + 12px);
+  bottom: auto;
+  border-radius: var(--r-lg);
+  flex-wrap: wrap;
+  line-height: 1.35;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--accent);
+  box-shadow: var(--shadow-2, 0 8px 24px rgba(0, 0, 0, 0.18));
+}
+.done-toast[data-wait] .done-toast-undo {
+  color: var(--accent-text);
+}

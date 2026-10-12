@@ -246,11 +246,13 @@ function HaloHandoff() {
           {access.allowed ? (
             // Every extension sync (scheduled or Sync now, straight from the tab or from the account) applies the safe
             // part quietly with Undo; removals wait for the student's OK behind a Review button.
-            <HaloImport payload={payload} onClose={() => setPayload(null)} auto={firstSync} background={!firstSync && payload.source === 'extension'} />
+            // One mount per sync (2026-10-12): HaloImport reads the sync it was given once, so a second sync that arrived
+            // while the first one's note was still up was taken from the mailbox and never applied.
+            <HaloImport key={payload.exportedAt} payload={payload} onClose={() => setPayload(null)} auto={firstSync} background={!firstSync && payload.source === 'extension'} />
           ) : (
             // Sync is off (Free): nothing is applied; the student sees what their own Halo holds that the planner
             // does not, counted, with the ways to bring it in (win-back peek, 2026-09-29).
-            <PeekSummary payload={payload} onClose={() => setPayload(null)} />
+            <PeekSummary key={payload.exportedAt} payload={payload} onClose={() => setPayload(null)} />
           )}
         </ErrorBoundary>
       )}

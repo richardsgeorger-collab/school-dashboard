@@ -22,6 +22,13 @@ const ALARM = 'auto-sync';
 const SILENT_MS = 120_000;
 const MAX_MS = 15 * 60_000;
 const state = { pending: null, fail: null, running: false, lastProgressAt: 0 };
+/** A sync with no word from Halo for this long has stopped, whatever storage still says (0.6.6). */
+const STUCK_MS = 120_000;
+void chrome.storage.local.get(['running', 'progressAt', 'runningSince']).then(async ({ running, progressAt, runningSince }) => {
+  if (!running || state.running) return;
+  const quiet = Date.now() - Date.parse(progressAt || runningSince || 0);
+  if (quiet > STUCK_MS) await chrome.storage.local.set({ running: false, progress: null, lastError: 'The last sync stopped partway (Chrome restarted the extension). Press Sync now to try again.', lastErrorKind: 'interrupted', lastErrorAt: new Date().toISOString() });
+});
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -116,21 +123,41 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       if (next) await sendWaiting();
     })();
     reply({ ok: true });
+  } else if (msg.kind === 'synced-elsewhere') {
+    // Halo+ applied a sync that did not come through this extension's run (the bookmark, a kept one): the popup's
+    // "Last synced" moves and any stale "Syncing" or problem goes (0.6.6).
+    void (async () => {
+      const { lastSyncAt } = await get('lastSyncAt');
+      if (msg.at && (!lastSyncAt || msg.at > lastSyncAt)) await markLanded(msg.at, msg.via || 'tab');
+      if (!state.running) await set({ running: false, progress: null });
+      await chrome.action.setBadgeText({ text: '' });
+    })();
+    reply({ ok: true });
   } else if (msg.kind === 'landed') {
     // An open Halo+ tab took a kept export by hand.
     void markLanded(msg.exportedAt, 'tab');
     reply({ ok: true });
   } else if (msg.kind === 'halo-progress') {
     state.lastProgressAt = Date.now();
-    void set({ progress: msg.text });
+    void set({ progress: msg.text, progressAt: new Date().toISOString() });
     reply({ ok: true });
   } else if (msg.kind === 'halo-failed') {
     if (state.fail) state.fail(msg.text);
     reply({ ok: true });
   } else if (msg.kind === 'halo-export') {
     if (state.pending) state.pending(msg.payload);
-    // The worker was restarted while Halo was being read (Chrome stops idle workers): the export still goes through.
-    else void finish(msg.payload, true);
+    // The worker was restarted while Halo was being read (Chrome stops idle workers, reloading the extension does too):
+    // the export still goes through, and this path now clears "Syncing" when it ends, as runSync does (0.6.6). Before,
+    // nothing did: the popup said "Syncing…" for hours with its Sync now disabled (George, 2026-10-11).
+    else
+      void (async () => {
+        await set({ running: true, progress: 'Saving to your Halo+ account…', progressAt: new Date().toISOString() });
+        try {
+          await finish(msg.payload, true);
+        } finally {
+          if (!state.running) await set({ running: false, progress: null });
+        }
+      })();
     reply({ ok: true });
   } else if (msg.kind === 'take-waiting') {
     // A Halo+ tab just opened: an export kept here goes to the account (the tab takes it from there), or, when the
@@ -219,7 +246,8 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     reply({ started: !busy, busy });
   } else if (msg.kind === 'sync-now') {
     // The popup's button: runs at once on any plan (the app explains a plan without sync). The popup follows along
-    // through storage, so the reply does not wait for the sync.
+    // through storage, so the reply does not wait for the sync. Try again on a sync that went quiet starts over (0.6.6).
+    if (msg.force && state.running && Date.now() - state.lastProgressAt > STUCK_MS) state.running = false;
     if (!state.running) void runSync({ auto: false });
     reply({ ok: true });
   }
@@ -255,7 +283,7 @@ function explain(raw) {
 async function runSync({ auto, quiet = false }) {
   if (state.running) return;
   state.running = true;
-  await set({ running: true, runningSince: new Date().toISOString(), runningAuto: auto, progress: 'Opening Halo…', lastAttemptAt: new Date().toISOString() });
+  await set({ running: true, runningSince: new Date().toISOString(), runningAuto: auto, progress: 'Opening Halo…', progressAt: new Date().toISOString(), lastAttemptAt: new Date().toISOString() });
   let haloTab = null;
   let opened = false;
   try {

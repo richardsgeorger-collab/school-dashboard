@@ -106,7 +106,7 @@ function BackgroundApply({ payload, onApplied, onClose, done, onReview }: { payl
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done]);
-  const line = done ? [backgroundLine(done), held > 0 ? `${held} removal${held === 1 ? '' : 's'} need${held === 1 ? 's' : ''} your OK.` : ''].filter(Boolean).join(' ') || null : null;
+  const line = done ? [held > 0 ? 'Waiting for you:' : '', backgroundLine(done), held > 0 ? `${held} removal${held === 1 ? '' : 's'} from Halo need${held === 1 ? 's' : ''} your OK.` : ''].filter(Boolean).join(' ') || null : null;
   return (
     <>
       {applying && (
@@ -115,7 +115,8 @@ function BackgroundApply({ payload, onApplied, onClose, done, onReview }: { payl
         </div>
       )}
       {line && !hidden && (
-        <div className="done-toast" role="status">
+        // Something waiting for the student goes at the very top, not at the bottom where it is missed (2026-10-12).
+        <div className="done-toast" role="status" data-wait={held > 0 || undefined}>
           <span className="done-toast-text">{line}</span>
           {held > 0 && (
             <>

@@ -391,7 +391,7 @@ await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||D
 }
 else if(MODE==='message'){await new Promise(function(res2){var iv=setInterval(function(){ticks++;if(got||Date.now()-t0>5000){clearInterval(iv);res2();return;}try{window.postMessage(payload,location.origin);}catch(e){}},400);});}
 window.removeEventListener('message',onMsg);
-if(got){say('Sent to the dashboard. Review the changes there.');setTimeout(function(){box.remove();},4000);}
+if(got){say(MODE==='message'?'Read Halo. Saving it to your Halo+ account\u2026':'Sent to the dashboard. Review the changes there.');setTimeout(function(){box.remove();},4000);}
 else if(K&&DROP&&MODE==='open'&&(await drop(payload)).ok){say('Sent to your Halo+ account. Open Halo+ and it is waiting for you to review.');goLink('Open Halo+');}
 else{var why=MODE==='message'?'The extension did not pick up the export.':openErr?'Your browser blocked the dashboard tab from opening. Allow pop-ups for halo.gcu.edu, or open '+P+' yourself first.':(win&&win.closed)?'The dashboard tab was closed before the export arrived.':'The dashboard tab at '+P+' did not answer in 30 seconds. It has to be that exact address, and it has to finish loading.';fallback(JSON.stringify(payload),why);}
 }catch(e){say('Halo sync failed: '+(e&&e.message?e.message:e));if(MODE==='message'){window.postMessage({kind:'halo-failed',text:'Halo sync failed: '+(e&&e.message?e.message:e)},location.origin);}}

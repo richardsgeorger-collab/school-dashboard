@@ -148,9 +148,8 @@ body {
   margin: 8px 0 0;
   color: var(--ink-2);
   font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 .problem {
   margin-top: 12px;

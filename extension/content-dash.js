@@ -135,6 +135,11 @@
     else if (r && r.payload) handOver(r.payload, (ok) => ok && chrome.runtime.sendMessage({ kind: 'landed', exportedAt: r.payload.exportedAt }));
   }).catch(() => undefined);
 
+  // Halo+ applied a sync (any source, the bookmark too): the extension's popup stops saying "Syncing" (0.6.6).
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.kind !== 'halo-sync-applied') return;
+    chrome.runtime.sendMessage({ kind: 'synced-elsewhere', at: e.data.at || null, via: e.data.via || null }).catch(() => undefined);
+  });
   // Halo+'s Sync now (0.6.5): the run starts, or joins one already running; how it ends comes back as sync-result.
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data || e.data.kind !== 'halo-ext-sync-now') return;
