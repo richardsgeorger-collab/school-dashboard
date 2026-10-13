@@ -3,6 +3,7 @@
 // @example.invalid and is removed by cleanup().
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { assertThrowaways } from './guard.mjs';
 
 const DAY = 86_400_000;
 const phxToday = () => new Date(Date.now() - 7 * 3_600_000).toISOString().slice(0, 10);
@@ -110,6 +111,8 @@ export function personaKit(env) {
     return { kind, id: u.id, email: u.email, session, courseIds: ids };
   };
   const cleanup = async () => {
+    // Only ever the throwaways this run made (guard.mjs).
+    await assertThrowaways(db, made, 'the throwaway cleanup');
     for (const id of made) {
       for (const t of ['pending_syncs', 'sync_keys', 'reward_grants', 'subscriptions', 'courses', 'items', 'settings', 'announcements', 'read_ledger', 'usage_log', 'usage_events', 'onboarding_events', 'notification_plan', 'notification_prefs', 'push_subscriptions', 'feedback', 'winback_sends', 'calendar_feeds', 'trial_ratings']) await db.from(t).delete().eq('user_id', id);
       await db.from('referrals').delete().or(`inviter.eq.${id},invitee.eq.${id}`);

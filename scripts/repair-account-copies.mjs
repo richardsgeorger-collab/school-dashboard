@@ -6,6 +6,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { dedupeData } from '../src/halo/dedupe.ts';
+import { guardDelete } from './lib/guard.mjs';
 
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const db = createClient(env.VITE_SUPABASE_URL, env.SERVICE_ROLE, { auth: { persistSession: false } });
@@ -67,6 +68,15 @@ if (!WRITE) {
   console.log('\n(dry run: set WRITE=1 to apply)');
   process.exit(0);
 }
+// The rule (guard.mjs): a backup of exactly the rows this changes, the list printed, and --real-accounts on a real one.
+await guardDelete(db, {
+  reason: 'repair-account-copies',
+  targets: [
+    { table: 'items', userId: USER, ids: [...folded.data.items.map((i) => i.id), ...folded.removedItems] },
+    { table: 'courses', userId: USER, ids: [...folded.data.courses.map((c) => c.id), ...folded.removedCourses] },
+    { table: 'settings', userId: USER, idColumn: 'user_id', ids: [USER] },
+  ],
+});
 const now = new Date().toISOString();
 const up = async (table, rows) => {
   for (let i = 0; i < rows.length; i += 200) {

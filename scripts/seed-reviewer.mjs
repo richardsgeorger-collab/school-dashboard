@@ -6,6 +6,7 @@
 //   KEYS_ENV=... [EMAIL=richards.georger+review@gmail.com] [FORCE=1] node scripts/seed-reviewer.mjs
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { guardDelete } from './lib/guard.mjs';
 import { createClient } from '@supabase/supabase-js';
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const db = createClient(env.VITE_SUPABASE_URL, env.SERVICE_ROLE, { auth: { persistSession: false } });
@@ -28,7 +29,11 @@ if (!user) throw new Error(`no account ${EMAIL}`);
 const uid = user.id;
 const { count } = await db.from('courses').select('id', { count: 'exact', head: true }).eq('user_id', uid);
 if (count && !process.env.FORCE) throw new Error(`${EMAIL} already has ${count} classes; FORCE=1 replaces this account's sample data`);
-if (process.env.FORCE) for (const t of ['items', 'courses', 'announcements', 'read_ledger']) await db.from(t).delete().eq('user_id', uid);
+if (process.env.FORCE) {
+  // The rule (guard.mjs): backed up and listed first; the reviewer's account is not a throwaway, so --real-accounts too.
+  await guardDelete(db, { reason: 'seed-reviewer FORCE', targets: ['items', 'courses', 'announcements', 'read_ledger'].map((table) => ({ table, userId: uid })) });
+  for (const t of ['items', 'courses', 'announcements', 'read_ledger']) await db.from(t).delete().eq('user_id', uid);
+}
 
 // [code, name, color, instructor, meetings, online, slug section]
 const COURSES = [

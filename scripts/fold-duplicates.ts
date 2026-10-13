@@ -8,6 +8,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import type { Item } from '../src/domain/types';
 import { foldDuplicates } from '../src/halo/sameAssignment';
+// @ts-expect-error: a plain JavaScript helper shared by the scripts.
+import { guardDelete } from './lib/guard.mjs';
 
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV!, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const GO = process.argv.includes('--go');
@@ -30,6 +32,8 @@ for (const u of list.users) {
   folded += out.pairs.length;
   backup.push({ user: u.id, pairs: out.pairs.map((p) => ({ copy: p.copy, into: items.find((i) => i.id === p.into.id) })) });
   if (!GO || !out.pairs.length) continue;
+  // The rule (guard.mjs): exactly these rows backed up and listed first; a real account needs --real-accounts.
+  await guardDelete(admin, { reason: 'fold-duplicates', targets: [{ table: 'items', userId: u.id, ids: [...out.upserts.map((i) => i.id), ...out.deletes] }] });
   for (const i of out.upserts) {
     const r = await admin.from('items').update({ data: i, updated_at: now }).eq('id', i.id).eq('user_id', u.id);
     if (r.error) throw new Error(r.error.message);
