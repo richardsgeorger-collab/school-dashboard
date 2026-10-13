@@ -6,14 +6,15 @@ import type { HaloExport } from './types';
 /**
  * "This Halo account is linked to ge***@gmail.com. Move it to this account?" (George, 2026-10-11). Two ways in: a move
  * offer the server kept when this account's sync key sent a Halo that another Halo+ account holds, or a sync handed
- * straight to this tab whose Halo belongs elsewhere. Moving needs this sign-in and that fresh sync from a live Halo
- * session; the old account's Halo data is cleared and it stops syncing this Halo (the server does both).
+ * straight to this tab whose Halo belongs elsewhere. The sync itself is never held back (review, 2026-10-12): it lands
+ * here either way, and moving only relinks. Nothing is deleted from the other account. A test account is the one
+ * exception: it never gets a student's Halo, so that sync is refused.
  */
 export type MoveAsk =
   | { from: 'offer'; offerId: string; masked: string; canMove: true }
   | { from: 'tab'; payload: HaloExport; masked: string; canMove: boolean };
 
-export function HaloMovePrompt({ ask, onMoved, onClose }: { ask: MoveAsk; onMoved: (payload: HaloExport | null) => void; onClose: () => void }) {
+export function HaloMovePrompt({ ask, onMoved, onClose }: { ask: MoveAsk; onMoved: () => void; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const move = async () => {
@@ -28,7 +29,7 @@ export function HaloMovePrompt({ ask, onMoved, onClose }: { ask: MoveAsk; onMove
     setBusy(false);
     const d = r.data as { ok?: boolean; why?: string } | null;
     if (r.error || !d?.ok) return setErr(d?.why ?? r.error?.message ?? 'Could not move it. Sync from Halo again, then try.');
-    onMoved(ask.from === 'tab' ? ask.payload : null);
+    onMoved();
   };
   const cancel = async () => {
     if (ask.from === 'offer') await supabase()?.from('halo_move_offers').delete().eq('id', ask.offerId);
@@ -55,7 +56,7 @@ export function HaloMovePrompt({ ask, onMoved, onClose }: { ask: MoveAsk; onMove
         <p className="halo-move-q">
           This Halo account is linked to <b>{ask.masked}</b>. Move it to this account?
         </p>
-        <p className="hint">This account gets the sync you just ran, and every sync from now on. That account keeps what it has but stops syncing this Halo. You can move it back the same way.</p>
+        <p className="hint">Your sync landed here either way. Move links this Halo to this account from now on. The other account keeps everything it has, and you can move it back the same way.</p>
         {err && (
           <p className="hint checkout-error" role="alert">
             {err}

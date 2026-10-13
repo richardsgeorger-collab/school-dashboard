@@ -120,8 +120,11 @@ function HaloHandoff() {
       void c.rpc('halo_link_state', { p_halo_user: p.haloUser, p_class_ids: p.classes.map((k) => k.id) }).then(
         ({ data }) => {
           const d = data as { state?: string; holder_masked?: string; can_move?: boolean } | null;
-          if (d?.state === 'other') setAsk({ from: 'tab', payload: p, masked: d.holder_masked ?? 'another account', canMove: !!d.can_move });
-          else accept(p);
+          if (d?.state === 'other' && !d.can_move) setAsk({ from: 'tab', payload: p, masked: d.holder_masked ?? 'another account', canMove: false });
+          else {
+            accept(p);
+            if (d?.state === 'other') setAsk({ from: 'tab', payload: p, masked: d.holder_masked ?? 'another account', canMove: true });
+          }
         },
         () => accept(p),
       );
@@ -218,11 +221,10 @@ function HaloHandoff() {
         <HaloMovePrompt
           ask={ask}
           onClose={() => setAsk(null)}
-          onMoved={(p) => {
+          onMoved={() => {
+            // The sync itself already landed here (a link never blocks delivery); the move only relinks.
             setAsk(null);
-            // An offer's sync was put in this account's mailbox by the move: take it now. A tab sync applies as it came.
-            if (p) accept(p);
-            else window.postMessage({ kind: 'halo-pending' }, window.location.origin);
+            window.postMessage({ kind: 'halo-pending' }, window.location.origin);
           }}
         />
       )}

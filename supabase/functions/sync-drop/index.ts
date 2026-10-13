@@ -92,13 +92,21 @@ Deno.serve(async (req) => {
           if (!dry) await db.rpc('error_record', { e: { fingerprint: 'sync-drop:test-halo', kind: 'server', title: 'A test account synced a Halo that a real account holds', message: `refused for ${owner.user_id.slice(0, 8)}; held by ${masked}`, place: 'sync-drop', status: 409, details: { owner: owner.user_id, holder } } }).then(() => undefined, () => undefined);
           return reply(origin, 409, { ok: false, foreign: true, canMove: false, why: `This Halo account belongs to ${masked}. A test account can't take it.` });
         }
+        // A link never blocks delivery (review, 2026-10-12): the hash proves nothing, so a link someone else holds must not
+        // be able to stop a student's own syncs. The sync lands in the account whose key sent it (as it always did); the
+        // link only asks, through Halo+, whether to move it here (the offer carries no payload: it already landed).
         const codes = (p.classes as { courseCode?: unknown }[]).map((c) => (typeof c?.courseCode === 'string' ? c.courseCode : '')).filter(Boolean);
-        if (!dry) await db.from('halo_move_offers').upsert({ user_id: owner.user_id, halo_user: haloUser, holder, holder_masked: masked, class_codes: codes, class_ids: classIds, payload: p, exported_at: p.exportedAt, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 15 * 60_000).toISOString() }, { onConflict: 'user_id,halo_user' });
-        return reply(origin, 409, { ok: false, foreign: true, canMove: true, offer: true, why: `This Halo account is linked to ${masked}. Open Halo+ to move it to this account.` });
+        const { data: mayAsk } = dry ? { data: false } : await db.rpc('halo_lookup_ok', { p_uid: owner.user_id, p_halo_user: haloUser });
+        if (mayAsk) await db.from('halo_move_offers').upsert({ user_id: owner.user_id, halo_user: haloUser, holder, holder_masked: masked, class_codes: codes, class_ids: classIds, payload: null, exported_at: p.exportedAt, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 15 * 60_000).toISOString() }, { onConflict: 'user_id,halo_user' });
       }
       if (!ownerTest && !dry) {
         if (link?.user_id === owner.user_id) await db.from('halo_links').update({ last_seen_at: new Date().toISOString(), class_ids: classIds }).eq('halo_user', haloUser);
-        else await db.rpc('halo_move', { p_halo_user: haloUser, p_to: owner.user_id, p_class_ids: classIds, p_how: fromExtension ? 'extension' : 'bookmark' });
+        else if (!holder) {
+          // Unlinked (or held by a closed or test account): link it here, up to two Halos per account. A live holder only
+          // changes through the Move prompt.
+          const { count: mine } = await db.from('halo_links').select('halo_user', { count: 'exact', head: true }).eq('user_id', owner.user_id);
+          if ((mine ?? 0) < 2) await db.rpc('halo_move', { p_halo_user: haloUser, p_to: owner.user_id, p_class_ids: classIds, p_how: fromExtension ? 'extension' : 'bookmark' });
+        }
       }
     }
     // A check with nothing saved: every rule above, then stop (support and the account-health check use it).

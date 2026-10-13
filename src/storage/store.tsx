@@ -242,10 +242,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }),
     [],
   );
-  useEffect(() => {
-    const ledger = ledgerWith(data.items, data.settings.timings);
-    if (ledger !== (data.settings.timings ?? ledger)) setData((d) => ({ ...d, settings: { ...d.settings, timings: ledger } }));
-  }, [data.items, data.settings.timings]);
 
   useEffect(() => {
     const tick = () => setToday(todayStr(dataRef.current.settings.timezone));
@@ -470,6 +466,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dataRef.current = next;
     setData(next);
   }, []);
+  // The timings ledger repair is a change like any other: through update(), so it is stamped and synced (review, 2026-10-12).
+  useEffect(() => {
+    const ledger = ledgerWith(data.items, data.settings.timings);
+    if (ledger !== (data.settings.timings ?? ledger)) update((d) => ({ ...d, settings: { ...d.settings, timings: ledger, updatedAt: nowIso() } }));
+  }, [data.items, data.settings.timings, update]);
 
   /** Swap every class and item for `fresh`, keep settings, and tell the account mirror about the deletions. */
   const replaceAll = useCallback(
@@ -764,7 +765,9 @@ export function stampChanged(before: Settings, after: Settings): Settings {
   for (const k of new Set([...Object.keys(b), ...Object.keys(a)])) {
     if (skip.has(k) || b[k] === a[k] || JSON.stringify(b[k]) === JSON.stringify(a[k])) continue;
     stamps = stamps ?? { ...(after.stamps ?? before.stamps ?? {}) };
-    stamps[k] = now;
+    // Always later than the key's last stamp, so a device whose clock runs slow still wins its own newest change.
+    const prev = (before.stamps ?? {})[k];
+    stamps[k] = prev && prev >= now ? new Date(Date.parse(prev) + 1).toISOString() : now;
   }
   return stamps ? { ...after, stamps } : after;
 }

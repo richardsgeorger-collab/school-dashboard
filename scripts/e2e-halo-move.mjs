@@ -1,11 +1,12 @@
 // One Halo student, one Halo+ account, and the move (George, 2026-10-11). Real Chrome with the unpacked extension,
 // Halo+ from the local build at haloplus.app, Halo mocked (a session whose student is one email); the account rows and
 // sync-drop are the real ones (throwaways, marked real for the link rules where the test needs it).
-//   A syncs: the Halo is linked to A. B (another real account) syncs the same Halo on the same computer: refused, and
-//   B's Halo+ asks "This Halo account is linked to e2***@example.invalid. Move it to this account?". Move: the link is
-//   B's, A's Halo data is cleared and noted in Errors, B gets the sync. A syncs again: refused (A stops getting data).
-//   A test account can't take it; a test account never links; a classmate (same class ids, another student) is not
-//   blocked.
+//   A syncs: the Halo is linked to A. B (another real account) syncs the same Halo on the same computer: the sync lands
+//   in B (a link never blocks delivery, review 2026-10-12) and B's Halo+ asks "This Halo account is linked to
+//   e2***@example.invalid. Move it to this account?". Move: the link is B's, A keeps everything, Errors has a note. A
+//   syncs again: its sync lands in A, the link stays B's (only the prompt moves a link). A test account can't take it;
+//   a test account never links; a classmate (same class ids, another student) is not blocked; an account links at most
+//   two Halos on its own.
 //   KEYS_ENV=... [EXT_DIR=extension] [LOCAL_SITE=dist-site] node scripts/e2e-halo-move.mjs
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -130,7 +131,8 @@ try {
   }, 120000, 1000);
   const masked = `${A.email.slice(0, 2)}***@example.invalid`;
   check(!!prompt && prompt.includes(`This Halo account is linked to ${masked}. Move it to this account?`), `B's Halo+ asks: "${(prompt ?? '').split('\n')[0]}"`);
-  check(((await db.from('pending_syncs').select('id').eq('user_id', B.id).gte('created_at', new Date(t1).toISOString())).data ?? []).length === 0, 'nothing reached B before the move');
+  check(((await db.from('pending_syncs').select('id').eq('user_id', B.id).gte('created_at', new Date(t1).toISOString())).data ?? []).length > 0, "B's own sync reached B before any move (a link never blocks delivery)");
+  check((await db.from('halo_links').select('user_id').eq('halo_user', H).maybeSingle()).data?.user_id === A.id, 'and the link stayed with A: syncing alone never moves it');
   await p.screenshot({ path: 'docs/screens/halo-move/prompt-desk-light.png' }).catch(() => undefined);
 
   const aCourseIds = ((await db.from('courses').select('id').eq('user_id', A.id).eq('data->>haloClassId', CLASS).is('deleted_at', null)).data ?? []).map((r) => r.id);
@@ -152,10 +154,14 @@ try {
   const note = (await db.from('error_events').select('title, details').eq('fingerprint', 'halo-link:moved').gte('created_at', new Date(t1).toISOString())).data ?? [];
   check(note.some((n) => n.details?.from === A.id && n.details?.to === B.id), `Admin > Errors has the note ("${note[0]?.title}")`);
 
-  // 4. A syncs that Halo again (its extension elsewhere): refused, nothing lands; A gets a move offer, not the data.
+  // 4. A syncs that Halo again (its extension elsewhere, or someone sending this hash): A's own sync lands in A, the link
+  //    stays B's, and A is asked instead (a move offer). Nobody's syncs can be blocked by a hash someone else sends.
   const tA2 = new Date().toISOString();
   const ra = await post(await keyOf(A.id), H);
-  check(ra.status === 409 && ra.body.offer === true && ((await db.from('pending_syncs').select('id').eq('user_id', A.id).gte('created_at', tA2)).data ?? []).length === 0, `A stops getting data: nothing new lands (${ra.status}: ${ra.body.why})`);
+  const aGot = ((await db.from('pending_syncs').select('id').eq('user_id', A.id).gte('created_at', tA2)).data ?? []).length;
+  const stillB = (await db.from('halo_links').select('user_id').eq('halo_user', H).maybeSingle()).data?.user_id === B.id;
+  const offerA = ((await db.from('halo_move_offers').select('id, payload').eq('user_id', A.id).eq('halo_user', H)).data ?? [])[0];
+  check(ra.status === 200 && aGot === 1 && stillB && !!offerA && offerA.payload === null, `A's sync lands in A, the link stays B's, A gets a question, not B's link (${ra.status}, offer ${offerA ? 'yes' : 'no'})`);
 
   // 5. A test account can't take a real account's Halo; a test account never links one.
   const rc = await post(await keyFor(C), H);
@@ -167,6 +173,14 @@ try {
   // 6. A classmate: the same class ids, another Halo student: never blocked (the Loop 227 mistake).
   const re = await post(await keyFor(E), hashOf(`classmate-${run}@my.gcu.edu`));
   check(re.status === 200, `a classmate in the same section syncs (${re.status})`);
+
+  // 7. An account links at most two Halos on its own (a forged hash can't collect students); the syncs still land.
+  const H3 = hashOf(`third-${run}@my.gcu.edu`);
+  const H4 = hashOf(`fourth-${run}@my.gcu.edu`);
+  const r3 = await post(await keyFor(E), H3);
+  const r4 = await post(await keyFor(E), H4);
+  const eLinks = ((await db.from('halo_links').select('halo_user').eq('user_id', E.id)).data ?? []).map((l) => l.halo_user);
+  check(r3.status === 200 && r4.status === 200 && eLinks.length === 2 && !eLinks.includes(H4), `two Halos link, the third doesn't, every sync lands (${eLinks.length} links; ${r3.status}, ${r4.status})`);
 } finally {
   clearTimeout(hard);
   await browser.close().catch(() => undefined);

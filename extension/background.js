@@ -333,8 +333,8 @@ async function runSync({ auto, quiet = false }) {
     if (!payload || payload.error) return await failed(explain(payload && payload.error), auto);
     await finish(payload, auto, quiet);
   } finally {
-    if (opened && haloTab) chrome.tabs.remove(haloTab.id).catch(() => undefined);
     if (state.runId === myRun) {
+      if (opened && haloTab) chrome.tabs.remove(haloTab.id).catch(() => undefined);
       state.pending = null;
       state.fail = null;
       state.running = false;
