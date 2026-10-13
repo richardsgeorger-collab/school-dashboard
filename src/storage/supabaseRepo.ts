@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Course, Item, Settings } from '../domain/types';
-import { mergeSettings, type RemoteData, type Repository } from './repository';
+import { mergeSettings, settingsContent, type RemoteData, type Repository } from './repository';
 
 let cached: { key: string; client: SupabaseClient } | null = null;
 
@@ -117,10 +117,16 @@ export class SupabaseRepo implements Repository {
         if (error) throw new Error(error.message);
         return;
       }
-      const merged = mergeSettings(settings, { ...(cur.data as Settings), updatedAt: iso(cur.updated_at as string) });
+      const server = { ...(cur.data as Settings), updatedAt: iso(cur.updated_at as string) };
+      const merged = mergeSettings(settings, server);
+      // Nothing new for the account: no write (and no stamp for other devices to chase).
+      if (settingsContent(merged) === settingsContent(server)) return;
+      // A real change gets a stamp of its own, strictly newer than the row it replaces.
+      const stamp = new Date(Math.max(Date.now(), Date.parse(server.updatedAt) + 1)).toISOString();
+      merged.updatedAt = stamp;
       const { data: wrote, error } = await this.client
         .from('settings')
-        .update({ data: remoteSettings(merged), updated_at: merged.updatedAt })
+        .update({ data: remoteSettings(merged), updated_at: stamp })
         .eq('user_id', this.userId)
         .eq('updated_at', cur.updated_at as string)
         .select('user_id');

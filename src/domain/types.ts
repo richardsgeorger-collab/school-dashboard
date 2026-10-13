@@ -563,6 +563,8 @@ export interface Settings {
   syncCount?: number;
   /** The "rate us on the Chrome Web Store" card was answered (Rate or Not now): never shown again. */
   ratePromptAt?: string | null;
+  /** When each key was last changed on a device (written by the store), so settings merge per key (2026-10-12). */
+  stamps?: Record<string, string>;
   /** How this student runs the bookmark, set when they set it up, so every sync hint shows their own steps. */
   syncHow?: SyncHow | null;
   onboarding?: OnboardingState;

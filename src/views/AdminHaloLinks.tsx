@@ -36,7 +36,7 @@ export function AdminHaloLinks() {
     const { data, error } = (await supabase()?.rpc('admin_halo_move', { p_halo_user: l.halo_user, p_to_email: (to[l.halo_user] ?? '').trim() })) ?? { data: null, error: null };
     setBusy(null);
     const d = data as { ok?: boolean; why?: string; cleared?: number } | null;
-    setNote(error ? error.message : d?.ok ? `Moved. ${d.cleared ?? 0} classes cleared from ${l.email}.` : (d?.why ?? 'Could not move it.'));
+    setNote(error ? error.message : d?.ok ? `Moved. ${l.email} keeps what it has and stops syncing this Halo.` : (d?.why ?? 'Could not move it.'));
     await load(q);
   };
   const unlink = async (l: Link) => {
@@ -49,7 +49,7 @@ export function AdminHaloLinks() {
   return (
     <section className="card settings-card admin-halo-links" aria-label="Halo links">
       <h2 className="section-title">Halo links</h2>
-      <p className="hint">One Halo student, one Halo+ account. Search by an account's email. Moving clears the old account's Halo data and notes it in Errors.</p>
+      <p className="hint">One Halo student, one Halo+ account. Search by an account's email. Moving relinks it (nothing is deleted) and notes it in Errors.</p>
       <div className="field-row">
         <input className="field-input" type="search" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void load(q)} placeholder="Email, or a link's first characters" aria-label="Find a Halo link" />
         <button type="button" className="btn small" onClick={() => void load(q)}>

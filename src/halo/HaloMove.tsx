@@ -55,7 +55,7 @@ export function HaloMovePrompt({ ask, onMoved, onClose }: { ask: MoveAsk; onMove
         <p className="halo-move-q">
           This Halo account is linked to <b>{ask.masked}</b>. Move it to this account?
         </p>
-        <p className="hint">Its synced classes and assignments leave that account, and that account stops syncing this Halo. This account gets the sync you just ran. You can move it back the same way.</p>
+        <p className="hint">This account gets the sync you just ran, and every sync from now on. That account keeps what it has but stops syncing this Halo. You can move it back the same way.</p>
         {err && (
           <p className="hint checkout-error" role="alert">
             {err}

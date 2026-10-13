@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
     // One Halo student, one Halo+ account (2026-10-11). Keyed on the Halo student (the sync script's hash of the Halo
     // session's identity), never on class ids: those are sections every classmate shares, and keying on them blocked
     // classmates from each other (Loop 227). An export without the hash (an older extension) lands as it always has.
+    const dry = (body as { dryRun?: unknown }).dryRun === true;
     const haloUser = typeof (p as { haloUser?: unknown }).haloUser === 'string' && /^[0-9a-f]{40}$/.test((p as { haloUser: string }).haloUser) ? (p as { haloUser: string }).haloUser : null;
     const classIds = (p.classes as { id?: unknown }[]).map((c) => (typeof c?.id === 'string' ? c.id : '')).filter(Boolean).slice(0, 30);
     if (haloUser) {
@@ -88,20 +89,20 @@ Deno.serve(async (req) => {
         const { data: who } = await db.auth.admin.getUserById(holder);
         const masked = maskEmail(who?.user?.email ?? null);
         if (ownerTest) {
-          await db.rpc('error_record', { e: { fingerprint: 'sync-drop:test-halo', kind: 'server', title: 'A test account synced a Halo that a real account holds', message: `refused for ${owner.user_id.slice(0, 8)}; held by ${masked}`, place: 'sync-drop', status: 409, details: { owner: owner.user_id, holder } } }).then(() => undefined, () => undefined);
+          if (!dry) await db.rpc('error_record', { e: { fingerprint: 'sync-drop:test-halo', kind: 'server', title: 'A test account synced a Halo that a real account holds', message: `refused for ${owner.user_id.slice(0, 8)}; held by ${masked}`, place: 'sync-drop', status: 409, details: { owner: owner.user_id, holder } } }).then(() => undefined, () => undefined);
           return reply(origin, 409, { ok: false, foreign: true, canMove: false, why: `This Halo account belongs to ${masked}. A test account can't take it.` });
         }
         const codes = (p.classes as { courseCode?: unknown }[]).map((c) => (typeof c?.courseCode === 'string' ? c.courseCode : '')).filter(Boolean);
-        await db.from('halo_move_offers').upsert({ user_id: owner.user_id, halo_user: haloUser, holder, holder_masked: masked, class_codes: codes, class_ids: classIds, payload: p, exported_at: p.exportedAt, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 15 * 60_000).toISOString() }, { onConflict: 'user_id,halo_user' });
+        if (!dry) await db.from('halo_move_offers').upsert({ user_id: owner.user_id, halo_user: haloUser, holder, holder_masked: masked, class_codes: codes, class_ids: classIds, payload: p, exported_at: p.exportedAt, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 15 * 60_000).toISOString() }, { onConflict: 'user_id,halo_user' });
         return reply(origin, 409, { ok: false, foreign: true, canMove: true, offer: true, why: `This Halo account is linked to ${masked}. Open Halo+ to move it to this account.` });
       }
-      if (!ownerTest) {
+      if (!ownerTest && !dry) {
         if (link?.user_id === owner.user_id) await db.from('halo_links').update({ last_seen_at: new Date().toISOString(), class_ids: classIds }).eq('halo_user', haloUser);
         else await db.rpc('halo_move', { p_halo_user: haloUser, p_to: owner.user_id, p_class_ids: classIds, p_how: fromExtension ? 'extension' : 'bookmark' });
       }
     }
     // A check with nothing saved: every rule above, then stop (support and the account-health check use it).
-    if ((body as { dryRun?: unknown }).dryRun === true) return reply(origin, 200, { ok: true, dry: true, linked: haloUser ? true : null });
+    if (dry) return reply(origin, 200, { ok: true, dry: true, linked: haloUser ? true : null });
     const since = new Date(Date.now() - 3_600_000).toISOString();
     const { count } = await db.from('pending_syncs').select('id', { count: 'exact', head: true }).eq('user_id', owner.user_id).gte('created_at', since);
     if ((count ?? 0) >= PER_HOUR) return reply(origin, 429, { ok: false, why: 'Too many syncs in the last hour. Wait a few minutes, then tap Sync Halo again.' });

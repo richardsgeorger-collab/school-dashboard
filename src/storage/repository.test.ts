@@ -60,10 +60,11 @@ describe('mergeData', () => {
     expect(r.pushSettings).toBe(false);
   });
 
-  it('pushes local settings when they are newer', () => {
-    const local: AppData = { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, updatedAt: '2026-09-09T12:00:00Z' } };
+  it('pushes local settings when this device changed a key', () => {
+    const local: AppData = { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, weekStartsOn: 0, stamps: { weekStartsOn: '2026-09-09T12:00:00Z' }, updatedAt: '2026-09-09T12:00:00Z' } };
     const r = mergeData(local, { settings: { ...DEFAULT_SETTINGS, updatedAt: '2026-09-09T11:00:00Z' } });
     expect(r.pushSettings).toBe(true);
+    expect(r.merged.settings.weekStartsOn).toBe(0);
     expect(r.merged.settings.updatedAt).toBe('2026-09-09T12:00:00Z');
   });
 
@@ -98,17 +99,32 @@ describe('a device loading an account for the first time', () => {
 });
 
 describe("settings merge key by key; what Halo said only moves forward (George, 2026-10-12)", () => {
-  it("a phone's ten-day-old copy, written a moment ago, never takes the account back to its old last sync", async () => {
+  const account = { ...DEFAULT_SETTINGS, updatedAt: '2026-10-12T23:08:31.000Z', lastPull: { at: '2026-10-12T23:08:24Z', build: 'b', counts: {}, via: 'extension' as const }, haloPulls: { c1: { assessments: '2026-10-12T23:08:24Z', grades: '2026-10-12T23:08:24Z' } }, reminders: { morning: false }, extSetup: { doneAt: 'x' } as never, theme: 'light' as never };
+  it("a phone's ten-day-old copy, with one key changed a moment ago, keeps the account's last sync and every key it didn't change", async () => {
     const { mergeData } = await import('./repository');
-    const account = { ...DEFAULT_SETTINGS, updatedAt: '2026-10-12T23:08:31Z', lastPull: { at: '2026-10-12T23:08:24Z', build: 'b', counts: {}, via: 'extension' as const }, haloPulls: { c1: { assessments: '2026-10-12T23:08:24Z', grades: '2026-10-12T23:08:24Z' } }, reminders: { morning: false }, extSetup: { doneAt: 'x' } as never };
-    const phone: AppData = { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, updatedAt: '2026-10-12T23:20:58Z', lastPull: { at: '2026-10-01T21:55:41Z', build: 'b', counts: {}, via: 'extension' as const }, haloPulls: { c1: { assessments: '2026-10-01T21:55:41Z', announcements: '2026-10-01T21:55:41Z' } }, theme: 'dark' as never } };
+    const phone: AppData = { courses: [], items: [], settings: { ...DEFAULT_SETTINGS, updatedAt: '2026-10-12T23:20:58.000Z', stamps: { weekStartsOn: '2026-10-12T23:20:58.000Z' }, weekStartsOn: 1, reminders: { morning: true }, theme: 'dark' as never, lastPull: { at: '2026-10-01T21:55:41Z', build: 'b', counts: {}, via: 'extension' as const }, haloPulls: { c1: { assessments: '2026-10-01T21:55:41Z', announcements: '2026-10-01T21:55:41Z' } } } };
     const r = mergeData(phone, { settings: account });
     expect(r.merged.settings.lastPull?.at).toBe('2026-10-12T23:08:24Z');
     expect(r.merged.settings.haloPulls?.c1).toEqual({ assessments: '2026-10-12T23:08:24Z', grades: '2026-10-12T23:08:24Z', announcements: '2026-10-01T21:55:41Z' });
+    // Keys the phone never changed: the account's, even though the phone's copy is newer as a whole.
     expect(r.merged.settings.reminders).toEqual({ morning: false });
+    expect(r.merged.settings.theme).toBe('light');
     expect((r.merged.settings as { extSetup?: unknown }).extSetup).toEqual({ doneAt: 'x' });
-    expect(r.merged.settings.theme).toBe('dark');
-    expect(r.merged.settings.updatedAt).toBe('2026-10-12T23:20:58Z');
+    // The key it did change: the phone's.
+    expect(r.merged.settings.weekStartsOn).toBe(1);
     expect(r.pushSettings).toBe(true);
+  });
+  it('a newer change on either side wins its key; an older one never does (the overnight laptop tab)', async () => {
+    const { mergeSettings } = await import('./repository');
+    const laptop = { ...account, theme: 'light' as never, stamps: { theme: '2026-10-11T09:00:00.000Z' }, updatedAt: '2026-10-13T00:00:01.000Z' };
+    const server = { ...account, theme: 'dark' as never, stamps: { theme: '2026-10-12T20:00:00.000Z' }, updatedAt: '2026-10-12T20:00:00.000Z' };
+    expect(mergeSettings(laptop, server).theme).toBe('dark');
+    expect(mergeSettings({ ...laptop, stamps: { theme: '2026-10-12T21:00:00.000Z' } }, server).theme).toBe('light');
+  });
+  it('no push when only key order or the connection details differ', async () => {
+    const { mergeData } = await import('./repository');
+    const local: AppData = { courses: [], items: [], settings: { ...account, supabaseUrl: 'u', supabaseAnonKey: 'k' } };
+    const reordered = Object.fromEntries(Object.entries(account).reverse()) as typeof account;
+    expect(mergeData(local, { settings: reordered }).pushSettings).toBe(false);
   });
 });

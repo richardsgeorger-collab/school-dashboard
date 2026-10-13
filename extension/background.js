@@ -21,7 +21,7 @@ const ALARM = 'auto-sync';
 // after two minutes of silence or fifteen in all (2026-09-30: a fixed 90 seconds cut real syncs off).
 const SILENT_MS = 120_000;
 const MAX_MS = 15 * 60_000;
-const state = { pending: null, fail: null, running: false, lastProgressAt: 0 };
+const state = { pending: null, fail: null, running: false, lastProgressAt: 0, runId: 0 };
 /** A sync with no word from Halo for this long has stopped, whatever storage still says (0.6.6). */
 const STUCK_MS = 120_000;
 void chrome.storage.local.get(['running', 'progressAt', 'runningSince']).then(async ({ running, progressAt, runningSince }) => {
@@ -283,6 +283,9 @@ function explain(raw) {
 async function runSync({ auto, quiet = false }) {
   if (state.running) return;
   state.running = true;
+  // Each run clears only its own state: a Try again that starts a second run while the first is still uploading must not
+  // have the first run's cleanup end the second (review, 2026-10-12).
+  const myRun = ++state.runId;
   await set({ running: true, runningSince: new Date().toISOString(), runningAuto: auto, progress: 'Opening Halo…', progressAt: new Date().toISOString(), lastAttemptAt: new Date().toISOString() });
   let haloTab = null;
   let opened = false;
@@ -330,11 +333,13 @@ async function runSync({ auto, quiet = false }) {
     if (!payload || payload.error) return await failed(explain(payload && payload.error), auto);
     await finish(payload, auto, quiet);
   } finally {
-    state.pending = null;
-    state.fail = null;
-    state.running = false;
     if (opened && haloTab) chrome.tabs.remove(haloTab.id).catch(() => undefined);
-    await set({ running: false, progress: null });
+    if (state.runId === myRun) {
+      state.pending = null;
+      state.fail = null;
+      state.running = false;
+      await set({ running: false, progress: null });
+    }
   }
 }
 

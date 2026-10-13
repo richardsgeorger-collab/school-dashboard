@@ -30,10 +30,13 @@ export function quietMoment(doc: Pick<Document, 'visibilityState' | 'querySelect
  * Leaving the tab is also a quiet moment, whatever is open on it (George's tab sat on an old build all evening behind an
  * open sheet, 2026-10-12): it reloads while nobody is looking, unless something is being typed.
  */
-export function hiddenMoment(doc: Pick<Document, 'visibilityState' | 'activeElement'>): boolean {
+export function hiddenMoment(doc: Pick<Document, 'visibilityState' | 'activeElement' | 'querySelector'>): boolean {
   if (doc.visibilityState !== 'hidden') return false;
   const a = doc.activeElement;
-  return !(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || (a as HTMLElement).isContentEditable));
+  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || (a as HTMLElement).isContentEditable)) return false;
+  // Never over a sync waiting for the student (its review, the Move prompt) or a sheet with something typed in it: the
+  // sync was already taken from the account and lives only on this page (review, 2026-10-12).
+  return !doc.querySelector('.diff-row, .halo-move, .modal input:not([type=checkbox]):not([type=radio]), .modal textarea');
 }
 
 export function startUpdateWatch(opts: { base?: string; fetchVersion?: () => Promise<string | null>; reload?: () => void } = {}): () => void {

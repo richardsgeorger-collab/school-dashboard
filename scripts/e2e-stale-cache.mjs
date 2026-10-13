@@ -46,7 +46,8 @@ async function staleCache(who, settings) {
   const old = ago(11);
   const pulls = Object.fromEntries(Object.entries(settings.haloPulls ?? {}).map(([k, v]) => [k, Object.fromEntries(Object.keys(v).map((kk) => [kk, old]))]));
   const { reminders: _dropped, lastSeenDay: _gone, ...rest } = settings;
-  return { courses, items, settings: { ...rest, lastPull: { ...(settings.lastPull ?? {}), at: old }, haloPulls: pulls, theme: 'dark', updatedAt: ago(1 / 1440), supabaseUrl: env.VITE_SUPABASE_URL, supabaseAnonKey: env.VITE_SUPABASE_ANON_KEY } };
+  // The device changed one thing a minute ago (its theme, stamped as changed); everything else is ten days old.
+  return { courses, items, settings: { ...rest, lastPull: { ...(settings.lastPull ?? {}), at: old }, haloPulls: pulls, theme: 'dark', stamps: { theme: ago(1 / 1440) }, updatedAt: ago(1 / 1440), supabaseUrl: env.VITE_SUPABASE_URL, supabaseAnonKey: env.VITE_SUPABASE_ANON_KEY } };
 }
 
 async function open(browser, who, device, cache, lastSeen) {
@@ -123,6 +124,19 @@ try {
     check(!!said && /Last synced/.test(said) && (await b2.locator('button:has-text("Sync on this phone")').count()) === 1 && !/Syncing/.test(said), `c. Sync now on a phone: "${(said ?? '').replace(/\s+/g, ' ').slice(0, 120)}"`);
     await ph.p.screenshot({ path: `${OUT}/c-phone-sync-now.png` });
     await ph.ctx.close();
+  }
+
+  // e. The account can't be reached (offline, the server down): this device's time, said as such, nothing alarming.
+  if (process.env.ONLY !== 'd') {
+    const { who, settings } = await account(1 / 1440);
+    const cache = await staleCache(who, settings);
+    const { ctx, p } = await open(browser, who, LAPTOP, cache, dayStr(10));
+    await ctx.route('**/rest/v1/**', (r) => r.abort('internetdisconnected'));
+    await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
+    const scary = await watchScary(p, 8000);
+    const line = await until(async () => { const t = (await p.locator('.synced-when').first().innerText().catch(() => '')).trim(); return /as this device last saw it\. Can't reach your account right now\./.test(t) ? t : null; }, 20000);
+    check(scary.length === 0 && !!line, `e. account unreachable: nothing alarming${scary.length ? ` (saw: ${scary.join('; ')})` : ''}, and the line says so: "${line ?? (await p.locator('.synced-when').first().innerText().catch(() => ''))}"`);
+    await ctx.close();
   }
 
   // d. Another device's sync, picked up by an open tab within a minute.

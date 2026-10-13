@@ -87,7 +87,8 @@ try {
   // A. The Now banner.
   const banner = p.locator('.sync-reminder');
   await banner.waitFor({ timeout: 15000 });
-  check(/Last synced 2 days ago/.test(await banner.innerText()) && (await line.count()) === 1, `A. the banner and the line together: "${(await line.innerText()).trim()}"`);
+  const bannerText = await until(async () => { const t = await banner.innerText().catch(() => ''); return /Last synced 2 days ago/.test(t) ? t : null; }, 10000);
+  check(!!bannerText && (await line.count()) === 1, `A. the banner and the line together: "${(await line.innerText()).trim()}"${bannerText ? '' : ` (banner: "${(await banner.innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 120)}")`}`);
   const tA = Date.now();
   await clear();
   await banner.locator('button:has-text("Sync now")').click();

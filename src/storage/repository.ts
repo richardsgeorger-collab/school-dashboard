@@ -71,26 +71,52 @@ export function mergeData(local: AppData, remote: RemoteData, opts: { preferRemo
     merged: { courses: courses.merged, items: items.merged, settings },
     pushCourses: courses.push,
     pushItems: items.push,
-    pushSettings: settings.updatedAt > remoteSettings.updatedAt || JSON.stringify({ ...settings, updatedAt: '' }) !== JSON.stringify({ ...remoteSettings, updatedAt: '' }),
+    // Only when the content differs from the account's (key order and the connection details never count).
+    pushSettings: settingsContent(settings) !== settingsContent(remoteSettings),
   };
 }
 
 const later = (a: string | null | undefined, b: string | null | undefined): string | null | undefined => (!a ? b : !b ? a : a > b ? a : b);
 
+/** Keys merged by their own rules, never by stamp. */
+const SPECIAL = new Set(['stamps', 'updatedAt', 'lastPull', 'haloPulls', 'syncCount', 'ratePromptAt', 'supabaseUrl', 'supabaseAnonKey']);
+
+/** Settings as content: keys sorted at every level, the connection details and the stamp left out. */
+export function settingsContent(s: Settings): string {
+  const sort = (v: unknown): unknown => (Array.isArray(v) ? v.map(sort) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v as object).sort().map((k) => [k, sort((v as Record<string, unknown>)[k])])) : v);
+  const { updatedAt: _u, supabaseUrl: _s, supabaseAnonKey: _k, ...rest } = s as Settings & Record<string, unknown>;
+  return JSON.stringify(sort(rest));
+}
+
 /**
  * Settings, merged key by key (George, 2026-10-12). They used to travel as one blob, newest-written wins: a phone holding
  * a ten-day-old copy changed one small setting on open, so its whole old copy won and went to the account, "last synced
- * Oct 1" and all, and every other device took it from there; keys the old copy never had (reminders, the extension
- * setup) were lost. Now: the newer copy wins per key, a key one copy lacks is kept from the other, and what Halo said
- * (the last sync, each class's pull stamps) only ever moves forward, whichever device wrote last.
+ * Oct 1" and all. Now each key carries the time it was last changed (`stamps`, written by the store whenever a key
+ * changes): the newer change wins per key; a key neither copy has stamped keeps the account's (remote) value; a key one
+ * copy lacks is kept from the other. What Halo said (the last sync, each class's pull stamps) only moves forward.
  */
 export function mergeSettings(local: Settings, remote: Settings): Settings {
-  const localNewer = local.updatedAt > remote.updatedAt;
-  const [winner, loser] = localNewer ? [local, remote] : [remote, local];
-  const out: Settings = { ...loser, ...winner };
+  const ls = local.stamps ?? {};
+  const rs = remote.stamps ?? {};
+  const L = local as Settings & Record<string, unknown>;
+  const R = remote as Settings & Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  const stamps: Record<string, string> = {};
+  for (const k of new Set([...Object.keys(L), ...Object.keys(R)])) {
+    if (SPECIAL.has(k)) continue;
+    const inL = L[k] !== undefined;
+    const inR = R[k] !== undefined;
+    const lt = ls[k] ?? '';
+    const rt = rs[k] ?? '';
+    out[k] = inL && !inR ? L[k] : !inL && inR ? R[k] : lt > rt ? L[k] : R[k];
+    const t = lt > rt ? lt : rt;
+    if (t) stamps[k] = t;
+  }
+  const merged = out as unknown as Settings;
+  if (local.supabaseUrl !== undefined) merged.supabaseUrl = local.supabaseUrl;
+  if (local.supabaseAnonKey !== undefined) merged.supabaseAnonKey = local.supabaseAnonKey;
   const lp = [local.lastPull, remote.lastPull].filter(Boolean).sort((a, b) => (a!.at < b!.at ? 1 : -1))[0];
-  if (lp) out.lastPull = lp;
-  else delete out.lastPull;
+  if (lp) merged.lastPull = lp;
   const pulls: Record<string, HaloPull> = {};
   for (const src of [remote.haloPulls ?? {}, local.haloPulls ?? {}])
     for (const [course, p] of Object.entries(src)) {
@@ -99,12 +125,13 @@ export function mergeSettings(local: Settings, remote: Settings): Settings {
       for (const k of Object.keys(p) as (keyof HaloPull)[]) next[k] = later(had[k], p[k]) ?? null;
       pulls[course] = next;
     }
-  if (Object.keys(pulls).length) out.haloPulls = pulls;
+  if (Object.keys(pulls).length) merged.haloPulls = pulls;
   const count = Math.max(local.syncCount ?? 0, remote.syncCount ?? 0);
-  if (count) out.syncCount = count;
+  if (count) merged.syncCount = count;
   // Answered on any device is answered.
   const rated = later(local.ratePromptAt ?? undefined, remote.ratePromptAt ?? undefined);
-  if (rated) out.ratePromptAt = rated;
-  out.updatedAt = later(local.updatedAt, remote.updatedAt) ?? winner.updatedAt;
-  return out;
+  if (rated) merged.ratePromptAt = rated;
+  if (Object.keys(stamps).length) merged.stamps = stamps;
+  merged.updatedAt = later(local.updatedAt, remote.updatedAt) ?? remote.updatedAt;
+  return merged;
 }

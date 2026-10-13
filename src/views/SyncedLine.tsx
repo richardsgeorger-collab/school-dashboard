@@ -18,7 +18,11 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
   const linked = !!courseId && !!data.courses.find((c) => c.id === courseId)?.haloClassId;
   const at = (courseId ? (data.settings.haloPulls?.[courseId]?.assessments ?? (linked ? data.settings.lastPull?.at : null)) : data.settings.lastPull?.at) ?? loadLastSync()?.at ?? null;
   const checked = useAccountChecked();
-  if (!checked && data.settings.supabaseUrl)
+  const { sync: account } = useStore();
+  // The account could not be reached (offline, the server down): this device's own time, said as exactly that, and no
+  // warning from it; the check runs again when the connection is back (2026-10-12).
+  const unreachable = !checked && account.status === 'error';
+  if (!checked && data.settings.supabaseUrl && !unreachable)
     return (
       <p className="synced mono" data-level="ok">
         <span className="synced-when">Checking your last sync…</span>
@@ -41,6 +45,15 @@ export function SyncedLine({ stale, courseId }: { stale?: string | null; courseI
   const when = relTime(at, now, tz, today);
   // Where the last sync came from when it was the extension, so a student can tell the three-hourly sync is landing.
   const via = !courseId && data.settings.lastPull?.via === 'extension' && data.settings.lastPull.at === at ? ' via extension' : '';
+  if (unreachable)
+    return (
+      <p className="synced mono" data-level="ok">
+        <span className="synced-when">
+          Synced from Halo {when}
+          {via}, as this device last saw it. Can't reach your account right now.
+        </span>
+      </p>
+    );
   return (
     <>
       <p className="synced mono" data-level={stale ? 'amber' : 'ok'}>

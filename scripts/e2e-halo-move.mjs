@@ -144,15 +144,18 @@ try {
   const aLeft = (await db.from('courses').select('id, deleted_at').eq('user_id', A.id).in('id', aCourseIds)).data ?? [];
   const aSettings = (await db.from('settings').select('data').eq('user_id', A.id).single()).data.data;
   const aMailNow = (await db.from('pending_syncs').select('id').eq('user_id', A.id)).data ?? [];
-  check(aLeft.length > 0 && aLeft.every((r) => r.deleted_at), `A's class is tombstoned (${aLeft.length} rows, ${aLeft.filter((r) => r.deleted_at).length} tombstoned)`);
-  check(!aSettings.lastPull && !aSettings.haloPulls?.[aLeft[0]?.id], `A's last pull and that class's pull stamps are gone (lastPull ${aSettings.lastPull?.at ?? 'none'})`);
-  check(aMailNow.length === 0, `A's mailbox is empty (${aMailNow.length})`);
+  // A move never deletes anything (review, 2026-10-12: the Halo identity is a hash the browser sends, so a destructive move
+  // would let anyone wipe a classmate): A keeps what it had and only stops receiving this Halo's syncs.
+  check(aLeft.length > 0 && aLeft.every((r) => !r.deleted_at), `A keeps its class (${aLeft.length} rows, ${aLeft.filter((r) => r.deleted_at).length} tombstoned)`);
+  void aSettings;
+  void aMailNow;
   const note = (await db.from('error_events').select('title, details').eq('fingerprint', 'halo-link:moved').gte('created_at', new Date(t1).toISOString())).data ?? [];
   check(note.some((n) => n.details?.from === A.id && n.details?.to === B.id), `Admin > Errors has the note ("${note[0]?.title}")`);
 
   // 4. A syncs that Halo again (its extension elsewhere): refused, nothing lands; A gets a move offer, not the data.
+  const tA2 = new Date().toISOString();
   const ra = await post(await keyOf(A.id), H);
-  check(ra.status === 409 && ra.body.offer === true && ((await db.from('pending_syncs').select('id').eq('user_id', A.id)).data ?? []).length === 0, `A stops getting data (${ra.status}: ${ra.body.why})`);
+  check(ra.status === 409 && ra.body.offer === true && ((await db.from('pending_syncs').select('id').eq('user_id', A.id).gte('created_at', tA2)).data ?? []).length === 0, `A stops getting data: nothing new lands (${ra.status}: ${ra.body.why})`);
 
   // 5. A test account can't take a real account's Halo; a test account never links one.
   const rc = await post(await keyFor(C), H);

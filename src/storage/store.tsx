@@ -462,7 +462,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Computed against the ref, not React's queued state, so several actions in one tick each see the last one's result
   // and a snapshot taken right after an action is exact.
   const update = useCallback((fn: (d: AppData) => AppData) => {
-    const raw = fn(dataRef.current);
+    const before = dataRef.current.settings;
+    let raw = fn(dataRef.current);
+    if (raw.settings !== before) raw = { ...raw, settings: stampChanged(before, raw.settings) };
     const ordered = orderCourses(raw.courses);
     const next = ordered === raw.courses ? raw : { ...raw, courses: ordered };
     dataRef.current = next;
@@ -750,4 +752,19 @@ export function useStore(): Store {
 /** The account has been checked this session (or there is none to check): only then may anything alarming be said. */
 export function useAccountChecked(): boolean {
   return useStore().sync.checked;
+}
+
+/** Every settings key this change touched gets the time it changed, so the account merge can go key by key. */
+export function stampChanged(before: Settings, after: Settings): Settings {
+  const skip = new Set(['stamps', 'updatedAt', 'supabaseUrl', 'supabaseAnonKey']);
+  const b = before as Settings & Record<string, unknown>;
+  const a = after as Settings & Record<string, unknown>;
+  const now = after.updatedAt && after.updatedAt !== before.updatedAt ? after.updatedAt : new Date().toISOString();
+  let stamps: Record<string, string> | null = null;
+  for (const k of new Set([...Object.keys(b), ...Object.keys(a)])) {
+    if (skip.has(k) || b[k] === a[k] || JSON.stringify(b[k]) === JSON.stringify(a[k])) continue;
+    stamps = stamps ?? { ...(after.stamps ?? before.stamps ?? {}) };
+    stamps[k] = now;
+  }
+  return stamps ? { ...after, stamps } : after;
 }
