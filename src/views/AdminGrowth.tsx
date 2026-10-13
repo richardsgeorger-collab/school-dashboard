@@ -39,7 +39,12 @@ export function monthlyRevenue(paying: Growth['paying']): number {
 }
 
 const money = (n: number) => `$${n.toFixed(2)}`;
-const shortDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+// The server's days come as dates or as midnight timestamps ("2026-10-13T00:00:00", from generate_series): only the
+// date part is read, so a label is never "Invalid Date" (2026-10-13).
+export const shortDay = (d: string) => {
+  const t = new Date(`${String(d).slice(0, 10)}T12:00:00Z`);
+  return Number.isNaN(t.getTime()) ? '' : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
 
 /**
  * Growth at a glance (George, 2026-09-30): real students only (test accounts are counted separately and shown greyed

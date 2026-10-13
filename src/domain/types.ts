@@ -448,6 +448,15 @@ export interface OnboardingState {
   focus?: 'halo' | null;
   /** From the market's QR code on a phone (2026-10-08): the "finish on your laptop" screen, until it is answered. */
   handoff?: 'pending' | 'done' | null;
+  /**
+   * "Finish on my laptop", chosen on a phone or tablet (George, 2026-10-13): setup stays closed on phones and tablets
+   * and opens at Connect Halo on the next laptop open.
+   */
+  laptopAt?: string | null;
+  /** The one nudge on a phone or tablet, a day or more after sign-up with no sync: Connect Halo shown first, once. */
+  nudgedAt?: string | null;
+  /** The "finish setup on your laptop" email, asked for from here (once). */
+  emailedAt?: string | null;
   doneAt: string | null;
   skippedAt: string | null;
   tourDoneAt: string | null;

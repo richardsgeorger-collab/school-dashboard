@@ -3718,7 +3718,8 @@
     display: none;
   }
 }
-/* A link that is the step's big button (Add to Chrome, Open Halo) is as wide as one. */
+/* A link or a button that is the step's big button (Add to Chrome, Open Halo, Copy the link) is as wide as the step. */
+.onboard button.btn.block.onboard-big,
 .onboard a.btn.onboard-big {
   display: flex;
   justify-content: center;

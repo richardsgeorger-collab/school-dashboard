@@ -8,11 +8,12 @@ import { useStore } from '../storage/store';
 import type { ExtSetupKind } from './extSetup';
 import { track } from './track';
 
-const STEPS = 5;
+const STEPS = 3;
 const WAIT_MS = 60_000;
 
 /**
- * Setting up the Chrome extension (George, 2026-10-04): why, install, pin it, log into Halo once, done. Shown once
+ * Setting up the Chrome extension (George, 2026-10-04): why, install, connected. Pinning it and logging into Halo are
+ * no longer steps (2026-10-13): pinning is optional (one line at the end), and the extension opens Halo itself. Shown once
  * after sign-up and once to everyone already here (desktop Chrome, Edge, Brave), in the onboarding's own look. Free
  * gets the why with a plain note that syncing is part of Plus. Safari and Firefox get one screen: it needs Chrome, and
  * the bookmark keeps working. The last step waits for the extension to say hello from this page, then asks it for the
@@ -63,7 +64,7 @@ export function ExtensionSetup({ kind, onClose }: { kind: ExtSetupKind; onClose:
     );
 
   return (
-    <Shell label="Set up auto-sync" count={i} onSkip={i === 4 ? null : skip}>
+    <Shell label="Set up auto-sync" count={i} onSkip={i === 2 ? null : skip}>
       {i === 0 && (
         <section className="onboard-step ext-setup">
           <HaloDraw size={64} />
@@ -93,39 +94,11 @@ export function ExtensionSetup({ kind, onClose }: { kind: ExtSetupKind; onClose:
               I've added it
             </button>
           </div>
-          <p className="hint">It opens the Chrome Web Store in a new tab. Press Add to {b}, then Add extension, and come back here. It never sees your GCU password.</p>
+          <p className="calm-note">{b} will ask to read halo.gcu.edu. Halo+ only reads your own classes and never sees your password.</p>
+          <p className="hint">It opens the Chrome Web Store in a new tab. Press Add to {b}, then Add extension, and come back here.</p>
         </section>
       )}
-      {i === 2 && (
-        <section className="onboard-step ext-setup">
-          <p className="eyebrow">Step 2 · Pin it</p>
-          <h1 className="onboard-title">Pin it where you can see it.</h1>
-          <PinDemo />
-          <p className="onboard-text">Click the puzzle piece next to the address bar, then the pin beside Halo+. Its icon shows when it last synced, and its Sync now gets fresh data right away.</p>
-          <div className="onboard-actions">
-            <button type="button" className="btn primary" onClick={next}>
-              Next
-            </button>
-          </div>
-        </section>
-      )}
-      {i === 3 && (
-        <section className="onboard-step ext-setup">
-          <p className="eyebrow">Step 3 · Halo</p>
-          <h1 className="onboard-title">Log into Halo once.</h1>
-          <p className="onboard-text">The extension syncs in a quiet background tab while you're logged in to Halo; nothing takes over your screen. If Halo logs you out, Halo+ says "Auto-sync paused: log in to Halo" until you do.</p>
-          <div className="onboard-actions">
-            <a className="btn" href="https://halo.gcu.edu/" target="_blank" rel="noopener">
-              Open Halo ↗
-            </a>
-            <button type="button" className="btn primary" onClick={next}>
-              I'm logged in
-            </button>
-          </div>
-          <p className="hint">The {BOOKMARK_NAME} bookmark still works as a backup.</p>
-        </section>
-      )}
-      {i === 4 && <Connect browser={b} onDone={() => onClose('done')} />}
+      {i === 2 && <Connect browser={b} onDone={() => onClose('done')} />}
     </Shell>
   );
 }
@@ -198,7 +171,7 @@ function Connect({ browser, onDone }: { browser: string; onDone: () => void }) {
         <p className="eyebrow">Connected</p>
         <h1 className="onboard-title">{landed ? 'First sync done.' : 'First sync running.'}</h1>
         <p className="onboard-text">
-          {landed ? 'Halo+ is up to date, and it syncs on its own every 3 hours from now on.' : `The Halo+ extension (${version}) is reading Halo in a background tab. It lands here on its own, then every 3 hours while ${browser} is open.`} Want fresh data right away? Press Sync now in the extension.
+          {landed ? 'Halo+ is up to date, and it syncs on its own every 3 hours from now on.' : `The Halo+ extension (${version}) is reading Halo in a background tab. It lands here on its own, then every 3 hours while ${browser} is open.`} Optional: pin Halo+ from the puzzle piece next to the address bar to see when it last synced.
         </p>
         <div className="onboard-actions">
           <button type="button" className="btn primary" onClick={onDone}>
@@ -209,7 +182,7 @@ function Connect({ browser, onDone }: { browser: string; onDone: () => void }) {
     );
   return (
     <section className="onboard-step ext-setup" aria-live="polite">
-      <p className="eyebrow">Step 4 · Connect</p>
+      <p className="eyebrow">Step 2 · Connect</p>
       <h1 className="onboard-title">Looking for the extension…</h1>
       <p className="onboard-text">Once it's added, it says hello from this page in a few seconds and starts the first sync.</p>
       <span className="ext-wait" aria-hidden>
@@ -262,40 +235,6 @@ function InstallDemo({ browser }: { browser: string }) {
           <span className="ext-dialog-btns">
             <span className="ext-ghost">Cancel</span>
             <span className="ext-add">Add extension</span>
-          </span>
-        </div>
-        <span className="ext-cursor" />
-      </div>
-    </div>
-  );
-}
-
-/** The puzzle piece, then the pin beside Halo+, then its icon in the toolbar. */
-function PinDemo() {
-  return (
-    <div className="ext-demo ext-demo-pin" aria-hidden>
-      <div className="ext-win">
-        <div className="ext-bar">
-          <span className="ext-url ext-url-wide">halo.gcu.edu</span>
-          <span className="ext-pinned">
-            <HaloDraw size={16} />
-          </span>
-          <span className="ext-puzzle">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-              <path d="M9 4h3a2 2 0 1 1 4 0h2v5a2 2 0 1 1 0 4v5h-5a2 2 0 1 0-4 0H4v-5a2 2 0 1 0 0-4V4h5Z" />
-            </svg>
-          </span>
-        </div>
-        <div className="ext-menu">
-          <span className="ext-menu-title">Extensions</span>
-          <span className="ext-menu-row">
-            <HaloDraw size={16} />
-            <b>Halo+</b>
-            <span className="ext-pin">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                <path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4 1-3Z" />
-              </svg>
-            </span>
           </span>
         </div>
         <span className="ext-cursor" />

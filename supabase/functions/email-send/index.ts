@@ -21,34 +21,41 @@ interface Row {
 }
 const BASE = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '');
 
-/** The one email so far: made an account on a phone at the market, the setup finishes on a laptop. */
+/**
+ * "Finish setting up Halo+ on your laptop": asked for from a phone or tablet's connect step (George, 2026-10-13; first
+ * made for the market table, 2026-10-08). An account email: no unsubscribe, sent once. The link opens Halo+, which goes
+ * straight to Connect Halo on a laptop.
+ */
 function marketSetup(): { subject: string; text: string; html: string } {
-  const ext = `${SITE}/#/now?ext=1`;
+  const link = `${SITE}/#/now`;
   const phone = `${SITE}/help/halo-app-iphone-ipad/`;
   const subject = 'Finish setting up Halo+ on your laptop';
   const text = [
-    'Thanks for trying Halo+. Your free week of Max is already running.',
+    'Here is your link to finish setting up Halo+. It takes about 2 minutes.',
     '',
     'On your laptop, in Chrome, Edge or Brave:',
-    `1. Open ${ext}`,
-    '2. Add the Halo+ extension (about a minute).',
-    '3. Log in to Halo once. Your classes, due dates, grades and announcements come in by themselves, every 3 hours.',
+    `1. Open ${link}`,
+    '2. Press Add to Chrome.',
+    '3. That is it. Halo+ opens Halo and brings in your classes, due dates and announcements by itself.',
     '',
-    `No laptop nearby? Halo+ works on a phone or iPad too: ${phone}`,
+    'Your free week of Max starts when your classes first sync, so none of it is used up yet.',
+    '',
+    `No laptop? Halo+ can sync from a phone or iPad too: ${phone}`,
     '',
     'Halo+ never asks for your GCU password. Not affiliated with GCU.',
   ].join('\n');
   const html = `<div style="font:16px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;max-width:520px">
   <p style="font-size:22px;font-weight:700;margin:0 0 12px">Finish setting up Halo+ on your laptop</p>
-  <p>Thanks for trying Halo+. Your free week of Max is already running.</p>
+  <p>Here is your link to finish setting up Halo+. It takes about 2 minutes.</p>
   <p><b>On your laptop, in Chrome, Edge or Brave:</b></p>
   <ol>
-    <li><a href="${ext}" style="color:#9a6a00">Open haloplus.app</a></li>
-    <li>Add the Halo+ extension (about a minute).</li>
-    <li>Log in to Halo once. Your classes, due dates, grades and announcements come in by themselves, every 3 hours.</li>
+    <li><a href="${link}" style="color:#9a6a00">Open haloplus.app</a></li>
+    <li>Press Add to Chrome.</li>
+    <li>That is it. Halo+ opens Halo and brings in your classes, due dates and announcements by itself.</li>
   </ol>
-  <p style="margin:20px 0"><a href="${ext}" style="display:inline-block;padding:12px 20px;border-radius:999px;background:#f2b84b;color:#141414;font-weight:700;text-decoration:none">Set up on my laptop</a></p>
-  <p>No laptop nearby? <a href="${phone}" style="color:#9a6a00">Halo+ works on a phone or iPad too.</a></p>
+  <p style="margin:20px 0"><a href="${link}" style="display:inline-block;padding:12px 20px;border-radius:999px;background:#f2b84b;color:#141414;font-weight:700;text-decoration:none">Finish setup on my laptop</a></p>
+  <p>Your free week of Max starts when your classes first sync, so none of it is used up yet.</p>
+  <p>No laptop? <a href="${phone}" style="color:#9a6a00">Halo+ can sync from a phone or iPad too.</a></p>
   <p style="color:#6b6b6b;font-size:13px">Halo+ never asks for your GCU password. Not affiliated with GCU.</p>
 </div>`;
   return { subject, text, html };

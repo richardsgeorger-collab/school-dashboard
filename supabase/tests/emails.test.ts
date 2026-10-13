@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { isAllowedKind, maySend, renderEmail, unsubToken, unsubUrlFor } from '../functions/_shared/emails';
 
+const unsubForSetup = 'https://x.supabase.co/functions/v1/email-unsub?u=def&t=456';
+
 describe('the two student emails (George, 2026-10-09)', () => {
   const unsub = 'https://x.supabase.co/functions/v1/email-unsub?u=abc&t=123';
   it('the day before the free week ends: the date, what changes, the prices, Stay on Free, no guilt, one-click unsubscribe', () => {
@@ -48,5 +50,17 @@ describe('the two student emails (George, 2026-10-09)', () => {
     expect(maySend('reminder', { lastNonAccountSentAt: null, lastOpenedAt: '2026-10-03T12:00:00Z', now }).ok).toBe(true);
     expect(maySend('sync_broken', { lastNonAccountSentAt: null, lastOpenedAt: '2026-10-09T12:00:00Z', now }).ok).toBe(true);
     expect(renderEmail('reminder', {}, 'https://u')!.subject).toBe("Don't forget about Halo+");
+  });
+  it('finish setup (George, 2026-10-13): once, a day after a sign-up that never synced; counts toward the week; unsubscribe; the free week not used up', () => {
+    const now = '2026-10-13T20:00:00Z';
+    expect(isAllowedKind('finish_setup')).toBe(true);
+    expect(maySend('finish_setup', { lastNonAccountSentAt: '2026-10-10T10:00:00Z', lastOpenedAt: null, now }).ok).toBe(false);
+    expect(maySend('finish_setup', { lastNonAccountSentAt: null, lastOpenedAt: '2026-10-13T10:00:00Z', now }).ok).toBe(true);
+    const m = renderEmail('finish_setup', {}, unsubForSetup)!;
+    expect(m.subject).toBe('Your Halo+ classes are 2 minutes away');
+    expect(m.text).toContain('Add to Chrome');
+    expect(m.text).toContain('none of it is used up yet');
+    expect(m.text).toContain('https://haloplus.app/#/now');
+    expect(m.text).toContain(unsubForSetup);
   });
 });

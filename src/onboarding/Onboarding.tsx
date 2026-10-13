@@ -1,12 +1,10 @@
 import { InviteButton } from '../referral/Invite';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { installedVersion, useExtension } from '../config/extension';
-import { IconCheck } from '../components/Icons';
+import { useExtension } from '../config/extension';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
 import { pendingFriend, pendingRef } from '../auth/referral';
-import { forgetSource, pendingSource } from '../auth/source';
-import { MarketHandoff } from './MarketHandoff';
+import { forgetSource } from '../auth/source';
 import { CourseChip } from '../components/CourseChip';
 import { HaloDraw } from '../components/HaloDraw';
 import { friendGift, trialState } from '../config/flags';
@@ -22,8 +20,9 @@ import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { HaloImport } from '../views/HaloImport';
 import { BookmarkButton, useBookmarkHref } from '../views/BookmarkButton';
-import { type OnboardingState, type Step } from './state';
-import { Compare, Gift } from './PlanChoice';
+import { normalStep, type OnboardingState } from './state';
+import { ConnectWait } from './ConnectWait';
+import { PhoneConnect } from './PhoneConnect';
 import { HomeScreenAsk, isPhoneLike, NotifyAsk } from './ComeBack';
 import { isStandalone as isStandaloneApp } from '../notify/push';
 import { ChromeMenuPicture, HaloBarPicture, ShortcutKeyboard } from './Keyboard';
@@ -32,7 +31,6 @@ import { deviceSyncHow } from '../halo/syncHow';
 import { IPadHalo, ipadScreens, type IPadScreen } from './IPadHalo';
 import { TouchPicture, type TouchBrowser } from './TouchPictures';
 import { isChromeIOS, isIOSDevice, isIPad, isMacComputer, isTouchDevice } from '../ui/device';
-import { ImportSyllabus } from '../views/ImportSyllabus';
 import { can } from '../config/flags';
 import { track } from './track';
 
@@ -46,7 +44,7 @@ import { track } from './track';
  * with the likely fixes after a minute). A phone gets its own path, since a phone has no bookmarks bar to drag to.
  */
 
-type Screen = 'ext' | 'ext-wait' | 'bar' | 'drag' | 'open' | 'wait' | 'p-copy' | 'p-save' | 'p-edit' | 'p-open' | 'p-wait' | IPadScreen;
+type Screen = 'ext' | 'ext-wait' | 'needs' | 'home' | 'bar' | 'drag' | 'open' | 'wait' | 'p-copy' | 'p-save' | 'p-edit' | 'p-open' | 'p-wait' | IPadScreen;
 const DESKTOP: Screen[] = ['bar', 'drag', 'open', 'wait'];
 /** Desktop Chrome, Edge or Brave with the store address set: the extension first, the bookmark one tap away (2026-10-05). */
 const DESKTOP_EXT: Screen[] = ['ext', 'ext-wait', ...DESKTOP];
@@ -105,68 +103,48 @@ export function nextBig(items: Item[], today: string, tz: string): Item | null {
 
 export function Onboarding() {
   const { data, schedule, actions, today } = useStore();
-  const { auth, profile, tier, loading, planKnown } = useAccount();
+  const { auth, profile, tier } = useAccount();
   const { navigate } = useRoute();
   const tz = data.settings.timezone;
   const ob = data.settings.onboarding as OnboardingState;
   const step = ob.step;
-  // An iPad gets its own setup and stays on the iPad (2026-09-29); an iPad that started on the phone steps keeps them.
-  const path = ob.path ?? (isIPad() ? 'ipad' : isPhoneDevice() ? 'phone' : 'desktop');
+  // The device decides the way in (2026-10-13): a laptop connects with the extension (or the bookmark), a phone or
+  // tablet hands over to a laptop, with its own setup one quiet tap away.
+  const touch = isTouchDevice();
+  // A phone or tablet already part-way through its own steps keeps them (an iPad on the phone steps, as before).
+  const path: 'desktop' | 'phone' | 'ipad' = touch && (ob.path === 'phone' || ob.path === 'ipad') ? ob.path : isIPad() ? 'ipad' : touch ? 'phone' : 'desktop';
   const ext = useExtension();
-  const extFirst = path === 'desktop' && !!ext.url && !!ext.browser && !ext.installed;
-  const screens: Screen[] = path === 'ipad' ? ipadScreens() : path === 'phone' ? PHONE : extFirst ? DESKTOP_EXT : DESKTOP;
-  const screen = (screens as string[]).includes(ob.screen ?? '') ? (ob.screen as Screen) : screens[0];
+  const extOk = path === 'desktop' && !!ext.url && !!ext.browser;
+  const screens: Screen[] = path === 'ipad' ? ['home', ...ipadScreens()] : path === 'phone' ? ['home', ...PHONE] : extOk ? DESKTOP_EXT : ['needs', ...DESKTOP];
+  // An extension already on this computer goes straight to the first sync.
+  const first: Screen = path === 'desktop' && extOk && ext.installed ? 'ext-wait' : screens[0];
+  const screen = (screens as string[]).includes(ob.screen ?? '') ? (ob.screen as Screen) : first;
   const [paste, setPaste] = useState(false);
 
   const set = (patch: Partial<OnboardingState>) => actions.updateSettings({ onboarding: { ...ob, ...patch } });
-  const go = (next: Step) => {
-    track(step, 'complete');
-    track(next, 'enter');
-    set({ step: next });
-  };
   const show = (s: Screen) => {
     track(`halo:${screen}`, 'complete');
     track(`halo:${s}`, 'enter');
     set({ screen: s, path });
   };
-  const switchPath = () => set({ path: path === 'phone' ? 'desktop' : 'phone', screen: null });
-  // Opened from "Set up": only the Halo steps, and "Not now" just closes them.
-  const focus = ob.focus === 'halo';
-  // Skipping is safe (2026-10-01): one line on how to come back, then Now. The free week keeps running either way.
-  const [leaving, setLeaving] = useState(false);
-  const leave = () => {
-    forgetSource();
-    const now = new Date().toISOString();
-    // One write: the skip, and (on the free week) the Max welcome marked seen, as finishing does. Skipping used to land
-    // on "Welcome to Max", three more setup screens about classes that were not there yet (2026-10-01).
-    const seen = trialState(profile) === 'active' && !data.settings.upgradeSeen?.max ? { upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } } : {};
-    actions.updateSettings({ onboarding: { ...ob, skippedAt: now, focus: null }, ...seen });
-    navigate('now');
-  };
-  const skipAll = () => {
-    track(step, 'skip');
-    if (focus) return leave();
-    setLeaving(true);
-  };
-  useEffect(() => {
-    if (!leaving) return;
-    const t = window.setTimeout(leave, 4500);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leaving]);
   const onTrial = trialState(profile) === 'active';
   const gift = friendGift(profile);
+  // The welcome for a paid plan stays for real upgrades; the free week is not one, so it is marked seen with setup.
+  const seenOnTrial = (now: string) => (onTrial && !data.settings.upgradeSeen?.max ? { upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } } : {});
   const finish = () => {
     track('payoff', 'complete');
     forgetSource();
     pixel('CompleteRegistration');
     const now = new Date().toISOString();
-    set({ step: 'done', doneAt: now, focus: null });
-    // A student on the welcome gift has just been shown what Max does (the gift screen) and their study plan (the
-    // payoff): the three-screen "Welcome to Max" after the tour said it all a third time, twelve screens in, before
-    // they ever reached Now (walkthrough, 2026-09-30). It stays for a real upgrade; the colour is under You, Display.
-    if (onTrial && !data.settings.upgradeSeen?.max) actions.updateSettings({ upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } });
-    // The welcome for a paid plan (colour, study plan) follows the tour on its own; see onboarding/Upgrade.tsx.
+    actions.updateSettings({ onboarding: { ...ob, step: 'done', doneAt: now, focus: null }, ...seenOnTrial(now) });
+    navigate('now');
+  };
+  // "Finish on my laptop" (phones and tablets): setup closes here and opens at Connect Halo on the next laptop open.
+  const toLaptop = () => {
+    track('connect:handoff', 'complete');
+    forgetSource();
+    const now = new Date().toISOString();
+    actions.updateSettings({ onboarding: { ...ob, laptopAt: now, screen: null, focus: null }, ...seenOnTrial(now) });
     navigate('now');
   };
 
@@ -179,27 +157,19 @@ export function Onboarding() {
     else if (isPhoneLike() && !isStandaloneApp()) set({ after: 'home' });
     else finish();
   };
-  // The welcome (2026-09-29): every new account has Max for 7 days from sign-up, so a new student sees the fifteen
-  // seconds and then the gift. A friend's guest, a paid plan, or a build without accounts goes straight to Halo.
-  const welcoming = auth.configured && !!auth.session && !gift && !pendingFriend() && trialState(profile) === 'active' && !profile?.friendFrom;
-  // The account step passes itself the moment someone is signed in (including coming back from the email link).
+  // Sign up, then Connect Halo (2026-10-13): a step from an older build (the welcome, the plan story, the syllabus
+  // step) is read as the one that replaced it, and a signed-in student is past sign-up.
   useEffect(() => {
-    if (step === 'account' && (!auth.configured || auth.session)) {
-      // From the market's QR code (2026-10-08): no fifteen-second story, the gift, then on a phone or iPad the
-      // "finish on your laptop" screen before the Halo steps.
-      const market = pendingSource() === 'market';
-      set({ step: focus ? 'halo' : market ? 'offer' : 'compare', ...(market && isTouchDevice() ? { handoff: 'pending' as const } : {}) });
+    const next = normalStep(step, { accounts: auth.configured, signedIn: !!auth.session });
+    if (next !== step) {
+      track(next, 'enter');
+      set({ step: next });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, auth.configured, auth.session]);
-  // Nothing to choose (a friend's link, a trial already used or running, a paid plan, no accounts on this build):
-  // straight on to Halo. Waits for the profile, so a new account is never sent past its own offer.
-  useEffect(() => {
-    if ((step === 'compare' || step === 'offer') && !loading && !welcoming) set({ step: 'halo' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, loading, welcoming]);
 
-  const synced = data.courses.length > 0;
+  // Synced means Halo's classes are here: a syllabus added on a phone is not a sync.
+  const synced = !!data.settings.lastPull || data.courses.some((c) => c.haloClassId);
   // Record the arrival once, so the admin screen sees who got as far as their own classes.
   const logged = useRef(false);
   useEffect(() => {
@@ -209,94 +179,51 @@ export function Onboarding() {
     }
   }, [synced, step]);
 
-  // The free path adds classes from syllabi; everyone else connects Halo.
-  const freePath = step === 'syllabus' || (synced && planKnown && !can('haloManualSync', tier) && !ob.path);
-  const labels = auth.configured ? ['Welcome', 'Account', 'Your plan', freePath ? 'Syllabi' : 'Connect Halo', 'Your classes'] : ['Welcome', 'Connect Halo', 'Your classes'];
-  const at = auth.configured
-    ? synced ? 4 : step === 'welcome' ? 0 : step === 'account' ? 1 : step === 'compare' || step === 'offer' ? 2 : 3
-    : synced ? 2 : step === 'welcome' ? 0 : 1;
-
-  if (leaving)
-    return (
-      <div className="onboard" role="dialog" aria-modal="true" aria-label="Setup skipped">
-        <div className="onboard-inner">
-          <section className="onboard-step skip-note" role="status">
-            <h1 className="onboard-title">No problem.</h1>
-            <p className="onboard-text">
-              Tap <b className="skip-note-pill">Set up</b> {window.matchMedia?.('(max-width: 639px)').matches ? 'at the top' : 'in the top right'} whenever you're ready.
-            </p>
-            {trialState(profile) === 'active' && !profile?.friendFrom && <p className="hint">Your free week of Max is already running.</p>}
-            <button type="button" className="btn primary" onClick={leave}>
-              Go to Now
-            </button>
-          </section>
-        </div>
-      </div>
-    );
+  const labels = auth.configured ? ['Sign up', 'Connect Halo', 'Your classes'] : ['Connect Halo', 'Your classes'];
+  const at = auth.configured ? (synced ? 2 : step === 'account' ? 0 : 1) : synced ? 1 : 0;
+  // On a phone or tablet the only way past Connect Halo is to finish on a laptop (the home screen says so itself).
+  const laptopOut = !synced && touch && step === 'halo' && screen !== 'home' && !!auth.session;
 
   return (
-    <div className="onboard" role="dialog" aria-modal="true" aria-label={focus ? 'Connect Halo' : 'Welcome'}>
+    <div className="onboard" role="dialog" aria-modal="true" aria-label="Set up Halo+">
       <div className="onboard-inner">
         <header className="onboard-head">
-          {focus ? (
-            <span className="onboard-count">{step === 'account' ? 'Sign up, then connect Halo' : 'Connect Halo'}</span>
-          ) : (
-            <>
-              <span className="onboard-count">
-                Step {at + 1} of {labels.length}: {labels[at]}
-              </span>
-              <span className="onboard-progress" aria-hidden>
-                {labels.map((s, i) => (
-                  <i key={s} data-done={i < at} data-current={i === at} />
-                ))}
-              </span>
-            </>
-          )}
-          {!synced && (
-            <button type="button" className="diff-toggle onboard-skip" onClick={skipAll}>
-              {focus ? 'Not now' : 'Skip for now'}
+          <span className="onboard-count">
+            Step {at + 1} of {labels.length}: {labels[at]}
+          </span>
+          <span className="onboard-progress" aria-hidden>
+            {labels.map((l, i) => (
+              <i key={l} data-done={i < at} data-current={i === at} />
+            ))}
+          </span>
+          {laptopOut && (
+            <button type="button" className="diff-toggle onboard-skip" onClick={toLaptop}>
+              Finish on my laptop
             </button>
           )}
         </header>
 
-        {step === 'welcome' && !synced && <Welcome onStart={() => go(auth.configured && !auth.session ? 'account' : auth.configured ? 'compare' : 'halo')} signedOut={auth.configured && !auth.session} />}
-
         {step === 'account' && !synced && (
           <section className="onboard-step" aria-label="Sign up">
-            <h1 className="onboard-title">Make your account.</h1>
-            <p className="onboard-text">{pendingFriend() ? 'Your friend link gives you Max free. No card.' : 'Free to start. No card.'}</p>
+            <HaloDraw size={64} />
+            <h1 className="onboard-title">See your real assignments in about two minutes.</h1>
+            <p className="onboard-text">{pendingFriend() ? 'Your friend link gives you Max free. No card.' : 'Make your account, then connect Halo. Free to start, no card, and never your GCU password.'}</p>
             <SignIn auth={auth} title="Sign up" />
             <p className="hint">
-              <button type="button" className="hero-inline" onClick={() => go('halo')}>
-                Not now, keep everything on this device
-              </button>
+              Already have an account? <a href="#/login">Log in</a>
             </p>
+            <p className="hint onboard-foot">Not affiliated with Grand Canyon University.</p>
           </section>
         )}
 
-        {step === 'compare' && !synced && welcoming && <Compare onNext={() => go('offer')} />}
-        {step === 'offer' && !synced && welcoming && <Gift onNext={() => go('halo')} invited={!!profile?.referredBy || !!pendingRef()} />}
-        {step === 'syllabus' && !synced && <SyllabusStep onTrial={() => go('halo')} canTry={trialState(profile) === 'available'} />}
-
-        {step === 'halo' && !synced && ob.handoff !== 'pending' && path === 'desktop' && (
-          <DesktopHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} storeUrl={ext.url} browser={ext.browser} />
+        {step === 'halo' && !synced && path === 'desktop' && (
+          <DesktopHalo screen={screen} show={show} onPaste={() => setPaste(true)} storeUrl={ext.url} browser={ext.browser} />
         )}
-        {step === 'halo' && !synced && ob.handoff === 'pending' && (
-          <MarketHandoff
-            email={auth.session?.user.email ?? null}
-            onHere={() => set({ handoff: 'done' })}
-            onLater={() => {
-              track('market-handoff', 'complete');
-              forgetSource();
-              const now = new Date().toISOString();
-              const seen = trialState(profile) === 'active' && !data.settings.upgradeSeen?.max ? { upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } } : {};
-              actions.updateSettings({ onboarding: { ...ob, handoff: 'done', step: 'done', doneAt: now, focus: null }, ...seen });
-              navigate('now');
-            }}
-          />
+        {step === 'halo' && !synced && path !== 'desktop' && screen === 'home' && (
+          <PhoneConnect variant="step" onLaptop={toLaptop} onHere={() => show(path === 'ipad' ? ipadScreens()[0] : 'p-copy')} />
         )}
-        {step === 'halo' && !synced && ob.handoff !== 'pending' && path === 'phone' && <PhoneHalo screen={screen} show={show} switchPath={switchPath} onPaste={() => setPaste(true)} />}
-        {step === 'halo' && !synced && ob.handoff !== 'pending' && path === 'ipad' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
+        {step === 'halo' && !synced && path === 'phone' && screen !== 'home' && <PhoneHalo screen={screen} show={show} onPaste={() => setPaste(true)} />}
+        {step === 'halo' && !synced && path === 'ipad' && screen !== 'home' && <IPadHalo screen={screen as IPadScreen} show={show} onPaste={() => setPaste(true)} onTested={() => actions.updateSettings({ syncHow: deviceSyncHow() })} />}
 
         {/* A sync that lands on any screen (a student who clicked the bookmark early) goes straight to the payoff. */}
         {synced && after === 'payoff' && <Payoff onStart={afterPayoff} schedule={schedule} today={today} tz={tz} gift={gift} onTrial={onTrial} reads={can('announcementAI', tier)} invited={!!profile?.referredBy || !!pendingRef()} />}
@@ -305,56 +232,6 @@ export function Onboarding() {
       </div>
       {paste && <HaloImport onClose={() => setPaste(false)} />}
     </div>
-  );
-}
-
-function Welcome({ onStart, signedOut }: { onStart: () => void; signedOut: boolean }) {
-  const friend = pendingFriend();
-  // An invite link promised "you both get Plus free for 30 days": the first screen says it arrived.
-  const invited = !friend && !!pendingRef();
-  return (
-    <section className="onboard-step" aria-label="Welcome">
-      <HaloDraw size={72} />
-      <p className="eyebrow">{friend ? 'A friend sent you Halo+' : invited ? 'A friend invited you' : 'The planner built for Halo'}</p>
-      <h1 className="onboard-title">See your real assignments in about two minutes.</h1>
-      <p className="onboard-text">Halo+ pulls your classes, due dates and announcements from Halo and shows the one thing to do next. It never asks for your GCU password.</p>
-      {invited && <p className="onboard-text welcome-invited">Your invite is saved: a free week of Max, then 30 days of Plus free. Your friend gets 30 days of Plus too.</p>}
-      <div className="onboard-actions">
-        <button type="button" className="btn primary" onClick={onStart}>
-          Start
-        </button>
-      </div>
-      {signedOut && (
-        <p className="hint">
-          Already have an account? <a href="#/login">Log in</a>
-        </p>
-      )}
-      <p className="hint onboard-foot">Not affiliated with Grand Canyon University.</p>
-    </section>
-  );
-}
-
-/** The Free path: classes come from their syllabus PDFs. One button, and the trial one tap away if they change their mind. */
-function SyllabusStep({ onTrial, canTry }: { onTrial: () => void; canTry: boolean }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="onboard-step" aria-label="Upload a syllabus">
-      <h1 className="onboard-title">Add your classes from their syllabi.</h1>
-      <p className="onboard-text">Download each class's syllabus PDF from Halo and drop it in. Every assignment in it lands on your calendar.</p>
-      <button type="button" className="btn primary block onboard-big" onClick={() => setOpen(true)}>
-        Upload a syllabus
-      </button>
-      <p className="hint">You're on Free. Nothing is synced from Halo and nothing charges.</p>
-      {canTry && (
-        <p className="hint">
-          Changed your mind?{' '}
-          <button type="button" className="hero-inline" onClick={onTrial}>
-            {TRIAL.offer}
-          </button>
-        </p>
-      )}
-      {open && <ImportSyllabus onClose={() => setOpen(false)} />}
-    </section>
   );
 }
 
@@ -384,7 +261,7 @@ function MiniBrowser({ bar, children, label, slot = true }: { bar: boolean; chil
   );
 }
 
-function DesktopHalo({ screen, show, switchPath, onPaste, storeUrl, browser }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void; storeUrl: string | null; browser: string | null }) {
+function DesktopHalo({ screen, show, onPaste, storeUrl, browser }: { screen: Screen; show: (s: Screen) => void; onPaste: () => void; storeUrl: string | null; browser: string | null }) {
   const [note, setNote] = useState<string | null>(null);
   const keys = isMac() ? '⌘ Command + Shift + B' : 'Ctrl + Shift + B';
   const safari = isSafari();
@@ -418,20 +295,30 @@ function DesktopHalo({ screen, show, switchPath, onPaste, storeUrl, browser }: {
       {screen === 'ext' && storeUrl && (
         <section className="onboard-step" aria-label="Add the extension">
           <p className="eyebrow">Connect Halo</p>
-          <h1 className="onboard-title">Connect Halo the easy way.</h1>
-          <p className="onboard-text">Add the Halo+ extension to {browser ?? 'Chrome'}. It reads Halo in the background and syncs every 3 hours, so you never have to click anything. It never sees your password.</p>
-          <a className="btn primary block onboard-big" href={storeUrl} target="_blank" rel="noopener" onClick={() => show('ext-wait')}>
+          <h1 className="onboard-title">Add Halo+ to {browser ?? 'Chrome'}.</h1>
+          <p className="onboard-text">It opens Halo in the background and brings in your classes, due dates and announcements by itself, then keeps them current. About a minute.</p>
+          <p className="calm-note">{browser ?? 'Chrome'} will ask to read halo.gcu.edu. Halo+ only reads your own classes and never sees your password.</p>
+          <a
+            className="btn primary block onboard-big"
+            href={storeUrl}
+            target="_blank"
+            rel="noopener"
+            onClick={() => {
+              track('connect:store', 'complete');
+              show('ext-wait');
+            }}
+          >
             Add to {browser ?? 'Chrome'}
           </a>
           <p className="hint">
-            It opens the Chrome Web Store: press Add to {browser ?? 'Chrome'}, then come back here.{' '}
             <button type="button" className="hero-inline" onClick={() => show('bar')}>
               Use the {BOOKMARK_NAME} bookmark instead
             </button>
           </p>
         </section>
       )}
-      {screen === 'ext-wait' && <ExtensionWait browser={browser ?? 'Chrome'} onBookmark={() => show('bar')} onPaste={onPaste} />}
+      {screen === 'ext-wait' && <ConnectWait browser={browser ?? 'Chrome'} onBookmark={() => show('bar')} onPaste={onPaste} />}
+      {screen === 'needs' && <NeedsChrome onBookmark={() => show('bar')} />}
       {screen === 'bar' && (
         <section className="onboard-step" aria-label="Show your bookmarks bar">
           <h1 className="onboard-title">Show your bookmarks bar.</h1>
@@ -477,11 +364,6 @@ function DesktopHalo({ screen, show, switchPath, onPaste, storeUrl, browser }: {
               I can't see my bookmarks bar
             </button>
           </p>
-          <p className="hint">
-            <button type="button" className="hero-inline" onClick={switchPath}>
-              On a phone? Use the phone steps
-            </button>
-          </p>
         </section>
       )}
 
@@ -506,7 +388,7 @@ function DesktopHalo({ screen, show, switchPath, onPaste, storeUrl, browser }: {
   );
 }
 
-function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show: (s: Screen) => void; switchPath: () => void; onPaste: () => void }) {
+function PhoneHalo({ screen, show, onPaste }: { screen: Screen; show: (s: Screen) => void; onPaste: () => void }) {
   const { actions } = useStore();
   const href = useBookmarkHref('short');
   const browser = touchBrowser();
@@ -539,14 +421,6 @@ function PhoneHalo({ screen, show, switchPath, onPaste }: { screen: Screen; show
                 I copied it
               </button>
             </>
-          )}
-          {!ipad && (
-            <p className="hint">
-              Easier on a computer? Set it up there once and your phone gets everything through your account.{' '}
-              <button type="button" className="hero-inline" onClick={switchPath}>
-                Show the computer steps
-              </button>
-            </p>
           )}
         </section>
       )}
@@ -859,6 +733,7 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads, invited = 
         <div className="payoff-block payoff-auto">
           <p className="eyebrow">Auto-sync is on</p>
           <p className="hint">The Halo+ extension syncs again every 3 hours while your browser is open. Nothing to click.</p>
+          <p className="hint">Optional: pin Halo+ from the puzzle piece next to the address bar to see when it last synced.</p>
         </div>
       )}
 
@@ -878,71 +753,35 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads, invited = 
 }
 
 /**
- * After "Add to Chrome" in onboarding: waits for the extension to say hello from this page, asks it for the first
- * sync, and says to open Halo logged in. The sync lands in the account and the payoff takes over on its own. An
- * extension from before 0.5.2 starts its first sync within a minute of learning the plan; a logged-out Halo picks up
- * the moment Halo is opened logged in.
+ * Safari, Firefox, Opera and other computers' browsers (George, 2026-10-13): said up front, before any steps. The
+ * extension needs Chrome, Edge or Brave; the link to open there; the bookmark as the backup in this browser.
  */
-function ExtensionWait({ browser, onBookmark, onPaste }: { browser: string; onBookmark: () => void; onPaste: () => void }) {
-  const [version, setVersion] = useState<string | null>(installedVersion);
-  const [late, setLate] = useState(false);
-  const asked = useRef(false);
-  useEffect(() => {
-    if (version) return;
-    const t0 = Date.now();
-    const iv = window.setInterval(() => {
-      const v = installedVersion();
-      if (v) setVersion(v);
-      else if (Date.now() - t0 > 60_000) setLate(true);
-    }, 1000);
-    return () => window.clearInterval(iv);
-  }, [version]);
-  useEffect(() => {
-    if (!version || asked.current) return;
-    asked.current = true;
-    track('halo:ext-connected', 'complete');
-    window.postMessage({ kind: 'halo-ext-first-sync' }, location.origin);
-  }, [version]);
-  if (!version)
-    return (
-      <section className="onboard-step" aria-label="Waiting for the extension" aria-live="polite">
-        <h1 className="onboard-title">Press Add to {browser}, then come back.</h1>
-        <p className="onboard-text">This page moves on by itself as soon as the extension is added.</p>
-        <span className="ext-wait" aria-hidden>
-          <i />
-          <i />
-          <i />
-        </span>
-        {late && (
-          <p className="hint">
-            <b>Not seeing it?</b> Reload this page: an extension added while a page is open shows up after a reload.{' '}
-            <button type="button" className="hero-inline" onClick={() => window.location.reload()}>
-              Reload
-            </button>
-          </p>
-        )}
-        <p className="hint">
-          <button type="button" className="hero-inline" onClick={onBookmark}>
-            Use the {BOOKMARK_NAME} bookmark instead
-          </button>
-        </p>
-      </section>
-    );
+function NeedsChrome({ onBookmark }: { onBookmark: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const name = isSafari() ? 'Safari' : /Firefox\//.test(ua()) ? 'Firefox' : 'this browser';
+  const link = 'https://haloplus.app/#/now';
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
   return (
-    <section className="onboard-step" aria-label="Open Halo" aria-live="polite">
-      <span className="ext-check" aria-hidden>
-        <IconCheck />
-      </span>
-      <h1 className="onboard-title">Now open Halo and log in.</h1>
-      <p className="onboard-text">The extension is reading your classes in a quiet background tab. Halo+ fills in here by itself, usually in a minute or two.</p>
-      <a className="btn primary block onboard-big" href="https://halo.gcu.edu/" target="_blank" rel="noopener">
-        Open Halo ↗
-      </a>
+    <section className="onboard-step needs-chrome" aria-label="Halo+ needs Chrome, Edge or Brave">
+      <p className="eyebrow">Connect Halo</p>
+      <h1 className="onboard-title">Halo+ connects in Chrome, Edge or Brave.</h1>
+      <p className="onboard-text">It brings in your classes with a browser extension, and {name} can't run it. Open haloplus.app in Chrome, Edge or Brave on this computer and log in. It takes about 2 minutes, and syncs by itself after that.</p>
+      <button type="button" className="btn primary block onboard-big" onClick={() => void copy()}>
+        {copied ? 'Copied. Paste it in Chrome, Edge or Brave' : 'Copy the link'}
+      </button>
       <p className="hint">
-        Already logged in? Just wait here.{' '}
-        <button type="button" className="hero-inline" onClick={onPaste}>
-          Paste a sync instead
+        No Chrome, Edge or Brave?{' '}
+        <button type="button" className="hero-inline" onClick={onBookmark}>
+          Use the {BOOKMARK_NAME} bookmark in {name === 'this browser' ? 'this browser' : name}
         </button>
+        . It syncs when you click it, not on its own.
       </p>
     </section>
   );

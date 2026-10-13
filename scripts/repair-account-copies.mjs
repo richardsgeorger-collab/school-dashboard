@@ -2,7 +2,7 @@
 // class; the sign-in to a second account surfaced them). The same fold the app now runs (src/halo/dedupe.ts), applied
 // to the server rows, then Halo's latest sync re-applied: an assessment Halo says is handed in or graded is done.
 // Prints the before/after table. Nothing is written unless WRITE=1; a JSON backup of every row goes to BACKUP_DIR first.
-//   KEYS_ENV=... USER=<uuid> [WRITE=1] [BACKUP_DIR=...] [WIPE_OTHER=<uuid>] npx tsx scripts/repair-account-copies.mjs
+//   KEYS_ENV=... USER=<uuid> [WRITE=1] [BACKUP_DIR=...] npx tsx scripts/repair-account-copies.mjs
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { dedupeData } from '../src/halo/dedupe.ts';
@@ -83,21 +83,6 @@ await db.from('settings').update({ data: { ...folded.data.settings, updatedAt: n
 if (latest && process.env.NO_REQUEUE !== '1') await db.from('pending_syncs').update({ consumed_at: null }).eq('id', latest.id);
 console.log(`\nwritten: ${folded.data.courses.length} courses, ${folded.data.items.length} items, ${folded.removedCourses.length} course tombstones, ${folded.removedItems.length} item tombstones${latest && process.env.NO_REQUEUE !== '1' ? '; latest sync re-queued' : ''}`);
 
-// The account that received this student's Halo by mistake: its planner is emptied and its sync key reset.
-let OTHER = process.env.WIPE_OTHER;
-if (OTHER && OTHER.length < 36) {
-  const users = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.filter((u) => u.id.startsWith(OTHER));
-  if (users.length !== 1) throw new Error(`WIPE_OTHER prefix matches ${users.length} users`);
-  OTHER = users[0].id;
-}
-if (OTHER) {
-  const oc = (await db.from('courses').select('id').eq('user_id', OTHER).is('deleted_at', null)).data ?? [];
-  const oi = (await db.from('items').select('id').eq('user_id', OTHER).is('deleted_at', null)).data ?? [];
-  for (const r of oi) await db.from('items').upsert({ id: r.id, user_id: OTHER, data: { id: r.id }, updated_at: now, deleted_at: now }, { onConflict: 'user_id,id' });
-  for (const r of oc) await db.from('courses').upsert({ id: r.id, user_id: OTHER, data: { id: r.id }, updated_at: now, deleted_at: now }, { onConflict: 'user_id,id' });
-  const os = (await db.from('settings').select('data').eq('user_id', OTHER).maybeSingle()).data;
-  if (os) await db.from('settings').update({ data: { ...os.data, haloPulls: {}, lastPull: null, updatedAt: now }, updated_at: now }).eq('user_id', OTHER);
-  await db.from('pending_syncs').delete().eq('user_id', OTHER);
-  await db.from('sync_keys').delete().eq('user_id', OTHER);
-  console.log(`other account ${OTHER.slice(0, 8)}: ${oc.length} courses and ${oi.length} items tombstoned, pulls cleared, pending syncs and sync key removed`);
-}
+// There is no "wipe the other account" step any more (2026-10-13): Loop 227 used one on an account it took for a test
+// account that had received George's Halo. It was a classmate in the same sections, and the step erased their planner.
+// Classes are shared sections: matching classes never prove two accounts are one student. Never delete another account.

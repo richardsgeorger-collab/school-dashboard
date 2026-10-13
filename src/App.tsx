@@ -2,7 +2,8 @@ import { ExtensionSetup } from './onboarding/ExtensionSetup';
 import { isDemo } from './demo/demo';
 import { DemoHost } from './demo/DemoHost';
 import { extSetupDue } from './onboarding/extSetup';
-import { NeverSyncedSheet } from './onboarding/Setup';
+import { useNeverSynced } from './onboarding/Setup';
+import { useTrialSyncStart } from './auth/useTrialSyncStart';
 import { installedVersion, useExtension } from './config/extension';
 import { isTouchDevice } from './ui/device';
 import { WinbackOpens } from './winback/WinbackHooks';
@@ -79,7 +80,7 @@ import { Onboarding } from './onboarding/Onboarding';
 import { Upgrade, upgradeDue } from './onboarding/Upgrade';
 import { TrialEnded } from './views/trialEnd/TrialEnded';
 import { JoyHost } from './joy/JoyHost';
-import { initialState, isOpen, tourPending } from './onboarding/state';
+import { connectReopen, initialState, isOpen, normalStep, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
 import { FrozenBanner, LegacyNotice, useSyncAccess } from './views/PlanWall';
@@ -329,15 +330,28 @@ function OnboardingHost() {
     if (front !== 'app' || route === 'login' || !settled) return;
     const s = initialState(data.settings, data.courses);
     if (!s) return;
-    if (route === 'start' && s.step === 'welcome') s.step = auth.configured && !auth.session ? 'account' : auth.configured ? 'compare' : 'halo';
-    // Back from Google or the email link with a brand-new account: the pitch and the sign-up are behind them; the
-    // plan choice is next (it passes itself when there is nothing to choose).
-    else if (auth.session && s.step === 'welcome') s.step = 'compare';
+    // Sign up, then Connect Halo (2026-10-13): no welcome screen and no plan story in between.
+    s.step = normalStep(s.step, { accounts: auth.configured, signedIn: !!auth.session });
     actions.updateSettings({ onboarding: s });
     track(s.step, 'enter');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.settings.onboarding, data.courses.length, front, route, settled]);
   const ob = data.settings.onboarding;
+  // Never synced, on a plan that syncs (George, 2026-10-13): a laptop always opens at Connect Halo (there is no skipping
+  // it there, and "Finish on my laptop" from a phone lands here); a phone or tablet gets it first once, a day after
+  // sign-up. Not for admins or the demo, and only once the account's own copy is here.
+  useTrialSyncStart();
+  const never = useNeverSynced();
+  const access = useSyncAccess();
+  const createdAt = auth.session?.user.created_at ?? null;
+  useEffect(() => {
+    if (front !== 'app' || route === 'login' || !settled || !never || !auth.session || !access.allowed || !planKnown || profile?.isAdmin || isDemo()) return;
+    const patch = connectReopen(ob, { touch: isTouchDevice(), createdAt });
+    if (!patch) return;
+    track('connect:reopen', 'enter');
+    actions.updateSettings({ onboarding: { ...ob!, ...patch } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [front, route, settled, never, auth.session, access.allowed, planKnown, profile?.isAdmin, ob?.doneAt, ob?.skippedAt, ob?.laptopAt]);
   // Admin only (2026-10-01): the end-of-trial screen on the admin's own account and real numbers, changing nothing.
   const preview = params.get('preview');
   if (profile?.isAdmin && (preview === 'trial-end' || preview === 'trial-end-gift'))
@@ -350,7 +364,10 @@ function OnboardingHost() {
   if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;
   if (tourPending(ob)) return null;
   // Never on a plan still loading: the free tier it reads for a moment is not a downgrade, and the welcome waits.
-  const due = loading || !planKnown ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
+  // The plan story is not part of setup (2026-10-13): the free week is not an upgrade, so its "Welcome to Max" never shows;
+  // a real upgrade still gets its welcome.
+  const dueRaw = loading || !planKnown ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
+  const due = dueRaw === 'max' && trialState(profile) === 'active' ? null : dueRaw;
   if (due) return <Upgrade kind={due} />;
   if (loading || !planKnown) return null;
   // The first open after a trial ends: one clear screen, before anything else.
@@ -370,12 +387,7 @@ function OnboardingHost() {
         }}
       />
     );
-  return (
-    <>
-      <TrialEnded />
-      <NeverSyncedSheet />
-    </>
-  );
+  return <TrialEnded />;
 }
 
 /** A signed-in student's classes on their way to a new device. */

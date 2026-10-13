@@ -21,7 +21,6 @@ import type { HaloClass, HaloExport } from '../halo/types';
 import { useStore } from '../storage/store';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
 import { useAccount } from '../auth/AccountContext';
-import { supabase } from '../auth/client';
 import { REFERRAL, TIER_NAMES } from '../config/tiers';
 
 type Group = keyof Selection;
@@ -112,7 +111,7 @@ export function DiffReview({
   keepRemovals?: boolean;
 }) {
   const { data, actions, undo } = useStore();
-  const { auth, profile, reloadProfile } = useAccount();
+  const { auth, profile } = useAccount();
   const tz = data.settings.timezone;
   const [bareAs, setBareAs] = useState<BareDateMode>('utc');
   const [includeZero, setIncludeZero] = useState(false);
@@ -172,16 +171,12 @@ export function DiffReview({
       // 6:08. Never in the future (a clock ahead of this one), and it says where it came from.
       const readAt = payload.exportedAt && Date.parse(payload.exportedAt) < Date.parse(at) ? new Date(payload.exportedAt).toISOString() : at;
       const via = payload.source === 'extension' ? 'extension' : payload.source === 'paste' ? 'paste' : 'bookmark';
-      const firstEver = !data.settings.lastPull;
       actions.updateSettings({ haloPulls: pullsFrom(payload, courseIdOf, data.settings.haloPulls, readAt), lastPull: { at: readAt, build: payload.build ?? null, counts: { ...pullCounts(payload) }, via }, syncCount: (data.settings.syncCount ?? 0) + 1 });
       // Every sync that lands, whatever brought it (the bookmark too), tells the extension on this computer, so its
       // popup stops saying "Syncing" and shows this as the last sync (extension 0.6.6; older ones ignore it).
       if (typeof window !== 'undefined') window.postMessage({ kind: 'halo-sync-applied', at: readAt, via }, window.location.origin);
-      // The free week is worth nothing until Halo is connected: the first sync restarts its clock (2026-10-09).
-      if (firstEver && profile?.trialStartedAt && !profile.trialSyncedAt) {
-        const c = supabase();
-        if (c) void c.rpc('trial_sync_started').then(({ data: r }) => { if ((r as { ok?: boolean } | null)?.ok) reloadProfile(); }, () => undefined);
-      }
+      // The free week restarts at the first sync (2026-10-09): asked for by auth/useTrialSyncStart.ts once this sync's
+      // "last synced" has reached the account (asking here, before the save arrived, was refused and never retried).
       setKept({ facts: plan.facts.length, classes: plan.courses.length, announcements: ann.saved, fresh: ann.fresh, messages: extra.messages, resources: extra.resources, alerts: extra.alerts });
       // The sync event is what starts the background read (halo/backgroundRead.ts): new and edited posts are read
       // now, by the app, whether or not this sheet stays open.

@@ -140,6 +140,8 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   } else if (msg.kind === 'halo-progress') {
     state.lastProgressAt = Date.now();
     void set({ progress: msg.text, progressAt: new Date().toISOString() });
+    // Halo+ shows the first sync's progress live (0.7.5): every open Halo+ tab hears each step.
+    void progressToTabs(msg.text);
     reply({ ok: true });
   } else if (msg.kind === 'halo-failed') {
     if (state.fail) state.fail(msg.text);
@@ -202,7 +204,17 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   } else if (msg.kind === 'halo-here') {
     // A Halo page opened. Auto-sync paused on a logged-out Halo picks up now instead of waiting up to three hours.
     void (async () => {
-      const { tier, autoPaused, lastAttemptAt } = await get(['tier', 'autoPaused', 'lastAttemptAt']);
+      const { tier, autoPaused, lastAttemptAt, lastErrorKind, lastErrorAt } = await get(['tier', 'autoPaused', 'lastAttemptAt', 'lastErrorKind', 'lastErrorAt']);
+      // A sync asked for in the last 15 minutes that found Halo logged out (the first sync during setup, 0.7.5): the
+      // student has just logged in, so it runs now, without another press.
+      const justAsked = lastErrorKind === 'logged-out' && lastErrorAt && Date.now() - new Date(lastErrorAt).getTime() < 15 * 60_000;
+      if (justAsked && !state.running) {
+        // Not twice in 20 seconds (Halo's sign-in page and the page after it both say hello).
+        if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < 20_000) return;
+        await sleep(3000);
+        if (!state.running) await runSync({ auto: false, quiet: true });
+        return;
+      }
       if (!AUTO.includes(tier) || !autoPaused || state.running) return;
       if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < 2 * 60_000) return;
       await sleep(3000);
@@ -568,6 +580,12 @@ async function tellTabs(result) {
   const tabs = await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` });
   const { kind: errorKind = null, ...rest } = result;
   for (const t of tabs) chrome.tabs.sendMessage(t.id, { ...rest, kind: 'sync-result', errorKind }).catch(() => undefined);
+}
+
+/** One step of a running sync ("Reading BIO-181, 2 of 6"), to every open Halo+ tab. */
+async function progressToTabs(text) {
+  const tabs = await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }).catch(() => []);
+  for (const t of tabs) chrome.tabs.sendMessage(t.id, { kind: 'sync-progress', text: String(text || '') }).catch(() => undefined);
 }
 
 /** Tells every open Halo+ tab a sync is waiting in the account, so it takes it now. */

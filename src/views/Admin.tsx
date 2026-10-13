@@ -9,6 +9,7 @@ import { AdminIntro } from './AdminIntro';
 import { AdminRatings } from './AdminRatings';
 import { AdminExtension } from './AdminExtension';
 import { AdminFunnel } from './AdminFunnel';
+import { AdminSignupFunnel } from './AdminSignupFunnel';
 import { AdminErrors } from './AdminErrors';
 import { AdminGrowth } from './AdminGrowth';
 import { AdminAccounts } from './AdminAccounts';
@@ -66,6 +67,7 @@ export function Admin() {
         <AdminDemo />
         <AdminGrowth tick={tick} />
         <AdminAccounts onChange={() => setTick((k) => k + 1)} />
+        <AdminSignupFunnel />
         <AdminFunnel />
         <AdminRatings />
         <AdminIntro />

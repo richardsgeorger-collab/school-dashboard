@@ -54,7 +54,11 @@ try {
   await p.goto('https://haloplus.app/#/now', { waitUntil: 'load' });
   await p.waitForSelector('.ext-setup-sheet', { timeout: 30000 });
   await p.click('.ext-setup-sheet button:has-text("Set it up")');
-  for (const b of ["I've added it", 'Next', "I'm logged in"]) { await p.click(`.ext-setup-sheet button:has-text("${b}")`); await sleep(400); }
+  // Three screens since 2026-10-13: why, install (with the calm line before Chrome's prompt), connect. No pin step.
+  const install = await p.locator('.ext-setup-sheet').innerText();
+  await p.click('.ext-setup-sheet button:has-text("I\'ve added it")');
+  await sleep(400);
+  check(/will ask to read halo\.gcu\.edu\. Halo\+ only reads your own classes and never sees your password\./.test(install) && !/Pin it/.test(install), 'install: the calm line before the prompt, and no pin step');
   check(/Looking for the extension/.test(await p.locator('.ext-setup-sheet').innerText()), 'Halo+ is on the Connect step, with no extension yet');
   const t0 = Date.now();
   const cdp = await browser.newBrowserCDPSession();

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Halo+ for GCU: Every Due Date, Even in Announcements",
   "description": "Every GCU Halo due date in one planner, even ones buried in announcements. Works on your phone and shows what's due next.",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "permissions": [
     "alarms",
     "storage",

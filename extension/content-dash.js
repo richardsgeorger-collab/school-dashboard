@@ -114,6 +114,11 @@
       reply({ ok: true });
       return;
     }
+    if (msg.kind === 'sync-progress') {
+      window.postMessage({ kind: 'halo-ext-progress', text: msg.text || '' }, location.origin);
+      reply({ ok: true });
+      return;
+    }
     if (msg.kind === 'kit-progress') {
       window.postMessage({ kind: 'halo-kit-progress', requestId: msg.requestId, note: msg.note }, location.origin);
       reply({ ok: true });

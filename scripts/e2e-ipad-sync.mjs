@@ -3,7 +3,7 @@
 // touched; everything else is real: the bookmark the app builds, the sync script the site serves, the sync-drop
 // function, the pending slot, and the review. Also checks the desktop flow is unchanged with the switch off, and the
 // kill switch. Screens to docs/screens/ipad-sync/.
-//   KEYS_ENV=/path/to/keys.env node scripts/e2e-ipad-sync.mjs  (serves ./dist-e2e, a real-backend build)
+//   KEYS_ENV=/path/to/keys.env node scripts/e2e-ipad-sync.mjs  (serves ./dist-site, the haloplus.app build)
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -12,8 +12,9 @@ const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split(
 // The app is served at the real site's https address inside the test browser only (from the local dist-e2e build), so
 // the fake https Halo can load the sync script exactly as it does in real life: no mixed content, no local-network
 // blocks, and nothing on the internet is touched.
-const BASE = 'https://richardsgeorger-collab.github.io/school-dashboard/';
-const DIST = process.env.DIST ?? 'dist-e2e';
+// haloplus.app since Loop 141 (the old address now only moves students over): the site build (SITE_BASE=/).
+const BASE = 'https://haloplus.app/';
+const DIST = process.env.DIST ?? 'dist-site';
 const SCHEME = process.env.SCHEME ?? 'light';
 const SFX = SCHEME === 'light' ? '' : `-${SCHEME}`;
 const ONLY = process.env.ONLY?.split(',');
@@ -45,8 +46,8 @@ const CLASSES = { getCourseClassesForUser: { courseClasses: [{ id: 'cc1', classC
     { id: 'as2', sequence: 2, title: 'Quiz 2', description: '', startDate: day(-3), dueDate: day(5), points: 50, type: 'QUIZ', tags: [], requiresLopesWrite: false, isGroupEnabled: false, inPerson: false },
   ] }] }] } };
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.txt': 'text/plain', '.mjs': 'text/javascript', '.wasm': 'application/wasm' };
-const serveApp = (ctx) => ctx.route('https://richardsgeorger-collab.github.io/school-dashboard/**', (route) => {
-  let path = decodeURIComponent(new URL(route.request().url()).pathname.replace(/^\/school-dashboard\/?/, ''));
+const serveApp = (ctx) => ctx.route('https://haloplus.app/**', (route) => {
+  let path = decodeURIComponent(new URL(route.request().url()).pathname.replace(/^\//, ''));
   let file = join(DIST, path || 'index.html');
   if (!existsSync(file) || statSync(file).isDirectory()) file = join(DIST, 'index.html');
   return route.fulfill({ status: 200, contentType: TYPES[extname(file)] ?? 'application/octet-stream', headers: { 'access-control-allow-origin': '*' }, body: readFileSync(file) });
@@ -71,6 +72,17 @@ const signIn = async (page, u, hash = '#/now') => {
   await page.goto(`${BASE}${hash}`, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(2500);
+};
+/**
+ * Puts the account at one setup screen. Written on the account itself (since Loop 227 the device cache is per account
+ * and the account's copy wins on load), then the page reloads onto it.
+ */
+const putSetup = async (page, who, path, screen) => {
+  const now = new Date().toISOString();
+  const { data: row } = await admin.from('settings').select('data').eq('user_id', who.id).maybeSingle();
+  const d = row?.data ?? {};
+  const onboarding = { startedAt: now, step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null, path, screen };
+  await admin.from('settings').upsert({ user_id: who.id, data: { ...d, onboarding, stamps: { ...(d.stamps ?? {}), onboarding: now }, updatedAt: now }, updated_at: now }, { onConflict: 'user_id' });
 };
 /** Runs a bookmark (its javascript: address) on the Halo page, the way tapping it does. */
 // Adds the bookmark's code as a script on the page, which is what tapping it does.
@@ -105,7 +117,7 @@ try {
     ctx.on('page', (p) => opened.push(p));
     // Onboarding as this student would see it: the touch steps, with the bookmark copied from the app itself.
     await signIn(page, u);
-    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null, path: 'phone', screen: 'p-copy' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
+    await putSetup(page, u, 'phone', 'p-copy');
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(2500);
     let n = 0;
@@ -155,7 +167,7 @@ try {
     await fakeHalo(ctx);
     const page = await ctx.newPage();
     await signIn(page, u);
-    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null, path: 'desktop', screen: 'drag' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
+    await putSetup(page, u, 'desktop', 'drag');
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(2500);
     const href = await page.$eval('.halo-drag', (a) => a.getAttribute('href'));
@@ -181,7 +193,7 @@ try {
     await fakeHalo(ctx2);
     const p2 = await ctx2.newPage();
     await signIn(p2, v);
-    await p2.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null, path: 'desktop', screen: 'drag' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
+    await putSetup(p2, v, 'desktop', 'drag');
     await p2.reload({ waitUntil: 'load' });
     await p2.waitForTimeout(2500);
     const href2 = await p2.$eval('.halo-drag', (a) => a.getAttribute('href'));
@@ -202,7 +214,7 @@ try {
     await fakeHalo(ctx);
     const page = await ctx.newPage();
     await signIn(page, u);
-    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); d.settings.onboarding = { startedAt: 'x', step: 'halo', doneAt: null, skippedAt: null, tourDoneAt: null, path: 'phone', screen: 'p-copy' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
+    await putSetup(page, u, 'phone', 'p-copy');
     await page.reload({ waitUntil: 'load' });
     await page.waitForTimeout(2500);
     await page.click('.onboard button:has-text("Copy it")');

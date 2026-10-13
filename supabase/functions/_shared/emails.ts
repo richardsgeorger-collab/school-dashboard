@@ -2,7 +2,7 @@
 // for three days. Pure: no Deno, no network, so the words are tested. Every one carries a one-click unsubscribe.
 /** Every kind that may ever be sent; anything else is blocked at the send function (George, 2026-10-09). */
 export const ACCOUNT_KINDS = ['market_setup'] as const;
-export const ALLOWED_KINDS = ['market_setup', 'trial_ending', 'sync_broken', 'reminder'] as const;
+export const ALLOWED_KINDS = ['market_setup', 'trial_ending', 'sync_broken', 'reminder', 'finish_setup'] as const;
 export const isAccountKind = (kind: string): boolean => (ACCOUNT_KINDS as readonly string[]).includes(kind);
 export const isAllowedKind = (kind: string): boolean => (ALLOWED_KINDS as readonly string[]).includes(kind);
 
@@ -53,6 +53,19 @@ export function renderEmail(kind: string, meta: Record<string, unknown>, unsubUr
         "Or stay on Free. That's fine too.",
       ],
       { label: 'See the plans', url: `${SITE}/#/you?s=plan` },
+      unsubUrl,
+    );
+  }
+  if (kind === 'finish_setup') {
+    // Once ever, a day or more after a sign-up that never synced (George, 2026-10-13). Counts toward the week's one.
+    return wrap(
+      'Your Halo+ classes are 2 minutes away',
+      [
+        "You made a Halo+ account, but your classes haven't come in from Halo yet. That part happens on a laptop, and it takes about 2 minutes.",
+        'On your laptop, open haloplus.app in Chrome, Edge or Brave and press Add to Chrome. Halo+ opens Halo and brings in your classes, due dates and announcements by itself, then keeps them current.',
+        "Your free week of Max starts when your classes first sync, so none of it is used up yet.",
+      ],
+      { label: 'Finish setup on my laptop', url: `${SITE}/#/now` },
       unsubUrl,
     );
   }

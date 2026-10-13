@@ -61,13 +61,23 @@ export function SyncReminder() {
   const r = useSyncReminder();
   const last = data.settings.lastPull?.at ?? null;
   const [phase, setPhase] = useState<Phase>({ k: 'idle' });
-  // The last sync as it was when the reminder showed or Sync now was pressed; a different one is a sync that landed.
+  // The last sync as it was when the reminder showed or Sync now was pressed; a later one is a sync that landed. The
+  // account's own copy arriving is not a sync (2026-10-13: a fresh device going from nothing to "2 days ago" said
+  // "Synced just now"): the baseline is only taken once the account is checked, and only a later time counts.
+  const checked = useAccountChecked();
   const seen = useRef<string | null>(last);
+  const based = useRef(false);
   useEffect(() => {
+    if (!checked || !based.current) {
+      seen.current = last;
+      based.current = checked;
+      return;
+    }
     if (last === seen.current) return;
+    const forward = !!last && (!seen.current || Date.parse(last) > Date.parse(seen.current));
     seen.current = last;
-    setPhase((p) => (p.k === 'idle' && !r ? p : { k: 'done' }));
-  }, [last, r]);
+    if (forward) setPhase((p) => (p.k === 'idle' && !r ? p : { k: 'done' }));
+  }, [last, r, checked]);
   useEffect(() => {
     if (phase.k !== 'done') return;
     const t = window.setTimeout(() => setPhase({ k: 'idle' }), 4000);
