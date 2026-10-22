@@ -17,17 +17,22 @@ export function relTime(at: string, now: number, tz: string, today: DateStr): st
   return `${fmtDate(dateOf(at, tz), 'short')} ${fmtTime(at, tz)}`;
 }
 
-/** Why a Sync now did not land, in plain words, with the next step. Kinds are the extension's (0.6.5). */
-export function failWords(kind: string | null, why: string | null): { text: string; halo: boolean } {
+/**
+ * Why a Sync now did not land, in plain words, with the next step. Kinds are the extension's (0.6.5). `lead` replaces
+ * "Sync didn't finish." when it says it better; `reload` offers Reload Halo (George, 2026-10-21: reloading Halo fixes
+ * most failures, and the extension has already tried once on its own by the time this shows).
+ */
+export function failWords(kind: string | null, why: string | null): { text: string; halo: boolean; reload?: boolean; lead?: string } {
   switch (kind) {
     case 'logged-out':
-      return { text: "Halo isn't logged in on this computer. Log in at halo.gcu.edu, then try again.", halo: true };
+      return { lead: 'Log in to Halo, then we\'ll sync automatically.', text: "Halo isn't logged in on this computer.", halo: true };
     case 'move':
       return { text: 'This Halo account is linked to another Halo+ account. Use the Move prompt on this page to bring it here.', halo: false };
     case 'foreign':
       return { text: why ? `${why.replace(/\.$/, '')}.` : 'This Halo account belongs to another Halo+ account.', halo: false };
     case 'stalled':
-      return { text: 'Halo stopped answering partway through. Try again in a minute.', halo: false };
+    case 'interrupted':
+      return { text: 'Try reloading Halo.', halo: false, reload: true };
     case 'no-classes':
       return { text: 'Halo showed no classes. Open Halo to check your classes are there, then try again.', halo: true };
     case 'offline':
@@ -42,5 +47,8 @@ export function failWords(kind: string | null, why: string | null): { text: stri
   }
 }
 
-/** A Sync now that heard nothing for this long has failed, whatever else is true. */
-export const SYNC_TIMEOUT_MS = 120_000;
+/**
+ * A Sync now that heard nothing for this long has failed, whatever else is true. Every step the extension reports
+ * starts the wait again, so a sync it is retrying (reloading Halo) is never cut off.
+ */
+export const SYNC_TIMEOUT_MS = 150_000;

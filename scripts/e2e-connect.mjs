@@ -171,7 +171,7 @@ try {
       await p.waitForSelector('.onboard [aria-label="Add the extension"]', { timeout: 30000 }).catch(() => undefined);
       const cdp = await b.browser.newBrowserCDPSession();
       await cdp.send('Extensions.loadUnpacked', { path: EXT });
-      const asked = await until(async () => /One more thing: log in to Halo\./.test(await text(p)), 60000, 500);
+      const asked = await until(async () => /Log in to Halo, then we'll sync automatically\./.test(await text(p)), 60000, 500);
       check(!!asked && (await p.locator('.onboard a:has-text("Log in to Halo")').count()) === 1, 'O. Halo logged out: one clear "log in to Halo"');
       await p.screenshot({ path: `${OUT}/laptop-5-log-in-light.png` });
       b.state.loggedIn = true;

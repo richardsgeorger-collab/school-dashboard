@@ -110,7 +110,7 @@
       return;
     }
     if (msg.kind === 'sync-result') {
-      window.postMessage({ kind: 'halo-ext-sync-result', ok: !!msg.ok, at: msg.at || null, errorKind: msg.ok ? null : msg.errorKind || null, why: msg.why || null, auto: !!msg.auto }, location.origin);
+      window.postMessage({ kind: 'halo-ext-sync-result', ok: !!msg.ok, at: msg.at || null, errorKind: msg.ok ? null : msg.errorKind || null, why: msg.why || null, auto: !!msg.auto, retried: !!msg.retried }, location.origin);
       reply({ ok: true });
       return;
     }
@@ -149,8 +149,16 @@
   window.addEventListener('message', (e) => {
     if (e.source !== window || !e.data || e.data.kind !== 'halo-ext-sync-now') return;
     chrome.runtime
-      .sendMessage({ kind: 'page-sync' })
+      .sendMessage({ kind: 'page-sync', setup: !!e.data.setup })
       .then((r) => window.postMessage({ kind: 'halo-ext-sync-started', busy: !!(r && r.busy) }, location.origin))
+      .catch((err) => window.postMessage({ kind: 'halo-ext-sync-result', ok: false, errorKind: 'extension', why: String(err) }, location.origin));
+  });
+  // Halo+'s "Reload Halo" (0.7.6): Halo is reloaded and synced again in a fresh tab.
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.kind !== 'halo-ext-reload-sync') return;
+    chrome.runtime
+      .sendMessage({ kind: 'reload-sync', setup: !!e.data.setup })
+      .then(() => window.postMessage({ kind: 'halo-ext-sync-started', busy: false }, location.origin))
       .catch((err) => window.postMessage({ kind: 'halo-ext-sync-result', ok: false, errorKind: 'extension', why: String(err) }, location.origin));
   });
   // The extension setup's last step asks for the first sync now (0.5.2).

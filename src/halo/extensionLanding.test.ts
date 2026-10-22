@@ -44,9 +44,10 @@ describe('an extension sync always lands', () => {
 describe('auto-sync never goes quiet', () => {
   const halo = readFileSync('extension/content-halo.js', 'utf8');
   it('adds the relay to a Halo tab that lacks it, before every sync, with no new permission', () => {
-    const run = bg.slice(bg.indexOf('async function runSync('), bg.indexOf('async function failed('));
-    expect(run.indexOf('await ensureRelay(haloTab.id)')).toBeGreaterThan(-1);
-    expect(run.indexOf('await ensureRelay(haloTab.id)')).toBeLessThan(run.indexOf("files: ['sync-inject.js']"));
+    // Since 0.7.6 one reading of Halo is readHalo (runSync calls it, and once more after reloading Halo).
+    const run = bg.slice(bg.indexOf('async function readHalo('), bg.indexOf('async function setupState('));
+    expect(run.indexOf('await within(ensureRelay(tab.id)')).toBeGreaterThan(-1);
+    expect(run.indexOf('await within(ensureRelay(tab.id)')).toBeLessThan(run.indexOf("files: ['sync-inject.js']"));
     expect(bg).toContain("files: ['celebrate.js', 'content-halo.js']");
     expect(halo).toContain("msg.kind === 'ping'");
     // Safe to add twice: one live copy per extension, an orphaned one steps aside.

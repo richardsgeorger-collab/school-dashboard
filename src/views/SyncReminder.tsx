@@ -3,6 +3,7 @@ import { useCan } from '../config/useCan';
 import { installedVersion } from '../config/extension';
 import { todayStr as todayOf } from '../domain/dates';
 import { failWords, relTime, SYNC_TIMEOUT_MS } from '../halo/syncWords';
+import { askExtensionToReload } from '../halo/extSync';
 import { useNow } from '../ui/useNow';
 import { EXT_STATUS_SLOT, readAutoPaused } from '../halo/autoSyncStatus';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
@@ -41,7 +42,7 @@ export function useSyncReminder(): Reminder | null {
 /** An extension is on this computer (its Halo+ script wrote its version); without one, Halo opens for the bookmark. */
 const askExtension = (): boolean => !!installedVersion();
 
-type Phase = { k: 'idle' } | { k: 'running'; since: number } | { k: 'halo' } | { k: 'phone' } | { k: 'done' } | { k: 'failed'; text: string; halo: boolean } | { k: 'timeout' };
+type Phase = { k: 'idle' } | { k: 'running'; since: number } | { k: 'halo' } | { k: 'phone' } | { k: 'done' } | { k: 'failed'; text: string; halo: boolean; reload?: boolean; lead?: string } | { k: 'timeout' };
 
 /** A phone or an iPad (an iPad says Macintosh, with touch): no extension there, and Sync now must not pretend. */
 const onPhone = (): boolean => {
@@ -89,6 +90,15 @@ export function SyncReminder() {
     const t = window.setTimeout(() => setPhase({ k: 'timeout' }), Math.max(0, phase.since + SYNC_TIMEOUT_MS - Date.now()));
     return () => window.clearTimeout(t);
   }, [phase]);
+  // Each step the extension reports starts the two-minute wait again (0.7.6 reloads Halo and retries on its own).
+  useEffect(() => {
+    const on = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || (e.data as { kind?: string } | null)?.kind !== 'halo-ext-progress') return;
+      setPhase((p) => (p.k === 'running' ? { k: 'running', since: Date.now() } : p));
+    };
+    window.addEventListener('message', on);
+    return () => window.removeEventListener('message', on);
+  }, []);
   // How the extension's run ended (0.6.5). Landed: the planner takes it from the account and the check above shows.
   useEffect(() => {
     const on = (e: MessageEvent) => {
@@ -140,6 +150,17 @@ export function SyncReminder() {
       Try again
     </button>
   );
+  // Reload Halo (George, 2026-10-21): the extension reloads the student's Halo and syncs again; done for them.
+  const reloadHalo = () => {
+    seen.current = last;
+    askExtensionToReload();
+    setPhase({ k: 'running', since: Date.now() });
+  };
+  const reloadBtn = (
+    <button type="button" className="btn small" onClick={reloadHalo}>
+      Reload Halo
+    </button>
+  );
   if (phase.k === 'phone')
     return (
       <div className="sync-reminder" data-level="amber" data-phase="phone" role="status">
@@ -157,9 +178,10 @@ export function SyncReminder() {
     return (
       <div className="sync-reminder" data-level="red" data-phase={phase.k} role="alert">
         <p>
-          <b>Sync didn't finish.</b> {phase.text}
+          <b>{phase.lead ?? "Sync didn't finish."}</b> {phase.text}
         </p>
         <span className="sync-reminder-actions">
+          {phase.reload && askExtension() && reloadBtn}
           {phase.halo && (
             <a className="btn small" href={HALO} target="_blank" rel="noreferrer">
               Open Halo ↗
@@ -173,12 +195,16 @@ export function SyncReminder() {
     return (
       <div className="sync-reminder" data-level="red" data-phase={phase.k} role="alert">
         <p>
-          <b>Sync didn't finish in 2 minutes.</b> Check that you're logged in to Halo in this browser, then try again.
+          <b>Sync didn't finish.</b> Try reloading Halo.
         </p>
         <span className="sync-reminder-actions">
-          <a className="btn small" href={HALO} target="_blank" rel="noreferrer">
-            Open Halo ↗
-          </a>
+          {askExtension() ? (
+            reloadBtn
+          ) : (
+            <a className="btn small" href={HALO} target="_blank" rel="noreferrer">
+              Open Halo ↗
+            </a>
+          )}
           {tryAgain}
         </span>
       </div>

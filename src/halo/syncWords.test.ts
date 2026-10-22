@@ -12,7 +12,8 @@ describe('the last-synced words (George, 2026-10-11)', () => {
     expect(relTime('2026-10-09T19:48:00Z', now, TZ, '2026-10-11')).toMatch(/^Oct 9 12:48 PM$/);
   });
   it('every way a sync can fail has words and a next step, never a bare error', () => {
-    expect(failWords('logged-out', null)).toEqual({ text: "Halo isn't logged in on this computer. Log in at halo.gcu.edu, then try again.", halo: true });
+    expect(failWords('logged-out', null)).toEqual({ lead: "Log in to Halo, then we'll sync automatically.", text: "Halo isn't logged in on this computer.", halo: true });
+    expect(failWords('stalled', null)).toEqual({ text: 'Try reloading Halo.', halo: false, reload: true });
     expect(failWords('move', 'x').text).toMatch(/Move prompt/);
     expect(failWords('foreign', 'This Halo account belongs to ge***@gmail.com. A test account can\'t take it.').text).toBe("This Halo account belongs to ge***@gmail.com. A test account can't take it.");
     expect(failWords('not-landed', 'Read Halo at 4:52 PM, but it did not reach your account: Too many syncs in the last hour. It is kept here; press Sync now to try again.').text).toBe("The sync didn't reach your account: Too many syncs in the last hour. Try again.");

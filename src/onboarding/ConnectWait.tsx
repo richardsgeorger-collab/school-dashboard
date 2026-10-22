@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { installedVersion } from '../config/extension';
 import { IconCheck } from '../components/Icons';
 import { BOOKMARK_NAME } from '../halo/bookmarkName';
-import { askExtensionToSync, syncPercent } from '../halo/extSync';
+import { askExtensionToReload, askExtensionToSync, syncPercent } from '../halo/extSync';
 import { track } from './track';
 
 const LATE_MS = 60_000;
 const SLOW_MS = 180_000;
 
-type Fail = { kind: string; why: string | null };
+type Fail = { kind: string; why: string | null; retried?: boolean };
 
 /**
  * After "Add to Chrome" (George, 2026-10-13): no more "now open Halo and log in". The page waits for the extension to
@@ -25,6 +25,8 @@ export function ConnectWait({ browser, onBookmark, onPaste }: { browser: string;
   const [now, setNow] = useState(() => Date.now());
   const [text, setText] = useState<string | null>(null);
   const [fail, setFail] = useState<Fail | null>(null);
+  // Reload Halo instead of a plain Try again (George, 2026-10-21).
+  const [reload, setReload] = useState(false);
   const found = useRef(false);
   const best = useRef(0);
 
@@ -51,16 +53,22 @@ export function ConnectWait({ browser, onBookmark, onPaste }: { browser: string;
     setText(null);
     best.current = 0;
     setT0(Date.now());
-    return askExtensionToSync(() => track('connect:halo', 'complete'));
+    if (reload) {
+      setReload(false);
+      track('connect:reload', 'complete');
+      return askExtensionToReload(() => track('connect:halo', 'complete'), { setup: true });
+    }
+    return askExtensionToSync(() => track('connect:halo', 'complete'), { setup: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, run]);
 
   // What the extension says on the way, and how it ended.
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
-      const d = e.data as { kind?: string; text?: string; ok?: boolean; errorKind?: string | null; why?: string | null } | null;
+      const d = e.data as { kind?: string; text?: string; ok?: boolean; errorKind?: string | null; why?: string | null; retried?: boolean } | null;
       if (d?.kind === 'halo-ext-progress' && d.text) setText(d.text);
-      if (d?.kind === 'halo-ext-sync-result' && d.ok === false) setFail({ kind: d.errorKind ?? 'error', why: d.why ?? null });
+      if (d?.kind === 'halo-ext-sync-result' && d.ok === false) setFail({ kind: d.errorKind ?? 'error', why: d.why ?? null, retried: !!d.retried });
     };
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
@@ -114,8 +122,8 @@ export function ConnectWait({ browser, onBookmark, onPaste }: { browser: string;
         <span className="ext-check" aria-hidden>
           <IconCheck />
         </span>
-        <h1 className="onboard-title">One more thing: log in to Halo.</h1>
-        <p className="onboard-text">The extension is ready, but Halo isn't logged in on this computer. Log in once, then come back to this tab. Your classes come in by themselves.</p>
+        <h1 className="onboard-title">Log in to Halo, then we'll sync automatically.</h1>
+        <p className="onboard-text">The extension is ready, but Halo isn't logged in on this computer. Log in once, and your classes come in by themselves.</p>
         <a
           className="btn primary block onboard-big"
           href="https://halo.gcu.edu/"
@@ -137,12 +145,23 @@ export function ConnectWait({ browser, onBookmark, onPaste }: { browser: string;
   if (fail)
     return (
       <section className="onboard-step" aria-label="The sync didn't finish" aria-live="polite">
-        <h1 className="onboard-title">The first sync didn't finish.</h1>
-        <p className="onboard-text">{fail.why ?? 'Something got in the way while reading Halo.'}</p>
-        <button type="button" className="btn primary block onboard-big" onClick={() => setRun((r) => r + 1)}>
-          Try again
+        <h1 className="onboard-title">Sync didn't finish. Try reloading Halo.</h1>
+        <p className="onboard-text">{fail.retried ? 'Halo+ already tried once more on its own. ' : ''}Reloading Halo fixes this most of the time.</p>
+        <button
+          type="button"
+          className="btn primary block onboard-big"
+          onClick={() => {
+            setReload(true);
+            setRun((r) => r + 1);
+          }}
+        >
+          Reload Halo
         </button>
         <p className="hint">
+          <button type="button" className="hero-inline" onClick={() => setRun((r) => r + 1)}>
+            Try again
+          </button>
+          {' · '}
           <button type="button" className="hero-inline" onClick={onBookmark}>
             Use the {BOOKMARK_NAME} bookmark instead
           </button>

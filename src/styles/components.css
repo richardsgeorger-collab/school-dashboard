@@ -1533,3 +1533,19 @@ input[type='range']::-webkit-slider-thumb {
 .signup-funnel-totals .muted {
   margin-left: 4px;
 }
+
+/* Admin: sync success rate (2026-10-21). */
+.sync-health-big {
+  margin: 0 0 var(--s-2);
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+.sync-health-big b {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.sync-health-big span {
+  color: var(--ink-3);
+}

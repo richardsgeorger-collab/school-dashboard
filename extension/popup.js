@@ -36,8 +36,47 @@ function fraction(text) {
 
 const STUCK_MS = 120_000;
 
+/**
+ * Setup's own view (George, 2026-10-21): while the first sync runs, "Syncing your classes…"; when it lands, "Done! Back
+ * to Halo+" with a button that brings Halo+ to the front; logged out, "Log in to Halo"; not finished, Reload Halo.
+ * Shown for 15 minutes after the last step; the everyday view comes back after that, or once "Back to Halo+" is pressed.
+ */
+function renderSetup(s) {
+  const st = s.setup;
+  const live = !!st && Date.now() - Date.parse(st.at || 0) < 15 * 60_000 && ['syncing', 'done', 'login', 'failed'].includes(st.phase);
+  $('setup').hidden = !live;
+  $('normal').hidden = live;
+  if (!live) return;
+  const phase = st.phase === 'syncing' && !s.running ? (s.lastErrorAt && s.lastErrorAt >= st.at ? 'failed' : 'syncing') : st.phase;
+  $('setupBar').hidden = phase !== 'syncing';
+  $('setupAlt').hidden = phase !== 'failed';
+  if (phase === 'syncing') {
+    $('setupTitle').textContent = 'Syncing your classes…';
+    const f = fraction(s.progress);
+    $('setupFill').style.width = f === null ? '' : `${Math.round(f * 100)}%`;
+    $('setupBar').toggleAttribute('data-indeterminate', f === null);
+    $('setupText').textContent = s.progress || 'Opening Halo…';
+    $('setupGo').hidden = true;
+  } else if (phase === 'done') {
+    const c = s.lastCounts;
+    $('setupTitle').textContent = 'Done!';
+    $('setupText').textContent = c ? `${c.assignments} assignments from ${c.classes} class${c.classes === 1 ? '' : 'es'} are in Halo+. It syncs on its own from now on.` : 'Your classes are in Halo+. It syncs on its own from now on.';
+    [$('setupGo').textContent, $('setupGo').dataset.act, $('setupGo').hidden] = ['Back to Halo+', 'dash', false];
+  } else if (phase === 'login') {
+    $('setupTitle').textContent = 'Log in to Halo';
+    $('setupText').textContent = "Halo isn't logged in on this computer. Log in, and we'll sync automatically.";
+    [$('setupGo').textContent, $('setupGo').dataset.act, $('setupGo').hidden] = ['Log in to Halo', 'login', false];
+  } else {
+    $('setupTitle').textContent = "Sync didn't finish";
+    $('setupText').textContent = 'Try reloading Halo.';
+    [$('setupGo').textContent, $('setupGo').dataset.act, $('setupGo').hidden] = ['Reload Halo', 'reload', false];
+    $('setupAlt').textContent = 'Try again';
+  }
+}
+
 async function render() {
-  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey']);
+  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey', 'setup']);
+  renderSetup(s);
   // "Syncing" is believed only while Halo keeps talking: two minutes of nothing is a sync that stopped (0.6.6).
   const stuck = !!s.running && Date.now() - Date.parse(s.progressAt || s.runningSince || 0) > STUCK_MS;
   if (stuck) s.running = false;
@@ -103,8 +142,25 @@ $('sync').addEventListener('click', async () => {
   await chrome.runtime.sendMessage({ kind: 'sync-now', force: $('sync').dataset.force === '1' });
 });
 
+$('setupGo').addEventListener('click', async () => {
+  const act = $('setupGo').dataset.act;
+  if (act === 'dash') {
+    await chrome.runtime.sendMessage({ kind: 'focus-dash' });
+    window.close();
+  } else if (act === 'login') {
+    await chrome.tabs.create({ url: 'https://halo.gcu.edu/', active: true });
+    window.close();
+  } else if (act === 'reload') {
+    await chrome.runtime.sendMessage({ kind: 'reload-sync', setup: true });
+  }
+});
+$('setupAlt').addEventListener('click', () => void chrome.runtime.sendMessage({ kind: 'sync-now', force: true }));
+
 // Opening the popup is seeing the problem: the toolbar mark goes.
-void chrome.action.setBadgeText({ text: '' });
+// A setup still running keeps its mark on the icon.
+void chrome.storage.local.get('setup').then(({ setup }) => {
+  if (!setup || setup.phase !== 'syncing') void chrome.action.setBadgeText({ text: '' });
+});
 chrome.storage.onChanged.addListener(() => void render());
 // Re-checked while open, so a sync that goes quiet turns into "stopped partway" without reopening the popup.
 setInterval(() => void render(), 10_000);

@@ -3,6 +3,7 @@
 // dropped, so one broken loop cannot flood the table. Writes go through recordError (_shared/errors.ts).
 import { admin } from '../_shared/admin.ts';
 import { recordError, type ErrorEntry } from '../_shared/errors.ts';
+import { recordSyncRun } from '../_shared/syncRun.ts';
 
 const PER_DEVICE = 30;
 const cors = {
@@ -24,8 +25,10 @@ Deno.serve(async (req) => {
   } catch {
     return reply(400, { ok: false });
   }
-  const entries = (Array.isArray(body.entries) ? body.entries : [body]).slice(0, 5);
   const db = admin();
+  // An extension sync run starting or ending (0.7.6): Admin's sync success rate, not an error.
+  if ((body as { kind?: string }).kind === 'sync-run') return reply(200, await recordSyncRun(db, body as unknown as Record<string, unknown>));
+  const entries = (Array.isArray(body.entries) ? body.entries : [body]).slice(0, 5);
   const device = entries[0]?.device_id;
   if (typeof device === 'string' && device) {
     const { data: n } = await db.rpc('error_device_recent', { dev: device });

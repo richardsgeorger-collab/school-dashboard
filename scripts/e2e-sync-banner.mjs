@@ -85,8 +85,8 @@ try {
   await banner.locator('button:has-text("Sync now")').click();
   await sleep(500);
   check(/Syncing/.test(await banner.innerText()), 'pressed: it says it is syncing');
-  const failed = await until(async () => { const t = await banner.innerText().catch(() => ''); return /Sync didn't finish/.test(t) ? t : null; }, 90000, 1000);
-  check(!!failed && /Halo isn't logged in on this computer\. Log in at halo\.gcu\.edu, then try again\./.test(failed) && (await banner.locator('button:has-text("Try again")').count()) === 1 && (await banner.locator('a:has-text("Open Halo")').count()) === 1, `logged out: "${(failed ?? '').replace(/\s+/g, ' ').slice(0, 120)}", with Open Halo and Try again`);
+  const failed = await until(async () => { const t = await banner.innerText().catch(() => ''); return /Sync didn't finish|Log in to Halo, then/.test(t) ? t : null; }, 90000, 1000);
+  check(!!failed && /Log in to Halo, then we'll sync automatically\. Halo isn't logged in on this computer\./.test(failed) && (await banner.locator('button:has-text("Try again")').count()) === 1 && (await banner.locator('a:has-text("Open Halo")').count()) === 1, `logged out: "${(failed ?? '').replace(/\s+/g, ' ').slice(0, 120)}", with Open Halo and Try again`);
   await p.screenshot({ path: `${OUT}/2-failed-logged-out.png` });
 
   // Logged in: Try again lands it, and the banner clears by itself.

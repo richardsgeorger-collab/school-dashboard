@@ -218,3 +218,30 @@ body {
     opacity: 0.4;
   }
 }
+
+/* Setup's own view (0.7.6): "Syncing your classes…", then "Done! Back to Halo+". */
+.setup {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 6px;
+}
+.setup-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+.setup .bar {
+  margin: 0;
+}
+.setup-alt {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  color: inherit;
+  opacity: 0.75;
+  text-decoration: underline;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  justify-self: start;
+}

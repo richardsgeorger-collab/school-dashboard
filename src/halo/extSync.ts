@@ -3,7 +3,7 @@
  * halo-ext-sync-started; an older extension does not answer it, so after 1.5 s without that the first-sync message
  * (0.5.2+) goes instead. Returns a cleanup.
  */
-export function askExtensionToSync(onStarted?: () => void): () => void {
+export function askExtensionToSync(onStarted?: () => void, opts: { setup?: boolean } = {}): () => void {
   let acked = false;
   const onMsg = (e: MessageEvent) => {
     if (e.origin !== window.location.origin || (e.data as { kind?: string } | null)?.kind !== 'halo-ext-sync-started') return;
@@ -11,9 +11,34 @@ export function askExtensionToSync(onStarted?: () => void): () => void {
     onStarted?.();
   };
   window.addEventListener('message', onMsg);
-  window.postMessage({ kind: 'halo-ext-sync-now' }, window.location.origin);
+  window.postMessage({ kind: 'halo-ext-sync-now', setup: !!opts.setup }, window.location.origin);
   const t = window.setTimeout(() => {
     if (!acked) window.postMessage({ kind: 'halo-ext-first-sync' }, window.location.origin);
+  }, 1500);
+  return () => {
+    window.clearTimeout(t);
+    window.removeEventListener('message', onMsg);
+  };
+}
+
+/**
+ * "Reload Halo" (George, 2026-10-21): the extension (0.7.6+) reloads the student's Halo tabs and syncs again in a fresh
+ * tab of its own. An older extension does not answer; then Halo opens in a new tab (a fresh page) and Sync now is asked
+ * for, which an older extension runs in that tab.
+ */
+export function askExtensionToReload(onStarted?: () => void, opts: { setup?: boolean } = {}): () => void {
+  let acked = false;
+  const onMsg = (e: MessageEvent) => {
+    if (e.origin !== window.location.origin || (e.data as { kind?: string } | null)?.kind !== 'halo-ext-sync-started') return;
+    acked = true;
+    onStarted?.();
+  };
+  window.addEventListener('message', onMsg);
+  window.postMessage({ kind: 'halo-ext-reload-sync', setup: !!opts.setup }, window.location.origin);
+  const t = window.setTimeout(() => {
+    if (acked) return;
+    window.open('https://halo.gcu.edu/', '_blank', 'noopener');
+    window.setTimeout(() => window.postMessage({ kind: 'halo-ext-sync-now', setup: !!opts.setup }, window.location.origin), 4000);
   }, 1500);
   return () => {
     window.clearTimeout(t);
