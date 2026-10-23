@@ -29,8 +29,18 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   // George's last sync, UNV-106 only, as a fresh export.
   const full = (await db.from('pending_syncs').select('payload').eq('user_id', GEORGE).limit(1)).data[0].payload;
+  // Not George's Halo identity: a test account may never take a student's Halo (Loop 236), and the kit does not need it.
+  delete full.haloUser;
+  delete full.haloUserFrom;
   const unv = full.classes.find((c) => /UNV-106/.test(c.courseCode));
   const privacy = unv.assessments.find((a) => /Privacy/i.test(a.title));
+  // Due three days from now, whenever this runs: a past assignment leaves the class page's list.
+  privacy.dueDate = new Date(Date.now() + 3 * 86_400_000).toISOString();
+  privacy.classDueDate = privacy.dueDate;
+  // Not handed in (George has since): an open assignment is the one a student builds a kit for.
+  privacy.status = null;
+  privacy.submittedAt = null;
+  privacy.score = null;
   const cut = privacy.description.indexOf('<p><strong>How This Builds');
   const early = { ...unv, assessments: unv.assessments.map((a) => (a === privacy ? { ...a, description: privacy.description.slice(0, cut) } : a)) };
   const payloadEarly = { ...full, exportedAt: new Date(Date.now() - 60000).toISOString(), classes: [early], alerts: [], source: 'bookmarklet', auto: false };

@@ -245,3 +245,18 @@ body {
   cursor: pointer;
   justify-self: start;
 }
+
+/* Halo+ on Halo (0.8.0). */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 2px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.toggle input {
+  accent-color: #f2b84b;
+  width: 16px;
+  height: 16px;
+}

@@ -520,6 +520,8 @@ export interface JoyState {
 export interface Settings {
   /** The big celebrations (confetti, the halo burst); on unless turned off in You → Display. Toasts stay either way. */
   celebrations?: boolean;
+  /** Halo+ on Halo pages through the extension (2026-10-22): the daily card, the pill, class lines, the assignment box. On unless turned off. */
+  haloOnHalo?: boolean;
   joy?: JoyState;
   timezone: string;
   weekdayMinutes: number;

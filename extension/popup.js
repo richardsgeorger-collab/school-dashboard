@@ -157,9 +157,20 @@ $('setupGo').addEventListener('click', async () => {
 $('setupAlt').addEventListener('click', () => void chrome.runtime.sendMessage({ kind: 'sync-now', force: true }));
 
 // Opening the popup is seeing the problem: the toolbar mark goes.
+// "Show Halo+ on Halo pages" (0.8.0): on unless turned off here or in Halo+ (whichever changed last).
+void chrome.storage.local.get(['haloUiOn', 'haloSnap', 'badgeShown']).then(({ haloUiOn, haloSnap, badgeShown }) => {
+  const fromApp = haloSnap && haloSnap.v === 1 ? { on: haloSnap.show !== false, at: haloSnap.showAt || '' } : { on: true, at: '' };
+  const on = haloUiOn && haloUiOn.at > fromApp.at ? haloUiOn.on !== false : fromApp.on;
+  $('onHalo').checked = on;
+  // Opened while the toolbar showed today's count: counted for Admin.
+  if (badgeShown) void chrome.runtime.sendMessage({ kind: 'halo-ui', event: 'badge-click' }).catch(() => undefined);
+});
+$('onHalo').addEventListener('change', () => void chrome.storage.local.set({ haloUiOn: { on: $('onHalo').checked, at: new Date().toISOString() } }));
+
 // A setup still running keeps its mark on the icon.
-void chrome.storage.local.get('setup').then(({ setup }) => {
-  if (!setup || setup.phase !== 'syncing') void chrome.action.setBadgeText({ text: '' });
+// Today's due count stays (0.8.0): only the "!" of a failed Sync now goes.
+void chrome.storage.local.get(['setup', 'badgeShown']).then(({ setup, badgeShown }) => {
+  if ((!setup || setup.phase !== 'syncing') && !badgeShown) void chrome.action.setBadgeText({ text: '' });
 });
 chrome.storage.onChanged.addListener(() => void render());
 // Re-checked while open, so a sync that goes quiet turns into "stopped partway" without reopening the popup.

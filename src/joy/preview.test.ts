@@ -128,6 +128,7 @@ describe('the Celebrations preview changes nothing', () => {
     expect(read('src/components/Nav.tsx')).toContain('<BrandMark');
     expect(read('src/joy/WrapCard.tsx')).toContain('<WrapCardView');
     expect(read('extension/content-halo.js')).toContain('globalThis.haloPlusCelebrate(');
-    expect(JSON.parse(read('extension/manifest.json')).content_scripts[0].js).toEqual(['celebrate.js', 'content-halo.js']);
+    // Halo+ on Halo (0.8.0) loads its rules before and its pieces after; the confetti is the same two files, in order.
+    expect(JSON.parse(read('extension/manifest.json')).content_scripts[0].js).toEqual(['halo-model.js', 'celebrate.js', 'content-halo.js', 'halo-ui.js']);
   });
 });

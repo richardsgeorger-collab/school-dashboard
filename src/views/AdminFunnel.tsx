@@ -73,8 +73,65 @@ export function AdminFunnel() {
           </p>
         </>
       )}
+      <HaloPresence days={days} />
       <Winback days={days} />
     </section>
+  );
+}
+
+interface Presence {
+  events: Record<string, { n: number; users: number }>;
+  opens: number;
+  opens_users: number;
+  opens_by: Record<string, number>;
+}
+const PRESENCE: [string, string][] = [
+  ['card-shown', 'Card shown'],
+  ['card-closed', 'Card closed without a click'],
+  ['card-click', 'Card clicked'],
+  ['next-shown', '"Nice. Next" shown'],
+  ['pill-click', 'Pill clicked'],
+  ['class-click', 'Class line clicked'],
+  ['box-shown', 'Assignment box shown'],
+  ['box-click', 'Assignment box clicked'],
+  ['badge-click', 'Toolbar badge clicked'],
+];
+
+/** Halo+ on Halo pages (2026-10-22, extension 0.8.0): what students saw and did there, and how often it brought them back. */
+function HaloPresence({ days }: { days: number }) {
+  const [p, setP] = useState<Presence | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    void supabase()
+      ?.rpc('admin_halo_presence', { p_days: days })
+      .then(({ data, error }) => (error ? setErr(error.message) : setP(data as Presence)));
+  }, [days]);
+  if (err) return <p className="hint">{err}</p>;
+  if (!p) return null;
+  const shown = PRESENCE.filter(([k]) => p.events[k]);
+  return (
+    <>
+      <p className="hint halo-opens">
+        <b>Opens from Halo:</b> {p.opens} in the last {days} days, by {p.opens_users} student{p.opens_users === 1 ? '' : 's'}
+        {p.opens ? ` (${Object.entries(p.opens_by).map(([k, n]) => `${k} ${n}`).join(', ')})` : ''}.
+      </p>
+      <h3 className="section-title">Halo+ on Halo</h3>
+      {shown.length ? (
+        <table className="funnel-table">
+          <tbody>
+            {shown.map(([k, label]) => (
+              <tr key={k}>
+                <th scope="row">{label}</th>
+                <td className="num">{p.events[k].n}</td>
+                <td className="num muted">{p.events[k].users} students</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="hint">Nothing yet: it starts with extension 0.8.0.</p>
+      )}
+    </>
   );
 }
 

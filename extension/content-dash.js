@@ -27,6 +27,7 @@
   let last = null;
   let lastKey;
   let lastSnap;
+  let lastHalo;
   const read = (k) => {
     try {
       return localStorage.getItem(k);
@@ -44,6 +45,12 @@
     if (key !== lastKey && (key || lastKey !== undefined)) {
       lastKey = key;
       chrome.runtime.sendMessage({ kind: 'key', key: key || null });
+    }
+    // Halo+ on Halo (0.8.0): what the card, the pill and the class lines on Halo's own pages show.
+    const halo = read('school-dashboard:halo-snap');
+    if (halo !== lastHalo && (halo || lastHalo !== undefined)) {
+      lastHalo = halo;
+      chrome.runtime.sendMessage({ kind: 'halo-snap', snap: halo || null });
     }
     const snap = read('school-dashboard:joy-snap');
     if (snap !== lastSnap && (snap || lastSnap !== undefined)) {

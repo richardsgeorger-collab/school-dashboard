@@ -80,6 +80,7 @@ import { Onboarding } from './onboarding/Onboarding';
 import { Upgrade, upgradeDue } from './onboarding/Upgrade';
 import { TrialEnded } from './views/trialEnd/TrialEnded';
 import { JoyHost } from './joy/JoyHost';
+import { HaloSnapHost } from './halo/HaloSnapHost';
 import { connectReopen, initialState, isOpen, normalStep, tourPending } from './onboarding/state';
 import { track } from './onboarding/track';
 import { useStore } from './storage/store';
@@ -617,6 +618,7 @@ export default function App() {
         <NotificationPlanner />
         <Celebrations />
         <JoyHost />
+        <HaloSnapHost />
         <BackgroundRead />
         <SyncParam />
         <OkayHost />

@@ -12,6 +12,8 @@
 // reached does the export wait here instead, and "Last synced" is written only for a sync that landed (2026-09-30:
 // a 6:08 AM sync read Halo, found no Halo+ tab, was lost, and the popup still said "Last synced 6:08 AM").
 import { DASH_ORIGIN, DASH_URL, DROP_URL, PERIOD_MINUTES, REPORT_URL } from './config.js';
+// Halo+ on Halo (0.8.0): the same rules the Halo pages use, for the toolbar badge.
+import './halo-model.js';
 
 // Scheduled syncs run on Plus and Max; Sync now runs on any plan (the app and the server apply the same rule).
 const AUTO = ['plus', 'max'];
@@ -143,7 +145,7 @@ async function addToOpenTabs() {
   // Each with a time limit (0.7.6): a sleeping tab never answers, and the install must not wait on it.
   for (const t of dash) await within(chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['content-dash.js'] }), 5000, 'A Halo+ tab').catch(() => undefined);
   const halo = await chrome.tabs.query({ url: `${HALO}*` }).catch(() => []);
-  for (const t of halo) if (!t.discarded) await within(chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['celebrate.js', 'content-halo.js'] }), 5000, 'A Halo tab').catch(() => undefined);
+  for (const t of halo) if (!t.discarded) await within(chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['halo-model.js', 'celebrate.js', 'content-halo.js', 'halo-ui.js'] }), 5000, 'A Halo tab').catch(() => undefined);
 }
 chrome.runtime.onStartup.addListener(() => void ensureSchedule());
 
@@ -236,6 +238,20 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       reply({ payload: waiting });
     })();
     return true;
+  } else if (msg.kind === 'halo-snap') {
+    // From Halo+: what to show on Halo's own pages (0.8.0), kept here for the Halo script and the toolbar badge.
+    let snap = null;
+    try {
+      snap = msg.snap ? JSON.parse(msg.snap) : null;
+    } catch {
+      /* not ours */
+    }
+    void set({ haloSnap: snap && snap.v === 1 ? snap : null }).then(updateBadge);
+    reply({ ok: true });
+  } else if (msg.kind === 'halo-ui') {
+    // What happened to Halo+ on a Halo page (shown, closed, clicked), counted for Admin (0.8.0).
+    void countHaloUi(msg.event);
+    reply({ ok: true });
   } else if (msg.kind === 'joy') {
     // From Halo+: points and class codes per Halo assignment, and the Celebrations switch. Read by the Halo script.
     let snap = null;
@@ -455,6 +471,54 @@ async function readHalo({ fresh }) {
     state.pending = null;
     state.fail = null;
     if (own && tab) chrome.tabs.remove(tab.id).catch(() => undefined);
+  }
+}
+
+/**
+ * The toolbar badge (George, 2026-10-22): how many things are due today, gold; red when something is overdue or due
+ * within 3 hours; nothing when nothing is due. Setup's own marks and a failed Sync now's "!" come first. Free has no
+ * sync to keep it true, so no badge there.
+ */
+async function updateBadge() {
+  try {
+    const s = await get(['haloSnap', 'haloLive', 'setup', 'tier', 'lastError', 'lastErrorAt', 'lastSyncAt', 'lastErrorKind']);
+    if (s.setup && Date.now() - Date.parse(s.setup.at || 0) < 15 * 60_000) return;
+    const failedNow = s.lastError && s.lastErrorAt && (!s.lastSyncAt || s.lastErrorAt > s.lastSyncAt) && !['logged-out', 'offline', 'no-key'].includes(s.lastErrorKind);
+    if (failedNow) return;
+    const M = globalThis.HaloPlusModel;
+    const view = M.merge(s.haloSnap, s.haloLive);
+    const b = view && view.plan !== 'free' && AUTO.includes(s.tier) ? M.badge(view, Date.now()) : null;
+    await chrome.action.setBadgeText({ text: b ? b.text : '' });
+    if (b) await chrome.action.setBadgeBackgroundColor({ color: b.red ? '#e5484d' : '#f2b84b' });
+    if (b && chrome.action.setBadgeTextColor) await chrome.action.setBadgeTextColor({ color: b.red ? '#ffffff' : '#141414' }).catch(() => undefined);
+    await set({ badgeShown: b ? b.text : null });
+  } catch {
+    /* the badge never breaks anything */
+  }
+}
+void updateBadge();
+// Whatever changed what it says (Halo+'s snapshot, a sync's reading, the plan, setup) updates it.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && ['haloSnap', 'haloLive', 'tier', 'setup'].some((k) => k in changes)) void updateBadge();
+});
+chrome.alarms.create('halo-badge', { periodInMinutes: 10 }).catch?.(() => undefined);
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name === 'halo-badge') void updateBadge();
+});
+
+/** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
+const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click'];
+async function countHaloUi(event) {
+  if (!HALO_UI.includes(event)) return;
+  try {
+    const { syncKey, haloUiCount } = await get(['syncKey', 'haloUiCount']);
+    const day = new Date().toISOString().slice(0, 10);
+    const c = haloUiCount && haloUiCount.day === day ? haloUiCount : { day, n: 0 };
+    if (c.n >= 60 || !syncKey) return;
+    await set({ haloUiCount: { day, n: c.n + 1 } });
+    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'halo-ui', event, key: syncKey, ext_version: VERSION }) });
+  } catch {
+    /* counting never breaks anything */
   }
 }
 
@@ -699,7 +763,7 @@ async function kitFiles(msg, dashTabId) {
 async function ensureRelay(tabId) {
   const there = await chrome.tabs.sendMessage(tabId, { kind: 'ping' }).then((r) => !!(r && r.ok)).catch(() => false);
   if (there) return;
-  await chrome.scripting.executeScript({ target: { tabId }, files: ['celebrate.js', 'content-halo.js'] }).catch(() => undefined);
+  await chrome.scripting.executeScript({ target: { tabId }, files: ['halo-model.js', 'celebrate.js', 'content-halo.js', 'halo-ui.js'] }).catch(() => undefined);
 }
 
 /** Auto-sync paused (logged out of Halo) or running again: kept, and told to every open Halo+ tab. */
@@ -726,7 +790,10 @@ async function failed(e, auto, { first = false, retried = false } = {}) {
   // Logged out and offline are the student's state, not a fault.
   if (!e.quiet) void reportError({ title: `Extension sync failed: ${{ stalled: 'Halo stopped answering', 'no-classes': 'Halo showed no classes', delivery: 'Halo+ did not take it', other: 'Halo returned an error' }[e.kind] || e.kind}`, message: e.text, place: auto ? 'scheduled sync' : 'sync now', details: { kind: e.kind, auto, retried } });
   // Nothing to nag about when logged out or offline; a Sync now that failed shows a mark until the popup is opened.
-  if (!auto && !e.quiet) await chrome.action.setBadgeText({ text: '!' });
+  if (!auto && !e.quiet) {
+    await chrome.action.setBadgeText({ text: '!' });
+    await set({ badgeShown: null });
+  }
 }
 
 const clock = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -788,7 +855,10 @@ async function markLanded(readAt, how) {
   const { tier } = await get('tier');
   if (AUTO.includes(tier)) await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
   const { setup } = await get('setup');
-  if (!setup || setup.phase !== 'done') await chrome.action.setBadgeText({ text: '' });
+  if (!setup || setup.phase !== 'done') {
+    await chrome.action.setBadgeText({ text: '' });
+    void updateBadge();
+  }
 }
 
 /**
@@ -829,6 +899,13 @@ async function finish(payload, auto, quiet = false, first = false) {
   payload.auto = auto;
   const readAt = payload.exportedAt || new Date().toISOString();
   await set({ lastCounts: countsOf(payload) });
+  // What this reading of Halo says, small, for Halo+ on Halo between visits to Halo+ (0.8.0).
+  try {
+    await set({ haloLive: globalThis.HaloPlusModel.compactLive(payload) });
+    void updateBadge();
+  } catch {
+    /* never fails a sync */
+  }
   const r = await land(payload, auto, quiet);
   if (r.landed) {
     await markLanded(readAt, r.how);

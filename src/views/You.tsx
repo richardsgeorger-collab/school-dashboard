@@ -604,6 +604,10 @@ export function You() {
             <input type="checkbox" checked={data.settings.celebrations !== false} onChange={(e) => actions.updateSettings({ celebrations: e.target.checked })} />
             <span>Celebrations: confetti and the gold burst when you finish things. Off keeps the small notes only.</span>
           </label>
+          <label className="field field-check">
+            <input type="checkbox" checked={data.settings.haloOnHalo !== false} onChange={(e) => actions.updateSettings({ haloOnHalo: e.target.checked })} />
+            <span>Show Halo+ on Halo pages: today's work on Halo's home page, a line under each class, and what announcements added on an assignment. Needs the Chrome extension.</span>
+          </label>
           <label className="field">
             <span>Time zone</span>
             <input list="zones" value={data.settings.timezone} onChange={(e) => actions.updateSettings({ timezone: e.target.value })} />

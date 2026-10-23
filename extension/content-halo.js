@@ -113,6 +113,8 @@
     // Plus and Max (a Max trial is Max here). Free has no sync to update, so nothing happens there.
     if (s.tier !== 'plus' && s.tier !== 'max') return;
     chrome.runtime.sendMessage({ kind: 'submitted' }).catch(() => undefined);
+    // Halo+ on Halo (0.8.0): "Nice. Next: …" a moment after the confetti.
+    window.dispatchEvent(new CustomEvent('haloplus:submitted', { detail: { id: haloId } }));
     const snap = s.joySnap || null;
     if (snap && snap.celebrate === false) return;
     globalThis.haloPlusCelebrate(lineFor(snap, haloId));
