@@ -10,7 +10,7 @@
 //   F. A new laptop whose first account load is dropped by the network (found on the way: setup started over the account's
 //      saved state and showed Connect Halo): "Loading your classes…" with Try again, then Now by itself; setup untouched.
 // Screens to docs/screens/trial-days/.
-//   KEYS_ENV=... [LOCAL_SITE=dist-site] [ONLY=ABCDEFG] [TRACE=1] node scripts/e2e-trial-days.mjs
+//   KEYS_ENV=... [LOCAL_SITE=dist-site] [ONLY=ABCDEFG] [TRACE=1] [LIVE=1] node scripts/e2e-trial-days.mjs
 // dist-site must be built with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the environment.
 import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -63,7 +63,8 @@ async function open(who, opts = {}) {
       dropped++;
       return route.abort('connectionfailed');
     });
-  await ctx.route('https://haloplus.app/**', (route) => {
+  // LIVE=1: the deployed site itself, not the local build.
+  if (!process.env.LIVE) await ctx.route('https://haloplus.app/**', (route) => {
     const path = decodeURIComponent(new URL(route.request().url()).pathname).replace(/^\//, '');
     let file = join(LOCAL_SITE, path || 'index.html');
     if (!existsSync(file) || statSync(file).isDirectory()) file = join(LOCAL_SITE, 'index.html');
