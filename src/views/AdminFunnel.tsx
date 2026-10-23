@@ -69,7 +69,7 @@ export function AdminFunnel() {
             </tbody>
           </table>
           <p className="hint">
-            {f.from_referrals} of {f.signed_up} came through a friend's invite link, {f.from_friend_links} through your friend links. "Chose a plan" is out of the {f.trial_ended} whose free week has ended.
+            {f.from_referrals} of {f.signed_up} came through a friend's invite link, {f.from_friend_links} through your friend links. "Chose a plan" is out of the {f.trial_ended} whose free trial has ended.
           </p>
         </>
       )}

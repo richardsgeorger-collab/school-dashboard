@@ -181,7 +181,7 @@ export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
       <p className="hint">
         ${PRICES.plus.month.toFixed(2)} a month, {TAX_LINE}. {CANCEL_LINE}, in one click from You; a cancelled plan runs to the end of the month paid for.
       </p>
-      {!trialEnded && <TrialOffer lead={TRIAL.offer} label="Start my free week" />}
+      {!trialEnded && <TrialOffer lead={TRIAL.offer} label="Start my free trial" />}
       <div className="settings-actions">
         <UpgradeButton />
         <a className="btn small" href="#/you?s=plan">

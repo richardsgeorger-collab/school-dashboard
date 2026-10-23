@@ -79,20 +79,22 @@ export const LEGACY_PRICE_IDS: Record<string, { tier: Tier; interval: Interval }
 export const TRIAL = {
   tier: 'max' as Tier,
   days: 7,
+  /** Days of use (2026-10-22): a day counts when Halo+ is opened; never past 30 calendar days after the first sync. */
+  capDays: 30,
   /** Days before the end on which a reminder goes: two days before, and the last day itself (0). */
   remindDaysBefore: [2, 0] as const,
   cardRequired: false,
   /** The offer, word for word, wherever a student who has not tried it sees a locked feature (George, 2026-09-29). */
-  offer: 'Try everything free for 7 days. No card.',
+  offer: 'Try everything free for 7 days of use. No card.',
   /** The trial screen's headline and the bold line right under it. */
-  headline: 'Try everything free for 7 days.',
+  headline: 'Try everything free for 7 days of use.',
   promise: 'No card. Nothing to cancel. Nothing charges.',
   /** The one honest line under every button that starts it. */
-  after: 'After 7 days you go back to Free and choose if you want to keep anything.',
+  after: 'A day counts when you open Halo+. After 7 days of use (or 30 days, if that comes first) you go back to Free and choose if you want to keep anything.',
   /** Short form beside small buttons. */
-  line: 'Everything free for 7 days. No card. Nothing charges.',
+  line: '7 days of use, free. No card. Nothing charges.',
   /** What a button that starts it says. */
-  button: 'Try everything free for 7 days',
+  button: 'Try everything free for 7 days of use',
   buttonShort: 'Try it free',
 };
 

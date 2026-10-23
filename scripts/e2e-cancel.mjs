@@ -35,7 +35,7 @@ try {
   const { data: s } = await c.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' });
-  await page.evaluate(({ s, key }) => { localStorage.setItem(key, JSON.stringify(s)); const d = JSON.parse(localStorage.getItem('school-dashboard:v1') ?? 'null'); if (d) { d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); } }, { s: s.session, key: `sb-${ref}-auth-token` });
+  await page.evaluate(({ s, key }) => { localStorage.setItem(key, JSON.stringify(s)); const d = JSON.parse(localStorage.getItem('school-dashboard:v1') ?? 'null'); if (d) { d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; d.settings.lastPull ??= { at: new Date().toISOString(), build: null, counts: { classes: 0, assessments: 0 }, via: 'extension' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); } }, { s: s.session, key: `sb-${ref}-auth-token` });
   await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3000);
   // The one-time welcome to the new plan comes first for a student who just paid.
   await page.click('.upgrade button:has-text("Skip"), .upgrade button:has-text("Maybe later"), .upgrade button:has-text("Later")', { timeout: 4000 }).catch(() => undefined);

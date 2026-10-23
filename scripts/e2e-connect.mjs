@@ -152,9 +152,10 @@ try {
         check(ev.some((e) => e.device === 'laptop' && e.browser === 'Chrome'), 'L. each step carries the device and browser (laptop, Chrome)');
         const st = (await db.from('settings').select('data').eq('user_id', who.id).single()).data.data;
         check(st.lastPull?.via === 'extension', `L. the sync came through the extension (${st.lastPull?.via})`);
-        const prof = await until(async () => { const r = (await db.from('profiles').select('trial_synced_at, trial_ends_at').eq('user_id', who.id).single()).data; return r?.trial_synced_at ? r : null; }, 90000, 2000);
+        const prof = await until(async () => { const r = (await db.from('profiles').select('trial_synced_at, trial_ends_at, trial_days_used').eq('user_id', who.id).single()).data; return r?.trial_synced_at ? r : null; }, 90000, 2000);
         const days = prof ? (Date.parse(prof.trial_ends_at) - Date.parse(prof.trial_synced_at)) / 864e5 : 0;
-        check(!!prof && Math.abs(days - 7) < 0.01 && Math.abs(Date.parse(prof.trial_synced_at) - t0) < 180_000, `L. the free week starts at the first sync: seven days from it (${days.toFixed(3)} days)`);
+        // Days of use since Loop 249: the first sync's day is day 1 of 7, and the end is the 30-day limit until the 7th.
+        check(!!prof && Math.abs(days - 30) < 0.01 && prof.trial_days_used === 1 && Math.abs(Date.parse(prof.trial_synced_at) - t0) < 180_000, `L. the trial starts at the first sync: day 1 of 7 used, at most 30 days from it (${days.toFixed(3)} days, ${prof?.trial_days_used} used)`);
       }
     } finally {
       await b.close();

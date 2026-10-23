@@ -25,7 +25,9 @@ describe('feature flags', () => {
     expect(effectiveTier({ tier: 'free', trialEndsAt: '2026-09-20T00:00:00.000Z' }, now)).toBe('free');
     expect(effectiveTier({ tier: 'pro', trialEndsAt: '2026-09-20T00:00:00.000Z' }, now)).toBe('pro');
     expect(effectiveTier(null, now)).toBe('free');
-    expect(trialDaysLeft({ tier: 'free', trialEndsAt: '2026-09-30T00:00:00.000Z' }, now)).toBe(6);
+    // Days of use (2026-10-22): before the first sync all 7 wait; after it, today counts once opened.
+    expect(trialDaysLeft({ tier: 'free', trialEndsAt: '2026-09-30T00:00:00.000Z' }, now)).toBe(7);
+    expect(trialDaysLeft({ tier: 'free', trialEndsAt: '2026-10-20T00:00:00.000Z', trialSyncedAt: '2026-09-20T00:00:00.000Z', trialDaysUsed: 2, trialLastDay: null }, now)).toBe(5);
     expect(trialDaysLeft({ tier: 'free', trialEndsAt: null }, now)).toBeNull();
     // A referral reward lifts a Free account to Plus for its month, never lowers a paid Pro.
     expect(effectiveTier({ tier: 'free', rewardTier: 'plus', rewardUntil: '2026-10-20T00:00:00.000Z' }, now)).toBe('plus');

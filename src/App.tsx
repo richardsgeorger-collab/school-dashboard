@@ -4,6 +4,7 @@ import { DemoHost } from './demo/DemoHost';
 import { extSetupDue } from './onboarding/extSetup';
 import { useNeverSynced } from './onboarding/Setup';
 import { useTrialSyncStart } from './auth/useTrialSyncStart';
+import { useTrialTouch } from './auth/useTrialTouch';
 import { installedVersion, useExtension } from './config/extension';
 import { isTouchDevice } from './ui/device';
 import { WinbackOpens } from './winback/WinbackHooks';
@@ -325,7 +326,9 @@ function OnboardingHost() {
   // Settled: the sign-in is known and, when signed in, the account's first load is done. Before that a signed-in
   // student on a new device looked signed out for a few seconds on a slow network, and onboarding started (audit).
   const signedIn = !!auth.session || !!auth.knownUserId;
-  const settled = !auth.loading && (!signedIn || sync.status === 'synced' || sync.status === 'error');
+  // Signed in, settled means the account's own copy has loaded here (sync.checked), not just that a load ended: a load
+  // that failed on a new device left it empty, and setup started over the account's saved state (2026-10-22).
+  const settled = !auth.loading && (!signedIn || sync.checked);
   const fresh = data.courses.length === 0 && data.items.length === 0 && !data.settings.lastPull;
   useEffect(() => {
     if (front !== 'app' || route === 'login' || !settled) return;
@@ -342,6 +345,7 @@ function OnboardingHost() {
   // it there, and "Finish on my laptop" from a phone lands here); a phone or tablet gets it first once, a day after
   // sign-up. Not for admins or the demo, and only once the account's own copy is here.
   useTrialSyncStart();
+  useTrialTouch();
   const never = useNeverSynced();
   const access = useSyncAccess();
   const createdAt = auth.session?.user.created_at ?? null;
@@ -359,13 +363,13 @@ function OnboardingHost() {
     return <TrialEnded preview={{ gift: preview === 'trial-end-gift', onGift: (g: boolean) => navigate(route, { preview: g ? 'trial-end-gift' : 'trial-end' }), onClose: () => navigate(route, {}) }} />;
   if (front !== 'app' || route === 'login') return null;
   // An account still arriving on a device with nothing of its own: a quiet wait, never onboarding or an empty Now.
-  if (signedIn && !settled && fresh) return <AccountLoading />;
+  if (signedIn && !settled && fresh) return <AccountLoading failed={sync.status === 'error'} onRetry={() => void actions.syncNow()} />;
   if (isOpen(ob)) return <Onboarding />;
   // First the tour of Now, Calendar and Inbox; then, once, the welcome for whatever was just unlocked.
   if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;
   if (tourPending(ob)) return null;
   // Never on a plan still loading: the free tier it reads for a moment is not a downgrade, and the welcome waits.
-  // The plan story is not part of setup (2026-10-13): the free week is not an upgrade, so its "Welcome to Max" never shows;
+  // The plan story is not part of setup (2026-10-13): the free trial is not an upgrade, so its "Welcome to Max" never shows;
   // a real upgrade still gets its welcome.
   const dueRaw = loading || !planKnown ? null : upgradeDue(tier, data.settings.upgradeSeen, data.settings.maxOnboarding);
   const due = dueRaw === 'max' && trialState(profile) === 'active' ? null : dueRaw;
@@ -392,13 +396,20 @@ function OnboardingHost() {
 }
 
 /** A signed-in student's classes on their way to a new device. */
-function AccountLoading() {
+function AccountLoading({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
   return (
     <div className="onboard account-loading" role="status" aria-live="polite">
       <section className="onboard-step" aria-label="Loading your classes">
         <HaloDraw size={64} />
         <h1 className="onboard-title">Loading your classes…</h1>
-        <p className="onboard-text">Bringing your planner from your account. This takes a moment on a slow connection.</p>
+        <p className="onboard-text">
+          {failed ? "Your account didn't answer yet. Halo+ keeps trying; check your connection, or try now." : 'Bringing your planner from your account. This takes a moment on a slow connection.'}
+        </p>
+        {failed && (
+          <button type="button" className="btn" onClick={onRetry}>
+            Try again
+          </button>
+        )}
       </section>
     </div>
   );

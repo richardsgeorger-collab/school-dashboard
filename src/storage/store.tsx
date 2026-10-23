@@ -343,6 +343,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [flushPending],
   );
 
+  /** The account's copy has loaded on this device this session; until then a failed load retries by itself. */
+  const loadedRef = useRef(false);
+  const retries = useRef(0);
+  const syncNowRef = useRef<() => Promise<void>>(async () => undefined);
   const syncNow = useCallback(async () => {
     const repo = remoteRef.current;
     if (!repo) return;
@@ -384,14 +388,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (result.pushItems.length) await repo.saveItems(result.pushItems);
       if (result.pushSettings) await repo.saveSettings(result.merged.settings);
       if (repo.accountId) localCache.markAccountSeen(repo.accountId);
+      loadedRef.current = true;
+      retries.current = 0;
       setSync((s) => ({ ...s, status: 'synced', lastSync: nowIso(), error: null, checked: true }));
       remoteStamp.current = result.merged.settings.updatedAt;
       // The account's rows are here now; anything that waits for them (the announcement reader) may go.
       if (typeof window !== 'undefined') window.dispatchEvent(new Event(ACCOUNT_SYNCED_EVENT));
     } catch (e) {
       setSync((s) => ({ ...s, status: 'error', error: e instanceof Error ? e.message : String(e) }));
+      // The account's copy has never arrived on this device (2026-10-22: one dropped request on a new laptop left it
+      // empty until the tab was hidden and shown): try again on its own, a little later each time, up to every 30s.
+      if (!loadedRef.current && remoteRef.current === repo) {
+        const wait = Math.min(30_000, 2_000 * 2 ** retries.current++);
+        window.setTimeout(() => {
+          if (!loadedRef.current && remoteRef.current === repo) void syncNowRef.current();
+        }, wait);
+      }
     }
   }, [flushPending]);
+  syncNowRef.current = syncNow;
 
   const connectRemote = useCallback(
     async (repo: Repository | null, email: string | null) => {

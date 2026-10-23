@@ -42,6 +42,9 @@ export interface PlanInput {
   trialStartedAt?: string | null;
   /** When the free trial ends, for its two reminders. */
   trialEndsAt?: string | null;
+  /** Days of free Max left, in days of use (2026-10-22), and whether the 30-day limit is nearer than that. */
+  trialLeft?: number | null;
+  trialCapFirst?: boolean;
   /** What Max did during the trial, one line ("Max during your trial: read 23 announcements, …"), for those reminders. */
   trialRecap?: string | null;
   /** The plan includes the Sunday recap (Max, or the trial). */
@@ -152,7 +155,7 @@ export function planNotices(input: PlanInput): Notice[] {
   // The welcome gift, a few hours in and still nothing synced: one reminder, once (George, 2026-09-29).
   if (input.trialStartedAt && !lastPull && input.courses.length === 0) {
     const sendAt = new Date(new Date(input.trialStartedAt).getTime() + 3 * 3_600_000).toISOString();
-    if (sendAt > now && (!input.trialEndsAt || sendAt < input.trialEndsAt)) push({ kind: 'welcome_sync', sendAt, title: 'Your free week of Max has started', body: 'Connect Halo to use it. It takes about two minutes.', url: '#/now', key: 'welcome_sync' });
+    if (sendAt > now && (!input.trialEndsAt || sendAt < input.trialEndsAt)) push({ kind: 'welcome_sync', sendAt, title: 'Your 7 free days of Max are waiting', body: 'They start when you connect Halo, and only days you open Halo+ count. It takes about two minutes.', url: '#/now', key: 'welcome_sync' });
   }
 
   // Saturday at nine: participation still open this week, class by class. Planned when Saturday is today or tomorrow.
@@ -185,7 +188,7 @@ export function planNotices(input: PlanInput): Notice[] {
   // The trial: two reminders, two days before it ends (the evening) and the morning of the last day, each with what
   // Max actually did (the recap line is filled in by the app from the student's own records).
   if (input.trialEndsAt && input.trialEndsAt > now) {
-    // Day 3 of the free week: what Halo+ caught, real things only, once (George, 2026-10-09: 13 of 23 left by day 2).
+    // Day 3 of the free trial: what Halo+ caught, real things only, once (George, 2026-10-09: 13 of 23 left by day 2).
     if (input.trialStartedAt) {
       const start = Date.parse(input.trialStartedAt);
       const day3 = new Date(start + 3 * 86_400_000).toISOString();
@@ -198,15 +201,30 @@ export function planNotices(input: PlanInput): Notice[] {
         push({ kind: 'caught', sendAt: at, title: `Halo+ caught ${caught.n} ${caught.n === 1 ? 'thing' : 'things'} your professors only put in announcements`, body: caught.examples.slice(0, 2).join(' · '), url: '#/now', key: 'caught:trial' });
       }
     }
-    const cal = trialCalendar(input.trialEndsAt, tz, now);
     const recap = input.trialRecap ? ` ${input.trialRecap}` : '';
-    for (const r of cal.reminders) {
+    // Days of use (2026-10-22): the evening two days of use are left, and the evening of the last one (a day counts
+    // when Halo+ is opened, so these are planned on a day it was). The 30-day limit, when nearer, keeps the calendar.
+    const left = input.trialLeft ?? null;
+    if (left !== null && left <= 2 && !input.trialCapFirst) {
+      const sendAt = at(today, '18:00', tz);
+      if (sendAt > now)
+        push({
+          kind: 'trial_ends',
+          sendAt,
+          title: left === 1 ? 'Last day of your free Max' : '2 days of free Max left',
+          body: `${recap.trim() ? `${recap.trim()} ` : ''}${left === 1 ? 'After today you go back to Free' : 'A day counts when you open Halo+. After 2 more you go back to Free'}: Halo sync pauses and the study tools lock. Nothing charges.`,
+          url: '#/you?s=plan',
+          key: `trial_ends:${today}:${left}`,
+        });
+    }
+    const cal = trialCalendar(input.trialEndsAt, tz, now);
+    for (const r of left !== null && !input.trialCapFirst ? [] : cal.reminders) {
       if (r.sendAt <= now) continue;
       const last = r.daysBefore === 0;
       push({
         kind: 'trial_ends',
         sendAt: r.sendAt,
-        title: last ? 'Last day of your free trial' : 'Your free trial ends in 2 days',
+        title: last ? 'Last day of your free Max' : 'Your free Max ends in 2 days',
         body: `${recap.trim() ? `${recap.trim()} ` : ''}${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses and the study tools lock. Nothing charges.`,
         url: '#/you?s=plan',
         key: `trial_ends:${cal.lastDay}:${r.daysBefore}`,

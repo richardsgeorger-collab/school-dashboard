@@ -1,3 +1,4 @@
+import { trialUse } from './trialUse';
 import { FEATURES, LIMITS, TIERS, TRIAL, type Feature, type Tier } from './tiers';
 
 /**
@@ -14,8 +15,12 @@ export interface TierSource {
   trialEndsAt?: string | null;
   /** Set the moment a trial was started; null means one is still available. */
   trialStartedAt?: string | null;
-  /** When the first sync restarted the free week's clock (2026-10-09). */
+  /** When the first sync started the trial (2026-10-09). */
   trialSyncedAt?: string | null;
+  /** Days of use counted so far (Phoenix days Halo+ was opened since the first sync, 2026-10-22). */
+  trialDaysUsed?: number | null;
+  /** The last day of use counted (Phoenix), YYYY-MM-DD. */
+  trialLastDay?: string | null;
   /** Set by the Stripe webhook when a payment fails; the paid tier is kept until it passes. */
   graceUntil?: string | null;
   /** A referral reward: this tier until this time, on top of whatever is paid for. */
@@ -57,9 +62,9 @@ export const can = (feature: Feature, tier: Tier): boolean => rank(tier) >= rank
 export const tierFor = (feature: Feature): Tier => FEATURES[feature];
 
 /** Days of trial left, or null when there is no live trial. */
+/** Days of Max left on the trial: days of use (2026-10-22), fewer when the 30-day limit is nearer. Null when none runs. */
 export function trialDaysLeft(p: TierSource | null | undefined, now = new Date().toISOString()): number | null {
-  if (!p?.trialEndsAt || p.trialEndsAt <= now) return null;
-  return Math.ceil((new Date(p.trialEndsAt).getTime() - new Date(now).getTime()) / 86_400_000);
+  return trialUse(p, now)?.left ?? null;
 }
 
 /** Where the account stands with the trial. */

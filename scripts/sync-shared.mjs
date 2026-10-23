@@ -11,6 +11,7 @@ mkdirSync(out, { recursive: true });
 export const SHARED = [
   ['src/config/tiers.ts', 'tiers.ts'],
   ['src/config/flags.ts', 'flags.ts'],
+  ['src/config/trialUse.ts', 'trialUse.ts'],
   ['src/ai/model.ts', 'model.ts'],
   ['src/ai/meter.ts', 'meter.ts'],
   ['src/billing/subscription.ts', 'subscription.ts'],

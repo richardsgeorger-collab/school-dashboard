@@ -123,7 +123,7 @@ export function NotificationsCard() {
       {auth.session && (
         <div className="email-prefs">
           <p className="section-title">Email</p>
-          <Toggle checked={prefs.email !== false} label="Two emails at most: the day before a free week ends, and when Halo has not been heard from for three days" onChange={(v) => set({ email: v })} />
+          <Toggle checked={prefs.email !== false} label="Two emails at most: the day before your free Max ends, and when Halo has not been heard from for three days" onChange={(v) => set({ email: v })} />
           <p className="hint">Never more than one a week. Account emails (password resets, receipts) always arrive. Every email has a one-click unsubscribe.</p>
         </div>
       )}

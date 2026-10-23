@@ -8,9 +8,10 @@ import { useAccount } from '../auth/AccountContext';
 import { Modal } from '../components/Modal';
 import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
 import { friendGift, trialState } from '../config/flags';
-import { trialCalendar, trialChipShort, trialChipText, trialEndSentence } from '../config/trialCalendar';
+import { trialChipShort, trialChipText, trialEndSentence } from '../config/trialCalendar';
+import { trialUse } from '../config/trialUse';
 import { CANCEL_LINE, PRICES, TAX_LINE, TRIAL, type Feature } from '../config/tiers';
-import { dateOf, fmtDate, fmtTime } from '../domain/dates';
+import { dateOf, fmtDate } from '../domain/dates';
 import { readLedger } from '../halo/announce';
 import { supabase } from '../auth/client';
 import { useStore } from '../storage/store';
@@ -19,10 +20,10 @@ import { UpgradeButton } from './PlanWall';
 /** A real trial, not a friend's gift that happens to set the trial columns. */
 function useTrial() {
   const { profile } = useAccount();
-  const { data } = useStore();
   const state = trialState(profile);
   const real = !!profile?.trialStartedAt && !!profile.trialEndsAt && !profile.friendFrom && !friendGift(profile);
-  const cal = real && profile?.trialEndsAt ? trialCalendar(profile.trialEndsAt, data.settings.timezone) : null;
+  // Days of use (2026-10-22): "left" counts days Halo+ is opened; endsAt is the server's end (the 7th day or the 30-day limit).
+  const cal = real && profile?.trialEndsAt ? trialUse(profile) : null;
   return { state, real, cal, profile };
 }
 
@@ -32,7 +33,7 @@ function useTrial() {
  */
 export function PlanBadge({ plan }: { plan: 'max' | 'plus' }) {
   const { state, real, cal } = useTrial();
-  if (state !== 'active' || !real || !cal || cal.daysLeft > 2) return null;
+  if (state !== 'active' || !real || !cal || cal.left > 2) return null;
   return (
     <span className="plan-badge" title={plan === 'max' ? 'Part of Max: goes away when the trial ends unless you keep Max' : 'Part of Plus: goes away when the trial ends unless you choose Plus or Max'}>
       {plan === 'max' ? 'Max' : 'Plus'}
@@ -121,7 +122,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
           )}
           {cups && !intro && <span className="gcbc-line">About a large at GCBC, minus the regret.</span>}
           <small className="tax-note">{TAX_LINE}</small>
-          <span>Everything you had this week: auto-sync, announcements read for you, and the study tools.{intro ? '' : ` ${CANCEL_LINE}.`}</span>
+          <span>Everything you had on the trial: auto-sync, announcements read for you, and the study tools.{intro ? '' : ` ${CANCEL_LINE}.`}</span>
           <span className="plan-choice-more">Only $3 more than Plus for the study tools{intro ? ' (after the first month)' : ''}.</span>
           {!cups && (
             <span className="gcbc">
@@ -173,15 +174,16 @@ export function TrialChip() {
   const tz = data.settings.timezone;
   return (
     <>
-      <button type="button" className="trial-chip" data-urgent={cal.daysLeft <= 2} onClick={() => setOpen(true)} aria-haspopup="dialog">
-        <span className="chip-long">{trialChipText(cal.daysLeft)}</span>
-        <span className="chip-short" aria-hidden>{trialChipShort(cal.daysLeft)}</span>
+      <button type="button" className="trial-chip" data-urgent={cal.left <= 2} onClick={() => setOpen(true)} aria-haspopup="dialog">
+        <span className="chip-long">{trialChipText(cal.left)}</span>
+        <span className="chip-short" aria-hidden>{trialChipShort(cal.left)}</span>
       </button>
       {open && (
         <Modal title="Your free trial" onClose={() => setOpen(false)}>
           <div className="modal-body trial-sheet">
             <p>
-              <b>{cal.daysLeft <= 1 ? 'This is the last day.' : `${cal.daysLeft} days left.`}</b> It ends {fmtDate(dateOf(cal.endsAt, tz), 'long')} at {fmtTime(cal.endsAt, tz)}.
+              <b>{cal.left <= 1 ? 'This is your last day of Max.' : `${cal.left} days of use left.`}</b>{' '}
+              {cal.started ? `A day counts when you open Halo+, and you've used ${cal.used} of ${TRIAL.days}.` : `Your ${TRIAL.days} days start when your classes first sync.`}
             </p>
             <h3>What's included</h3>
             <ul>
@@ -213,7 +215,7 @@ export function usePlusCredit(): PlusCredit | null {
   return plusCredit(grants, { trialEndsAt: profile?.trialEndsAt ?? null, rewardTier: profile?.rewardTier ?? null, rewardUntil: profile?.rewardUntil ?? null }, new Date().toISOString());
 }
 
-/** The Plus credit that follows the free week (or is running now), if there is one. */
+/** The Plus credit that follows the free trial (or is running now), if there is one. */
 export function usePlusAfter(endsAt: string | null | undefined) {
   const c = usePlusCredit();
   if (!endsAt || !c) return null;
@@ -303,12 +305,12 @@ export function TrialReminder() {
   const n = useTrialNumbers(profile?.trialStartedAt, null);
   const { data } = useStore();
   const plusAfter = usePlusAfter(cal?.endsAt);
-  if (state !== 'active' || !real || !cal || cal.daysLeft > 2) return null;
-  const last = cal.daysLeft === 1;
+  if (state !== 'active' || !real || !cal || cal.left > 2) return null;
+  const last = cal.left === 1;
   const did = n ? [n.fromHalo ? `pulled ${n.fromHalo} assignments from Halo` : '', n.read ? `read ${n.read} announcement${n.read === 1 ? '' : 's'}` : '', n.found ? `found ${n.found} hidden requirement${n.found === 1 ? '' : 's'}` : '', n.answered ? `answered ${n.answered} question${n.answered === 1 ? '' : 's'}` : ''].filter(Boolean) : [];
   return (
     <section className="card trial-receipts" aria-label="Your free trial">
-      <p className="eyebrow">{last ? 'Last day of your free trial' : 'Your free trial ends in 2 days'}</p>
+      <p className="eyebrow">{last ? 'Last day of your free Max' : '2 days of free Max left'}</p>
       {did.length > 0 && <p className="trial-lead">This week Halo+ {did.join(', ')}.</p>}
       <p className="hint">
         {plusAfter

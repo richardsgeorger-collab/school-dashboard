@@ -11,6 +11,7 @@ import { AdminExtension } from './AdminExtension';
 import { AdminFunnel } from './AdminFunnel';
 import { AdminSignupFunnel } from './AdminSignupFunnel';
 import { AdminSyncHealth } from './AdminSyncHealth';
+import { AdminTrials } from './AdminTrials';
 import { AdminErrors } from './AdminErrors';
 import { AdminGrowth } from './AdminGrowth';
 import { AdminAccounts } from './AdminAccounts';
@@ -69,6 +70,7 @@ export function Admin() {
         <AdminGrowth tick={tick} />
         <AdminAccounts onChange={() => setTick((k) => k + 1)} />
         <AdminSyncHealth />
+        <AdminTrials />
         <AdminSignupFunnel />
         <AdminFunnel />
         <AdminRatings />

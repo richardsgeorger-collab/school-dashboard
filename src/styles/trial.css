@@ -1752,7 +1752,7 @@
   gap: var(--s-2);
 }
 
-/* ===== The end of the free week, two pages (2026-10-01) ===================================================== */
+/* ===== The end of the free trial, two pages (2026-10-01) ===================================================== */
 @keyframes story-in {
   from {
     opacity: 0;
@@ -2179,7 +2179,7 @@
   }
 }
 
-/* One screen at the end of the free week (George, 2026-10-09): recap, then the plans, no scrolling on a laptop. */
+/* One screen at the end of the free trial (George, 2026-10-09): recap, then the plans, no scrolling on a laptop. */
 .trial-ended[data-one='true'] .onboard-inner {
   max-width: 720px;
 }
@@ -2296,7 +2296,7 @@
   }
 }
 
-/* Day 3 of the free week: what Halo+ caught (2026-10-09). */
+/* Day 3 of the free trial: what Halo+ caught (2026-10-09). */
 .caught-card {
   margin: 0 0 var(--s-4);
   padding: 12px 14px;

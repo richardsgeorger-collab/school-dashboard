@@ -44,17 +44,20 @@ const dateOf = (iso: string | null | undefined, tz = 'America/Phoenix'): string 
 /** The email for one outbox row, or null for a kind this build does not know. */
 export function renderEmail(kind: string, meta: Record<string, unknown>, unsubUrl: string, tz = 'America/Phoenix'): Rendered | null {
   if (kind === 'trial_ending') {
-    const when = dateOf(typeof meta.ends_at === 'string' ? meta.ends_at : null, tz);
-    return wrap(
-      'Your free week of Halo+ Max ends tomorrow',
-      [
-        `Your free week ends ${when}. After that Halo+ goes back to Free: Halo sync pauses and the study tools lock. Everything you have stays, and nothing charges unless you choose a plan.`,
-        'To keep it: Max is $7.99 a month (everything you had this week), Plus is $4.99 (auto-sync, grades and announcements, no study tools). Cancel anytime.',
-        "Or stay on Free. That's fine too.",
-      ],
-      { label: 'See the plans', url: `${SITE}/#/you?s=plan` },
-      unsubUrl,
-    );
+    // Days of use (George, 2026-10-22): the day after the 6th day of use ("the next day you open Halo+ is the last"),
+    // on the 7th, or two days before the 30-day limit, whichever comes first. One email.
+    const when = dateOf(typeof meta.ends_at === 'string' ? meta.ends_at : typeof meta.cap_at === 'string' ? meta.cap_at : null, tz);
+    const after = 'After that Halo+ goes back to Free: Halo sync pauses and the study tools lock. Everything you have stays, and nothing charges unless you choose a plan.';
+    const keep = 'To keep it: Max is $7.99 a month (everything you had on the trial), Plus is $4.99 (auto-sync, grades and announcements, no study tools). Cancel anytime.';
+    const why = meta.why === 'one-left' || meta.why === 'last-day' ? meta.why : 'cap';
+    const subject = why === 'one-left' ? '1 day of Halo+ Max left' : why === 'last-day' ? 'Your last day of Halo+ Max' : `Your free Halo+ Max ends ${when}`;
+    const lead =
+      why === 'one-left'
+        ? "You've used 6 of your 7 free days of Max. A day counts when you open Halo+, so the next day you open it is your last."
+        : why === 'last-day'
+          ? 'Today is the 7th and last of your free days of Max. It ends tonight at midnight.'
+          : `Your free days of Max end ${when}, 30 days after your first sync, whichever comes first.`;
+    return wrap(subject, [`${lead} ${after}`, keep, "Or stay on Free. That's fine too."], { label: 'See the plans', url: `${SITE}/#/you?s=plan` }, unsubUrl);
   }
   if (kind === 'finish_setup') {
     // Once ever, a day or more after a sign-up that never synced (George, 2026-10-13). Counts toward the week's one.
@@ -63,7 +66,7 @@ export function renderEmail(kind: string, meta: Record<string, unknown>, unsubUr
       [
         "You made a Halo+ account, but your classes haven't come in from Halo yet. That part happens on a laptop, and it takes about 2 minutes.",
         'On your laptop, open haloplus.app in Chrome, Edge or Brave and press Add to Chrome. Halo+ opens Halo and brings in your classes, due dates and announcements by itself, then keeps them current.',
-        "Your free week of Max starts when your classes first sync, so none of it is used up yet.",
+        "Your 7 free days of Max start when your classes first sync, and only days you open Halo+ count, so none of it is used up yet.",
       ],
       { label: 'Finish setup on my laptop', url: `${SITE}/#/now` },
       unsubUrl,

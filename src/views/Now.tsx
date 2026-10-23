@@ -33,12 +33,11 @@ import { libraryDb } from '../library/db';
 import { recordingsDb } from '../record/db';
 import { weakSpots } from '../domain/weak';
 import { inDays, testWithin } from '../study/upcoming';
-import { AWAY_DAYS, awayDays, readLastSeen, stampLastSeen, welcomeBack } from '../domain/away';
+import { awayDays, readLastSeen, stampLastSeen } from '../domain/away';
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
 import { isOpen } from '../onboarding/state';
 import { maxOpen } from '../onboarding/maxState';
-import { WelcomeBack } from './WelcomeBack';
 import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, statusLine, todayDone } from '../domain/now';
 import type { Course, DateStr, Item } from '../domain/types';
 import { useAccountChecked, useStore } from '../storage/store';
@@ -60,7 +59,8 @@ import { WrapCard } from '../joy/WrapCard';
 import { syncPress } from '../ui/presses';
 import { SyncedLine } from './SyncedLine';
 import { RatePrompt } from './RatePrompt';
-import { SinceLastLooked } from './SinceLastLooked';
+import { SinceLastLooked, useSinceLastLooked } from './SinceLastLooked';
+import { WelcomeBackCard } from './WelcomeBackCard';
 import { SyncReminder, useSyncReminder } from './SyncReminder';
 import { CaughtCard } from './trialEnd/CaughtCard';
 import { extSetupDue } from '../onboarding/extSetup';
@@ -336,14 +336,19 @@ export function Now() {
   const accountSeen = useRef<DateStr | null | undefined>(undefined);
   if (checked && accountSeen.current === undefined) accountSeen.current = data.settings.lastSeenDay ?? null;
   const lastSeen = !checked ? null : [deviceSeen, accountSeen.current ?? null].filter((d): d is DateStr => !!d).sort().pop() ?? null;
-  const [welcomed, setWelcomed] = useState(false);
-  const showWelcome = checked && !welcomed && lastSeen !== null && awayDays(lastSeen, today) >= AWAY_DAYS;
+  // A day or more away (George, 2026-10-22): a short card at the top of Now, once per return; Now stays right below it
+  // (it replaced the screen that stood in front of Now after five days away). The return is read once, then today is
+  // stamped as seen, so a reload the same day does not welcome anyone again.
+  const awayRef = useRef<number | null>(null);
+  if (checked && awayRef.current === null) awayRef.current = lastSeen ? awayDays(lastSeen, today) : 0;
+  const [returnClosed, setReturnClosed] = useState(false);
+  const showReturn = checked && (awayRef.current ?? 0) >= 1 && !returnClosed;
   useEffect(() => {
-    if (!checked || showWelcome) return;
+    if (!checked) return;
     stampLastSeen(today);
     if (data.settings.lastSeenDay !== today) actions.updateSettings({ lastSeenDay: today });
-  }, [checked, showWelcome, today, data.settings.lastSeenDay, actions]);
-  const back = useMemo(() => (showWelcome && lastSeen ? welcomeBack(work, schedule, lastSeen, today) : null), [showWelcome, lastSeen, work, schedule, today]);
+  }, [checked, today, data.settings.lastSeenDay, actions]);
+  const sinceLooked = useSinceLastLooked();
   // Sunday review: offered once a Sunday, waved off twice means off. Never with nothing to review, and never
   // under the first-run screens: its backdrop sits above them and a new student on a Sunday could not tap Sign up.
   const [sunday, setSunday] = useState(false);
@@ -463,8 +468,8 @@ export function Now() {
   }, [justFinished, data.items]);
   const unblock = (i: Item) => actions.upsertItem({ ...i, blocked: null });
 
-  const showQueue = !back && !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
-  const quiet = !back && !exam && (mode.mode === 'fine' || mode.mode === 'enough' || mode.mode === 'empty');
+  const showQueue = !exam && (mode.mode === 'urgent' || mode.mode === 'fine' || (mode.mode === 'enough' && showAnyway));
+  const quiet = !exam && (mode.mode === 'fine' || mode.mode === 'enough' || mode.mode === 'empty');
   const eveningQuiet = data.settings.eveningQuiet && hour >= 21 && !work.some((i) => i.status !== 'done' && new Date(i.dueAt).getTime() < Date.now());
 
   // Every warning in one place, one line each. Order: what costs points first, then what is waiting or stale.
@@ -536,8 +541,8 @@ export function Now() {
         </button>
       ),
     });
-  if (heavy && !exam && !back) headsUp.push({ key: 'heavy', text: heavy.line });
-  if (!back && !exam && paceText && paceText !== heavy?.line && !eveningQuiet) headsUp.push({ key: 'pace', text: paceText });
+  if (heavy && !exam) headsUp.push({ key: 'heavy', text: heavy.line });
+  if (!exam && paceText && paceText !== heavy?.line && !eveningQuiet) headsUp.push({ key: 'pace', text: paceText });
   if (waiting.length > 0 && !chase)
     headsUp.push({
       key: 'waiting',
@@ -616,9 +621,7 @@ export function Now() {
     </section>
   );
 
-  const primary = back ? (
-    <WelcomeBack summary={back} first={hero ?? null} onOpen={setOpen} onShowAll={() => setWelcomed(true)} />
-  ) : exam ? (
+  const primary = exam ? (
     <>
       <ExamHero plan={exam} onOpen={setOpen} onDone={finish} onLog={logStudy} />
       <section className="then" aria-label="Study plan">
@@ -733,7 +736,7 @@ export function Now() {
       <CaughtCard />
       {trialAvailable && !headsUp.some((h) => h.key === 'read-failed') && data.courses.length > 0 && (
         <p className="hint trial-quiet">
-          {TRIAL.offer} <TrialOffer variant="inline" label="Start my free week" />
+          {TRIAL.offer} <TrialOffer variant="inline" label="Start my free trial" />
         </p>
       )}
       <FriendAsk />
@@ -757,8 +760,8 @@ export function Now() {
           </div>
         )}
       </header>
-      <SinceLastLooked onOpen={setOpen} />
-      {soonTest && !back && (!exam || exam.exam.id !== soonTest.id) && (
+      <SinceLastLooked onOpen={setOpen} hidden={showReturn} />
+      {soonTest && (!exam || exam.exam.id !== soonTest.id) && (
         <p className="study-nudge" role="note">
           <b>{soonTest.label}</b> is {inDays(soonTest, today, tz)}.{' '}
           <a className="btn small primary" href={`#/practice?i=${soonTest.id}`}>
@@ -766,8 +769,9 @@ export function Now() {
           </a>
         </p>
       )}
+      {showReturn && <WelcomeBackCard changes={sinceLooked} first={hero ?? null} onOpen={setOpen} onClose={() => setReturnClosed(true)} />}
       {primary}
-      {skippedRow.length > 0 && !back && !exam && (
+      {skippedRow.length > 0 && !exam && (
         <p className="skipped-row" role="status">
           <span className="skipped-row-label">Skipped</span>
           {skippedRow.map((i) => (
@@ -778,7 +782,7 @@ export function Now() {
         </p>
       )}
 
-      {then.length > 0 && !back && !exam && (mode.mode === 'urgent' || showAnyway) && (
+      {then.length > 0 && !exam && (mode.mode === 'urgent' || showAnyway) && (
         <section className="then" aria-label="Then">
           <h3 className="section-title">Then</h3>
           <ul className="item-list">

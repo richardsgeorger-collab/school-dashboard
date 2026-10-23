@@ -2,7 +2,7 @@ import { dateOf, fmtDate } from '../../domain/dates';
 import type { Course, Item, Requirement } from '../../domain/types';
 
 /**
- * Page 1 of the end of the free week (George, 2026-10-01): "Here's what Halo+ did for you", told as a few lines about
+ * Page 1 of the end of the free trial (George, 2026-10-01): "Here's what Halo+ did for you", told as a few lines about
  * real things in the student's own week, the most impressive first. Pure, so every claim is tested.
  *
  * The rules: only claim what the data proves. "Only put in announcements" is said only when the assignment's own
@@ -127,7 +127,7 @@ export function storyLines(input: StoryInput): StoryLine[] {
     const at = i.halo?.submittedAt ?? i.completedAt;
     return i.status === 'done' && !!at && at <= i.dueAt && !i.haloLate;
   };
-  if (due.length >= 2 && due.every(handedIn)) lines.push({ key: 'ontime', score: 80, before: 'On time for all ', n: due.length, after: ' things due this week.' });
+  if (due.length >= 2 && due.every(handedIn)) lines.push({ key: 'ontime', score: 80, before: 'On time for all ', n: due.length, after: ' things due during your trial.' });
 
   // Checked off.
   const checked = items.filter((i) => i.status === 'done' && inWeek(i.completedAt)).length;
@@ -156,5 +156,5 @@ export function storyLines(input: StoryInput): StoryLine[] {
         { key: 'light-classes', score: 1, before: 'Your ', n: classes, after: ` ${plural(classes, 'class lives', 'classes live')} in one place now.` },
         { key: 'light-next', score: 0, before: 'A quiet week. When the work picks up, Halo+ is already set up for it.', after: '' },
       ]
-    : [{ key: 'light-start', score: 0, before: 'You took the first step this week. Sync Halo once and every due date lands in one place.', after: '' }];
+    : [{ key: 'light-start', score: 0, before: 'You took the first step. Sync Halo once and every due date lands in one place.', after: '' }];
 }

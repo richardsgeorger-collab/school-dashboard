@@ -13,7 +13,7 @@ export interface PlusCredit {
   end: string;
   days: number;
   running: boolean;
-  /** What it waits for: the free week, Max from a friend link, a paid plan that is ending, or nothing. */
+  /** What it waits for: the free trial, Max from a friend link, a paid plan that is ending, or nothing. */
   after: 'trial' | 'gift' | 'paid' | null;
   /** Whose invite it came from: this student was invited, invited others, or both. */
   from: 'invited' | 'inviting' | 'both';

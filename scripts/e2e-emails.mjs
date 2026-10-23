@@ -13,12 +13,26 @@ const hours = (n) => new Date(Date.now() + n * 3_600_000).toISOString();
 const outbox = async (id) => (await db.from('email_outbox').select('kind, sent_at, meta').eq('user_id', id)).data ?? [];
 
 try {
-  // A: trial ends in 24 h, synced → one trial_ending email queued, once.
+  // The free trial in days of use (Loop 249): the one trial email goes when 6 of the 7 days are used ("1 day of Max
+  // left": the next open is the last), or two days before the 30-day limit, whichever comes first.
+  const phx = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Phoenix' }).format(new Date(t));
+  const onTrial = async (who, syncedDaysAgo, used) => {
+    await db.from('profiles').update({ trial_started_at: hours(-(syncedDaysAgo + 1) * 24), trial_synced_at: hours(-syncedDaysAgo * 24), trial_ends_at: hours((30 - syncedDaysAgo) * 24), trial_floor_at: null }).eq('user_id', who.id);
+    await db.from('trial_days').insert(Array.from({ length: used }, (_, k) => ({ user_id: who.id, day: phx(Date.now() - (syncedDaysAgo - k) * 86_400_000) })));
+    await db.rpc('trial_recount', { uid: who.id });
+  };
+  // A: 6 of 7 days of use → one trial_ending email ("one-left"), once.
   const A = await kit.persona('synced');
-  await db.from('profiles').update({ trial_started_at: hours(-96), trial_ends_at: hours(24) }).eq('user_id', A.id);
-  // B: trial ends in 24 h but unsubscribed → nothing.
+  await onTrial(A, 10, 6);
+  // A2: 2 days used, but the 30-day limit is 36 hours away → one trial_ending email ("cap").
+  const A2 = await kit.persona('synced');
+  await onTrial(A2, 28.5, 2);
+  // A3: 3 days used, plenty of time → nothing yet.
+  const A3 = await kit.persona('synced');
+  await onTrial(A3, 5, 3);
+  // B: as A, but unsubscribed → nothing.
   const B = await kit.persona('synced');
-  await db.from('profiles').update({ trial_started_at: hours(-96), trial_ends_at: hours(24) }).eq('user_id', B.id);
+  await onTrial(B, 10, 6);
   await db.from('notification_prefs').upsert({ user_id: B.id, email: false, email_unsub_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   // C: on Plus, last sync four days ago → one sync_broken email; then a sync lands and it may be sent again later.
   const C = await kit.persona('plus');
@@ -43,7 +57,10 @@ try {
   if (error) throw new Error(error.message);
   console.log('tick:', JSON.stringify(r1));
   const a = await outbox(A.id);
-  check(a.length === 1 && a[0].kind === 'trial_ending' && !!a[0].meta?.ends_at, `A: one trial_ending queued with the end date (${JSON.stringify(a.map((x) => x.kind))})`);
+  check(a.length === 1 && a[0].kind === 'trial_ending' && a[0].meta?.why === 'one-left' && a[0].meta?.used === 6 && !!a[0].meta?.ends_at, `A: 6 of 7 days used, one trial_ending queued ("${a[0]?.meta?.why}", ${a[0]?.meta?.used} used)`);
+  const a2 = await outbox(A2.id);
+  check(a2.length === 1 && a2[0].meta?.why === 'cap', `A2: the 30-day limit in 36 h comes first, one trial_ending queued ("${a2[0]?.meta?.why}")`);
+  check((await outbox(A3.id)).length === 0, 'A3: 3 days used, the limit far off: nothing yet');
   check((await outbox(B.id)).length === 0, 'B: unsubscribed, nothing queued');
   const c = await outbox(C.id);
   check(c.length === 1 && c[0].kind === 'sync_broken' && Number(c[0].meta?.days) >= 3, `C: one sync_broken queued after ${c[0]?.meta?.days} days`);
@@ -61,7 +78,7 @@ try {
   const { data: r3 } = await db.rpc('email_queue_tick');
   check(r3.sync_broken === 0 && (await outbox(C.id)).length === 0, 'after a sync lands, nothing is queued for C again until it breaks again');
 
-  // The first sync restarts the free week: a trial started 3 days ago that only synced now gets 5 days from now.
+  // The first sync starts the trial (0037; days of use since 0040): day 1 of 7 is counted, the end is 30 days on.
   const F = await kit.persona('new');
   await db.from('profiles').update({ trial_started_at: hours(-72), trial_ends_at: hours(48) }).eq('user_id', F.id);
   const fc = (await kit.signIn(F.email)).c;
@@ -70,15 +87,15 @@ try {
   await db.from('settings').upsert({ user_id: F.id, data: { lastPull: { at: new Date().toISOString(), via: 'extension' }, timezone: 'America/Phoenix', updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   const r4 = await fc.rpc('trial_sync_started');
   const ends = Date.parse(r4.data?.ends_at ?? '');
-  check(r4.data?.ok === true && ends > Date.now() + 4.9 * 86_400_000 && ends < Date.now() + 5.1 * 86_400_000, `the first sync restarts the week: ends in ${Math.round((ends - Date.now()) / 3_600_000)} h`);
+  check(r4.data?.ok === true && Number(r4.data?.used) === 1 && ends > Date.now() + 29.9 * 86_400_000 && ends < Date.now() + 30.1 * 86_400_000, `the first sync starts it: day 1 of 7 used, at most 30 days (${Math.round((ends - Date.now()) / 3_600_000)} h)`);
   const r5 = await fc.rpc('trial_sync_started');
   check(r5.data?.ok === false && r5.data?.why === 'already', 'only once');
   const G = await kit.persona('new');
   await db.from('profiles').update({ trial_started_at: hours(-13 * 24), trial_ends_at: hours(-8 * 24) }).eq('user_id', G.id);
   await db.from('settings').upsert({ user_id: G.id, data: { lastPull: { at: new Date().toISOString(), via: 'extension' }, timezone: 'America/Phoenix', updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   const r6 = await (await kit.signIn(G.email)).c.rpc('trial_sync_started');
-  const ends6 = Date.parse(r6.data?.ends_at ?? '');
-  check(r6.data?.ok === true && ends6 < Date.now() + 1.1 * 86_400_000, `never past 14 days from the start (ends in ${Math.round((ends6 - Date.now()) / 3_600_000)} h)`);
+  // A trial that ran out before any sync stays ended (0037: an unsynced trial is held open, so only old accounts get here).
+  check(r6.data?.ok === false && r6.data?.why === 'ended', `an ended trial stays ended at a late first sync (${r6.data?.why})`);
 
   // One-click unsubscribe: the real function, a GET with the link an email would carry.
   const H = await kit.persona('synced');

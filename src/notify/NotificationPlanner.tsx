@@ -1,3 +1,4 @@
+import { trialUse } from '../config/trialUse';
 import { trialState } from '../config/flags';
 import { isDemo } from '../demo/demo';
 import { planWinback } from '../winback/rules';
@@ -41,7 +42,7 @@ export function NotificationPlanner() {
     const userId = auth.userId;
     const t = setTimeout(async () => {
       const now = new Date().toISOString();
-      const notices = full ? planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialStartedAt: profile?.friendFrom ? null : (profile?.trialStartedAt ?? null), trialEndsAt: profile?.trialEndsAt ?? null, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier), gradeUps: data.settings.joy?.gradeUpRecent ?? [] }) : [];
+      const notices = full ? planNotices({ items: data.items, courses: data.courses, schedule, prefs, tz, today, now, lastPull, trialStartedAt: profile?.friendFrom ? null : (profile?.trialStartedAt ?? null), trialEndsAt: profile?.trialEndsAt ?? null, trialLeft: profile?.friendFrom ? null : (trialUse(profile)?.started ? trialUse(profile)!.left : null), trialCapFirst: !!trialUse(profile)?.capFirst, trialRecap: recap ? receiptsLine(recap, 'during your trial') : null, recap: can('weeklyRecap', tier), gradeUps: data.settings.joy?.gradeUpRecent ?? [] }) : [];
       // Win-back: Free after the Max week, not in a referral, never upgraded.
       const eligible = planKnown && tier === 'free' && trialState(profile) === 'used' && !profile?.referredBy && !profile?.friendFrom && (invites?.joined ?? 0) === 0 && grants.length === 0;
       if (eligible) {

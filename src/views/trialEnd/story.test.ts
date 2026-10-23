@@ -43,7 +43,7 @@ describe('the story', () => {
   });
   it('"on time for everything" only when every item due so far was handed in by its due time', () => {
     const due = (submittedAt: string) => item({ dueAt: '2026-09-28T06:59:00.000Z', status: 'done', completedAt: '2026-09-29T00:00:00.000Z', halo: { status: 'SUBMITTED', submittedAt, checkedAt: now } });
-    expect(storyLines(base([due('2026-09-27T20:00:00.000Z'), due('2026-09-27T21:00:00.000Z')])).find((l) => l.key === 'ontime')).toMatchObject({ before: 'On time for all ', n: 2, after: ' things due this week.' });
+    expect(storyLines(base([due('2026-09-27T20:00:00.000Z'), due('2026-09-27T21:00:00.000Z')])).find((l) => l.key === 'ontime')).toMatchObject({ before: 'On time for all ', n: 2, after: ' things due during your trial.' });
     expect(storyLines(base([due('2026-09-27T20:00:00.000Z'), due('2026-09-28T09:00:00.000Z')])).find((l) => l.key === 'ontime')).toBeUndefined();
     expect(storyLines(base([due('2026-09-27T20:00:00.000Z'), item({ dueAt: '2026-09-28T06:59:00.000Z' })])).find((l) => l.key === 'ontime')).toBeUndefined();
   });

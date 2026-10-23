@@ -26,7 +26,7 @@ const screens = async (u, name) => {
   browser ??= await chromium.launch({ channel: 'chrome', headless: true });
   const { data: s } = await u.c.auth.getSession();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
-  const settings = { timezone: tz, onboarding: { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }, maxOnboarding: { startedAt: 'x', step: 'done', doneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, notifyAsk: { askedAt: 'x', answer: 'no' } };
+  const settings = { timezone: tz, onboarding: { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }, maxOnboarding: { startedAt: 'x', step: 'done', doneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, notifyAsk: { askedAt: 'x', answer: 'no' }, lastPull: { at: new Date().toISOString(), build: null, counts: { classes: 0, assessments: 0 }, via: 'extension' } };
   await ctx.addInitScript(({ s, key, settings }) => { if (localStorage.getItem(key)) return; localStorage.setItem(key, JSON.stringify(s)); localStorage.setItem('school-dashboard:v1', JSON.stringify({ courses: [], items: [], settings })); }, { s: s.session, key: `sb-${ref}-auth-token`, settings });
   const page = await ctx.newPage();
   await page.goto(`${BASE}#/you`, { waitUntil: 'load' });

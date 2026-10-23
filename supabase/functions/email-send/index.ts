@@ -38,7 +38,7 @@ function marketSetup(): { subject: string; text: string; html: string } {
     '2. Press Add to Chrome.',
     '3. That is it. Halo+ opens Halo and brings in your classes, due dates and announcements by itself.',
     '',
-    'Your free week of Max starts when your classes first sync, so none of it is used up yet.',
+    'Your 7 free days of Max start when your classes first sync, and only days you open Halo+ count, so none of it is used up yet.',
     '',
     `No laptop? Halo+ can sync from a phone or iPad too: ${phone}`,
     '',
@@ -54,7 +54,7 @@ function marketSetup(): { subject: string; text: string; html: string } {
     <li>That is it. Halo+ opens Halo and brings in your classes, due dates and announcements by itself.</li>
   </ol>
   <p style="margin:20px 0"><a href="${link}" style="display:inline-block;padding:12px 20px;border-radius:999px;background:#f2b84b;color:#141414;font-weight:700;text-decoration:none">Finish setup on my laptop</a></p>
-  <p>Your free week of Max starts when your classes first sync, so none of it is used up yet.</p>
+  <p>Your 7 free days of Max start when your classes first sync, and only days you open Halo+ count, so none of it is used up yet.</p>
   <p>No laptop? <a href="${phone}" style="color:#9a6a00">Halo+ can sync from a phone or iPad too.</a></p>
   <p style="color:#6b6b6b;font-size:13px">Halo+ never asks for your GCU password. Not affiliated with GCU.</p>
 </div>`;

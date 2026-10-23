@@ -6,9 +6,14 @@ const unsubForSetup = 'https://x.supabase.co/functions/v1/email-unsub?u=def&t=45
 describe('the two student emails (George, 2026-10-09)', () => {
   const unsub = 'https://x.supabase.co/functions/v1/email-unsub?u=abc&t=123';
   it('the day before the free week ends: the date, what changes, the prices, Stay on Free, no guilt, one-click unsubscribe', () => {
-    const m = renderEmail('trial_ending', { ends_at: '2026-10-12T23:59:00-07:00' }, unsub)!;
-    expect(m.subject).toBe('Your free week of Halo+ Max ends tomorrow');
-    expect(m.text).toContain('Your free week ends Monday, Oct 12.');
+    // Days of use (2026-10-22): the 30-day limit, one day of use left, the last day.
+    const m = renderEmail('trial_ending', { why: 'cap', ends_at: '2026-10-12T23:59:00-07:00', cap_at: '2026-10-12T23:59:00-07:00' }, unsub)!;
+    expect(m.subject).toBe('Your free Halo+ Max ends Monday, Oct 12');
+    expect(m.text).toContain('Your free days of Max end Monday, Oct 12, 30 days after your first sync');
+    const one = renderEmail('trial_ending', { why: 'one-left', used: 6, cap_at: '2026-11-20T20:00:00Z' }, unsub)!;
+    expect(one.subject).toBe('1 day of Halo+ Max left');
+    expect(one.text).toContain("You've used 6 of your 7 free days of Max. A day counts when you open Halo+");
+    expect(renderEmail('trial_ending', { why: 'last-day', used: 7 }, unsub)!.subject).toBe('Your last day of Halo+ Max');
     expect(m.text).toContain('nothing charges unless you choose a plan');
     expect(m.text).toContain('$7.99');
     expect(m.text).toContain('$4.99');

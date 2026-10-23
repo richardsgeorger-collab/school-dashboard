@@ -20,7 +20,7 @@ export type Bucket = 'trial' | 'free' | 'plus_paid' | 'plus_referral' | 'max_pai
 
 /** Every student is in exactly one of these (plan_bucket in migration 0021), in this order. */
 export const BUCKETS: [Bucket, string][] = [
-  ['trial', 'Free trial (Max, 7 days)'],
+  ['trial', 'Free trial (Max, 7 days of use)'],
   ['free', 'Free'],
   ['plus_paid', 'Plus (paid)'],
   ['plus_referral', 'Plus (referral credit)'],

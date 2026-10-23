@@ -3364,7 +3364,7 @@
   }
 }
 
-/* Admin: the free week rating (2026-10-01). */
+/* Admin: the free trial rating (2026-10-01). */
 .ratings-head {
   display: flex;
   align-items: baseline;
@@ -4120,4 +4120,58 @@ button.sheet-line-text:focus-visible {
 }
 .done-toast[data-wait] .done-toast-undo {
   color: var(--accent-text);
+}
+
+/* Welcome back (2026-10-22): a short card at the top of Now after a day or more away, Now right below it. */
+.welcome-back-card {
+  position: relative;
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-5);
+  margin-bottom: var(--s-4);
+  border-left: 4px solid var(--accent);
+}
+.welcome-back-x {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.welcome-back-x:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.welcome-back-title {
+  margin: 0;
+  padding-right: 32px;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.welcome-back-list {
+  margin: 0;
+  padding-left: 1.1em;
+  color: var(--ink-2);
+}
+.welcome-back-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-3);
+}
+.welcome-back-days {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--t-small);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }

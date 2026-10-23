@@ -10,7 +10,7 @@ describe('Admin growth numbers', () => {
     expect(monthlyRevenue([{ tier: 'pro', interval: 'month' }])).toBeCloseTo(4.99, 2);
   });
   it('six plans, each student in exactly one, in the order George asked for', () => {
-    expect(BUCKETS.map(([, l]) => l)).toEqual(['Free trial (Max, 7 days)', 'Free', 'Plus (paid)', 'Plus (referral credit)', 'Max (paid)', 'Max (friend link)']);
+    expect(BUCKETS.map(([, l]) => l)).toEqual(['Free trial (Max, 7 days of use)', 'Free', 'Plus (paid)', 'Plus (referral credit)', 'Max (paid)', 'Max (friend link)']);
   });
   it('says when in plain words', () => {
     const now = Date.parse('2026-09-30T20:00:00Z');

@@ -1,10 +1,10 @@
 import { useAccount } from '../../auth/AccountContext';
-import { dateOf, fmtDate } from '../../domain/dates';
+import { trialUse } from '../../config/trialUse';
 import { useStore } from '../../storage/store';
 import { announcementCatches } from './story';
 
 /**
- * Days 2 to 5 of the free week (George, 2026-10-09: 13 of 23 trials went quiet by day 2): what Halo+ caught, real
+ * Days 2 to 5 of the free trial (George, 2026-10-09: 13 of 23 trials went quiet by day 2): what Halo+ caught, real
  * things only, with up to three of them, once, dismissable. No countdown, no guilt; the date the week ends is a fact.
  */
 export function CaughtCard() {
@@ -18,6 +18,7 @@ export function CaughtCard() {
   if (now < t0 + 2 * 86_400_000 || now > Date.parse(end)) return null;
   const caught = announcementCatches(data.items, data.courses, start, new Date(now).toISOString());
   if (caught.n === 0) return null;
+  const left = trialUse(profile)?.left ?? null;
   return (
     <section className="caught-card" aria-label="What Halo+ caught">
       <p className="caught-title">
@@ -29,7 +30,9 @@ export function CaughtCard() {
         ))}
       </ul>
       <p className="caught-foot">
-        <span>That's Max reading the announcements for you. Your free week ends {fmtDate(dateOf(end, data.settings.timezone))}.</span>
+        <span>
+          That's Max reading the announcements for you.{left !== null ? ` ${left <= 1 ? 'Today is your last day of free Max.' : `${left} days of free Max left: a day counts when you open Halo+.`}` : ''}
+        </span>
         <button type="button" className="hero-inline" onClick={() => actions.updateSettings({ caughtCardSeen: new Date().toISOString() })}>
           Got it
         </button>

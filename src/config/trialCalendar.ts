@@ -1,10 +1,11 @@
 import { addDays, dateOf, fmtDate, makeIso, zonedParts } from '../domain/dates';
 import type { DateStr } from '../domain/types';
 import { TRIAL } from './tiers';
+import type { TrialUse } from './trialUse';
 
 /**
- * The trial's calendar in the student's own time zone. It ends at the clock time it was started, seven days on; the
- * "last day" is the last date with Max most of the day (a trial ending at 1 AM has its last day the day before).
+ * The trial's calendar in the student's own time zone: trial_ends_at, kept by the server from the days of use (0040).
+ * The "last day" is the last date with Max most of the day (a trial ending at 1 AM has its last day the day before).
  */
 export interface TrialCalendar {
   endsAt: string;
@@ -35,8 +36,10 @@ export const trialChipText = (daysLeft: number): string => (daysLeft <= 1 ? 'Max
 /** The same on a phone's narrow top bar: "Max · 5 days", "Max · last day". */
 export const trialChipShort = (daysLeft: number): string => (daysLeft <= 1 ? 'Max · last day' : `Max · ${daysLeft} days`);
 
-/** "Sat, Oct 3" and the plain sentence of what happens then. */
-export function trialEndSentence(cal: TrialCalendar, tz: string): string {
-  const when = fmtDate(dateOf(cal.endsAt, tz), 'long');
-  return `Your trial ends ${when}. After that you go back to Free: Halo sync pauses, announcements aren't read, and the study tools lock. Everything you have stays. Nothing charges.`;
+/** How the trial counts and what happens after it, in plain words (days of use, 2026-10-22). */
+export function trialEndSentence(use: TrialUse, tz: string): string {
+  const then = 'After that you go back to Free: Halo sync pauses, announcements aren\'t read, and the study tools lock. Everything you have stays. Nothing charges.';
+  if (!use.started) return `Your ${TRIAL.days} days of Max start when your classes first sync. A day counts when you open Halo+. ${then}`;
+  const cap = use.capAt ? fmtDate(dateOf(use.capAt, tz), 'long') : '';
+  return `It ends after your ${TRIAL.days}th day of use${cap ? `, or on ${cap}, whichever comes first` : ''}. ${then}`;
 }

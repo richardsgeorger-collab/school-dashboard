@@ -22,7 +22,7 @@ export function watchCheckout(tier: string): void {
 /**
  * Two silent failures about plans (George, 2026-09-30), reported once each:
  *  - checkout came back successful but the plan had not changed 5 minutes later (the Stripe webhook did not land);
- *  - the plan loaded as Free for an account that is paying, on its free week, or on a friend link or invite credit.
+ *  - the plan loaded as Free for an account that is paying, on its free trial, or on a friend link or invite credit.
  */
 export function PlanWatch() {
   const { tier, planKnown, profile, auth } = useAccount();
@@ -74,7 +74,7 @@ export function PlanWatch() {
   useEffect(() => {
     if (!planKnown || !profile || tier !== 'free') return;
     const now = new Date().toISOString();
-    const why = profile.tier !== 'free' ? 'a paid plan' : trialDaysLeft(profile) !== null ? 'its free week' : friendGift(profile) ? 'a friend link' : rewardDaysLeft(profile) !== null ? 'referral days' : grants.some((g) => g.starts <= now && g.ends > now) ? 'invite credit' : null;
+    const why = profile.tier !== 'free' ? 'a paid plan' : trialDaysLeft(profile) !== null ? 'its free trial' : friendGift(profile) ? 'a friend link' : rewardDaysLeft(profile) !== null ? 'referral days' : grants.some((g) => g.starts <= now && g.ends > now) ? 'invite credit' : null;
     if (!why || said.current.has(why)) return;
     said.current.add(why);
     report({ kind: 'silent', title: `A plan loaded as Free for an account on ${why}`, place: 'plan', details: { should: why } });

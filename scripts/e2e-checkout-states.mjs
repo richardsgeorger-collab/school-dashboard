@@ -58,13 +58,15 @@ try {
   await p.waitForURL(/checkout=mocked/, { timeout: 15000 });
   check(p.url().includes('checkout=mocked'), 'Try again, success: the browser leaves for the address checkout gave');
   check(bodies.every((b) => b.tier === 'plus' && !b.offer), `Choose Plus asks for Plus with no offer (${bodies.length} calls)`);
-  // Keep Max from the same screen asks for the intro offer; the server decides (an ended free week, never paid: yes).
+  // Keep Max from the same screen asks for the intro offer; the server decides (an ended free trial, never paid: yes).
   const state = (await (await kit.signIn(who.email)).c.rpc('intro_offer_state')).data;
   check(state?.eligible === true, `the account may have the intro offer (${JSON.stringify(state)})`);
   await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
   await p.waitForSelector('.trial-ended .story-plans', { timeout: 30000 });
   await sleep(2000);
-  check(/\$2\.99 your first month, then \$7\.99\/mo/.test(await p.locator('.plan-choice[data-tier=max]').innerText()), 'Max shows $2.99 your first month, then $7.99/mo');
+  // The card since Loop 234: "First month $2.99 $7.99 (struck) · Max · then $7.99/mo".
+  const maxCard = (await p.locator('.plan-choice[data-tier=max]').innerText()).replace(/\s+/g, ' ');
+  check(/First month \$2\.99/i.test(maxCard) && /then \$7\.99\/mo/.test(maxCard), `Max shows $2.99 the first month, then $7.99/mo ("${maxCard.slice(0, 90)}")`);
   await max.click();
   await p.waitForURL(/checkout=mocked/, { timeout: 15000 });
   check(bodies[bodies.length - 1]?.tier === 'max' && bodies[bodies.length - 1]?.offer === 'intro', `Keep Max asks for Max with offer:intro (${JSON.stringify(bodies[bodies.length - 1])})`);

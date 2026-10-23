@@ -299,7 +299,7 @@ function UsageCard() {
 
 function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }) {
   const { auth, profile } = useAccount();
-  // `current` is what the student has today, which on the free week (or free referral days) is not what they pay for:
+  // `current` is what the student has today, which on the free trial (or free referral days) is not what they pay for:
   // that plan is "Free trial", with Keep, never "Current plan" greyed out as if it were already bought.
   const bought = profile?.tier ?? current;
   // Free days left on what they have: the trial, a friend link, or Plus credit from invites running now.

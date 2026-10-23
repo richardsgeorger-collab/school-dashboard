@@ -56,7 +56,17 @@ export function useExtension(): { url: string | null; browser: ExtensionBrowser 
     }
   });
   const [browser] = useState(detectBrowser);
-  const [installed] = useState(installedVersion);
+  const [installed, setInstalled] = useState(installedVersion);
+  // Installed while this screen is open (2026-10-22): the extension marks the open Halo+ tab, and the screen sees it
+  // within two seconds. Before, only a remount noticed, which a stray reload of the account happened to cause.
+  useEffect(() => {
+    if (installed) return;
+    const iv = window.setInterval(() => {
+      const v = installedVersion();
+      if (v) setInstalled(v);
+    }, 2000);
+    return () => window.clearInterval(iv);
+  }, [installed]);
   useEffect(() => {
     let live = true;
     void supabase()

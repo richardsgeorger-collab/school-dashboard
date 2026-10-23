@@ -35,12 +35,12 @@ export function TrialOffer({ variant = 'line', lead, label }: { variant?: 'card'
       reloadProfile();
       // Welcome to Max: four screens, once, after any first-run screens still open.
       actions.updateSettings({ maxOnboarding: freshMax() });
-      setNote(`Your free week is on. ${TRIAL.after}`);
+      setNote(`Your free trial is on. ${TRIAL.after}`);
     } else setNote(r.message);
   };
   const button = (
     <button type="button" className={`btn ${variant === 'card' ? 'primary' : 'small primary'}`} disabled={busy || !auth.session} onClick={() => void go()}>
-      {busy ? 'Starting…' : (label ?? 'Start my free week')}
+      {busy ? 'Starting…' : (label ?? 'Start my free trial')}
     </button>
   );
   if (variant === 'button') return button;

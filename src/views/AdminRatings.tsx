@@ -21,8 +21,8 @@ export function AdminRatings() {
   if (!r) return null;
   const max = Math.max(1, ...Object.values(r.spread));
   return (
-    <section className="card settings-card admin-ratings" aria-label="Free week ratings">
-      <h2 className="section-title">Free week rating</h2>
+    <section className="card settings-card admin-ratings" aria-label="Free trial ratings">
+      <h2 className="section-title">Free trial rating</h2>
       <p className="ratings-preview">
         <a className="btn small" href="#/admin?preview=trial-end">
           Preview the end-of-trial screen
@@ -31,7 +31,7 @@ export function AdminRatings() {
       </p>
       {r.n === 0 ? (
         <p className="hint">
-          <b>How much did Halo+ help this week?</b> Asked once when a free week ends. No answers yet.
+          <b>How much did Halo+ help this week?</b> Asked once when a free trial ends. No answers yet.
         </p>
       ) : (
         <>

@@ -54,7 +54,7 @@ export function Landing() {
               Log in
             </a>
           </div>
-          <p className="hint">Every feature free for {TRIAL.days} days. No card, nothing to cancel.</p>
+          <p className="hint">Every feature free for {TRIAL.days} days of use. No card, nothing to cancel.</p>
         </div>
 
         {/* The picture is the app: the same classes and tokens Now uses, so the landing wears whatever gold the app wears. */}
@@ -206,7 +206,7 @@ export function Landing() {
             <p>It syncs every 3 hours on its own. Open Halo+ and do the next thing.</p>
           </li>
         </ol>
-        <p className="hint">It reads Halo with the session you already have in your browser. It never sees your password, and Halo sync is part of Plus (the free week includes it).</p>
+        <p className="hint">It reads Halo with the session you already have in your browser. It never sees your password, and Halo sync is part of Plus (the free trial includes it).</p>
       </section>
 
       <section className="landing-section" aria-label="Plans">
@@ -236,7 +236,7 @@ export function Landing() {
         </div>
         <p className="landing-trial">
           <HaloDraw size={28} />
-          <span>Every new account gets Max free for {TRIAL.days} days, from the moment you sign up. No card, nothing to cancel, nothing charges. After {TRIAL.days} days you choose what to keep; Free stays free.</span>
+          <span>Every new account gets Max free for {TRIAL.days} days of use: a day counts when you open Halo+, starting from your first sync, for up to {TRIAL.capDays} days. No card, nothing to cancel, nothing charges. After that you choose what to keep; Free stays free.</span>
         </p>
       </section>
 
@@ -245,8 +245,8 @@ export function Landing() {
           <IconGift />
         </span>
         <h2 className="landing-h2">Bring a friend, both get a month</h2>
-        <p className="landing-lede">Everyone gets a link on their You page. When a friend signs up with yours, they get their free week of Max like everyone, then 30 days of Plus free, and you get 30 days of Plus too: Halo sync, real grades, and every announcement read for you.</p>
-        <p className="hint">Your month starts after any free week or paid plan you have, so none is wasted. Theirs starts after their own free week of Max. Invite as many friends as you like; each one adds another 30 days.</p>
+        <p className="landing-lede">Everyone gets a link on their You page. When a friend signs up with yours, they get 7 free days of Max like everyone, then 30 days of Plus free, and you get 30 days of Plus too: Halo sync, real grades, and every announcement read for you.</p>
+        <p className="hint">Your month starts after any free trial or paid plan you have, so none is wasted. Theirs starts after their own 7 free days of Max. Invite as many friends as you like; each one adds another 30 days.</p>
       </section>
 
       <section className="landing-section landing-faq" aria-label="Questions">

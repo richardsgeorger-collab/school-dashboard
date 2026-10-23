@@ -12,7 +12,7 @@ import { Invite, PlanChoices, PreviewMode, usePlusAfter, useTrialNumbers } from 
 import { storyLines, type StoryLine } from './story';
 
 /**
- * The end of the free week, as one screen (George, 2026-10-09; the two pages and the 1-to-10 rating of 2026-10-01
+ * The end of the free trial, as one screen (George, 2026-10-09; the two pages and the 1-to-10 rating of 2026-10-01
  * felt like a survey and were closed). A short recap of real things from the student's week, three or four numbers,
  * and right under it the plan choice: Keep Max, Choose Plus, the GCBC line, prices; Stay on Free a small plain link.
  * A week with nothing in it shows what Halo+ does instead of zeros. Fits a laptop screen without scrolling. Seen once.
@@ -148,7 +148,7 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
 
           <section className="story story-one" key="one">
             <p className="eyebrow story-eyebrow">
-              {onPlusGift ? 'Your free week of Max' : 'Your free week'} · {fmtDate(dateOf(since, tz))} to {fmtDate(dateOf(until, tz))}
+              {onPlusGift ? 'Your free trial of Max' : 'Your free trial'} · {fmtDate(dateOf(since, tz))} to {fmtDate(dateOf(until, tz))}
             </p>
             <h1 className="story-title">{recap && !recap.real ? "Here's what Halo+ does." : "Here's what Halo+ did for you."}</h1>
             {recap === null ? (
@@ -165,7 +165,7 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
 
             <div className="story-plans" style={{ animationDelay: `${after}ms` }}>
               <p className="story-plans-lede">{onPlusGift && plusAfter ? `Your friend's invite already covers Plus until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}. Keep Max, or carry on with Plus free.` : 'Nothing charges unless you choose a plan.'}</p>
-              <PlanChoices maxTag="What you had this week" cups intro={intro === true && !onPlusGift} plusCovered={onPlusGift && plusAfter ? `Free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.` : undefined} />
+              <PlanChoices maxTag="What you had on the trial" cups intro={intro === true && !onPlusGift} plusCovered={onPlusGift && plusAfter ? `Free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.` : undefined} />
               <p className="gcbc-terms">
                 {CANCEL_LINE} · {TAX_LINE}
               </p>

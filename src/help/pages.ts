@@ -25,7 +25,7 @@ export interface HelpPage {
 
 const plus = `$${PRICES.plus.month.toFixed(2)}`;
 const max = `$${PRICES.max.month.toFixed(2)}`;
-const trial = `${TRIAL.days} days`;
+const trial = `${TRIAL.days} days of use`;
 
 export const HELP_PAGES: HelpPage[] = [
   {
@@ -96,7 +96,7 @@ export const HELP_PAGES: HelpPage[] = [
         body: `<p>Twice a week, say Monday and Thursday, open every class's announcements and read anything new. It takes five minutes, and it's the habit that saves the most points.</p>`,
       },
     ],
-    haloPlus: `Halo+ reads every announcement in every class for you. When one asks for something (a moved date, a format, a thing to bring), it puts that on the assignment it's about, in your professor's own words, and flags it on your Now screen. Announcements come with Halo sync on ${TIER_NAMES.plus} (${plus} a month), and the ${trial} of free ${TIER_NAMES.max} every new account gets includes it.`,
+    haloPlus: `Halo+ reads every announcement in every class for you. When one asks for something (a moved date, a format, a thing to bring), it puts that on the assignment it's about, in your professor's own words, and flags it on your Now screen. Announcements come with Halo sync on ${TIER_NAMES.plus} (${plus} a month), and the free ${TIER_NAMES.max} every new account gets (${trial}) includes it.`,
     faq: [
       {
         q: 'Why do GCU professors put requirements in announcements?',
@@ -520,7 +520,7 @@ Website: ${SITE}
 - ${TIER_NAMES.free}: $0. Works from a syllabus PDF and items you add. No Halo sync, no AI.
 - ${TIER_NAMES.plus}: ${plus} a month. Halo sync, on its own every 3 hours with the Chrome extension or any time with the bookmark; Halo grades, announcements read for you, notifications.
 - ${TIER_NAMES.max}: ${max} a month. Everything in ${TIER_NAMES.plus}, plus the AI study tools.
-- Every new account gets ${TIER_NAMES.max} free for ${trial}, no card. A friend link gives both people extra free time.
+- Every new account gets ${TIER_NAMES.max} free for ${trial}, no card: a day counts when you open Halo+, from your first sync, for up to 30 days. A friend link gives both people extra free time.
 
 ## Help pages
 

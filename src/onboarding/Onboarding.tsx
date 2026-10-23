@@ -118,7 +118,9 @@ export function Onboarding() {
   const screens: Screen[] = path === 'ipad' ? ['home', ...ipadScreens()] : path === 'phone' ? ['home', ...PHONE] : extOk ? DESKTOP_EXT : ['needs', ...DESKTOP];
   // An extension already on this computer goes straight to the first sync.
   const first: Screen = path === 'desktop' && extOk && ext.installed ? 'ext-wait' : screens[0];
-  const screen = (screens as string[]).includes(ob.screen ?? '') ? (ob.screen as Screen) : first;
+  const chosen = (screens as string[]).includes(ob.screen ?? '') ? (ob.screen as Screen) : first;
+  // Add to Chrome is done once the extension is here, however it got here: on to the first sync.
+  const screen: Screen = chosen === 'ext' && ext.installed ? 'ext-wait' : chosen;
   const [paste, setPaste] = useState(false);
 
   const set = (patch: Partial<OnboardingState>) => actions.updateSettings({ onboarding: { ...ob, ...patch } });
@@ -129,7 +131,7 @@ export function Onboarding() {
   };
   const onTrial = trialState(profile) === 'active';
   const gift = friendGift(profile);
-  // The welcome for a paid plan stays for real upgrades; the free week is not one, so it is marked seen with setup.
+  // The welcome for a paid plan stays for real upgrades; the free trial is not one, so it is marked seen with setup.
   const seenOnTrial = (now: string) => (onTrial && !data.settings.upgradeSeen?.max ? { upgradeSeen: { ...(data.settings.upgradeSeen ?? {}), max: now, plus: data.settings.upgradeSeen?.plus ?? now } } : {});
   const finish = () => {
     track('payoff', 'complete');
@@ -745,9 +747,9 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads, invited = 
       <div className="payoff-invite">
         <p className="onboard-text">Someone in your section would want this too.</p>
         <InviteButton label="Invite a friend" primary={false} />
-        <p className="hint">You both get Plus free for 30 days, after your free weeks.</p>
+        <p className="hint">You both get Plus free for 30 days, after your free trials.</p>
       </div>
-      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free week of Max is on. {invited ? "Then 30 days of Plus free, from your friend's invite." : TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync and announcements are part of Plus, the study tools Max; try Max free for 7 days any time from You.</p> : null}
+      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free trial of Max is on: 7 days of use. {invited ? "Then 30 days of Plus free, from your friend's invite." : TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync and announcements are part of Plus, the study tools Max; try Max free for 7 days any time from You.</p> : null}
     </section>
   );
 }

@@ -41,14 +41,25 @@ describe('what to send and when', () => {
     const base = { items: [], courses: [course], schedule: schedule(), prefs: { morningTime: 'off' as const }, tz: TZ, lastPull: NOW, trialEndsAt: '2026-10-06T01:00:00.000Z', trialRecap: 'Max during your trial: read 12 announcements, found 3 hidden requirements.' };
     const t = planNotices({ ...base, today: '2026-10-01', now: '2026-10-01T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends');
     expect(t.map((x) => [x.sendAt, x.title])).toEqual([
-      ['2026-10-04T01:00:00.000Z', 'Your free trial ends in 2 days'],
-      ['2026-10-05T15:00:00.000Z', 'Last day of your free trial'],
+      ['2026-10-04T01:00:00.000Z', 'Your free Max ends in 2 days'],
+      ['2026-10-05T15:00:00.000Z', 'Last day of your free Max'],
     ]);
     expect(t[0].body).toBe('Max during your trial: read 12 announcements, found 3 hidden requirements. After that you go back to Free: Halo sync pauses and the study tools lock. Nothing charges.');
     expect(t[1].body).toContain('Tomorrow you go back to Free');
     // After the first has gone, only the last-day one is planned; after the end, none.
     expect(planNotices({ ...base, today: '2026-10-04', now: '2026-10-04T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends')).toHaveLength(1);
     expect(planNotices({ ...base, today: '2026-10-06', now: '2026-10-06T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends')).toHaveLength(0);
+  });
+  it('in days of use (2026-10-22): the evening 2 days of use are left, and the evening of the last; the 30-day limit keeps the calendar', () => {
+    const base = { items: [], courses: [course], schedule: schedule(), prefs: { morningTime: 'off' as const }, tz: TZ, lastPull: NOW, trialEndsAt: '2026-11-20T01:00:00.000Z', trialRecap: null };
+    const two = planNotices({ ...base, today: '2026-10-01', now: '2026-10-01T13:00:00.000Z', trialLeft: 2 }).filter((x) => x.kind === 'trial_ends');
+    expect(two.map((x) => [x.sendAt, x.title])).toEqual([['2026-10-02T01:00:00.000Z', '2 days of free Max left']]);
+    const last = planNotices({ ...base, today: '2026-10-01', now: '2026-10-01T13:00:00.000Z', trialLeft: 1 }).filter((x) => x.kind === 'trial_ends');
+    expect(last.map((x) => x.title)).toEqual(['Last day of your free Max']);
+    expect(planNotices({ ...base, today: '2026-10-01', now: '2026-10-01T13:00:00.000Z', trialLeft: 5 }).filter((x) => x.kind === 'trial_ends')).toHaveLength(0);
+    // The 30-day limit is nearer than the days of use: the calendar's two.
+    const cap = planNotices({ ...base, trialEndsAt: '2026-10-06T01:00:00.000Z', today: '2026-10-01', now: '2026-10-01T13:00:00.000Z', trialLeft: 4, trialCapFirst: true }).filter((x) => x.kind === 'trial_ends');
+    expect(cap).toHaveLength(2);
   });
   it('no morning note when it is off, no notes at all when every switch is off', () => {
     const items = [item('x', TODAY, 50)];

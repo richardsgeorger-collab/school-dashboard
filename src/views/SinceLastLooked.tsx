@@ -23,13 +23,16 @@ const VERB: Record<Change['kind'], string> = { new: 'New', moved: 'Moved', grade
  * on this device, compared with the planner now; a tap opens the list, and each line opens its assignment. Saved
  * again when Now is left, so the next visit starts from here.
  */
-export function SinceLastLooked({ onOpen }: { onOpen: (i: Item) => void }) {
+/**
+ * What changed since the picture from the last visit on this device (new work, moved dates, grades, asks from
+ * announcements), and that picture saved again when Now is left. Shared by the line below and the welcome-back card.
+ */
+export function useSinceLastLooked(): Change[] {
   const { data } = useStore();
   const { auth } = useAccount();
   const who = isDemo() ? 'demo' : (auth.session?.user.id ?? auth.knownUserId ?? 'local');
   const tz = data.settings.timezone;
   const [before] = useState(() => read(who));
-  const [open, setOpen] = useState(false);
   const latest = useRef(data.items);
   latest.current = data.items;
   useEffect(() => {
@@ -49,8 +52,13 @@ export function SinceLastLooked({ onOpen }: { onOpen: (i: Item) => void }) {
       save();
     };
   }, [who, tz]);
-  const changes = useMemo(() => changesSince(before, data.items, tz, (d) => fmtDate(d, 'short')), [before, data.items, tz]);
-  const line = changesLine(changes);
+  return useMemo(() => changesSince(before, data.items, tz, (d) => fmtDate(d, 'short')), [before, data.items, tz]);
+}
+
+export function SinceLastLooked({ onOpen, hidden = false }: { onOpen: (i: Item) => void; hidden?: boolean }) {
+  const changes = useSinceLastLooked();
+  const [open, setOpen] = useState(false);
+  const line = hidden ? null : changesLine(changes);
   if (!line) return null;
   return (
     <div className="since-looked">

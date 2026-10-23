@@ -37,7 +37,9 @@ try {
   await shot('link-opened');
   await shot('link-opened-full', true);
   const first = await p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 400));
-  check(/A friend invited you/i.test(first) && /30 days of Plus free/.test(first), `the first screen says the invite arrived: ${first.slice(0, 160)}`);
+  // Since Loop 245 (2026-10-13) setup is sign up, connect Halo, payoff: no welcome screen in front of sign-up. The invite
+  // is kept (below) and named on the payoff, after the first sync ("Then 30 days of Plus free, from your friend's invite").
+  check(/Step 1 of 3: Sign up/.test(first), `the link opens straight at sign-up: ${first.slice(0, 160)}`);
   check(await p.evaluate(() => localStorage.getItem('school-dashboard:ref')) === ip.referral_code, 'the code is remembered before there is an account');
   if (!(await tap('a.btn.primary[href="#/start"]', 1500))) await p.goto(`${BASE}#/start`);
   await shot('start');
@@ -57,7 +59,8 @@ try {
   await p.waitForTimeout(2500);
   await shot('gift', true);
   const invitedLine = await p.$eval('.gift-invited', (e) => e.textContent).catch(() => null);
-  check(!!invitedLine && !(await p.$('.gift-after')), `the gift names the invite, and not "you choose what to keep" on day 8: ${invitedLine}`);
+  const afterSignup = await p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 200));
+  check(/Connect Halo/.test(afterSignup) && !(await p.$('.gift-after')), `after sign-up: Connect Halo, and not "you choose what to keep" (${invitedLine ?? 'no gift line before the first sync'})`);
   const gift = await p.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 600));
   console.log('gift screen:', gift.slice(0, 300));
   await p.waitForTimeout(2500);

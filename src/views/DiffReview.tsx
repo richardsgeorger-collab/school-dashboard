@@ -175,7 +175,7 @@ export function DiffReview({
       // Every sync that lands, whatever brought it (the bookmark too), tells the extension on this computer, so its
       // popup stops saying "Syncing" and shows this as the last sync (extension 0.6.6; older ones ignore it).
       if (typeof window !== 'undefined') window.postMessage({ kind: 'halo-sync-applied', at: readAt, via }, window.location.origin);
-      // The free week restarts at the first sync (2026-10-09): asked for by auth/useTrialSyncStart.ts once this sync's
+      // The free trial restarts at the first sync (2026-10-09): asked for by auth/useTrialSyncStart.ts once this sync's
       // "last synced" has reached the account (asking here, before the save arrived, was refused and never retried).
       setKept({ facts: plan.facts.length, classes: plan.courses.length, announcements: ann.saved, fresh: ann.fresh, messages: extra.messages, resources: extra.resources, alerts: extra.alerts });
       // The sync event is what starts the background read (halo/backgroundRead.ts): new and edited posts are read

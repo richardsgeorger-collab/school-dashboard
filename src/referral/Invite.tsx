@@ -9,9 +9,9 @@ import { REFERRAL } from '../config/tiers';
  */
 export const INVITE_OFFER = `Invite a friend and you both get Plus free for ${REFERRAL.days} days.`;
 /** The rules, in one line. */
-export const INVITE_RULE = `Your ${REFERRAL.days} days start after any free week or paid plan you have, so none is wasted. Theirs start after their free week of Max.`;
-// What the friend reads first. They get the free week of Max everyone gets, then the Plus days: never "just Plus".
-export const INVITE_MESSAGE = `I've been using Halo+ for Halo, it reads your announcements and tells you what's due. With my link you get a free week of Max, then ${REFERRAL.days} days of Plus free (and I get ${REFERRAL.days} days too):`;
+export const INVITE_RULE = `Your ${REFERRAL.days} days start after any free trial or paid plan you have, so none is wasted. Theirs start after their 7 free days of Max.`;
+// What the friend reads first. They get the free trial of Max everyone gets, then the Plus days: never "just Plus".
+export const INVITE_MESSAGE = `I've been using Halo+ for Halo, it reads your announcements and tells you what's due. With my link you get 7 free days of Max, then ${REFERRAL.days} days of Plus free (and I get ${REFERRAL.days} days too):`;
 
 export function inviteLink(code: string): string {
   return `${window.location.origin}${import.meta.env.BASE_URL}#/start?ref=${code}`;
@@ -65,7 +65,7 @@ export interface Grant {
   source: string;
 }
 
-/** This account's own queued or running rewards (an invitee's month of Plus after the free week, for one). */
+/** This account's own queued or running rewards (an invitee's month of Plus after the free trial, for one). */
 export function useMyGrants(): Grant[] {
   const { auth } = useAccount();
   const [g, setG] = useState<Grant[]>([]);
