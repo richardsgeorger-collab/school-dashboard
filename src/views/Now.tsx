@@ -261,11 +261,17 @@ export function Now() {
   const weekday = WEEKDAY_LONG[new Date(`${today}T12:00:00Z`).getUTCDay()];
   // "Today's done" is earned (domain/now.ts todayDone): everything due today done and nothing overdue.
   const eveningWrap = (daypart === 'evening' || daypart === 'night') && todayDone(clean, today, now, tz);
-  // Then: the next three, and anything benched by three skips today at the end, without a word about it.
+  // Then, in date order (George, 2026-10-24: "UNV Video Reflection is due tomorrow and only shows in Heads up"):
+  // everything due by tomorrow (up to eight), else the next three; anything benched by three skips today at the end,
+  // without a word about it.
   const then = useMemo(() => {
     const live = (i: Item) => i.id !== hero?.id && i.status !== 'done' && !isBlocked(i, today);
-    return [...arranged.ahead.filter(live).slice(0, 3), ...arranged.bench.filter(live).slice(0, 2)];
-  }, [arranged, hero?.id, today]);
+    const ahead = arranged.ahead.filter(live);
+    const soon = ahead.filter((i) => dateOf(i.dueAt, tz) <= addDays(today, 1)).slice(0, 8);
+    const rest = ahead.filter((i) => !soon.includes(i)).slice(0, Math.max(0, 3 - soon.length));
+    const byDate = (a: Item, b: Item) => Date.parse(a.dueAt) - Date.parse(b.dueAt);
+    return [...[...soon, ...rest].sort(byDate), ...arranged.bench.filter(live).slice(0, 2)];
+  }, [arranged, hero?.id, today, tz]);
 
   // Not now. "Not today" pushes it to tomorrow (and plans it to start then), "Can't start yet" blocks it until what it
   // waits on likely clears, "Show me something else" passes over it for today. The card slides away first, and
