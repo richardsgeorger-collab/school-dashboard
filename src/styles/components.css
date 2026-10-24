@@ -309,7 +309,8 @@ a {
 }
 
 /* ---- forms ---------------------------------------------------------- */
-input:not([type='checkbox']):not([type='radio']):not([type='file']),
+/* A slider is not a text box (2026-10-24: the GPA what-if's slider came out boxed); it keeps its own style below. */
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']),
 select,
 textarea {
   font: var(--t-body);
@@ -819,7 +820,8 @@ textarea:focus-visible {
 }
 
 /* ---- every form control is ours: no default browser chrome anywhere ---- */
-input:not([type='checkbox']):not([type='radio']):not([type='file']),
+/* Sliders are styled on their own (input[type='range']), never as a box. */
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']),
 select,
 textarea {
   appearance: none;

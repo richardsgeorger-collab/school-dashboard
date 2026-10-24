@@ -34,6 +34,8 @@ export interface Course {
   name: string;
   color: string;
   credits: number;
+  /** Where the credits came from: Halo, the syllabus, the student's own edit (which nothing overwrites), or a default. */
+  creditsFrom?: 'halo' | 'syllabus' | 'student' | 'default';
   instructors: Instructor[];
   meetings: Meeting[];
   /** 'section' when a sync read the days and start time from the Halo section code (the end time is assumed); null once the student edits them. */
@@ -589,6 +591,8 @@ export interface Settings {
   upgradeSeen?: { plus?: string | null; max?: string | null };
   /** When the "Your free trial ended" screen was seen (once, the first open after the trial). */
   trialEndSeen?: string | null;
+  /** The GPA and credits on the transcript so far, for the projected cumulative GPA on Classes (2026-10-24). */
+  gpaSoFar?: { gpa: number; credits: number } | null;
   /** The Chrome extension setup (2026-10-04): shown once; skipped puts a "Get the extension" line on Now for 7 days. */
   extSetup?: { shownAt?: string | null; skippedAt?: string | null; doneAt?: string | null };
   /** The end-of-week "How much did Halo+ help?" answer: the number, or null when skipped. Asked once. */

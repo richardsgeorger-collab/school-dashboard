@@ -6,6 +6,7 @@ import { urgentFor } from '../domain/urgent';
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
+import { GpaCard } from './GpaCard';
 import { classProgress } from '../joy/joy';
 import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
 import { PALETTE } from '../data/courseDefaults';
@@ -166,11 +167,14 @@ export function Classes() {
           </p>
         </EmptyState>
       ) : (
+        <>
+        <GpaCard />
         <ul className="classes-list">
           {data.courses.map((c) => (
             <ClassCard key={c.id} course={c} />
           ))}
         </ul>
+        </>
       )}
       {editing && <CourseEditor key={editing.id} course={editing} onClose={() => setEditing(null)} />}
     </>

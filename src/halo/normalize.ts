@@ -1,3 +1,4 @@
+import { defaultCredits } from '../domain/gpa';
 import { PALETTE } from '../data/courseDefaults';
 import { repairSetup, setupFromHalo } from './section';
 import { classifyItem } from '../domain/classify';
@@ -246,6 +247,8 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
       ...(c.holidays?.length ? { holidays: c.holidays } : {}),
       ...(c.participation ? { participation: c.participation } : {}),
       ...(c.finalGrade !== undefined ? { haloGrade: haloGradeFrom(c.finalGrade, opts.now) } : {}),
+      // Halo's credits keep the class current (2026-10-24, the GPA on Classes); the student's own number always wins.
+      ...(typeof c.credits === 'number' && existing.creditsFrom !== 'student' ? { credits: c.credits, creditsFrom: 'halo' as const } : {}),
       updatedAt: opts.now,
     };
   }
@@ -259,7 +262,8 @@ export function toCourse(c: HaloClass, existing: Course | undefined, opts: { tz:
     code,
     name: c.name?.trim() || code,
     color: PALETTE[opts.index % PALETTE.length],
-    credits: c.credits ?? 3,
+    credits: c.credits ?? defaultCredits(code),
+    creditsFrom: c.credits != null ? 'halo' : 'default',
     instructors: names.map((name) => ({ name, email: '' })),
     meetings: setup.meetings,
     online: setup.online,

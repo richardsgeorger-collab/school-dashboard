@@ -24,6 +24,7 @@ export function toAppData(parsed: ParsedSyllabus, opts: ToAppDataOptions): { cou
     name: parsed.name,
     color: opts.defaults?.color ?? '#3b82c4',
     credits: parsed.credits,
+    ...(parsed.credits > 0 ? { creditsFrom: 'syllabus' as const } : {}),
     instructors: parsed.instructors,
     meetings: opts.defaults?.meetings ?? [],
     online: opts.defaults?.online ?? false,
