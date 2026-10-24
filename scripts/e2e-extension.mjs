@@ -252,6 +252,13 @@ try {
     await until(async () => (await cloudCodes(u.id)).join() === 'CHM-113,CHM-113L' && !!(await worker.evaluate(() => chrome.storage.local.get('lastSyncAt').then((x) => x.lastSyncAt))), 30_000);
     const codes = await cloudCodes(u.id);
     const after = await worker.evaluate(() => chrome.storage.local.get(['waiting', 'lastSyncAt']));
+    if (!(codes.join() === 'CHM-113,CHM-113L' && !after.waiting && !!after.lastSyncAt)) {
+      // What each side says, to tell a slow hand-off from a lost one.
+      const ext = await worker.evaluate(() => chrome.storage.local.get(['waiting', 'lastSyncAt', 'lastError', 'lastErrorKind', 'syncKey', 'serverStatus']).then((x) => ({ ...x, syncKey: x.syncKey ? 'set' : 'none', waiting: x.waiting ? { at: x.waiting.at, bytes: JSON.stringify(x.waiting).length } : null })));
+      const drops = (await admin.from('pending_syncs').select('created_at, consumed_at').eq('user_id', u.id)).data;
+      const pages = ctx.pages().map((pg) => pg.url().slice(0, 60));
+      console.log('  diag:', JSON.stringify({ ext, drops, pages }).slice(0, 900));
+    }
     check(codes.join() === 'CHM-113,CHM-113L' && !after.waiting && !!after.lastSyncAt, `opening Halo+ signed in sent it to the account and applied it: ${codes.join(', ')}`);
     await ctx.close();
   }

@@ -699,6 +699,12 @@ ul{list-style:none;margin:0;padding:0}
   let weekAll = false;
   let weekShownDay = '';
   let weekHtml = '';
+  /**
+   * The card's look, read once and again only when the page's look can have changed (a theme, light or dark, the panel
+   * placed anew): reading it puts a copy of the card in Halo's grid for an instant, which other extensions watching the
+   * grid (Better Halo) would see on every redraw.
+   */
+  let weekLook = null;
   /** The panel's own view: this computer's marks count as done, except the ones still inside their Undo. */
   function weekView() {
     const marks = { ...(st.haloMarks || {}) };
@@ -746,7 +752,8 @@ ul{list-style:none;margin:0;padding:0}
     const v = weekView();
     if (!v) return false;
     const w = M.week(v, Date.now());
-    const look = cardLook(spot.card);
+    if (!weekLook || !old) weekLook = cardLook(spot.card);
+    const look = weekLook;
     const open = weekOpen();
     const asof = free() ? `as of ${M.syncedDay(v)}` : M.stale(v, Date.now());
     const n = w.count;
@@ -994,6 +1001,7 @@ ul{list-style:none;margin:0;padding:0}
   const relook = guard(() => {
     if (!alive()) return;
     weekHtml = '';
+    weekLook = null;
     soon();
   });
   new MutationObserver(relook).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-better-halo-theme', 'data-theme'] });
@@ -1007,7 +1015,14 @@ ul{list-style:none;margin:0;padding:0}
   new MutationObserver(
     guard((records) => {
       if (!alive()) return;
-      for (const r of records) for (const n of r.addedNodes) if (n.nodeType === 1 && !(n.closest && n.closest('[data-haloplus]')) && !(host && host.contains(n))) return soon();
+      let halo = false;
+      for (const r of records)
+        for (const n of r.addedNodes) {
+          // A stylesheet arriving (a theme loading after the page): the panel reads the card's look again.
+          if (n.nodeName === 'LINK' || n.nodeName === 'STYLE') weekLook = null;
+          if (n.nodeType === 1 && !(n.closest && n.closest('[data-haloplus]')) && !(host && host.contains(n))) halo = true;
+        }
+      if (halo) soon();
     }),
   ).observe(document.documentElement, { childList: true, subtree: true });
 })();

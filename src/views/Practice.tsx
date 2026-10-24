@@ -471,8 +471,11 @@ function KitTab({ course, kind: initial, allowSheetKinds, topic, sources, weak, 
     setBusy(true);
     setNote(null);
     try {
+      const empty = (x: { cards: unknown[]; sections: unknown[]; formulas: unknown[] }) => x.cards.length + x.sections.length + x.formulas.length === 0;
       let k = await buildKit({ apiKey: loadApiKey(), course, kind, topic, sources, weak, flagged });
-      if (topic && k.cards.length + k.sections.length + k.formulas.length === 0) k = { ...(await buildKit({ apiKey: loadApiKey(), course, kind, topic: '', sources, weak, flagged })), topic };
+      if (topic && empty(k)) k = { ...(await buildKit({ apiKey: loadApiKey(), course, kind, topic: '', sources, weak, flagged })), topic };
+      // Nothing usable from everything on file (2026-10-24: 0 flashcards from 8 slides, then 12 on the next try): once more.
+      else if (empty(k)) k = await buildKit({ apiKey: loadApiKey(), course, kind, topic, sources, weak, flagged });
       setKit(k);
       setFlipped({});
       await aiDb.put(studyKey(course.id, kind, topic), k).catch(() => undefined);

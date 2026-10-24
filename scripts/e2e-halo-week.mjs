@@ -155,6 +155,18 @@ for (const withBh of runs) {
       if (withBh) check(!!geo.theme, `${tag} ${scheme}: Better Halo's theme is on ("${geo.theme}"${geo.dark ? ', dark' : ''})`);
       check(geo.bg === geo.cardBg && geo.radius === geo.cardRadius && geo.shadow === geo.cardShadow && geo.font === geo.cardFont, `${tag} ${scheme}: Halo's own card look (${geo.bg} / ${geo.cardBg}, radius ${geo.radius}, shadow ${geo.shadow === geo.cardShadow ? 'same' : `${geo.shadow} vs ${geo.cardShadow}`}, font ${geo.font === geo.cardFont ? 'same' : 'different'})`);
       check(!pillThere, `${tag} ${scheme}: no pill and no peek on Student Home`);
+      // Quiet when nothing changes: no looks at Halo's cards, and no back-and-forth with Better Halo (both watch the page).
+      const idle = await p.evaluate(async () => {
+        let probes = 0;
+        let added = 0;
+        const mo = new MutationObserver((rs) => { for (const r of rs) for (const x of r.addedNodes) { added += 1; if (x.getAttribute && x.getAttribute('data-haloplus') === 'probe') probes += 1; } });
+        mo.observe(document.documentElement, { childList: true, subtree: true });
+        await new Promise((r) => setTimeout(r, 5000));
+        mo.disconnect();
+        return { probes, added };
+      });
+      // One look is the panel following a real change (Better Halo re-adding its theme's style); a loop would be many.
+      check(idle.probes <= 1 && idle.added < 20, `${tag} ${scheme}: quiet while nothing changes (${idle.probes} looks, ${idle.added} nodes added in 5 s)`);
       const longest = Math.max(0, ...(await p.evaluate(() => window.__long || [])));
       check(longest < 120, `${tag} ${scheme}: Halo's page never waits on it (longest task ${Math.round(longest)} ms)`);
       const text = (await inW((r) => r.querySelector('.wk').innerText)) ?? '';
