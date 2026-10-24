@@ -192,6 +192,7 @@ export function toItem(a: HaloAssessment, course: Course, opts: ToItemOptions): 
     haloId: source === 'halo' ? a.id : null,
     haloUnitId: source === 'halo' ? (a.unitId ?? null) : null,
     haloType: source === 'halo' ? a.type || null : null,
+    ...(source === 'halo' ? { haloInPerson: !!a.inPerson } : {}),
     icsUid: source === 'ics' ? a.id : null,
     url: a.url ?? null,
     award: null,

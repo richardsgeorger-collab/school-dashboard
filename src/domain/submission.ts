@@ -2,12 +2,17 @@ import type { Item } from './types';
 
 /**
  * Work with no way to hand it in on Halo (George, 2026-10-24): an outside tool's activity (Halo's LTI: ALEKS, zyBooks,
- * a publisher's quiz) or anything Halo marks in person (an in-class exam, quiz or lab). Halo never sees these turned in,
- * so once their date passes they are not "overdue": Halo+ cannot know, and nagging about a quiz already taken is wrong.
- * Participation has its own rule (never urgent anywhere).
+ * a publisher's quiz) or what Halo itself says is "Not Submitted in Halo" (its own inPerson field: in-class exams and
+ * quizzes). Not Halo+'s "in class" flag: a syllabus sets that too, and CHM-113L's labs meet in person yet have a
+ * dropbox. Anything Halo shows handed in has a submission. Halo never sees the others turned in, so once their date
+ * passes they are not "overdue". Participation has its own rule (never urgent anywhere).
  */
-export const noHaloSubmission = (i: Pick<Item, 'source' | 'type' | 'haloType' | 'flags'>): boolean =>
-  i.source === 'halo' && i.type !== 'participation' && (i.haloType === 'LTI' || !!i.flags?.inClass);
+export const noHaloSubmission = (i: Pick<Item, 'source' | 'type' | 'haloType' | 'haloInPerson' | 'halo'>): boolean =>
+  i.source === 'halo' &&
+  i.type !== 'participation' &&
+  !i.halo?.submittedAt &&
+  i.halo?.status !== 'SUBMITTED' &&
+  (i.haloType === 'LTI' || (i.haloInPerson === true && i.haloType !== 'QUIZ' && i.haloType !== 'DISCUSSION_QUESTION'));
 
 /**
  * Past and quiet: no Halo submission, not done, no grade yet, and its due time has gone by. It leaves Now, Then, the

@@ -113,8 +113,9 @@
         code: c.courseCode || '',
         name: c.name || '',
         g: c.finalGrade && typeof c.finalGrade.finalPoints === 'number' && c.finalGrade.maxPoints ? Math.round((c.finalGrade.finalPoints / c.finalGrade.maxPoints) * 1000) / 10 : null,
-        // The eighth field: no submission in Halo (an outside tool, or in person), as Halo+ reads it (normalize.ts).
-        a: (c.assessments || []).filter((a) => a && a.id && a.type !== 'PARTICIPATION').map((a) => [a.id, String(a.title || '').slice(0, 120), a.dueDate || null, a.points || 0, a.type || '', done(a) ? 1 : 0, a.unitId || null, a.type === 'LTI' || a.inPerson || (a.tags || []).includes('IN_PERSON') ? 1 : 0]),
+        // The eighth field: no submission in Halo, as Halo itself says it (0.9.2): an outside tool (LTI), or its own inPerson
+        // ("Not Submitted in Halo"); never the IN_PERSON tag alone, and never anything handed in.
+        a: (c.assessments || []).filter((a) => a && a.id && a.type !== 'PARTICIPATION').map((a) => [a.id, String(a.title || '').slice(0, 120), a.dueDate || null, a.points || 0, a.type || '', done(a) ? 1 : 0, a.unitId || null, !a.submittedAt && !/SUBMITTED/i.test(a.status || '') && (a.type === 'LTI' || a.inPerson === true) ? 1 : 0]),
       })),
     };
   }

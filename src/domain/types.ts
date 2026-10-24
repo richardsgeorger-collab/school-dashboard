@@ -108,6 +108,11 @@ export interface Item {
   /** Halo's unit (topic) id and assessment type, for "Open in Halo" straight to it. */
   haloUnitId?: string | null;
   haloType?: string | null;
+  /**
+   * Halo's own inPerson field (2026-10-24): what makes Halo itself say "Not Submitted in Halo". Not flags.inClass,
+   * which a syllabus import also sets (CHM-113L's labs meet in person and still have a dropbox).
+   */
+  haloInPerson?: boolean;
   /** Calendar-export UID, set when the item came from or matched an .ics import. */
   icsUid?: string | null;
   /** Link into Halo when the export carried one. */

@@ -8,14 +8,19 @@ const item = (o: Partial<Item>): Item => ({ id: 'x', courseId: 'c', title: 'x', 
 describe('work with no Halo submission', () => {
   it('outside tools (LTI) and in-person work have none; Halo quizzes, discussions and dropboxes do', () => {
     expect(noHaloSubmission(item({ haloType: 'LTI' }))).toBe(true);
-    expect(noHaloSubmission(item({ haloType: 'ASSIGNMENT', flags: { inClass: true } as Item['flags'] }))).toBe(true);
+    expect(noHaloSubmission(item({ haloType: 'ASSIGNMENT', haloInPerson: true }))).toBe(true);
     expect(noHaloSubmission(item({ haloType: 'QUIZ' }))).toBe(false);
     expect(noHaloSubmission(item({ haloType: 'DISCUSSION_QUESTION', type: 'discussion' }))).toBe(false);
     expect(noHaloSubmission(item({ haloType: 'ASSIGNMENT', type: 'paper' }))).toBe(false);
     expect(noHaloSubmission(item({ haloType: 'LTI', source: 'manual' as Item['source'] }))).toBe(false);
+    // CHM-113L's labs (2026-10-24): "in class" from the syllabus, a Halo dropbox, so overdue when late.
+    expect(noHaloSubmission(item({ haloType: 'ASSIGNMENT', type: 'lab', flags: { inClass: true } as Item['flags'], haloInPerson: false }))).toBe(false);
+    expect(noHaloSubmission(item({ haloType: 'ASSIGNMENT', type: 'lab', flags: { inClass: true } as Item['flags'] }))).toBe(false);
+    // Anything Halo shows handed in had a submission.
+    expect(noHaloSubmission(item({ haloType: 'ASSIGNMENT', haloInPerson: true, halo: { status: 'SUBMITTED', submittedAt: '2026-10-24T02:00:00Z' } as Item['halo'] }))).toBe(false);
   });
   it('quiet once its date passes, unless done or graded', () => {
-    const quiz = item({ haloType: 'ASSIGNMENT', flags: { inClass: true } as Item['flags'] });
+    const quiz = item({ haloType: 'ASSIGNMENT', haloInPerson: true });
     expect(isQuietPast(quiz, NOW)).toBe(true);
     expect(isQuietPast({ ...quiz, dueAt: '2026-10-25T15:00:00Z' }, NOW)).toBe(false);
     expect(isQuietPast({ ...quiz, status: 'done' }, NOW)).toBe(false);
@@ -27,7 +32,7 @@ describe('work with no Halo submission', () => {
 describe('past work with no Halo submission leaves the counts', () => {
   const tz = 'America/Phoenix';
   const today = '2026-10-24';
-  const quiz = item({ id: 'q', haloType: 'ASSIGNMENT', flags: { inClass: true } as Item['flags'], estimatedMinutes: 60, dueAt: '2026-10-23T15:00:00Z' });
+  const quiz = item({ id: 'q', haloType: 'ASSIGNMENT', haloInPerson: true, estimatedMinutes: 60, dueAt: '2026-10-23T15:00:00Z' });
   const report = item({ id: 'r', haloType: 'ASSIGNMENT', type: 'paper', estimatedMinutes: 60, dueAt: '2026-10-23T15:00:00Z' });
   it('the Cooked meter and the schedule: never overdue, no time planned', async () => {
     const { cookMeter } = await import('./cook');

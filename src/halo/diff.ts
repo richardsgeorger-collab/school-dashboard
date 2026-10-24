@@ -177,6 +177,7 @@ export function mergeItem(existing: Item, next: Item, course: Course, now: strin
     haloId: next.haloId ?? existing.haloId ?? null,
     haloUnitId: next.haloUnitId ?? existing.haloUnitId ?? null,
     haloType: next.haloType ?? existing.haloType ?? null,
+    ...(next.haloInPerson !== undefined ? { haloInPerson: next.haloInPerson } : existing.haloInPerson !== undefined ? { haloInPerson: existing.haloInPerson } : {}),
     icsUid: next.icsUid ?? existing.icsUid ?? null,
     url: next.url ?? existing.url ?? null,
     dueAt: next.dueAt,
