@@ -120,6 +120,7 @@ try {
       const p = await signInPage(b.ctx, who, { scheme });
       await p.waitForSelector('.onboard [aria-label="Add the extension"]', { timeout: 30000 }).catch(() => undefined);
       const t1 = await text(p);
+      if (process.env.TRACE && !/Step 2 of 3/.test(t1)) console.log('  L page:', p.url(), (await p.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300));
       if (scheme === 'light') {
         check(/Step 2 of 3: Connect Halo/.test(t1), `L. a new account lands on "Step 2 of 3: Connect Halo" (${t1.split('\n')[0]})`);
         check(/Add Halo\+ to Chrome\./.test(t1) && t1.includes('Chrome will ask to read halo.gcu.edu. Halo+ only reads your own classes and never sees your password.'), 'L. the calm line comes before Add to Chrome');

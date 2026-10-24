@@ -8,22 +8,23 @@ import { describe, expect, it } from 'vitest';
  */
 describe('landing page', () => {
   const src = readFileSync(join(__dirname, '..', 'landing', 'Landing.tsx'), 'utf8');
-  it('takes its prices and trial length from the config, never from a literal', () => {
-    expect(src).toContain("from '../config/tiers'");
-    expect(src).toMatch(/PRICES\[p\.tier\]\.month\.toFixed\(2\)/);
-    expect(src).toContain('<small> a month</small>');
-    expect(src).toContain('{TAX_LINE} · {CANCEL_LINE}');
-    expect(src).not.toMatch(/semester|a year/);
-    // The welcome gift (2026-09-29): Max free from sign-up, its length from the config, and what happens after.
-    expect(src).toContain('Max free for {TRIAL.days} days');
-    expect(src).toContain('Free stays free');
-    expect(src).not.toMatch(/You choose when it starts|Start it when you're ready/);
-    expect(src).toContain('PLAN_LINES');
-    expect(src).not.toMatch(/\$\d+\.\d\d/);
+  // 2026-10-23 (George): people see "free for 7 days" and think "money, no thanks". The home page never talks price or
+  // trial; the Plans page, one link in the footer, says it all, from the config.
+  it('says nothing about prices or the trial; the Plans page does, from the config', () => {
+    const page = src + readFileSync(join(__dirname, '..', 'landing', 'LiveNow.tsx'), 'utf8');
+    expect(page).not.toMatch(/\$\d|free trial|No card|days free|Try it free|a month/i);
+    expect(page).not.toMatch(/TRIAL\.|PRICES\[/);
+    expect(src).toContain('Try it now');
+    expect(src).toContain('href="./plans/"');
+    const pages = readFileSync(join(__dirname, '..', 'help', 'pages.ts'), 'utf8');
+    expect(pages).toMatch(/PRICES\[t\]\.month\.toFixed\(2\)/);
+    expect(pages).toContain('${TRIAL.days} days of use');
+    expect(pages).toContain('Free stays free');
+    expect(pages).not.toMatch(/semester|a year/);
   });
   it('states the disclaimer and never asks for a password', () => {
     expect(src).toContain('not affiliated with');
-    expect(src).toContain('never asks for your password');
+    expect(src).toContain('it never asks');
     expect(src).not.toMatch(/gcu\.edu\/[a-z]*logo|GCU logo/i);
   });
   it('the old /landing/ address forwards to the root', () => {

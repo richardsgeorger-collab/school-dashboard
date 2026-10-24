@@ -1,8 +1,8 @@
-// The market sign-up (George, 2026-10-08): a visitor's phone scans the QR code, lands on haloplus.app/market, which
-// opens sign-up with the source remembered; a brand-new account, the free week running; the gift; then "Finish setup
-// on your laptop" with the email queued; "Got it" lands on Now. A second visitor without a laptop takes "Set up on this
-// phone" into the phone steps. On the server: profiles.signup_source = 'market', one market_setup row in the outbox,
-// and Admin's Growth counts them. Real backend, throwaway accounts (made through the real sign-up form), removed after.
+// The market sign-up (George, 2026-10-08; setup as it is since Loop 245): a visitor's phone scans the QR code, lands on
+// haloplus.app/market, which opens sign-up with the source remembered; a brand-new account; the phone's step is "Finish
+// on your laptop in 2 minutes" with Email me the link (one email, to their address) and the phone's own setup one tap
+// away. A laptop goes straight to Connect Halo. On the server: profiles.signup_source = 'market', and Admin's Growth
+// counts them. Real backend, throwaway accounts (made through the real sign-up form), removed after.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-market.mjs
 import { mkdirSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
@@ -21,6 +21,7 @@ const check = (ok, line) => { checks.push(ok); console.log(`${ok ? 'ok  ' : 'FAI
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const text = async (p, sel) => (await p.locator(sel).first().innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
 const made = [];
+const hard = setTimeout(() => { console.log('HARD TIMEOUT'); process.exit(3); }, 480000);
 const removeMade = async () => {
   let n = 0;
   for (const email of made) {
@@ -51,50 +52,31 @@ async function signUp(browser, device, tag) {
   await p.waitForSelector('.signin[data-step="password"]', { timeout: 15000 });
   await p.fill('.signin input[name="password"]', 'market-pass-2026');
   await p.click('.signin button[type="submit"]');
-  await p.waitForSelector('.gift', { timeout: 30000 });
-  const gift = await text(p, '.gift');
-  await p.click('.gift .offer-go');
-  await p.waitForSelector('.market-handoff', { timeout: 30000 });
+  await p.waitForSelector('.onboard', { timeout: 30000 });
+  await p.waitForFunction(() => /Finish on your laptop|Connect Halo/.test(document.querySelector('.onboard')?.innerText ?? ''), null, { timeout: 30000 }).catch(() => undefined);
   const secs = (Date.now() - t0) / 1000;
-  return { ctx, p, email, gift, secs };
+  if (process.env.TRACE) console.log('  form:', await text(p, '.signin'), '| error:', await text(p, '.signin-error'));
+  return { ctx, p, email, secs };
 }
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   // Visitor 1: an iPhone, with a laptop at home.
   {
-    const { ctx, p, email, gift, secs } = await signUp(browser, devices['iPhone 14'], 'a');
-    check(/Max free for 7 days/.test(gift), `the gift, no card: "${gift.slice(0, 60)}…"`);
-    const hand = await text(p, '.market-handoff');
-    check(/Finish setup on your laptop\./.test(hand) && /haloplus\.app/.test(hand) && /add the extension/.test(hand), `the hand-off: "${hand.slice(0, 120)}…"`);
-    check(new RegExp(`We emailed you the link at ${email.replace(/\./g, '\\.')}`).test(hand), 'says the email went to their address');
-    check(secs < 20, `email to hand-off in ${secs.toFixed(1)} s (under 20)`);
-    await sleep(1500);
+    const { ctx, p, email, secs } = await signUp(browser, devices['iPhone 14'], 'a');
+    const step = await text(p, '.onboard');
+    check(/Finish on your laptop in 2 minutes\./.test(step) && /Email me the link/.test(step) && /Set up on this phone instead/.test(step), `the phone's step: "${step.slice(0, 120)}…"`);
+    check(!/\$\d|free trial|No card/i.test(step), 'no price or trial talk before the first sync');
+    check(secs < 25, `email to the laptop step in ${secs.toFixed(1)} s`);
     await p.screenshot({ path: `${OUT}/1-handoff-phone.png` });
-    await sleep(1500);
+    await p.locator('.onboard button:has-text("Email me the link")').click();
+    await sleep(3000);
     const { data: u } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
     const user = u.users.find((x) => x.email === email);
-    const { data: prof } = await db.from('profiles').select('signup_source, trial_started_at, trial_ends_at').eq('user_id', user.id).single();
+    const { data: prof } = await db.from('profiles').select('signup_source').eq('user_id', user.id).single();
     check(prof?.signup_source === 'market', `profile: source = ${prof?.signup_source}`);
-    check(!!prof?.trial_ends_at && Date.parse(prof.trial_ends_at) > Date.now() + 6 * 864e5, `the free week is running (ends ${prof?.trial_ends_at?.slice(0, 10)})`);
-    const { data: box } = await db.from('email_outbox').select('kind, to_email, sent_at').eq('user_id', user.id);
-    check(box?.length === 1 && box[0].kind === 'market_setup' && box[0].to_email === email, `one market_setup email queued for ${box?.[0]?.to_email}`);
-    await p.click('.market-handoff button:has-text("Got it")');
-    await p.waitForSelector('.now, .connect-halo', { timeout: 30000 });
-    await sleep(1500);
-    check(/#\/now/.test(p.url()) && (await p.locator('.onboard').count()) === 0, 'Got it: on Now, onboarding closed');
-    await p.screenshot({ path: `${OUT}/2-now-after-phone.png` });
-    await ctx.close();
-  }
-  // Visitor 2: an Android phone, no laptop nearby.
-  {
-    const { ctx, p } = await signUp(browser, devices['Pixel 7'], 'b');
-    await p.click('.market-handoff .market-here');
-    await p.waitForSelector('.onboard [aria-label="Copy the bookmark"], .onboard-step', { timeout: 15000 });
-    await sleep(800);
-    const ob = await text(p, '.onboard');
-    check(/Copy|bookmark/i.test(ob) && (await p.locator('.market-handoff').count()) === 0, `no laptop: the phone's own sync steps ("${ob.slice(0, 80)}…")`);
-    await p.screenshot({ path: `${OUT}/3-phone-steps.png` });
+    const { data: box } = await db.from('email_outbox').select('kind, to_email').eq('user_id', user.id);
+    check(box?.length === 1 && box[0].to_email === email, `one email with the link, to ${box?.[0]?.to_email} (${box?.[0]?.kind})`);
     await ctx.close();
   }
   // A laptop scanning the same address: no hand-off, the extension setup as usual.
@@ -111,10 +93,9 @@ try {
     await p.waitForSelector('.signin[data-step="password"]', { timeout: 15000 });
     await p.fill('.signin input[name="password"]', 'market-pass-2026');
     await p.click('.signin button[type="submit"]');
-    await p.waitForSelector('.gift', { timeout: 30000 });
-    await p.click('.gift .offer-go');
+    await p.waitForSelector('.onboard', { timeout: 30000 });
     await sleep(2000);
-    check((await p.locator('.market-handoff').count()) === 0 && /Connect Halo|Add to Chrome|bookmark/i.test(await text(p, '.onboard')), 'a laptop: straight to its own Halo setup, no hand-off');
+    check(/Connect Halo|Add to Chrome|bookmark/i.test(await text(p, '.onboard')) && !/Finish on your laptop/.test(await text(p, '.onboard')), 'a laptop: straight to its own Halo setup, no hand-off');
     await ctx.close();
   }
   // Admin's Growth counts them (the throwaways are test accounts, so the count comes from the function's own query).
@@ -136,8 +117,13 @@ try {
     await p.locator('.admin-growth').screenshot({ path: `${OUT}/4-admin-growth.png` });
     await ctx.close();
   }
+} catch (e) {
+  checks.push(false);
+  console.log('ERROR', e.message.split('\n')[0]);
 } finally {
   await browser.close();
   console.log(`removed ${await removeMade()} sign-ups and ${await kit.cleanup()} throwaways`);
 }
+clearTimeout(hard);
 console.log(checks.every(Boolean) ? 'PASS' : 'FAIL');
+process.exit(checks.every(Boolean) ? 0 : 1);

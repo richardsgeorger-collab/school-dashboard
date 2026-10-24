@@ -54,6 +54,9 @@ describe('help pages', () => {
     }
     expect(llms).toMatch(/^# Halo\+\n\n> /);
     expect(llms).toContain('not affiliated');
-    expect(readFileSync('src/landing/Landing.tsx', 'utf8')).toContain('HELP_PAGES.map');
+    // 2026-10-23: the home page is short now; its footer links the help index, which links every page.
+    expect(readFileSync('src/landing/Landing.tsx', 'utf8')).toContain('href="./help/"');
+    const index = renderHelpIndex('/');
+    for (const p of HELP_PAGES) expect(index).toContain(`/help/${p.slug}/`);
   });
 });

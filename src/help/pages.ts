@@ -1,4 +1,5 @@
-import { PRICES, TIER_NAMES, TRIAL } from '../config/tiers';
+import { CANCEL_LINE, PLAN_LINES, PRICES, TAX_LINE, TIER_NAMES, TRIAL } from '../config/tiers';
+import { UPDATES } from '../landing/updates';
 
 /**
  * Help pages at real addresses (haloplus.app/help/<slug>/), for GCU students searching for help with Halo and for the
@@ -392,11 +393,11 @@ ${o.jsonLd.map((j) => `<script type="application/ld+json">${JSON.stringify(j).re
 </head>
 <body>
 <div class="wrap">
-<header class="top"><a class="brand" href="${o.base}">Halo<span>+</span></a><a class="cta" href="${o.base}#/start">Try Halo+ free</a></header>
+<header class="top"><a class="brand" href="${o.base}">Halo<span>+</span></a><a class="cta" href="${o.base}#/start">Try it now</a></header>
 ${o.body}
 <footer>
 <p>${esc(NOT_AFFILIATED)}</p>
-<p><a href="${o.base}help/">Help</a> · <a href="${o.base}">Halo+</a> · <a href="${o.base}privacy.html">Privacy</a> · <a href="${o.base}terms.html">Terms</a></p>
+<p><a href="${o.base}help/">Help</a> · <a href="${o.base}updates/">Updates</a> · <a href="${o.base}plans/">Plans</a> · <a href="${o.base}">Halo+</a> · <a href="${o.base}privacy.html">Privacy</a> · <a href="${o.base}terms.html">Terms</a> · <a href="mailto:richards.georger@gmail.com?subject=Halo%2B">Contact</a></p>
 </footer>
 </div>
 </body>
@@ -452,9 +453,41 @@ ${HELP_PAGES.map((p) => `<li><a href="${base}help/${p.slug}/"><b>${esc(p.title)}
   return shell({ title: 'Help for GCU Halo', description: 'Straight answers for GCU students about Halo: due dates, announcements, calendar export, grades, and using Halo on iPhone and iPad.', canonical: `${SITE}help/`, base, jsonLd: [SOFTWARE_APP], body });
 }
 
+/** What's new (2026-10-23), newest first, a week at a time, from src/landing/updates.ts. */
+export function renderUpdatesPage(base = '/'): string {
+  const weekOf = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const body = `<main>
+<h1>What’s new in Halo+</h1>
+<p class="short">Halo+ gets better every week. Here is what changed, in plain words.</p>
+${UPDATES.map((w) => `<section><h2>Week of ${esc(weekOf(w.week))}</h2>
+<ul>
+${w.items.map((i) => `<li>${esc(i)}</li>`).join('\n')}
+</ul></section>`).join('\n')}
+</main>`;
+  return shell({ title: 'What’s new in Halo+', description: 'The latest improvements to Halo+, the planner for GCU’s Halo, week by week.', canonical: `${SITE}updates/`, base, jsonLd: [SOFTWARE_APP], body });
+}
+
+/** The plans, honestly, one link from the footer (2026-10-23: no prices up front on the home page). */
+export function renderPlansPage(base = '/'): string {
+  const price = (t: 'plus' | 'max') => `$${PRICES[t].month.toFixed(2)} a month`;
+  const plan = (t: 'free' | 'plus' | 'max') => `<section><h2>${esc(TIER_NAMES[t])} · ${t === 'free' ? '$0' : esc(price(t))}</h2>
+<ul>
+${PLAN_LINES[t].map((l) => `<li>${esc(l)}</li>`).join('\n')}
+</ul></section>`;
+  const body = `<main>
+<h1>Plans</h1>
+<p class="short">Every new account gets ${esc(TIER_NAMES.max)} free for ${TRIAL.days} days of use: a day counts when you open Halo+, starting from your first sync, for up to ${TRIAL.capDays} days. No card, nothing to cancel. After that you choose what to keep; Free stays free.</p>
+${plan('free')}
+${plan('plus')}
+${plan('max')}
+<p class="short">${esc(TAX_LINE)} · ${esc(CANCEL_LINE)}</p>
+</main>`;
+  return shell({ title: 'Halo+ plans', description: `Halo+ plans: Free, ${TIER_NAMES.plus} and ${TIER_NAMES.max}, and how the free days of use work.`, canonical: `${SITE}plans/`, base, jsonLd: [SOFTWARE_APP], body });
+}
+
 /** Every address the site wants found, for sitemap.xml and IndexNow. */
 export function siteUrls(): string[] {
-  return [SITE, `${SITE}help/`, ...HELP_PAGES.map((p) => helpUrl(p.slug)), `${SITE}privacy.html`, `${SITE}terms.html`];
+  return [SITE, `${SITE}help/`, ...HELP_PAGES.map((p) => helpUrl(p.slug)), `${SITE}updates/`, `${SITE}plans/`, `${SITE}privacy.html`, `${SITE}terms.html`];
 }
 
 export function renderSitemap(lastmod: string): string {
@@ -483,7 +516,7 @@ export function renderMarketPage(base = '/'): string {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
 <meta http-equiv="refresh" content="0; url=${to}" />
-<title>Halo+ · Try it free</title>
+<title>Halo+ · Try it now</title>
 <link rel="icon" href="${base}favicon.ico" sizes="16x16 32x32 48x48" />
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0d10;color:#f2f4f7;font:17px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;text-align:center;padding:24px}a{color:#f2b84b}</style>
 <script>location.replace(${JSON.stringify(to)});</script>

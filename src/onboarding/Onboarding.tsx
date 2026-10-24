@@ -209,7 +209,7 @@ export function Onboarding() {
           <section className="onboard-step" aria-label="Sign up">
             <HaloDraw size={64} />
             <h1 className="onboard-title">See your real assignments in about two minutes.</h1>
-            <p className="onboard-text">{pendingFriend() ? 'Your friend link gives you Max free. No card.' : 'Make your account, then connect Halo. Free to start, no card, and never your GCU password.'}</p>
+            <p className="onboard-text">{pendingFriend() ? 'Your friend’s link is saved. Make your account, then connect Halo.' : 'Make your account, then connect Halo. Halo+ never asks for your GCU password.'}</p>
             <SignIn auth={auth} title="Sign up" />
             <p className="hint">
               Already have an account? <a href="#/login">Log in</a>
