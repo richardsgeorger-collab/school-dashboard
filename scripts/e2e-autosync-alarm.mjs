@@ -100,7 +100,8 @@ try {
     for (let k = 0; k < 90; k++) {
       const w = live() ?? worker;
       try {
-        return await w.evaluate(fn, arg);
+        // A worker Chrome stopped mid-call never answers: each try gets 10 s.
+        return await Promise.race([w.evaluate(fn, arg), sleep(10000).then(() => { throw new Error('worker call timed out'); })]);
       } catch {
         await sleep(1000);
       }
@@ -114,10 +115,27 @@ try {
   const dash = await ctx.newPage();
   await dash.goto('https://haloplus.app/#/now', { waitUntil: 'load' });
   check(!!(await until(async () => { const s = await store(['tier', 'syncKey']); return s.tier === 'max' && s.syncKey; }, 30000)), 'Halo+ told the extension: Max, and the account key (no popup)');
+  // Opening Halo+ on an account that never synced asks for the first sync (setup, since 0.7.x): it lands first.
+  const firstLanded = await until(async () => { const r = await slot(); return r ? r : null; }, 120000, 2000);
+  // Setup's last screens, as a student goes through them once the first sync is in (else Halo+ would ask for setup's
+  // own sync again later, in the middle of this test).
+  for (let k = 0; k < 6; k++) {
+    if (await dash.locator('.now-head').count()) break;
+    const next = dash.locator('.onboard-payoff .btn.primary, button:has-text("Not now"), button:has-text("Skip"), button:has-text("Maybe later")').first();
+    if (await next.count()) await next.click({ timeout: 4000 }).catch(() => undefined);
+    await sleep(1500);
+  }
+  await until(async () => !(await store(['running'])).running, 90000, 1500);
   await dash.close();
-  const t1 = Date.now();
-  // Nothing here starts a sync: the alarm has to fire on its own (a minute after the plan arrived, then every 30 s here).
-  const landed = await until(async () => { const r = await slot(); return r && Date.parse(r.created_at) > t1 - 5000 ? r : null; }, 180000, 2000);
+  // The alarm skips a run within 30 minutes of a sync (a Sync now a moment ago already did it): that first sync is
+  // made older, so the next alarm is the one that runs.
+  // (After the extension has written that sync's own time: the row lands on the server a moment before.)
+  await until(async () => { const st = await store(['lastSyncAt', 'running']); return !st.running && st.lastSyncAt && firstLanded && Date.parse(st.lastSyncAt) >= Date.parse(firstLanded.created_at) - 120_000; }, 60000, 1000);
+  await onWorker(async () => { await chrome.storage.local.set({ lastSyncAt: new Date(Date.now() - 60 * 60_000).toISOString() }); });
+  const t1 = Math.max(Date.now(), firstLanded ? Date.parse(firstLanded.created_at) + 1000 : 0);
+  // Nothing after that starts a sync: the alarm has to fire on its own (a minute after the plan arrived, then every 30 s
+  // here).
+  const landed = await until(async () => { const r = await slot(); return r && Date.parse(r.created_at) > t1 && r.auto === 'true' ? r : null; }, 180000, 2000);
   check(!!landed && landed.auto === 'true' && landed.source === 'extension', `the alarm fired on its own, the popup never opened, and the sync landed in the account (auto ${landed?.auto}, ${landed ? Math.round((Date.parse(landed.created_at) - t1) / 1000) : '–'} s)`);
   check(halo.classCalls > 0, `it ran in the Halo tab that was open before the install (Halo read ${halo.classCalls}×)`);
   worker = ctx.serviceWorkers().find((w) => w.url().startsWith(`chrome-extension://${extId}/`)) ?? worker;
@@ -137,16 +155,33 @@ try {
   }
   const s2 = await store(['lastErrorKind', 'autoPaused', 'deviceId']);
   check(s2.lastErrorKind === 'logged-out' && s2.autoPaused?.why === 'logged-out', `a scheduled sync on a logged-out Halo pauses auto-sync (${JSON.stringify(s2.autoPaused)})`);
-  await sleep(4000);
-  const { data: reports } = await admin.from('error_events').select('title, place, ext_version, device_id, created_at').eq('kind', 'extension').eq('device_id', s2.deviceId ?? deviceId).gte('created_at', since);
-  const paused = (reports ?? []).filter((r) => /auto-sync paused: logged out of Halo/i.test(r.title));
+  const pausedReports = async () => ((await admin.from('error_events').select('title, place, ext_version, device_id, created_at').eq('kind', 'extension').eq('device_id', s2.deviceId ?? deviceId).gte('created_at', since)).data ?? []).filter((r) => /auto-sync paused: logged out of Halo/i.test(r.title));
+  await until(async () => (await pausedReports()).length > 0, 30000, 2000);
+  await sleep(3000);
+  const paused = await pausedReports();
   check(paused.length === 1, `Admin → Errors gets it once for the stretch, not per run (${paused.length}: "${paused[0]?.title}")`);
+  if (process.env.TRACE) for (let k = 0; k < 8; k++) { console.log('  t', k, JSON.stringify(await store(['autoPaused', 'running', 'runningAuto', 'runningSetup', 'lastAttemptAt', 'lastSyncAt', 'setup']))); await sleep(1500); }
   const d2 = await ctx.newPage();
+  if (process.env.TRACE) d2.on('console', (m) => console.log('  d2', m.text().slice(0, 120)));
   await d2.goto('https://haloplus.app/#/now', { waitUntil: 'load' });
+  // The first sync landed while Halo+ was closed: setup's payoff comes first, and a student presses on to Now.
+  for (let k = 0; k < 5; k++) {
+    if (await d2.locator('.autosync-paused').count()) break;
+    const next = d2.locator('.onboard-payoff .btn.primary, button:has-text("Not now"), button:has-text("Skip"), button:has-text("Maybe later")').first();
+    if (await next.count()) await next.click({ timeout: 4000 }).catch(() => undefined);
+    await sleep(1500);
+  }
   const note = await until(() => d2.locator('.autosync-paused').innerText().catch(() => null), 30000);
   check(/Auto-sync paused: log in to Halo\./.test(note ?? ''), `Halo+ says so on Now: "${(note ?? '').replace(/\s+/g, ' ')}"`);
-  await d2.locator('.autosync-paused').scrollIntoViewIfNeeded();
-  await d2.screenshot({ path: `${OUT}/autosync-paused-now.png` });
+  if (process.env.TRACE) for (let k = 0; k < 4; k++) { console.log('  after', k, JSON.stringify(await store(['autoPaused', 'running', 'runningAuto', 'runningSetup', 'lastAttemptAt', 'lastSyncAt']))); await sleep(1000); }
+  if (!note) {
+    await d2.screenshot({ path: `${OUT}/debug-no-note.png` });
+    console.log('  page:', (await d2.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 400));
+    console.log('  slot:', await d2.evaluate(() => localStorage.getItem('school-dashboard:ext-status')), 'ext:', JSON.stringify(await store(['autoPaused', 'running', 'lastErrorKind'])), 'synced line:', await d2.locator('.synced').count());
+  } else {
+    await d2.locator('.autosync-paused').scrollIntoViewIfNeeded().catch(() => undefined);
+    await d2.screenshot({ path: `${OUT}/autosync-paused-now.png` });
+  }
 
   // 3. Logged in again and Halo opened: a sync runs by itself, and the note goes.
   halo.loggedOut = false;

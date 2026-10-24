@@ -14,3 +14,4 @@ dist-site
 dist-e2e2/
 tsconfig.tsbuildinfo
 webstore-upload/
+.scratch/

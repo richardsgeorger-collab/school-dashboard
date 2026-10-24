@@ -67,13 +67,19 @@ export interface Grant {
 
 /** This account's own queued or running rewards (an invitee's month of Plus after the free trial, for one). */
 export function useMyGrants(): Grant[] {
-  const { auth } = useAccount();
+  const { auth, profile } = useAccount();
   const [g, setG] = useState<Grant[]>([]);
+  // Read again when the trial's end moves (the first sync, a day of use): queued credit moves with it (0042).
+  const trialEnd = profile?.trialEndsAt ?? null;
   useEffect(() => {
     const c = supabase();
     if (!c || !auth.session) return;
-    void c.rpc('my_referrals').then(({ data }) => data && setG(((data as { grants?: Grant[] }).grants ?? []) as Grant[]));
-  }, [auth.session]);
+    let live = true;
+    void c.rpc('my_referrals').then(({ data }) => live && data && setG(((data as { grants?: Grant[] }).grants ?? []) as Grant[]));
+    return () => {
+      live = false;
+    };
+  }, [auth.session, trialEnd]);
   return g;
 }
 

@@ -1,12 +1,14 @@
-// The popup: when Halo+ last synced and when it syncs next, a big Sync now with real progress, plain errors, and a link
-// to Halo+ (George, 2026-09-30). Everything is read from the worker's storage, so it stays current while it is open.
-import { DASH_ORIGIN, PERIOD_MINUTES } from './config.js';
+// The popup (0.9.0, George 2026-10-23): Halo+ and the plan, the next graded thing, when the account last took a sync,
+// Sync now with real progress, plain errors, the "Show Halo+ on Halo pages" switch, Open Halo+. Nothing empty.
+// "Last synced" has one source of truth: the account's last applied sync, as Halo+ itself shows it (sync-drop answers
+// it for this computer's key). 0.8.0 showed this extension's own clock, so it said 9:59 PM while Halo+ said 8:12 PM.
+import { DASH_ORIGIN, DROP_URL, PERIOD_MINUTES } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const PAID = ['plus', 'pro', 'max'];
 // Auto-sync is Plus and Max (2026-10-04; Max only from 2026-10-01). Free has no Halo sync: the popup says so.
 const AUTO = ['plus', 'max'];
-const PLAN_NAMES = { plus: 'Plus', pro: 'Pro', max: 'Max' };
+const PLAN_NAMES = { free: 'Free', plus: 'Plus', pro: 'Pro', max: 'Max' };
 $('open').href = `${DASH_ORIGIN}/#/now`;
 
 const time = (d) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -74,8 +76,66 @@ function renderSetup(s) {
   }
 }
 
+/** The account's own answer, kept so the popup opens with it while a fresh one is asked for. */
+let server = null;
+let asking = null;
+let reasks = 0;
+async function askServer(key) {
+  if (!key || asking) return asking;
+  asking = fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key, status: true }) })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((j) => {
+      if (j && j.ok) {
+        server = { appliedAt: j.appliedAt, lastDropAt: j.lastDropAt, takenAt: j.takenAt, at: new Date().toISOString() };
+        void chrome.storage.local.set({ serverStatus: server });
+        // A sync that reached the account but has not gone in yet: an open Halo+ applies it within seconds, so ask
+        // again every 5 seconds for a minute while the popup is open.
+        const pending = j.lastDropAt && (!j.appliedAt || Date.parse(j.lastDropAt) - Date.parse(j.appliedAt) > 2 * 60_000);
+        if (pending && reasks < 12) {
+          reasks += 1;
+          setTimeout(() => void askServer(key), 5000);
+        }
+      }
+    })
+    .catch(() => undefined)
+    .finally(() => {
+      asking = null;
+      void render();
+    });
+  return asking;
+}
+
+/** "Last synced 8:12 PM", or a sync that came in but did not go in, said plainly. */
+function lastLine(s) {
+  const st = server || s.serverStatus || null;
+  if (!s.syncKey) return s.lastSyncAt ? 'Open Halo+ once on this computer to see your account\'s last sync here.' : 'Not synced yet.';
+  if (!st) return '';
+  const applied = st.appliedAt ? Date.parse(st.appliedAt) : 0;
+  const dropped = st.lastDropAt ? Date.parse(st.lastDropAt) : 0;
+  const head = applied ? `Last synced <b>${when(st.appliedAt)}</b>` : 'Not synced yet';
+  // A sync that arrived well after the last one that went in (10 minutes covers read time vs. arrival).
+  if (dropped && dropped - applied > 10 * 60_000) {
+    const at = when(st.lastDropAt);
+    return `${head}<span class="next">${st.takenAt ? `A sync at ${at} reached Halo+ but didn't go in. Open Halo+ to see it.` : `A sync at ${at} is waiting. It goes in the next time Halo+ is open.`}</span>`;
+  }
+  return head;
+}
+
+/** Next up: the most important graded thing, from what Halo+ and the last sync know. */
+function renderNext(s) {
+  const M = globalThis.HaloPlusModel;
+  const view = M && M.merge(s.haloSnap, s.haloLive);
+  const p = view && view.plan !== 'free' ? M.peek(view, Date.now()) : null;
+  $('next').hidden = !p;
+  if (!p) return;
+  $('nextTitle').textContent = p.title;
+  $('nextMeta').textContent = [p.code, p.when, p.pts ? `${p.pts} pts` : ''].filter(Boolean).join(' · ');
+  $('next').dataset.tone = p.tone === 'red' ? 'red' : '';
+  $('next').href = M.link(DASH_ORIGIN, p, 'popup');
+}
+
 async function render() {
-  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey', 'setup']);
+  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey', 'setup', 'haloSnap', 'haloLive', 'serverStatus']);
   renderSetup(s);
   // "Syncing" is believed only while Halo keeps talking: two minutes of nothing is a sync that stopped (0.6.6).
   const stuck = !!s.running && Date.now() - Date.parse(s.progressAt || s.runningSince || 0) > STUCK_MS;
@@ -84,14 +144,16 @@ async function render() {
   const paid = PAID.includes(s.tier);
   const auto = AUTO.includes(s.tier);
 
-  $('plan').hidden = !paid;
-  $('plan').textContent = PLAN_NAMES[s.tier] ?? '';
+  $('plan').hidden = !s.tier;
+  $('plan').textContent = PLAN_NAMES[s.tier] ?? 'Free';
+  renderNext(s);
 
-  const last = s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b>` : 'Not synced from here yet';
+  const last = lastLine(s);
   // Never earlier than three hours after the last sync: an alarm that fires sooner skips (synced recently).
   const nextAt = alarm ? Math.max(alarm.scheduledTime, s.lastSyncAt ? new Date(s.lastSyncAt).getTime() + PERIOD_MINUTES * 60_000 : 0) : null;
-  const next = auto && nextAt ? `<span class="next">Next sync around ${when(new Date(nextAt).toISOString())}</span>` : '';
-  $('status').innerHTML = s.running ? (s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b><span class="next">Syncing now</span>` : 'Syncing now') : last + next;
+  const next = auto && nextAt && !/span/.test(last) ? `<span class="next">Syncs on its own, next around ${when(new Date(nextAt).toISOString())}</span>` : '';
+  $('status').innerHTML = s.running ? `${last.replace(/<span.*$/, '')}<span class="next">Syncing now</span>` : last + next;
+  $('status').hidden = !$('status').innerHTML;
   // Free: Halo sync (and auto-sync) is part of Plus. Nothing to say on Plus or Max, or before the plan is known.
   $('plus').hidden = auto || !s.tier;
   $('plusText').textContent = 'Halo sync, on its own every 3 hours, is part of Plus.';
@@ -101,7 +163,7 @@ async function render() {
   $('sync').disabled = !!s.running;
   $('sync').textContent = s.running ? 'Syncing…' : stuck ? 'Try again' : 'Sync now';
   $('sync').dataset.force = stuck ? '1' : '';
-  if (stuck) $('status').innerHTML = `${s.lastSyncAt ? `Last synced <b>${when(s.lastSyncAt)}</b>` : 'Not synced from here yet'}<span class="next">The last sync stopped partway: nothing came from Halo for 2 minutes.</span>`;
+  if (stuck) $('status').innerHTML = `${last.replace(/<span.*$/, '')}<span class="next">The last sync stopped partway: nothing came from Halo for 2 minutes.</span>`;
   $('progress').hidden = !s.running;
   if (s.running) {
     const f = fraction(s.progress);
@@ -110,7 +172,7 @@ async function render() {
     $('step').textContent = s.progress || 'Opening Halo…';
   }
 
-  // A problem is shown until a later sync lands. "Last synced" above is only ever a sync that reached the account.
+  // A problem is shown until a later sync lands.
   const problem = !s.running && s.lastError && (!s.lastSyncAt || !s.lastErrorAt || s.lastErrorAt > s.lastSyncAt);
   // Without the account's key a sync can only land in an open Halo+ tab: said once, calmly, until Halo+ is opened.
   const noKey = !s.running && !problem && paid && !s.syncKey;
@@ -130,6 +192,8 @@ async function render() {
     $('problemAction').hidden = !action;
     if (action) [$('problemAction').textContent, $('problemAction').href] = action;
   }
+  // The account's answer, asked once on open and again after each sync this computer ran.
+  if (s.syncKey && (!server || (s.lastSyncAt && Date.parse(s.lastSyncAt) > Date.parse(server.at)))) void askServer(s.syncKey);
 }
 
 $('sync').addEventListener('click', async () => {

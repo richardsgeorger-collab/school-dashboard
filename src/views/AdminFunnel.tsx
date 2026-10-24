@@ -86,10 +86,12 @@ interface Presence {
   opens_by: Record<string, number>;
 }
 const PRESENCE: [string, string][] = [
-  ['card-shown', 'Card shown'],
-  ['card-closed', 'Card closed without a click'],
-  ['card-click', 'Card clicked'],
-  ['next-shown', '"Nice. Next" shown'],
+  // 0.9.0 counts the peek under 0.8.0's card names, so the numbers carry on.
+  ['card-shown', 'Peek shown (card before 0.9.0)'],
+  ['card-closed', 'Peek closed without a click'],
+  ['card-click', 'Peek clicked'],
+  ['next-shown', '"Nice. Next up" shown'],
+  ['pill-hover', 'Pill list opened'],
   ['pill-click', 'Pill clicked'],
   ['class-click', 'Class line clicked'],
   ['box-shown', 'Assignment box shown'],

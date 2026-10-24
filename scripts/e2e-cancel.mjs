@@ -34,6 +34,17 @@ try {
   const c = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
   const { data: s } = await c.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  // Since Stripe went live (2026-09-30) the deployed stripe-portal runs on the live key and rightly finds no test-mode
+  // customer ("No plan to manage yet"). Tests stay in test mode, so the app's call is answered here with the session
+  // that function makes (the same flow_data, for the subscription in the account's row), created on the sandbox key.
+  let portalBody = null;
+  await page.route(/functions\/v1\/stripe-portal/, async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    portalBody = route.request().postDataJSON();
+    const back = `${portalBody.returnTo}#/you?s=plan`;
+    const session = stripe(['billing_portal', 'sessions', 'create', '--customer', customer.id, '--return-url', back, '-d', 'flow_data[type]=subscription_cancel', '-d', `flow_data[subscription_cancel][subscription]=${sub.id}`, '-d', 'flow_data[after_completion][type]=redirect', '-d', `flow_data[after_completion][redirect][return_url]=${back}`]);
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ url: session.url }) });
+  });
   await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' });
   await page.evaluate(({ s, key }) => { localStorage.setItem(key, JSON.stringify(s)); const d = JSON.parse(localStorage.getItem('school-dashboard:v1') ?? 'null'); if (d) { d.settings.onboarding = { startedAt: 'x', step: 'done', doneAt: 'x', skippedAt: null, tourDoneAt: 'x' }; d.settings.lastPull ??= { at: new Date().toISOString(), build: null, counts: { classes: 0, assessments: 0 }, via: 'extension' }; localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); } }, { s: s.session, key: `sb-${ref}-auth-token` });
   await page.goto(`${BASE}#/you`, { waitUntil: 'networkidle' }); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3000);
@@ -45,7 +56,7 @@ try {
   check(!!btn, 'You shows "Cancel plan" beside Manage plan');
   await page.screenshot({ path: 'docs/screens/frozen/you-cancel.png' });
   const [url] = await Promise.all([page.waitForURL(/billing\.stripe\.com/, { timeout: 20000 }).then(() => page.url()).catch(() => null), btn?.click()]);
-  check(!!url, `one click opens Stripe's portal: ${url?.slice(0, 60)}`);
+  check(!!url && portalBody?.flow === 'cancel', `one click asks for the cancel flow and opens Stripe's portal: ${url?.slice(0, 60)}`);
   await page.waitForTimeout(4000);
   const text = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ')).catch(() => '');
   check(/cancel/i.test(text) && /4\.99/.test(text), `it opens on the cancel confirmation for Plus ($4.99): ${text.slice(0, 140)}`);

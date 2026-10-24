@@ -1,5 +1,7 @@
 import { dateOf } from '../domain/dates';
 import { rankItems } from '../domain/now';
+import { isParticipation } from '../domain/participation';
+import { participationThisWeek } from '../domain/participationWeek';
 import type { Schedule } from '../domain/schedule';
 import { shortLine } from '../domain/shortLine';
 import type { Course, Item, Settings } from '../domain/types';
@@ -36,6 +38,8 @@ export interface HaloSnapItem {
   xs?: string[];
   /** The due date before an announcement moved it. */
   m?: string;
+  /** Participation (a day's post, a weekly check-in): never drives urgency on Halo's pages (2026-10-23). */
+  pa?: 1;
 }
 
 export interface HaloSnapClass {
@@ -62,6 +66,8 @@ export interface HaloSnap {
   top: string | null;
   /** Things announcements added that the assignments do not say, on work still open. */
   hidden: number;
+  /** Participation posts left this week, as Now says it ("Participation this week: 3 left"); null when none is due. */
+  pw: number | null;
   items: HaloSnapItem[];
   classes: HaloSnapClass[];
 }
@@ -103,9 +109,12 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
       x: open ? extras.length : 0,
       ...(open && extras.length ? { xs: extras.slice(0, 3).map((r) => shortLine(r.text)) } : {}),
       ...(moved ? { m: new Date(moved).toISOString() } : {}),
+      ...(isParticipation(i) ? { pa: 1 as const } : {}),
     };
   });
-  const top = rankItems(work.filter((i) => !isWorkDone(i)), input.schedule, now, tz)[0]?.id ?? null;
+  // Halo+'s do-now pick among graded work: participation never leads on Halo's pages.
+  const top = rankItems(work.filter((i) => !isWorkDone(i) && !isParticipation(i) && (i.points || 0) > 0), input.schedule, now, tz)[0]?.id ?? null;
+  const week = participationThisWeek(input.items.filter((i) => live.has(i.courseId)), input.courses, today, tz, now);
   return {
     v: 1,
     at: now,
@@ -116,6 +125,7 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
     tz,
     top,
     hidden,
+    pw: week.length ? week.reduce((n, e) => n + e.left, 0) : null,
     items: items.sort((a, b) => a.due.localeCompare(b.due)),
     classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null })),
   };

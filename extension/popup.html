@@ -8,7 +8,7 @@
   </head>
   <body>
     <header class="head">
-      <img class="mark" src="icon.svg" alt="" width="28" height="28" />
+      <img class="mark" src="icon.svg" alt="" width="26" height="26" />
       <span class="word">Halo+</span>
       <span id="plan" class="plan" hidden></span>
     </header>
@@ -21,29 +21,38 @@
       <button id="setupAlt" class="setup-alt" type="button" hidden></button>
     </section>
 
-    <div id="normal">
-    <p id="status" class="status" aria-live="polite"></p>
+    <main id="normal">
+      <a id="next" class="next-up" target="_blank" hidden>
+        <span class="eyebrow">Next up</span>
+        <span id="nextTitle" class="next-title"></span>
+        <span id="nextMeta" class="next-meta"></span>
+      </a>
 
-    <button id="sync" class="sync" type="button">Sync now</button>
-    <div id="progress" class="progress" hidden>
-      <div class="bar"><i id="fill"></i></div>
-      <p id="step" class="step"></p>
-    </div>
+      <p id="status" class="status" aria-live="polite"></p>
 
-    <div id="problem" class="problem" role="alert" hidden>
-      <p id="problemText"></p>
-      <a id="problemAction" class="problem-action" target="_blank" hidden></a>
-    </div>
+      <button id="sync" class="sync" type="button">Sync now</button>
+      <div id="progress" class="progress" hidden>
+        <div class="bar"><i id="fill"></i></div>
+        <p id="step" class="step"></p>
+      </div>
 
-    <p id="plus" class="plus" hidden><span id="plusText"></span> <a id="upgrade" class="upgrade" target="_blank"></a></p>
+      <div id="problem" class="problem" role="alert" hidden>
+        <p id="problemText"></p>
+        <a id="problemAction" class="problem-action" target="_blank" hidden></a>
+      </div>
 
-    </div>
+      <p id="plus" class="plus" hidden><span id="plusText"></span> <a id="upgrade" class="upgrade" target="_blank"></a></p>
+    </main>
 
-    <label class="toggle"><input id="onHalo" type="checkbox" /> <span>Show Halo+ on Halo pages</span></label>
+    <label class="toggle">
+      <span>Show Halo+ on Halo pages</span>
+      <input id="onHalo" type="checkbox" role="switch" />
+    </label>
 
     <footer class="foot">
       <a id="open" class="open" target="_blank">Open Halo+</a>
     </footer>
+    <script src="halo-model.js"></script>
     <script type="module" src="popup.js"></script>
   </body>
 </html>

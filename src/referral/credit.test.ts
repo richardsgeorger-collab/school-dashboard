@@ -11,13 +11,13 @@ const trial = { trialEndsAt: weekEnds, rewardTier: null, rewardUntil: null };
 describe('Plus credit from invites', () => {
   it('an invited friend: 30 days, starting the moment the Max week ends', () => {
     const c = plusCredit([g(weekEnds, '2026-11-06T19:46:00.000Z', 'referral:invitee')], trial, now)!;
-    expect(creditLine(c, tz)).toBe('Plus credit: 30 days, starts Oct 7 when your Max week ends.');
+    expect(creditLine(c, tz)).toBe('Plus credit: 30 days, starts Oct 7 when your free trial ends.');
     expect(creditSource(c)).toBe("From your friend's invite.");
   });
   it('an inviter with two friends: one stretch of 60 days, never the first 30 alone', () => {
     const c = plusCredit([g(weekEnds, '2026-11-06T19:46:00.000Z'), g('2026-11-06T19:46:00.000Z', '2026-12-06T19:46:00.000Z')], trial, now)!;
     expect(c.days).toBe(60);
-    expect(creditLine(c, tz)).toBe('Plus credit: 60 days, starts Oct 7 when your Max week ends, through Dec 6.');
+    expect(creditLine(c, tz)).toBe('Plus credit: 60 days, starts Oct 7 when your free trial ends, through Dec 6.');
     expect(creditSource(c)).toBe('For the friends you invited.');
   });
   it('running now (the free week long over): days left and the end', () => {

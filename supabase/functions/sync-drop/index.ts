@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       return reply(origin, 400, { ok: false, why: 'The sync arrived damaged. Press Sync now to try again.' });
     }
     if (raw.length > MAX_BYTES) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
-    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown };
+    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown };
     try {
       body = JSON.parse(raw);
     } catch {
@@ -55,6 +55,20 @@ Deno.serve(async (req) => {
     const key = typeof body.key === 'string' ? body.key : '';
     const p = body.payload as { kind?: unknown; version?: unknown; classes?: unknown; exportedAt?: unknown; auto?: unknown } | null;
     if (!/^[a-f0-9]{48}$/.test(key)) return reply(origin, 401, { ok: false, why: 'This bookmark has no valid sync key. Get the bookmark again from Halo+.' });
+    // The extension popup's "Last synced" (0.9.0, George 2026-10-23: it said 9:59 PM while Halo+ said 8:12 PM): the
+    // account's last applied sync, as Halo+ shows it, and the newest sync that arrived and whether Halo+ has taken it.
+    // Times only; the key still reads nothing of the student's classes.
+    if (body.status === true) {
+      const db0 = admin();
+      const { data: who } = await db0.from('sync_keys').select('user_id').eq('key', key).maybeSingle();
+      if (!who) return reply(origin, 401, { ok: false, why: 'This sync key was reset. Open Halo+ once on this computer.' });
+      const [{ data: st }, { data: drop }] = await Promise.all([
+        db0.from('settings').select('data').eq('user_id', who.user_id).maybeSingle(),
+        db0.from('pending_syncs').select('created_at, consumed_at').eq('user_id', who.user_id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      const pull = (st?.data as { lastPull?: { at?: string; via?: string } } | null)?.lastPull ?? null;
+      return reply(origin, 200, { ok: true, appliedAt: pull?.at ?? null, via: pull?.via ?? null, lastDropAt: drop?.created_at ?? null, takenAt: drop?.consumed_at ?? null });
+    }
     if (!p || p.kind !== 'halo-export' || p.version !== 1 || !Array.isArray(p.classes) || typeof p.exportedAt !== 'string') return reply(origin, 400, { ok: false, why: 'The bookmark sent something that was not an export.' });
     const db = admin();
     const { data: owner } = await db.from('sync_keys').select('user_id').eq('key', key).maybeSingle();

@@ -43,9 +43,9 @@ export function plusCredit(grants: CreditGrant[], p: { trialEndsAt: string | nul
   return { start, end, days, running, after, from: invited && inviting ? 'both' : invited ? 'invited' : 'inviting' };
 }
 
-const WHY = { trial: 'when your Max week ends', gift: 'when your free Max ends', paid: 'when your paid plan ends' } as const;
+const WHY = { trial: 'when your free trial ends', gift: 'when your free Max ends', paid: 'when your paid plan ends' } as const;
 
-/** "Plus credit: 30 days, starts Oct 7 when your Max week ends." One line, the same on You and in the trial sheet. */
+/** "Plus credit: 30 days, starts Oct 7 when your free trial ends." One line, the same on You and in the trial sheet. */
 export function creditLine(c: PlusCredit, tz: string): string {
   const day = (iso: string) => fmtDate(dateOf(iso, tz), 'short');
   if (c.running) return `Plus credit: on now, ${c.days} day${c.days === 1 ? '' : 's'} left, until ${day(c.end)}.`;

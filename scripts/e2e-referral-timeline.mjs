@@ -96,12 +96,13 @@ try {
 
   console.log('\n=== 4b. what they see');
   const sf = await screens(f1, 'friend');
-  const line = /Plus credit: 30 days, starts [A-Z][a-z]{2} \d{1,2} when your Max week ends\./;
+  if (process.env.TRACE) { await timeline(f1, 'Friend 1 after their screens'); console.log('   ', JSON.stringify(await profile(f1)), sf.all.slice(0, 300)); }
+  const line = /Plus credit: 30 days, starts [A-Z][a-z]{2} \d{1,2} when your free trial ends\./;
   check(line.test(sf.you) && /From your friend's invite/.test(sf.you), `friend, You: "${sf.you.match(/Plus credit:[^.]*\./)?.[0]}"`);
   check(line.test(sf.sheet), `friend, trial sheet: "${sf.sheet.match(/Plus credit:[^.]*\./)?.[0]}"`);
   check(!/go back to Free|only Plus|Plus instead/i.test(sf.all), 'nothing on the friend\'s screens says they only get Plus or go back to Free');
   const si = await screens(inviter, 'inviter');
-  check(/Plus credit: 60 days, starts [A-Z][a-z]{2} \d{1,2} when your Max week ends, through [A-Z][a-z]{2} \d{1,2}\./.test(si.you) && /For the friends you invited/.test(si.you), `inviter, You: "${si.you.match(/Plus credit:[^.]*\./)?.[0]}"`);
+  check(/Plus credit: 60 days, starts [A-Z][a-z]{2} \d{1,2} when your free trial ends, through [A-Z][a-z]{2} \d{1,2}\./.test(si.you) && /For the friends you invited/.test(si.you), `inviter, You: "${si.you.match(/Plus credit:[^.]*\./)?.[0]}"`);
   check(/Plus credit: 60 days/.test(si.sheet) && /From the friends you invited/.test(si.sheet), `inviter, trial sheet: "${si.sheet.match(/Plus credit:[^.]*\./)?.[0]}"`);
 
   console.log('\n=== 4. inviter whose free week ended long ago (on Free)');

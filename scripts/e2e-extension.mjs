@@ -30,6 +30,10 @@ const newUser = async (free = false) => {
   const { data } = await admin.auth.admin.createUser({ email, email_confirm: true });
   made.push(data.user.id);
   if (free) await admin.from('profiles').update({ tier: 'free', trial_started_at: new Date(Date.now() - 20 * 86_400_000).toISOString(), trial_ends_at: new Date(Date.now() - 13 * 86_400_000).toISOString() }).eq('user_id', data.user.id);
+  // Synced once already, set up (since 0.7.6 opening Halo+ on an account that never synced starts its first sync, and
+  // the popup shows setup's own view; this test is about the everyday popup and Sync now).
+  const at = new Date(Date.now() - 4 * 3_600_000).toISOString();
+  await admin.from('settings').upsert({ user_id: data.user.id, updated_at: at, data: { timezone: 'America/Phoenix', lastPull: { at, via: 'extension' }, onboarding: { startedAt: at, step: 'done', doneAt: at, skippedAt: null, tourDoneAt: at }, maxOnboarding: { startedAt: at, step: 'done', doneAt: at }, upgradeSeen: { plus: at, max: at }, notifyAsk: { askedAt: at, answer: 'no' }, updatedAt: at } });
   const { data: link } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
   const c = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
   const { data: s } = await c.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
@@ -119,6 +123,8 @@ try {
       const secs = Math.round((Date.now() - t0) / 1000);
       await p.waitForTimeout(2500);
       await p.screenshot({ path: `${OUT}/popup-${scheme}-3-after.png` });
+      // "Last synced" is the account's applied sync (0.9.0): the open Halo+ tab applies it a moment after it lands.
+      await until(async () => !/waiting|didn't go in/.test(await p.$eval('#status', (e) => e.innerText)), 20_000);
       const status = await p.$eval('#status', (e) => e.innerText);
       const st = await worker.evaluate(() => chrome.storage.local.get(['lastSyncAt', 'lastError']));
       const codes = await cloudCodes(u.id);
@@ -126,7 +132,7 @@ try {
         check(!/mono|Menlo|Courier/i.test(font) && /Inter/.test(font), `the popup uses the app's font: ${font.split(',')[0]}`);
         check(mid.disabled && /Reading|Checking|rubric|Finishing/i.test(mid.step), `while it runs: real progress ("${mid.step}", bar ${mid.fill || 'moving'})`);
         check(!st.lastError && codes.join() === 'CHM-113,CHM-113L', `Sync now finished a ${secs}s sync with no error; classes landed: ${codes.join(', ')}`);
-        check(/^Last synced \d{1,2}:\d{2}\s?[AP]M\s*Next sync around (?:[A-Z][a-z]{2} \d{1,2}, )?\d{1,2}:\d{2}\s?[AP]M$/.test(status), `the popup says "${status}"`);
+        check(/^Last synced \d{1,2}:\d{2}\s?[AP]M\s*Syncs on its own, next around (?:[A-Z][a-z]{2} \d{1,2}, )?\d{1,2}:\d{2}\s?[AP]M$/.test(status), `the popup says "${status}"`);
         // Three hours on, never the same minute (the first alarm after install was a minute out).
         const mins = [...status.matchAll(/(\d{1,2}):(\d{2})\s?([AP])M/g)].map(([, h, m, ap]) => ((Number(h) % 12) + (ap === 'P' ? 12 : 0)) * 60 + Number(m));
         const gap = mins.length === 2 ? (mins[1] - mins[0] + 1440) % 1440 : -1;
@@ -205,7 +211,8 @@ try {
     check(pend.length === 1 && !pend[0].consumed_at && pend[0].payload?.source === 'extension' && !st.waiting && dashTabs === 0, `with Halo+ closed, the sync went to the account (${pend.length} pending, ${pend[0]?.bytes} bytes) and opened no Halo+ tab`);
     const p = await popupPage(ctx, extId);
     const status = await p.$eval('#status', (e) => e.innerText.replace(/\s+/g, ' '));
-    const lastWhen = status.match(/Last synced (\d{1,2}:\d{2}\s?[AP]M)/)?.[1] ?? null;
+    // 0.9.0: "Last synced" is the account's applied sync; this one is waiting for Halo+, said with the time it was read.
+    const lastWhen = status.match(/A sync at (\d{1,2}:\d{2}\s?[AP]M) is waiting/)?.[1] ?? null;
     check(st.lastLanded === 'account' && !!st.lastSyncAt && !st.lastError && !!lastWhen, `the popup says "${status}" (landed in the account)`);
     await p.screenshot({ path: `${OUT}/popup-landed-closed.png` });
     await p.close();
@@ -218,13 +225,18 @@ try {
     check(codes.join() === 'CHM-113,CHM-113L' && !!taken, `opening Halo+ took it from the account and applied it: ${codes.join(', ')}`);
     const line = await again.$eval('.synced', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '');
     await again.screenshot({ path: `${OUT}/now-after-closed-sync.png` });
-    check(/via extension/.test(line) && !!lastWhen && line.includes(lastWhen), `Now says "${line}", the time Halo was read (popup: ${lastWhen})`);
+    // Now says a recent sync's time as "N min ago"; read a minute before it was applied, not the minute it was applied.
+    check(/via extension/.test(line) && !!lastWhen && (line.includes(lastWhen) || /\b[1-9] min ago\b/.test(line)), `Now says "${line}", the time Halo was read (popup: ${lastWhen})`);
     await ctx.close();
   }
   if (!ONLY || ONLY === 'nokey') {
     // An extension that has never seen this account's Halo+: the sync cannot land, and it says so plainly.
     const u = await newUser();
     const { ctx, calls, worker, extId } = await open(u);
+    // Since 0.7.6 an install opens Halo+, and a signed-in Halo+ tab hands the extension its key: closed first, so the
+    // extension really has never seen this account.
+    await new Promise((r) => setTimeout(r, 2500));
+    for (const pg of ctx.pages()) if (pg.url().startsWith('https://haloplus.app')) await pg.close().catch(() => undefined);
     await worker.evaluate(async () => { await chrome.storage.local.set({ tier: 'max' }); await chrome.storage.local.remove('syncKey'); });
     await fireAlarm(worker);
     await until(async () => calls.n >= 1 && !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 120_000);

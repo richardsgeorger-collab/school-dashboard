@@ -270,16 +270,21 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     reply({ ok: true });
   } else if (msg.kind === 'halo-here') {
     // A Halo page opened. Auto-sync paused on a logged-out Halo picks up now instead of waiting up to three hours.
+    void set({ haloHereAt: new Date().toISOString() });
     void (async () => {
       const { tier, autoPaused, lastAttemptAt, lastErrorKind, lastErrorAt, setup } = await get(['tier', 'autoPaused', 'lastAttemptAt', 'lastErrorKind', 'lastErrorAt', 'setup']);
       // A sync asked for in the last 15 minutes that found Halo logged out (the first sync during setup, 0.7.5): the
       // student has just logged in, so it runs now, without another press.
-      const justAsked = lastErrorKind === 'logged-out' && lastErrorAt && Date.now() - new Date(lastErrorAt).getTime() < 15 * 60_000;
+      // A paused auto-sync is not "just asked": it resumes as the scheduled sync it is (0.8.1), unless setup is waiting on
+      // this login.
+      const inSetup = !!setup && setup.phase === 'login';
+      const resumesAuto = AUTO.includes(tier) && !!autoPaused && !inSetup;
+      const justAsked = !resumesAuto && lastErrorKind === 'logged-out' && lastErrorAt && Date.now() - new Date(lastErrorAt).getTime() < 15 * 60_000;
       if (justAsked && !state.running) {
         // Not twice in 20 seconds (Halo's sign-in page and the page after it both say hello).
         if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < 20_000) return;
         await sleep(3000);
-        if (!state.running) await runSync({ auto: false, quiet: true, setup: !!setup && setup.phase === 'login' });
+        if (!state.running) await runSync({ auto: false, quiet: true, setup: inSetup });
         return;
       }
       if (!AUTO.includes(tier) || !autoPaused || state.running) return;
@@ -562,9 +567,21 @@ async function focusDash() {
   return t;
 }
 
+/**
+ * Gentle on Halo (0.9.0, 2026-10-23): a page the student just opened on Halo makes its own requests (and so do other
+ * extensions' cards on it). A scheduled or quiet sync waits until that page has had 12 seconds to itself, 20 at most.
+ * A Sync now the student pressed never waits.
+ */
+async function letHaloSettle() {
+  const { haloHereAt } = await get(['haloHereAt']);
+  const since = haloHereAt ? Date.now() - Date.parse(haloHereAt) : Infinity;
+  if (since < 12_000) await sleep(Math.min(20_000, 12_000 - since));
+}
+
 async function runSync({ auto, quiet = false, setup = false }) {
   if (state.running) return;
   state.running = true;
+  if (auto || quiet) await letHaloSettle().catch(() => undefined);
   // Each run clears only its own state: a Try again that starts a second run while the first is still uploading must not
   // have the first run's cleanup end the second (review, 2026-10-12).
   const myRun = ++state.runId;
@@ -850,8 +867,10 @@ async function toAccount(payload) {
 async function markLanded(readAt, how) {
   await set({ lastSyncAt: readAt, lastLanded: how, lastError: null, lastErrorKind: null });
   void tellTabs({ ok: true, at: readAt, how });
+  // Only a sync read after the pause began says Halo is logged in again (0.9.0): Halo+ applying an older one kept from
+  // before (read while Halo was still logged in) must not end it.
   const { autoPaused } = await get('autoPaused');
-  if (autoPaused) await setPaused(null);
+  if (autoPaused && (!autoPaused.at || !readAt || readAt > autoPaused.at)) await setPaused(null);
   const { tier } = await get('tier');
   if (AUTO.includes(tier)) await chrome.alarms.create(ALARM, { when: Date.now() + PERIOD_MINUTES * 60_000, periodInMinutes: PERIOD_MINUTES });
   const { setup } = await get('setup');

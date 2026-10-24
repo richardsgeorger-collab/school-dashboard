@@ -94,7 +94,7 @@ const Q_OVERVIEW =
  * deploying new code does not update it. Stamping the payload is the only way the app can tell the user their
  * bookmark is old rather than quietly showing them three queries' worth of data and calling it eleven.
  */
-export const BOOKMARKLET_BUILD = '2026-10-11a';
+export const BOOKMARKLET_BUILD = '2026-10-23a';
 
 /**
  * Asked only when something already failed. If the gateway allows introspection this settles every remaining
@@ -170,8 +170,9 @@ var cand=[['user.email',su.email],['jwt.email',jp&&(jp.email||jp.preferred_usern
 for(var hc=0;hc<cand.length;hc++){var hv=cand[hc][1];if(typeof hv!=='string'||!hv.trim()){continue;}if(cand[hc][0].indexOf('email')>=0&&hv.indexOf('@')<1){continue;}
 var hd=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('halo-user:'+hv.trim().toLowerCase()));
 haloUser=Array.from(new Uint8Array(hd)).map(function(x){return x.toString(16).padStart(2,'0');}).join('').slice(0,40);haloUserFrom=cand[hc][0];break;}}catch(e){haloUser='';haloUserFrom='';}
+/* Gentle on Halo (2026-10-23: a sync while the student browsed Halo once saw a request dropped, and another extension's card on Halo failed at the same moment): a request the network dropped, or Halo answering busy (429, 502, 503, 504), is tried again after a pause, twice at most. */
 var gql=async function(op,q,v){
-var r=await fetch(${JSON.stringify(GATEWAY)},{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.authToken,'ContextToken':'Bearer '+s.contextToken,'transaction-id':(crypto.randomUUID?crypto.randomUUID():String(Date.now()))},body:JSON.stringify({operationName:op,variables:v,query:q})});
+var r=null;for(var tri=0;tri<3;tri++){try{r=await fetch(${JSON.stringify(GATEWAY)},{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.authToken,'ContextToken':'Bearer '+s.contextToken,'transaction-id':(crypto.randomUUID?crypto.randomUUID():String(Date.now()))},body:JSON.stringify({operationName:op,variables:v,query:q})});}catch(ne){r=null;if(tri===2){throw ne;}}if(r&&[429,502,503,504].indexOf(r.status)<0){break;}if(tri<2){await new Promise(function(res){setTimeout(res,1500*(tri+1)+Math.floor(Math.random()*500));});}}
 var j=null;try{j=await r.json();}catch(e){}
 var fail=function(m,list){var E=new Error(m);E.op=op;E.status=r.status;E.vars=v;E.errors=list||[m];return E;};
 if(!j||j.errors){var ms=[];var el=(j&&j.errors)||[];for(var ei=0;ei<el.length;ei++){if(el[ei]&&el[ei].message){ms.push(String(el[ei].message));}}
@@ -304,7 +305,7 @@ okRub=true;}}catch(e){rubricOf={};attachOf={};okRub=false;prob(code,'rubric list
 var rubricIds=[];for(var rk in rubricOf){if(Object.prototype.hasOwnProperty.call(rubricOf,rk)){rubricIds.push(rk);}}
 rubricIds=rubricIds.slice(0,${MAX_RUBRICS});
 var rubDone=0;
-await pool(4,rubricIds,async function(rid){try{
+await pool(2,rubricIds,async function(rid){try{
 say('Reading '+code+' rubrics ('+(++rubDone)+' of '+rubricIds.length+')\\u2026');
 var RB0=await gql('AssessmentRubric',Q9,{assessmentId:rid});if(!RB0||RB0.assessmentRubric===undefined){throw noField('AssessmentRubric','assessmentRubric');}var RB=RB0.assessmentRubric;var RR=RB&&RB.rubric;
 if(RR){var crit=[];var cl=RR.criteria||[];
