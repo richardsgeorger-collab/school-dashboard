@@ -11,6 +11,9 @@
 // 0.9.1 (2026-10-24): done in Halo+ is done here (the snapshot keeps done work, and the account's own list of what is
 //   done arrives from the server, so a check-off on the phone counts on this computer too). Work with no submission in
 //   Halo (an outside tool's set, in-person work) goes quiet once its date passes: never overdue, never counted.
+// 0.9.3 (2026-10-24): today AND tomorrow. With nothing graded left today, the pill, the hover list, the peek and the
+//   badge say what is due tomorrow ("✓ Today's done · 2 due tomorrow"); "✓ All caught up" only when nothing graded is
+//   due today or tomorrow. (0.9.1 said "All done today" and "Nothing due today" with two graded items due tomorrow.)
 // - The baseline is one shape (instants rounded to the minute) whatever the source, and on first run it is only
 //   recorded: with nothing to compare against, nothing is "new". (0.8.0 compared date strings from two sources,
 //   "…06:59:59Z" from Halo and "…06:59:00.000Z" from Halo+, so every item looked moved.)
@@ -208,7 +211,7 @@
     const dueToday = later.filter((i) => dayOf(i.due, view.tz) === d);
     const tomorrow = later.filter((i) => dayDiff(d, dayOf(i.due, view.tz)) === 1);
     const upcoming = later.filter((i) => dayDiff(d, dayOf(i.due, view.tz)) > 1);
-    return { overdue, soon, dueToday, tomorrow, upcoming, later };
+    return { overdue, soon, dueToday, tomorrow, upcoming, later, todayDone: !overdue.length && !dueToday.length };
   }
 
   /** The most important real graded item: overdue first, then due within 3 hours, then Halo+'s own pick, then the soonest. */
@@ -229,8 +232,18 @@
   /** "Quiz #2 · tomorrow · 50 pts". */
   const rowLine = (r) => [r.title, r.when, r.pts ? `${r.pts} pts` : ''].filter(Boolean).join(' · ');
 
-  /** The daily peek: "Next up: Quiz #2 · tomorrow · 50 pts", or null when nothing graded is coming. */
+  /**
+   * The daily peek: "Next up: Quiz #2 · Thu · 50 pts", or null when nothing graded is coming. With today clear and
+   * graded work due tomorrow, tomorrow's first item: "Today's done. Tomorrow: First Draft of Op-Ed · 30 pts · +1 more".
+   */
   function peek(view, now) {
+    const s = standing(view, now);
+    if (s.todayDone && s.tomorrow.length) {
+      const i = (view.top && s.tomorrow.find((x) => x.id === view.top || x.h === view.top)) || s.tomorrow[0];
+      const r = row(view, i, now);
+      const more = s.tomorrow.length - 1;
+      return { ...r, text: `Today's done. Tomorrow: ${[r.title, r.pts ? `${r.pts} pts` : '', more ? `+${more} more` : ''].filter(Boolean).join(' · ')}`, tone: 'green' };
+    }
     const i = nextUp(view, now);
     if (!i) return null;
     const r = row(view, i, now);
@@ -238,15 +251,19 @@
   }
 
   /**
-   * The pill: calm (dark, gold text "Next: Quiz #2 tomorrow"); gold "N due today"; red only for graded work overdue or
-   * due within 3 hours; green "✓ All caught up" when nothing graded is due today or tomorrow.
+   * The pill: gold "N due today"; red only for graded work overdue or due within 3 hours; with today clear and graded
+   * work tomorrow, "✓ Today's done · 2 due tomorrow" (green check, gold count: `parts`); green "✓ All caught up" only
+   * when nothing graded is due today or tomorrow.
    */
   function pill(view, now) {
     const s = standing(view, now);
     if (s.overdue.length) return { tone: 'red', text: `${s.overdue.length} overdue` };
     if (s.soon.length) return { tone: 'red', text: `${dueIn(ms(s.soon[0].due) - nowMs(now))}: ${clip(title(s.soon[0]), 22)}` };
     if (s.dueToday.length) return { tone: 'gold', text: `${s.dueToday.length} due today` };
-    if (s.tomorrow.length) return { tone: 'calm', text: `Next: ${clip(title(s.tomorrow[0]), 24)} tomorrow` };
+    if (s.tomorrow.length) {
+      const parts = [{ tone: 'green', text: "✓ Today's done" }, { tone: 'gold', text: `${s.tomorrow.length} due tomorrow` }];
+      return { tone: 'green', text: parts.map((p) => p.text).join(' · '), parts };
+    }
     return { tone: 'green', text: '✓ All caught up' };
   }
 
@@ -261,18 +278,23 @@
     return `Participation: ${plural(n, 'post')} left this week`;
   }
 
-  /** The hover list: at most 3 graded rows under small headers (Overdue, Today, Tomorrow, Next), then participation. */
+  /**
+   * The hover list: at most 3 graded rows under small headers (Overdue, Today, Tomorrow, Next), then participation. With
+   * today clear and graded work tomorrow: "Today: All done ✓" (`todayDone`), then only Tomorrow's rows.
+   */
   function hoverList(view, now) {
     const s = standing(view, now);
     const groups = [];
     let room = 3;
-    for (const [head, list] of [['Overdue', s.overdue], ['Today', s.dueToday], ['Tomorrow', s.tomorrow], ['Next', s.upcoming]]) {
+    const todayDone = s.todayDone && s.tomorrow.length > 0;
+    const lists = todayDone ? [['Tomorrow', s.tomorrow]] : [['Overdue', s.overdue], ['Today', s.dueToday], ['Tomorrow', s.tomorrow], ['Next', s.upcoming]];
+    for (const [head, list] of lists) {
       if (!room || !list.length) continue;
       const rows = list.slice(0, room).map((i) => row(view, i, now));
       room -= rows.length;
       groups.push({ head, rows });
     }
-    return { groups, part: partLine(view, now) };
+    return { groups, todayDone, part: partLine(view, now) };
   }
 
   /** The line under a class card: gray by default, gold for a real extra requirement, red for graded work overdue. */
@@ -331,12 +353,15 @@
     return { line: first.join(' · '), more: parts.slice(first.length), key: itemKey(item), id: item.id, courseId: item.c && !String(item.c).startsWith('live:') ? item.c : null };
   }
 
-  /** The toolbar badge: graded work due today (and overdue), red when overdue or due within 3 hours. */
+  /**
+   * The toolbar badge: graded work due today (and overdue), red when overdue or due within 3 hours; with today clear,
+   * tomorrow's graded work (gold, `tomorrow`), like the pill.
+   */
   function badge(view, now) {
     if (!view) return null;
     const s = standing(view, now);
     const n = s.overdue.length + s.dueToday.length;
-    if (!n) return null;
+    if (!n) return s.tomorrow.length ? { text: String(s.tomorrow.length), red: false, tomorrow: true } : null;
     return { text: String(n), red: s.overdue.length > 0 || s.soon.length > 0 };
   }
 

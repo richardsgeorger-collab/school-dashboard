@@ -1,3 +1,7 @@
+// 0.9.3 (George on real Halo, Sat Oct 24): today done with graded work tomorrow says so ("✓ Today's done · 2 due
+// tomorrow", the hover's "Today: All done ✓" then Tomorrow), and the home page's class cards are Halo's CourseCard
+// (not ClassDetails), matched by their /courses/<slug> link, with Better Halo's "Upcoming Assignments" in some of them;
+// a card that would clip the line gets none.
 // Halo+ on Halo, 0.9.0 (George, 2026-10-23: 0.8.0 "looks like an ad"), in real Chrome and Edge with this repo's
 // extension. Halo's pages are stand-ins built from Halo's own code (build Jk7eKpHtXMWHqa6Y8LtAT): the home page's class
 // cards are its ClassDetails component, the class code inside an <h3> after a stage badge ("Topic 7" + the code), which is
@@ -48,10 +52,31 @@ h2{font-size:22px;margin:0 0 12px;color:#7a5ad0}
 .stage{font-size:11px;font-weight:700;background:#e9e3f8;color:#4b2e83;border-radius:4px;padding:2px 6px}
 .ClassDetails_description__x{margin:4px 0 6px;color:#424242;font-size:16px}
 .meta{font-size:12px;color:#757575}
+.CourseCard_cardContainer__ME7dH{background:#fff;border:1px solid #d6d6de;border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.CourseCard_cardContainer__ME7dH>a{color:inherit;text-decoration:none}.CourseCard_band__x{height:56px;background:linear-gradient(135deg,#4b2e83,#7a5ad0)}
+.CourseCard_body__x{padding:10px 14px 4px}.CourseCard_body__x h3{margin:0;font-size:15px}.CourseCard_body__x p{margin:2px 0 0;color:#424242}
+.CourseCard_cardContainer__ME7dH hr{border:0;border-top:1px solid #e3e3ea;margin:8px 8px}.CourseCard_foot__x{padding:0 14px 12px;font-size:12px;color:#757575}
+.better-halo-todo-list{margin:4px 14px 0;font-size:12px;color:#424242}.better-halo-todo-list b{display:block;font-size:12px;color:#4b2e83}
+.clip .CourseCard_cardContainer__ME7dH{height:100px}
+@media (prefers-color-scheme: dark){.CourseCard_cardContainer__ME7dH{background:#23232b;border-color:#3a3a46}.CourseCard_body__x p,.better-halo-todo-list{color:#c9c9d2}}
 .assess{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 18px;margin:12px 0}.assess h3{margin:0;font-size:16px}.assess p{margin:6px 0 0;color:#616161}
 .assess .row{display:flex;align-items:center;gap:12px}.btn{background:#4b2e83;color:#fff;border:0;border-radius:6px;padding:8px 14px}
 </style></head><body><div id="__next"><header><b>HALO</b><nav><a href="/">Home</a><a href="#">Calendar</a><a href="#">Inbox</a></nav></header><main>${body}</main></div></body></html>`;
-const homeHtml = () =>
+/**
+ * Halo's home page as George sees it (2026-10-24): CourseCard cards, a /courses/<slug> link around the top, a rule, the
+ * dates; Better Halo (another extension) puts "Upcoming Assignments" before the rule in some. `clip`: cards of a fixed
+ * height that hide what overflows.
+ */
+const homeHtml = (clip = false) =>
+  shell(
+    `<h2>My Classes</h2><div class="grid-cards${clip ? ' clip' : ''}">${fx.courses
+      .map(
+        (c, k) => `<div class="CourseCard_cardContainer__ME7dH"><a href="/courses/${c.slug}"><div class="CourseCard_band__x"></div><div class="CourseCard_body__x"><h3>${c.cc}</h3><p>${c.name}</p></div></a>${k < 3 ? '<div class="better-halo-todo-list"><b>Upcoming Assignments</b>Topic 7 DQ 1 · Oct 27</div>' : ''}<hr><div class="CourseCard_foot__x">Sep 8 – Dec 20 · Topic ${k + 5}</div></div>`,
+      )
+      .join('')}</div>`,
+  );
+/** Halo's ClassDetails cards (read from Halo's code, 2026-10-23), behind a "Topic N" badge: still matched by text. */
+const detailsHtml = () =>
   shell(
     `<h2>My Classes</h2><div class="grid-cards">${fx.courses
       .map(
@@ -82,9 +107,9 @@ const MORNING_TZ = (() => {
   return n === 0 ? 'Etc/GMT' : `Etc/GMT${n > 0 ? '+' : '-'}${Math.abs(n)}`;
 })();
 /**
- * The demo snapshot for one state. Everything due up to tomorrow is done first, then: calm (one graded item tomorrow),
- * gold (two today), red (one in 2 hours), green (nothing graded today or tomorrow). A participation post is always
- * overdue: it must never show.
+ * The demo snapshot for one state. Everything due up to tomorrow is done first, then: tomorrow (today clear, two graded
+ * items tomorrow), gold (two today), red (one in 2 hours), green (nothing graded today or tomorrow). A participation post
+ * is always overdue: it must never show.
  */
 function shaped(kind) {
   const s = JSON.parse(JSON.stringify(fx.snap));
@@ -94,7 +119,7 @@ function shaped(kind) {
   const tomorrow = day(NOW + 86_400_000, tz);
   for (const i of s.items) if (day(Date.parse(i.due), tz) <= tomorrow) i.done = 1;
   const open = s.items.filter((i) => !i.done && i.pts > 0);
-  if (kind === 'calm') open[0].due = iso(26);
+  if (kind === 'tomorrow') [open[0].due, open[1].due] = [iso(26), iso(27)];
   if (kind === 'gold') [open[0].due, open[1].due] = [iso(5), iso(6)];
   if (kind === 'red') open[0].due = iso(2);
   s.items.push({ id: 'demo-part-1', h: 'h-part-1', c: s.classes[0].id, t: 'BIO-181 Participation W7 Day 2', ht: 'Week 7, Day 2 Participation', due: iso(-9), hd: iso(-9), pts: 0, ty: 'discussion', done: 0, x: 0, pa: 1 });
@@ -108,7 +133,7 @@ try {
     const u = new URL(route.request().url());
     if (u.pathname.startsWith('/api/')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     const unit = /^\/courses\/([^/]+)\/course-units\//.exec(u.pathname);
-    const html = unit ? unitHtml(fx.courses.find((c) => c.slug === decodeURIComponent(unit[1])) ?? fx.courses[0]) : homeHtml();
+    const html = unit ? unitHtml(fx.courses.find((c) => c.slug === decodeURIComponent(unit[1])) ?? fx.courses[0]) : u.search.includes('details') ? detailsHtml() : homeHtml(u.search.includes('clip'));
     return route.fulfill({ status: 200, contentType: 'text/html', body: html });
   });
   await ctx.route('https://haloplus.app/**', (route) => {
@@ -133,13 +158,13 @@ try {
   const worker = await until(async () => ctx.serviceWorkers().find((w) => w.url().startsWith(`chrome-extension://${extId}/`)) ?? null, 15000);
   const store = (o) => worker.evaluate((x) => chrome.storage.local.set(x), o);
   const badge = () => worker.evaluate(async () => ({ text: await chrome.action.getBadgeText({}), color: await chrome.action.getBadgeBackgroundColor({}) }));
-  await store({ tier: 'max', lastSyncAt: new Date().toISOString(), syncKey: 'a'.repeat(48), haloSnap: shaped('calm'), haloLive: null, haloUi: null, haloUiOn: null, haloBase: null });
+  await store({ tier: 'max', lastSyncAt: new Date().toISOString(), syncKey: 'a'.repeat(48), haloSnap: shaped('tomorrow'), haloLive: null, haloUi: null, haloUiOn: null, haloBase: null });
   await sleep(1500);
   for (const pg of ctx.pages()) if (pg.url().startsWith('https://haloplus.app')) await pg.close().catch(() => undefined);
 
   for (const scheme of ['light', 'dark']) {
     const L = scheme === 'light';
-    await store({ haloUi: null, haloBase: null, haloSnap: shaped('calm') });
+    await store({ haloUi: null, haloBase: null, haloSnap: shaped('tomorrow') });
     const p = await ctx.newPage();
     await p.setViewportSize({ width: 1366, height: 860 });
     await p.emulateMedia({ colorScheme: scheme });
@@ -148,7 +173,7 @@ try {
     // ---- the peek: first visit of the day, first run (no baseline) ----
     const pk = await until(async () => { const s = await pillState(p); return s && s.peek ? s : null; }, 8000, 150);
     if (L) {
-      check(!!pk && /^Next up: .+ · tomorrow · \d+ pts$/.test(pk.text), `first visit: the pill slides out with one line: "${pk?.text}"`);
+      check(!!pk && /^Today's done\. Tomorrow: .+ · \d+ pts · \+1 more$/.test(pk.text), `first visit: the pill slides out with one line: "${pk?.text}"`);
       check(!/new|hidden|\d+ things/i.test(pk?.text ?? 'x'), 'no counts, nothing "new" on the first run');
       check(pk?.x === 'none', '× only on hover');
     }
@@ -163,8 +188,9 @@ try {
       check(!!(await pillState(p))?.peek, 'hovered, it stays out past 6 seconds');
       await leavePill(p);
       const back = await until(async () => { const s = await pillState(p); return s && !s.peek ? s : null; }, 4000, 200);
-      check(!!back && /^Next: .+ tomorrow$/.test(back.text), `then it shrinks back to the calm pill: "${back?.text}"`);
-      check(back?.tone === 'calm', 'calm: dark with gold text');
+      check(!!back && back.text === "✓ Today's done · 2 due tomorrow", `then it shrinks back to the pill: "${back?.text}"`);
+      const colors = await inLayer(p, (r) => [...r.querySelectorAll('.pill .short [data-part]')].map((e) => getComputedStyle(e).color));
+      check(back?.tone === 'green' && colors?.length === 2 && colors[0] !== colors[1], `a green check and a gold count (${colors?.join(' / ')})`);
       // The peek as it first shows, untouched (a fresh day's memory).
       await store({ haloUi: null });
       await p.reload({ waitUntil: 'load' });
@@ -180,11 +206,31 @@ try {
     if (L) check(!(await pillState(p))?.peek, 'a second visit the same day: no peek');
 
     // ---- the pill's four states ----
-    for (const kind of ['calm', 'gold', 'red', 'green']) {
+    for (const kind of ['tomorrow', 'gold', 'red', 'green']) {
       await store({ haloSnap: shaped(kind) });
-      const want = { calm: /^Next: .+ tomorrow$/, gold: /^2 due today$/, red: /^Due in 2h: .+/, green: /^✓ All caught up$/ }[kind];
-      const st = await until(async () => { const s = await pillState(p); return s && s.tone === kind && !s.peek ? s : null; }, 9000, 200);
+      const want = { tomorrow: /^✓ Today's done · 2 due tomorrow$/, gold: /^2 due today$/, red: /^Due in 2h: .+/, green: /^✓ All caught up$/ }[kind];
+      const tone = kind === 'tomorrow' ? 'green' : kind;
+      const st = await until(async () => { const s = await pillState(p); return s && s.tone === tone && want.test(s.text) && !s.peek ? s : null; }, 9000, 200);
       if (L) check(!!st && want.test(st.text), `the ${kind} pill: "${st?.text}"`);
+      if (L && kind === 'tomorrow') {
+        const b = await until(async () => { const x = await badge(); return x.text === '2' ? x : null; }, 12000).catch(() => null);
+        check(!!b && b.color.join(',') === '242,184,75,255', `today clear: the badge counts tomorrow's graded work, gold (${b?.text}, ${b?.color})`);
+        await hoverPill(p);
+        const t = await until(() => tipText(p), 3000);
+        const flat = (t ?? '').replace(/\s+/g, ' ').trim();
+        check(/^Today: All done ✓ TOMORROW /.test(flat) && /Participation: 2 posts left this week/.test(flat) && /See all in Halo\+/.test(flat), `hover: "Today: All done ✓", then Tomorrow, participation, See all: "${flat.slice(0, 200)}"`);
+        const rows = (await inLayer(p, (r) => [...r.querySelectorAll('.tip li .m')].map((e) => e.textContent))) ?? [];
+        check(rows.length === 2 && rows.every((m) => /^[A-Z]{3}-\d{3}L? · \d+ pts$/.test(m)), `each row: title, then class and points (${rows.join(' | ')})`);
+        await p.screenshot({ path: `${OUT}/${BROWSER}-3b-today-done-tomorrow-${scheme}.png`, clip: { x: 866, y: 500, width: 500, height: 360 } });
+        await leavePill(p);
+        await sleep(400);
+      } else if (scheme === 'dark' && kind === 'tomorrow') {
+        await hoverPill(p);
+        await until(() => tipText(p), 3000);
+        await p.screenshot({ path: `${OUT}/${BROWSER}-3b-today-done-tomorrow-${scheme}.png`, clip: { x: 866, y: 500, width: 500, height: 360 } });
+        await leavePill(p);
+        await sleep(400);
+      }
       if (L && kind === 'gold') {
         const b = await until(async () => { const x = await badge(); return x.text ? x : null; }, 5000).catch(() => null);
         check(!!b && b.text === '2', `the toolbar badge counts graded work only, not the overdue participation post: "${b?.text}"`);
@@ -205,10 +251,16 @@ try {
     await p.screenshot({ path: `${OUT}/${BROWSER}-3-hover-${scheme}.png`, clip: { x: 866, y: 460, width: 500, height: 400 } });
     await leavePill(p);
 
-    // ---- class lines under Halo's real class cards ----
-    const lines = await until(async () => { const l = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => h.shadowRoot.querySelector('.l')?.textContent.replace(/\s+/g, ' ').trim() ?? '')); return l.length === fx.courses.length ? l : null; }, 6000);
+    // ---- class lines under Halo's home page class cards (CourseCard), matched by their link ----
+    const lineTexts = () => p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => h.shadowRoot.querySelector('.l')?.textContent.replace(/\s+/g, ' ').trim() ?? ''));
+    const lines = await until(async () => { const l = await lineTexts(); return l.length === fx.courses.length ? l : null; }, 6000);
     if (L) {
-      check(!!lines && lines.every((l) => /^Halo\+ · /.test(l)), `a line under every class card, behind Halo's "Topic N" badge (${lines?.length ?? 0} of ${fx.courses.length}): "${lines?.[0]}"`);
+      check(!!lines && lines.every((l) => /^Halo\+ · /.test(l)), `a line on every CourseCard (${lines?.length ?? 0} of ${fx.courses.length}): "${lines?.[0]}"`);
+      const placed = await p.evaluate(() => [...document.querySelectorAll('[class*="CourseCard_cardContainer"]')].map((c) => { const h = c.querySelector('[data-haloplus="class"]'); const n = h?.nextElementSibling; return n ? (n.classList.contains('better-halo-todo-list') ? 'bh' : n.tagName) : 'none'; }));
+      check(placed.slice(0, 3).every((x) => x === 'bh') && placed.slice(3).every((x) => x === 'HR'), `before Better Halo's list when it is there, else before the card's rule (${placed.join(', ')})`);
+      const pairs = await p.evaluate(() => [...document.querySelectorAll('[class*="CourseCard_cardContainer"]')].map((c) => [c.querySelector('a').getAttribute('href').split('/').pop(), c.querySelector('[data-haloplus="class"]')?.dataset.course]));
+      const bySlug = Object.fromEntries(fx.snap.classes.map((c) => [c.slug, c.id]));
+      check(pairs.every(([slug, id]) => bySlug[slug] && bySlug[slug] === id), `each line is its own card's class (${pairs.filter(([slug, id]) => bySlug[slug] === id).length} of ${pairs.length})`);
       check(!!lines && lines.some((l) => /with extra requirements/.test(l)), 'gold for a real extra requirement');
       check(!!lines && !lines.some((l) => /overdue/.test(l)), 'the overdue participation post makes no class red');
       const tones = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => getComputedStyle(h.shadowRoot.querySelector('.l')).whiteSpace));
@@ -216,7 +268,18 @@ try {
       const outside = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].every((h) => !h.closest('button') && !h.closest('a')));
       check(outside, "outside Halo's own button and link");
     }
-    await p.screenshot({ path: `${OUT}/${BROWSER}-4-class-lines-${scheme}.png`, clip: { x: 0, y: 64, width: 1366, height: 420 } });
+    await p.screenshot({ path: `${OUT}/${BROWSER}-4-class-lines-${scheme}.png`, clip: { x: 0, y: 64, width: 1366, height: 520 } });
+    if (L) {
+      // Halo's ClassDetails cards still get their line (by the code behind the "Topic N" badge).
+      await p.goto('https://halo.gcu.edu/?details', { waitUntil: 'load' });
+      const d = await until(async () => { const l = await lineTexts(); return l.length === fx.courses.length ? l : null; }, 6000);
+      check(!!d, `ClassDetails cards: a line on each (${d?.length ?? 0})`);
+      // Cards that would clip the line: none at all, rather than half a line.
+      await p.goto('https://halo.gcu.edu/?clip', { waitUntil: 'load' });
+      await sleep(3000);
+      const c = await lineTexts();
+      check(c.length === 0, `cards that would clip it: no line (${c.length})`);
+    }
     await p.close();
   }
 
@@ -224,7 +287,7 @@ try {
   {
     const p = await ctx.newPage();
     await p.setViewportSize({ width: 1366, height: 860 });
-    const base = shaped('calm');
+    const base = shaped('tomorrow');
     await store({ haloSnap: base, haloUi: { day: day(NOW, MORNING_TZ), first: true, reopens: 0, closes: 0, flagged: [] }, haloBase: null });
     await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
     await sleep(2500);
@@ -342,7 +405,7 @@ try {
   // ---- the popup ----
   for (const scheme of ['light', 'dark']) {
     const L = scheme === 'light';
-    await store({ haloSnap: shaped('calm'), serverStatus: null, running: false, setup: null, lastError: null });
+    await store({ haloSnap: shaped('tomorrow'), serverStatus: null, running: false, setup: null, lastError: null });
     status = { ok: true, appliedAt: iso(-2), via: 'extension', lastDropAt: iso(-2), takenAt: iso(-2) };
     const pp = await ctx.newPage();
     await pp.setViewportSize({ width: 340, height: 520 });

@@ -59,9 +59,9 @@ const quiz = item('q2', 'chm', 22, { t: 'Chem Quiz 2', ht: 'Quiz #2', ty: 'quiz'
 describe('participation never drives urgency', () => {
   it('an overdue participation post: no red pill, no badge, not next up; one quiet line in the hover list', () => {
     const v = M.merge(snap([part('p1', -11), quiz], { pw: 3 }), null);
-    expect(M.pill(v, NOW)).toEqual({ tone: 'calm', text: 'Next: Quiz #2 tomorrow' });
-    expect(M.badge(v, NOW)).toBeNull();
-    expect(M.peek(v, NOW)?.text).toBe('Next up: Quiz #2 · tomorrow · 50 pts');
+    expect(M.pill(v, NOW).text).toBe("✓ Today's done · 1 due tomorrow");
+    expect(M.badge(v, NOW)).toEqual({ text: '1', red: false, tomorrow: true });
+    expect(M.peek(v, NOW)?.text).toBe("Today's done. Tomorrow: Quiz #2 · 50 pts");
     expect(M.hoverList(v, NOW).part).toBe('Participation: 3 posts left this week');
   });
   it('known by its title too (Halo files day posts as discussions)', () => {
@@ -72,7 +72,7 @@ describe('participation never drives urgency', () => {
 
 describe('the pill', () => {
   it('calm, gold, red, green', () => {
-    expect(M.pill(M.merge(snap([quiz]), null), NOW).tone).toBe('calm');
+    expect(M.pill(M.merge(snap([item('a', 'chm', 60)]), null), NOW)).toEqual({ tone: 'green', text: '✓ All caught up' });
     expect(M.pill(M.merge(snap([item('a', 'chm', 8), item('b', 'eng', 9)]), null), NOW)).toEqual({ tone: 'gold', text: '2 due today' });
     expect(M.pill(M.merge(snap([item('a', 'chm', 2, { ht: 'Lab 4 Prelab Quiz' })]), null), NOW)).toEqual({ tone: 'red', text: 'Due in 2h: Lab 4 Prelab Quiz' });
     expect(M.pill(M.merge(snap([item('a', 'chm', -3), item('b', 'eng', 30)]), null), NOW)).toEqual({ tone: 'red', text: '1 overdue' });
@@ -81,6 +81,47 @@ describe('the pill', () => {
   it('ungraded work and old overdue work (over two days) never turn it red', () => {
     expect(M.pill(M.merge(snap([item('a', 'chm', 1, { pts: 0 })]), null), NOW).tone).toBe('green');
     expect(M.pill(M.merge(snap([item('a', 'chm', -60)]), null), NOW).tone).toBe('green');
+  });
+});
+
+// George on real Halo, Sat Oct 24: "✓ All done today", "Nothing due today", with First Draft of Op-Ed (30 pts) and
+// Self-Review and Reflection (25 pts) due tomorrow.
+describe('today done, graded work tomorrow', () => {
+  const draft = item('d', 'eng', 26, { ht: 'First Draft of Op-Ed', pts: 30 });
+  const self = item('s', 'eng', 27, { ht: 'Self-Review and Reflection', pts: 25 });
+  const v = M.merge(snap([draft, self, item('done', 'chm', 5, { done: 1 }), part('p', 26)], { pw: 2 }), null);
+  it('the pill: a green check and a gold count', () => {
+    expect(M.pill(v, NOW)).toEqual({
+      tone: 'green',
+      text: "✓ Today's done · 2 due tomorrow",
+      parts: [
+        { tone: 'green', text: "✓ Today's done" },
+        { tone: 'gold', text: '2 due tomorrow' },
+      ],
+    });
+  });
+  it('the hover list: Today all done, then Tomorrow (title, class, points), then participation', () => {
+    const l = M.hoverList(v, NOW);
+    expect(l.todayDone).toBe(true);
+    expect(l.groups.map((g) => g.head)).toEqual(['Tomorrow']);
+    expect(l.groups[0].rows.map((r) => [r.title, r.code, r.pts])).toEqual([
+      ['First Draft of Op-Ed', 'ENG-105', 30],
+      ['Self-Review and Reflection', 'ENG-105', 25],
+    ]);
+    expect(l.part).toBe('Participation: 2 posts left this week');
+  });
+  it('the peek and the badge say tomorrow too', () => {
+    expect(M.peek(v, NOW)?.text).toBe("Today's done. Tomorrow: First Draft of Op-Ed · 30 pts · +1 more");
+    expect(M.badge(v, NOW)).toEqual({ text: '2', red: false, tomorrow: true });
+  });
+  it('work still due today wins; nothing today or tomorrow is all caught up', () => {
+    const today = M.merge(snap([draft, item('t', 'chm', 6)]), null);
+    expect(M.pill(today, NOW)).toEqual({ tone: 'gold', text: '1 due today' });
+    expect(M.hoverList(today, NOW).todayDone).toBe(false);
+    expect(M.badge(today, NOW)).toEqual({ text: '1', red: false });
+    const later = M.merge(snap([item('l', 'eng', 60)]), null);
+    expect(M.pill(later, NOW).text).toBe('✓ All caught up');
+    expect(M.badge(later, NOW)).toBeNull();
   });
 });
 
@@ -118,7 +159,9 @@ describe('re-peeks: only what matters, never on first run', () => {
   });
   it('after a submission: "Nice. Next up", leaving out what was handed in', () => {
     const v = M.merge(snap([item('a', 'chm', 8), quiz]), null);
-    expect(M.nextAfter(v, NOW, 'h-a')?.text).toBe('Nice. Next up: Quiz #2 · tomorrow · 50 pts');
+    expect(M.nextAfter(v, NOW, 'h-a')?.text).toBe("Nice. Today's done. Tomorrow: Quiz #2 · 50 pts");
+    const later = M.merge(snap([item('a', 'chm', 8), item('b', 'eng', 60, { ht: 'Essay 2', pts: 100 })]), null);
+    expect(M.nextAfter(later, NOW, 'h-a')?.text).toMatch(/^Nice\. Next up: Essay 2 · [A-Z][a-z]{2} · 100 pts$/);
   });
 });
 
@@ -150,7 +193,7 @@ describe('class lines, the assignment box, the badge', () => {
   it('the toolbar badge: graded work due today, red when overdue or soon', () => {
     expect(M.badge(M.merge(snap([item('a', 'chm', 8), item('b', 'eng', 9)]), null), NOW)).toEqual({ text: '2', red: false });
     expect(M.badge(M.merge(snap([item('a', 'chm', 1)]), null), NOW)).toEqual({ text: '1', red: true });
-    expect(M.badge(M.merge(snap([quiz]), null), NOW)).toBeNull();
+    expect(M.badge(M.merge(snap([item('l', 'chm', 60)]), null), NOW)).toBeNull();
   });
   it('says "as of" only for data more than a day old', () => {
     expect(M.stale(M.merge(snap([]), null), NOW)).toBeNull();

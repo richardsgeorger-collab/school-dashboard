@@ -92,7 +92,7 @@
 * { box-sizing: border-box; }
 .wrap { --bg: #16191e; --bg2: #20242b; --ink: #f1f3f5; --ink2: #b9c1cb; --ink3: #8b95a1; --line: rgba(255,255,255,.10); --gold: #f2b84b; --green: #5fd393; --red: #e5484d;
   font: 13px/1.35 Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
-.pill { position: fixed; bottom: 18px; right: 18px; z-index: 2147483000; display: inline-flex; align-items: center; gap: 8px; height: 34px; max-width: 220px;
+.pill { position: fixed; bottom: 18px; right: 18px; z-index: 2147483000; display: inline-flex; align-items: center; gap: 8px; height: 34px; max-width: 280px;
   padding: 0 14px 0 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--gold); cursor: pointer;
   font: 600 13px/1 Inter, -apple-system, "Segoe UI", Roboto, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,.22);
   transition: max-width .45s cubic-bezier(.2,.8,.2,1), background-color .2s, color .2s; overflow: hidden; white-space: nowrap; }
@@ -103,6 +103,9 @@
 .pill[data-tone="red"] { background: var(--red); color: #fff; border-color: transparent; }
 .pill[data-tone="green"] { color: var(--green); }
 .pill[data-tone="muted"] { color: var(--ink2); }
+.pill [data-part="green"] { color: var(--green); }
+.pill [data-part="gold"] { color: var(--gold); }
+.pill .dot { color: var(--ink3); }
 .txt { overflow: hidden; text-overflow: ellipsis; }
 .long { display: none; }
 .pill[data-peek] { max-width: min(560px, calc(100vw - 36px)); }
@@ -124,6 +127,9 @@
 .tip li .m { color: var(--ink3); font-size: 12px; }
 .tip h3[data-late] + ul .m { color: var(--red); }
 .tip .none { margin: 0; color: var(--ink2); }
+.tip .clear { margin: 0 0 2px; color: var(--ink2); font-size: 12px; }
+.tip .clear b { color: var(--ink); font-weight: 700; }
+.tip .clear span { color: var(--green); font-weight: 700; }
 .tip .part { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--line); color: var(--ink2); font-size: 12px; }
 .tip .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink3); }
 .tip a, .tip button { color: var(--gold); font: 600 12px/1.2 Inter, sans-serif; text-decoration: none; background: none; border: 0; padding: 0; cursor: pointer; }
@@ -221,7 +227,10 @@
     const p = free() ? { tone: 'muted', text: `Halo+ · synced ${M.syncedDay(view)}` } : M.pill(view, now);
     el.dataset.tone = peeking ? peeking.p.tone || 'calm' : p.tone;
     el.dataset.side = pillSide();
-    el.querySelector('.short').textContent = p.text;
+    // "✓ Today's done · 2 due tomorrow": the check green, the count gold.
+    const short = el.querySelector('.short');
+    if (p.parts) short.innerHTML = p.parts.map((x) => `<span data-part="${x.tone}">${esc(x.text)}</span>`).join('<span class="dot"> · </span>');
+    else short.textContent = p.text;
     el.querySelector('.long').textContent = peeking ? peeking.p.text : '';
     if (peeking) el.dataset.peek = '';
     else delete el.dataset.peek;
@@ -266,11 +275,12 @@
       .map(
         (g) =>
           `<h3${g.head === 'Overdue' ? ' data-late' : ''}>${esc(g.head)}</h3><ul>${g.rows
-            .map((r) => `<li><span class="l" title="${esc(r.title)}">${esc(r.title)}</span><span class="m">${esc([r.code, r.when, r.pts ? `${r.pts} pts` : ''].filter(Boolean).join(' · '))}</span></li>`)
+            .map((r) => `<li><span class="l" title="${esc(r.title)}">${esc(r.title)}</span><span class="m">${esc([r.code, list.todayDone ? '' : r.when, r.pts ? `${r.pts} pts` : ''].filter(Boolean).join(' · '))}</span></li>`)
             .join('')}</ul>`,
       )
       .join('');
-    el.innerHTML = `${groups || '<p class="none">Nothing graded due soon.</p>'}${list.part ? `<p class="part">${esc(list.part)}</p>` : ''}<div class="foot"><span>${
+    const clear = list.todayDone ? '<p class="clear"><b>Today:</b> All done <span>✓</span></p>' : '';
+    el.innerHTML = `${clear}${groups || '<p class="none">Nothing graded due soon.</p>'}${list.part ? `<p class="part">${esc(list.part)}</p>` : ''}<div class="foot"><span>${
       free() ? `Synced ${esc(M.syncedDay(view))}` : asof ? esc(asof[0].toUpperCase() + asof.slice(1)) : ''
     }${asof && !free() ? ' · <button class="sync" type="button">Sync now</button>' : ''}</span><a href="${esc(M.link(ORIGIN, null, 'pill'))}" target="_blank" rel="noopener">See all in Halo+</a></div>`;
     w.appendChild(el);
@@ -302,6 +312,11 @@
   // Real Halo (build Jk7eKpHtXMWHqa6Y8LtAT, read from its own code 2026-10-23): each class card is
   // Paper.ClassDetails_containerCard > a > button > div > h3 [stage badge "Topic 7"] "CHM-113-WF700A", then the name.
   // 0.8.0 looked for text that starts with the code, so the badge in front of it meant no line ever showed.
+  // 0.9.3 (George on real Halo, 2026-10-24: no line under ENG-105-ONL4, CHM-113-WF700A, CHM-113L-M600A): Halo's HOME
+  // page cards are another component, CourseCard_cardContainer (a chunk Halo loads on demand; Better Halo, which George
+  // also runs, finds the same cards and puts its "Upcoming Assignments" in them before the card's <hr>). cardFor only
+  // knew ClassDetails, so a home card was never found. A home card is now matched by the /courses/<slug> link inside
+  // it, which is the class's own Halo slug, never by text; a card whose line would not show (clipped) gets none.
   const LINE_CSS = `:host{all:initial}
 .l{display:block;margin:6px 0 2px;padding:0 2px;font:500 12px/1.35 Inter,-apple-system,"Segoe UI",Roboto,sans-serif;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 @media (prefers-color-scheme: dark){.l{color:#9aa3ad}}
@@ -318,10 +333,86 @@
     if (li && li.closest('#__next') && /\bm-4\b/.test(li.className || '')) return li.firstElementChild || li;
     return null;
   }
+  /** Halo's home page class cards, each with the class it links to: [card, class]. Only an exact slug match counts. */
+  function homeCards() {
+    const out = [];
+    for (const card of document.querySelectorAll('[class*="CourseCard_cardContainer"]')) {
+      if (card.closest('[data-haloplus]') || card.dataset.haloplusNoLine) continue;
+      const a = card.querySelector('a[href*="/courses/"]');
+      const m = a && (a.getAttribute('href') || '').match(/\/courses\/([^/?#]+)/);
+      if (!m) continue;
+      const slug = decodeURIComponent(m[1]).toLowerCase();
+      const cls = view.classes.find((c) => c.slug && c.slug.toLowerCase() === slug);
+      if (cls) out.push([card, cls]);
+    }
+    return out;
+  }
+  /** One line's element, in its own shadow root; clicks open the class in Halo+ and never reach Halo's card link. */
+  function lineHost() {
+    const h = document.createElement('div');
+    h.setAttribute('data-haloplus', 'class');
+    h.style.cssText = 'all: initial; display: block;';
+    const sr = h.attachShadow({ mode: 'open' });
+    sr.innerHTML = `<style>${LINE_CSS}</style><div></div>`;
+    const go = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openHaloPlus({ courseId: String(h.dataset.course || '').startsWith('live:') ? null : h.dataset.course }, 'class');
+    };
+    h.addEventListener('click', go, true);
+    h.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && go(e));
+    return h;
+  }
+  const lineHtml = (cls, now) => `<div class="l" role="link" tabindex="0" title="Open ${esc(cls.code)} in Halo+"><b>Halo+</b> · ${M.classLine(view, cls, now).map((p) => `<span data-tone="${p.tone}">${esc(p.text)}</span>`).join(' · ')}</div>`;
+  function fill(h, cls, now) {
+    h.dataset.course = cls.key;
+    const inner = h.shadowRoot.querySelector('div');
+    const html = lineHtml(cls, now);
+    if (inner.innerHTML !== html) inner.innerHTML = html;
+  }
+  /** The left edge of the card's own text (where the class code starts), so the line lines up with it. */
+  function textInset(card) {
+    const walk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (CODE_RE.test(n.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) });
+    const n = walk.nextNode();
+    if (!n || !n.parentElement) return 0;
+    const x = n.parentElement.getBoundingClientRect().left - card.getBoundingClientRect().left - (parseFloat(getComputedStyle(card).borderLeftWidth) || 0);
+    return Math.max(0, Math.min(40, Math.round(x)));
+  }
+  /** A line that does not show inside its card (the card clips it, or it has no size): taken out, and not tried again. */
+  function keepIfShown(h, card) {
+    requestAnimationFrame(() => {
+      if (!h.isConnected) return;
+      const x = textInset(card);
+      if (x > 2) h.style.padding = `0 ${x - 2}px`;
+      const r = h.getBoundingClientRect();
+      const c = card.getBoundingClientRect();
+      const clipped = getComputedStyle(card).overflow !== 'visible' && (r.top < c.top - 1 || r.bottom > c.bottom + 1);
+      if (r.height < 8 || r.width < 40 || clipped) {
+        h.remove();
+        card.dataset.haloplusNoLine = '1';
+      }
+    });
+  }
   function classLines() {
     if (!view || free()) return removeAll('[data-haloplus="class"]');
     const now = Date.now();
     const done = new Set();
+    // Halo's home page: before Better Halo's list when it is there, else before the card's rule, else at the end.
+    for (const [card, cls] of homeCards()) {
+      if (done.has(cls.key)) continue;
+      done.add(cls.key);
+      let h = card.querySelector('[data-haloplus="class"]');
+      if (!h) {
+        h = lineHost();
+        const bh = card.querySelector(':scope .better-halo-todo-list');
+        const hr = card.querySelector(':scope hr');
+        const at = bh || hr;
+        if (at && at.parentNode) at.parentNode.insertBefore(h, at);
+        else card.appendChild(h);
+        fill(h, cls, now);
+        keepIfShown(h, card);
+      } else fill(h, cls, now);
+    }
     const app = document.getElementById('__next') || document.body;
     const walk = document.createTreeWalker(app, NodeFilter.SHOW_TEXT, {
       acceptNode: (n) => (CODE_RE.test(n.nodeValue || '') && !(n.parentElement && n.parentElement.closest('[data-haloplus]')) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP),
@@ -336,28 +427,13 @@
       const card = cardFor(el);
       if (!card) continue;
       done.add(cls.key);
-      const parts = M.classLine(view, cls, now);
-      const html = `<div class="l" role="link" tabindex="0" title="Open ${esc(cls.code)} in Halo+"><b>Halo+</b> · ${parts.map((p) => `<span data-tone="${p.tone}">${esc(p.text)}</span>`).join(' · ')}</div>`;
       let h = card.querySelector(':scope > [data-haloplus="class"]');
       if (!h) {
-        h = document.createElement('div');
-        h.setAttribute('data-haloplus', 'class');
-        h.style.cssText = 'all: initial; display: block;';
-        const sr = h.attachShadow({ mode: 'open' });
-        sr.innerHTML = `<style>${LINE_CSS}</style><div></div>`;
-        const go = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          openHaloPlus({ courseId: String(h.dataset.course || '').startsWith('live:') ? null : h.dataset.course }, 'class');
-        };
-        h.addEventListener('click', go, true);
-        h.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && go(e));
+        h = lineHost();
         // Outside Halo's own button and link: at the end of the card itself.
         card.appendChild(h);
       }
-      h.dataset.course = cls.key;
-      const inner = h.shadowRoot.querySelector('div');
-      if (inner.innerHTML !== html) inner.innerHTML = html;
+      fill(h, cls, now);
     }
   }
   function removeAll(sel) {
