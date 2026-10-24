@@ -380,7 +380,10 @@ function OnboardingHost() {
   // The Chrome extension setup (2026-10-04): once for everyone on a computer without it (after sign-up for someone new),
   // and again from the "Get the extension" line on Now (#/now?ext=1).
   const again = params.get('ext') === '1';
-  const extKind = again ? (ext.browser ? 'setup' : 'needs-chrome') : extSetupDue({ settings: data.settings, browser: ext.browser, touch: isTouchDevice(), installed: installedVersion(), storeUrl: ext.url });
+  // Not straight after "Stay on Free" (2026-10-24): on Free its screen is "syncing is part of Plus", a second pitch
+  // seconds after the student chose Free. It waits a day.
+  const justChoseFree = tier === 'free' && !!data.settings.trialEndSeen && Date.now() - Date.parse(data.settings.trialEndSeen) < 86_400_000;
+  const extKind = again ? (ext.browser ? 'setup' : 'needs-chrome') : justChoseFree ? null : extSetupDue({ settings: data.settings, browser: ext.browser, touch: isTouchDevice(), installed: installedVersion(), storeUrl: ext.url });
   if (extKind && (!again || !isTouchDevice()))
     return (
       <ExtensionSetup

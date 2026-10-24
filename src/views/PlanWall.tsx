@@ -149,11 +149,17 @@ export function FrozenBanner() {
   );
 }
 
-/** "as of Oct 3" beside a due date Halo gave, while frozen; nothing otherwise. */
+/**
+ * "as of Oct 3" beside a due date Halo gave, while frozen and only once the last sync is from an earlier day: dates read
+ * from Halo today are today's (2026-10-24: "as of Oct 24" on every row, the day of the sync, was noise).
+ */
 export function AsOf({ item }: { item?: { haloId?: string | null; source?: string } }) {
   const { frozen, asOf } = useFrozen();
   const short = useShortDate();
+  const { data } = useStore();
   if (!frozen || !asOf || (item && !item.haloId && item.source !== 'halo')) return null;
+  const tz = data.settings.timezone;
+  if (dateOf(asOf, tz) === dateOf(new Date().toISOString(), tz)) return null;
   return <span className="as-of"> as of {short(asOf)}</span>;
 }
 

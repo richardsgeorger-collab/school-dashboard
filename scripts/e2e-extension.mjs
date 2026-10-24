@@ -247,8 +247,9 @@ try {
     await p.screenshot({ path: `${OUT}/popup-not-landed.png` });
     check(!st.lastSyncAt && !!st.waiting && !/Last synced/.test(status) && /could not go to your account/.test(problem), `not landed: no "Last synced" ("${status}"), and "${problem}"`);
     await p.close();
-    const dash = await dashboard(ctx);
-    await dash.waitForTimeout(6000);
+    await dashboard(ctx);
+    // Until it lands (a busy machine takes longer than a quiet one), at most 30 seconds.
+    await until(async () => (await cloudCodes(u.id)).join() === 'CHM-113,CHM-113L' && !!(await worker.evaluate(() => chrome.storage.local.get('lastSyncAt').then((x) => x.lastSyncAt))), 30_000);
     const codes = await cloudCodes(u.id);
     const after = await worker.evaluate(() => chrome.storage.local.get(['waiting', 'lastSyncAt']));
     check(codes.join() === 'CHM-113,CHM-113L' && !after.waiting && !!after.lastSyncAt, `opening Halo+ signed in sent it to the account and applied it: ${codes.join(', ')}`);

@@ -108,12 +108,13 @@ const run = async (name, device, scheme) => {
   await page.goto(`${BASE}#/now`, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(2500);
 
-  // ---- Now: the Study tab in the bar, the nudge for the quiz on Friday, the one button on the card.
+  // ---- Now: the Study tab in the bar; the quiz on Friday is in Then like anything else (2026-10-24: no study prompts
+  // on Now); the card's own help (Practice on a test's card, Get help on anything else).
   await shot('now'); await wide('now');
   say(!!(await page.$('.nav-link[href="#/study"]')), 'Study is a tab in the main navigation');
-  const nudge = await text('.study-nudge');
-  say(/is (today|tomorrow|in [1-5] days)/.test(nudge) && !!(await page.$('.study-nudge a[href^="#/practice?i="]')), `Now offers Practice for the quiz within five days: "${nudge}"`);
-  say(!!(await page.$('.hero-actions .hero-study, .hero-more .hero-link')), 'the Now card carries its study help');
+  // Then shows the next few by date; the quiz four days out may sit below them, like anything else that far off.
+  say(!(await page.$('.study-nudge')) && !/Practice for|is in \d days/.test(await text('.now')) && !!(await page.$('.then')), 'no study prompt on Now; Then is there');
+  say(!!(await page.$('.hero-actions a[href^="#/practice"], .hero-more .hero-link')), 'the Now card carries its own help');
 
   // ---- Scenario 1: "I have a chem quiz Friday, help me study." Now → Study (1) → Practice on the quiz (2).
   await page.click('.nav-link[href="#/study"] >> visible=true'); await page.waitForTimeout(800);
@@ -197,7 +198,7 @@ const run = async (name, device, scheme) => {
   await page.click('.modal .study-row a:has-text("Get help")'); await page.waitForTimeout(1200);
   await shot('ask-scoped');
   const askHead = await text('.ask .lib-head');
-  say(/Ask/.test(askHead) && /Anything about your classes/.test(askHead), 'Ask says what it does in one line');
+  say(/Ask/.test(askHead) && /What to do next, what a professor wants, how a topic works/.test(askHead), 'Ask says what it does in one line');
   say(/About:/.test(await text('.ask-scope')), 'scenario 2: three clicks from Classes to Ask about the homework, with the assignment in focus');
   if (live) {
     await page.waitForSelector('.ask-turn[data-role="assistant"] .chat-msg', { timeout: 90000 }).catch(() => undefined);
@@ -229,11 +230,15 @@ const run = async (name, device, scheme) => {
   await page.click('.study-block a:has-text("Check my work")'); await page.waitForTimeout(800);
   await shot('check-picker');
   say(/which assignment/i.test(await text('.check-page')), 'Check opens on the list of open assignments');
-  await page.click('.study-test:has-text("Connections Essay") a:has-text("Check")').catch(async () => page.click('.study-test a:has-text("Check") >> nth=0'));
+  // A piece of writing (an essay, a reflection, a paper) if the week has one; a method assignment otherwise.
+  const writing = page.locator('.study-test').filter({ hasText: /Essay|Reflection|Paper|Draft|Outline|Op-Ed/ }).first();
+  const isWriting = (await writing.count()) > 0;
+  if (isWriting) await writing.locator('a:has-text("Check")').click();
+  else await page.click('.study-test a:has-text("Check") >> nth=0');
   await page.waitForTimeout(900);
   await shot('check-essay');
   const ch = await text('.check-page .lib-head');
-  say(/Paste your draft or drop the file/.test(ch) && /Not a grade, not a rewrite/.test(ch), 'scenario 3: three clicks to Check for the essay, and it says what it does');
+  say(isWriting ? /Paste your draft or drop the file/.test(ch) && /Not a grade, not a rewrite/.test(ch) : /Paste your work/.test(ch) && /Never the answer/.test(ch), `scenario 3: three clicks to Check for ${isWriting ? 'the writing' : 'the homework'}, and it says what it does`);
   // A dropped Word file is read into the box (the docx is made here, as a student's would be by Word).
   const { Document, Packer, Paragraph } = await import('docx');
   const docxBuf = await Packer.toBuffer(new Document({ sections: [{ children: [new Paragraph('Aspirin is the everyday compound I chose.'), new Paragraph('It is an ester made from salicylic acid.')] }] }));
@@ -268,6 +273,8 @@ const run = async (name, device, scheme) => {
   await p2.goto(`${BASE}#/now?seed=1`, { waitUntil: 'load' }); await p2.waitForTimeout(600);
   await settle(p2);
   await p2.reload({ waitUntil: 'load' }); await p2.waitForTimeout(2500);
+  // The end of the trial shows once; then Study.
+  await p2.locator('text=Stay on Free').first().click({ timeout: 4000 }).catch(() => undefined);
   await p2.goto(`${BASE}#/study`, { waitUntil: 'load' }); await p2.waitForTimeout(1500);
   n += 1; await p2.screenshot({ path: `${OUT}/${String(n).padStart(2, '0')}-free-study.png` });
   const lock = await p2.$eval('.study-lock', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '');

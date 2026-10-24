@@ -72,7 +72,7 @@ export function Study() {
         <section className="card study-lock" role="note" aria-label={`Included with ${TIER_NAMES.max}`}>
           <p className="study-lock-line">
             <b>Practice, Ask and Check are part of Max.</b>{' '}
-            {first ? `Practice for ${first.label} would plan the ${Math.max(1, Math.round((new Date(`${dateOf(first.dueAt, tz)}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()) / 86_400_000))} days left, write a worksheet with answers and quiz you from your ${courseById.get(first.courseId)?.code ?? ''} material.` : 'Practice plans a quiz or exam, writes a worksheet with answers and quizzes you from your own class material.'}
+            {first ? `Practice for ${first.label} would plan ${daysLeftWords(Math.max(1, Math.round((new Date(`${dateOf(first.dueAt, tz)}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()) / 86_400_000)))}, write a worksheet with answers and quiz you from your ${courseById.get(first.courseId)?.code ?? ''} material.` : 'Practice plans a quiz or exam, writes a worksheet with answers and quizzes you from your own class material.'}
           </p>
           <div className="locked-actions">
             <span className="locked-tier">{TIER_NAMES.max}</span>
@@ -172,6 +172,9 @@ export function Study() {
     </div>
   );
 }
+
+/** "the day left", "the 4 days left". */
+const daysLeftWords = (n: number) => (n === 1 ? 'the day left' : `the ${n} days left`);
 
 function TestRow({ item, href }: { item: Item; href: string }) {
   const { data, courseById, today } = useStore();

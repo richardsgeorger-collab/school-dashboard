@@ -148,7 +148,7 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
 
           <section className="story story-one" key="one">
             <p className="eyebrow story-eyebrow">
-              {onPlusGift ? 'Your free trial of Max' : 'Your free trial'} · {fmtDate(dateOf(since, tz))} to {fmtDate(dateOf(until, tz))}
+              {onPlusGift ? 'Your free trial of Max' : 'Your free trial'} · {fmtDate(dateOf(since < until ? since : until, tz))} to {fmtDate(dateOf(until, tz))}
             </p>
             <h1 className="story-title">{recap && !recap.real ? "Here's what Halo+ does." : "Here's what Halo+ did for you."}</h1>
             {recap === null ? (

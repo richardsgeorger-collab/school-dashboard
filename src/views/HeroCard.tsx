@@ -21,7 +21,7 @@ import { isTest } from '../study/upcoming';
 import { PromptPanel } from './PromptPanel';
 import { Requirements } from './Requirements';
 import { isMilestoneWork, nextStep, stepsFor } from '../work/steps';
-import { AsOf } from './PlanWall';
+import { AsOf, useFrozen } from './PlanWall';
 
 /**
  * The one thing on Now. What it is, why it is the one, how long, how much, and Start. Everything a student might
@@ -207,6 +207,12 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
 
   // The pill follows the one colour rule: red late, amber due within a day and untouched, grey otherwise.
   const tone = itemTone(item, new Date().toISOString());
+  // What the corner badge already says ("Due today", "Due tomorrow"): said once, not again as a pill or as the reason
+  // (2026-10-24: "Due today", "It's due today." and "due today" on one card).
+  // While sync is paused the due pill carries "as of", so it stays.
+  const { frozen } = useFrozen();
+  const badge = !done && !(item.startedAt && elapsed) && tone === 'soon' && !pastDate ? (toneLabel(tone, item, today, tz) ?? '').toLowerCase() : '';
+  const said = frozen ? '' : badge;
   const status = done ? (
     <span className="pill">Done</span>
   ) : item.startedAt && elapsed ? (
@@ -260,9 +266,9 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
         </button>
       </h2>
       {/* A test's "why" was study planning ("~7h, in its start window"); its pills say when and what it is worth. */}
-      {why && !done && !isTest(item) && <p className="hero-why">{why}</p>}
+      {why && !done && !isTest(item) && !(badge && why.toLowerCase() === `it's ${badge}.`) && <p className="hero-why">{why}</p>}
       <p className="hero-meta">
-        {facts.map((f, i) =>
+        {facts.filter((f) => !(said && f.text.toLowerCase() === said)).map((f, i) =>
           f.itemId ? (
             <button key={i} type="button" className="pill hero-fact-link" onClick={() => { const t = data.items.find((x) => x.id === f.itemId); if (t) onOpen(t); }}>
               {f.text}

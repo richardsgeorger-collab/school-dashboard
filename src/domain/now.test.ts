@@ -192,7 +192,7 @@ describe('pickReason', () => {
     const a = item({ id: 'a', dueAt: '2026-09-13T23:59:00-07:00', estimatedMinutes: 600 });
     const derived = { a: { deadlineAt: '2026-09-12T23:59:00-07:00', reasons: ['Sunday due → Saturday'] } };
     const s = computeSchedule([{ ...a, deadlineAt: derived.a.deadlineAt }], DEFAULT_SETTINGS, TODAY, TERM, NOW);
-    expect(pickReason(a, [a], s, TODAY, NOW, TZ, derived)).toBe("Picked because it's ~10h, it needs to be in by Saturday, and it's the only thing in its start window.");
+    expect(pickReason(a, [a], s, TODAY, NOW, TZ, derived)).toBe("Picked because it's ~10h, due Sunday, best finished by Saturday, and it's the only thing in its start window.");
   });
 });
 

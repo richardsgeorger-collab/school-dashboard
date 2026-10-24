@@ -483,6 +483,11 @@ function KitTab({ course, kind: initial, allowSheetKinds, topic, sources, weak, 
     }
   };
   const word = kind === 'cards' ? 'flashcards' : kind === 'formulas' ? 'formula sheet' : 'one-pager';
+  // Empty (2026-10-24): it already tried again without the topic, so never "remake it without a topic" twice over.
+  const emptyKit = topic
+    ? `Your ${course.code} material on file does not cover “${topic}” yet. Drop the slides for it into the class library, then remake.`
+    : `Nothing usable came back from your ${course.code} material. Remake to try again, or drop more slides into the class library.`;
+  const kitEmpty = !!kit && kit.cards.length + kit.sections.length + kit.formulas.length === 0;
   const Cite = ({ id }: { id: string }) => <CiteChip id={id} sources={sources} />;
   return (
     <>
@@ -531,7 +536,7 @@ function KitTab({ course, kind: initial, allowSheetKinds, topic, sources, weak, 
           <h2 className="section-title">
             Flashcards{topic ? ` · ${topic}` : ''} <span className="count">{kit.cards.length}</span>
           </h2>
-          {kit.cards.length === 0 && <p className="hint">Nothing on file carries {topic ? `“${topic}”` : 'this'} yet. Remake it without a topic, or drop the slides for it into the class library.</p>}
+          {kit.cards.length === 0 && <p className="hint">{emptyKit}</p>}
           <ul className="kit-card-list">
             {kit.cards.map((c, i) => (
               <li key={i}>
@@ -550,7 +555,7 @@ function KitTab({ course, kind: initial, allowSheetKinds, topic, sources, weak, 
           <h2 className="section-title">
             {course.code}{topic ? ` · ${topic}` : ''} in one page
           </h2>
-          {kit.sections.length === 0 && <p className="hint">Nothing on file carries {topic ? `“${topic}”` : 'this'} yet. Remake it without a topic, or drop the slides for it into the class library.</p>}
+          {kit.sections.length === 0 && <p className="hint">{emptyKit}</p>}
           {kit.sections.map((s, i) => (
             <div key={i} className="kit-section">
               <h3>
@@ -565,7 +570,7 @@ function KitTab({ course, kind: initial, allowSheetKinds, topic, sources, weak, 
           ))}
         </section>
       )}
-      {kit && (
+      {kit && !kitEmpty && (
         <div className="settings-actions practice-next">
           <button type="button" className="btn small" onClick={onQuiz}>
             Quiz me on these

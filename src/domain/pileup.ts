@@ -49,11 +49,14 @@ export function pileupAhead(items: Item[], schedule: Schedule, today: DateStr): 
     for (const b of bigs) kinds.set(kindWord(b)!, (kinds.get(kindWord(b)!) ?? 0) + 1);
     const including = kinds.size ? ` including ${[...kinds.entries()].map(([w, n]) => `${n === 1 ? 'a' : n === 2 ? 'two' : n} ${w}${n === 1 ? '' : 's'}`).join(' and ')}` : '';
     const range = `${fmtDate(from, 'short')}–${fmtDate(to, 'short').replace(/^\w+ /, (m) => (from.slice(5, 7) === to.slice(5, 7) ? '' : m))}`;
-    const start = diffDays(today, startBy) <= 0 ? 'now' : `by ${fmtDate(startBy, 'short')}`;
+    const start = diffDays(today, startBy) <= 0 ? 'now' : 'later';
     // One line, under fifteen words: the range, the weight, the first thing to start. The kinds are kept for the
     // sheet, not the sentence.
     void including;
-    best = { from, to, points, items: inside, lead, startBy, line: `${range} is heavy: ${inside.length} items, ${points} pts.${startable ? ` Start ${lead.label} ${start}.` : ''}` };
+    // The date before the name (2026-10-24): Heads up keeps a line to fifteen words, and a long name cut the date off
+    // ("Start Formal Lab Report: Enzyme Kinetics by…").
+    const what = !startable ? '' : start === 'now' ? ` Start now: ${lead.label}.` : ` By ${fmtDate(startBy, 'short')}, start ${lead.label}.`;
+    best = { from, to, points, items: inside, lead, startBy, line: `${range} is heavy: ${inside.length} items, ${points} pts.${what}` };
   }
   return best;
 }

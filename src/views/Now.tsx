@@ -26,7 +26,6 @@ import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
 import { submissionCheck } from '../domain/confirm';
 import { okayPress } from './Okay';
-import { inDays, testWithin } from '../study/upcoming';
 import { awayDays, readLastSeen, stampLastSeen } from '../domain/away';
 import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday, skipped as sundaySkipped } from '../domain/sunday';
 import { SundayReview } from './SundayReview';
@@ -243,7 +242,6 @@ export function Now() {
   // Now is only about what is due (George, 2026-10-24): no exam mode, no study plan. An exam is an item like any other,
   // in the hero when it is the next thing and in Then by its date; study plans live in the Study tab, opt-in.
   // A quiz or exam within five days gets Practice offered on Now, whatever the hero is.
-  const soonTest = useMemo(() => testWithin(work, today, tz), [work, today, tz]);
   const nextDeadline = Object.keys(counts).filter((d) => d >= today).sort()[0];
   const why = hero ? whyLine(pickReason(hero, work, schedule, today, now, tz, derived)) : null;
 
@@ -584,14 +582,6 @@ export function Now() {
         )}
       </header>
       <SinceLastLooked onOpen={setOpen} hidden={showReturn} />
-      {soonTest && soonTest.id !== hero?.id && (
-        <p className="study-nudge" role="note">
-          <b>{soonTest.label}</b> is {inDays(soonTest, today, tz)}.{' '}
-          <a className="btn small primary" href={`#/practice?i=${soonTest.id}`}>
-            Practice
-          </a>
-        </p>
-      )}
       {showReturn && <WelcomeBackCard changes={sinceLooked} first={hero ?? null} onOpen={setOpen} onClose={() => setReturnClosed(true)} />}
       {primary}
       {skippedRow.length > 0 && (

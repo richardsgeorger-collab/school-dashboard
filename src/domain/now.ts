@@ -140,7 +140,9 @@ export function pickReason(item: Item, items: Item[], schedule: Schedule, today:
   // An early due time pulls the work to the night before; say the real due day and time, not "due today".
   const dueWord =
     derived[item.id] && deadline !== due
-      ? `it needs to be in by ${WEEKDAY_LONG[weekdayOf(deadline)]}`
+      ? // Halo+'s own finish-by (a Sunday due planned for Saturday, a big item two days early) is advice, never the
+        // deadline: say when it is due, then when to finish (2026-10-24: "needs to be in by Saturday" for a Sunday due).
+        `due ${lowerRel(dayName(today, due))}, best finished ${deadline === today ? 'today' : `by ${WEEKDAY_LONG[weekdayOf(deadline)]}`}`
       : deadline !== due
         ? `due ${lowerRel(dayName(today, due))} by ${fmtTime(item.dueAt, tz)}`
         : `due ${lowerRel(dayName(today, deadline))}`;
