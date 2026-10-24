@@ -128,8 +128,12 @@ function renderNext(s) {
   const p = view && view.plan !== 'free' ? M.peek(view, Date.now()) : null;
   $('next').hidden = !p;
   if (!p) return;
+  // Today clear, tomorrow's work next (0.10.1): said as the pill and the peek say it.
+  const s2 = M.standing(view, Date.now());
+  $('nextHead').textContent = s2.todayDone && s2.tomorrow.length ? "Today's done ✓ · Tomorrow" : 'Next up';
   $('nextTitle').textContent = p.title;
-  $('nextMeta').textContent = [p.code, p.when, p.pts ? `${p.pts} pts` : ''].filter(Boolean).join(' · ');
+  const tmr = s2.todayDone && s2.tomorrow.length;
+  $('nextMeta').textContent = [p.code, tmr ? '' : p.when, p.pts ? `${p.pts} pts` : ''].filter(Boolean).join(' · ');
   $('next').dataset.tone = p.tone === 'red' ? 'red' : '';
   $('next').href = M.link(DASH_ORIGIN, p, 'popup');
 }

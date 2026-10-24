@@ -360,7 +360,7 @@ try {
       const empty = await pp.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.offsetParent !== null && e.getBoundingClientRect().height > 4 && !e.innerText.trim() && !['IMG', 'INPUT', 'I', 'SCRIPT'].includes(e.tagName) && !e.querySelector('img,input')).map((e) => e.id || e.className));
       check(empty.length === 0, `nothing empty in the popup (${empty.join(', ') || 'none'})`);
       const t = await pp.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
-      check(/Halo\+ Max/i.test(t) && /Next up .+ · tomorrow · \d+ pts/i.test(t) && /Last synced/.test(t) && /Sync now/.test(t) && /Show Halo\+ on Halo pages/.test(t) && /Open Halo\+/.test(t), `the popup: "${t.slice(0, 200)}"`);
+      check(/Halo\+ Max/i.test(t) && /Today's done ✓ · Tomorrow .+ · \d+ pts/i.test(t) && !/· tomorrow ·/.test(t) && /Last synced/.test(t) && /Sync now/.test(t) && /Show Halo\+ on Halo pages/.test(t) && /Open Halo\+/.test(t), `the popup: "${t.slice(0, 200)}"`);
     }
     await pp.screenshot({ path: `${OUT}/${BROWSER}-6-popup-${scheme}.png`, fullPage: true });
     if (L) {
