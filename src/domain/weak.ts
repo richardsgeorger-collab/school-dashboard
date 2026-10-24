@@ -1,4 +1,5 @@
 import { weakTopics } from '../quiz/stats';
+import { isParticipation } from './participation';
 import { dateOf, diffDays } from './dates';
 import type { Course, DateStr, Item, QuizStat } from './types';
 
@@ -12,7 +13,9 @@ export interface WeakSpot {
 /** Graded items in a class that scored under the bar, lowest first. */
 export function weakSpots(courseId: string, items: Item[], below = WEAK_BELOW): WeakSpot[] {
   return items
-    .filter((i) => i.courseId === courseId && i.score !== null && i.points > 0 && i.score / i.points < below)
+    // Real work only (2026-10-24): never participation or a discussion post, so a study plan is never "week 6
+    // participation: where you lost points".
+    .filter((i) => i.courseId === courseId && i.score !== null && i.points > 0 && i.score / i.points < below && !isParticipation(i) && i.type !== 'discussion')
     .map((i) => ({ item: i, pct: Math.round((i.score! / i.points) * 100) }))
     .sort((a, b) => a.pct - b.pct || b.item.dueAt.localeCompare(a.item.dueAt));
 }

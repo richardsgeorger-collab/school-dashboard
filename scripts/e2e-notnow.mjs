@@ -29,9 +29,10 @@ try {
   for (const dev of ['desk', 'phone']) {
     const first = dev === 'desk';
     const s = await kit.persona('max');
-    // Nothing due today, so the card is plain work, not an exam: Quiz 2 (today) moves out a week.
+    // The card is plain work, not a test (a test's card has no Not now since 2026-10-24): every quiz and exam due in the
+    // next nine days moves out past them.
     const rows = (await db.from('items').select('id, data').eq('user_id', s.id)).data;
-    for (const r of rows.filter((r) => /Quiz 2: Derivatives|Quiz 2: Cellular/.test(r.data.title))) await db.from('items').update({ data: { ...r.data, dueAt: new Date(Date.now() + 9 * 864e5).toISOString() } }).eq('id', r.id);
+    for (const r of rows.filter((r) => /quiz|exam/.test(r.data.type) && r.data.status !== 'done' && Date.parse(r.data.dueAt) < Date.now() + 9 * 864e5)) await db.from('items').update({ data: { ...r.data, dueAt: new Date(Date.now() + 9 * 864e5).toISOString() } }).eq('id', r.id);
     const ctx = await browser.newContext({ ...DEV[dev], colorScheme: 'light' });
     await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: s.session, key: `sb-${ref}-auth-token` });
     await ctx.route('**/functions/v1/**', (r) => r.fulfill({ status: 200, body: '{}' }));

@@ -91,6 +91,8 @@ const run = async (name, device, scheme) => {
   const text = (sel) => page.$eval(sel, (e) => e.innerText.replace(/\s+/g, ' ').trim()).catch(() => '');
   const wide = async (label) => { const w = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); if (w > 2) console.log(`${name}-${scheme} ${label}: page overflows its width by ${w}px`); };
   const u = await newUser();
+  // Synced once, setup done (since Loop 245 a laptop that never synced opens Connect Halo over everything).
+  { const at = new Date(Date.now() - 3_600_000).toISOString(); await admin.from('settings').upsert({ user_id: u.id, updated_at: at, data: { timezone: 'America/Phoenix', lastPull: { at, via: 'extension' }, onboarding: { startedAt: at, step: 'done', doneAt: at, skippedAt: null, tourDoneAt: at }, maxOnboarding: { startedAt: at, step: 'done', doneAt: at }, upgradeSeen: { plus: at, max: at }, notifyAsk: { askedAt: at, answer: 'no' }, updatedAt: at } }); }
   await go('#/now');
   await page.evaluate(({ s, key }) => localStorage.setItem(key, JSON.stringify(s)), { s: u.session, key: `sb-${ref}-auth-token` });
   await go('#/now?seed=1');
@@ -101,7 +103,7 @@ const run = async (name, device, scheme) => {
   await page.click('.upgrade button:has-text("Skip")', { timeout: 3000 }).catch(() => undefined);
   await page.waitForFunction(() => (JSON.parse(localStorage.getItem('school-dashboard:v1') || '{}').items || []).length > 0, null, { timeout: 15000 });
   // Chem Quiz 2 moves to Friday, four days out, so Now has a test within five days and Practice has a plan to make.
-  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const q = d.items.find((i) => i.label === 'Chem Quiz 2'); const t = new Date(); t.setDate(t.getDate() + 4); q.dueAt = t.toISOString().slice(0, 10) + 'T15:00:00.000Z'; q.updatedAt = new Date().toISOString(); localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('school-dashboard:v1')); const q = d.items.find((i) => i.label === 'Chem Quiz 2'); const t = new Date(); t.setDate(t.getDate() + 4); q.dueAt = t.toISOString().slice(0, 10) + 'T15:00:00.000Z'; q.updatedAt = new Date().toISOString(); d.settings.lastPull ??= { at: new Date().toISOString(), build: null, counts: { classes: 0, assessments: 0 }, via: 'extension' }; d.settings.onboarding = { ...(d.settings.onboarding ?? {}), step: 'done', doneAt: new Date().toISOString(), tourDoneAt: new Date().toISOString(), skippedAt: null }; d.settings.updatedAt = new Date().toISOString(); localStorage.setItem('school-dashboard:v1', JSON.stringify(d)); });
   // A hash change alone keeps the in-memory term; the edit needs a reload to be read (the newer updatedAt wins the merge).
   await page.goto(`${BASE}#/now`, { waitUntil: 'load' });
   await page.reload({ waitUntil: 'load' }); await page.waitForTimeout(2500);
@@ -110,7 +112,7 @@ const run = async (name, device, scheme) => {
   await shot('now'); await wide('now');
   say(!!(await page.$('.nav-link[href="#/study"]')), 'Study is a tab in the main navigation');
   const nudge = await text('.study-nudge');
-  say(/Chem Quiz 2 is in [45] days/.test(nudge) && !!(await page.$('.study-nudge a[href^="#/practice?i="]')), `Now offers Practice for the quiz within five days: "${nudge}"`);
+  say(/is (today|tomorrow|in [1-5] days)/.test(nudge) && !!(await page.$('.study-nudge a[href^="#/practice?i="]')), `Now offers Practice for the quiz within five days: "${nudge}"`);
   say(!!(await page.$('.hero-actions .hero-study, .hero-more .hero-link')), 'the Now card carries its study help');
 
   // ---- Scenario 1: "I have a chem quiz Friday, help me study." Now → Study (1) → Practice on the quiz (2).

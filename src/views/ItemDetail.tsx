@@ -586,9 +586,15 @@ export function ItemDetail({ item: passed, isNew = false, onClose }: { item: Ite
             )}
             <span className="sheet-actions-quiet">
               {isTest(item) ? (
-                <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}`} onClick={onClose}>
-                  Ask about it
-                </a>
+                <>
+                  {/* Study plans live in the Study tab, opt-in (George, 2026-10-24): never on Now. */}
+                  <a className="btn small" href={`#/practice?i=${item.id}&k=plan`} onClick={onClose}>
+                    Make a study plan
+                  </a>
+                  <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}`} onClick={onClose}>
+                    Ask about it
+                  </a>
+                </>
               ) : (
                 <>
                   <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}&m=question`} onClick={onClose}>

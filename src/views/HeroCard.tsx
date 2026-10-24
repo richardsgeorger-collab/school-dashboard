@@ -259,7 +259,8 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
           {item.label}
         </button>
       </h2>
-      {why && !done && <p className="hero-why">{why}</p>}
+      {/* A test's "why" was study planning ("~7h, in its start window"); its pills say when and what it is worth. */}
+      {why && !done && !isTest(item) && <p className="hero-why">{why}</p>}
       <p className="hero-meta">
         {facts.map((f, i) =>
           f.itemId ? (
@@ -287,7 +288,28 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
         </p>
       )}
 
-      {!done && (
+      {!done && isTest(item) && (
+        // A quiz or exam on Now (George, 2026-10-24): Practice, Done, Open in Halo. Nothing else; a study plan is a
+        // choice made in the Study tab.
+        <div className="hero-actions">
+          {course ? (
+            <a className="btn primary" href={`#/practice?i=${item.id}`}>
+              Practice
+            </a>
+          ) : (
+            <button type="button" className="btn primary" onClick={start}>
+              Start
+            </button>
+          )}
+          <button type="button" className="btn hero-done" data-tour="done" onClick={() => { bump('done'); onDone(item); }} aria-label="Mark done">
+            <IconCheck /> Done
+          </button>
+          <a className="btn hero-halo" href={halo.href} target="_blank" rel="noreferrer" title={halo.label}>
+            Open in Halo ↗
+          </a>
+        </div>
+      )}
+      {!done && !isTest(item) && (
         <>
           {/* One clear row: start it, mark it done, or open it in Halo (2026-10-02 clarity pass: seven buttons in two
               rows was too much to read at a glance). Everything else is a quiet line under it. */}

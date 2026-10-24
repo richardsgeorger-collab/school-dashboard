@@ -37,8 +37,9 @@ export function topicBlocks(courseId: string, decks: Deck[], pages: DeckPage[], 
 }
 
 /** One line per study session: a topic and the slides to open, weak ground first, practice on every one. */
-export function sessionTopics(count: number, blocks: TopicBlock[]): SessionTopic[] {
-  if (blocks.length === 0) return Array.from({ length: count }, () => ({ text: 'Review notes and practice', topic: '', weak: false }));
+export function sessionTopics(count: number, blocks: TopicBlock[], testName?: string): SessionTopic[] {
+  // No known topics (2026-10-24): say so plainly rather than invent sessions about something else.
+  if (blocks.length === 0) return Array.from({ length: count }, () => ({ text: testName ? `Practice for ${testName}` : 'Practice', topic: '', weak: false }));
   const out: SessionTopic[] = [];
   for (let i = 0; i < count; i++) {
     const b = blocks[i % blocks.length];

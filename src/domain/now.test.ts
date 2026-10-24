@@ -278,3 +278,13 @@ describe('the status line', () => {
     expect(statusLine(startedItems, TODAY, NOW, TZ).text).toBe("You're on track.");
   });
 });
+
+describe('an exam on Now is an item like any other (2026-10-24)', () => {
+  it('something due tomorrow beats a 150-point exam six days out, however long its study', () => {
+    const exam = item({ id: 'exam', type: 'exam', points: 150, estimatedMinutes: 420, dueAt: '2026-10-30T15:00:00.000Z' });
+    const reflection = item({ id: 'refl', type: 'paper', points: 80, estimatedMinutes: 60, dueAt: '2026-10-25T06:59:00.000Z' });
+    const items = [exam, reflection];
+    const s = computeSchedule(items, { ...DEFAULT_SETTINGS, timezone: 'America/Phoenix' }, '2026-10-24', { start: '2026-09-01', end: '2026-12-20' }, '2026-10-24T17:00:00.000Z');
+    expect(rankItems(items, s, '2026-10-24T17:00:00.000Z', 'America/Phoenix').map((i) => i.id)).toEqual(['refl', 'exam']);
+  });
+});

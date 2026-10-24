@@ -33,5 +33,5 @@ export function topicsForTest(test: Item, count: number, decks: Deck[], pages: D
   const blocks = topicBlocks(test.courseId, decks, pages, stats, []);
   const named = (b: TopicBlock) => own.some((t) => b.topic.toLowerCase().includes(t) || t.includes(b.topic.toLowerCase()));
   const ordered = [...blocks.filter(named), ...blocks.filter((b) => !named(b))];
-  return sessionTopics(count, ordered);
+  return sessionTopics(count, ordered, test.label || test.title);
 }

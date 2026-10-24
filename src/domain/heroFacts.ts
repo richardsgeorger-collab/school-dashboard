@@ -21,7 +21,8 @@ export function heroFacts(item: Item, items: Item[], minutes: number, tz: string
     const share = shareLine(item, items);
     out.push({ text: share ? `${item.points} pts · ${share}` : `${item.points} pts` });
   }
-  out.push({ text: `~${fmtMinutes(minutes)}` });
+  // A test's minutes are study time: not on Now (2026-10-24).
+  if (item.type !== 'exam' && item.type !== 'quiz') out.push({ text: `~${fmtMinutes(minutes)}` });
   const d = dateOf(item.dueAt, tz);
   const time = fmtTime(item.dueAt, tz);
   const k = diffDays(today, d);
@@ -29,7 +30,7 @@ export function heroFacts(item: Item, items: Item[], minutes: number, tz: string
   out.push({ text: `due ${when}${time !== '11:59 PM' ? ` ${time}` : ''}` });
   // A derived deadline (LopesWrite processing, a class the day before) is a second chip, so the why line and the
   // chips name the same day.
-  if (finishBy) {
+  if (finishBy && item.type !== 'exam' && item.type !== 'quiz') {
     const f = dateOf(finishBy, tz);
     // Only while it still helps: a finish-by day that has passed is noise next to "was due".
     if (f < d && f >= today) out.push({ text: `finish by ${diffDays(today, f) === 0 ? 'today' : diffDays(today, f) === 1 ? 'tomorrow' : fmtDate(f, 'short')}` });

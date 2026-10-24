@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 export interface HeadsUpLine {
   key: string;
   /** Red for late or broken, amber for due within a day and untouched; everything else is grey. */
-  tone?: 'late' | 'soon' | null;
+  tone?: 'late' | 'soon' | 'quiet' | null;
   /** The line itself: a plain sentence, always cut to about fifteen words. */
   text: string;
   /** The rest, shown when the line is tapped. */

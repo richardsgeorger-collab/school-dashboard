@@ -1472,3 +1472,12 @@
   display: flex;
   gap: 8px;
 }
+
+/* A reader running in the background (2026-10-24): said quietly, gone when it ends. */
+.headsup-line[data-tone='quiet'] {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.headsup-line[data-tone='quiet'] .headsup-dot {
+  opacity: 0.4;
+}

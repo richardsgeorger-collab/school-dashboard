@@ -38,7 +38,11 @@ export function pileupAhead(items: Item[], schedule: Schedule, today: DateStr): 
     const points = inside.reduce((n, i) => n + effectivePoints(i, items), 0);
     if (points < MIN_POINTS && inside.length < MIN_ITEMS) continue;
     if (best && (points < best.points || (points === best.points && inside.length <= best.items.length))) continue;
-    const lead = [...inside].sort((a, b) => effectivePoints(b, items) - effectivePoints(a, items) || b.estimatedMinutes - a.estimatedMinutes)[0];
+    // What to start: work, never a test (2026-10-24: studying lives in the Study tab, not on Now). Only tests ahead:
+    // the line says the load and nothing to start.
+    const byWeight = [...inside].sort((a, b) => effectivePoints(b, items) - effectivePoints(a, items) || b.estimatedMinutes - a.estimatedMinutes);
+    const startable = byWeight.find((i) => i.type !== 'exam' && i.type !== 'quiz');
+    const lead = startable ?? byWeight[0];
     const startBy = schedule.byItem[lead.id]?.startBy ?? addDays(day(lead), -3);
     const bigs = inside.filter((i) => effectivePoints(i, items) >= BIG && kindWord(i));
     const kinds = new Map<string, number>();
@@ -49,7 +53,7 @@ export function pileupAhead(items: Item[], schedule: Schedule, today: DateStr): 
     // One line, under fifteen words: the range, the weight, the first thing to start. The kinds are kept for the
     // sheet, not the sentence.
     void including;
-    best = { from, to, points, items: inside, lead, startBy, line: `${range} is heavy: ${inside.length} items, ${points} pts. Start ${lead.label} ${start}.` };
+    best = { from, to, points, items: inside, lead, startBy, line: `${range} is heavy: ${inside.length} items, ${points} pts.${startable ? ` Start ${lead.label} ${start}.` : ''}` };
   }
   return best;
 }

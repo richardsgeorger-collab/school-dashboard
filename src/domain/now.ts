@@ -32,9 +32,12 @@ export function rankItems(items: Item[], schedule: Schedule, now: string, tz: st
   const pts = (i: Item) => effectivePoints(i, items);
   // The day a thing needs attention: its deadline, or today once its start window has opened and it is big. Started
   // counts as much as untouched: pressing Start must never make the thing leave the screen.
+  // A test is not work to start early on Now (George, 2026-10-24): an exam six days out never outranks something due
+  // tomorrow. It comes up by its own date; studying for it lives in the Study tab.
+  const isTest = (i: Item) => i.type === 'exam' || i.type === 'quiz';
   const attention = (i: Item) => {
     const sb = schedule.byItem[i.id]?.startBy;
-    return sb && sb <= today && (pts(i) >= 100 || i.estimatedMinutes >= 180) ? today : dl(i);
+    return !isTest(i) && sb && sb <= today && (pts(i) >= 100 || i.estimatedMinutes >= 180) ? today : dl(i);
   };
   return items
     .filter((i) => i.status !== 'done' && !isBlocked(i, today))

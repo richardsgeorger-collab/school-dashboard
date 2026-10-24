@@ -36,6 +36,23 @@ export interface ReadStatus {
 /** Fired when a background read finishes, so the Inbox and Now can refresh. Never re-triggers a read. */
 export const READ_EVENT = 'announcements-read';
 
+/** The longest one announcement's read may take before it counts as failed. */
+const READ_TIMEOUT_MS = 120_000;
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`The read did not answer in ${Math.round(ms / 1000)} s`)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e: unknown) => {
+        clearTimeout(t);
+        reject(e);
+      },
+    );
+  });
+}
 let status: ReadStatus = { running: false, progress: null, outcome: null, waiting: null, at: null };
 const listeners = new Set<() => void>();
 const set = (patch: Partial<ReadStatus>) => {
@@ -125,7 +142,9 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     if (n >= todo.length || pending.has(n)) return;
     const a = todo[n];
     const course = courses.find((c) => c.id === a.courseId);
-    pending.set(n, course ? withRetry(() => readActions({ apiKey: key, announcement: a, course, items, tz: args.tz })).then((r): Got => ({ ok: true, r }), (e: unknown): Got => ({ ok: false, e })) : Promise.resolve(null));
+    // A read that never answers ends after two minutes as a failure (2026-10-24: "Reading announcement 0 of 1…" sat in
+    // Heads up for good); the post stays unread, so the next run tries it again, and Admin › Errors hears of it.
+    pending.set(n, course ? withTimeout(withRetry(() => readActions({ apiKey: key, announcement: a, course, items, tz: args.tz })), READ_TIMEOUT_MS).then((r): Got => ({ ok: true, r }), (e: unknown): Got => ({ ok: false, e })) : Promise.resolve(null));
   };
   try {
     for (let n = 0; n < todo.length; n++) {
