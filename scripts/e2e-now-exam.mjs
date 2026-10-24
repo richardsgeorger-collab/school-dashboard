@@ -83,6 +83,17 @@ try {
       check(!STUDY.test(all), `no study plan, study hours or "fit around it" on Now${STUDY.test(all) ? `: "${all.match(STUDY)[0]}"` : ''}`);
     }
     await p.screenshot({ path: `${OUT}/exam-6-days-${phone ? 'phone' : 'desktop'}.png`, fullPage: true });
+    if (!phone) {
+      // The Study tab's plan for the exam six days out (what "Make a study plan" opens).
+      const { data: rows } = await db.from('items').select('id, data').eq('user_id', who.id);
+      const ex = rows.find((r) => r.data.title === 'Midterm Exam');
+      await p.goto(`https://haloplus.app/#/practice?i=${ex.id}&k=plan`, { waitUntil: 'load' });
+      await sleep(3000);
+      const plan = await p.locator('main, #root').first().innerText();
+      const days = plan.split('\n').filter((l) => /^(Today|Tomorrow|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b.*·/.test(l));
+      check(days.length >= 3 && !/participation|DQ|discussion/i.test(days.join('\n')), `the Study tab: a plan over the days before the exam (${days.length} sessions: ${days.slice(0, 3).join(' | ')})`);
+      await p.screenshot({ path: `${OUT}/study-plan-desktop.png`, fullPage: true });
+    }
     await ctx.close();
   }
 
@@ -115,7 +126,7 @@ try {
       await sleep(2500);
       const study = await p.locator('main, #root').first().innerText();
       check(/Midterm Exam/.test(study) && !/participation|DQ|discussion/i.test(study.split('\n').filter((l) => /^(Today|Tomorrow|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(l)).join('\n')), 'the Study tab plan for the exam, no participation or discussion sessions');
-      await p.screenshot({ path: `${OUT}/study-plan-desktop.png`, fullPage: true });
+      await p.screenshot({ path: `${OUT}/study-plan-tomorrow-desktop.png`, fullPage: true });
     }
     await ctx.close();
   }
