@@ -8,13 +8,13 @@ ctx.globalThis = ctx;
 runInNewContext(readFileSync('extension/halo-model.js', 'utf8'), ctx);
 const M = ctx.HaloPlusModel as unknown as {
   merge: (s: unknown, l: unknown, server?: unknown) => View;
-  pill: (v: View, now: number) => { tone: string; text: string };
+  pill: (v: View, now: number) => { tone: string; text: string; parts?: { tone: string; text: string }[] };
   peek: (v: View, now: number) => { text: string; tone: string; key: string } | null;
-  hoverList: (v: View, now: number) => { groups: { head: string; rows: { title: string; code: string; when: string; pts: number }[] }[]; part: string | null };
+  hoverList: (v: View, now: number) => { groups: { head: string; rows: { title: string; code: string; when: string; pts: number }[] }[]; todayDone: boolean; part: string | null };
   classLine: (v: View, c: unknown, now: number) => { tone: string; text: string }[];
   classByCode: (v: View, t: string) => { key: string } | null;
   caught: (v: View, i: unknown, now: number) => { line: string; more: string[] } | null;
-  badge: (v: View, now: number) => { text: string; red: boolean } | null;
+  badge: (v: View, now: number) => { text: string; red: boolean; tomorrow?: boolean } | null;
   baseline: (v: View) => unknown;
   notable: (v: View, base: unknown, now: number, flagged: string[]) => { kind: string; text: string } | null;
   nextAfter: (v: View, now: number, id: string) => { text: string } | null;
