@@ -1,4 +1,5 @@
 import { addDays, dateOf, diffDays, eachDay, isWeekend, weekStart, zonedParts } from './dates';
+import { isQuietPast } from './submission';
 import type { DateStr, Item, Risk, Settings } from './types';
 
 export interface ScheduledItem {
@@ -96,7 +97,10 @@ export function computeSchedule(
   // go first within that order: unconstrained work can always slide earlier, they cannot.
   const byDeadlineDesc = (a: Item, b: Item) =>
     deadlines.get(b.id)!.localeCompare(deadlines.get(a.id)!) || b.points - a.points;
-  const pending = items.filter((i) => i.status !== 'done');
+  // Past work with no Halo submission (domain/submission.ts) gets no time planned and is never overdue: it is placed
+  // like done work, on its own day.
+  const quiet = (i: SchedulableItem) => isQuietPast(i as Item, nowMs);
+  const pending = items.filter((i) => i.status !== 'done' && !quiet(i));
   const open = [
     ...pending.filter((i) => windowStart(i) !== null).sort(byDeadlineDesc),
     ...pending.filter((i) => windowStart(i) === null).sort(byDeadlineDesc),
@@ -153,7 +157,7 @@ export function computeSchedule(
   }
 
   for (const item of items) {
-    if (item.status !== 'done') continue;
+    if (item.status !== 'done' && !quiet(item)) continue;
     const dd = deadlines.get(item.id)!;
     byItem[item.id] = { itemId: item.id, startBy: dd, latestStart: dd, deadlineDay: dd, risk: null, fits: true, plannedByDay: {} };
   }

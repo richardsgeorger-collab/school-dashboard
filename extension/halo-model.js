@@ -8,6 +8,9 @@
 //   never counts, never leads; it gets one quiet line in the hover list.
 // - No counts of "new" anything. A re-peek is for one thing that matters since the student last looked: a graded item's
 //   due date moved, a new requirement on a 20+ point item, a graded item now due within 3 hours.
+// 0.9.1 (2026-10-24): done in Halo+ is done here (the snapshot keeps done work, and the account's own list of what is
+//   done arrives from the server, so a check-off on the phone counts on this computer too). Work with no submission in
+//   Halo (an outside tool's set, in-person work) goes quiet once its date passes: never overdue, never counted.
 // - The baseline is one shape (instants rounded to the minute) whatever the source, and on first run it is only
 //   recorded: with nothing to compare against, nothing is "new". (0.8.0 compared date strings from two sources,
 //   "…06:59:59Z" from Halo and "…06:59:00.000Z" from Halo+, so every item looked moved.)
@@ -110,7 +113,8 @@
         code: c.courseCode || '',
         name: c.name || '',
         g: c.finalGrade && typeof c.finalGrade.finalPoints === 'number' && c.finalGrade.maxPoints ? Math.round((c.finalGrade.finalPoints / c.finalGrade.maxPoints) * 1000) / 10 : null,
-        a: (c.assessments || []).filter((a) => a && a.id && a.type !== 'PARTICIPATION').map((a) => [a.id, String(a.title || '').slice(0, 120), a.dueDate || null, a.points || 0, a.type || '', done(a) ? 1 : 0, a.unitId || null]),
+        // The eighth field: no submission in Halo (an outside tool, or in person), as Halo+ reads it (normalize.ts).
+        a: (c.assessments || []).filter((a) => a && a.id && a.type !== 'PARTICIPATION').map((a) => [a.id, String(a.title || '').slice(0, 120), a.dueDate || null, a.points || 0, a.type || '', done(a) ? 1 : 0, a.unitId || null, a.type === 'LTI' || a.inPerson || (a.tags || []).includes('IN_PERSON') ? 1 : 0]),
       })),
     };
   }
@@ -119,6 +123,8 @@
   const isPart = (i) => i.pa === 1 || /^participation$/i.test(i.ty || '') || /particip/i.test(`${i.t || ''} ${i.ht || ''}`);
   /** Graded work: anything with points that is not participation. */
   const graded = (i) => !isPart(i) && (i.pts || 0) > 0;
+  /** No submission in Halo and its date has passed: quiet, neither overdue nor done (a grade later marks it done). */
+  const quietPast = (i, t) => i.ns === 1 && !i.done && ms(i.due) < t;
   /** Halo's own title when known (what the student sees on the page), else Halo+'s label. */
   const title = (i) => i.ht || i.t || '';
 
@@ -127,7 +133,7 @@
    * for what exists, its due date and whether it is handed in; Halo+ adds labels, what announcements asked for, and a
    * date an announcement moved (kept unless Halo itself moved the date since: compared as instants, a minute apart).
    */
-  function merge(snap, live) {
+  function merge(snap, live, server) {
     const s = snap && snap.v === 1 ? snap : null;
     const l = live && live.v === 1 ? live : null;
     if (!s && !l) return null;
@@ -151,10 +157,11 @@
       }
       if (!k.cc) k.cc = lc.cc;
       if (typeof lc.g === 'number' && (!snapSynced || l.at >= snapSynced)) k.g = lc.g;
-      for (const [id, t, due, pts, type, done, unit] of lc.a) {
+      for (const [id, t, due, pts, type, done, unit, ns] of lc.a) {
         const it = byHalo.get(id);
         if (it) {
           if (!it.ht) it.ht = t;
+          if (ns) it.ns = 1;
           if (!it.u && unit) it.u = unit;
           if (due && l.at >= snapSynced && (!it.hd || Math.abs(ms(due) - ms(it.hd)) >= MIN)) {
             it.due = due;
@@ -164,11 +171,14 @@
           continue;
         }
         if (!due) continue;
-        const add = { id: null, h: id, c: k.key, t, ht: t, due, hd: due, pts, ty: type, done, x: 0, u: unit };
+        const add = { id: null, h: id, c: k.key, t, ht: t, due, hd: due, pts, ty: type, done, x: 0, u: unit, ...(ns ? { ns: 1 } : {}) };
         items.push(add);
         byHalo.set(id, add);
       }
     }
+    // What the account says is done (Halo+ on any device), over everything else.
+    const doneIds = server && Array.isArray(server.done) ? new Set(server.done) : null;
+    if (doneIds) for (const i of items) if (!i.done && ((i.h && doneIds.has(i.h)) || (i.id && doneIds.has(i.id)))) i.done = 1;
     const syncedAt = [snapSynced, (l && l.at) || ''].sort().pop() || null;
     return {
       tz,
@@ -190,7 +200,7 @@
   function standing(view, now) {
     const t = nowMs(now);
     const d = dayOf(t, view.tz);
-    const open = view.items.filter((i) => !i.done && graded(i) && ms(i.due) >= t - OVERDUE_MS).sort((a, b) => ms(a.due) - ms(b.due) || (b.pts || 0) - (a.pts || 0));
+    const open = view.items.filter((i) => !i.done && graded(i) && !quietPast(i, t) && ms(i.due) >= t - OVERDUE_MS).sort((a, b) => ms(a.due) - ms(b.due) || (b.pts || 0) - (a.pts || 0));
     const overdue = open.filter((i) => ms(i.due) < t);
     const later = open.filter((i) => ms(i.due) >= t);
     const soon = later.filter((i) => ms(i.due) - t <= SOON_MS);
@@ -267,11 +277,11 @@
   /** The line under a class card: gray by default, gold for a real extra requirement, red for graded work overdue. */
   function classLine(view, cls, now) {
     const t = nowMs(now);
-    const mine = view.items.filter((i) => i.c === cls.key && !i.done && !isPart(i));
+    const mine = view.items.filter((i) => i.c === cls.key && !i.done && !isPart(i) && !quietPast(i, t));
     const overdue = mine.filter((i) => graded(i) && ms(i.due) < t && t - ms(i.due) <= OVERDUE_MS).length;
     const week = mine.filter((i) => ms(i.due) >= t && ms(i.due) - t <= 7 * DAY).length;
     // Assignments (due in the next two weeks) with something an announcement added: one per assignment, not per line.
-    const extra = mine.filter((i) => (i.x || 0) > 0 && ms(i.due) >= t && ms(i.due) - t <= 14 * DAY);
+    const extra = mine.filter((i) => boxLines(i).length > 0 && ms(i.due) >= t && ms(i.due) - t <= 14 * DAY);
     const parts = [];
     if (overdue) parts.push({ tone: 'red', text: `${overdue} overdue` });
     parts.push({ tone: 'plain', text: week ? `${week} due this week` : 'Nothing due this week' });
@@ -296,13 +306,28 @@
     return ends[0] || null;
   }
 
-  /** What Halo+ caught for one assignment: extra requirements from announcements, or a date an announcement moved. */
-  function caught(view, item) {
-    if (!item) return null;
-    const extras = item.x || 0;
-    const moved = item.m ? `Due date moved to ${shortDate(item.due, view.tz)} (was ${shortDate(item.m, view.tz)}), from an announcement.` : null;
-    if (!extras && !moved) return null;
-    return { title: extras ? `Halo+ caught ${plural(extras, 'extra requirement')} for this` : 'Halo+ caught a date change for this', list: (item.xs || []).slice(0, 5), moved, key: itemKey(item), id: item.id, courseId: item.c && !String(item.c).startsWith('live:') ? item.c : null };
+  /** What the assignment-page line may say: things to bring or have, a new deliverable (Halo+ picks them, haloSnap.ts). */
+  const boxLines = (i) => (Array.isArray(i.xb) ? i.xb : []);
+
+  /**
+   * The line on an assignment's own Halo page (0.9.1, George 2026-10-24): only when something truly matters here, a
+   * date an announcement moved, something to bring or have, a new deliverable; never a reading reminder. The first
+   * parts fit one line ("Bring lab coat, goggles, closed-toe shoes · +2 more"); the rest open inline. Null otherwise.
+   */
+  function caught(view, item, now) {
+    if (!item || item.done) return null;
+    const parts = [];
+    if (item.m) parts.push(`Due date moved to ${shortDate(item.due, view.tz)} (was ${shortDate(item.m, view.tz)})`);
+    for (const l of boxLines(item)) parts.push(l.replace(/[.!]$/, ''));
+    if (!parts.length) return null;
+    const first = [];
+    let len = 0;
+    for (const p of parts) {
+      if (first.length && len + p.length > 70) break;
+      first.push(p);
+      len += p.length + 3;
+    }
+    return { line: first.join(' · '), more: parts.slice(first.length), key: itemKey(item), id: item.id, courseId: item.c && !String(item.c).startsWith('live:') ? item.c : null };
   }
 
   /** The toolbar badge: graded work due today (and overdue), red when overdue or due within 3 hours. */
@@ -317,7 +342,7 @@
   /** What the student has seen: each open item's due instant (in minutes), requirements and points. */
   function baseline(view) {
     const items = {};
-    for (const i of view.items) if (!i.done && !isPart(i)) items[itemKey(i)] = [Math.round(ms(i.due) / MIN), i.x || 0, i.pts || 0];
+    for (const i of view.items) if (!i.done && !isPart(i)) items[itemKey(i)] = [Math.round(ms(i.due) / MIN), boxLines(i).length, i.pts || 0];
     return { v: 2, items };
   }
 
@@ -338,8 +363,8 @@
       const was = base.items[k];
       if (!was) continue;
       if (graded(i) && Math.abs(Math.round(due / MIN) - was[0]) * MIN >= MOVE_MS) out.push({ rank: 1, kind: 'moved', i, text: `Moved: ${clip(title(i), 36)} is now due ${dueWord(i.due, now, view.tz)}` });
-      if ((i.pts || 0) >= BIG_PTS && (i.x || 0) > was[1]) {
-        const what = (i.xs || [])[0];
+      if ((i.pts || 0) >= BIG_PTS && boxLines(i).length > was[1]) {
+        const what = boxLines(i)[was[1]] || boxLines(i)[0];
         out.push({ rank: 2, kind: 'req', i, text: what ? `New for ${clip(title(i), 28)}: ${clip(what, 44)}` : `New requirement on ${clip(title(i), 40)}` });
       }
     }
@@ -376,6 +401,6 @@
     return `${origin}/#/now?${q({ from: 'halo', via })}`;
   }
 
-  const api = { dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
+  const api = { quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
   root.HaloPlusModel = api;
 })(globalThis);

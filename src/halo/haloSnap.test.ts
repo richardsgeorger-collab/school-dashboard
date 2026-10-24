@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dateOf } from '../domain/dates';
 import { computeSchedule } from '../domain/schedule';
 import { demoStudent } from '../demo/student';
-import { classCodeOf, haloSnap } from './haloSnap';
+import { boxWorthy, classCodeOf, haloSnap } from './haloSnap';
 
 const NOW = '2026-10-22T17:00:00.000Z';
 
@@ -12,15 +12,19 @@ describe('the snapshot Halo+ hands the extension for Halo pages', () => {
   const schedule = computeSchedule(d.items, d.settings, today, { start: '2026-08-31', end: '2026-12-20' }, NOW);
   const s = haloSnap({ courses: d.courses, items: d.items, settings: d.settings, schedule, canSync: true, now: NOW });
 
-  it('carries the next three weeks and what is late, never older work or what was done on another day', () => {
+  // Done work in the window too (2026-10-24): "done" in Halo+ must win over the extension's own Halo reading.
+  it('carries three days back to three weeks ahead, done work included, never older work', () => {
     const t = Date.parse(NOW);
     for (const i of s.items) {
       const due = Date.parse(i.due);
-      if (i.done) expect(dateOf(i.due, d.settings.timezone)).toBe(today);
-      else expect(due >= t - 3 * 86_400_000 && due <= t + 21 * 86_400_000).toBe(true);
+      expect(due >= t - 3 * 86_400_000 && due <= t + 21 * 86_400_000).toBe(true);
     }
+    expect(s.items.some((i) => i.done === 1)).toBe(true);
     expect(s.items.length).toBeGreaterThan(3);
     expect(s.items.every((i) => i.ty !== 'participation')).toBe(true);
+  });
+  it('the assignment-page line only for something to bring or a new deliverable, never a reading reminder', () => {
+    expect(boxWorthy([{ text: 'Bring your lab coat and goggles', gradedOn: false, scope: 'instance' }, { text: 'Review chapters 3 and 4 before the quiz', gradedOn: false, scope: 'instance' }, { text: 'Submit the data table as one PDF', gradedOn: true, scope: 'instance' }, { text: 'Read the lab manual pages 40-45', gradedOn: true, scope: 'instance' }, { text: 'Scientific calculator only', gradedOn: false, scope: 'reference' }])).toEqual(['Bring your lab coat and goggles', 'Submit the data table as one PDF', 'Scientific calculator only']);
   });
   it('what announcements added, in short, and a date an announcement moved', () => {
     expect(s.items.some((i) => i.x > 0 && (i.xs ?? []).length > 0)).toBe(true);

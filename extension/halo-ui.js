@@ -39,16 +39,16 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloUi: null, haloUiOn: null, haloBase: null, tier: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloUi: null, haloUiOn: null, haloBase: null, tier: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloUi', 'haloUiOn', 'haloBase', 'tier'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloUi', 'haloUiOn', 'haloBase', 'tier'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
     } catch {
       /* the extension was updated under this page */
     }
-    view = M.merge(st.haloSnap, st.haloLive);
+    view = M.merge(st.haloSnap, st.haloLive, st.haloDone);
   };
   const save = (patch) => {
     Object.assign(st, patch);
@@ -364,12 +364,52 @@
     document.querySelectorAll(sel).forEach((n) => n.remove());
   }
 
-  // ---- the assignment box ---------------------------------------------------------------------------------------------
-  const BOX_CSS = `:host{all:initial}.b{margin:10px 0;padding:12px 14px;border-radius:10px;background:#15181d;color:#eef1f4;border-left:4px solid #f2b84b;font:14px/1.4 Inter,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:760px}
-@media (prefers-color-scheme: light){.b{background:#fffaf0;color:#1b1d22;border:1px solid #f2d79a;border-left:4px solid #f2b84b}}
-.t{font-weight:800;margin:0 0 6px}.t span{color:#f2b84b}@media (prefers-color-scheme: light){.t span{color:#9a6a00}}
-ul{margin:0 0 8px;padding-left:18px}li{margin:2px 0}.m{margin:0 0 8px;font-size:13px;opacity:.85}
-a{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:#f2b84b;color:#141414;font-weight:700;font-size:13px;text-decoration:none}`;
+  // ---- the assignment line ---------------------------------------------------------------------------------------------
+  // 0.9.1 (George, 2026-10-24: the black box with a list and a gold button clashed with Halo's white page): one quiet
+  // line in Halo's own font and card colors, a thin gold left border, a small Halo+ mark. "+2 more" opens the rest
+  // inline; the line opens the item in Halo+. Only for a moved date, something to bring or have, a new deliverable.
+  const BOX_CSS = `:host{all:initial}
+.b{display:block;margin:8px 0;padding:7px 12px;border-radius:6px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-left:3px solid #f2b84b;font:13.5px/1.45 var(--font);max-width:760px;box-sizing:border-box}
+.l{color:inherit;text-decoration:none}
+.l:hover .t,.l:focus-visible .t{text-decoration:underline}
+.l:focus-visible{outline:2px solid #f2b84b;outline-offset:2px;border-radius:3px}
+.mk{display:inline-block;width:8px;height:8px;border:2px solid var(--gold);border-radius:50%;margin-right:6px;vertical-align:0}
+.h{font-weight:700;color:var(--gold)}
+.s{opacity:.45;margin:0 5px}
+.more{background:none;border:0;padding:0;margin-left:8px;color:var(--gold);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.more:hover{text-decoration:underline}
+.rest{margin:4px 0 1px 20px;padding:0;list-style:none}
+.rest li{margin:2px 0}
+.rest li::before{content:"· ";opacity:.5}`;
+  /** Halo's own look where the line goes: the background behind it, its text color and font, light or dark. */
+  function lookAt(el) {
+    let bg = null;
+    for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+      const c = getComputedStyle(n).backgroundColor;
+      const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(c || '');
+      if (m && (m[4] === undefined || Number(m[4]) > 0.5)) {
+        bg = [Number(m[1]), Number(m[2]), Number(m[3])];
+        break;
+      }
+    }
+    if (!bg) {
+      const c = getComputedStyle(document.body).backgroundColor;
+      const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/.exec(c || '');
+      bg = m ? [Number(m[1]), Number(m[2]), Number(m[3])] : [255, 255, 255];
+    }
+    const lum = (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255;
+    const dark = lum < 0.45;
+    const cs = getComputedStyle(el);
+    const lift = (v) => Math.min(255, Math.round(v + (dark ? 14 : 0)));
+    return {
+      dark,
+      bg: dark ? `rgb(${lift(bg[0])}, ${lift(bg[1])}, ${lift(bg[2])})` : '#ffffff',
+      ink: cs.color || (dark ? '#e6e6ea' : '#212121'),
+      line: dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.12)',
+      gold: dark ? '#f2b84b' : '#9a6a00',
+      font: cs.fontFamily || 'inherit',
+    };
+  }
   const boxShown = new Set();
   function boxes() {
     removeStaleBoxes();
@@ -381,7 +421,7 @@ a{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radiu
       const c = M.caught(view, it, now);
       const main = document.querySelector('#__next main') || document.querySelector('main');
       if (!c || !main) return;
-      placeBox(c, (b) => main.insertAdjacentElement('afterbegin', b), `quiz:${r.id}`);
+      placeBox(c, (b) => main.insertAdjacentElement('afterbegin', b), `quiz:${r.id}`, main);
       return;
     }
     if (r.kind !== 'unit') return;
@@ -406,23 +446,36 @@ a{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radiu
       let row = title;
       const parent = title.parentElement;
       if (parent && /flex/.test(getComputedStyle(parent).display) && getComputedStyle(parent).flexDirection.startsWith('row')) row = parent;
-      placeBox(c, (b) => row.insertAdjacentElement('afterend', b), `item:${M.itemKey(i)}`);
+      placeBox(c, (b) => row.insertAdjacentElement('afterend', b), `item:${M.itemKey(i)}`, title);
     }
   }
-  function placeBox(c, put, key) {
+  function placeBox(c, put, key, anchor) {
     if (document.querySelector(`[data-haloplus="box"][data-key="${CSS.escape(key)}"]`)) return;
+    const look = lookAt(anchor || document.body);
     const h = document.createElement('div');
     h.setAttribute('data-haloplus', 'box');
     h.dataset.key = key;
     h.style.cssText = 'all: initial; display: block;';
     const sr = h.attachShadow({ mode: 'open' });
     const href = M.link(ORIGIN, c, 'box');
-    sr.innerHTML = `<style>${BOX_CSS}</style><div class="b" role="note"><p class="t"><span>Halo+</span> ${esc(c.title.replace(/^Halo\+ /, ''))}</p>${c.list.length ? `<ul>${c.list.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${c.moved ? `<p class="m">${esc(c.moved)}</p>` : ''}<a href="${esc(href)}" target="_blank" rel="noopener">Open in Halo+</a></div>`;
+    const more = c.more.length;
+    sr.innerHTML = `<style>${BOX_CSS}</style><div class="b" role="note" data-dark="${look.dark ? 1 : 0}" style="--bg:${look.bg};--ink:${esc(look.ink)};--line:${look.line};--gold:${look.gold};--font:${esc(look.font)}"><a class="l" href="${esc(href)}" target="_blank" rel="noopener" title="Open in Halo+"><span class="mk" aria-hidden="true"></span><span class="h">Halo+</span><span class="s" aria-hidden="true">·</span><span class="t">${esc(c.line)}</span></a>${more ? `<button class="more" type="button" aria-expanded="false">+${more} more</button><ul class="rest" hidden>${c.more.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`;
     sr.querySelector('a').addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       openHaloPlus(c, 'box');
     });
+    const btn = sr.querySelector('.more');
+    if (btn)
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const ul = sr.querySelector('.rest');
+        const open = ul.hidden;
+        ul.hidden = !open;
+        btn.setAttribute('aria-expanded', String(open));
+        btn.textContent = open ? 'less' : `+${more} more`;
+      });
     put(h);
     if (!boxShown.has(key)) {
       boxShown.add(key);

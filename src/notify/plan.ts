@@ -1,4 +1,5 @@
 import { gradeUpBody } from '../joy/joy';
+import { isQuietPast } from '../domain/submission';
 import { announcementCatches } from '../views/trialEnd/story';
 import { participationThisWeek } from '../domain/participationWeek';
 import { addDays, dateOf, diffDays, fmtDate, makeIso, weekdayOf } from '../domain/dates';
@@ -91,7 +92,7 @@ export function morningBody(items: Item[], courses: Course[], day: DateStr, tz: 
 export function planNotices(input: PlanInput): Notice[] {
   const p = { ...DEFAULT_PREFS, ...(input.prefs ?? {}) };
   const { items, courses, schedule, tz, today, now, lastPull } = input;
-  const open = items.filter((i) => i.status !== 'done' && !isNoise(i));
+  const open = items.filter((i) => i.status !== 'done' && !isNoise(i) && !isQuietPast(i, Date.parse(now)));
   const dueOn = (day: DateStr) => open.filter((i) => dateOf(i.dueAt, tz) === day).sort((a, b) => b.points - a.points);
   const out: Notice[] = [];
   const push = (n: Notice) => {

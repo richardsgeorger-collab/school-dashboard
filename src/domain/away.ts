@@ -1,4 +1,5 @@
 import { diffDays } from './dates';
+import { isQuietPast } from './submission';
 import { isNoise } from './requirements';
 import type { Schedule } from './schedule';
 import type { DateStr, Item } from './types';
@@ -34,10 +35,10 @@ export interface WelcomeBack {
 }
 
 /** What happened while away: what slipped past its day and what the syncs brought in. */
-export function welcomeBack(items: Item[], schedule: Schedule, lastSeen: DateStr, today: DateStr): WelcomeBack {
+export function welcomeBack(items: Item[], schedule: Schedule, lastSeen: DateStr, today: DateStr, nowMs: number = Date.now()): WelcomeBack {
   const days = awayDays(lastSeen, today);
   const missed = items
-    .filter((i) => i.status !== 'done' && !isNoise(i))
+    .filter((i) => i.status !== 'done' && !isNoise(i) && !isQuietPast(i, nowMs))
     .filter((i) => {
       const d = schedule.byItem[i.id]?.deadlineDay;
       return d !== undefined && d >= lastSeen && d < today;

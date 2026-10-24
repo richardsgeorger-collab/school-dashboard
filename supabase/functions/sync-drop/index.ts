@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       return reply(origin, 400, { ok: false, why: 'The sync arrived damaged. Press Sync now to try again.' });
     }
     if (raw.length > MAX_BYTES) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
-    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown };
+    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown; done?: unknown };
     try {
       body = JSON.parse(raw);
     } catch {
@@ -58,6 +58,19 @@ Deno.serve(async (req) => {
     // The extension popup's "Last synced" (0.9.0, George 2026-10-23: it said 9:59 PM while Halo+ said 8:12 PM): the
     // account's last applied sync, as Halo+ shows it, and the newest sync that arrived and whether Halo+ has taken it.
     // Times only; the key still reads nothing of the student's classes.
+    // What is done, for the extension on Halo's pages (0.9.1, George 2026-10-24: a check-off in Halo+ must count there,
+    // from any device). Only Halo's own assignment ids of work done or graded, due two weeks back to two months ahead:
+    // nothing about what it is.
+    if (body.done === true) {
+      const dbd = admin();
+      const { data: who } = await dbd.from('sync_keys').select('user_id').eq('key', key).maybeSingle();
+      if (!who) return reply(origin, 401, { ok: false, why: 'This sync key was reset. Open Halo+ once on this computer.' });
+      const from = new Date(Date.now() - 14 * 86_400_000).toISOString();
+      const to = new Date(Date.now() + 60 * 86_400_000).toISOString();
+      const { data: rows } = await dbd.from('items').select('data->>haloId, data->>status, data->>score').eq('user_id', who.user_id).is('deleted_at', null).gte('data->>dueAt', from).lte('data->>dueAt', to).limit(2000);
+      const done = ((rows ?? []) as { haloId: string | null; status: string | null; score: string | null }[]).filter((r) => r.haloId && (r.status === 'done' || r.score != null)).map((r) => r.haloId as string);
+      return reply(origin, 200, { ok: true, at: new Date().toISOString(), done });
+    }
     if (body.status === true) {
       const db0 = admin();
       const { data: who } = await db0.from('sync_keys').select('user_id').eq('key', key).maybeSingle();

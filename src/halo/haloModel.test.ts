@@ -7,13 +7,13 @@ const ctx: { globalThis?: unknown; HaloPlusModel?: Record<string, (...a: unknown
 ctx.globalThis = ctx;
 runInNewContext(readFileSync('extension/halo-model.js', 'utf8'), ctx);
 const M = ctx.HaloPlusModel as unknown as {
-  merge: (s: unknown, l: unknown) => View;
+  merge: (s: unknown, l: unknown, server?: unknown) => View;
   pill: (v: View, now: number) => { tone: string; text: string };
   peek: (v: View, now: number) => { text: string; tone: string; key: string } | null;
   hoverList: (v: View, now: number) => { groups: { head: string; rows: { title: string; code: string; when: string; pts: number }[] }[]; part: string | null };
   classLine: (v: View, c: unknown, now: number) => { tone: string; text: string }[];
   classByCode: (v: View, t: string) => { key: string } | null;
-  caught: (v: View, i: unknown, now: number) => { title: string; list: string[]; moved: string | null } | null;
+  caught: (v: View, i: unknown, now: number) => { line: string; more: string[] } | null;
   badge: (v: View, now: number) => { text: string; red: boolean } | null;
   baseline: (v: View) => unknown;
   notable: (v: View, base: unknown, now: number, flagged: string[]) => { kind: string; text: string } | null;
@@ -108,9 +108,9 @@ describe('re-peeks: only what matters, never on first run', () => {
     const base = M.baseline(before);
     const moved = M.merge(snap([{ ...quiz, due: at(46), hd: at(46) }]), null);
     expect(M.notable(moved, base, NOW, [])?.text).toMatch(/^Moved: Quiz #2 is now due on [A-Z][a-z]{2}$/);
-    const req = M.merge(snap([quiz, item('lab', 'lab', 50, { pts: 30, x: 1, xs: ['Bring goggles'] }), item('dq', 'eng', 50, { pts: 5, x: 1 })]), null);
+    const req = M.merge(snap([quiz, item('lab', 'lab', 50, { pts: 30, x: 1, xb: ['Bring goggles'] }), item('dq', 'eng', 50, { pts: 5, x: 1 })]), null);
     expect(M.notable(req, base, NOW, [])?.text).toBe('New for Item lab: Bring goggles');
-    const small = M.merge(snap([quiz, item('dq', 'eng', 50, { pts: 5, x: 1 })]), null);
+    const small = M.merge(snap([quiz, item('dq', 'eng', 50, { pts: 5, x: 1, xb: ['Bring a printed copy'] })]), null);
     expect(M.notable(small, base, NOW, [])).toBeNull();
     const soon = M.merge(snap([{ ...quiz, due: at(2), hd: at(2) }]), null);
     expect(M.notable(soon, M.baseline(soon), NOW, [])?.kind).toBe('soon');
@@ -130,18 +130,22 @@ describe('class lines, the assignment box, the badge', () => {
     expect(M.classByCode(v, 'eng-105-onl4')?.key).toBe('eng');
   });
   it('gray by default, red for graded overdue, gold per assignment with extra requirements; participation left out', () => {
-    const v = M.merge(snap([item('a', 'chm', 30, { x: 4 }), item('b', 'chm', -5), part('p', -3), item('c', 'eng', 400)]), null);
+    const v = M.merge(snap([item('a', 'chm', 30, { x: 4, xb: ['Bring goggles'] }), item('b', 'chm', -5), part('p', -3), item('c', 'eng', 400), item('r', 'eng', 30, { x: 1, xs: ['Review chapter 3'] })]), null);
     expect(M.classLine(v, v.classes[0], NOW)).toEqual([
       { tone: 'red', text: '1 overdue' },
       { tone: 'plain', text: '1 due this week' },
       { tone: 'gold', text: '1 with extra requirements' },
     ]);
-    expect(M.classLine(v, v.classes[2], NOW)).toEqual([{ tone: 'plain', text: 'Nothing due this week' }]);
+    // A reading reminder is not an extra requirement worth gold.
+    expect(M.classLine(v, v.classes[2], NOW)).toEqual([{ tone: 'plain', text: '1 due this week' }]);
   });
-  it('the box only when announcements added something or moved the date', () => {
-    const v = M.merge(snap([item('a', 'chm', 30, { x: 2, xs: ['Use APA format', 'Three peer-reviewed sources'] }), item('b', 'chm', 30)]), null);
-    expect(M.caught(v, v.items[0], NOW)).toMatchObject({ title: 'Halo+ caught 2 extra requirements for this', list: ['Use APA format', 'Three peer-reviewed sources'] });
+  it('the assignment-page line: one line, the rest inline; only for a move, something to bring, a deliverable', () => {
+    const v = M.merge(snap([item('a', 'lab', 30, { xb: ['Bring lab coat', 'Goggles', 'Closed-toe shoes', 'Submit the data table as one PDF', 'Bring a calculator'] }), item('b', 'chm', 30, { x: 2, xs: ['Review chapter 3'] }), item('m', 'chm', 50, { m: at(26) })]), null);
+    const c = M.caught(v, v.items[0], NOW);
+    expect(c?.line).toBe('Bring lab coat · Goggles · Closed-toe shoes');
+    expect(c?.more).toEqual(['Submit the data table as one PDF', 'Bring a calculator']);
     expect(M.caught(v, v.items[1], NOW)).toBeNull();
+    expect(M.caught(v, v.items[2], NOW)?.line).toMatch(/^Due date moved to [A-Z][a-z]{2}, [A-Z][a-z]{2} \d+ \(was [A-Z][a-z]{2}, [A-Z][a-z]{2} \d+\)$/);
   });
   it('the toolbar badge: graded work due today, red when overdue or soon', () => {
     expect(M.badge(M.merge(snap([item('a', 'chm', 8), item('b', 'eng', 9)]), null), NOW)).toEqual({ text: '2', red: false });
@@ -155,5 +159,28 @@ describe('class lines, the assignment box, the badge', () => {
   it('links into Halo+ say they came from Halo', () => {
     expect(M.link('https://haloplus.app', { courseId: 'chm', id: 'a' }, 'card')).toBe('https://haloplus.app/#/class?c=chm&i=a&from=halo&via=card');
     expect(M.link('https://haloplus.app', null, 'pill')).toBe('https://haloplus.app/#/now?from=halo&via=pill');
+  });
+});
+
+describe('done in Halo+ is done; no Halo submission goes quiet', () => {
+  it('the account says done (any device): never overdue in the pill, the list, the badge or the class line', () => {
+    const late = item('q', 'chm', -3, { ht: 'Quiz #2', ty: 'quiz', pts: 50 });
+    const v = M.merge(snap([late]), null, { v: 1, done: ['h-q'] });
+    expect(M.pill(v, NOW).tone).toBe('green');
+    expect(M.badge(v, NOW)).toBeNull();
+    expect(M.classLine(v, v.classes[0], NOW)).toEqual([{ tone: 'plain', text: 'Nothing due this week' }]);
+  });
+  it('done in the snapshot beats Halo saying OVERDUE (an in-class quiz not graded yet)', () => {
+    const halo = { v: 1, at: at(0), classes: [{ slug: 'CHM-113-WF700A-20260908', cc: 'CHM-113-WF700A', code: 'CHM-113', name: 'x', g: 90, a: [['h-q', 'Quiz #2', at(-3), 50, 'ASSIGNMENT', 0, null, 1]] }] };
+    const v = M.merge(snap([item('q', 'chm', -3, { ht: 'Quiz #2', pts: 50, done: 1 })], { syncedAt: at(-5) }), halo);
+    expect(M.pill(v, NOW).tone).toBe('green');
+  });
+  it('an in-class quiz or an outside tool past its date: not overdue, not counted, not listed; a grade later is done', () => {
+    const halo = { v: 1, at: at(0), classes: [{ slug: 'CHM-113-WF700A-20260908', cc: 'CHM-113-WF700A', code: 'CHM-113', name: 'x', g: 90, a: [['h-ex', 'Exam 1', at(-2), 100, 'ASSIGNMENT', 0, null, 1], ['h-aleks', 'Topic 4 Homework', at(-1), 10, 'LTI', 0, null, 1], ['h-drop', 'Lab Report', at(-1), 30, 'ASSIGNMENT', 0, null, 0]] }] };
+    const v = M.merge(snap([]), halo);
+    expect(M.pill(v, NOW)).toEqual({ tone: 'red', text: '1 overdue' });
+    expect(M.hoverList(v, NOW).groups.flatMap((g) => g.rows.map((r) => r.title))).toEqual(['Lab Report']);
+    expect(M.badge(v, NOW)?.text).toBe('1');
+    expect(M.classLine(v, v.classes[0], NOW)[0]).toEqual({ tone: 'red', text: '1 overdue' });
   });
 });

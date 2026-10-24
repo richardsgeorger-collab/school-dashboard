@@ -24,6 +24,7 @@ import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { missedLine, missedRequirement, missedShort } from '../domain/requirements';
 import { cleanAll } from '../domain/reqClean';
 import { isNoise } from '../domain/requirements';
+import { isQuietPast } from '../domain/submission';
 import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
 import { submissionCheck } from '../domain/confirm';
@@ -286,7 +287,9 @@ export function Now() {
 
   // Participation is attendance, not work: it stays in the calendar, grades and its own line, never the hero or Then
   // (Halo's PARTICIPATION type, or "participation" in the title: CHM-113's daily ones are discussions in Halo).
-  const work = useMemo(() => data.items.filter((i) => !isParticipation(i)), [data.items]);
+  // Past work with no Halo submission (an in-class quiz, an ALEKS set: domain/submission.ts) leaves Now, Then and every
+  // overdue count once its date passes (George, 2026-10-24); Calendar and the class page still show it.
+  const work = useMemo(() => data.items.filter((i) => !isParticipation(i) && !isQuietPast(i, Date.parse(now))), [data.items, minuteKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // Not now as a quick skip (domain/skips.ts): today's skips, on this device, reset with the day.
   const [skips, setSkipsState] = useState<SkipState>(() => {
     try {
@@ -323,7 +326,7 @@ export function Now() {
   }, [data.courses, work, schedule, today]);
   const heavy = useMemo(() => pileupAhead(work, schedule, today), [work, schedule, today]);
   const sub = useMemo(() => submissionCheck(work, today, tz), [work, today, tz]);
-  const clean = useMemo(() => cleanAll(data.items).items, [data.items]);
+  const clean = useMemo(() => cleanAll(data.items.filter((i) => !isQuietPast(i, Date.parse(now)))).items, [data.items, minuteKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const checked = useAccountChecked();
   const stale = useMemo(() => (checked ? stalenessLine(staleness(data.courses, data.settings, today), data.courses.length) : null), [checked, data.courses, data.settings, today]);
   const chase = useMemo(() => blockedLine(work, data.courses, schedule, today, tz), [work, data.courses, schedule, today, tz]);

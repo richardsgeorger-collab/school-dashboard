@@ -1,4 +1,5 @@
 import { dateOf, diffDays } from './dates';
+import { isQuietPast } from './submission';
 import { isNoise } from './requirements';
 import { isWorkDone } from '../joy/joy';
 import type { DateStr, Item } from './types';
@@ -44,14 +45,15 @@ export interface Cook {
 const fmtHours = (h: number): string => (h < 1 ? `~${Math.max(5, Math.round((h * 60) / 5) * 5)}m` : `~${h < 10 ? Math.round(h * 10) / 10 : Math.round(h)}h`);
 
 /** `minutesOf` gives an item's estimate (the store's calibrated one in the app); the raw estimate otherwise. */
-export function cookMeter(items: Item[], today: DateStr, tz: string, minutesOf: (i: Item) => number = (i) => i.estimatedMinutes): Cook {
+export function cookMeter(items: Item[], today: DateStr, tz: string, minutesOf: (i: Item) => number = (i) => i.estimatedMinutes, nowMs: number = Date.now()): Cook {
   let load = 0;
   let minutes = 0;
   let n = 0;
   let overdue = 0;
   let soon = 0;
   for (const i of items) {
-    if (isWorkDone(i) || isNoise(i)) continue;
+    // Past work with no Halo submission is not overdue work (domain/submission.ts).
+    if (isWorkDone(i) || isNoise(i) || isQuietPast(i, nowMs)) continue;
     const days = diffDays(today, dateOf(i.dueAt, tz));
     if (days >= WINDOW_DAYS || days < -OVERDUE_LOOKBACK) continue;
     const m = Math.max(0, minutesOf(i) || 0) * (i.status === 'in_progress' ? 0.5 : 1);

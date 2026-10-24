@@ -173,6 +173,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       const next = msg.key || null;
       if (next && (waitingKey || before) && next !== (waitingKey || before)) await chrome.storage.local.remove(['waiting', 'waitingKey']);
       await set({ syncKey: next });
+      if (next && next !== before) void fetchDone(true);
       if (next) await sendWaiting();
     })();
     reply({ ok: true });
@@ -271,6 +272,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   } else if (msg.kind === 'halo-here') {
     // A Halo page opened. Auto-sync paused on a logged-out Halo picks up now instead of waiting up to three hours.
     void set({ haloHereAt: new Date().toISOString() });
+    void fetchDone();
     void (async () => {
       const { tier, autoPaused, lastAttemptAt, lastErrorKind, lastErrorAt, setup } = await get(['tier', 'autoPaused', 'lastAttemptAt', 'lastErrorKind', 'lastErrorAt', 'setup']);
       // A sync asked for in the last 15 minutes that found Halo logged out (the first sync during setup, 0.7.5): the
@@ -480,18 +482,37 @@ async function readHalo({ fresh }) {
 }
 
 /**
+ * What the account says is done (0.9.1, George 2026-10-24: items checked off in Halo+ still showed overdue here). Halo's
+ * own ids of work done or graded in Halo+ on any device, from the server with this computer's key; asked when a Halo
+ * page opens, after a sync, when Halo+ hands over the key, and every 10 minutes, never more than once in 3.
+ */
+async function fetchDone(force = false) {
+  try {
+    const { syncKey, haloDone } = await get(['syncKey', 'haloDone']);
+    if (!syncKey) return;
+    if (!force && haloDone && haloDone.at && Date.now() - Date.parse(haloDone.at) < 3 * 60_000) return;
+    const r = await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, done: true }) });
+    if (!r.ok) return;
+    const j = await r.json().catch(() => null);
+    if (j && j.ok && Array.isArray(j.done)) await set({ haloDone: { v: 1, at: new Date().toISOString(), done: j.done.slice(0, 3000) } });
+  } catch {
+    /* offline: the last list stands */
+  }
+}
+
+/**
  * The toolbar badge (George, 2026-10-22): how many things are due today, gold; red when something is overdue or due
  * within 3 hours; nothing when nothing is due. Setup's own marks and a failed Sync now's "!" come first. Free has no
  * sync to keep it true, so no badge there.
  */
 async function updateBadge() {
   try {
-    const s = await get(['haloSnap', 'haloLive', 'setup', 'tier', 'lastError', 'lastErrorAt', 'lastSyncAt', 'lastErrorKind']);
+    const s = await get(['haloSnap', 'haloLive', 'haloDone', 'setup', 'tier', 'lastError', 'lastErrorAt', 'lastSyncAt', 'lastErrorKind']);
     if (s.setup && Date.now() - Date.parse(s.setup.at || 0) < 15 * 60_000) return;
     const failedNow = s.lastError && s.lastErrorAt && (!s.lastSyncAt || s.lastErrorAt > s.lastSyncAt) && !['logged-out', 'offline', 'no-key'].includes(s.lastErrorKind);
     if (failedNow) return;
     const M = globalThis.HaloPlusModel;
-    const view = M.merge(s.haloSnap, s.haloLive);
+    const view = M.merge(s.haloSnap, s.haloLive, s.haloDone);
     const b = view && view.plan !== 'free' && AUTO.includes(s.tier) ? M.badge(view, Date.now()) : null;
     await chrome.action.setBadgeText({ text: b ? b.text : '' });
     if (b) await chrome.action.setBadgeBackgroundColor({ color: b.red ? '#e5484d' : '#f2b84b' });
@@ -504,11 +525,14 @@ async function updateBadge() {
 void updateBadge();
 // Whatever changed what it says (Halo+'s snapshot, a sync's reading, the plan, setup) updates it.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && ['haloSnap', 'haloLive', 'tier', 'setup'].some((k) => k in changes)) void updateBadge();
+  if (area === 'local' && ['haloSnap', 'haloLive', 'haloDone', 'tier', 'setup'].some((k) => k in changes)) void updateBadge();
 });
 chrome.alarms.create('halo-badge', { periodInMinutes: 10 }).catch?.(() => undefined);
 chrome.alarms.onAlarm.addListener((a) => {
-  if (a.name === 'halo-badge') void updateBadge();
+  if (a.name === 'halo-badge') {
+    void updateBadge();
+    void fetchDone();
+  }
 });
 
 /** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
@@ -866,6 +890,7 @@ async function toAccount(payload) {
 /** A sync reached the account (or an open Halo+ tab): now, and only now, it is "Last synced". */
 async function markLanded(readAt, how) {
   await set({ lastSyncAt: readAt, lastLanded: how, lastError: null, lastErrorKind: null });
+  void fetchDone(true);
   void tellTabs({ ok: true, at: readAt, how });
   // Only a sync read after the pause began says Halo is logged in again (0.9.0): Halo+ applying an older one kept from
   // before (read while Halo was still logged in) must not end it.

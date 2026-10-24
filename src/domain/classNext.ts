@@ -1,4 +1,5 @@
 import { dateOf, diffDays } from './dates';
+import { isQuietPast } from './submission';
 import { isNoise } from './requirements';
 import { isWorkDone } from '../joy/joy';
 import type { DateStr, Item } from './types';
@@ -17,7 +18,7 @@ export const OVERDUE_DAYS = 14;
 export function overdueOf(items: Item[], today: DateStr, tz: string): Item[] {
   return items
     .filter((i) => {
-      if (isWorkDone(i) || (isNoise(i) && i.halo?.status !== 'OVERDUE')) return false;
+      if (isWorkDone(i) || (isNoise(i) && i.halo?.status !== 'OVERDUE') || isQuietPast(i, Date.now())) return false;
       const d = diffDays(today, dateOf(i.dueAt, tz));
       return d < 0 && (i.halo?.status === 'OVERDUE' || d >= -OVERDUE_DAYS);
     })

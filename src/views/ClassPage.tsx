@@ -1,4 +1,5 @@
 import { CookMeter } from './CookMeter';
+import { isQuietPast } from '../domain/submission';
 import { useEffect, useState } from 'react';
 import { ClassNotes } from './Requirements';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -81,7 +82,11 @@ export function ClassPage() {
   const items = foldReadings(data.items.filter((i) => i.courseId === course.id && i.type !== 'participation'));
   const rules = rulesFor(cleanAll(data.items).items, course.id);
   const notes = (course.notes ?? []).filter((n) => !n.seenAt);
-  const openItems = items.filter((i) => i.status !== 'done').sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  // Past work with no Halo submission (an in-class quiz, an outside tool's set): its own quiet group, never "past
+  // their date" or open (domain/submission.ts).
+  const nowMs = Date.now();
+  const past = items.filter((i) => isQuietPast(i, nowMs)).sort((a, b) => b.dueAt.localeCompare(a.dueAt));
+  const openItems = items.filter((i) => i.status !== 'done' && !isQuietPast(i, nowMs)).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const done = items.filter((i) => i.status === 'done').sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   const next = openItems.find((i) => dateOf(i.dueAt, tz) >= today) ?? openItems[0] ?? null;
   const overdue = openItems.filter((i) => (schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz)) < today);
@@ -204,6 +209,20 @@ export function ClassPage() {
           </ul>
         )}
       </section>
+
+      {past.length > 0 && (
+        <section className="section class-past">
+          <h2 className="section-title">
+            past <span className="count">{past.length}</span>
+          </h2>
+          <p className="hint">No submission in Halo, so Halo+ can’t tell if they’re done. A grade marks them done.</p>
+          <ul className="item-list">
+            {past.map((i) => (
+              <ItemRow key={i.id} item={i} onOpen={setOpen} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="section">
         <h2 className="section-title">

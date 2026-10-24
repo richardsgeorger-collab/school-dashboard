@@ -119,9 +119,12 @@ try {
   });
   await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{"ok":true}' }));
   // The account's answer to the popup: last applied 8:12 PM-ish, and (second state) a sync that came in and did not go in.
+  // What the account says is done (0.9.1): Halo+ on another device checked these off.
+  let doneIds = [];
   let status = { ok: true, appliedAt: iso(-2), via: 'extension', lastDropAt: iso(-2), takenAt: iso(-2) };
   await ctx.route('**/functions/v1/sync-drop', async (r) => {
     const b = r.request().postDataJSON?.() ?? null;
+    if (b && b.done === true) return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ ok: true, at: new Date().toISOString(), done: doneIds }) });
     if (b && b.status === true) return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(status) });
     return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"ok":true}' });
   });
@@ -154,7 +157,9 @@ try {
       await sleep(300);
       check((await pillState(p))?.x !== 'none', 'hovering shows the ×');
       await p.screenshot({ path: `${OUT}/${BROWSER}-1b-peek-hover-${scheme}.png`, clip: { x: 566, y: 660, width: 800, height: 200 } });
-      await sleep(6500);
+      if (process.env.TRACE) for (let k = 0; k < 7; k++) { console.log('  hold', k, JSON.stringify(await pillState(p)), await p.evaluate(() => { const el = document.querySelector('[data-haloplus="layer"]').shadowRoot.querySelector('.pill'); return el.matches(':hover'); })); await sleep(1000); }
+      // A pointer resting on the pill (Edge, windowed off-screen, drops :hover between scripted moves, so it is re-placed).
+      else for (let k = 0; k < 13; k++) { await hoverPill(p).catch(() => undefined); await sleep(500); }
       check(!!(await pillState(p))?.peek, 'hovered, it stays out past 6 seconds');
       await leavePill(p);
       const back = await until(async () => { const s = await pillState(p); return s && !s.peek ? s : null; }, 4000, 200);
@@ -243,18 +248,81 @@ try {
     await p.close();
   }
 
+  // ---- done in Halo+, participation, a past in-class quiz (0.9.1) ----
+  {
+    const snap = shaped('gold');
+    snap.items.push({ id: 'demo-q2', h: 'h-q2', c: snap.classes[2].id, t: 'MAT-250 Quiz 2', ht: 'Quiz 2: Derivatives', due: iso(-5), hd: iso(-5), pts: 40, ty: 'quiz', done: 0, x: 0, ns: 1 });
+    snap.items.push({ id: 'demo-lr', h: 'h-lr', c: snap.classes[0].id, t: 'Lab Report 3', ht: 'Lab Report 3', due: iso(-6), hd: iso(-6), pts: 30, ty: 'lab', done: 0, x: 0 });
+    doneIds = ['h-lr'];
+    await store({ haloSnap: snap, haloDone: null, haloUi: { day: day(NOW, MORNING_TZ), first: true, reopens: 0, closes: 0, flagged: [] }, haloBase: null });
+    for (const scheme of ['light', 'dark']) {
+      const p = await ctx.newPage();
+      await p.setViewportSize({ width: 1366, height: 860 });
+      await p.emulateMedia({ colorScheme: scheme });
+      await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+      const pill = await until(async () => { const s2 = await pillState(p); return s2 && s2.tone === 'gold' ? s2 : null; }, 15000, 300);
+      await hoverPill(p);
+      const tip = await until(() => tipText(p), 3000);
+      if (scheme === 'light') {
+        check(!!pill && pill.text === '2 due today', `done in Halo+ on another device, a past in-class quiz, an overdue participation post: none overdue ("${pill?.text}", ${pill?.tone})`);
+        check(!!tip && !/Quiz 2: Derivatives|Lab Report 3/.test(tip) && /Participation: 2 posts left this week/.test(tip), `the list leaves them out; participation is one line: "${(tip ?? '').replace(/\s+/g, ' ').slice(0, 140)}"`);
+        const b2 = await until(async () => { const x = await badge(); return x.text === '2' ? x : null; }, 12000).catch(() => null);
+        check(b2?.text === '2', `the toolbar badge counts only the two due today (${b2?.text})`);
+        const lines = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => h.shadowRoot.textContent));
+        check(!lines.some((l) => /overdue/.test(l)), 'no class line says overdue');
+      }
+      await p.screenshot({ path: `${OUT}/${BROWSER}-7-done-part-pastquiz-${scheme}.png`, clip: { x: 866, y: 400, width: 500, height: 460 } });
+      await p.close();
+    }
+    doneIds = [];
+  }
+
+  // ---- the assignment line: one line in Halo's own look, "+2 more" inline (0.9.1) ----
+  {
+    const snap = shaped('gold');
+    const course = fx.courses[0];
+    const open = snap.items.filter((i) => i.c === snap.classes[0].id && !i.done && !i.pa);
+    for (const i of snap.items) {
+      delete i.xb;
+      delete i.m;
+    }
+    open[0].xb = ['Bring lab coat', 'Goggles', 'Closed-toe shoes', 'Submit the data table as one PDF', 'Bring a calculator'];
+    if (open[1]) Object.assign(open[1], { x: 1, xs: ['Review chapter 3 before class'] });
+    await store({ haloSnap: snap });
+    for (const scheme of ['light', 'dark']) {
+      const p = await ctx.newPage();
+      await p.setViewportSize({ width: 1100, height: 760 });
+      await p.emulateMedia({ colorScheme: scheme });
+      await p.goto(`https://halo.gcu.edu/courses/${course.slug}/course-units/u3`, { waitUntil: 'load' });
+      const line = await until(() => p.evaluate(() => document.querySelector('[data-haloplus="box"]')?.shadowRoot?.querySelector('.b')?.innerText ?? null), 6000);
+      const n = await p.locator('[data-haloplus="box"]').count();
+      const bg = await p.evaluate(() => getComputedStyle(document.querySelector('[data-haloplus="box"]').shadowRoot.querySelector('.b')).backgroundColor);
+      if (scheme === 'light') {
+        check(!!line && /^Halo\+\s*·\s*Bring lab coat · Goggles · Closed-toe shoes\s*\+2 more$/.test(line.replace(/\s+/g, ' ').trim()) && n === 1, `one line, only where it matters (${n} on the page): "${(line ?? '').replace(/\s+/g, ' ')}"`);
+        check(bg === 'rgb(255, 255, 255)', `light: Halo's white card (${bg})`);
+        check((await p.evaluate(() => document.querySelector('[data-haloplus="box"]').shadowRoot.querySelector('a').href)).includes('via=box'), 'the line opens the item in Halo+');
+      } else {
+        const [r, g, b2] = (bg.match(/\d+/g) ?? ['255', '255', '255']).map(Number);
+        check((r + g + b2) / 3 < 90, `dark: matches Halo's dark card (${bg})`);
+      }
+      const box = p.locator('[data-haloplus="box"]');
+      await box.scrollIntoViewIfNeeded();
+      await p.screenshot({ path: `${OUT}/${BROWSER}-8-assignment-line-${scheme}.png`, clip: await box.evaluate((e) => { const r = e.parentElement.getBoundingClientRect(); return { x: Math.max(0, r.x - 12), y: Math.max(0, r.y - 12), width: Math.min(900, r.width + 24), height: r.height + e.getBoundingClientRect().height + 30 }; }) });
+      await p.evaluate(() => document.querySelector('[data-haloplus="box"]').shadowRoot.querySelector('.more').click());
+      await sleep(300);
+      const open2 = await p.evaluate(() => document.querySelector('[data-haloplus="box"]').shadowRoot.querySelector('.b').innerText);
+      if (scheme === 'light') check(/Submit the data table as one PDF/.test(open2) && /Bring a calculator/.test(open2) && /less/.test(open2), '"+2 more" opens the rest inline');
+      await p.screenshot({ path: `${OUT}/${BROWSER}-8b-assignment-line-open-${scheme}.png`, clip: await box.evaluate((e) => { const r = e.parentElement.getBoundingClientRect(); return { x: Math.max(0, r.x - 12), y: Math.max(0, r.y - 12), width: Math.min(900, r.width + 24), height: r.height + e.getBoundingClientRect().height + 30 }; }) });
+      await p.close();
+    }
+  }
+
   // ---- the assignment box, the switch, "Nice. Next up" with the confetti ----
   {
     const p = await ctx.newPage();
     await p.setViewportSize({ width: 1366, height: 860 });
     const snap = shaped('gold');
     await store({ haloSnap: snap, haloUi: { day: day(NOW, MORNING_TZ), first: true, reopens: 0, closes: 0, flagged: [] } });
-    const withBox = fx.courses.find((c) => c.items.some((i) => snap.items.find((x) => x.id === i.id && x.x > 0)));
-    if (withBox) {
-      await p.goto(`https://halo.gcu.edu/courses/${withBox.slug}/course-units/u3`, { waitUntil: 'load' });
-      const box = await until(() => p.evaluate(() => document.querySelector('[data-haloplus="box"]')?.shadowRoot?.textContent ?? null), 5000);
-      check(!!box && /Halo\+ caught/.test(box), 'the assignment box still shows what announcements added');
-    }
     await store({ haloUiOn: { on: false, at: new Date().toISOString() } });
     await sleep(1200);
     check((await p.locator('[data-haloplus]').count()) === 0, 'switched off: nothing of Halo+ on the page');

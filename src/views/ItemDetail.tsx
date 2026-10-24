@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { NO_SUBMISSION_NOTE, noHaloSubmission } from '../domain/submission';
 import { CourseChip } from '../components/CourseChip';
 import { HaloJump } from '../components/HaloJump';
 import { Modal } from '../components/Modal';
@@ -366,6 +367,7 @@ export function ItemDetail({ item: passed, isNew = false, onClose }: { item: Ite
         </p>
       )}
       {item.topic && <p className="hint">{item.topic}</p>}
+      {noHaloSubmission(item) && <p className="hint no-submission">{NO_SUBMISSION_NOTE}</p>}
       {item.status === 'done' && (
         <p className="hint">
           Actually took{' '}

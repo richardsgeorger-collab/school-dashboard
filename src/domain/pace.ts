@@ -1,4 +1,5 @@
 import { dateOf, diffDays } from './dates';
+import { isQuietPast } from './submission';
 import { isNoise } from './requirements';
 import { effectivePoints } from './gating';
 import type { Schedule } from './schedule';
@@ -24,8 +25,8 @@ const AHEAD_DAYS = 3;
  * Where one class stands: behind by the number of open items past their deadline day; ahead by the number of
  * free days before anything needs starting (three or more); otherwise on pace. Clear when nothing is open.
  */
-export function paceFor(course: Course, items: Item[], schedule: Schedule, today: DateStr): Pace {
-  const open = items.filter((i) => i.courseId === course.id && i.status !== 'done' && !isNoise(i));
+export function paceFor(course: Course, items: Item[], schedule: Schedule, today: DateStr, nowMs: number = Date.now()): Pace {
+  const open = items.filter((i) => i.courseId === course.id && i.status !== 'done' && !isNoise(i) && !isQuietPast(i, nowMs));
   if (open.length === 0) return { kind: 'clear' };
   const behind = open.filter((i) => (schedule.byItem[i.id]?.deadlineDay ?? '9999') < today).length;
   if (behind > 0) return { kind: 'behind', n: behind };

@@ -2,6 +2,7 @@ import { dateOf } from '../domain/dates';
 import { rankItems } from '../domain/now';
 import { isParticipation } from '../domain/participation';
 import { participationThisWeek } from '../domain/participationWeek';
+import { noHaloSubmission } from '../domain/submission';
 import type { Schedule } from '../domain/schedule';
 import { shortLine } from '../domain/shortLine';
 import type { Course, Item, Settings } from '../domain/types';
@@ -40,6 +41,10 @@ export interface HaloSnapItem {
   m?: string;
   /** Participation (a day's post, a weekly check-in): never drives urgency on Halo's pages (2026-10-23). */
   pa?: 1;
+  /** No submission in Halo (an outside tool's set, in-person work): quiet once its date passes (2026-10-24). */
+  ns?: 1;
+  /** What the assignment-page line may say (2026-10-24): things to bring or have, a new graded deliverable. */
+  xb?: string[];
 }
 
 export interface HaloSnapClass {
@@ -74,6 +79,28 @@ export interface HaloSnap {
 
 const DAY = 86_400_000;
 
+/** Something to bring or have on hand: gear, a tool, materials. */
+const BRING = /\b(bring|wear|have (?:your|a|an)|goggles|lab coat|closed[- ]toe|shoes|calculator|laptop|notebook|textbook|materials?|supplies|kit|charger|headphones|ID card|student ID|printed|hard copy|pencil|pen)\b/i;
+/** A new thing to hand in or do for credit. */
+const DELIVER = /\b(submit|upload|turn in|hand in|post|write|complete|attach|include|prepare|present|record|sign)\b/i;
+/** Never worth a line on Halo's page by itself. */
+const SOFT = /\b(review|re-?read|read|reading|study|watch|look over|remember|reminder|don'?t forget|be sure|keep in mind|check (?:out|your)|practice)\b/i;
+
+/**
+ * The few announcement requirements worth a line on the assignment's own Halo page (George, 2026-10-24): what to
+ * bring or have, and a new graded deliverable. Never "review the readings" or a general reminder.
+ */
+export function boxWorthy(reqs: { text: string; gradedOn: boolean; scope?: string }[]): string[] {
+  const out: string[] = [];
+  for (const r of reqs) {
+    const t = r.text.trim();
+    const bring = BRING.test(t);
+    const deliver = r.gradedOn && r.scope !== 'reference' && r.scope !== 'rule' && DELIVER.test(t) && !SOFT.test(t);
+    if (bring || deliver) out.push(shortLine(t));
+  }
+  return out.slice(0, 6);
+}
+
 /** Halo's class code from its slug: "CHM-113-WF700A-20260908" → "CHM-113-WF700A". */
 export const classCodeOf = (slug: string | null | undefined): string => (slug ?? '').replace(/-\d{8}$/, '');
 
@@ -86,7 +113,8 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
   const work = input.items.filter((i) => live.has(i.courseId) && i.type !== 'participation' && i.dueAt);
   const keep = work.filter((i) => {
     const due = Date.parse(i.dueAt);
-    if (isWorkDone(i)) return dateOf(i.dueAt, tz) === today;
+    // Done work in the window too (2026-10-24): it tells the extension "done" over its own Halo reading, which says
+    // OVERDUE for an in-class quiz Halo has not graded yet.
     return due >= t - 3 * DAY && due <= t + 21 * DAY;
   });
   let hidden = 0;
@@ -110,6 +138,8 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
       ...(open && extras.length ? { xs: extras.slice(0, 3).map((r) => shortLine(r.text)) } : {}),
       ...(moved ? { m: new Date(moved).toISOString() } : {}),
       ...(isParticipation(i) ? { pa: 1 as const } : {}),
+      ...(noHaloSubmission(i) ? { ns: 1 as const } : {}),
+      ...(open && boxWorthy(extras).length ? { xb: boxWorthy(extras) } : {}),
     };
   });
   // Halo+'s do-now pick among graded work: participation never leads on Halo's pages.
