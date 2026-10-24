@@ -42,9 +42,9 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeek: null, haloUi: null, haloUiOn: null, haloBase: null, tier: null, syncKey: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, tier: null, syncKey: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeek', 'haloUi', 'haloUiOn', 'haloBase', 'tier', 'syncKey'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'tier', 'syncKey'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -321,7 +321,8 @@
   // knew ClassDetails, so a home card was never found. A home card is now matched by the /courses/<slug> link inside
   // it, which is the class's own Halo slug, never by text; a card whose line would not show (clipped) gets none.
   const LINE_CSS = `:host{all:initial}
-.l{display:block;margin:6px 0 2px;padding:0 2px;font:500 12px/1.35 Inter,-apple-system,"Segoe UI",Roboto,sans-serif;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.l{display:block;margin:6px 0 2px;padding:0 2px;font:500 12px/1.35 Inter,-apple-system,"Segoe UI",Roboto,sans-serif;color:#6b7280;white-space:nowrap;overflow:hidden;cursor:pointer}
+.l[data-wrap]{white-space:normal}
 @media (prefers-color-scheme: dark){.l{color:#9aa3ad}}
 .l b{font-weight:700}
 .l [data-tone=red]{color:#d93a3f}.l [data-tone=gold]{color:#a87400}
@@ -366,12 +367,30 @@
     h.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && go(e));
     return h;
   }
-  const lineHtml = (cls, now) => `<div class="l" role="link" tabindex="0" title="Open ${esc(cls.code)} in Halo+"><b>Halo+</b> · ${M.classLine(view, cls, now).map((p) => `<span data-tone="${p.tone}">${esc(p.text)}</span>`).join(' · ')}</div>`;
+  const lineHtml = (code, parts, wrap) => `<div class="l" role="link" tabindex="0" title="Open ${esc(code)} in Halo+"${wrap ? ' data-wrap' : ''}><b>Halo+</b> · ${parts.map((p) => `<span data-tone="${p.tone}">${esc(p.text)}</span>`).join(' · ')}</div>`;
+  /**
+   * The line in the room the card has (0.10.3, George: "1 with extra require…"): all of it when it fits, else without
+   * its last parts, never cut mid-word with "…"; if even the first part does not fit, it wraps.
+   */
+  function fitLine(h) {
+    const inner = h.shadowRoot.querySelector('div');
+    const parts = JSON.parse(h.dataset.parts || '[]');
+    for (let n = parts.length; n >= 1; n--) {
+      inner.innerHTML = lineHtml(h.dataset.code || '', parts.slice(0, n), false);
+      const l = inner.firstElementChild;
+      if (!l.clientWidth || l.scrollWidth <= l.clientWidth + 1) return;
+    }
+    inner.innerHTML = lineHtml(h.dataset.code || '', parts.slice(0, 1), true);
+  }
   function fill(h, cls, now) {
     h.dataset.course = cls.key;
-    const inner = h.shadowRoot.querySelector('div');
-    const html = lineHtml(cls, now);
-    if (inner.innerHTML !== html) inner.innerHTML = html;
+    const parts = JSON.stringify(M.classLine(view, cls, now));
+    const width = String(Math.round(h.getBoundingClientRect().width));
+    if (h.dataset.parts === parts && h.dataset.w === width) return;
+    h.dataset.parts = parts;
+    h.dataset.code = cls.code;
+    h.dataset.w = width;
+    fitLine(h);
   }
   /** The left edge of the card's own text (where the class code starts), so the line lines up with it. */
   function textInset(card) {
@@ -387,6 +406,8 @@
       if (!h.isConnected) return;
       const x = textInset(card);
       if (x > 2) h.style.padding = `0 ${x - 2}px`;
+      fitLine(h);
+      h.dataset.w = String(Math.round(h.getBoundingClientRect().width));
       const r = h.getBoundingClientRect();
       const c = card.getBoundingClientRect();
       const clipped = getComputedStyle(card).overflow !== 'visible' && (r.top < c.top - 1 || r.bottom > c.bottom + 1);
@@ -578,7 +599,7 @@
   // "Open in Halo+" shows on hover; the box checks it off in Halo+ with a few seconds to undo. Participation is one line
   // at the bottom. On Student Home it is the day's look: no peek there, and no pill. It is placed only where it sits
   // cleanly (the full width, above the cards); otherwise nothing, and the pill does the job as before.
-  const WEEK_ROWS = 8;
+  const WEEK_ROWS = 5;
   const UNDO_MS = 5000;
   const WEEK_CSS = `:host{all:initial;display:block}
 *{box-sizing:border-box}
@@ -586,7 +607,9 @@
 .wk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
 .hd{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px 12px 20px;cursor:pointer;font:600 15px/1.3 var(--font);color:var(--ink)}
 .hd:focus-visible{outline:2px solid var(--gold);outline-offset:-3px;border-radius:var(--radius)}
-.hd .n{color:var(--muted);font-weight:500}
+.hd .n{color:var(--muted);font-weight:500;white-space:nowrap}
+.hd .n[data-tone=red]{color:var(--red)}.hd .n[data-tone=green]{color:var(--green)}
+.hd>span:first-child{white-space:nowrap}
 .hd .asof{color:var(--muted);font-weight:400;font-size:12.5px}
 .mk{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:700 11px/1 var(--font);letter-spacing:.02em;color:var(--muted)}
 .mk i{display:inline-block;width:8px;height:8px;border:2px solid var(--gold);border-radius:50%}
@@ -609,7 +632,7 @@ ul{list-style:none;margin:0;padding:0}
 .t{min-width:0;flex:0 1 auto;color:var(--ink);font-weight:600;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:3px}
 .c{flex:none;color:var(--muted);font-size:12.5px;white-space:nowrap}
-.x{flex:none;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.x{flex:none;width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 5px transparent;cursor:help}
 .gap{flex:1 1 auto}
 .plus{display:none;flex:none;color:var(--gold-ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}
 .plus:hover{text-decoration:underline}
@@ -705,13 +728,20 @@ ul{list-style:none;margin:0;padding:0}
    * grid (Better Halo) would see on every redraw.
    */
   let weekLook = null;
+  /** The card's style as it is drawn, read without touching the page: a copy is made only when this changes. */
+  const cardSig = (card) => {
+    const c = getComputedStyle(card);
+    return [c.backgroundColor, c.color, c.borderTopColor, c.borderTopWidth, c.borderRadius, c.boxShadow, c.fontFamily, document.documentElement.className, document.documentElement.getAttribute('data-better-halo-theme') || ''].join('|');
+  };
   /** The panel's own view: this computer's marks count as done, except the ones still inside their Undo. */
   function weekView() {
     const marks = { ...(st.haloMarks || {}) };
     for (const id of checking.keys()) delete marks[id];
     return M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, marks));
   }
-  const weekOpen = () => !(st.haloWeek && st.haloWeek.open === false);
+  // Folded until the student opens it (0.10.3, George: "starts CLOSED for everyone, including existing users"): a new
+  // key, so 0.10.x's remembered "open" does not carry over; opening or folding it is remembered from then on.
+  const weekOpen = () => !!(st.haloWeekOpen && st.haloWeekOpen.open === true);
   const CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function weekBody(w) {
     const out = [];
@@ -727,7 +757,8 @@ ul{list-style:none;margin:0;padding:0}
           const on = r.id && checking.has(r.id);
           const box = r.canCheck && st.syncKey ? `<input type="checkbox" data-id="${esc(r.id)}" aria-label="Done: ${esc(r.title)}"${on ? ' checked' : ''}>` : '<span class="sp" aria-hidden="true"></span>';
           const dot = `<span class="dot" aria-hidden="true"${r.color && /^#[0-9a-f]{3,8}$/i.test(r.color) ? ` style="background:${r.color}"` : ''}></span>`;
-          const x = r.extra.length ? `<span class="x" role="img" aria-label="Halo+ caught: ${esc(r.extra.join('; '))}" title="${esc(`Halo+ caught: ${r.extra.join(' · ')}`)}"></span>` : '';
+          // The gold dot: real extra steps an announcement added (things to bring, a new deliverable); said on hover.
+          const x = r.extra.length ? `<span class="x" role="img" aria-label="Has extra steps: ${esc(r.extra.join('; '))}" title="Has extra steps, open for details"></span>` : '';
           const tail = on
             ? `<span class="gap"></span><button class="undo" type="button" data-undo="${esc(r.id)}">Undo</button>`
             : `<span class="gap"></span>${r.courseId && r.id ? `<a class="plus" href="${esc(M.link(ORIGIN, r, 'week'))}" target="_blank" rel="noopener" data-plus>Open in Halo+</a>` : ''}<span class="w">${esc(r.time)}</span><span class="p">${r.pts ? `${r.pts} pts` : ''}</span>`;
@@ -752,12 +783,17 @@ ul{list-style:none;margin:0;padding:0}
     const v = weekView();
     if (!v) return false;
     const w = M.week(v, Date.now());
-    if (!weekLook || !old) weekLook = cardLook(spot.card);
-    const look = weekLook;
+    // Read again only when the card itself looks different (a theme, light or dark): the copy it takes is a change in
+    // Halo's grid, and Better Halo, which watches the grid and re-adds its theme, must not be woken for nothing.
+    const sig = cardSig(spot.card);
+    if (!weekLook || weekLook.sig !== sig) weekLook = { sig, look: cardLook(spot.card) };
+    const look = weekLook.look;
     const open = weekOpen();
     const asof = free() ? `as of ${M.syncedDay(v)}` : M.stale(v, Date.now());
     const n = w.count;
-    const head = `<button class="hd" type="button" aria-expanded="${open}"><span>This week</span><span class="n">· ${n ? `${n} due` : 'nothing due'}</span>${asof ? `<span class="asof">${esc(asof)}</span>` : ''}<span class="mk" aria-hidden="true"><i></i>Halo+</span>${CHEV}</button>`;
+    // One line folded or open: "This week · 11 due · 5 tomorrow" (or "· Today's done", "· 2 overdue").
+    const near = n ? `<span class="n" data-tone="${w.near.tone}">· ${esc(w.near.text)}</span>` : '';
+    const head = `<button class="hd" type="button" aria-expanded="${open}"><span>This week</span><span class="n">· ${n ? `${n} due` : 'nothing due'}</span>${near}${asof ? `<span class="asof">${esc(asof)}</span>` : ''}<span class="mk" aria-hidden="true"><i></i>Halo+</span>${CHEV}</button>`;
     const vars = `--bg:${look.bg};--ink:${look.ink};--muted:${look.muted};--line:${look.line};--hover:${look.hover};--border:${look.border};--radius:${look.radius};--shadow:${look.shadow};--font:${look.font};--gold:${look.gold};--gold-ink:${look.goldInk};--red:${look.red};--green:${look.green}`;
     const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}">${head}<div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
     let h = old;
@@ -805,7 +841,7 @@ ul{list-style:none;margin:0;padding:0}
         const t = e.target;
         if (t.closest('.hd')) {
           const open = !weekOpen();
-          save({ haloWeek: { open } });
+          save({ haloWeekOpen: { open, at: new Date().toISOString() } });
           count(open ? 'week-open' : 'week-close');
           weekHtml = '';
           return weekPanel();
@@ -1001,7 +1037,6 @@ ul{list-style:none;margin:0;padding:0}
   const relook = guard(() => {
     if (!alive()) return;
     weekHtml = '';
-    weekLook = null;
     soon();
   });
   new MutationObserver(relook).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-better-halo-theme', 'data-theme'] });
@@ -1011,6 +1046,14 @@ ul{list-style:none;margin:0;padding:0}
   } catch {
     /* older browsers */
   }
+  // A narrower or wider window: the class lines fit themselves again.
+  window.addEventListener(
+    'resize',
+    guard(() => {
+      document.querySelectorAll('[data-haloplus="class"]').forEach((h) => delete h.dataset.w);
+      soon();
+    }),
+  );
   // Halo re-renders: put the class lines and the box back.
   new MutationObserver(
     guard((records) => {
@@ -1018,8 +1061,6 @@ ul{list-style:none;margin:0;padding:0}
       let halo = false;
       for (const r of records)
         for (const n of r.addedNodes) {
-          // A stylesheet arriving (a theme loading after the page): the panel reads the card's look again.
-          if (n.nodeName === 'LINK' || n.nodeName === 'STYLE') weekLook = null;
           if (n.nodeType === 1 && !(n.closest && n.closest('[data-haloplus]')) && !(host && host.contains(n))) halo = true;
         }
       if (halo) soon();

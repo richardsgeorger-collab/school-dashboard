@@ -358,11 +358,15 @@
         head,
         rows: list.map((i) => {
           const c = klass(view, i.c);
-          const extra = [...new Set([...boxLines(i), ...(Array.isArray(i.xs) ? i.xs : [])])];
+          // The gold dot: real extra steps an announcement added (something to bring or have, a new deliverable), the
+          // same ones the class line counts; never a reading reminder (0.10.3).
+          const extra = boxLines(i);
           return { key: itemKey(i), id: i.id, h: i.h, title: clip(title(i), 90), code: c ? c.code : '', color: (c && c.col) || null, time: rowTime(i.due, t, view.tz), pts: i.pts || 0, late: ms(i.due) < t, extra, href: haloHref(view, i), courseId: c && !String(c.key).startsWith('live:') ? c.key : null, canCheck: !!i.id };
         }),
       }));
-    return { groups, todayDone: s.todayDone, count: groups.reduce((n, g) => n + g.rows.length, 0), part: partLine(view, now) };
+    // For the folded header: "· 2 overdue", "· 3 today", "· 5 tomorrow", or "· Today's done".
+    const near = s.overdue.length ? { tone: 'red', text: `${s.overdue.length} overdue` } : s.dueToday.length ? { tone: 'plain', text: `${s.dueToday.length} today` } : s.tomorrow.length ? { tone: 'plain', text: `${s.tomorrow.length} tomorrow` } : { tone: 'green', text: "Today's done" };
+    return { groups, todayDone: s.todayDone, count: groups.reduce((n, g) => n + g.rows.length, 0), near, part: partLine(view, now) };
   }
 
   /** The line under a class card: gray by default, gold for a real extra requirement, red for graded work overdue. */
@@ -374,9 +378,11 @@
     // Assignments (due in the next two weeks) with something an announcement added: one per assignment, not per line.
     const extra = mine.filter((i) => boxLines(i).length > 0 && ms(i.due) >= t && ms(i.due) - t <= 14 * DAY);
     const parts = [];
+    // Short enough for Halo's narrowest card (0.10.3, George: "1 with extra require…" was cut off); the page drops the
+    // last part rather than cut one (halo-ui.js).
     if (overdue) parts.push({ tone: 'red', text: `${overdue} overdue` });
-    parts.push({ tone: 'plain', text: week ? `${week} due this week` : 'Nothing due this week' });
-    if (extra.length) parts.push({ tone: 'gold', text: `${extra.length} with extra requirements` });
+    parts.push({ tone: 'plain', text: week ? `${week} this week` : 'Nothing this week' });
+    if (extra.length) parts.push({ tone: 'gold', text: plural(extra.length, 'extra step') });
     return parts;
   }
 

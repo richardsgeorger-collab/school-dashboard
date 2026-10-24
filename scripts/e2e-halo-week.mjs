@@ -56,7 +56,9 @@ function shaped(kind = 'week') {
     g[k].x = 0;
   });
   // What Halo+ caught for one of tomorrow's (the gold dot), and the topic it sits on in Halo (where its row opens).
-  Object.assign(g[3], { x: 1, xs: ['Bring a printed copy of your draft'], u: 'unit-7', hy: 'ASSIGNMENT' });
+  Object.assign(g[3], { x: 1, xs: ['Bring a printed copy of your draft'], xb: ['Bring a printed copy of your draft'], u: 'unit-7', hy: 'ASSIGNMENT' });
+  // A reading reminder only: no dot (0.10.3).
+  Object.assign(g[4], { x: 1, xs: ['Review chapter 3 before class'] });
   s.items.push({ id: 'demo-part-w', h: 'h-part-w', c: s.classes[0].id, t: 'BIO-181 Participation W8 Day 2', ht: 'Week 8, Day 2 Participation', due: iso(20), hd: iso(20), pts: 0, ty: 'discussion', done: 0, x: 0, pa: 1 });
   return { snap: s, rows: g };
 }
@@ -109,12 +111,14 @@ for (const withBh of runs) {
     let bh = null;
     if (withBh) bh = await load(bhPath);
     const week = shaped();
-    await store({ tier: 'max', lastSyncAt: new Date().toISOString(), syncKey: 'a'.repeat(48), haloSnap: week.snap, haloLive: null, haloDone: null, haloMarks: null, haloWeek: null, haloUi: null, haloUiOn: null, haloBase: null });
+    await store({ tier: 'max', lastSyncAt: new Date().toISOString(), syncKey: 'a'.repeat(48), haloSnap: week.snap, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null });
     await sleep(1200);
     for (const pg of ctx.pages()) if (pg.url().startsWith('https://haloplus.app')) await pg.close().catch(() => undefined);
 
     for (const scheme of ['light', 'dark']) {
       const L = scheme === 'light';
+      // Every student starts with it folded (0.10.3).
+      await store({ haloWeekOpen: null });
       const p = await ctx.newPage();
       await p.setViewportSize({ width: 1366, height: 900 });
       await p.emulateMedia({ colorScheme: scheme });
@@ -169,25 +173,38 @@ for (const withBh of runs) {
       check(idle.probes <= 1 && idle.added < 20, `${tag} ${scheme}: quiet while nothing changes (${idle.probes} looks, ${idle.added} nodes added in 5 s)`);
       const longest = Math.max(0, ...(await p.evaluate(() => window.__long || [])));
       check(longest < 120, `${tag} ${scheme}: Halo's page never waits on it (longest task ${Math.round(longest)} ms)`);
+      // ---- folded at first, one useful line ----
+      const fold0 = await inW((r) => ({ hidden: r.querySelector('.bd').hidden, h: r.querySelector('.wk').getBoundingClientRect().height, head: r.querySelector('.hd').innerText.replace(/\s+/g, ' ').trim() }));
+      check(!!fold0 && fold0.hidden && fold0.h < 60 && (L && !withBh ? /^This week · 10 due · 1 overdue Halo\+/ : /^This week · \d+ due · (\d+ (overdue|today|tomorrow)|Today's done) Halo\+/).test(fold0.head), `${tag} ${scheme}: starts folded, one line: "${fold0?.head}" (${Math.round(fold0?.h ?? 0)} px)`);
+      await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-collapsed-${scheme}.png`, clip: { x: 0, y: 64, width: 1366, height: 420 } });
+      // Opened: remembered.
+      await inW((r) => r.querySelector('.hd').click());
+      await sleep(300);
+      await p.reload({ waitUntil: 'load' });
+      await until(() => p.evaluate(() => !!document.querySelector('[data-haloplus="week"]')), 6000, 200);
+      await sleep(400);
+      const kept = await inW((r) => !r.querySelector('.bd').hidden);
+      if (L) check(kept, `${tag}: opened once, it stays open`);
       const text = (await inW((r) => r.querySelector('.wk').innerText)) ?? '';
       const flat = text.replace(/\s+/g, ' ').trim();
       if (L && !withBh) {
-        check(/^This week · 10 due Halo\+/.test(flat), `the header: "${flat.slice(0, 40)}"`);
-        check(/OVERDUE .+ TODAY .+ TOMORROW .+ LATER THIS WEEK/.test(flat), `Overdue, Today, Tomorrow, Later this week: "${flat.slice(0, 160)}"`);
+        check(/^This week · 10 due · 1 overdue Halo\+/.test(flat), `the header: "${flat.slice(0, 50)}"`);
+        check(/OVERDUE .+ TODAY .+ TOMORROW .+/.test(flat) && !/LATER THIS WEEK/.test(flat), `the five nearest first: Overdue, Today, Tomorrow: "${flat.slice(0, 160)}"`);
         const n = await inW((r) => r.querySelectorAll('.r').length);
-        check(n === 8 && /Show all 10/.test(flat), `at most 8 rows, then "Show all 10" (${n})`);
+        check(n === 5 && /Show all 10/.test(flat), `at most 5 rows, then "Show all 10" (${n})`);
         check(/Participation: 2 posts left this week$/.test(flat), 'participation: one line at the bottom');
         check(!/Participation W8/.test(flat), 'no participation post among the rows');
-        const dot = await inW((r) => r.querySelector('.x')?.getAttribute('title'));
-        check(dot === 'Halo+ caught: Bring a printed copy of your draft', `the gold dot says what Halo+ caught: "${dot}"`);
+        const dots = await inW((r) => [...r.querySelectorAll('.x')].map((x) => ({ title: x.getAttribute('title'), row: x.closest('.r').querySelector('.t').textContent })));
+        check(dots.length === 1 && dots[0].title === 'Has extra steps, open for details', `the gold dot only for real extra steps, with "${dots[0]?.title}" on hover (${dots.length} on ${dots.map((d) => d.row).join(', ')})`);
         const cbs = await inW((r) => r.querySelectorAll('input[type="checkbox"]').length);
-        check(cbs === 8, `a check box on each row (${cbs})`);
+        check(cbs === 5, `a check box on each row (${cbs})`);
         await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-open-${scheme}.png`, fullPage: true });
         // "Show all"
         await inW((r) => r.querySelector('.more').click());
         await sleep(300);
         const all = await inW((r) => r.querySelectorAll('.r').length);
-        check(all === 10, `"Show all" opens the rest inline (${all})`);
+        const allText = (await inW((r) => r.querySelector('.wk').innerText)).replace(/\s+/g, ' ');
+        check(all === 10 && /TOMORROW .+ LATER THIS WEEK/.test(allText), `"Show all" opens the rest inline, Later this week included (${all})`);
         // Hover: "Open in Halo+".
         const box = await p.evaluate(() => { const h = document.querySelector('[data-haloplus="week"]'); const r = h.shadowRoot.querySelectorAll('.r')[3].getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
         await p.mouse.move(box.x, box.y);
@@ -239,7 +256,6 @@ for (const withBh of runs) {
       await sleep(500);
       const still = await inW((r) => r.querySelector('.bd').hidden);
       if (L) check(folded?.hidden && folded.exp === 'false' && folded.h < 60 && still, `${tag}: folds to its header (${Math.round(folded?.h ?? 0)} px) and stays folded`);
-      await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-collapsed-${scheme}.png`, clip: { x: 0, y: 64, width: 1366, height: 420 } });
       await inW((r) => r.querySelector('.hd').click());
       await sleep(300);
       await p.close();
@@ -250,11 +266,11 @@ for (const withBh of runs) {
       await p.setViewportSize({ width: 1366, height: 900 });
       const flatOf = () => p.evaluate(() => document.querySelector('[data-haloplus="week"]')?.shadowRoot?.querySelector('.wk')?.innerText.replace(/\s+/g, ' ').trim() ?? null);
       // ---- today done ----
-      await store({ haloSnap: shaped('todayDone').snap, haloMarks: null });
+      await store({ haloSnap: shaped('todayDone').snap, haloMarks: null, haloWeekOpen: { open: true, at: new Date().toISOString() } });
       doneIds = [];
       await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
       const td = await until(async () => { const t = await flatOf(); return t && /Today: All done ✓/.test(t) ? t : null; }, 8000, 200);
-      check(!!td && /^This week · 4 due Halo\+ Today: All done ✓ TOMORROW/.test(td), `today done: "Today: All done ✓" on one line, then Tomorrow ("${(td ?? '').slice(0, 70)}")`);
+      check(!!td && /^This week · 4 due · 2 tomorrow Halo\+ Today: All done ✓ TOMORROW/.test(td), `today done: "Today: All done ✓" on one line, then Tomorrow ("${(td ?? '').slice(0, 70)}")`);
       await p.screenshot({ path: `${OUT}/${BROWSER}-today-done-light.png`, clip: { x: 0, y: 64, width: 1366, height: 420 } });
       // ---- Past classes: not there ----
       await p.goto('https://halo.gcu.edu/?past', { waitUntil: 'load' });
@@ -269,7 +285,7 @@ for (const withBh of runs) {
       await store({ tier: 'free', haloSnap: { ...shaped().snap, plan: 'free', syncedAt: iso(-24 * 9) } });
       await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
       const fr = await until(() => flatOf(), 8000, 200);
-      check(!!fr && /^This week · \d+ due as of [A-Z][a-z]{2} \d+ Halo\+/.test(fr) && !/upgrade|plus plan|max|trial|subscribe|\$/i.test(fr.replace(/Halo\+/g, '')), `Free: the last synced week, "as of", nothing else ("${(fr ?? '').slice(0, 60)}")`);
+      check(!!fr && /^This week · \d+ due( · [^·]+)? as of [A-Z][a-z]{2} \d+ Halo\+/.test(fr) && !/upgrade|plus plan|max|trial|subscribe|\$/i.test(fr.replace(/Halo\+/g, '')), `Free: the last synced week, "as of", nothing else ("${(fr ?? '').slice(0, 60)}")`);
       await p.screenshot({ path: `${OUT}/${BROWSER}-free-light.png`, clip: { x: 0, y: 64, width: 1366, height: 560 } });
       // ---- switched off ----
       await store({ tier: 'max', haloSnap: shaped().snap, haloUiOn: { on: false, at: new Date().toISOString() } });

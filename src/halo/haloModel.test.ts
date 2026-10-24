@@ -23,7 +23,7 @@ const M = ctx.HaloPlusModel as unknown as {
   link: (o: string, t: unknown, via: string) => string;
   doneFrom: (server: unknown, marks: unknown) => { v: 1; done: string[] } | null;
   haloHref: (v: View, i: unknown) => string;
-  week: (v: View, now: number) => { groups: { head: string; rows: WeekRow[] }[]; todayDone: boolean; count: number; part: string | null };
+  week: (v: View, now: number) => { groups: { head: string; rows: WeekRow[] }[]; todayDone: boolean; count: number; near: { tone: string; text: string }; part: string | null };
 };
 interface WeekRow {
   key: string;
@@ -192,11 +192,11 @@ describe('class lines, the assignment box, the badge', () => {
     const v = M.merge(snap([item('a', 'chm', 30, { x: 4, xb: ['Bring goggles'] }), item('b', 'chm', -5), part('p', -3), item('c', 'eng', 400), item('r', 'eng', 30, { x: 1, xs: ['Review chapter 3'] })]), null);
     expect(M.classLine(v, v.classes[0], NOW)).toEqual([
       { tone: 'red', text: '1 overdue' },
-      { tone: 'plain', text: '1 due this week' },
-      { tone: 'gold', text: '1 with extra requirements' },
+      { tone: 'plain', text: '1 this week' },
+      { tone: 'gold', text: '1 extra step' },
     ]);
     // A reading reminder is not an extra requirement worth gold.
-    expect(M.classLine(v, v.classes[2], NOW)).toEqual([{ tone: 'plain', text: '1 due this week' }]);
+    expect(M.classLine(v, v.classes[2], NOW)).toEqual([{ tone: 'plain', text: '1 this week' }]);
   });
   it('the assignment-page line: one line, the rest inline; only for a move, something to bring, a deliverable', () => {
     const v = M.merge(snap([item('a', 'lab', 30, { xb: ['Bring lab coat', 'Goggles', 'Closed-toe shoes', 'Submit the data table as one PDF', 'Bring a calculator'] }), item('b', 'chm', 30, { x: 2, xs: ['Review chapter 3'] }), item('m', 'chm', 50, { m: at(26) })]), null);
@@ -227,7 +227,7 @@ describe('done in Halo+ is done; no Halo submission goes quiet', () => {
     const v = M.merge(snap([late]), null, { v: 1, done: ['h-q'] });
     expect(M.pill(v, NOW).tone).toBe('green');
     expect(M.badge(v, NOW)).toBeNull();
-    expect(M.classLine(v, v.classes[0], NOW)).toEqual([{ tone: 'plain', text: 'Nothing due this week' }]);
+    expect(M.classLine(v, v.classes[0], NOW)).toEqual([{ tone: 'plain', text: 'Nothing this week' }]);
   });
   it('done in the snapshot beats Halo saying OVERDUE (an in-class quiz not graded yet)', () => {
     const halo = { v: 1, at: at(0), classes: [{ slug: 'CHM-113-WF700A-20260908', cc: 'CHM-113-WF700A', code: 'CHM-113', name: 'x', g: 90, a: [['h-q', 'Quiz #2', at(-3), 50, 'ASSIGNMENT', 0, null, 1]] }] };
@@ -250,8 +250,8 @@ describe('this week', () => {
     snap(
       [
         item('late', 'chm', -5, { ht: 'Lab Report 3', pts: 30 }),
-        item('now', 'eng', 5, { ht: 'Peer Review', pts: 20, xs: ['Bring a printed copy'], u: 'unit-7', hy: 'ASSIGNMENT' }),
-        item('tmr', 'eng', 26, { ht: 'First Draft of Op-Ed', pts: 30 }),
+        item('now', 'eng', 5, { ht: 'Peer Review', pts: 20, xb: ['Bring a printed copy'], xs: ['Bring a printed copy'], u: 'unit-7', hy: 'ASSIGNMENT' }),
+        item('tmr', 'eng', 26, { ht: 'First Draft of Op-Ed', pts: 30, xs: ['Review chapter 3 first'] }),
         item('thu', 'chm', 74, { ht: 'Quiz #3', pts: 50, hy: 'QUIZ' }),
         item('far', 'chm', 24 * 9, { ht: 'Exam 2', pts: 150 }),
         item('zero', 'lab', 30, { ht: 'Prelab reading', pts: 0 }),
@@ -270,12 +270,14 @@ describe('this week', () => {
       ['Later this week', ['Quiz #3']],
     ]);
     expect(w.count).toBe(4);
+    expect(w.near).toEqual({ tone: 'red', text: '1 overdue' });
     expect(w.todayDone).toBe(false);
     expect(w.part).toBe('Participation: 3 posts left this week');
   });
   it('each row: code, class color, time, points, what Halo+ caught, where it opens on Halo', () => {
     const rows = M.week(v, NOW).groups.flatMap((g) => g.rows);
-    const [late, now, , thu] = rows;
+    const [late, now, tmr, thu] = rows;
+    expect(tmr.extra).toEqual([]);
     expect(late).toMatchObject({ code: 'CHM-113', color: '#2E8B57', time: 'Today 5 AM', pts: 30, late: true, canCheck: true });
     expect(now).toMatchObject({ code: 'ENG-105', color: null, time: '3 PM', extra: ['Bring a printed copy'], href: 'https://halo.gcu.edu/courses/ENG-105-ONL4-20260914/course-units/unit-7' });
     expect(thu.time).toBe('Sun 12 PM');
@@ -287,6 +289,7 @@ describe('this week', () => {
     const w = M.week(M.merge(snap([item('late', 'chm', -5, { pts: 30 }), item('now', 'eng', 5, { pts: 20 }), item('tmr', 'eng', 26)]), null, marks), NOW);
     expect(w.todayDone).toBe(true);
     expect(w.groups.map((g) => g.head)).toEqual(['Tomorrow']);
+    expect(w.near).toEqual({ tone: 'plain', text: '1 tomorrow' });
     expect(M.doneFrom(null, null)).toBeNull();
   });
   it('work only Halo has (not in Halo+ yet) opens on Halo but has no check box', () => {

@@ -202,7 +202,7 @@ try {
       const pairs = await p.evaluate(() => [...document.querySelectorAll('[class*="CourseCard_cardContainer"]')].map((c) => [c.querySelector('a').getAttribute('href').split('/').pop(), c.querySelector('[data-haloplus="class"]')?.dataset.course]));
       const bySlug = Object.fromEntries(fx.snap.classes.map((c) => [c.slug, c.id]));
       check(pairs.every(([slug, id]) => bySlug[slug] && bySlug[slug] === id), `each line is its own card's class (${pairs.filter(([slug, id]) => bySlug[slug] === id).length} of ${pairs.length})`);
-      check(!!lines && lines.some((l) => /with extra requirements/.test(l)), 'gold for a real extra requirement');
+      check(!!lines && lines.some((l) => /\d+ extra steps?/.test(l)), 'gold for a real extra requirement');
       check(!!lines && !lines.some((l) => /overdue/.test(l)), 'the overdue participation post makes no class red');
       const tones = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => getComputedStyle(h.shadowRoot.querySelector('.l')).whiteSpace));
       check(tones.every((t) => t === 'nowrap'), 'one line each');
@@ -215,6 +215,11 @@ try {
       await p.goto('https://halo.gcu.edu/?details', { waitUntil: 'load' });
       const d = await until(async () => { const l = await lineTexts(); return l.length === fx.courses.length ? l : null; }, 6000);
       check(!!d, `ClassDetails cards: a line on each (${d?.length ?? 0})`);
+      // Halo's narrowest cards (0.10.3, George: "1 with extra require…"): every line whole, never "…", never spilling.
+      await p.goto('https://halo.gcu.edu/?narrow', { waitUntil: 'load' });
+      const nl = await until(async () => { const l = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => { const e = h.shadowRoot.querySelector('.l'); return { t: e.textContent, over: e.scrollWidth > e.clientWidth + 1 }; })); return l.length === fx.courses.length ? l : null; }, 6000);
+      check(!!nl && nl.every((l) => !l.over && !/…/.test(l.t)), `the narrowest cards: each line whole (${(nl ?? []).map((l) => `"${l.t}"`).join(', ')})`);
+      await p.screenshot({ path: `${OUT}/${BROWSER}-4b-class-lines-narrow-light.png`, fullPage: true });
       // Cards that would clip the line: none at all, rather than half a line.
       await p.goto('https://halo.gcu.edu/?clip', { waitUntil: 'load' });
       await sleep(3000);
