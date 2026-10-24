@@ -45,6 +45,9 @@ export interface HaloSnapItem {
   ns?: 1;
   /** What the assignment-page line may say (2026-10-24): things to bring or have, a new graded deliverable. */
   xb?: string[];
+  /** Halo's topic (course unit) the assignment sits on, and Halo's own type ("QUIZ"): where "open in Halo" goes. */
+  u?: string;
+  hy?: string;
 }
 
 export interface HaloSnapClass {
@@ -56,6 +59,8 @@ export interface HaloSnapClass {
   name: string;
   /** Halo's class grade, percent. */
   g: number | null;
+  /** The class's color in Halo+ (the dot beside its code). */
+  col?: string;
 }
 
 export interface HaloSnap {
@@ -140,6 +145,8 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
       ...(isParticipation(i) ? { pa: 1 as const } : {}),
       ...(noHaloSubmission(i) ? { ns: 1 as const } : {}),
       ...(open && boxWorthy(extras).length ? { xb: boxWorthy(extras) } : {}),
+      ...(i.haloUnitId ? { u: i.haloUnitId } : {}),
+      ...(i.haloType ? { hy: i.haloType } : {}),
     };
   });
   // Halo+'s do-now pick among graded work: participation never leads on Halo's pages.
@@ -157,6 +164,6 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
     hidden,
     pw: week.length ? week.reduce((n, e) => n + e.left, 0) : null,
     items: items.sort((a, b) => a.due.localeCompare(b.due)),
-    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null })),
+    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.color ? { col: c.color } : {}) })),
   };
 }

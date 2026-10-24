@@ -1,6 +1,7 @@
 // The Sync Halo bookmark's second way home (2026-09-28), for iPad and phones, where opening the Halo+ tab replaces
 // the Halo tab and the two tabs never talk. The bookmark posts its export here with the student's sync key; this
-// stores it in their pending slot and nothing else. The key can drop off a sync; it can never read anything.
+// stores it in their pending slot and nothing else. The key can drop off a sync, read which of the student's own
+// assignments are done, and check one off (or undo that); it can never read anything else.
 // OFF for the bookmark unless an admin has turned it on for the account (or for everyone), and never under the kill
 // switch. The Chrome extension's syncs (via: 'extension') are always taken, kill switch aside (George, 2026-09-30:
 // a scheduled sync at 6:08 AM read Halo, found no Halo+ tab open, and was lost; now it waits here for Halo+), except
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
       return reply(origin, 400, { ok: false, why: 'The sync arrived damaged. Press Sync now to try again.' });
     }
     if (raw.length > MAX_BYTES) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
-    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown; done?: unknown };
+    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown; done?: unknown; mark?: unknown };
     try {
       body = JSON.parse(raw);
     } catch {
@@ -59,17 +60,48 @@ Deno.serve(async (req) => {
     // account's last applied sync, as Halo+ shows it, and the newest sync that arrived and whether Halo+ has taken it.
     // Times only; the key still reads nothing of the student's classes.
     // What is done, for the extension on Halo's pages (0.9.1, George 2026-10-24: a check-off in Halo+ must count there,
-    // from any device). Only Halo's own assignment ids of work done or graded, due two weeks back to two months ahead:
-    // nothing about what it is.
+    // from any device). Only the ids (Halo's and Halo+'s) of work done or graded, due two weeks back to two months
+    // ahead: nothing about what it is.
     if (body.done === true) {
       const dbd = admin();
       const { data: who } = await dbd.from('sync_keys').select('user_id').eq('key', key).maybeSingle();
       if (!who) return reply(origin, 401, { ok: false, why: 'This sync key was reset. Open Halo+ once on this computer.' });
       const from = new Date(Date.now() - 14 * 86_400_000).toISOString();
       const to = new Date(Date.now() + 60 * 86_400_000).toISOString();
-      const { data: rows } = await dbd.from('items').select('data->>haloId, data->>status, data->>score').eq('user_id', who.user_id).is('deleted_at', null).gte('data->>dueAt', from).lte('data->>dueAt', to).limit(2000);
-      const done = ((rows ?? []) as { haloId: string | null; status: string | null; score: string | null }[]).filter((r) => r.haloId && (r.status === 'done' || r.score != null)).map((r) => r.haloId as string);
+      const { data: rows } = await dbd.from('items').select('id, data->>haloId, data->>status, data->>score').eq('user_id', who.user_id).is('deleted_at', null).gte('data->>dueAt', from).lte('data->>dueAt', to).limit(2000);
+      // Halo's id where there is one, and Halo+'s own id (0.10.0: what "This week" checks off by).
+      const done = ((rows ?? []) as { id: string; haloId: string | null; status: string | null; score: string | null }[]).filter((r) => r.status === 'done' || r.score != null).flatMap((r) => (r.haloId ? [r.haloId, r.id] : [r.id]));
       return reply(origin, 200, { ok: true, at: new Date().toISOString(), done });
+    }
+    // A check-off from "This week" on Halo's Student Home (extension 0.10.0, George 2026-10-24: "checking the box marks
+    // it done in Halo+, same done state everywhere"). One of the student's own items, by Halo+'s id: done as the app's
+    // own Done button makes it (status, completedAt, the points it earns), or, for Undo, put back as it was. Nothing
+    // else of the item changes, and nothing about it is sent back.
+    if (body.mark && typeof body.mark === 'object') {
+      const m = body.mark as { id?: unknown; done?: unknown; prev?: unknown };
+      const id = typeof m.id === 'string' ? m.id.slice(0, 200) : '';
+      if (!id) return reply(origin, 400, { ok: false, why: 'Which item?' });
+      const dbm = admin();
+      const { data: who } = await dbm.from('sync_keys').select('user_id').eq('key', key).maybeSingle();
+      if (!who) return reply(origin, 401, { ok: false, why: 'This sync key was reset. Open Halo+ once on this computer.' });
+      const { data: row } = await dbm.from('items').select('data').eq('user_id', who.user_id).eq('id', id).is('deleted_at', null).maybeSingle();
+      if (!row) return reply(origin, 404, { ok: false, why: 'That assignment is not in Halo+ yet.' });
+      const item = row.data as Record<string, unknown>;
+      const now = new Date().toISOString();
+      const was = { status: item.status ?? 'todo', completedAt: item.completedAt ?? null, award: item.award ?? null };
+      let next: Record<string, unknown>;
+      if (m.done === true) {
+        if (item.status === 'done') return reply(origin, 200, { ok: true, already: true });
+        const pts = typeof item.points === 'number' ? item.points : 0;
+        next = { ...item, status: 'done', completedAt: now, award: item.award ?? { base: pts, multiplier: 1, earnedAt: now, scoreFactor: null }, updatedAt: now };
+      } else {
+        const p = (m.prev && typeof m.prev === 'object' ? m.prev : {}) as { status?: unknown; completedAt?: unknown; award?: unknown };
+        const status = p.status === 'todo' || p.status === 'in_progress' ? p.status : 'todo';
+        next = { ...item, status, completedAt: typeof p.completedAt === 'string' ? p.completedAt : null, award: p.award && typeof p.award === 'object' ? p.award : null, updatedAt: now };
+      }
+      const { error } = await dbm.from('items').update({ data: next, updated_at: now }).eq('user_id', who.user_id).eq('id', id);
+      if (error) return reply(origin, 500, { ok: false, why: 'Could not save that. Try again.' });
+      return reply(origin, 200, { ok: true, prev: m.done === true ? was : undefined });
     }
     if (body.status === true) {
       const db0 = admin();

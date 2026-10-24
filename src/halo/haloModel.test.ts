@@ -21,7 +21,23 @@ const M = ctx.HaloPlusModel as unknown as {
   stale: (v: View, now: number) => string | null;
   compactLive: (p: unknown) => unknown;
   link: (o: string, t: unknown, via: string) => string;
+  doneFrom: (server: unknown, marks: unknown) => { v: 1; done: string[] } | null;
+  haloHref: (v: View, i: unknown) => string;
+  week: (v: View, now: number) => { groups: { head: string; rows: WeekRow[] }[]; todayDone: boolean; count: number; part: string | null };
 };
+interface WeekRow {
+  key: string;
+  id: string | null;
+  title: string;
+  code: string;
+  color: string | null;
+  time: string;
+  pts: number;
+  late: boolean;
+  extra: string[];
+  href: string;
+  canCheck: boolean;
+}
 interface View {
   items: { h: string | null; t: string; due: string; done: number; x: number }[];
   classes: { key: string; code: string; g: number | null }[];
@@ -44,7 +60,7 @@ const snap = (items: unknown[], extra: Record<string, unknown> = {}) => ({
   hidden: 0,
   pw: null,
   classes: [
-    { id: 'chm', code: 'CHM-113', cc: 'CHM-113-WF700A', slug: 'CHM-113-WF700A-20260908', name: 'General Chemistry I', g: 88.5 },
+    { id: 'chm', code: 'CHM-113', cc: 'CHM-113-WF700A', slug: 'CHM-113-WF700A-20260908', name: 'General Chemistry I', g: 88.5, col: '#2E8B57' },
     { id: 'lab', code: 'CHM-113L', cc: 'CHM-113L-M600A', slug: 'CHM-113L-M600A-20260908', name: 'General Chemistry I - Lab', g: 86 },
     { id: 'eng', code: 'ENG-105', cc: 'ENG-105-ONL4', slug: 'ENG-105-ONL4-20260914', name: 'English Composition I', g: 91 },
   ],
@@ -225,5 +241,57 @@ describe('done in Halo+ is done; no Halo submission goes quiet', () => {
     expect(M.hoverList(v, NOW).groups.flatMap((g) => g.rows.map((r) => r.title))).toEqual(['Lab Report']);
     expect(M.badge(v, NOW)?.text).toBe('1');
     expect(M.classLine(v, v.classes[0], NOW)[0]).toEqual({ tone: 'red', text: '1 overdue' });
+  });
+});
+
+// "This week" on Halo's Student Home (George, 2026-10-24).
+describe('this week', () => {
+  const v = M.merge(
+    snap(
+      [
+        item('late', 'chm', -5, { ht: 'Lab Report 3', pts: 30 }),
+        item('now', 'eng', 5, { ht: 'Peer Review', pts: 20, xs: ['Bring a printed copy'], u: 'unit-7', hy: 'ASSIGNMENT' }),
+        item('tmr', 'eng', 26, { ht: 'First Draft of Op-Ed', pts: 30 }),
+        item('thu', 'chm', 74, { ht: 'Quiz #3', pts: 50, hy: 'QUIZ' }),
+        item('far', 'chm', 24 * 9, { ht: 'Exam 2', pts: 150 }),
+        item('zero', 'lab', 30, { ht: 'Prelab reading', pts: 0 }),
+        part('p', 30),
+      ],
+      { pw: 3 },
+    ),
+    null,
+  );
+  it('groups graded work: Overdue, Today, Tomorrow, Later this week; nothing past six days, no ungraded, no participation', () => {
+    const w = M.week(v, NOW);
+    expect(w.groups.map((g) => [g.head, g.rows.map((r) => r.title)])).toEqual([
+      ['Overdue', ['Lab Report 3']],
+      ['Today', ['Peer Review']],
+      ['Tomorrow', ['First Draft of Op-Ed']],
+      ['Later this week', ['Quiz #3']],
+    ]);
+    expect(w.count).toBe(4);
+    expect(w.todayDone).toBe(false);
+    expect(w.part).toBe('Participation: 3 posts left this week');
+  });
+  it('each row: code, class color, time, points, what Halo+ caught, where it opens on Halo', () => {
+    const rows = M.week(v, NOW).groups.flatMap((g) => g.rows);
+    const [late, now, , thu] = rows;
+    expect(late).toMatchObject({ code: 'CHM-113', color: '#2E8B57', time: 'Today 5 AM', pts: 30, late: true, canCheck: true });
+    expect(now).toMatchObject({ code: 'ENG-105', color: null, time: '3 PM', extra: ['Bring a printed copy'], href: 'https://halo.gcu.edu/courses/ENG-105-ONL4-20260914/course-units/unit-7' });
+    expect(thu.time).toBe('Sun 12 PM');
+    expect(thu.href).toBe('https://halo.gcu.edu/quiz/h-thu');
+  });
+  it('today clear: todayDone, and a check-off on this computer counts at once', () => {
+    const marks = M.doneFrom({ v: 1, done: ['h-late'] }, { 'h-now': '2026-10-22T17:00:00Z' });
+    expect(marks?.done).toEqual(['h-late', 'h-now']);
+    const w = M.week(M.merge(snap([item('late', 'chm', -5, { pts: 30 }), item('now', 'eng', 5, { pts: 20 }), item('tmr', 'eng', 26)]), null, marks), NOW);
+    expect(w.todayDone).toBe(true);
+    expect(w.groups.map((g) => g.head)).toEqual(['Tomorrow']);
+    expect(M.doneFrom(null, null)).toBeNull();
+  });
+  it('work only Halo has (not in Halo+ yet) opens on Halo but has no check box', () => {
+    const halo = { v: 1, at: at(0), classes: [{ slug: 'CHM-113-WF700A-20260908', cc: 'CHM-113-WF700A', code: 'CHM-113', name: 'x', g: 90, a: [['h-new', 'Topic 8 Homework', at(30), 10, 'ASSIGNMENT', 0, 'u8', 0]] }] };
+    const r = M.week(M.merge(snap([]), halo), NOW).groups[0].rows[0];
+    expect(r).toMatchObject({ title: 'Topic 8 Homework', canCheck: false, href: 'https://halo.gcu.edu/courses/CHM-113-WF700A-20260908/course-units/u8' });
   });
 });

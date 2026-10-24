@@ -1,3 +1,4 @@
+// 0.10.0: Student Home has "This week" (e2e-halo-week.mjs), so the pill and its peek are checked on Halo's Calendar.
 // 0.9.3 (George on real Halo, Sat Oct 24): today done with graded work tomorrow says so ("✓ Today's done · 2 due
 // tomorrow", the hover's "Today: All done ✓" then Tomorrow), and the home page's class cards are Halo's CourseCard
 // (not ClassDetails), matched by their /courses/<slug> link, with Better Halo's "Upcoming Assignments" in some of them;
@@ -13,87 +14,24 @@
 // participation); the toolbar badge; the assignment box; "Nice. Next up" after a submission with the confetti; the
 // switch; the popup (no empty bar, Next up, last synced from the account, a sync that did not go in). Light and dark.
 //   [BROWSER=chrome|edge] [EXT_DIR=extension] [LOCAL_SITE=dist-site] node scripts/e2e-halo-presence.mjs
-import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
-import { chromium } from 'playwright-core';
+import { haloPage, launch, sleep, until } from './lib/haloStandIn.mjs';
 
 const EXT = resolve(process.env.EXT_DIR ?? 'extension');
 const LOCAL_SITE = process.env.LOCAL_SITE ?? 'dist-site';
 const BROWSER = process.env.BROWSER ?? 'chrome';
-const EXE = BROWSER === 'edge' ? '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' : chromium.executablePath();
 const OUT = 'docs/screens/halo-presence';
 mkdirSync(OUT, { recursive: true });
 const checks = [];
 const check = (ok, line) => { checks.push(!!ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${BROWSER}: ${line}`); };
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const until = async (fn, ms, every = 300) => { const t = Date.now(); while (Date.now() - t < ms) { const v = await fn().catch(() => null); if (v) return v; await sleep(every); } return null; };
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.txt': 'text/plain', '.ico': 'image/x-icon' };
 const hard = setTimeout(() => { console.log('HARD TIMEOUT'); process.exit(3); }, 900000);
 const fx = JSON.parse(execFileSync('npx', ['tsx', 'scripts/halo-snap-fixture.ts'], { encoding: 'utf8' }));
 const NOW = Date.now();
 const iso = (h) => new Date(NOW + h * 3_600_000).toISOString();
 const day = (t, tz) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(t));
-
-// ---- Halo, as its own code builds it ---------------------------------------------------------------------------------
-const shell = (body) => `<!doctype html><html><head><meta charset="utf-8"><title>Halo</title><style>
-:root{color-scheme:light dark}
-body{margin:0;font:14px/1.45 "Open Sans",Arial,sans-serif;background:#f4f4f7;color:#212121}
-@media (prefers-color-scheme: dark){body{background:#17171c;color:#e6e6ea}.ClassDetails_containerCard__x{background:#23232b!important;border-color:#3a3a46!important}.ClassDetails_description__x{color:#c9c9d2!important}.assess{background:#23232b!important;border-color:#3a3a46!important}}
-header{position:fixed;top:0;left:0;right:0;height:64px;background:#4b2e83;color:#fff;display:flex;align-items:center;gap:18px;padding:0 24px;z-index:10}
-header b{font-size:20px;letter-spacing:.02em} header nav{display:flex;gap:16px;margin-left:24px} header nav a{color:#fff;text-decoration:none;opacity:.9}
-main{padding:88px 32px 40px;max-width:1180px}
-h2{font-size:22px;margin:0 0 12px;color:#7a5ad0}
-.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
-.ClassDetails_containerCard__x{background:#fff;border:1px solid #d6d6de;border-left:6px solid #7a5ad0;border-radius:6px;padding:0 12px 10px}
-.ClassDetails_innerButton__jJQws{all:unset;display:block;width:100%;cursor:pointer;padding-top:12px}
-.ClassDetails_innerContainer__O93i7 h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px}
-.stage{font-size:11px;font-weight:700;background:#e9e3f8;color:#4b2e83;border-radius:4px;padding:2px 6px}
-.ClassDetails_description__x{margin:4px 0 6px;color:#424242;font-size:16px}
-.meta{font-size:12px;color:#757575}
-.CourseCard_cardContainer__ME7dH{background:#fff;border:1px solid #d6d6de;border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
-.CourseCard_cardContainer__ME7dH>a{color:inherit;text-decoration:none}.CourseCard_band__x{height:56px;background:linear-gradient(135deg,#4b2e83,#7a5ad0)}
-.CourseCard_body__x{padding:10px 14px 4px}.CourseCard_body__x h3{margin:0;font-size:15px}.CourseCard_body__x p{margin:2px 0 0;color:#424242}
-.CourseCard_cardContainer__ME7dH hr{border:0;border-top:1px solid #e3e3ea;margin:8px 8px}.CourseCard_foot__x{padding:0 14px 12px;font-size:12px;color:#757575}
-.better-halo-todo-list{margin:4px 14px 0;font-size:12px;color:#424242}.better-halo-todo-list b{display:block;font-size:12px;color:#4b2e83}
-.clip .CourseCard_cardContainer__ME7dH{height:100px}
-@media (prefers-color-scheme: dark){.CourseCard_cardContainer__ME7dH{background:#23232b;border-color:#3a3a46}.CourseCard_body__x p,.better-halo-todo-list{color:#c9c9d2}}
-.assess{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px 18px;margin:12px 0}.assess h3{margin:0;font-size:16px}.assess p{margin:6px 0 0;color:#616161}
-.assess .row{display:flex;align-items:center;gap:12px}.btn{background:#4b2e83;color:#fff;border:0;border-radius:6px;padding:8px 14px}
-</style></head><body><div id="__next"><header><b>HALO</b><nav><a href="/">Home</a><a href="#">Calendar</a><a href="#">Inbox</a></nav></header><main>${body}</main></div></body></html>`;
-/**
- * Halo's home page as George sees it (2026-10-24): CourseCard cards, a /courses/<slug> link around the top, a rule, the
- * dates; Better Halo (another extension) puts "Upcoming Assignments" before the rule in some. `clip`: cards of a fixed
- * height that hide what overflows.
- */
-const homeHtml = (clip = false) =>
-  shell(
-    `<h2>My Classes</h2><div class="grid-cards${clip ? ' clip' : ''}">${fx.courses
-      .map(
-        (c, k) => `<div class="CourseCard_cardContainer__ME7dH"><a href="/courses/${c.slug}"><div class="CourseCard_band__x"></div><div class="CourseCard_body__x"><h3>${c.cc}</h3><p>${c.name}</p></div></a>${k < 3 ? '<div class="better-halo-todo-list"><b>Upcoming Assignments</b>Topic 7 DQ 1 · Oct 27</div>' : ''}<hr><div class="CourseCard_foot__x">Sep 8 – Dec 20 · Topic ${k + 5}</div></div>`,
-      )
-      .join('')}</div>`,
-  );
-/** Halo's ClassDetails cards (read from Halo's code, 2026-10-23), behind a "Topic N" badge: still matched by text. */
-const detailsHtml = () =>
-  shell(
-    `<h2>My Classes</h2><div class="grid-cards">${fx.courses
-      .map(
-        (c, k) => `<div class="MuiPaper-root ClassDetails_containerCard__x"><a href="/courses/${c.slug}"><button class="ClassDetails_innerButton__jJQws" type="submit"><div class="ClassDetails_innerContainer__O93i7"><h3><span class="stage">Topic ${k + 5}</span>${c.cc}</h3><p class="ClassDetails_description__x" title="${c.name}">${c.name}</p><div class="flex flex-row"><span class="meta">Sep 8 – Dec 20</span></div></div></button></a></div>`,
-      )
-      .join('')}</div>`,
-  );
-const unitHtml = (c) =>
-  shell(`<h2>${c.code} · Topic 3</h2>${c.items.map((i) => `<section class="assess"><div class="row"><h3>${i.title}</h3><span class="meta">${i.type}</span></div><p>Read the instructions and submit by the due date.</p><button class="btn">View</button></section>`).join('')}`);
-
-async function launch() {
-  const port = 9300 + Math.floor(Math.random() * 600);
-  const look = BROWSER === 'edge' ? ['--use-mock-keychain', '--window-position=-3000,-3000', '--window-size=1366,900'] : ['--headless=new'];
-  const proc = spawn(EXE, [`--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), `haloplus-presence-${BROWSER}-`))}`, '--enable-unsafe-extension-debugging', ...look, '--no-first-run', '--no-default-browser-check', 'about:blank'], { stdio: 'ignore' });
-  const browser = await until(() => chromium.connectOverCDP(`http://127.0.0.1:${port}`), 30000, 500);
-  return { browser, ctx: browser.contexts()[0], proc };
-}
 
 const inLayer = (p, fn, arg) => p.evaluate(([f, a]) => { const r = document.querySelector('[data-haloplus="layer"]')?.shadowRoot; return r ? new Function('r', 'a', `return (${f})(r, a)`)(r, a) : null; }, [fn.toString(), arg]);
 const pillState = (p) => inLayer(p, (r) => { const el = r.querySelector('.pill'); if (!el) return null; const vis = (s) => { const n = el.querySelector(s); return n && getComputedStyle(n).display !== 'none' ? n.textContent : ''; }; return { tone: el.dataset.tone, peek: el.hasAttribute('data-peek'), text: (vis('.long') || vis('.short')).trim(), x: getComputedStyle(el.querySelector('.x')).display, width: el.getBoundingClientRect().width }; });
@@ -127,14 +65,12 @@ function shaped(kind) {
   return s;
 }
 
-const { browser, ctx, proc } = await launch();
+const { browser, ctx, proc, load } = await launch(BROWSER, 'presence');
 try {
   await ctx.route('https://halo.gcu.edu/**', (route) => {
     const u = new URL(route.request().url());
     if (u.pathname.startsWith('/api/')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
-    const unit = /^\/courses\/([^/]+)\/course-units\//.exec(u.pathname);
-    const html = unit ? unitHtml(fx.courses.find((c) => c.slug === decodeURIComponent(unit[1])) ?? fx.courses[0]) : u.search.includes('details') ? detailsHtml() : homeHtml(u.search.includes('clip'));
-    return route.fulfill({ status: 200, contentType: 'text/html', body: html });
+    return route.fulfill({ status: 200, contentType: 'text/html', body: haloPage(fx, u.href) });
   });
   await ctx.route('https://haloplus.app/**', (route) => {
     const path = decodeURIComponent(new URL(route.request().url()).pathname).replace(/^\//, '');
@@ -153,9 +89,7 @@ try {
     if (b && b.status === true) return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(status) });
     return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"ok":true}' });
   });
-  const cdp = await browser.newBrowserCDPSession();
-  const { id: extId } = await cdp.send('Extensions.loadUnpacked', { path: EXT });
-  const worker = await until(async () => ctx.serviceWorkers().find((w) => w.url().startsWith(`chrome-extension://${extId}/`)) ?? null, 15000);
+  const { id: extId, worker } = await load(EXT);
   const store = (o) => worker.evaluate((x) => chrome.storage.local.set(x), o);
   const badge = () => worker.evaluate(async () => ({ text: await chrome.action.getBadgeText({}), color: await chrome.action.getBadgeBackgroundColor({}) }));
   await store({ tier: 'max', lastSyncAt: new Date().toISOString(), syncKey: 'a'.repeat(48), haloSnap: shaped('tomorrow'), haloLive: null, haloUi: null, haloUiOn: null, haloBase: null });
@@ -168,7 +102,8 @@ try {
     const p = await ctx.newPage();
     await p.setViewportSize({ width: 1366, height: 860 });
     await p.emulateMedia({ colorScheme: scheme });
-    await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+    // Student Home has "This week" (0.10.0): the pill and its peek are on Halo's other pages.
+    await p.goto('https://halo.gcu.edu/calendar', { waitUntil: 'load' });
 
     // ---- the peek: first visit of the day, first run (no baseline) ----
     const pk = await until(async () => { const s = await pillState(p); return s && s.peek ? s : null; }, 8000, 150);
@@ -251,6 +186,12 @@ try {
     await p.screenshot({ path: `${OUT}/${BROWSER}-3-hover-${scheme}.png`, clip: { x: 866, y: 460, width: 500, height: 400 } });
     await leavePill(p);
 
+    // ---- Student Home: "This week" instead of the pill and its peek ----
+    await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+    const panel = await until(() => p.evaluate(() => !!document.querySelector('[data-haloplus="week"]')), 6000);
+    await sleep(800);
+    if (L) check(!!panel && !(await pillState(p)), 'Student Home: "This week" is there, and no pill');
+
     // ---- class lines under Halo's home page class cards (CourseCard), matched by their link ----
     const lineTexts = () => p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => h.shadowRoot.querySelector('.l')?.textContent.replace(/\s+/g, ' ').trim() ?? ''));
     const lines = await until(async () => { const l = await lineTexts(); return l.length === fx.courses.length ? l : null; }, 6000);
@@ -268,7 +209,7 @@ try {
       const outside = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].every((h) => !h.closest('button') && !h.closest('a')));
       check(outside, "outside Halo's own button and link");
     }
-    await p.screenshot({ path: `${OUT}/${BROWSER}-4-class-lines-${scheme}.png`, clip: { x: 0, y: 64, width: 1366, height: 520 } });
+    await p.screenshot({ path: `${OUT}/${BROWSER}-4-class-lines-${scheme}.png`, fullPage: true });
     if (L) {
       // Halo's ClassDetails cards still get their line (by the code behind the "Topic N" badge).
       await p.goto('https://halo.gcu.edu/?details', { waitUntil: 'load' });
@@ -289,7 +230,7 @@ try {
     await p.setViewportSize({ width: 1366, height: 860 });
     const base = shaped('tomorrow');
     await store({ haloSnap: base, haloUi: { day: day(NOW, MORNING_TZ), first: true, reopens: 0, closes: 0, flagged: [] }, haloBase: null });
-    await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+    await p.goto('https://halo.gcu.edu/calendar', { waitUntil: 'load' });
     await sleep(2500);
     check(!(await pillState(p))?.peek, 'first run with today already peeked: the baseline is only recorded');
     const moved = JSON.parse(JSON.stringify(base));
@@ -322,7 +263,7 @@ try {
       const p = await ctx.newPage();
       await p.setViewportSize({ width: 1366, height: 860 });
       await p.emulateMedia({ colorScheme: scheme });
-      await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+      await p.goto('https://halo.gcu.edu/calendar', { waitUntil: 'load' });
       const pill = await until(async () => { const s2 = await pillState(p); return s2 && s2.tone === 'gold' ? s2 : null; }, 15000, 300);
       await hoverPill(p);
       const tip = await until(() => tipText(p), 3000);
@@ -331,10 +272,13 @@ try {
         check(!!tip && !/Quiz 2: Derivatives|Lab Report 3/.test(tip) && /Participation: 2 posts left this week/.test(tip), `the list leaves them out; participation is one line: "${(tip ?? '').replace(/\s+/g, ' ').slice(0, 140)}"`);
         const b2 = await until(async () => { const x = await badge(); return x.text === '2' ? x : null; }, 12000).catch(() => null);
         check(b2?.text === '2', `the toolbar badge counts only the two due today (${b2?.text})`);
-        const lines = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => h.shadowRoot.textContent));
-        check(!lines.some((l) => /overdue/.test(l)), 'no class line says overdue');
       }
       await p.screenshot({ path: `${OUT}/${BROWSER}-7-done-part-pastquiz-${scheme}.png`, clip: { x: 866, y: 400, width: 500, height: 460 } });
+      if (scheme === 'light') {
+        await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+        const lines = await until(async () => { const l = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => h.shadowRoot.textContent)); return l.length ? l : null; }, 6000);
+        check(!!lines && !lines.some((l) => /overdue/.test(l)), 'no class line says overdue');
+      }
       await p.close();
     }
     doneIds = [];

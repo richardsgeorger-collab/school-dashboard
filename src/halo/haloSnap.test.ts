@@ -31,12 +31,18 @@ describe('the snapshot Halo+ hands the extension for Halo pages', () => {
     expect(s.items.some((i) => !!i.m)).toBe(true);
     expect(s.hidden).toBeGreaterThan(0);
   });
-  it('each class with the code Halo prints on its card, and the grade', () => {
+  it('each class with the code Halo prints on its card, the grade, and its Halo+ color (the dot in "This week")', () => {
     expect(s.classes.length).toBe(d.courses.length);
+    for (const c of s.classes) expect(c.col).toBe(d.courses.find((k) => k.id === c.id)?.color);
     for (const c of s.classes) expect(c.cc).toBe(classCodeOf(c.slug));
     expect(classCodeOf('CHM-113-WF700A-20260908')).toBe('CHM-113-WF700A');
   });
-  it('the do-now item, the plan, and the switch', () => {
+  it('where an item opens on Halo: its topic and Halo\'s own type, when Halo+ has them', () => {
+    const one = d.items.find((i) => i.haloId && i.type !== 'participation' && Date.parse(i.dueAt) > Date.parse(NOW))!;
+    const s2 = haloSnap({ courses: d.courses, items: d.items.map((i) => (i.id === one.id ? { ...i, haloUnitId: 'unit-9', haloType: 'QUIZ' } : i)), settings: d.settings, schedule, canSync: true, now: NOW });
+    expect(s2.items.find((i) => i.id === one.id)).toMatchObject({ u: 'unit-9', hy: 'QUIZ' });
+  });
+    it('the do-now item, the plan, and the switch', () => {
     expect(s.top).toBeTruthy();
     expect(s.plan).toBe('sync');
     expect(s.show).toBe(true);

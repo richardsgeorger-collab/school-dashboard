@@ -97,6 +97,15 @@ const PRESENCE: [string, string][] = [
   ['box-shown', 'Assignment box shown'],
   ['box-click', 'Assignment box clicked'],
   ['badge-click', 'Toolbar badge clicked'],
+  // "This week" on Halo's Student Home (extension 0.10.0).
+  ['week-shown', 'This week shown (Student Home)'],
+  ['week-open', 'This week opened'],
+  ['week-close', 'This week collapsed'],
+  ['week-row', 'This week: row opened on Halo'],
+  ['week-plus', 'This week: Open in Halo+'],
+  ['week-check', 'This week: checked off'],
+  ['week-undo', 'This week: undo'],
+  ['week-more', 'This week: Show all'],
 ];
 
 /** Halo+ on Halo pages (2026-10-22, extension 0.8.0): what students saw and did there, and how often it brought them back. */

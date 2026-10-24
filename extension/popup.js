@@ -124,7 +124,7 @@ function lastLine(s) {
 /** Next up: the most important graded thing, from what Halo+ and the last sync know. */
 function renderNext(s) {
   const M = globalThis.HaloPlusModel;
-  const view = M && M.merge(s.haloSnap, s.haloLive, s.haloDone);
+  const view = M && M.merge(s.haloSnap, s.haloLive, M.doneFrom(s.haloDone, s.haloMarks));
   const p = view && view.plan !== 'free' ? M.peek(view, Date.now()) : null;
   $('next').hidden = !p;
   if (!p) return;
@@ -135,7 +135,7 @@ function renderNext(s) {
 }
 
 async function render() {
-  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey', 'setup', 'haloSnap', 'haloLive', 'haloDone', 'serverStatus']);
+  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey', 'setup', 'haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'serverStatus']);
   renderSetup(s);
   // "Syncing" is believed only while Halo keeps talking: two minutes of nothing is a sync that stopped (0.6.6).
   const stuck = !!s.running && Date.now() - Date.parse(s.progressAt || s.runningSince || 0) > STUCK_MS;

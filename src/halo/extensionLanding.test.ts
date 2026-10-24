@@ -24,7 +24,10 @@ describe('an extension sync always lands', () => {
     expect(bg).toContain("waitingKey !== msg.key");
     expect(bg).toContain("via: 'extension'");
     expect(manifest.host_permissions.some((h) => h.endsWith('/functions/v1/sync-drop'))).toBe(true);
-    expect(manifest.version >= '0.3.0').toBe(true);
+    // As numbers ("0.10.0" is after "0.3.0"; as text it sorts before).
+    const [maj, min] = manifest.version.split('.').map(Number);
+    expect(maj > 0 || min >= 3).toBe(true);
+    expect(bg).toContain('olderThan(d.previousVersion');
   });
   it('tells an open Halo+ tab to take it now, and learns the account from Halo+', () => {
     expect(bg).toContain("{ kind: 'pending' }");

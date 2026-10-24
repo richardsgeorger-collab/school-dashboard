@@ -95,6 +95,13 @@ self.addEventListener('unhandledrejection', (e) => {
   const m = e.reason && e.reason.message ? e.reason.message : String(e.reason);
   void reportError({ title: `Extension worker crashed: ${m.slice(0, 100)}`, message: m, stack: e.reason && e.reason.stack, place: 'worker' });
 });
+/** "0.9.3" is older than "0.10.0": each part as a number. */
+const olderThan = (a, b) => {
+  const x = String(a).split('.').map(Number);
+  const y = String(b).split('.').map(Number);
+  for (let k = 0; k < Math.max(x.length, y.length); k++) if ((x[k] || 0) !== (y[k] || 0)) return (x[k] || 0) < (y[k] || 0);
+  return false;
+};
 const get = (keys) => chrome.storage.local.get(keys);
 const set = (obj) => chrome.storage.local.set(obj);
 
@@ -118,7 +125,8 @@ async function ensureSchedule({ wake = false } = {}) {
 void ensureSchedule({ wake: true });
 chrome.runtime.onInstalled.addListener(async (d) => {
   // Before 0.3.0 a sync was stamped "Last synced" whether or not it reached Halo+; that time cannot be trusted.
-  if (d.reason === 'update' && d.previousVersion && d.previousVersion < '0.3.0') await chrome.storage.local.remove(['lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt']);
+  // Versions compare as numbers: as text, "0.10.0" sorts before "0.3.0" (0.10.0 would have wiped this on every update).
+  if (d.reason === 'update' && d.previousVersion && olderThan(d.previousVersion, '0.3.0')) await chrome.storage.local.remove(['lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt']);
   await ensureSchedule();
   // Tabs already open get this extension's scripts now (0.5.2), not after a reload: an open Halo+ tab learns the plan
   // and the account at once (the setup screen sees the extension in seconds), and an open Halo tab can carry a sync.
@@ -248,6 +256,13 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       /* not ours */
     }
     void set({ haloSnap: snap && snap.v === 1 ? snap : null }).then(updateBadge);
+    reply({ ok: true });
+  } else if (msg.kind === 'week-mark') {
+    // "This week": a check-off (0.10.0). Counted here at once; it goes to the account when its Undo has passed.
+    void weekMark(msg.id);
+    reply({ ok: true });
+  } else if (msg.kind === 'week-undo') {
+    void weekUndo(msg.id);
     reply({ ok: true });
   } else if (msg.kind === 'halo-ui') {
     // What happened to Halo+ on a Halo page (shown, closed, clicked), counted for Admin (0.8.0).
@@ -490,13 +505,90 @@ async function fetchDone(force = false) {
   try {
     const { syncKey, haloDone } = await get(['syncKey', 'haloDone']);
     if (!syncKey) return;
+    await sendMarks();
     if (!force && haloDone && haloDone.at && Date.now() - Date.parse(haloDone.at) < 3 * 60_000) return;
     const r = await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, done: true }) });
     if (!r.ok) return;
     const j = await r.json().catch(() => null);
-    if (j && j.ok && Array.isArray(j.done)) await set({ haloDone: { v: 1, at: new Date().toISOString(), done: j.done.slice(0, 3000) } });
+    if (j && j.ok && Array.isArray(j.done)) {
+      await set({ haloDone: { v: 1, at: new Date().toISOString(), done: j.done.slice(0, 6000) } });
+      // This computer's own check-offs the account now has (or that are days old) are done with.
+      const { haloMarks } = await get(['haloMarks']);
+      const marks = { ...(haloMarks || {}) };
+      let changed = false;
+      for (const [id, m] of Object.entries(marks))
+        if ((m.state === 'sent' && j.done.includes(id)) || Date.now() - Date.parse(m.at) > 3 * 86_400_000) {
+          delete marks[id];
+          changed = true;
+        }
+      if (changed) await set({ haloMarks: marks });
+    }
   } catch {
     /* offline: the last list stands */
+  }
+}
+
+// ---- "This week" check-offs (0.10.0) --------------------------------------------------------------------------------
+// A check-off in "This week" on Halo's Student Home is this computer's mark at once (haloMarks, which the pill, the
+// panel, the badge and the popup count as done) and goes to the account (sync-drop, mark) once its Undo has passed, so
+// an undone check-off never reaches Halo+. One not sent yet (offline, the worker stopped) goes with the next done list.
+const MARK_WAIT_MS = 5500;
+const markTimers = new Map();
+async function weekMark(id) {
+  if (typeof id !== 'string' || !id) return;
+  const { haloMarks } = await get(['haloMarks']);
+  await set({ haloMarks: { ...(haloMarks || {}), [id]: { at: new Date().toISOString(), state: 'pending' } } });
+  clearTimeout(markTimers.get(id));
+  markTimers.set(
+    id,
+    setTimeout(() => {
+      markTimers.delete(id);
+      void sendMarks();
+    }, MARK_WAIT_MS),
+  );
+}
+async function weekUndo(id) {
+  if (typeof id !== 'string' || !id) return;
+  clearTimeout(markTimers.get(id));
+  markTimers.delete(id);
+  const { haloMarks, syncKey } = await get(['haloMarks', 'syncKey']);
+  const m = (haloMarks || {})[id];
+  if (!m) return;
+  const marks = { ...haloMarks };
+  delete marks[id];
+  await set({ haloMarks: marks });
+  // Already in the account: put it back as it was there.
+  if (m.state === 'sent' && syncKey) {
+    await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, mark: { id, done: false, prev: m.prev || null } }) }).catch(() => undefined);
+    await fetchDone(true);
+  }
+}
+let sendingMarks = false;
+async function sendMarks() {
+  if (sendingMarks) return;
+  sendingMarks = true;
+  try {
+    const { haloMarks, syncKey } = await get(['haloMarks', 'syncKey']);
+    if (!syncKey || !haloMarks) return;
+    let sent = false;
+    for (const [id, m] of Object.entries(haloMarks)) {
+      if (m.state !== 'pending' || markTimers.has(id) || Date.now() - Date.parse(m.at) < MARK_WAIT_MS - 500) continue;
+      const r = await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, mark: { id, done: true } }) }).catch(() => null);
+      if (!r) continue;
+      const j = await r.json().catch(() => null);
+      const { haloMarks: now } = await get(['haloMarks']);
+      const marks = { ...(now || {}) };
+      if (!marks[id]) continue;
+      // Not in Halo+ (deleted there): this computer's mark goes too.
+      if (r.status === 404 || r.status === 401) delete marks[id];
+      else if (j && j.ok) marks[id] = { ...marks[id], state: 'sent', prev: j.prev || null };
+      else continue;
+      await set({ haloMarks: marks });
+      sent = true;
+    }
+    if (sent) setTimeout(() => void fetchDone(true), 300);
+  } finally {
+    sendingMarks = false;
   }
 }
 
@@ -507,12 +599,12 @@ async function fetchDone(force = false) {
  */
 async function updateBadge() {
   try {
-    const s = await get(['haloSnap', 'haloLive', 'haloDone', 'setup', 'tier', 'lastError', 'lastErrorAt', 'lastSyncAt', 'lastErrorKind']);
+    const s = await get(['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'setup', 'tier', 'lastError', 'lastErrorAt', 'lastSyncAt', 'lastErrorKind']);
     if (s.setup && Date.now() - Date.parse(s.setup.at || 0) < 15 * 60_000) return;
     const failedNow = s.lastError && s.lastErrorAt && (!s.lastSyncAt || s.lastErrorAt > s.lastSyncAt) && !['logged-out', 'offline', 'no-key'].includes(s.lastErrorKind);
     if (failedNow) return;
     const M = globalThis.HaloPlusModel;
-    const view = M.merge(s.haloSnap, s.haloLive, s.haloDone);
+    const view = M.merge(s.haloSnap, s.haloLive, M.doneFrom(s.haloDone, s.haloMarks));
     const b = view && view.plan !== 'free' && AUTO.includes(s.tier) ? M.badge(view, Date.now()) : null;
     await chrome.action.setBadgeText({ text: b ? b.text : '' });
     if (b) await chrome.action.setBadgeBackgroundColor({ color: b.red ? '#e5484d' : '#f2b84b' });
@@ -525,7 +617,7 @@ async function updateBadge() {
 void updateBadge();
 // Whatever changed what it says (Halo+'s snapshot, a sync's reading, the plan, setup) updates it.
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && ['haloSnap', 'haloLive', 'haloDone', 'tier', 'setup'].some((k) => k in changes)) void updateBadge();
+  if (area === 'local' && ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'tier', 'setup'].some((k) => k in changes)) void updateBadge();
 });
 chrome.alarms.create('halo-badge', { periodInMinutes: 10 }).catch?.(() => undefined);
 chrome.alarms.onAlarm.addListener((a) => {
@@ -536,7 +628,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 });
 
 /** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
-const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click'];
+const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more'];
 async function countHaloUi(event) {
   if (!HALO_UI.includes(event)) return;
   try {

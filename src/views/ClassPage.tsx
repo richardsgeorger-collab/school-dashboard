@@ -1,6 +1,6 @@
 import { CookMeter } from './CookMeter';
 import { isQuietPast } from '../domain/submission';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ClassNotes } from './Requirements';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { cleanAll, foldReadings, rulesFor } from '../domain/reqClean';
@@ -37,14 +37,17 @@ export function ClassPage() {
   const [paste, setPaste] = useState(false);
   const [tab, setTab] = useState<'work' | 'rules' | 'notes'>('work');
   const [resources, setResources] = useState<StoredResource[]>([]);
-  // "#/class?c=…&i=…" opens one item's sheet: where Ask and Check send "Open the assignment".
+  // "#/class?c=…&i=…" opens one item's sheet: where Ask and Check send "Open the assignment", and every link from Halo
+  // (the extension). Opened once per link, as soon as the item is there: on a fresh load the account's items arrive a
+  // moment after the page (2026-10-24: a link from Halo opened the class page and never the item).
   const wantItem = params.get('i');
+  const wanted = wantItem ? (data.items.find((i) => i.id === wantItem) ?? null) : null;
+  const openedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!wantItem) return;
-    const it = data.items.find((i) => i.id === wantItem);
-    if (it) setOpen(it);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantItem]);
+    if (!wanted || openedFor.current === wantItem) return;
+    openedFor.current = wantItem;
+    setOpen(wanted);
+  }, [wantItem, wanted]);
   useEffect(() => {
     if (!course) return;
     let live = true;

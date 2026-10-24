@@ -14,6 +14,10 @@
 // 0.9.3 (2026-10-24): today AND tomorrow. With nothing graded left today, the pill, the hover list, the peek and the
 //   badge say what is due tomorrow ("✓ Today's done · 2 due tomorrow"); "✓ All caught up" only when nothing graded is
 //   due today or tomorrow. (0.9.1 said "All done today" and "Nothing due today" with two graded items due tomorrow.)
+// 0.10.0 (2026-10-24): "This week" on Halo's Student Home (halo-ui.js), from the same rules as the pill: Overdue
+//   (graded, two days back), Today, Tomorrow, Later this week; each row opens the assignment on Halo (week, haloHref).
+//   A check-off made here counts at once on this computer (doneFrom: the account's list plus this computer's own
+//   marks still on their way to the account).
 // - The baseline is one shape (instants rounded to the minute) whatever the source, and on first run it is only
 //   recorded: with nothing to compare against, nothing is "new". (0.8.0 compared date strings from two sources,
 //   "…06:59:59Z" from Halo and "…06:59:00.000Z" from Halo+, so every item looked moved.)
@@ -145,7 +149,7 @@
     const classes = [];
     const bySlug = new Map();
     for (const c of (s && s.classes) || []) {
-      const k = { key: c.id, code: c.code, cc: c.cc || '', slug: c.slug || '', name: c.name || '', g: typeof c.g === 'number' ? c.g : null };
+      const k = { key: c.id, code: c.code, cc: c.cc || '', slug: c.slug || '', name: c.name || '', g: typeof c.g === 'number' ? c.g : null, col: c.col || null };
       classes.push(k);
       if (k.slug) bySlug.set(k.slug, k);
     }
@@ -155,7 +159,7 @@
     for (const lc of (l && l.classes) || []) {
       let k = bySlug.get(lc.slug);
       if (!k) {
-        k = { key: `live:${lc.slug}`, code: lc.code, cc: lc.cc, slug: lc.slug, name: lc.name, g: null };
+        k = { key: `live:${lc.slug}`, code: lc.code, cc: lc.cc, slug: lc.slug, name: lc.name, g: null, col: null };
         classes.push(k);
         bySlug.set(lc.slug, k);
       }
@@ -167,6 +171,7 @@
           if (!it.ht) it.ht = t;
           if (ns) it.ns = 1;
           if (!it.u && unit) it.u = unit;
+          if (!it.hy && type) it.hy = type;
           if (due && l.at >= snapSynced && (!it.hd || Math.abs(ms(due) - ms(it.hd)) >= MIN)) {
             it.due = due;
             it.hd = due;
@@ -175,7 +180,7 @@
           continue;
         }
         if (!due) continue;
-        const add = { id: null, h: id, c: k.key, t, ht: t, due, hd: due, pts, ty: type, done, x: 0, u: unit, ...(ns ? { ns: 1 } : {}) };
+        const add = { id: null, h: id, c: k.key, t, ht: t, due, hd: due, pts, ty: type, hy: type, done, x: 0, u: unit, ...(ns ? { ns: 1 } : {}) };
         items.push(add);
         byHalo.set(id, add);
       }
@@ -295,6 +300,69 @@
       groups.push({ head, rows });
     }
     return { groups, todayDone, part: partLine(view, now) };
+  }
+
+  /**
+   * The account's done list (Halo's ids and Halo+'s) with this computer's own check-offs laid over it: marks are kept
+   * until the account's list has them, so a check-off counts here at once and never flickers back.
+   */
+  function doneFrom(server, marks) {
+    const done = server && Array.isArray(server.done) ? server.done.slice() : [];
+    for (const k of Object.keys((marks && typeof marks === 'object' && marks) || {})) if (!done.includes(k)) done.push(k);
+    return done.length || server ? { v: 1, done } : null;
+  }
+
+  const HALO = 'https://halo.gcu.edu';
+  /**
+   * Halo's own page for an item, as close as Halo's pages allow (src/domain/heroFacts.ts haloLink, the same rule): a
+   * Halo quiz its quiz page, anything else its topic page, then its class page, then Halo's home. Never a guessed URL.
+   */
+  function haloHref(view, i) {
+    const c = klass(view, i.c);
+    const type = i.hy || (/^[A-Z_]+$/.test(i.ty || '') ? i.ty : '');
+    if (i.h && type === 'QUIZ') return `${HALO}/quiz/${encodeURIComponent(i.h)}`;
+    if (c && c.slug && i.u) return `${HALO}/courses/${encodeURIComponent(c.slug)}/course-units/${encodeURIComponent(i.u)}`;
+    if (c && c.slug) return `${HALO}/courses/${encodeURIComponent(c.slug)}`;
+    return `${HALO}/`;
+  }
+
+  /** "11:59 PM" today or tomorrow (under their headers), "Thu 11:59 PM" later; overdue: "Today 9 AM", "Yesterday 11:59 PM". */
+  function rowTime(at, now, tz) {
+    const k = dayDiff(dayOf(nowMs(now), tz), dayOf(at, tz));
+    const c = clock(at, tz);
+    if (k === 0 && ms(at) < nowMs(now)) return `Today ${c}`;
+    if (k === 0 || k === 1) return c;
+    if (k === -1) return `Yesterday ${c}`;
+    return `${weekday(dayOf(at, tz))} ${c}`;
+  }
+
+  /**
+   * "This week" on Halo's Student Home (George, 2026-10-24): graded work only, from the same rules as the pill.
+   * Overdue (two days back), Today, Tomorrow, Later this week (to six days out); empty groups left out. Each row: title,
+   * class code and color, time, points, what Halo+ caught for it, where it opens on Halo, and whether it can be
+   * checked off (it is in the student's Halo+). `todayDone`: nothing graded overdue or left today.
+   */
+  function week(view, now) {
+    const t = nowMs(now);
+    const d = dayOf(t, view.tz);
+    const s = standing(view, now);
+    const later = s.upcoming.filter((i) => dayDiff(d, dayOf(i.due, view.tz)) <= 6);
+    const groups = [
+      ['Overdue', s.overdue],
+      ['Today', s.dueToday],
+      ['Tomorrow', s.tomorrow],
+      ['Later this week', later],
+    ]
+      .filter(([, list]) => list.length)
+      .map(([head, list]) => ({
+        head,
+        rows: list.map((i) => {
+          const c = klass(view, i.c);
+          const extra = [...new Set([...boxLines(i), ...(Array.isArray(i.xs) ? i.xs : [])])];
+          return { key: itemKey(i), id: i.id, h: i.h, title: clip(title(i), 90), code: c ? c.code : '', color: (c && c.col) || null, time: rowTime(i.due, t, view.tz), pts: i.pts || 0, late: ms(i.due) < t, extra, href: haloHref(view, i), courseId: c && !String(c.key).startsWith('live:') ? c.key : null, canCheck: !!i.id };
+        }),
+      }));
+    return { groups, todayDone: s.todayDone, count: groups.reduce((n, g) => n + g.rows.length, 0), part: partLine(view, now) };
   }
 
   /** The line under a class card: gray by default, gold for a real extra requirement, red for graded work overdue. */
@@ -427,6 +495,6 @@
     return `${origin}/#/now?${q({ from: 'halo', via })}`;
   }
 
-  const api = { quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
+  const api = { doneFrom, haloHref, rowTime, week, quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
   root.HaloPlusModel = api;
 })(globalThis);

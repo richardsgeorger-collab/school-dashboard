@@ -1,5 +1,8 @@
 // Halo+ on Halo. Calm, small, and only when it helps (0.9.0, George, 2026-10-23: 0.8.0's card "looks like an ad").
-// - Halo's home page: a pill in the corner. Dark with gold text by default ("Next: Quiz #2 tomorrow"); gold "N due
+// - Halo's Student Home (0.10.0): "This week" at the top, in Halo's own card look (see its section below); it is the
+//   day's look there, so no pill and no peek on Student Home. Halo's other pages: the pill (quiet on an assignment's
+//   page, gone while a quiz is being taken). Where "This week" cannot sit cleanly, Student Home keeps the pill.
+// - The pill: a small one in the corner. Dark with gold text by default ("Next: Quiz #2 tomorrow"); gold "N due
 //   today" when graded work is due today; red only for graded work overdue or due within 3 hours; green "✓ All caught
 //   up" when nothing graded is due today or tomorrow. Hover: at most 3 rows under small headers, the participation
 //   line, "See all in Halo+".
@@ -39,16 +42,17 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloDone: null, haloUi: null, haloUiOn: null, haloBase: null, tier: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeek: null, haloUi: null, haloUiOn: null, haloBase: null, tier: null, syncKey: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloUi', 'haloUiOn', 'haloBase', 'tier'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeek', 'haloUi', 'haloUiOn', 'haloBase', 'tier', 'syncKey'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
     } catch {
       /* the extension was updated under this page */
     }
-    view = M.merge(st.haloSnap, st.haloLive, st.haloDone);
+    // Done in Halo+ (any device), and this computer's own check-offs still on their way there.
+    view = M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, st.haloMarks));
   };
   const save = (patch) => {
     Object.assign(st, patch);
@@ -220,8 +224,7 @@
   }
   function renderPill() {
     if (!view) return;
-    const r = route().kind;
-    if (r !== 'home' && !peeking) return;
+    if (!pillHere() && !peeking) return;
     const el = pillEl();
     const now = Date.now();
     const p = free() ? { tone: 'muted', text: `Halo+ · synced ${M.syncedDay(view)}` } : M.pill(view, now);
@@ -256,7 +259,7 @@
       count('card-closed');
     }
     peeking = null;
-    if (route().kind === 'home') renderPill();
+    if (pillHere()) renderPill();
     else clearLayer();
   }
 
@@ -566,11 +569,336 @@
     });
   }
 
+  // ---- "This week" on Halo's Student Home (0.10.0, George 2026-10-24) -------------------------------------------------
+  // At the top of Student Home, above the class cards and below Halo's own tabs, the full width of the card area: what is
+  // due this week across every class, graded work only, from the same rules as the pill (halo-model.js week). It takes
+  // the look of Halo's own class card on the page (its background, corners, shadow, border, font and ink), so it reads
+  // as part of Halo under Halo's light and dark looks and under Better Halo's themes; a thin gold edge and a small Halo+
+  // mark are the only accents. A header "This week · 6 due" folds it (remembered). A row opens the assignment on Halo;
+  // "Open in Halo+" shows on hover; the box checks it off in Halo+ with a few seconds to undo. Participation is one line
+  // at the bottom. On Student Home it is the day's look: no peek there, and no pill. It is placed only where it sits
+  // cleanly (the full width, above the cards); otherwise nothing, and the pill does the job as before.
+  const WEEK_ROWS = 8;
+  const UNDO_MS = 5000;
+  const WEEK_CSS = `:host{all:initial;display:block}
+*{box-sizing:border-box}
+.wk{position:relative;margin:0 0 16px;background:var(--bg);color:var(--ink);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow);font:14px/1.4 var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+.wk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
+.hd{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px 12px 20px;cursor:pointer;font:600 15px/1.3 var(--font);color:var(--ink)}
+.hd:focus-visible{outline:2px solid var(--gold);outline-offset:-3px;border-radius:var(--radius)}
+.hd .n{color:var(--muted);font-weight:500}
+.hd .asof{color:var(--muted);font-weight:400;font-size:12.5px}
+.mk{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font:700 11px/1 var(--font);letter-spacing:.02em;color:var(--muted)}
+.mk i{display:inline-block;width:8px;height:8px;border:2px solid var(--gold);border-radius:50%}
+.chev{width:16px;height:16px;flex:none;color:var(--muted);transition:transform .18s ease}
+.hd[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+.bd{padding:0 16px 12px 20px}
+.bd[hidden]{display:none}
+.clear{margin:0 0 4px;color:var(--muted);font-size:13.5px}
+.clear b{color:var(--ink);font-weight:600}
+.clear span{color:var(--green);font-weight:700}
+h4{margin:10px 0 2px;font:700 11px/1.2 var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+h4:first-child{margin-top:0}
+h4.late{color:var(--red)}
+ul{list-style:none;margin:0;padding:0}
+.r{display:flex;align-items:center;gap:10px;min-height:34px;padding:5px 8px;margin:0 -8px;border-radius:6px;cursor:pointer}
+.r:hover,.r:focus-within{background:var(--hover)}
+.r input{margin:0;width:16px;height:16px;flex:none;accent-color:var(--gold);cursor:pointer}
+.r .sp{width:16px;flex:none}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted)}
+.t{min-width:0;flex:0 1 auto;color:var(--ink);font-weight:600;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:3px}
+.c{flex:none;color:var(--muted);font-size:12.5px;white-space:nowrap}
+.x{flex:none;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.gap{flex:1 1 auto}
+.plus{display:none;flex:none;color:var(--gold-ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}
+.plus:hover{text-decoration:underline}
+.r:hover .plus,.r:focus-within .plus{display:inline}
+.w{flex:none;color:var(--muted);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.r.late .w{color:var(--red)}
+.p{flex:none;min-width:46px;text-align:right;color:var(--muted);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.r.on .t{text-decoration:line-through;color:var(--muted)}
+.undo{all:unset;flex:none;color:var(--gold-ink);font:600 12.5px/1 var(--font);cursor:pointer;padding:4px 2px}
+.undo:hover{text-decoration:underline}
+.undo:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:3px}
+.more{all:unset;display:inline-block;margin:6px 0 0;color:var(--gold-ink);font:600 13px/1.2 var(--font);cursor:pointer}
+.more:hover{text-decoration:underline}
+.more:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:3px}
+.part{margin:10px 0 0;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.none{margin:0;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.chev{transition:none}}`;
+
+  /** Halo's home page class cards, and the box that holds them all (their grid). */
+  function homeGrid() {
+    const cards = [...document.querySelectorAll('[class*="CourseCard_cardContainer"]')].filter((c) => !c.closest('[data-haloplus]'));
+    if (!cards.length) return null;
+    let g = cards[0].parentElement;
+    while (g && !cards.every((c) => g.contains(c))) g = g.parentElement;
+    const app = document.getElementById('__next');
+    if (!g || !app || !app.contains(g) || g === app) return null;
+    return { grid: g, card: cards[0] };
+  }
+  /** Halo's own tabs ("Current classes" and the rest): the panel is for the current ones only. */
+  function currentTab() {
+    const sel = document.querySelector('#__next [role="tab"][aria-selected="true"]');
+    return !sel || /current|active|in progress/i.test(sel.textContent || '');
+  }
+  const rgb = (c) => {
+    const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(c || '');
+    return m ? { r: Number(m[1]), g: Number(m[2]), b: Number(m[3]), a: m[4] === undefined ? 1 : Number(m[4]) } : null;
+  };
+  /**
+   * The look of Halo's own class card under the page's look right now (Halo's light or dark, or a Better Halo theme),
+   * read from an invisible copy of the card made for the moment: a new element takes the theme's final style at once,
+   * where the card itself may be partway through a theme's fade, or lifted under the pointer.
+   */
+  function cardStyle(card) {
+    const probe = document.createElement(card.tagName);
+    probe.className = card.className;
+    probe.setAttribute('data-haloplus', 'probe');
+    probe.style.cssText = 'position:absolute!important;left:-10000px!important;top:0!important;width:200px!important;visibility:hidden!important;pointer-events:none!important;transition:none!important;animation:none!important';
+    card.parentElement.appendChild(probe);
+    const c = getComputedStyle(probe);
+    const out = { backgroundColor: c.backgroundColor, color: c.color, borderTopWidth: c.borderTopWidth, borderTopStyle: c.borderTopStyle, borderTopColor: c.borderTopColor, borderRadius: c.borderRadius, boxShadow: c.boxShadow, fontFamily: c.fontFamily };
+    probe.remove();
+    return out;
+  }
+  function cardLook(card) {
+    const cs = cardStyle(card);
+    let bg = rgb(cs.backgroundColor);
+    // The card's own fill, exactly (a theme may make it a little see-through); a card without one shows what is behind.
+    let fill = cs.backgroundColor;
+    if (!bg || bg.a < 0.5) {
+      const l = lookAt(card);
+      bg = rgb(l.bg) || { r: 255, g: 255, b: 255, a: 1 };
+      fill = `rgb(${bg.r}, ${bg.g}, ${bg.b})`;
+    }
+    const lum = (0.2126 * bg.r + 0.7152 * bg.g + 0.0722 * bg.b) / 255;
+    const dark = lum < 0.45;
+    const ink = cs.color || (dark ? '#e6e6ea' : '#212121');
+    const bw = parseFloat(cs.borderTopWidth) || 0;
+    return {
+      dark,
+      bg: fill,
+      ink,
+      muted: `color-mix(in srgb, ${ink} 62%, transparent)`,
+      line: dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.10)',
+      hover: dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.04)',
+      border: bw ? `${bw}px ${cs.borderTopStyle} ${cs.borderTopColor}` : 'none',
+      radius: cs.borderRadius || '8px',
+      shadow: cs.boxShadow && cs.boxShadow !== 'none' ? cs.boxShadow : bw ? 'none' : dark ? 'none' : '0 1px 3px rgba(0,0,0,.12)',
+      font: cs.fontFamily || 'inherit',
+      gold: dark ? '#f2b84b' : '#e0a526',
+      goldInk: dark ? '#f2b84b' : '#8a5d00',
+      red: dark ? '#ff7b7f' : '#c62828',
+      green: dark ? '#5fd393' : '#1e7d4a',
+    };
+  }
+  /** Check-offs still inside their Undo: { id: { until, timer } }. Shown checked in place until then. */
+  const checking = new Map();
+  let weekAll = false;
+  let weekShownDay = '';
+  let weekHtml = '';
+  /** The panel's own view: this computer's marks count as done, except the ones still inside their Undo. */
+  function weekView() {
+    const marks = { ...(st.haloMarks || {}) };
+    for (const id of checking.keys()) delete marks[id];
+    return M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, marks));
+  }
+  const weekOpen = () => !(st.haloWeek && st.haloWeek.open === false);
+  const CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function weekBody(w) {
+    const out = [];
+    if (w.todayDone) out.push('<p class="clear"><b>Today:</b> All done <span>✓</span></p>');
+    let shown = 0;
+    const total = w.groups.reduce((n, g) => n + g.rows.length, 0);
+    for (const g of w.groups) {
+      const rows = weekAll ? g.rows : g.rows.slice(0, Math.max(0, WEEK_ROWS - shown));
+      if (!rows.length) continue;
+      shown += rows.length;
+      out.push(`<h4${g.head === 'Overdue' ? ' class="late"' : ''}>${esc(g.head)}</h4><ul>${rows
+        .map((r) => {
+          const on = r.id && checking.has(r.id);
+          const box = r.canCheck && st.syncKey ? `<input type="checkbox" data-id="${esc(r.id)}" aria-label="Done: ${esc(r.title)}"${on ? ' checked' : ''}>` : '<span class="sp" aria-hidden="true"></span>';
+          const dot = `<span class="dot" aria-hidden="true"${r.color && /^#[0-9a-f]{3,8}$/i.test(r.color) ? ` style="background:${r.color}"` : ''}></span>`;
+          const x = r.extra.length ? `<span class="x" role="img" aria-label="Halo+ caught: ${esc(r.extra.join('; '))}" title="${esc(`Halo+ caught: ${r.extra.join(' · ')}`)}"></span>` : '';
+          const tail = on
+            ? `<span class="gap"></span><button class="undo" type="button" data-undo="${esc(r.id)}">Undo</button>`
+            : `<span class="gap"></span>${r.courseId && r.id ? `<a class="plus" href="${esc(M.link(ORIGIN, r, 'week'))}" target="_blank" rel="noopener" data-plus>Open in Halo+</a>` : ''}<span class="w">${esc(r.time)}</span><span class="p">${r.pts ? `${r.pts} pts` : ''}</span>`;
+          return `<li class="r${r.late ? ' late' : ''}${on ? ' on' : ''}" data-href="${esc(r.href)}">${box}${dot}<a class="t" href="${esc(r.href)}" title="${esc(r.title)}">${esc(r.title)}</a><span class="c">${esc(r.code)}</span>${x}${tail}</li>`;
+        })
+        .join('')}</ul>`);
+    }
+    if (!total && !w.todayDone) out.push('<p class="none">Nothing graded is due this week.</p>');
+    else if (!total) out.push('<p class="none">Nothing else graded is due this week.</p>');
+    if (!weekAll && total > WEEK_ROWS) out.push(`<button class="more" type="button">Show all ${total}</button>`);
+    if (w.part) out.push(`<p class="part">${esc(w.part)}</p>`);
+    return out.join('');
+  }
+  /** Draw (or redraw) the panel. True when it is on the page, placed cleanly. */
+  function weekPanel() {
+    const old = document.querySelector('[data-haloplus="week"]');
+    const spot = homeGrid();
+    if (!spot || !currentTab()) {
+      if (old) old.remove();
+      return false;
+    }
+    const v = weekView();
+    if (!v) return false;
+    const w = M.week(v, Date.now());
+    const look = cardLook(spot.card);
+    const open = weekOpen();
+    const asof = free() ? `as of ${M.syncedDay(v)}` : M.stale(v, Date.now());
+    const n = w.count;
+    const head = `<button class="hd" type="button" aria-expanded="${open}"><span>This week</span><span class="n">· ${n ? `${n} due` : 'nothing due'}</span>${asof ? `<span class="asof">${esc(asof)}</span>` : ''}<span class="mk" aria-hidden="true"><i></i>Halo+</span>${CHEV}</button>`;
+    const vars = `--bg:${look.bg};--ink:${look.ink};--muted:${look.muted};--line:${look.line};--hover:${look.hover};--border:${look.border};--radius:${look.radius};--shadow:${look.shadow};--font:${look.font};--gold:${look.gold};--gold-ink:${look.goldInk};--red:${look.red};--green:${look.green}`;
+    const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}">${head}<div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
+    let h = old;
+    if (!h || h.nextElementSibling !== spot.grid) {
+      if (h) h.remove();
+      h = document.createElement('div');
+      h.setAttribute('data-haloplus', 'week');
+      h.style.cssText = 'all: initial; display: block; width: 100%;';
+      const sr = h.attachShadow({ mode: 'open' });
+      sr.innerHTML = `<style>${WEEK_CSS}</style><div class="root"></div>`;
+      weekEvents(h, sr);
+      spot.grid.parentNode.insertBefore(h, spot.grid);
+      // Placed cleanly: the full width of the cards, and above them. Otherwise nothing.
+      const a = h.getBoundingClientRect();
+      const b = spot.grid.getBoundingClientRect();
+      if (a.width < Math.max(280, b.width * 0.9) || a.top > b.top) {
+        h.remove();
+        weekHtml = '';
+        return false;
+      }
+      weekHtml = '';
+    }
+    if (html !== weekHtml) {
+      const focus = h.shadowRoot.activeElement;
+      const fid = focus && (focus.dataset.id || focus.dataset.undo || focus.className);
+      h.shadowRoot.querySelector('.root').innerHTML = html;
+      weekHtml = html;
+      // Keyboard focus survives a redraw (a check-off, Undo).
+      if (fid) h.shadowRoot.querySelector(`[data-id="${CSS.escape(fid)}"], [data-undo="${CSS.escape(fid)}"]`)?.focus();
+    }
+    const d = today();
+    if (weekShownDay !== d && !(st.haloUi && st.haloUi.weekShown === d)) {
+      weekShownDay = d;
+      const u = ui();
+      u.weekShown = d;
+      save({ haloUi: u });
+      count('week-shown');
+    }
+    return true;
+  }
+  function weekEvents(h, sr) {
+    sr.addEventListener(
+      'click',
+      guard((e) => {
+        const t = e.target;
+        if (t.closest('.hd')) {
+          const open = !weekOpen();
+          save({ haloWeek: { open } });
+          count(open ? 'week-open' : 'week-close');
+          weekHtml = '';
+          return weekPanel();
+        }
+        if (t.closest('.more')) {
+          weekAll = true;
+          count('week-more');
+          weekHtml = '';
+          return weekPanel();
+        }
+        const undo = t.closest('[data-undo]');
+        if (undo) {
+          const id = undo.dataset.undo;
+          const c = checking.get(id);
+          if (c) clearTimeout(c.timer);
+          checking.delete(id);
+          chrome.runtime.sendMessage({ kind: 'week-undo', id }).catch(() => undefined);
+          count('week-undo');
+          weekHtml = '';
+          return weekPanel();
+        }
+        if (t.closest('input[type="checkbox"]')) return;
+        if (t.closest('[data-plus]')) {
+          e.preventDefault();
+          count('week-plus');
+          window.open(t.closest('[data-plus]').href, '_blank', 'noopener');
+          return;
+        }
+        const row = t.closest('.r');
+        if (!row || row.classList.contains('on')) return;
+        e.preventDefault();
+        count('week-row');
+        location.assign(row.dataset.href);
+      }),
+    );
+    sr.addEventListener(
+      'change',
+      guard((e) => {
+        const box = e.target.closest('input[type="checkbox"]');
+        if (!box) return;
+        const id = box.dataset.id;
+        if (box.checked) {
+          const timer = setTimeout(
+            guard(() => {
+              checking.delete(id);
+              weekHtml = '';
+              weekPanel();
+            }),
+            UNDO_MS,
+          );
+          checking.set(id, { until: Date.now() + UNDO_MS, timer });
+          chrome.runtime.sendMessage({ kind: 'week-mark', id }).catch(() => undefined);
+          count('week-check');
+        } else {
+          const c = checking.get(id);
+          if (c) clearTimeout(c.timer);
+          checking.delete(id);
+          chrome.runtime.sendMessage({ kind: 'week-undo', id }).catch(() => undefined);
+          count('week-undo');
+        }
+        weekHtml = '';
+        weekPanel();
+      }),
+    );
+  }
+
   // ---- when to peek -----------------------------------------------------------------------------------------------------
+  /** Whether "This week" is on Student Home right now (then no pill and no peek there). */
+  let weekPlaced = false;
+  /**
+   * Where the pill sits: Student Home when "This week" could not be placed, and Halo's other pages; never while a quiz
+   * is being taken (0.10.0, George 2026-10-24: "the panel replaces the daily peek… pill stays on other Halo pages").
+   */
+  function pillHere() {
+    const r = route().kind;
+    if (r === 'home') return !weekPlaced;
+    return r === 'other' || r === 'unit';
+  }
   function home() {
     if (!view) return;
+    weekPlaced = weekPanel();
+    if (weekPlaced) {
+      // The day's look is the panel: no peek here, and it counts as today's (no peek later on another page either).
+      if (!peeking) clearLayer();
+      const u = ui();
+      if (view.items.length) save({ haloBase: M.baseline(view) });
+      if (!u.first) {
+        u.first = true;
+        save({ haloUi: u });
+      }
+      return;
+    }
+    pillPage();
+  }
+  /** The pill and its peeks: the day's first look, then only for what matters since (see the top of this file). */
+  function pillPage() {
+    if (!view) return;
     renderPill();
-    if (free() || peeking) return;
+    // An assignment's own page says what matters there (its line); the pill stays quiet on it.
+    if (free() || peeking || route().kind === 'unit') return;
     const u = ui();
     const now = Date.now();
     // What changed since the last look, judged against a baseline in one shape; then the baseline moves on. On the
@@ -594,8 +922,10 @@
   const render = guard(function render() {
     if (!view || !showing()) {
       clearLayer();
+      weekPlaced = false;
       removeAll('[data-haloplus="class"]');
       removeAll('[data-haloplus="box"]');
+      removeAll('[data-haloplus="week"]');
       return;
     }
     const r = route();
@@ -603,9 +933,12 @@
       home();
       classLines();
     } else {
-      // Away from the home page the pill goes; a peek after a submission stays until it ends.
-      if (!peeking) clearLayer();
+      weekPlaced = false;
+      removeAll('[data-haloplus="week"]');
       removeAll('[data-haloplus="class"]');
+      // Halo's other pages: the pill (not while a quiz is being taken; a peek after a submission stays until it ends).
+      if (pillHere()) pillPage();
+      else if (!peeking) clearLayer();
     }
     boxes();
   });
@@ -656,6 +989,20 @@
   );
   // The pill's time words and something coming within 3 hours.
   setInterval(guard(() => alive() && render()), 60_000);
+  // Halo's look changing under the page (Better Halo's themes and its auto dark mode, the system's light or dark): the
+  // panel takes the new look.
+  const relook = guard(() => {
+    if (!alive()) return;
+    weekHtml = '';
+    soon();
+  });
+  new MutationObserver(relook).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-better-halo-theme', 'data-theme'] });
+  if (document.body) new MutationObserver(relook).observe(document.body, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
+  try {
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', relook);
+  } catch {
+    /* older browsers */
+  }
   // Halo re-renders: put the class lines and the box back.
   new MutationObserver(
     guard((records) => {
