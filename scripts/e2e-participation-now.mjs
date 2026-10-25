@@ -35,6 +35,8 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const s = await kit.persona('max');
   const chm = s.courseIds['CHM-113'] ?? Object.values(s.courseIds)[0];
+  // The throwaway has no CHM-113: its card is the class the days were put in.
+  const code = Object.keys(s.courseIds).find((k) => s.courseIds[k] === chm);
   const iso = new Date().toISOString();
   const day = (title, label, dueAt, extra = {}) => {
     const id = randomUUID();
@@ -96,8 +98,8 @@ try {
     // Classes: the card for its class says nothing is late (George's CHM-113: "Next: … Day 1 · 3 days late", "Behind: 1 overdue").
     await p.goto(`${BASE}#/classes`, { waitUntil: 'load' });
     await sleep(2500);
-    const card = await text(p, `.class-card:has-text("CHM-113")`);
-    check(!/overdue|late|Behind/i.test(card) && !/Next: Chem Participation W5 Day 1/.test(card), `Classes: the CHM-113 card has no overdue, no late Next ("${card.slice(0, 160)}")`);
+    const card = await text(p, `.class-card:has-text("${code}")`);
+    check(!!card && !/overdue|late|Behind/i.test(card) && !/Next: Chem Participation W5 Day 1/.test(card), `Classes: the ${code} card has no overdue, no late Next ("${card.slice(0, 160)}")`);
     await p.goto(`${BASE}#/class?c=${chm}`, { waitUntil: 'load' });
     await sleep(3000);
     const cls = await text(p, 'main');

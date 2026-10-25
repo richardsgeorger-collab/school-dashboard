@@ -4346,3 +4346,8 @@ button.sheet-line-text:focus-visible {
   align-items: center;
   gap: 6px;
 }
+/* What fills the meter ("· Exam 1, Fri", Loop 266): so a red bar beside "On pace" says why. Never cut off. */
+.cook-main {
+  color: var(--ink-2);
+  white-space: nowrap;
+}

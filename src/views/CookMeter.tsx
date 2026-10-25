@@ -9,8 +9,8 @@ export const cookColor = (level: CookLevel): string => COLOR[level];
 
 /**
  * The Cooked meter for one class: a thin bar, green, yellow or red by the hours of unfinished work due in the next 7
- * days, "Cooked meter" in small text under it, and the reason ("4 items, ~5h this week, 1 overdue") on hover and on a
- * tap. A button, so on a class card it sits outside the card's link.
+ * days, "Cooked meter" in small text under it, what fills it when one thing is most of it ("· Exam 1, Fri"), and the
+ * reason ("4 items, ~5h this week, 1 overdue") on hover and on a tap. A button, so on a class card it sits outside the card's link.
  */
 export function CookMeter({ course, size = 'card' }: { course: Course; size?: 'card' | 'page' }) {
   const { data, today, calibrate } = useStore();
@@ -25,7 +25,10 @@ export function CookMeter({ course, size = 'card' }: { course: Course; size?: 'c
         <span className="cook-track" aria-hidden>
           <span className="cook-fill" style={{ width: `${pct}%`, background: cookColor(cook.level) }} />
         </span>
-        <span className="cook-label">Cooked meter{size === 'page' ? ' · the next 7 days' : ''}</span>
+        <span className="cook-label">
+          Cooked meter{size === 'page' ? ' · the next 7 days' : ''}
+          {cook.main && <span className="cook-main"> · {cook.main.short}</span>}
+        </span>
       </button>
       {open && (
         <p className="cook-why" role="status">

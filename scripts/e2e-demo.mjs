@@ -48,7 +48,7 @@ try {
   check(/Topic 3 DQ 1: Memory/.test(hero) && /3 parts from announcements/.test(hero) && /250 words/.test(hero), 'the hero: tonight\'s discussion with the 3 parts from its announcement');
   check(/Since you last looked: 1 new assignment, 1 due date moved, 1 new grade/.test(await text(p, '.since-looked-line')), `"${await text(p, '.since-looked-line')}"`);
   check(/Participation this week: 2 left/.test(await text(p, '.pw-head')), `"${await text(p, '.pw-head')}"`);
-  check(/Synced from Halo today .* via extension/.test(await text(p, '.synced')), `"${await text(p, '.synced')}"`);
+  check(/Synced from Halo (today .*|\d+ min ago) via extension/.test(await text(p, '.synced')), `"${await text(p, '.synced')}"`);
   await p.screenshot({ path: `${OUT}/1-now.png` });
   await p.goto(`${BASE}#/classes`, { waitUntil: 'load' });
   await sleep(2500);

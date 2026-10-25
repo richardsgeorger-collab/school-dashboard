@@ -1,6 +1,7 @@
 // The Cooked meter (2026-09-29; one meaning since 2026-10-04: hours of unfinished work due in the next 7 days): a thin
 // bar on each class card and the class page, "Cooked meter" under it, no level words, green, yellow or red; the reason
-// on hover and on a tap ("4 items, ~5h this week, 1 overdue"); checking something off moves it at once. Sample data on the preview build; light and dark, desk and phone.
+// on hover and on a tap ("4 items, ~5h this week, 1 overdue"), and what fills it when one thing is most of a yellow or
+// red week ("Cooked meter · Exam 1, Fri", Loop 266); checking something off moves it at once. Sample data on the preview build; light and dark, desk and phone.
 //   BASE=http://localhost:4173/school-dashboard/ node scripts/e2e-cook.mjs
 import { mkdirSync } from 'node:fs';
 import { chromium, devices } from 'playwright-core';
@@ -18,16 +19,20 @@ for (const scheme of ['light', 'dark']) {
     await p.waitForTimeout(1500);
     await p.goto(`${BASE}#/classes`, { waitUntil: 'load' });
     await p.waitForSelector('.class-card-wrap .cook', { timeout: 10000 }).catch(() => undefined);
+    // The "Halo+ for Chrome" sheet sample data opens on a desktop would sit over the cards.
+    for (const sel of ['.ext-setup-sheet button.btn:has-text("Skip for now")', '.joy-card button:has-text("Nice")', '.levelup']) if (await p.locator(sel).count()) await p.locator(sel).first().click().catch(() => undefined);
+    await p.waitForTimeout(300);
     const meters = await p.$$eval('.class-card-wrap .cook', (els) => els.map((e) => ({ label: e.querySelector('.cook-btn').innerText.trim(), level: e.querySelector('.cook-btn').dataset.level, title: e.querySelector('.cook-btn').title, fill: parseFloat(e.querySelector('.cook-fill').style.width), rgb: getComputedStyle(e.querySelector('.cook-fill')).backgroundColor.match(/\d+/g).map(Number) })));
     await p.click('.class-card-wrap .cook-btn >> nth=0');
     await p.waitForTimeout(300);
     await p.screenshot({ path: `${OUT}/classes-${name}-${scheme}.png`, fullPage: name === 'phone' });
     const why = await p.$eval('.cook-why', (e) => e.innerText).catch(() => '');
     if (scheme === 'light' && name === 'desk') {
-      check(meters.length >= 3 && meters.every((m) => m.label === 'Cooked meter'), `every class card has the bar with "Cooked meter" under it and no level words (${meters.map((m) => `${m.fill}%`).join(', ')})`);
+      // Under the bar: "Cooked meter", and what fills it when one thing is most of a yellow or red week ("· Exam 1, Fri").
+      check(meters.length >= 3 && meters.every((m) => /^Cooked meter( · .+, \w+)?$/.test(m.label) && (m.level !== 'green' || m.label === 'Cooked meter')), `every class card has the bar with "Cooked meter" under it and no level words (${meters.map((m) => `${m.fill}% ${m.label}`).join(', ')})`);
       const hue = (m) => (m.rgb[1] > m.rgb[0] ? 'green' : m.rgb[1] > m.rgb[0] * 0.5 ? 'yellow' : 'red');
       check(meters.every((m) => ['green', 'yellow', 'red'].includes(m.level) && hue(m) === m.level), `each bar is green, yellow or red by its level: ${meters.map((m) => `${m.level} ${m.fill}%`).join(', ')}`);
-      const WHY = /^(\d+ items?, ~[\d.]+[hm] this week(, \d+ overdue)?(, \d+ due in the next 48 hours)?|Nothing due in the next 7 days)\.$/;
+      const WHY = /^(\d+ items?, ~[\d.]+[hm] this week(, \d+ overdue)?(, \d+ due in the next 48 hours)?(\. Mostly .+ \(\w+, ~[\d.]+[hm]\))?|.+ \(\w+\): ~[\d.]+[hm] this week|Nothing due in the next 7 days)\.$/;
       check(WHY.test(why) && meters.every((m) => WHY.test(m.title)), `a tap (and hover) shows why: "${why}"`);
       check(/#\/classes$/.test(p.url()), 'tapping the meter does not open the class');
     }
@@ -42,11 +47,14 @@ for (const scheme of ['light', 'dark']) {
       // Checking one off moves it at once.
       // (Something due later than this week does not move it; the first one inside the week does.)
       let after = before;
-      for (let k = 0; k < 6 && after === before; k++) {
+      // Sample rows more than two weeks late are history the meter leaves out; tick down until one inside it.
+      for (let k = 0; k < 12 && after === before; k++) {
         const box = p.locator('.item-row button.check[aria-checked="false"]').first();
         if (!(await box.count())) break;
         await box.click();
         await p.waitForTimeout(400);
+        // A first check-off can level up; its card sits over the row until tapped.
+        for (const sel of ['.levelup', '.joy-card button:has-text("Nice")']) if (await p.locator(sel).count()) await p.locator(sel).first().click().catch(() => undefined);
         if (await p.locator('.time-ask button:has-text("skip")').count()) await p.click('.time-ask button:has-text("skip")');
         after = await p.$eval('.lib-head .cook-btn', (e) => e.title);
       }

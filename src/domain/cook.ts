@@ -1,6 +1,6 @@
-import { dateOf, diffDays } from './dates';
+import { addDays, dateOf, diffDays, fmtDate } from './dates';
 import { isQuietPast } from './submission';
-import { isNoise } from './requirements';
+import { isParticipation } from './participation';
 import { isWorkDone } from '../joy/joy';
 import type { DateStr, Item } from './types';
 
@@ -8,13 +8,17 @@ import type { DateStr, Item } from './types';
  * The Cooked meter (rebuilt 2026-10-04, George: "isn't accurate"). It means one thing: how much unfinished work this
  * class needs from you in the next 7 days, in hours.
  *
- * - Counts only work that is still owed: not submitted or graded on Halo, not checked off here (joy.isWorkDone, the
- *   same rule as the class progress bar), and not an unexplained participation check-in.
+ * - Counts only work that is still owed: not submitted or graded on Halo, and not checked off here (joy.isWorkDone, the
+ *   same rule as the class progress bar). Participation never counts (domain/participation.ts isParticipation, the
+ *   rule that it is never overdue or urgent anywhere): a 20-minute check-in due tomorrow was the "1 due in the next 48
+ *   hours" on a red CHM-113 card that said "On pace" (Loop 266).
  * - Counts what is due today through six days from now, and anything overdue from the last two weeks (older than that
  *   is history, not this week's load).
  * - Weighs each by its time estimate (the same ~estimate the rows show, calibrated by your own timings when there are
  *   enough). Something already started counts half. Overdue counts 1.5x, and due in the next 48 hours 1.25x.
  * - Green under 3 weighted hours, yellow from 3, red from 6. The bar is full at 9. Nothing owed is green.
+ * - Names what fills it: when one item is at least half the load ("Exam 1, Fri"), the card says so under the bar, so a
+ *   red meter beside "On pace" reads as a heavy week, not a contradiction (pace is keeping up; this is what is ahead).
  *
  * The old meter scored kinds of work (an essay was 5 whatever its length) over 14 days, so a class with 3 hours of
  * real work this week could read Cooked from what was due the week after.
@@ -40,6 +44,8 @@ export interface Cook {
   soon: number;
   /** One line on why: "4 items, ~5h this week, 1 overdue". */
   why: string;
+  /** The item that is at least half the load, when the meter is not green: "Exam 1, Fri". */
+  main: { item: Item; short: string; hours: number } | null;
 }
 
 const fmtHours = (h: number): string => (h < 1 ? `~${Math.max(5, Math.round((h * 60) / 5) * 5)}m` : `~${h < 10 ? Math.round(h * 10) / 10 : Math.round(h)}h`);
@@ -51,9 +57,10 @@ export function cookMeter(items: Item[], today: DateStr, tz: string, minutesOf: 
   let n = 0;
   let overdue = 0;
   let soon = 0;
+  let top: { item: Item; load: number; minutes: number; due: DateStr } | null = null;
   for (const i of items) {
-    // Past work with no Halo submission is not overdue work (domain/submission.ts).
-    if (isWorkDone(i) || isNoise(i) || isQuietPast(i, nowMs)) continue;
+    // Past work with no Halo submission is not overdue work (domain/submission.ts); participation is never load.
+    if (isWorkDone(i) || isParticipation(i) || isQuietPast(i, nowMs)) continue;
     const days = diffDays(today, dateOf(i.dueAt, tz));
     if (days >= WINDOW_DAYS || days < -OVERDUE_LOOKBACK) continue;
     const m = Math.max(0, minutesOf(i) || 0) * (i.status === 'in_progress' ? 0.5 : 1);
@@ -63,15 +70,29 @@ export function cookMeter(items: Item[], today: DateStr, tz: string, minutesOf: 
     n += 1;
     minutes += m;
     load += (m / 60) * bump;
+    if (!top || (m / 60) * bump > top.load) top = { item: i, load: (m / 60) * bump, minutes: m, due: dateOf(i.dueAt, tz) };
   }
   const hours = minutes / 60;
   load = Math.round(load * 100) / 100;
   const level: CookLevel = load >= RED_AT ? 'red' : load >= YELLOW_AT ? 'yellow' : 'green';
   // Nothing owed this week still shows: a short green bar, not an empty grey track that reads as broken.
   const fill = Math.max(0.06, Math.min(1, load / FULL_AT));
+  const main = top && level !== 'green' && top.load * 2 >= load ? { item: top.item, short: `${shortName(top.item)}, ${dayWord(top.due, today)}`, hours: top.minutes / 60 } : null;
+  const name = main ? `${STUDY.has(main.item.type) ? 'study for ' : ''}${shortName(main.item)} (${dayWord(top!.due, today)}` : '';
   const why =
     n === 0
       ? 'Nothing due in the next 7 days.'
-      : [`${n} ${n === 1 ? 'item' : 'items'}, ${fmtHours(hours)} this week`, overdue ? `${overdue} overdue` : '', soon ? `${soon} due in the next 48 hours` : ''].filter(Boolean).join(', ') + '.';
-  return { level, fill, load, hours, items: n, overdue, soon, why };
+      : n === 1 && main
+        ? `${name[0].toUpperCase()}${name.slice(1)}): ${fmtHours(hours)} this week.`
+        : [`${n} ${n === 1 ? 'item' : 'items'}, ${fmtHours(hours)} this week`, overdue ? `${overdue} overdue` : '', soon ? `${soon} due in the next 48 hours` : ''].filter(Boolean).join(', ') +
+          (main ? `. Mostly ${name}, ${fmtHours(main.hours)}).` : '.');
+  return { level, fill, load, hours, items: n, overdue, soon, why, main };
 }
+
+/** Kinds whose hours are study before the day, not work handed in. */
+const STUDY = new Set<Item['type']>(['exam', 'quiz']);
+
+/** The item's own title when it is short ("Exam 1"); otherwise its kind, so the card's line never needs "…". */
+const shortName = (i: Item): string => (i.title.length <= 22 ? i.title : `${i.type[0].toUpperCase()}${i.type.slice(1)}`);
+
+const dayWord = (d: DateStr, today: DateStr): string => (d < today ? 'overdue' : d === today ? 'today' : d === addDays(today, 1) ? 'tomorrow' : fmtDate(d, 'long').split(',')[0]);
