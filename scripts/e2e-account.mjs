@@ -8,6 +8,9 @@
 import { chromium } from 'playwright-core';
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
+// The shipped model, from the one place it is named (src/ai/model.ts), so a model change never needs this file.
+const modelSrc = readFileSync('src/ai/model.ts', 'utf8');
+const MODEL = modelSrc.match(new RegExp(`export const ${modelSrc.match(/export const MODEL: string = (\w+);/)[1]} = '([^']+)'`))[1];
 import { currentBuild } from './lib/build.mjs';
 const keysPath = process.env.KEYS_ENV;
 if (!keysPath) { console.error('KEYS_ENV is required (a keys file outside the repo).'); process.exit(2); }
@@ -57,7 +60,7 @@ try {
   const b = await device('B (fresh phone: sign in only)', { seed: false, sync: false });
   const { data: log } = await admin.from('usage_log').select('kind, model, cost_usd').eq('user_id', userId);
   console.log('server usage_log:', JSON.stringify(log));
-  ok = a.calls === 1 && b.calls === 0 && b.courses > 0 && !!b.entry && b.rows === 1 && (log ?? []).every((r) => r.model === 'claude-haiku-4-5-20251001');
+  ok = a.calls === 1 && b.calls === 0 && b.courses > 0 && !!b.entry && b.rows === 1 && (log ?? []).every((r) => r.model === MODEL);
 } finally {
   await browser.close();
   for (const t of ['courses', 'items', 'settings', 'usage_log', 'usage_events', 'read_ledger', 'announcements']) await admin.from(t).delete().eq('user_id', userId);

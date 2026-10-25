@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { describeError, sendChat } from './client';
+import { MODEL, outputCapFor } from '../ai/model';
 
 /** Replies the way the API does, recording what each request asked for. */
 function fakeApi(replies: { text?: string; stop?: string }[]) {
@@ -25,7 +26,7 @@ describe('the coach on a hard question', () => {
     expect(out).toContain('1.4');
     expect(seen).toHaveLength(1);
     expect(seen[0].thinking).toBe(false);
-    expect(seen[0].maxTokens).toBe(1500);
+    expect(seen[0].maxTokens).toBe(outputCapFor(MODEL, 1500));
   });
 
   it('says what to do instead when the answer comes back empty', async () => {

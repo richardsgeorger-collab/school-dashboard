@@ -32,7 +32,7 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
   output caps, and the feature → lowest-tier table with one plain line per feature.
 - **Feature flags**: `src/config/flags.ts` (`can`, `effectiveTier` with live trial, `trialDaysLeft`) and
   `src/config/Locked.tsx` (`<Locked feature tier>` renders the children or a quiet upgrade card; `<LockTag>` inline).
-- **One model, named once**: `src/ai/model.ts` (`claude-haiku-4-5-20251001`). `src/ai/model.test.ts` walks `src`,
+- **One model, named once**: `src/ai/model.ts` (`MODEL`, Haiku 5.5 `claude-haiku-5-5` since Loop 267; one line rolls back to Haiku 4.5). `src/ai/model.test.ts` walks `src`,
   `scripts`, `supabase`, `extension`, `landing` and fails on any other model string. All 15 `claude-sonnet-4-6`
   references are gone (7 source files, 8 test/e2e mocks).
 - **One AI gateway**: `src/ai/gateway.ts`. Every call in the app builds a request there; it posts to the `ai` Edge
@@ -176,8 +176,9 @@ under **Decisions made alone**, each with the reason. Everything beyond the plan
   lecture transcript, each with plain checks on the shaped output. It runs the app's own prompt builders and
   readers against the shipped model and, with `BASELINE_MODEL` set, an older one, and writes
   `docs/ai-compare/<date>.md` with checks passed, cost and latency per model and the outputs side by side.
-  **It needs an API key, which this machine does not have, so the before/after numbers are George's to produce**
-  (see LAUNCH_CHECKLIST). `--dry` prints the fixtures and prompt sizes without a call.
+  Since Loop 267 it covers every AI job (scripts/fixtures/ai-jobs.ts, 29 jobs) and needs no key on this machine: it
+  runs through the deployed gateway as a throwaway admin, which may name a known model and effort for its own calls
+  (`KEYS_ENV=… npm run ai:compare`; `LIVE=1` is the student path). `--dry` lists the jobs without a call.
 - Batch API for backlogs: not built (the per-post flow is ledgered and cheap on Haiku); noted under Extras.
 
 ### Phase 7: Notifications and PWA (2026-09-24)
@@ -234,7 +235,6 @@ Regenerating the privacy and terms pages after editing the markdown (the same sn
 
 ## Needs George
 
-- The Haiku before/after numbers: `ANTHROPIC_API_KEY=… BASELINE_MODEL=<the model the app used before> npm run ai:compare` (this machine has no key).
 - How long a Halo session token lasts (needs a real Halo session; affects how often the extension can auto-sync unattended).
 - A Supabase project, Stripe test products, VAPID keys, a pixel id, the contact email: every one is a placeholder today, listed in LAUNCH_CHECKLIST.md in order.
 - The live RLS isolation test against the real project before launch.

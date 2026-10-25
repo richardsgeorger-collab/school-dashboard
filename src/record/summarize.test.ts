@@ -14,7 +14,7 @@ describe('lecture notes prompt and parsing', () => {
     expect(p.user).not.toContain('Old');
     expect(p.user).not.toContain('Other class');
     expect(p.system).toMatch(/lecture_notes/);
-    expect(MODEL).toMatch(/^claude-haiku-4-5/);
+    expect(MODEL).toMatch(/^claude-haiku-/);
     expect('strict' in NOTES_TOOL).toBe(false);
   });
   it('shapes model output defensively', () => {

@@ -25,7 +25,7 @@ export interface Prices {
   cacheWrite: number;
 }
 
-/** Haiku 4.5 list prices as of this build, the same numbers the server meters with; edit in Settings when they change. */
+/** The shipped model's list prices as of this build, the same numbers the server meters with; edit in Settings when they change. */
 export const DEFAULT_PRICES: Prices = { input: MODEL_PRICES_USD.input, output: MODEL_PRICES_USD.output, cacheRead: MODEL_PRICES_USD.cacheRead, cacheWrite: MODEL_PRICES_USD.cacheWrite };
 
 export const USAGE_SLOT = 'school-dashboard:ai-usage';

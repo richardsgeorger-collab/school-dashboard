@@ -4,7 +4,7 @@ import { ENV } from '../env';
 import { MAX_TOKENS, type AiKind } from '../config/tiers';
 import { getAccessToken, supabaseConfig } from '../auth/client';
 import type { Meter } from './meter';
-import { MODEL } from './model';
+import { forModel, MODEL } from './model';
 
 /**
  * THE ONE WAY this app talks to the model. Every caller builds a request here; the request goes to our Edge
@@ -109,9 +109,17 @@ export function thinkingFor(req: Pick<GatewayRequest, 'think' | 'tool_choice'>, 
   return { thinking: { type: 'enabled', budget_tokens: budget } };
 }
 
-/** The wire shape sent either to our function or, in dev, to Anthropic. The model is set here and nowhere else. */
+/**
+ * The wire shape sent either to our function or, in dev, to Anthropic. The model is set here and nowhere else, and
+ * the body is made right for it (model.ts forModel: Haiku 5.5's effort, no sampling settings, no prefill). The
+ * server does the same again for the model it actually calls, so an older client's request still works.
+ */
 export function toWire(req: GatewayRequest): Record<string, unknown> {
   const max = Math.min(req.max_tokens ?? MAX_TOKENS[req.kind], MAX_TOKENS[req.kind]);
+  return forModel(toBody(req, max), MODEL, req.kind);
+}
+
+function toBody(req: GatewayRequest, max: number): Record<string, unknown> {
   return {
     model: MODEL,
     max_tokens: max,

@@ -1,0 +1,630 @@
+[
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2319,
+    "usd": 0.00030723,
+    "input": 3840,
+    "output": 414,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2499,
+    "usd": 0.00034023,
+    "input": 3835,
+    "output": 481,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2504,
+    "usd": 0.00031213,
+    "input": 3799,
+    "output": 432,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2534,
+    "usd": 0.00032002999999999996,
+    "input": 3788,
+    "output": 450,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1384,
+    "usd": 0.0000954,
+    "input": 649,
+    "output": 61,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1950,
+    "usd": 0.00022443000000000002,
+    "input": 3802,
+    "output": 256,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1767,
+    "usd": 0.00021263000000000003,
+    "input": 3799,
+    "output": 233,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2491,
+    "usd": 0.00031042999999999994,
+    "input": 3802,
+    "output": 428,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2086,
+    "usd": 0.00029742999999999995,
+    "input": 3802,
+    "output": 402,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1876,
+    "usd": 0.00023203,
+    "input": 3778,
+    "output": 276,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2524,
+    "usd": 0.00024645,
+    "input": 1665,
+    "output": 375,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2492,
+    "usd": 0.00010845000000000001,
+    "input": 1625,
+    "output": 107,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1598,
+    "usd": 0.00013979,
+    "input": 1036,
+    "output": 191,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1923,
+    "usd": 0.00010335,
+    "input": 1624,
+    "output": 97,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3222,
+    "usd": 0.00047483000000000003,
+    "input": 2739,
+    "output": 784,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3102,
+    "usd": 0.00035084,
+    "input": 1854,
+    "output": 607,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4103,
+    "usd": 0.00050754,
+    "input": 1851,
+    "output": 921,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2251,
+    "usd": 0.00015166,
+    "input": 877,
+    "output": 273,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1900,
+    "usd": 0.00008976000000000001,
+    "input": 868,
+    "output": 151,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5954,
+    "usd": 0.00078403,
+    "input": 1672,
+    "output": 1425,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2508,
+    "usd": 0.00030472,
+    "input": 1188,
+    "output": 500,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3570,
+    "usd": 0.0003213,
+    "input": 2503,
+    "output": 466,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2771,
+    "usd": 0.00023760000000000003,
+    "input": 2496,
+    "output": 300,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2758,
+    "usd": 0.0002768,
+    "input": 1546,
+    "output": 410,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9262,
+    "usd": 0.00122251,
+    "input": 1704,
+    "output": 2306,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3832,
+    "usd": 0.00033380000000000004,
+    "input": 1546,
+    "output": 524,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4556,
+    "usd": 0.00042877000000000003,
+    "input": 1298,
+    "output": 718,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1914,
+    "usd": 0.00017061,
+    "input": 1023,
+    "output": 261,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4666,
+    "usd": 0.0005692999999999999,
+    "input": 2420,
+    "output": 930,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 3786,
+    "usd": 0.00046804,
+    "input": 2789,
+    "output": 748,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2149,
+    "usd": 0.00021567,
+    "input": 1552,
+    "output": 331,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Live (shipped)",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4798,
+    "usd": 0.0005578,
+    "input": 2420,
+    "output": 907,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4459,
+    "usd": 0.00053254,
+    "input": 2789,
+    "output": 877,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2205,
+    "usd": 0.00021716999999999998,
+    "input": 1552,
+    "output": 334,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4261,
+    "usd": 0.0005834299999999999,
+    "input": 2187,
+    "output": 964,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ }
+]

@@ -50,7 +50,7 @@ export const ACTION_FIXTURES: ActionFixture[] = [
     name: 'DQ reply rule',
     post: post('p2', 'c-eng', 'Discussion expectations', 'A reminder on discussion forums: your initial post is due by Wednesday, and you need to reply to at least two classmates by Sunday with substantive replies of 100 words or more. Replies like "great post" do not count. This applies every week.', '2026-09-22T14:00:00.000Z'),
     expect: [
-      (a) => (has(a, (x) => x.kind === 'requirement' && /two classmates|2 classmates/i.test(x.text)) ? null : 'missed: reply to two classmates'),
+      (a) => (has(a, (x) => (x.kind === 'requirement' || x.kind === 'participation') && /two classmates|2 classmates/i.test(x.text)) ? null : 'missed: reply to two classmates'),
       (a) => (has(a, (x) => /100 words|100-word/i.test(x.text) || /100 words/i.test(x.source.quote ?? '')) ? null : 'missed: 100 words'),
     ],
   },

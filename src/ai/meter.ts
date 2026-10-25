@@ -1,6 +1,6 @@
 import { AI_CEILING_USD, AI_KIND_FEATURE, AI_WARN_AT, LIMITS, MESSAGE_KINDS, type AiKind, type Tier } from '../config/tiers';
 import { can } from '../config/flags';
-import { MODEL_PRICES_USD } from './model';
+import { MODEL, pricesFor } from './model';
 
 /**
  * Whether one more AI call is allowed, and how close the student is to their limits. Pure: it takes usage rows and
@@ -96,8 +96,8 @@ export function warningLine(m: Meter): string | null {
   return `You have used ${Math.round(m.ceilingUsed * 100)}% of this month's AI. It pauses at 100% and comes back on the 1st.`;
 }
 
-/** Dollars for one call, from the usage the API reported. */
-export function costOf(usage: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number }): number {
-  const p = MODEL_PRICES_USD;
+/** Dollars for one call, from the usage the API reported, at the list prices of the model that answered it. */
+export function costOf(usage: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number }, model: string = MODEL): number {
+  const p = pricesFor(model, (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0));
   return ((usage.input_tokens ?? 0) * p.input + (usage.output_tokens ?? 0) * p.output + (usage.cache_read_input_tokens ?? 0) * p.cacheRead + (usage.cache_creation_input_tokens ?? 0) * p.cacheWrite) / 1_000_000;
 }

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MAX_TOKENS } from '../config/tiers';
 import { callGateway, GatewayError, latestMeter, toWire } from './gateway';
-import { MODEL } from './model';
+import { HAIKU_5_5, MODEL, outputCapFor } from './model';
 
 const ok = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 const reply = { content: [{ type: 'text', text: 'hi' }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 2 }, model: MODEL };
@@ -12,16 +12,17 @@ describe('the gateway', () => {
   it('sets the one model and caps output per kind whatever was asked', () => {
     const w = toWire({ kind: 'coach', system: [{ text: 'sys', cache: true }, { text: ' ' }], messages: [{ role: 'user', content: 'x' }], max_tokens: 999_999, think: true });
     expect(w.model).toBe(MODEL);
-    expect(w.max_tokens).toBe(MAX_TOKENS.coach);
-    // Haiku takes `enabled` with a budget under the cap; `adaptive` is what it rejected for days.
-    expect(w.thinking).toEqual({ type: 'enabled', budget_tokens: MAX_TOKENS.coach / 2 });
+    expect(w.max_tokens).toBe(outputCapFor(MODEL, MAX_TOKENS.coach));
+    // Haiku 4.5 takes `enabled` with a budget under the cap (`adaptive` is what it rejected for days); Haiku 5.5 takes
+    // only `adaptive` (model.ts forModel).
+    expect(w.thinking).toEqual(MODEL === HAIKU_5_5 ? { type: 'adaptive' } : { type: 'enabled', budget_tokens: MAX_TOKENS.coach / 2 });
     expect(toWire({ kind: 'coach', system: [], messages: [], think: false }).thinking).toBeUndefined();
     // A forced tool call cannot think: the flag is dropped, not sent to fail.
     expect(toWire({ kind: 'class_plan', system: [], messages: [], think: true, tools: [{ name: 't', input_schema: {} }], tool_choice: { type: 'tool', name: 't' } }).thinking).toBeUndefined();
     expect(toWire({ kind: 'needs', system: [], messages: [], think: true }).thinking).toBeUndefined();
     expect(w.system).toEqual([{ type: 'text', text: 'sys', cache_control: { type: 'ephemeral' } }]);
-    expect(toWire({ kind: 'needs', system: [], messages: [] }).max_tokens).toBe(MAX_TOKENS.needs);
-    expect(toWire({ kind: 'needs', system: [], messages: [], max_tokens: 100 }).max_tokens).toBe(100);
+    expect(toWire({ kind: 'needs', system: [], messages: [] }).max_tokens).toBe(outputCapFor(MODEL, MAX_TOKENS.needs));
+    expect(toWire({ kind: 'needs', system: [], messages: [], max_tokens: 100 }).max_tokens).toBe(outputCapFor(MODEL, 100));
   });
 
   it('in dev, a browser key goes straight to Anthropic with the same wire shape', async () => {

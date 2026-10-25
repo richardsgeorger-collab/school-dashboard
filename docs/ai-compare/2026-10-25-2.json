@@ -1,0 +1,5056 @@
+[
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3186,
+    "usd": 0.0006772000000000001,
+    "input": 3839,
+    "output": 429,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3189,
+    "usd": 0.000667825,
+    "input": 3840,
+    "output": 410,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3189,
+    "usd": 0.0006782,
+    "input": 3839,
+    "output": 431,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3206,
+    "usd": 0.0006698250000000001,
+    "input": 3840,
+    "output": 414,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4875,
+    "usd": 0.005257,
+    "input": 3232,
+    "output": 405,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4980,
+    "usd": 0.005297,
+    "input": 3232,
+    "output": 413,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2498,
+    "usd": 0.00030823,
+    "input": 3840,
+    "output": 416,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · lab moved and goggles required",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2576,
+    "usd": 0.00031423000000000003,
+    "input": 3840,
+    "output": 428,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4810,
+    "usd": 0.00031962,
+    "input": 3798,
+    "output": 447,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4918,
+    "usd": 0.00031812,
+    "input": 3798,
+    "output": 444,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6622,
+    "usd": 0.005211,
+    "input": 3191,
+    "output": 404,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5058,
+    "usd": 0.00031313,
+    "input": 3799,
+    "output": 434,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4981,
+    "usd": 0.00031213,
+    "input": 3799,
+    "output": 432,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6531,
+    "usd": 0.005271,
+    "input": 3191,
+    "output": 416,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 2652,
+    "usd": 0.001018,
+    "input": 773,
+    "output": 49,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2912,
+    "usd": 0.00035321999999999996,
+    "input": 3834,
+    "output": 507,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3934,
+    "usd": 0.00032313,
+    "input": 3799,
+    "output": 454,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2458,
+    "usd": 0.00033521999999999995,
+    "input": 3834,
+    "output": 471,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · DQ reply rule",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3766,
+    "usd": 0.00032113,
+    "input": 3799,
+    "output": 450,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1305,
+    "usd": 0.00009779999999999999,
+    "input": 653,
+    "output": 65,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6628,
+    "usd": 0.006062,
+    "input": 3222,
+    "output": 568,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5787,
+    "usd": 0.006067,
+    "input": 3222,
+    "output": 569,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2853,
+    "usd": 0.00039323,
+    "input": 3835,
+    "output": 587,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2482,
+    "usd": 0.00034523,
+    "input": 3835,
+    "output": 491,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1225,
+    "usd": 0.00009360000000000001,
+    "input": 646,
+    "output": 58,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3165,
+    "usd": 0.00041023000000000003,
+    "input": 3835,
+    "output": 621,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · exam coverage and what to bring",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2507,
+    "usd": 0.00034273,
+    "input": 3835,
+    "output": 486,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1884,
+    "usd": 0.0000972,
+    "input": 652,
+    "output": 64,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 3,
+  "failures": [
+   "missed: claim an artifact"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3832,
+    "usd": 0.004902,
+    "input": 3182,
+    "output": 344,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4015,
+    "usd": 0.004897,
+    "input": 3182,
+    "output": 343,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2417,
+    "usd": 0.00032752,
+    "input": 3787,
+    "output": 465,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1313,
+    "usd": 0.0000947,
+    "input": 647,
+    "output": 60,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3202,
+    "usd": 0.00032802,
+    "input": 3787,
+    "output": 466,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1317,
+    "usd": 0.0000947,
+    "input": 647,
+    "output": 60,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2362,
+    "usd": 0.00031802999999999996,
+    "input": 3788,
+    "output": 446,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2567,
+    "usd": 0.00032553,
+    "input": 3788,
+    "output": 461,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1236,
+    "usd": 0.0000954,
+    "input": 649,
+    "output": 61,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1518,
+    "usd": 0.003581,
+    "input": 3201,
+    "output": 76,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1517,
+    "usd": 0.003591,
+    "input": 3201,
+    "output": 78,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2029,
+    "usd": 0.00023042,
+    "input": 3801,
+    "output": 268,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1349,
+    "usd": 0.00014043,
+    "input": 3802,
+    "output": 88,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 3,
+  "failures": [
+   "missed: claim an artifact"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2524,
+    "usd": 0.00032753,
+    "input": 3788,
+    "output": 465,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1310,
+    "usd": 0.0000954,
+    "input": 649,
+    "output": 61,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · new work not in Halo",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 3,
+  "failures": [
+   "missed: claim an artifact"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2433,
+    "usd": 0.00032753,
+    "input": 3788,
+    "output": 465,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1391,
+    "usd": 0.0000954,
+    "input": 649,
+    "output": 61,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1689,
+    "usd": 0.00022493,
+    "input": 3802,
+    "output": 257,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3114,
+    "usd": 0.00023042,
+    "input": 3801,
+    "output": 268,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1231,
+    "usd": 0.00014293000000000002,
+    "input": 3802,
+    "output": 93,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · pure news, nothing to do",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1814,
+    "usd": 0.00022943,
+    "input": 3802,
+    "output": 266,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2495,
+    "usd": 0.00033341999999999996,
+    "input": 3801,
+    "output": 474,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2834,
+    "usd": 0.004321,
+    "input": 3201,
+    "output": 224,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2398,
+    "usd": 0.00032791999999999994,
+    "input": 3801,
+    "output": 463,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3013,
+    "usd": 0.004346,
+    "input": 3201,
+    "output": 229,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2555,
+    "usd": 0.0003254299999999999,
+    "input": 3802,
+    "output": 458,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2913,
+    "usd": 0.00031592999999999997,
+    "input": 3802,
+    "output": 439,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1445,
+    "usd": 0.003547,
+    "input": 3202,
+    "output": 69,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1401,
+    "usd": 0.003537,
+    "input": 3202,
+    "output": 67,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2189,
+    "usd": 0.00032292999999999997,
+    "input": 3802,
+    "output": 453,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · points changed",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2736,
+    "usd": 0.00032392999999999994,
+    "input": 3802,
+    "output": 455,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1729,
+    "usd": 0.00021213000000000002,
+    "input": 3799,
+    "output": 232,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1826,
+    "usd": 0.00021313000000000001,
+    "input": 3799,
+    "output": 234,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1905,
+    "usd": 0.00020662000000000002,
+    "input": 3798,
+    "output": 221,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1783,
+    "usd": 0.00021813000000000003,
+    "input": 3799,
+    "output": 244,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1679,
+    "usd": 0.00020713000000000003,
+    "input": 3799,
+    "output": 222,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2214,
+    "usd": 0.00023492,
+    "input": 3801,
+    "output": 277,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1784,
+    "usd": 0.00023642000000000002,
+    "input": 3801,
+    "output": 280,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2754,
+    "usd": 0.004082,
+    "input": 3197,
+    "output": 177,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2891,
+    "usd": 0.004347,
+    "input": 3197,
+    "output": 230,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5438,
+    "usd": 0.00028362,
+    "input": 3798,
+    "output": 375,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1992,
+    "usd": 0.00029542999999999995,
+    "input": 3802,
+    "output": 398,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1743,
+    "usd": 0.00023643,
+    "input": 3802,
+    "output": 280,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2302,
+    "usd": 0.0003009299999999999,
+    "input": 3802,
+    "output": 409,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · a quiz with no date yet",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2127,
+    "usd": 0.00023843,
+    "input": 3802,
+    "output": 284,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2229,
+    "usd": 0.00029902,
+    "input": 3777,
+    "output": 410,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 1,
+  "total": 2,
+  "failures": [
+   "missed: RA draft moved to Wednesday Sep 30"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2522,
+    "usd": 0.004188,
+    "input": 3173,
+    "output": 203,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 1,
+  "total": 2,
+  "failures": [
+   "missed: RA draft moved to Wednesday Sep 30"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2748,
+    "usd": 0.004208,
+    "input": 3173,
+    "output": 207,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2104,
+    "usd": 0.00030052,
+    "input": 3777,
+    "output": 413,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1869,
+    "usd": 0.00023253,
+    "input": 3778,
+    "output": 277,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1920,
+    "usd": 0.00023803,
+    "input": 3778,
+    "output": 288,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2503,
+    "usd": 0.00030402999999999995,
+    "input": 3778,
+    "output": 420,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement actions · moved by weekday only",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3395,
+    "usd": 0.00029403,
+    "input": 3778,
+    "output": 400,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3544,
+    "usd": 0.00331,
+    "input": 1570,
+    "output": 348,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2406,
+    "usd": 0.00040725,
+    "input": 1664,
+    "output": 422,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2179,
+    "usd": 0.00024694,
+    "input": 1664,
+    "output": 376,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3461,
+    "usd": 0.003265,
+    "input": 1570,
+    "output": 339,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3051,
+    "usd": 0.000374375,
+    "input": 1665,
+    "output": 356,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2599,
+    "usd": 0.000401875,
+    "input": 1665,
+    "output": 411,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1484,
+    "usd": 0.001944,
+    "input": 1539,
+    "output": 81,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1483,
+    "usd": 0.001934,
+    "input": 1539,
+    "output": 79,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1996,
+    "usd": 0.00024494999999999996,
+    "input": 1665,
+    "output": 372,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · lab moved",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2950,
+    "usd": 0.00024145,
+    "input": 1665,
+    "output": 365,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1482,
+    "usd": 0.00010494,
+    "input": 1624,
+    "output": 100,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1461,
+    "usd": 0.00010845000000000001,
+    "input": 1625,
+    "output": 107,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1854,
+    "usd": 0.00010894,
+    "input": 1624,
+    "output": 108,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1306,
+    "usd": 0.00010695,
+    "input": 1625,
+    "output": 104,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1422,
+    "usd": 0.00010845000000000001,
+    "input": 1625,
+    "output": 107,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1422,
+    "usd": 0.001885,
+    "input": 1540,
+    "output": 69,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · pure news",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1742,
+    "usd": 0.00011045,
+    "input": 1625,
+    "output": 111,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2338,
+    "usd": 0.001895,
+    "input": 1540,
+    "output": 71,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2232,
+    "usd": 0.00010335,
+    "input": 1624,
+    "output": 97,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2521,
+    "usd": 0.00010734,
+    "input": 1623,
+    "output": 105,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1303,
+    "usd": 0.00010285,
+    "input": 1624,
+    "output": 96,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1422,
+    "usd": 0.00010435,
+    "input": 1624,
+    "output": 99,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2867,
+    "usd": 0.00010584,
+    "input": 1623,
+    "output": 102,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement read · a date that is not a due date",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1341,
+    "usd": 0.00010585000000000001,
+    "input": 1624,
+    "output": 102,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1682,
+    "usd": 0.00021195,
+    "input": 1035,
+    "output": 184,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1854,
+    "usd": 0.00020845,
+    "input": 1035,
+    "output": 177,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1582,
+    "usd": 0.00021407499999999999,
+    "input": 1036,
+    "output": 188,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2247,
+    "usd": 0.001855,
+    "input": 1060,
+    "output": 159,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2306,
+    "usd": 0.00194,
+    "input": 1060,
+    "output": 176,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2146,
+    "usd": 0.00013078999999999999,
+    "input": 1036,
+    "output": 173,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1739,
+    "usd": 0.00013828999999999998,
+    "input": 1036,
+    "output": 188,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "announcement rewrite · two lines",
+  "kind": "announcement",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2093,
+    "usd": 0.00013479,
+    "input": 1036,
+    "output": 181,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3994,
+    "usd": 0.0007198500000000001,
+    "input": 2738,
+    "output": 786,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4159,
+    "usd": 0.00080385,
+    "input": 2738,
+    "output": 954,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3881,
+    "usd": 0.000777975,
+    "input": 2739,
+    "output": 902,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3769,
+    "usd": 0.00054133,
+    "input": 2739,
+    "output": 917,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6759,
+    "usd": 0.006214,
+    "input": 2319,
+    "output": 779,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 7229,
+    "usd": 0.006454,
+    "input": 2319,
+    "output": 827,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3431,
+    "usd": 0.0004943300000000001,
+    "input": 2739,
+    "output": 823,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "lecture · stoichiometry lecture with an exam flag and a date",
+  "kind": "lecture",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3983,
+    "usd": 0.0005638300000000001,
+    "input": 2739,
+    "output": 962,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 3,
+  "failures": [
+   "a formula with no real source"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4095,
+    "usd": 0.003495,
+    "input": 1700,
+    "output": 359,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2894,
+    "usd": 0.000499625,
+    "input": 1853,
+    "output": 552,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4645,
+    "usd": 0.00406,
+    "input": 1700,
+    "output": 472,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3753,
+    "usd": 0.000498625,
+    "input": 1853,
+    "output": 550,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4464,
+    "usd": 0.00036134,
+    "input": 1854,
+    "output": 628,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6520,
+    "usd": 0.00075884,
+    "input": 1854,
+    "output": 1423,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 8321,
+    "usd": 0.00124475,
+    "input": 1854,
+    "output": 2042,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · formulas",
+  "kind": "study",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 7000,
+    "usd": 0.00072984,
+    "input": 1854,
+    "output": 1365,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 7691,
+    "usd": 0.005971,
+    "input": 1701,
+    "output": 854,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5365,
+    "usd": 0.0006310300000000001,
+    "input": 1850,
+    "output": 1168,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9603,
+    "usd": 0.007116,
+    "input": 1701,
+    "output": 1083,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4632,
+    "usd": 0.0005850300000000001,
+    "input": 1850,
+    "output": 1076,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4322,
+    "usd": 0.0005440400000000001,
+    "input": 1851,
+    "output": 994,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5894,
+    "usd": 0.00061804,
+    "input": 1851,
+    "output": 1142,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4819,
+    "usd": 0.00052304,
+    "input": 1851,
+    "output": 952,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "study kit · cards",
+  "kind": "study",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6238,
+    "usd": 0.00056404,
+    "input": 1851,
+    "output": 1034,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6455,
+    "usd": 0.0008501499999999999,
+    "input": 1671,
+    "output": 1313,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6512,
+    "usd": 0.000875775,
+    "input": 1672,
+    "output": 1364,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 11949,
+    "usd": 0.007386,
+    "input": 1556,
+    "output": 1166,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 11753,
+    "usd": 0.007716,
+    "input": 1556,
+    "output": 1232,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6616,
+    "usd": 0.00079203,
+    "input": 1672,
+    "output": 1441,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6372,
+    "usd": 0.0007655299999999999,
+    "input": 1672,
+    "output": 1388,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 7598,
+    "usd": 0.00079353,
+    "input": 1672,
+    "output": 1444,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9364,
+    "usd": 0.0012808,
+    "input": 1703,
+    "output": 2165,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 8556,
+    "usd": 0.001302925,
+    "input": 1704,
+    "output": 2209,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 17589,
+    "usd": 0.012048,
+    "input": 1568,
+    "output": 2096,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 20172,
+    "usd": 0.013893,
+    "input": 1568,
+    "output": 2465,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9698,
+    "usd": 0.00130201,
+    "input": 1704,
+    "output": 2465,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3551,
+    "usd": 0.001757,
+    "input": 677,
+    "output": 216,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 10203,
+    "usd": 0.00134551,
+    "input": 1704,
+    "output": 2552,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3544,
+    "usd": 0.001712,
+    "input": 677,
+    "output": 207,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2242,
+    "usd": 0.00021185,
+    "input": 877,
+    "output": 208,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2355,
+    "usd": 0.00025035,
+    "input": 877,
+    "output": 285,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9915,
+    "usd": 0.00135251,
+    "input": 1704,
+    "output": 2566,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4615,
+    "usd": 0.00033847500000000003,
+    "input": 878,
+    "output": 461,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4090,
+    "usd": 0.000337475,
+    "input": 878,
+    "output": 459,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "quiz · stoichiometry",
+  "kind": "quiz",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 42513,
+    "usd": 0.00086615,
+    "input": 1671,
+    "output": 1345,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2084,
+    "usd": 0.001086,
+    "input": 671,
+    "output": 83,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5867,
+    "usd": 0.0005744750000000001,
+    "input": 878,
+    "output": 933,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1973,
+    "usd": 0.001071,
+    "input": 671,
+    "output": 80,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1860,
+    "usd": 0.00008576,
+    "input": 868,
+    "output": 143,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1612,
+    "usd": 0.00008126,
+    "input": 868,
+    "output": 134,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · explain limiting reagent",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5840,
+    "usd": 0.0005206700000000001,
+    "input": 878,
+    "output": 1011,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1715,
+    "usd": 0.00006827000000000001,
+    "input": 869,
+    "output": 108,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2088,
+    "usd": 0.00006127,
+    "input": 869,
+    "output": 94,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2577,
+    "usd": 0.00015126999999999998,
+    "input": 869,
+    "output": 274,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "tutor · a due date it was not given",
+  "kind": "tutor",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 0,
+  "total": 1,
+  "failures": [
+   "tutor: a date not in the input (09-29)"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3262,
+    "usd": 0.00021276999999999998,
+    "input": 869,
+    "output": 397,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2867,
+    "usd": 0.002577,
+    "input": 2202,
+    "output": 75,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 3,
+  "failures": [
+   "answer: the wrong weekday (Monday, October 6 (is a tuesday))"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3068,
+    "usd": 0.002647,
+    "input": 2202,
+    "output": 89,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2614,
+    "usd": 0.00036967500000000003,
+    "input": 2502,
+    "output": 149,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3066,
+    "usd": 0.00048080000000000003,
+    "input": 2503,
+    "output": 371,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3475,
+    "usd": 0.0004693,
+    "input": 2503,
+    "output": 348,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5687,
+    "usd": 0.000371175,
+    "input": 2502,
+    "output": 152,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3818,
+    "usd": 0.0006037999999999999,
+    "input": 2503,
+    "output": 617,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · what is due this week",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3307,
+    "usd": 0.0002998,
+    "input": 2503,
+    "output": 423,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1922,
+    "usd": 0.00017959000000000003,
+    "input": 2495,
+    "output": 184,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3054,
+    "usd": 0.002622,
+    "input": 2197,
+    "output": 85,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3018,
+    "usd": 0.00016209000000000004,
+    "input": 2495,
+    "output": 149,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3385,
+    "usd": 0.002677,
+    "input": 2197,
+    "output": 96,
+    "stop": "end_turn",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2433,
+    "usd": 0.0002301,
+    "input": 2496,
+    "output": 285,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2186,
+    "usd": 0.0002246,
+    "input": 2496,
+    "output": 274,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2853,
+    "usd": 0.0002486,
+    "input": 2496,
+    "output": 322,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "ask · a date it does not have",
+  "kind": "coach",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3123,
+    "usd": 0.0002771,
+    "input": 2496,
+    "output": 379,
+    "stop": "end_turn",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3384,
+    "usd": 0.00286,
+    "input": 1170,
+    "output": 338,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4262,
+    "usd": 0.000382975,
+    "input": 1187,
+    "output": 493,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4776,
+    "usd": 0.00037897500000000004,
+    "input": 1187,
+    "output": 485,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5879,
+    "usd": 0.002825,
+    "input": 1170,
+    "output": 331,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4532,
+    "usd": 0.00037810000000000003,
+    "input": 1188,
+    "output": 483,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5123,
+    "usd": 0.0003886,
+    "input": 1188,
+    "output": 504,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2517,
+    "usd": 0.00030022,
+    "input": 1188,
+    "output": 491,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · assignment brief",
+  "kind": "brief",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3534,
+    "usd": 0.00030922,
+    "input": 1188,
+    "output": 509,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5672,
+    "usd": 0.003035,
+    "input": 1230,
+    "output": 361,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5267,
+    "usd": 0.003015,
+    "input": 1230,
+    "output": 357,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4169,
+    "usd": 0.00043635,
+    "input": 1297,
+    "output": 580,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4039,
+    "usd": 0.000496475,
+    "input": 1298,
+    "output": 700,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 6800,
+    "usd": 0.00049985,
+    "input": 1297,
+    "output": 707,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3738,
+    "usd": 0.00042527000000000005,
+    "input": 1298,
+    "output": 711,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3936,
+    "usd": 0.00042777000000000006,
+    "input": 1298,
+    "output": 716,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · draft check",
+  "kind": "draft",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 2,
+  "total": 2,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4028,
+    "usd": 0.00044327000000000006,
+    "input": 1298,
+    "output": 747,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 2,
+  "total": 3,
+  "failures": [
+   "missed: the mole ratio is 2:2, not 1:2"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3512,
+    "usd": 0.002813,
+    "input": 1513,
+    "output": 260,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4290,
+    "usd": 0.003313,
+    "input": 1513,
+    "output": 360,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2990,
+    "usd": 0.00041047500000000004,
+    "input": 1545,
+    "output": 466,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2922,
+    "usd": 0.00040997500000000003,
+    "input": 1545,
+    "output": 465,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "worksheet · for Exam 1",
+  "kind": "worksheet",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 62504,
+    "usd": 0.0014422999999999999,
+    "input": 1703,
+    "output": 2488,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3014,
+    "usd": 0.00031580000000000003,
+    "input": 1546,
+    "output": 488,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4318,
+    "usd": 0.0003178,
+    "input": 1546,
+    "output": 492,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2767,
+    "usd": 0.0003213,
+    "input": 1546,
+    "output": 499,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check",
+  "kind": "method",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3152,
+    "usd": 0.0003038,
+    "input": 1546,
+    "output": 464,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3125,
+    "usd": 0.002678,
+    "input": 1513,
+    "output": 233,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2532,
+    "usd": 0.00028729,
+    "input": 1545,
+    "output": 431,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3407,
+    "usd": 0.002773,
+    "input": 1513,
+    "output": 252,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2722,
+    "usd": 0.00029929,
+    "input": 1545,
+    "output": 455,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1805,
+    "usd": 0.00164,
+    "input": 1045,
+    "output": 119,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2484,
+    "usd": 0.0002543,
+    "input": 1546,
+    "output": 365,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1762,
+    "usd": 0.001655,
+    "input": 1045,
+    "output": 122,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4369,
+    "usd": 0.0003043,
+    "input": 1546,
+    "output": 465,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 3292,
+    "usd": 0.0002923,
+    "input": 1546,
+    "output": 441,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "help · method check, work that is right",
+  "kind": "method",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4060,
+    "usd": 0.00028230000000000003,
+    "input": 1546,
+    "output": 421,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2552,
+    "usd": 0.00034445,
+    "input": 1022,
+    "output": 450,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2122,
+    "usd": 0.00022559999999999998,
+    "input": 1022,
+    "output": 371,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1951,
+    "usd": 0.000245575,
+    "input": 1023,
+    "output": 252,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2203,
+    "usd": 0.00026007499999999997,
+    "input": 1023,
+    "output": 281,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 2012,
+    "usd": 0.00016660999999999998,
+    "input": 1023,
+    "output": 253,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "topic links · chemistry and engineering",
+  "kind": "links",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 1,
+  "total": 1,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 1838,
+    "usd": 0.00017061,
+    "input": 1023,
+    "output": 261,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4886,
+    "usd": 0.00079075,
+    "input": 2420,
+    "output": 1021,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 3647,
+    "usd": 0.00069475,
+    "input": 2789,
+    "output": 729,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1849,
+    "usd": 0.000330375,
+    "input": 1552,
+    "output": 292,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4809,
+    "usd": 0.00059779,
+    "input": 2419,
+    "output": 987,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 3927,
+    "usd": 0.000724125,
+    "input": 2788,
+    "output": 788,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2212,
+    "usd": 0.00030275,
+    "input": 1551,
+    "output": 237,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5167,
+    "usd": 0.000799125,
+    "input": 2419,
+    "output": 1038,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4500,
+    "usd": 0.000743625,
+    "input": 2788,
+    "output": 827,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2713,
+    "usd": 0.00033525,
+    "input": 1551,
+    "output": 302,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5116,
+    "usd": 0.00078475,
+    "input": 2420,
+    "output": 1009,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4343,
+    "usd": 0.00055654,
+    "input": 2789,
+    "output": 925,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2214,
+    "usd": 0.00021616999999999999,
+    "input": 1552,
+    "output": 332,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 4,
+  "failures": [
+   "plan is missing draft, final, dq"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 8192,
+    "usd": 0.005955,
+    "input": 2200,
+    "output": 751,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 8850,
+    "usd": 0.007058,
+    "input": 2443,
+    "output": 923,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 3703,
+    "usd": 0.003073,
+    "input": 1488,
+    "output": 317,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 3,
+  "total": 4,
+  "failures": [
+   "plan is missing draft, final, dq"
+  ],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9563,
+    "usd": 0.00653,
+    "input": 2200,
+    "output": 866,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 9824,
+    "usd": 0.007463,
+    "input": 2443,
+    "output": 1004,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 2748,
+    "usd": 0.002643,
+    "input": 1488,
+    "output": 231,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5001,
+    "usd": 0.0006433,
+    "input": 2420,
+    "output": 1078,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4374,
+    "usd": 0.0005265399999999999,
+    "input": 2789,
+    "output": 865,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1524,
+    "usd": 0.00009767,
+    "input": 1552,
+    "output": 95,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · class plan",
+  "kind": "class_plan",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 4,
+  "total": 4,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4641,
+    "usd": 0.0005993,
+    "input": 2420,
+    "output": 990,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 5150,
+    "usd": 0.0006465399999999999,
+    "input": 2789,
+    "output": 1105,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1413,
+    "usd": 0.00010067,
+    "input": 1552,
+    "output": 101,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 4.5",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9178,
+    "usd": 0.006555,
+    "input": 2200,
+    "output": 871,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 2103,
+    "usd": 0.003318,
+    "input": 2443,
+    "output": 175,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 3513,
+    "usd": 0.003048,
+    "input": 1488,
+    "output": 312,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 7385,
+    "usd": 0.006361,
+    "input": 1821,
+    "output": 908,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4958,
+    "usd": 0.0005762899999999999,
+    "input": 2419,
+    "output": 944,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4000,
+    "usd": 0.00048702999999999995,
+    "input": 2788,
+    "output": 786,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 1924,
+    "usd": 0.00016766,
+    "input": 1551,
+    "output": 235,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4211,
+    "usd": 0.00073425,
+    "input": 2232,
+    "output": 957,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 5.5 low",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4955,
+    "usd": 0.0006033,
+    "input": 2420,
+    "output": 998,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4409,
+    "usd": 0.00053504,
+    "input": 2789,
+    "output": 882,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2033,
+    "usd": 0.00020417,
+    "input": 1552,
+    "output": 308,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4159,
+    "usd": 0.000732175,
+    "input": 2231,
+    "output": 953,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 5.5 low",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5653,
+    "usd": 0.0006167999999999999,
+    "input": 2420,
+    "output": 1025,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4038,
+    "usd": 0.00055054,
+    "input": 2789,
+    "output": 913,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2249,
+    "usd": 0.00022166999999999998,
+    "input": 1552,
+    "output": 343,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4207,
+    "usd": 0.00060663,
+    "input": 2229,
+    "output": 1002,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 5.5 no thinking",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5615,
+    "usd": 0.00066079,
+    "input": 2419,
+    "output": 1113,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 5536,
+    "usd": 0.00068753,
+    "input": 2788,
+    "output": 1187,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2292,
+    "usd": 0.00018866,
+    "input": 1551,
+    "output": 277,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4076,
+    "usd": 0.00057372,
+    "input": 2259,
+    "output": 930,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 4.5",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 9133,
+    "usd": 0.00641,
+    "input": 2200,
+    "output": 842,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 8814,
+    "usd": 0.006878,
+    "input": 2443,
+    "output": 887,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 3767,
+    "usd": 0.003073,
+    "input": 1488,
+    "output": 317,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   },
+   {
+    "ms": 7511,
+    "usd": 0.006511,
+    "input": 1821,
+    "output": 938,
+    "stop": "tool_use",
+    "model": "claude-haiku-4-5-20251001"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 5.5 medium",
+  "run": 0,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 5060,
+    "usd": 0.0006083,
+    "input": 2420,
+    "output": 1008,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4254,
+    "usd": 0.00054154,
+    "input": 2789,
+    "output": 895,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2075,
+    "usd": 0.00021117,
+    "input": 1552,
+    "output": 322,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4015,
+    "usd": 0.00056003,
+    "input": 2203,
+    "output": 914,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ },
+ {
+  "job": "syllabus · term plan",
+  "kind": "term_plan",
+  "candidate": "Haiku 5.5 medium",
+  "run": 1,
+  "passed": 3,
+  "total": 3,
+  "failures": [],
+  "valid": true,
+  "calls": [
+   {
+    "ms": 4332,
+    "usd": 0.0005738,
+    "input": 2420,
+    "output": 939,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4526,
+    "usd": 0.0005615399999999999,
+    "input": 2789,
+    "output": 935,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 2123,
+    "usd": 0.00021967,
+    "input": 1552,
+    "output": 339,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   },
+   {
+    "ms": 4248,
+    "usd": 0.00057373,
+    "input": 2210,
+    "output": 940,
+    "stop": "tool_use",
+    "model": "claude-haiku-5-5"
+   }
+  ]
+ }
+]

@@ -1,13 +1,14 @@
 // The one door to the model. Holds the API key, forces the model, caps output per kind, meters the user by tier,
 // logs every call's cost, and passes the answer back. Deno / Supabase Edge Function.
 //
-// Body: { kind, request } where request is a Messages API body without a model (the client's toWire()).
+// Body: { kind, request } where request is a Messages API body without a model (the client's toWire()). An admin may
+// add { model, effort } to run one of the known models side by side (scripts/ai-compare.ts); students never choose.
 // Reply: { response: { content, stop_reason, usage, model }, meter } or { error: { code, message } }.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { MAX_TOKENS } from '../_shared/tiers.ts';
 import type { Tier } from '../_shared/tiers.ts';
 import { allowance, costOf, meter, type UsageRow } from '../_shared/meter.ts';
-import { MODEL } from '../_shared/model.ts';
+import { EFFORTS, forModel, KNOWN_MODELS, MODEL } from '../_shared/model.ts';
 import { serverError } from '../_shared/errors.ts';
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
   if (userErr || !userData.user) return json(401, { error: { code: 'auth', message: 'Sign in again.' } });
   const userId = userData.user.id;
 
-  let body: { kind?: string; request?: Record<string, unknown> };
+  let body: { kind?: string; request?: Record<string, unknown>; model?: string; effort?: string };
   try {
     body = await req.json();
   } catch {
@@ -63,8 +64,24 @@ Deno.serve(async (req) => {
   const a = allowance(kind, m);
   if (!a.ok) return json(a.reason === 'tier' ? 402 : 429, { error: { code: a.reason, message: a.message }, meter: m });
 
-  // The request as the client built it, with the model and the cap set here whatever it asked for.
-  const wire = { ...body.request, model: MODEL, max_tokens: Math.min(Number(body.request.max_tokens ?? MAX_TOKENS[kind]), MAX_TOKENS[kind]) };
+  // The model: always the shipped one, except an admin's side-by-side naming another known model (and an effort).
+  let model = MODEL;
+  let effort: string | null = null;
+  if (body.model || body.effort) {
+    const { data: who } = await admin.from('profiles').select('is_admin').eq('user_id', userId).maybeSingle();
+    if (!who?.is_admin) return json(403, { error: { code: 'auth', message: 'Only an admin can choose the model.' } });
+    if (body.model && !KNOWN_MODELS.includes(body.model)) return json(400, { error: { code: 'upstream', message: 'Unknown model.' } });
+    if (body.effort && !(EFFORTS as readonly string[]).includes(body.effort)) return json(400, { error: { code: 'upstream', message: 'Unknown effort.' } });
+    model = body.model ?? MODEL;
+    effort = body.effort ?? null;
+  }
+
+  // The request as the client built it, with the model and the cap set here whatever it asked for, then made right
+  // for that model (model.ts forModel): an older client's Haiku 4.5 request still works on Haiku 5.5.
+  const capped = { ...body.request, max_tokens: Math.min(Number(body.request.max_tokens ?? MAX_TOKENS[kind]), MAX_TOKENS[kind]) };
+  if (effort) capped.output_config = { ...((body.request.output_config as Record<string, unknown>) ?? {}), effort };
+  else delete capped.output_config;
+  const wire = forModel(capped, model, kind);
   const upstream = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
@@ -83,13 +100,13 @@ Deno.serve(async (req) => {
     user_id: userId,
     day: today,
     kind,
-    model: MODEL,
+    model,
     input_tokens: u.input_tokens ?? 0,
     output_tokens: u.output_tokens ?? 0,
     cache_read_tokens: u.cache_read_input_tokens ?? 0,
     cache_write_tokens: u.cache_creation_input_tokens ?? 0,
-    cost_usd: costOf(u),
+    cost_usd: costOf(u, model),
   });
-  const after = meter([...usage, { day: today, kind, costUsd: costOf(u), calls: 1 }], tier, today);
-  return json(200, { response: { content: answer.content, stop_reason: answer.stop_reason, usage: u, model: MODEL }, meter: after });
+  const after = meter([...usage, { day: today, kind, costUsd: costOf(u, model), calls: 1 }], tier, today);
+  return json(200, { response: { content: answer.content, stop_reason: answer.stop_reason, usage: u, model }, meter: after });
 });

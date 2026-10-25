@@ -221,11 +221,12 @@ single source of a row's tone. The old risk badges (at risk, due soon, start tod
 **Model-written strings**: five to ten words for a checklist line in the prompt, capped at ten in code; summaries at
 eighteen. The professor's own sentence is always one tap away behind "source".
 
-**Haiku**: every AI call already goes through the gateway on `claude-haiku-4-5-20251001` (a test refuses any other
-model id). The last before/after run (`docs/ai-compare/2026-09-25-3.md`) is 15/15 on the announcement reader (six
-real posts) and the lecture ingestion fixtures at $0.033 for the set. The coach and the prompt generator have no
-harness fixtures yet, so their quality on Haiku is observed, not measured: the coach's answers are shorter and
-occasionally skip the "why", which the shorter prompts in this pass lean into rather than fight.
+**Haiku**: every AI call goes through the gateway on one model, `MODEL` in `src/ai/model.ts` (a test refuses any
+other model id). Since Loop 267 (2026-10-25) that is Haiku 5.5 (`claude-haiku-5-5`), at low effort, the tutor with
+thinking off; `export const MODEL = HAIKU_4_5` rolls back, and `forModel` reshapes every request for whichever model
+it goes to (the server does it again, so an old client's request still works). The before/after covers every AI job
+(29 jobs, 146 checks, `docs/ai-compare/2026-10-25-2.md`): Haiku 4.5 passed 138, Haiku 5.5 low 146, at about a tenth
+of the cost per call.
 
 **Not a colour, not a diagnostic**: sync counts, the announcement cleanup tally and the pull build live under
 Advanced. The submission check speaks in plain words.

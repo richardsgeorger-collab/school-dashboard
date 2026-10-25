@@ -42,6 +42,7 @@ export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
   );
   recordUsage(args.kind, response.model, response.usage as ApiUsage);
   const use = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+  if (!use && response.stop_reason === 'refusal') throw new Error(REFUSED);
   if (use) return { input: reviveJsonStrings(use.input), usage: response.usage as ApiUsage, model: response.model };
   // The tool is forced, so this is rare. When it happens the answer is usually the same object written as text, and
   // every reader validates what it gets, so parsing it is no less safe than trusting the tool block.
@@ -53,6 +54,9 @@ export async function callTool(args: ToolCallArgs): Promise<ToolResult> {
   if (loose) return { input: loose, usage: response.usage as ApiUsage, model: response.model };
   throw new Error("The AI's answer came back in a form Halo+ could not use.");
 }
+
+/** Haiku 5.5's safety check can decline a request (`stop_reason: "refusal"`), with nothing else in the answer. */
+export const REFUSED = 'The AI declined to answer this one. Try it again, or reword it.';
 
 /**
  * Haiku sometimes sends a list or object field of a tool answer as a string holding its JSON ("[{...}]") instead of
@@ -115,7 +119,7 @@ export async function callText(args: TextCallArgs): Promise<{ text: string; usag
     .map((b) => b.text)
     .join('')
     .trim();
-  return { text, usage: response.usage as ApiUsage, model: response.model };
+  return { text: text || (response.stop_reason === 'refusal' ? REFUSED : ''), usage: response.usage as ApiUsage, model: response.model };
 }
 
 /** What an upstream failure means, in words a person can act on. The raw text goes to the console, never the screen. */

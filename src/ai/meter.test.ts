@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AI_CEILING_USD, LIMITS } from '../config/tiers';
 import { allowance, costOf, meter, warningLine, type UsageRow } from './meter';
+import { HAIKU_4_5 } from './model';
 
 const row = (day: string, kind: string, costUsd: number, calls = 1): UsageRow => ({ day, kind, costUsd, calls });
 const TODAY = '2026-09-24';
@@ -55,10 +56,10 @@ describe('the meter', () => {
     expect(allowance('lecture', meter(rows.slice(1), 'max', TODAY)).ok).toBe(true);
   });
 
-  it('prices a call from the usage the API reported, cached input at a tenth', () => {
-    expect(costOf({ input_tokens: 1_000_000 })).toBeCloseTo(1, 6);
-    expect(costOf({ output_tokens: 1_000_000 })).toBeCloseTo(5, 6);
-    expect(costOf({ cache_read_input_tokens: 1_000_000 })).toBeCloseTo(0.1, 6);
-    expect(costOf({ input_tokens: 2000, output_tokens: 300, cache_read_input_tokens: 6000 })).toBeCloseTo(0.0041, 6);
+  it('prices a call from the usage the API reported, cached input at a tenth (Haiku 4.5 list; 5.5 in model.test.ts)', () => {
+    expect(costOf({ input_tokens: 1_000_000 }, HAIKU_4_5)).toBeCloseTo(1, 6);
+    expect(costOf({ output_tokens: 1_000_000 }, HAIKU_4_5)).toBeCloseTo(5, 6);
+    expect(costOf({ cache_read_input_tokens: 1_000_000 }, HAIKU_4_5)).toBeCloseTo(0.1, 6);
+    expect(costOf({ input_tokens: 2000, output_tokens: 300, cache_read_input_tokens: 6000 }, HAIKU_4_5)).toBeCloseTo(0.0041, 6);
   });
 });

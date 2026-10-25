@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { callGateway, GatewayError, type SystemBlock, type ToolSpec } from '../ai/gateway';
 import { recordUsage } from '../ai/usage';
+import { REFUSED } from '../ai/client';
 import { CHAT_TOOLS, dispatchTool, type ToolApi } from './context';
 
 const MAX_TOOL_ROUNDS = 3;
@@ -69,6 +70,7 @@ export async function sendChat(args: SendArgs): Promise<string> {
       .trim();
     if (response.stop_reason !== 'tool_use') {
       if (text) return text;
+      if (response.stop_reason === 'refusal') return REFUSED;
       // An empty answer is never an answer: say what to do instead of showing a stub that looks like a reply.
       return 'That came back empty. Ask it again, or in two shorter questions.';
     }
