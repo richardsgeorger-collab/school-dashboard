@@ -1,6 +1,7 @@
 // Halo+ on Halo. Calm, small, and only when it helps (0.9.0, George, 2026-10-23: 0.8.0's card "looks like an ad").
 // - Halo's Student Home (0.10.0): "This week" at the top, in Halo's own card look (see its section below); it is the
-//   day's look there, so no pill and no peek on Student Home. Halo's other pages: the pill (quiet on an assignment's
+//   day's look there, so no peek on Student Home; the pill shows while the panel is folded and hides while it is open
+//   (0.10.4). Halo's other pages: the pill (quiet on an assignment's
 //   page, gone while a quiz is being taken). Where "This week" cannot sit cleanly, Student Home keeps the pill.
 // - The pill: a small one in the corner. Dark with gold text by default ("Next: Quiz #2 tomorrow"); gold "N due
 //   today" when graded work is due today; red only for graded work overdue or due within 3 hours; green "✓ All caught
@@ -844,7 +845,12 @@ ul{list-style:none;margin:0;padding:0}
           save({ haloWeekOpen: { open, at: new Date().toISOString() } });
           count(open ? 'week-open' : 'week-close');
           weekHtml = '';
-          return weekPanel();
+          weekPanel();
+          // The pill goes as the panel opens, and comes back as it folds.
+          if (open) {
+            if (!peeking) clearLayer();
+          } else renderPill();
+          return undefined;
         }
         if (t.closest('.more')) {
           weekAll = true;
@@ -917,7 +923,9 @@ ul{list-style:none;margin:0;padding:0}
    */
   function pillHere() {
     const r = route().kind;
-    if (r === 'home') return !weekPlaced;
+    // Student Home (0.10.4, George 2026-10-24): the pill while "This week" is folded, never beside it open (the same
+    // things twice); no peek there either way.
+    if (r === 'home') return !weekPlaced || !weekOpen();
     return r === 'other' || r === 'unit';
   }
   function home() {
@@ -925,7 +933,10 @@ ul{list-style:none;margin:0;padding:0}
     weekPlaced = weekPanel();
     if (weekPlaced) {
       // The day's look is the panel: no peek here, and it counts as today's (no peek later on another page either).
-      if (!peeking) clearLayer();
+      // The pill only while the panel is folded.
+      if (weekOpen()) {
+        if (!peeking) clearLayer();
+      } else renderPill();
       const u = ui();
       if (view.items.length) save({ haloBase: M.baseline(view) });
       if (!u.first) {

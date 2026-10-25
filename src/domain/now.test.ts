@@ -277,6 +277,11 @@ describe('the status line', () => {
     expect(riskLine(startedItems, s, TODAY, TZ)).toBeNull();
     expect(statusLine(startedItems, TODAY, NOW, TZ).text).toBe("You're on track.");
   });
+  it('never says an exam or a quiz is "not started" (studying lives in the Study tab)', () => {
+    const exam = item({ id: 'x', type: 'exam', dueAt: '2026-09-11T08:00:00-07:00', points: 150, estimatedMinutes: 420 });
+    const s = computeSchedule([exam], DEFAULT_SETTINGS, TODAY, TERM, NOW);
+    expect(riskLine([exam], s, TODAY, TZ)).toBeNull();
+  });
 });
 
 describe('an exam on Now is an item like any other (2026-10-24)', () => {

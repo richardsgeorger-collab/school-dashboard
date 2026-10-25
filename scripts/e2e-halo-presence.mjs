@@ -190,7 +190,9 @@ try {
     await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
     const panel = await until(() => p.evaluate(() => !!document.querySelector('[data-haloplus="week"]')), 6000);
     await sleep(800);
-    if (L) check(!!panel && !(await pillState(p)), 'Student Home: "This week" is there, and no pill');
+    // Folded (as every student starts), the pill is there too, without a peek (0.10.4).
+    const hp = await pillState(p);
+    if (L) check(!!panel && !!hp && !hp.peek, `Student Home: "This week" folded, and the pill beside it, no peek ("${hp?.text}")`);
 
     // ---- class lines under Halo's home page class cards (CourseCard), matched by their link ----
     const lineTexts = () => p.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].map((h) => h.shadowRoot.querySelector('.l')?.textContent.replace(/\s+/g, ' ').trim() ?? ''));

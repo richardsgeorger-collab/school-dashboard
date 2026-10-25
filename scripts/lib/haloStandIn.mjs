@@ -77,14 +77,23 @@ export const haloDetails = (fx) =>
   );
 export const haloUnit = (c) =>
   haloShell(`<h2>${c.code} · Topic 3</h2>${c.items.map((i) => `<section class="assess"><div class="row"><h3>${i.title}</h3><span class="meta">${i.type}</span></div><p>Read the instructions and submit by the due date.</p><button class="btn">View</button></section>`).join('')}`);
+/** A class's own page: its code and name, then its topics (the pill's page; nothing of Halo+ goes in it). */
+export const haloClass = (c) =>
+  haloShell(
+    `<h2>${c.cc}</h2><p class="meta">${c.name} · Sep 8 – Dec 20</p><div style="margin-top:16px">${[5, 6, 7, 8]
+      .map((n) => `<section class="assess"><div class="row"><h3>Topic ${n}</h3><span class="meta">${n === 7 ? 'Current' : n < 7 ? 'Completed' : 'Upcoming'}</span></div><p>${n === 7 ? 'Readings, a discussion and this week’s assignment.' : 'Readings, a discussion and an assignment.'}</p></section>`)
+      .join('')}</div>`,
+  );
 export const haloCalendar = () => haloShell('<h2>Calendar</h2><p class="meta">October 2026</p><div style="height:520px"></div>');
 
-/** The page for a Halo address: a topic page, ClassDetails (?details), Calendar, else Student Home (?clip, ?past, ?nobh, ?narrow). */
+/** The page for a Halo address: a topic page, a class page, ClassDetails (?details), Calendar, else Student Home (?clip, ?past, ?nobh, ?narrow). */
 export function haloPage(fx, url) {
   const u = new URL(url);
   const unit = /^\/courses\/([^/]+)\/course-units\//.exec(u.pathname);
   if (unit) return haloUnit(fx.courses.find((c) => c.slug === decodeURIComponent(unit[1])) ?? fx.courses[0]);
   if (u.pathname.startsWith('/calendar')) return haloCalendar();
+  const cls = /^\/courses\/([^/]+)\/?$/.exec(u.pathname);
+  if (cls) return haloClass(fx.courses.find((c) => c.slug === decodeURIComponent(cls[1])) ?? fx.courses[0]);
   if (u.search.includes('details')) return haloDetails(fx);
   return haloHome(fx, { clip: u.search.includes('clip'), bh: !u.search.includes('nobh'), tab: u.search.includes('past') ? 'Past classes' : 'Current classes', narrow: u.search.includes('narrow') });
 }

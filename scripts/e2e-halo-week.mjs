@@ -6,7 +6,7 @@
 // N due" folds and stays folded; Overdue, Today, Tomorrow, Later this week; at most 8 rows then "Show all"; the gold dot
 // says what Halo+ caught; "Open in Halo+" on hover; a row opens the assignment on Halo; the box checks it off with Undo
 // (an undone one never reaches the account; a kept one does, once); participation is one line; "Today: All done ✓";
-// no pill and no peek on Student Home; the pill on Halo's other pages; Free shows "as of" and nothing else; not on
+// on Student Home the pill while the panel is folded and never while it is open, and no peek (0.10.4); the pill on Halo's other pages; Free shows "as of" and nothing else; not on
 // "Past classes", not when switched off, nothing where it cannot sit cleanly; counted for Admin; no long tasks.
 //   [BROWSER=chrome|edge] [BH_DIR=<Better Halo unpacked>] [EXT_DIR=extension] node scripts/e2e-halo-week.mjs
 // Better Halo, unpacked (it is a public Web Store extension):
@@ -154,11 +154,12 @@ for (const withBh of runs) {
           theme: document.documentElement.getAttribute('data-better-halo-theme'), dark: document.documentElement.classList.contains('dark'),
         };
       });
-      const pillThere = await p.evaluate(() => !!document.querySelector('[data-haloplus="layer"]')?.shadowRoot?.querySelector('.pill'));
+      const pillOf = () => p.evaluate(() => { const el = document.querySelector('[data-haloplus="layer"]')?.shadowRoot?.querySelector('.pill'); return el ? { peek: el.hasAttribute('data-peek'), text: el.querySelector('.short')?.textContent ?? '' } : null; });
+      const pillThere = await pillOf();
       check(!!panel && geo.top >= geo.tabsBottom - 1 && geo.bottom <= geo.gridTop + 1 && Math.abs(geo.width - geo.gridWidth) < 2, `${tag} ${scheme}: at the top of Student Home, below Halo's tabs, above the cards, their full width (${Math.round(geo.width ?? 0)} of ${Math.round(geo.gridWidth)} px)`);
       if (withBh) check(!!geo.theme, `${tag} ${scheme}: Better Halo's theme is on ("${geo.theme}"${geo.dark ? ', dark' : ''})`);
       check(geo.bg === geo.cardBg && geo.radius === geo.cardRadius && geo.shadow === geo.cardShadow && geo.font === geo.cardFont, `${tag} ${scheme}: Halo's own card look (${geo.bg} / ${geo.cardBg}, radius ${geo.radius}, shadow ${geo.shadow === geo.cardShadow ? 'same' : `${geo.shadow} vs ${geo.cardShadow}`}, font ${geo.font === geo.cardFont ? 'same' : 'different'})`);
-      check(!pillThere, `${tag} ${scheme}: no pill and no peek on Student Home`);
+      check(!!pillThere && !pillThere.peek, `${tag} ${scheme}: the panel folded, the pill is there (no peek): "${pillThere?.text}"`);
       // Quiet when nothing changes: no looks at Halo's cards, and no back-and-forth with Better Halo (both watch the page).
       const idle = await p.evaluate(async () => {
         let probes = 0;
@@ -177,9 +178,11 @@ for (const withBh of runs) {
       const fold0 = await inW((r) => ({ hidden: r.querySelector('.bd').hidden, h: r.querySelector('.wk').getBoundingClientRect().height, head: r.querySelector('.hd').innerText.replace(/\s+/g, ' ').trim() }));
       check(!!fold0 && fold0.hidden && fold0.h < 60 && (L && !withBh ? /^This week · 10 due · 1 overdue Halo\+/ : /^This week · \d+ due · (\d+ (overdue|today|tomorrow)|Today's done) Halo\+/).test(fold0.head), `${tag} ${scheme}: starts folded, one line: "${fold0?.head}" (${Math.round(fold0?.h ?? 0)} px)`);
       await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-collapsed-${scheme}.png`, clip: { x: 0, y: 64, width: 1366, height: 420 } });
-      // Opened: remembered.
+      // Opened: the pill goes (never the same things twice), and it is remembered.
       await inW((r) => r.querySelector('.hd').click());
       await sleep(300);
+      check(!(await pillOf()), `${tag} ${scheme}: opened, the pill is gone`);
+      await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-open-nopill-${scheme}.png`, clip: { x: 0, y: 64, width: 1366, height: 836 } });
       await p.reload({ waitUntil: 'load' });
       await until(() => p.evaluate(() => !!document.querySelector('[data-haloplus="week"]')), 6000, 200);
       await sleep(400);
@@ -255,6 +258,8 @@ for (const withBh of runs) {
       await until(() => p.evaluate(() => !!document.querySelector('[data-haloplus="week"]')), 6000, 200);
       await sleep(500);
       const still = await inW((r) => r.querySelector('.bd').hidden);
+      const back = await until(() => pillOf(), 4000, 200);
+      check(!!back && !back.peek, `${tag} ${scheme}: folded again, the pill is back: "${back?.text}"`);
       if (L) check(folded?.hidden && folded.exp === 'false' && folded.h < 60 && still, `${tag}: folds to its header (${Math.round(folded?.h ?? 0)} px) and stays folded`);
       await inW((r) => r.querySelector('.hd').click());
       await sleep(300);

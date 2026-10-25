@@ -818,11 +818,11 @@
   pointer-events: none;
 }
 
-/* Right inside Halo: a Halo-like page (no GCU marks) and the pill peeking. */
+/* Right inside Halo: a Halo-like Student Home (no GCU marks) with "This week" open above the class cards. */
 .lp-halo {
   position: relative;
   width: 100%;
-  height: 170px;
+  padding-bottom: 2px;
   border-radius: 10px;
   background: #f1f1f5;
   overflow: hidden;
@@ -832,22 +832,111 @@
   background: #1d1d24;
 }
 .lp-halo-bar {
-  height: 22px;
+  height: 18px;
   background: #5b4a8a;
+}
+.lp-week {
+  position: relative;
+  margin: 8px 10px 0;
+  padding: 6px 10px 6px 12px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.14);
+  font-size: 10px;
+  color: #212121;
+}
+.lp-week::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0a526;
+  border-radius: 4px 0 0 4px;
+}
+:root[data-theme='dark'] .lp-week {
+  background: #2a2a33;
+  color: #e6e6ea;
+}
+.lp-halo .lp-week p {
+  font-size: 10px;
+  line-height: 1.55;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lp-week-head {
+  color: #6b7280;
+  margin-bottom: 3px !important;
+}
+.lp-week-head b {
+  color: inherit;
+  color: #212121;
+}
+:root[data-theme='dark'] .lp-week-head b {
+  color: #e6e6ea;
+}
+.lp-week-clear {
+  color: #6b7280;
+}
+.lp-week-clear span {
+  color: #1e7d4a;
+  font-weight: 700;
+}
+.lp-week-row {
+  padding: 2px 0;
+}
+.lp-week-row b {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lp-week-box {
+  width: 9px;
+  height: 9px;
+  border: 1px solid #9aa0aa;
+  border-radius: 2px;
+  flex: none;
+}
+.lp-week-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.lp-week-x {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #e0a526;
+  flex: none;
+}
+.lp-week-code {
+  color: #6b7280;
+  font-size: 9px;
+}
+.lp-week-when {
+  margin-left: auto;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
 }
 .lp-halo-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  padding: 10px;
+  padding: 8px 10px;
 }
 .lp-halo-card {
   display: grid;
   gap: 2px;
-  padding: 8px;
+  padding: 7px 8px;
   background: #fff;
-  border-left: 3px solid #8a74c8;
   border-radius: 4px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.14);
   font-size: 10.5px;
   color: #333;
 }
@@ -863,73 +952,11 @@
   color: #6b7280;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
-.lp-halo-card em[data-tone='gold'] {
+.lp-halo-card [data-tone='gold'] {
   color: #a87400;
 }
-.lp-pill {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px 0 8px;
-  border-radius: 999px;
-  background: #16191e;
-  color: #f2b84b;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  box-shadow: 0 6px 16px rgb(0 0 0 / 0.25);
-}
-.lp-pill-mark {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  flex: none;
-}
-.lp-pill-short,
-.lp-pill-long {
-  display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.lp-pill-short {
-  max-width: 120px;
-  animation: lp-short 7s ease-in-out infinite;
-}
-.lp-pill-long {
-  max-width: 0;
-  animation: lp-long 7s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-}
-@keyframes lp-short {
-  0%,
-  8%,
-  74%,
-  100% {
-    max-width: 120px;
-  }
-  12%,
-  70% {
-    max-width: 0;
-  }
-}
-@keyframes lp-long {
-  0%,
-  10%,
-  76%,
-  100% {
-    max-width: 0;
-  }
-  18%,
-  68% {
-    max-width: 240px;
-  }
-}
+
 
 /* Grades and the Cooked meter. */
 .lp-grades {
@@ -1257,14 +1284,6 @@
   .lp-req {
     animation: none;
     opacity: 1;
-  }
-  .lp-pill-short {
-    animation: none;
-    max-width: 0;
-  }
-  .lp-pill-long {
-    animation: none;
-    max-width: 240px;
   }
 }
 /* The live Now is one column at every width (the app's wide two-column Now does not apply in the hero). */

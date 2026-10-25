@@ -35,10 +35,14 @@ export function paceFor(course: Course, items: Item[], schedule: Schedule, today
   return free >= AHEAD_DAYS ? { kind: 'ahead', days: free } : { kind: 'on' };
 }
 
-/** "200 pts due in 3 days, not started." for a big item inside its start window and untouched; rare. */
+/**
+ * "200 pts due in 3 days, not started." for a big item inside its start window and untouched; rare. Never a quiz or an
+ * exam (2026-10-24: "150 pts due in 6 days, not started" was the midterm; a test is not started, it is studied for, and
+ * studying lives in the Study tab).
+ */
 export function riskLine(items: Item[], schedule: Schedule, today: DateStr, tz: string): string | null {
   const big = items
-    .filter((i) => i.status === 'todo' && !isNoise(i) && effectivePoints(i, items) >= 100 && (schedule.byItem[i.id]?.startBy ?? '9999') <= today && (schedule.byItem[i.id]?.deadlineDay ?? today) >= today)
+    .filter((i) => i.status === 'todo' && !isNoise(i) && i.type !== 'exam' && i.type !== 'quiz' && effectivePoints(i, items) >= 100 && (schedule.byItem[i.id]?.startBy ?? '9999') <= today && (schedule.byItem[i.id]?.deadlineDay ?? today) >= today)
     .sort((a, b) => (schedule.byItem[a.id]?.deadlineDay ?? '').localeCompare(schedule.byItem[b.id]?.deadlineDay ?? '') || effectivePoints(b, items) - effectivePoints(a, items));
   const i = big[0];
   if (!i) return null;

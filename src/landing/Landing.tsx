@@ -63,7 +63,7 @@ export function Landing() {
         <Tile title="Your real grades" text="Every class, and how cooked your week is.">
           <Grades />
         </Tile>
-        <Tile wide title="Right inside Halo" text="A small pill on Halo says what’s next.">
+        <Tile wide title="Right inside Halo" text="This week, on Halo’s own home page.">
           <InHalo />
         </Tile>
         <Tile title="On your phone" text="Add it to your Home Screen.">
@@ -187,26 +187,48 @@ function NextCard() {
 }
 
 /** A Halo-like page (no GCU marks) with the Halo+ pill peeking out, as the extension does. */
+/** Halo's Student Home (no GCU marks) with "This week" open above the class cards, in Halo's own card look. */
 function InHalo() {
+  const rows: [string, string, string, string, boolean][] = [
+    ['Topic 3 Homework', 'BIO-181', '#2e8b57', '11:59 PM', false],
+    ['Lab 4: Photosynthesis', 'BIO-181L', '#3b7dd8', '11:59 PM', true],
+    ['Quiz 2: Derivatives', 'MAT-250', '#7a5ad0', 'Thu', false],
+  ];
   return (
     <div className="lp-halo" aria-hidden>
       <div className="lp-halo-bar" />
+      <div className="lp-week">
+        <p className="lp-week-head">
+          <b>This week</b> · 6 due · 3 tomorrow
+        </p>
+        <p className="lp-week-clear">
+          <b>Today:</b> All done <span>✓</span>
+        </p>
+        {rows.map(([title, code, color, when, extra]) => (
+          <p key={title} className="lp-week-row">
+            <i className="lp-week-box" />
+            <i className="lp-week-dot" style={{ background: color }} />
+            <b>{title}</b>
+            <span className="lp-week-code">{code}</span>
+            {extra && <i className="lp-week-x" />}
+            <span className="lp-week-when">{when}</span>
+          </p>
+        ))}
+      </div>
       <div className="lp-halo-cards">
         {[
-          ['MAT-250-TR1030A', '2 due this week'],
-          ['BIO-181L-R100P', '1 with extra requirements'],
+          ['MAT-250-TR1030A', '2 this week'],
+          ['BIO-181L-R100P', '1 extra step'],
         ].map(([code, line], k) => (
           <div key={code} className="lp-halo-card">
             <b>{code}</b>
-            <em data-tone={k === 1 ? 'gold' : undefined}>Halo+ · {line}</em>
+            <em>
+              Halo+ · {k === 1 ? '1 this week · ' : ''}
+              <span data-tone={k === 1 ? 'gold' : undefined}>{line}</span>
+            </em>
           </div>
         ))}
       </div>
-      <span className="lp-pill">
-        <span className="lp-pill-mark" />
-        <span className="lp-pill-short">Next: Quiz 2 Thu</span>
-        <span className="lp-pill-long">Next up: Quiz 2: Derivatives · Thu · 40 pts</span>
-      </span>
     </div>
   );
 }
