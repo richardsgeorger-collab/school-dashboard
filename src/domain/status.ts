@@ -1,4 +1,5 @@
 import { dateOf } from './dates';
+import { isParticipation } from './participation';
 import type { DateStr, Item } from './types';
 
 /**
@@ -10,8 +11,9 @@ export type Tone = 'late' | 'soon' | null;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function itemTone(item: Pick<Item, 'dueAt' | 'status' | 'haloLate'>, now: string): Tone {
-  if (item.status === 'done') return null;
+export function itemTone(item: Pick<Item, 'dueAt' | 'status' | 'haloLate'> & Partial<Pick<Item, 'type' | 'title'>>, now: string): Tone {
+  // Participation is never late or urgent, whatever Halo calls a missed day (2026-10-24).
+  if (item.status === 'done' || (item.type !== undefined && isParticipation({ type: item.type, title: item.title ?? '' }))) return null;
   const due = new Date(item.dueAt).getTime();
   const at = new Date(now).getTime();
   if (item.haloLate || due < at) return 'late';

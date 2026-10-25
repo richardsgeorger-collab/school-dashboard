@@ -1,6 +1,7 @@
 import { addDays, dateOf, fmtDate, weekdayOf } from './dates';
 import type { Schedule } from './schedule';
 import type { DateStr, Item, SundayReviewState } from './types';
+import { isParticipation } from './participation';
 
 export const MAX_SKIPS = 2;
 
@@ -34,7 +35,7 @@ export interface WeekReview {
 /** Last week done, what slipped, what the next seven days hold, and one sentence that says it. */
 export function weekReview(items: Item[], schedule: Schedule, today: DateStr, tz: string): WeekReview {
   const weekAgo = addDays(today, -7);
-  const work = items.filter((i) => i.type !== 'participation');
+  const work = items.filter((i) => !isParticipation(i));
   const done = work.filter((i) => i.status === 'done' && i.completedAt && dateOf(i.completedAt, tz) >= weekAgo).sort((a, b) => (a.completedAt ?? '').localeCompare(b.completedAt ?? ''));
   const open = work.filter((i) => i.status !== 'done');
   const day = (i: Item) => schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz);

@@ -431,31 +431,30 @@
   margin: 0 0 var(--s-2);
 }
 
-/* The projected semester GPA (2026-10-24): one calm line at the top of Classes, opening into a row per class. */
-.gpa {
-  margin: 0 0 var(--s-4);
-  padding: var(--s-3) var(--s-4);
+/* The semester GPA (2026-10-24): a small chip beside "Add class", its breakdown in a sheet. */
+.grade-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.gpa-chip {
+  gap: 6px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.gpa-chip b {
+  font: 600 14px/1 var(--font-mono);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 .gpa-head {
-  all: unset;
-  box-sizing: border-box;
   display: flex;
   align-items: baseline;
   gap: var(--s-2);
-  width: 100%;
-  cursor: pointer;
-}
-.gpa-head:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
-  border-radius: 4px;
-}
-.gpa-label {
-  font: 600 15px/1.3 var(--font-body);
-  color: var(--ink);
+  margin: 0;
 }
 .gpa-value {
-  font: 700 22px/1 var(--font-mono);
+  font: 700 30px/1 var(--font-mono);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
@@ -475,16 +474,8 @@
   border: 1px dashed var(--accent);
   color: var(--accent-text);
 }
-.gpa-chev {
-  margin-left: auto;
-  color: var(--ink-3, var(--ink-2));
-  transition: transform 0.15s ease;
-}
-.gpa-head[aria-expanded='true'] .gpa-chev {
-  transform: rotate(180deg);
-}
 .gpa-note {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
 }
 .gpa-body {
   margin-top: var(--s-3);
@@ -588,9 +579,6 @@
 .gpa-source {
   margin: var(--s-3) 0 0;
   font-size: 12px;
-}
-.gpa-none {
-  margin: 0 0 var(--s-3);
 }
 
 /* ---- inbox --------------------------------------------------------------- */
@@ -3119,6 +3107,10 @@
 .class-card-wrap[data-urgent] .class-card {
   padding-bottom: 72px;
 }
+/* A two-line step needs the room (it wraps, it is never cut with "…"). */
+.class-card-wrap[data-urgent='long'] .class-card {
+  padding-bottom: 90px;
+}
 .class-urgent {
   position: absolute;
   left: 14px;
@@ -3128,21 +3120,37 @@
   align-items: center;
   gap: 8px;
   min-height: 26px;
-  padding: 3px 10px;
-  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
-  border-radius: var(--r-pill);
-  background: var(--danger-soft);
-  color: var(--danger);
-  font: 600 12px/1.3 var(--font-body);
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 500 12px/1.3 var(--font-body);
+  text-align: left;
   text-align: left;
   cursor: pointer;
+}
+.class-urgent::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+/* Due today or tomorrow: the only time it is red. */
+.class-urgent[data-tone='soon'] {
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: 600;
+}
+.class-urgent[data-tone='soon']::before {
+  background: var(--danger);
 }
 .class-urgent-line {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .class-urgent-more {
   flex: none;
@@ -3150,7 +3158,7 @@
   opacity: 0.85;
 }
 .class-urgent:focus-visible {
-  outline: 2px solid var(--danger);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 /* Cards in a row are one height, so a card beside a taller one (a warning) keeps its Cooked meter inside. */
@@ -3892,9 +3900,10 @@
 }
 
 /* A missed participation, on the line and its row (2026-10-08): red, never a hero card. */
+/* A missed participation day: said, never urgent (participation is never overdue, 2026-10-24). */
 .pw-late {
-  color: var(--danger);
-  font-weight: 700;
+  color: var(--ink-3);
+  font-weight: 500;
 }
 .pw-day {
   display: flex;

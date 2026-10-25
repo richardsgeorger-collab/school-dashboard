@@ -1,4 +1,5 @@
 import { dateOf } from '../domain/dates';
+import { isExtraStep } from '../domain/extraStep';
 import { rankItems } from '../domain/now';
 import { isParticipation } from '../domain/participation';
 import { participationThisWeek } from '../domain/participationWeek';
@@ -84,26 +85,13 @@ export interface HaloSnap {
 
 const DAY = 86_400_000;
 
-/** Something to bring or have on hand: gear, a tool, materials. */
-const BRING = /\b(bring|wear|have (?:your|a|an)|goggles|lab coat|closed[- ]toe|shoes|calculator|laptop|notebook|textbook|materials?|supplies|kit|charger|headphones|ID card|student ID|printed|hard copy|pencil|pen)\b/i;
-/** A new thing to hand in or do for credit. */
-const DELIVER = /\b(submit|upload|turn in|hand in|post|write|complete|attach|include|prepare|present|record|sign)\b/i;
-/** Never worth a line on Halo's page by itself. */
-const SOFT = /\b(review|re-?read|read|reading|study|watch|look over|remember|reminder|don'?t forget|be sure|keep in mind|check (?:out|your)|practice)\b/i;
-
 /**
  * The few announcement requirements worth a line on the assignment's own Halo page (George, 2026-10-24): what to
  * bring or have, and a new graded deliverable. Never "review the readings" or a general reminder.
  */
 export function boxWorthy(reqs: { text: string; gradedOn: boolean; scope?: string }[]): string[] {
-  const out: string[] = [];
-  for (const r of reqs) {
-    const t = r.text.trim();
-    const bring = BRING.test(t);
-    const deliver = r.gradedOn && r.scope !== 'reference' && r.scope !== 'rule' && DELIVER.test(t) && !SOFT.test(t);
-    if (bring || deliver) out.push(shortLine(t));
-  }
-  return out.slice(0, 6);
+  // The one rule for a real extra step (domain/extraStep.ts), shared with the class card's "Don't forget".
+  return reqs.filter(isExtraStep).map((r) => shortLine(r.text.trim())).slice(0, 6);
 }
 
 /** Halo's class code from its slug: "CHM-113-WF700A-20260908" → "CHM-113-WF700A". */

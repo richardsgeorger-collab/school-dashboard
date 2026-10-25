@@ -3,7 +3,9 @@
 // it synced as a discussion and only Halo's PARTICIPATION type was kept off Now. On the real backend with a throwaway
 // Max account seeded the same way: a late Day 1, a Day 2 due tomorrow morning, and a real discussion whose
 // instructions only mention participation. Participation is never the hero or in Then; it lives in "Participation
-// this week" with "1 late" in red, can be ticked there, and still shows on Calendar and the class page.
+// this week" (2026-10-24: "1 missed", grey: participation is never overdue or urgent anywhere), can be ticked there,
+// and still shows on Calendar and the class page, never as Late; on Classes its card has no "Behind", no "overdue"
+// and its Next is never the missed day.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] [BEFORE=1] node scripts/e2e-participation-now.mjs
 // BEFORE=1 only takes the screenshot (for the build before the fix).
 import { randomUUID } from 'node:crypto';
@@ -68,12 +70,13 @@ try {
     check(/Summary of Course Knowledge/.test(`${hero} ${then}`), 'a real assignment that only mentions participation in its instructions stays on Now');
     const head = await text(p, '.pw-head');
     const late = p.locator('.pw-head .pw-late');
-    const red = await late.evaluate((e) => getComputedStyle(e).color).catch(() => '');
-    check(/Participation this week: .*left/.test(head) && (await text(p, '.pw-head .pw-late')) === '1 late' && /rgb\((1[5-9]\d|2\d\d), (\d|[1-9]\d), (\d|[1-9]\d)\)/.test(red), `the participation line: "${head}" ("1 late" in ${red})`);
+    const color = await late.evaluate((e) => getComputedStyle(e).color).catch(() => '');
+    const [r, g, b] = (color.match(/\d+/g) ?? ['0', '0', '0']).map(Number);
+    check(/Participation this week: .*left/.test(head) && (await text(p, '.pw-head .pw-late')) === '1 missed' && Math.max(r, g, b) - Math.min(r, g, b) < 40, `the participation line: "${head}" ("1 missed", grey: ${color})`);
     await p.click('.pw-head');
     await sleep(500);
     const body = await text(p, '.pw-body');
-    check(/Chem Participation W5 Day 1/.test(body) && /late/.test(body) && /Chem Participation W5 Day 2/.test(body), `open: both days listed, Day 1 marked late ("${body.slice(0, 160)}")`);
+    check(/Chem Participation W5 Day 1/.test(body) && /missed/.test(body) && /Chem Participation W5 Day 2/.test(body), `open: both days listed, Day 1 marked missed ("${body.slice(0, 160)}")`);
     await p.screenshot({ path: 'docs/screens/participation-now/after-line-open-desk.png' });
     // Tick Day 2 from the line, then untick it.
     await p.locator('.pw-day', { hasText: 'W5 Day 2' }).locator('input[type="checkbox"]').check();
@@ -88,10 +91,19 @@ try {
     await sleep(3000);
     const cal = await text(p, 'main');
     check(/Participation W5 Day 2|Day 2 participation/i.test(cal), 'Calendar still shows Day 2');
+    const lateGroup = await text(p, '.day-group-head[data-tone="late"]');
+    check(!/Late/.test(lateGroup) || !(await text(p, '.agenda')).match(/Late[\s\S]*Participation W5 Day 1/), `Calendar: the missed day is never under Late ("${lateGroup}")`);
+    // Classes: the card for its class says nothing is late (George's CHM-113: "Next: … Day 1 · 3 days late", "Behind: 1 overdue").
+    await p.goto(`${BASE}#/classes`, { waitUntil: 'load' });
+    await sleep(2500);
+    const card = await text(p, `.class-card:has-text("CHM-113")`);
+    check(!/overdue|late|Behind/i.test(card) && !/Next: Chem Participation W5 Day 1/.test(card), `Classes: the CHM-113 card has no overdue, no late Next ("${card.slice(0, 160)}")`);
     await p.goto(`${BASE}#/class?c=${chm}`, { waitUntil: 'load' });
     await sleep(3000);
     const cls = await text(p, 'main');
     check(/Participation W5 Day 1/.test(cls) && /Participation W5 Day 2/.test(cls), 'the class page still shows both days');
+    const day1Row = await text(p, '.item-row:has-text("Participation W5 Day 1"), li:has-text("Participation W5 Day 1")');
+    check(!/\bLate\b|overdue/i.test(day1Row), `the class page: Day 1 is not marked Late ("${day1Row.slice(0, 120)}")`);
     void real;
     void d1;
   }

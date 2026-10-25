@@ -25,6 +25,19 @@ describe('the urgent warning on a class card', () => {
     expect(urgentFor('c', [lab([req({ source: { ...src, kind: 'syllabus' as never } })])], TODAY, TZ)).toHaveLength(0);
     expect(urgentFor('other', [lab([req({})])], TODAY, TZ)).toHaveLength(0);
   });
+  // What George saw on real class cards (2026-10-24): neither is a step to take.
+  it('never "Acknowledge this announcement…" or a format rule', () => {
+    expect(urgentFor('c', [lab([req({ text: 'Acknowledge this announcement after reading it' })])], TODAY, TZ)).toEqual([]);
+    expect(urgentFor('c', [lab([req({ text: 'Op-ed follows five-paragraph structure' })])], TODAY, TZ)).toEqual([]);
+    expect(urgentFor('c', [lab([req({ text: 'Cite the textbook in APA format in the main post' })])], TODAY, TZ)).toEqual([]);
+    expect(urgentFor('c', [lab([req({ text: 'Post your main response by Wednesday, at least 250 words' })])], TODAY, TZ)).toHaveLength(1);
+  });
+  it('red only when due today or tomorrow; the chip says the step and its day', () => {
+    const near = urgentFor('c', [lab([req({ text: 'Bring goggles', dueAt: '2026-09-30T08:00:00-07:00' })])], TODAY, TZ)[0];
+    const later = urgentFor('c', [lab([req({ text: 'Bring goggles', dueAt: '2026-10-02T08:00:00-07:00' })], '2026-10-02T23:59:00-07:00')], TODAY, TZ)[0];
+    expect([near.short, near.soon]).toEqual(['Bring goggles · Tomorrow', true]);
+    expect([later.short, later.soon]).toEqual(['Bring goggles · Friday', false]);
+  });
   it('says the day when the line has none, soonest first', () => {
     const u = urgentFor('c', [lab([req({ id: 'a', text: 'Bring goggles', dueAt: '2026-10-01T08:00:00-07:00' }), req({ id: 'b', text: 'Upload the pre-lab', dueAt: '2026-09-30T23:59:00-07:00' })])], TODAY, TZ);
     expect(u.map((x) => x.line)).toEqual(["Don't forget: Upload the pre-lab by tomorrow", "Don't forget: Bring goggles by Thursday"]);

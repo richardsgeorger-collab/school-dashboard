@@ -1,3 +1,4 @@
+import { isParticipation } from './participation';
 import type { Item } from './types';
 
 /**
@@ -15,12 +16,14 @@ export const noHaloSubmission = (i: Pick<Item, 'source' | 'type' | 'haloType' | 
   (i.haloType === 'LTI' || (i.haloInPerson === true && i.haloType !== 'QUIZ' && i.haloType !== 'DISCUSSION_QUESTION'));
 
 /**
- * Past and quiet: no Halo submission, not done, no grade yet, and its due time has gone by. It leaves Now, Then, the
- * overdue counts, pace and the Cooked meter; Calendar and the class page still show it. A grade that arrives later
- * marks it done as usual.
+ * Past and quiet: not done, no grade yet, its due time gone by, and either no Halo submission or participation.
+ * Participation is never overdue or urgent anywhere (George, 2026-10-24: "Chem Participation W7 Day 1 · 3 days late",
+ * "Behind: 1 overdue" on CHM-113's card; a day's post Halo files as a discussion question, 0 points, LATE). It leaves
+ * Now, Then, Next, the overdue counts, Behind, pace, reminders and the Cooked meter; Calendar and the class page still
+ * show it, uncoloured. A grade that arrives later marks it done as usual.
  */
 export const isQuietPast = (i: Item, nowMs: number): boolean =>
-  noHaloSubmission(i) && i.status !== 'done' && i.score == null && Date.parse(i.dueAt) < nowMs;
+  (noHaloSubmission(i) || isParticipation(i)) && i.status !== 'done' && i.score == null && Date.parse(i.dueAt) < nowMs;
 
 /** The note on the item's sheet. */
 export const NO_SUBMISSION_NOTE = 'No submission in Halo. Halo+ hides it after the due date.';

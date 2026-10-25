@@ -1,5 +1,6 @@
 import { isWorkDone } from '../joy/joy';
 import { addDays, dateOf, diffDays, weekdayOf } from './dates';
+import { isExtraStep, isGateStep } from './extraStep';
 import { shortLine } from './shortLine';
 import type { DateStr, Item, Requirement } from './types';
 
@@ -12,6 +13,10 @@ export interface Urgent {
   item: Item;
   req: Requirement | null;
   line: string;
+  /** The chip's words: the step and its day, "Bring goggles · Thursday" (the chip says "don't forget" by its look). */
+  short: string;
+  /** Due today or tomorrow: the only time the chip is red. */
+  soon: boolean;
   due: string;
 }
 
@@ -32,23 +37,28 @@ export function urgentFor(courseId: string, items: Item[], today: DateStr, tz: s
     const day = dateOf(due, tz);
     return day === today ? 'today' : day === addDays(today, 1) ? 'tomorrow' : WEEKDAYS[weekdayOf(day)];
   };
+  const soonDay = (due: string) => within(due, 1);
+  // The step and its day; a step that already names its day keeps its own words. Never cut with "…": the chip wraps.
+  const chip = (line: string, due: string) => (DATED.test(line) ? line : `${line} · ${when(due).replace(/^\w/, (c) => c.toUpperCase())}`);
   for (const item of items) {
     // Only live work: nothing on something already turned in, graded or checked off (2026-10-04: ENG-105 said
     // "+18 more", most of them on finished assignments).
     if (item.courseId !== courseId || isWorkDone(item)) continue;
     for (const r of item.requirements ?? []) {
       if (r.done || r.scope === 'reference' || r.scope === 'rule' || r.source?.kind !== 'announcement') continue;
-      const gate = PREREQ.test(r.text);
-      if (!r.gradedOn && !gate) continue;
+      // Only a real extra step: something to bring, do or hand in (domain/extraStep.ts, the gold dot's rule); never
+      // "Acknowledge this announcement after reading it" or "Op-ed follows five-paragraph structure" (2026-10-24).
+      const gate = isGateStep(r, PREREQ);
+      if (!isExtraStep(r) && !gate) continue;
       const due = r.dueAt ?? item.dueAt;
       if (!(within(due, SOON) || (gate && within(item.dueAt, PREREQ_WINDOW) && within(due, PREREQ_WINDOW)))) continue;
       const line = shortLine(r.text);
-      out.push({ item, req: r, due, line: `Don't forget: ${line}${DATED.test(line) ? '' : ` by ${when(due)}`}` });
+      out.push({ item, req: r, due, line: `Don't forget: ${line}${DATED.test(line) ? '' : ` by ${when(due)}`}`, short: chip(line, due), soon: soonDay(due) });
     }
     // Work an announcement itself asked for, not yet done.
     if (item.origin?.kind === 'announcement' && !item.haloId && item.status !== 'done' && within(item.dueAt, SOON)) {
       const line = shortLine(item.title);
-      out.push({ item, req: null, due: item.dueAt, line: `Don't forget: ${line}${DATED.test(line) ? '' : ` by ${when(item.dueAt)}`}` });
+      out.push({ item, req: null, due: item.dueAt, line: `Don't forget: ${line}${DATED.test(line) ? '' : ` by ${when(item.dueAt)}`}`, short: chip(line, item.dueAt), soon: soonDay(item.dueAt) });
     }
   }
   // The same line from two announcements is one line, and an assignment with three or more (a checklist) is one line: "13 things for
@@ -63,6 +73,10 @@ export function urgentFor(courseId: string, items: Item[], today: DateStr, tz: s
   const byItem = new Map<string, Urgent[]>();
   for (const u of unique) byItem.set(u.item.id, [...(byItem.get(u.item.id) ?? []), u]);
   return [...byItem.values()]
-    .flatMap((list) => (list.length < 3 ? list : [{ ...list[0], req: null, line: `Don't forget: ${list.length} things for ${list[0].item.label} by ${when(list[list.length - 1].due)}` }]))
+    .flatMap((list) =>
+      list.length < 3
+        ? list
+        : [{ ...list[0], req: null, line: `Don't forget: ${list.length} things for ${list[0].item.label} by ${when(list[list.length - 1].due)}`, short: chip(`${list.length} things for ${list[0].item.label}`, list[list.length - 1].due), soon: list.some((u) => u.soon) }],
+    )
     .sort((a, b) => a.due.localeCompare(b.due));
 }

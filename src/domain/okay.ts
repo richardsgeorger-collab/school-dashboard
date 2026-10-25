@@ -8,6 +8,7 @@ import type { AppData, DateStr, Item } from './types';
 import { blockedLine } from './blocked';
 import { isBlocked } from './now';
 import { weakSpots } from './weak';
+import { isParticipation } from './participation';
 
 export interface Okay {
   verdict: 'fine' | 'handle';
@@ -25,7 +26,8 @@ const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : xs.length === 2 ?
  * one thing to handle first.
  */
 export function amIOkay(data: AppData, schedule: Schedule, today: DateStr, now: string, tz: string): Okay {
-  const items = data.items.filter((i) => i.type !== 'participation');
+  // Participation by any name (a day's post Halo files as a discussion too): never what makes someone not okay.
+  const items = data.items.filter((i) => !isParticipation(i));
   const waiting = items.filter((i) => i.status !== 'done' && isBlocked(i, today));
   const open = items.filter((i) => i.status !== 'done' && !isBlocked(i, today));
   const nowMs = new Date(now).getTime();

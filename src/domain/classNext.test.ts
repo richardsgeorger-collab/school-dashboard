@@ -12,10 +12,10 @@ let n = 0;
 const it_ = (title: string, due: string, extra = {}) => mkItem({ id: `i${(n += 1)}`, courseId: 'c', title, label: title, type: 'homework', points: 10, dueAt: `${due}T23:59:00-07:00`, ...extra });
 
 describe('a class card: Next and overdue', () => {
-  it('puts what Halo calls overdue first, and says how late', () => {
-    const late = it_('Week 4, Day 2 Participation', '2026-10-02', { type: 'discussion', points: 0, halo: { status: 'OVERDUE', submittedAt: null, checkedAt: '' } });
+  it('puts real overdue work first, and says how late', () => {
+    const late = it_('Topic 3 Homework', '2026-10-02', { halo: { status: 'OVERDUE', submittedAt: null, checkedAt: '' } });
     const r = classNext([it_('Chem Activity 2', '2026-10-05'), late], today, TZ);
-    expect(r.next?.title).toBe('Week 4, Day 2 Participation');
+    expect(r.next?.title).toBe('Topic 3 Homework');
     expect(r.overdue).toHaveLength(1);
     expect(whenLine(r.next!, today, TZ, (d) => d)).toBe('2 days late');
   });
@@ -45,10 +45,14 @@ describe('Don\'t forget: only live requirements', () => {
     const open2 = it_('Open 2', '2026-10-05', { requirements: [req('r3', 'Cite two sources')] });
     const finished = it_('Finished', '2026-10-05', { status: 'done', completedAt: '2026-10-03T00:00:00Z', requirements: [req('r4', 'Something old')] });
     const u = urgentFor('c', [open1, open2, finished], today, TZ);
-    expect(u.map((x) => x.line)).toEqual(['Don\'t forget: Cite two sources by tomorrow', 'Don\'t forget: Bring a calculator by tomorrow']);
-    // A checklist of three or more on one assignment is one line.
-    const list = it_('English Rhetorical Final', '2026-10-07', { requirements: [req('a', 'Use APA'), req('b', 'Cite both sources'), req('c', 'Proofread')] });
+    // Only real extra steps (2026-10-24): "Cite two sources" is about the work itself, not a step; a calculator is.
+    expect(u.map((x) => x.line)).toEqual(['Don\'t forget: Bring a calculator by tomorrow']);
+    expect(u.map((x) => x.short)).toEqual(['Bring a calculator · Tomorrow']);
+    // A checklist of three or more steps on one assignment is one line; rules about the work make none.
+    const list = it_('English Rhetorical Final', '2026-10-07', { requirements: [req('a', 'Bring a printed copy'), req('b', 'Upload the outline'), req('c', 'Sign the honor form')] });
     expect(urgentFor('c', [list], today, TZ).map((x) => x.line)).toEqual(['Don\'t forget: 3 things for English Rhetorical Final by Wednesday']);
+    const rules = it_('English Rhetorical Final', '2026-10-07', { requirements: [req('a', 'Use APA'), req('b', 'Cite both sources'), req('c', 'Proofread')] });
+    expect(urgentFor('c', [rules], today, TZ)).toEqual([]);
   });
   it('labels a day post beside its week', async () => {
     const { shortLabel } = await import('./labels');

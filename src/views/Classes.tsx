@@ -6,7 +6,7 @@ import { urgentFor } from '../domain/urgent';
 import { useState } from 'react';
 import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
-import { GpaCard } from './GpaCard';
+import { GpaChip } from './GpaCard';
 import { classProgress } from '../joy/joy';
 import { ConnectHaloLine, useNeverSynced } from '../onboarding/Setup';
 import { PALETTE } from '../data/courseDefaults';
@@ -70,7 +70,7 @@ function ClassCard({ course }: { course: Course }) {
   const pace = paceFor(course, data.items, schedule, today);
   const paceLine = overdue > 0 ? `Behind: ${overdue} overdue` : pace.kind === 'ahead' ? `${pace.days} days ahead` : pace.kind === 'on' ? 'On pace' : pace.kind === 'behind' ? `${pace.n} behind` : null;
   return (
-    <li className="class-card-wrap" data-urgent={urgent.length > 0 || undefined} data-tour={`class-${course.code}`}>
+    <li className="class-card-wrap" data-urgent={urgent.length === 0 ? undefined : urgent[0].short.length > 34 ? 'long' : 'one'} data-tour={`class-${course.code}`}>
       <a href={`#/class?c=${course.id}`} className="class-card card" style={{ '--course': color } as React.CSSProperties}>
         <div className="class-card-head">
           <CourseChip course={course} />
@@ -95,8 +95,8 @@ function ClassCard({ course }: { course: Course }) {
         <ClassDone courseId={course.id} />
       </a>
       {urgent.length > 0 && (
-        <button type="button" className="class-urgent" title={urgent[0].line} onClick={() => setOpenItem(data.items.find((i) => i.id === urgent[0].item.id) ?? urgent[0].item)}>
-          <span className="class-urgent-line">{urgent[0].line}</span>
+        <button type="button" className="class-urgent" data-tone={urgent[0].soon ? 'soon' : undefined} title={urgent[0].line} aria-label={urgent[0].line} onClick={() => setOpenItem(data.items.find((i) => i.id === urgent[0].item.id) ?? urgent[0].item)}>
+          <span className="class-urgent-line">{urgent[0].short}</span>
           {urgent.length > 1 && <span className="class-urgent-more">+{urgent.length - 1} more</span>}
         </button>
       )}
@@ -131,9 +131,12 @@ export function Classes() {
       <div className="grade-head">
         <h1 className="page-title">Classes</h1>
         {data.courses.length > 0 && (
-          <button type="button" className="btn small" onClick={add}>
-            Add class
-          </button>
+          <div className="grade-head-actions">
+            <GpaChip />
+            <button type="button" className="btn small" onClick={add}>
+              Add class
+            </button>
+          </div>
         )}
       </div>
       {data.courses.length > 0 && (
@@ -167,14 +170,11 @@ export function Classes() {
           </p>
         </EmptyState>
       ) : (
-        <>
-        <GpaCard />
         <ul className="classes-list">
           {data.courses.map((c) => (
             <ClassCard key={c.id} course={c} />
           ))}
         </ul>
-        </>
       )}
       {editing && <CourseEditor key={editing.id} course={editing} onClose={() => setEditing(null)} />}
     </>

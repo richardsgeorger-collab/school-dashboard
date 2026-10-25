@@ -57,7 +57,7 @@ export function ParticipationWeek() {
           {late > 0 && (
             <>
               {' · '}
-              <span className="pw-late">{late} late</span>
+              <span className="pw-late">{late} missed</span>
             </>
           )}
         </span>
@@ -96,7 +96,7 @@ function ParticipationDay({ entry }: { entry: WeekEntry }) {
     <label className="pw-class pw-day" data-done={done}>
       <input type="checkbox" checked={done} onChange={() => actions.setStatus(item.id, done ? 'todo' : 'done')} />
       {entry.course && <CourseChip course={entry.course} />} <span className="pw-day-label">{item.label}</span>
-      {entry.late ? <span className="pw-late mono">late</span> : <span className="mono muted">{done ? 'done' : `${fmtDate(dateOf(item.dueAt, tz), 'short')} ${fmtTime(item.dueAt, tz)}`}</span>}
+      {entry.late ? <span className="pw-late mono">missed</span> : <span className="mono muted">{done ? 'done' : `${fmtDate(dateOf(item.dueAt, tz), 'short')} ${fmtTime(item.dueAt, tz)}`}</span>}
     </label>
   );
 }

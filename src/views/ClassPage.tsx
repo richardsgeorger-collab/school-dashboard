@@ -11,6 +11,7 @@ import { addDays, dateOf, diffDays, fmtClock, fmtDate, fmtMinutes, hhmmToMinutes
 import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
+import { isParticipation } from '../domain/participation';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { weakLine } from '../domain/weak';
 import { SyncedLine } from './SyncedLine';
@@ -88,8 +89,11 @@ export function ClassPage() {
   // Past work with no Halo submission (an in-class quiz, an outside tool's set): its own quiet group, never "past
   // their date" or open (domain/submission.ts).
   const nowMs = Date.now();
-  const past = items.filter((i) => isQuietPast(i, nowMs)).sort((a, b) => b.dueAt.localeCompare(a.dueAt));
-  const openItems = items.filter((i) => i.status !== 'done' && !isQuietPast(i, nowMs)).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+  // "past": work with no Halo submission. A missed participation day stays among the open ones, uncoloured (it is
+  // never overdue), rather than under a note about submissions.
+  const quietNoSubmission = (i: Item) => isQuietPast(i, nowMs) && !isParticipation(i);
+  const past = items.filter(quietNoSubmission).sort((a, b) => b.dueAt.localeCompare(a.dueAt));
+  const openItems = items.filter((i) => i.status !== 'done' && !quietNoSubmission(i)).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const done = items.filter((i) => i.status === 'done').sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   const next = openItems.find((i) => dateOf(i.dueAt, tz) >= today) ?? openItems[0] ?? null;
   const overdue = openItems.filter((i) => (schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz)) < today);

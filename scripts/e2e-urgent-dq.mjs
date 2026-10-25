@@ -60,9 +60,11 @@ try {
       await page.click('.upgrade button:has-text("Skip")', { timeout: 1000 }).catch(() => undefined);
       await page.screenshot({ path: `${dir}/1-classes.png`, fullPage: name === 'phone' });
       const warn = await page.$$eval('.class-urgent', (els) => els.map((e) => ({ text: e.innerText.replace(/\s+/g, ' ').trim(), card: e.closest('.class-card-wrap')?.querySelector('.class-card-head')?.innerText.trim().split(/\s/)[0] })));
-      say(warn.length === 1 && warn[0].card === 'CHM-113L' && /^Don't forget: Sign the Lab Safety Waiver before Thursday's lab \+1 more$/.test(warn[0].text), `one warning, on the lab's card: ${JSON.stringify(warn)}`);
-      const look = await page.$eval('.class-urgent', (e) => { const s = getComputedStyle(e); const r = e.getBoundingClientRect(); return { size: parseFloat(s.fontSize), h: Math.round(r.height), clip: e.querySelector('.class-urgent-line').scrollWidth > e.querySelector('.class-urgent-line').clientWidth + 1 ? 'ellipsis' : 'fits' }; }).catch(() => null);
-      say(!!look && look.size <= 12 && look.h <= 30, `small and one line: ${JSON.stringify(look)}`);
+      // The chip says the step itself (2026-10-24); "Don't forget" is in its label for screen readers.
+      const label = await page.$eval('.class-urgent', (e) => e.getAttribute('aria-label')).catch(() => '');
+      say(warn.length === 1 && warn[0].card === 'CHM-113L' && /^Sign the Lab Safety Waiver before Thursday's lab \+1 more$/.test(warn[0].text) && /^Don't forget: /.test(label ?? ''), `one warning, on the lab's card: ${JSON.stringify(warn)}`);
+      const look = await page.$eval('.class-urgent', (e) => { const s = getComputedStyle(e); const r = e.getBoundingClientRect(); const l = e.querySelector('.class-urgent-line'); return { size: parseFloat(s.fontSize), h: Math.round(r.height), clip: l.scrollWidth > l.clientWidth + 1 || getComputedStyle(l).textOverflow === 'ellipsis' ? 'cut' : 'whole', inCard: r.bottom <= e.closest('.class-card-wrap').querySelector('.class-card').getBoundingClientRect().bottom }; }).catch(() => null);
+      say(!!look && look.size <= 12 && look.h <= 44 && look.clip === 'whole' && look.inCard, `small, never cut off, inside its card: ${JSON.stringify(look)}`);
       // Tapping it opens the lab with the requirement.
       await page.click('.class-urgent');
       await page.waitForTimeout(900);

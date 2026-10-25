@@ -103,15 +103,14 @@ try {
     const ctx = await open({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
     const p = await ctx.newPage();
     await p.goto('https://haloplus.app/#/classes', { waitUntil: 'load' });
-    await p.waitForSelector('.gpa', { timeout: 30000 });
+    // The GPA chip beside "Add class", its sheet open over Classes.
+    await p.waitForSelector('.gpa-chip', { timeout: 30000 });
     await sleep(1500);
-    await p.click('.gpa-head');
+    await p.click('.gpa-chip');
+    await p.waitForSelector('.modal .gpa');
     await sleep(500);
-    await p.locator('.gpa').scrollIntoViewIfNeeded();
-    await p.evaluate(() => window.scrollTo(0, Math.max(0, document.querySelector('.gpa').getBoundingClientRect().top + window.scrollY - 150)));
-    await sleep(400);
     const gpa = (await p.locator('.gpa-head').innerText()).replace(/\s+/g, ' ');
-    check(/Semester GPA \d\.\d\d/.test(gpa), `the GPA card: "${gpa}"`);
+    check(/^\d\.\d\d projected/.test(gpa), `the GPA sheet: "${gpa}"`);
     await p.screenshot({ path: 'webstore-upload/screenshots/4-gpa.png' });
     await ctx.close();
   }

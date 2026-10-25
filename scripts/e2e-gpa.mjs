@@ -1,7 +1,7 @@
 // The projected semester GPA on Classes (George, 2026-10-24). Two parts:
 //   A. The demo student (Maya Torres, made up) on this computer, signed out (so on Free): the GPA from each class's
-//      Halo grade (the number the domain code works out, itself checked by hand in src/domain/gpa.test.ts), one calm
-//      line folded, a row per class open, UNV-103 with no grade left out with a note, a what-if (marked, the real GPA
+//      Halo grade (the number the domain code works out, itself checked by hand in src/domain/gpa.test.ts), a small
+//      "GPA 3.51" chip beside "Add class" (2026-10-24: a side thing, not a banner), its sheet with a row per class, UNV-103 with no grade left out with a note, a what-if (marked, the real GPA
 //      beside it, Reset, the stored grade untouched), credits edited and kept, the GPA so far hidden until asked for
 //      and the projected cumulative GPA. Desktop and phone, light and dark, to docs/screens/gpa/.
 //   B. A throwaway Max account (scripts/lib/personas.mjs) on the real backend: an edited credit and the GPA so far
@@ -51,7 +51,7 @@ async function demo(opts, scheme) {
   }, fx.demo);
   const p = await ctx.newPage();
   await p.goto('https://haloplus.app/#/classes', { waitUntil: 'load' });
-  await p.waitForSelector('.gpa', { timeout: 20000 });
+  await p.waitForSelector('.gpa-chip', { timeout: 20000 });
   await sleep(1200);
   return { ctx, p };
 }
@@ -63,23 +63,24 @@ try {
     for (const scheme of ['light', 'dark']) {
       const L = label === 'desktop' && scheme === 'light';
       const { ctx, p } = await demo(opts, scheme);
+      const chip = await text(p, '.gpa-chip');
+      const inHeader = await p.evaluate(() => { const c = document.querySelector('.gpa-chip'); const add = [...document.querySelectorAll('.grade-head .btn')].find((b) => /Add class/.test(b.textContent)); const a = c.getBoundingClientRect(); const b2 = add.getBoundingClientRect(); return Math.abs(a.top - b2.top) < 4 && Math.abs(a.height - b2.height) < 4 && !document.querySelector('.gpa'); });
+      if (L) check(chip === `GPA ${two(fx.expect.gpa)}` && inHeader, `a small chip beside "Add class", same size, and no card on the page: "${chip}" (by hand ${two(fx.expect.gpa)}: ${fx.expect.credits} credits)`);
+      await p.screenshot({ path: `${OUT}/folded-${label}-${scheme}.png` });
+      await p.click('.gpa-chip');
+      await p.waitForSelector('.modal .gpa');
+      await sleep(300);
       const head = await text(p, '.gpa-head');
       const note = await text(p, '.gpa-note');
-      if (L) {
-        check(head.startsWith(`Semester GPA ${two(fx.expect.gpa)} projected`), `folded, one line: "${head}" (expected ${two(fx.expect.gpa)}: ${fx.expect.credits} credits)`);
-        check(/From 5 classes' current grades · 1 with no Halo grade yet, left out\./.test(note), `UNV-103 has no grade yet: left out, said once: "${note}"`);
-        check(!(await p.locator('.gpa-body').count()), 'nothing more until it is opened');
-      }
-      await p.screenshot({ path: `${OUT}/folded-${label}-${scheme}.png` });
-      await p.click('.gpa-head');
-      await sleep(300);
       const rows = await p.locator('.gpa-row').allInnerTexts();
       if (L) {
+        check(head.startsWith(`${two(fx.expect.gpa)} projected`), `the sheet: "${head}"`);
+        check(/From 5 classes' current grades · 1 with no Halo grade yet, left out\./.test(note), `UNV-103 has no grade yet: left out, said once: "${note}"`);
         check(rows.length === 6 && rows.some((r) => /BIO-181\s.*91\.0% · A- · 3\.7/.test(r.replace(/\s+/g, ' '))) && rows.some((r) => /UNV-103.*No Halo grade yet/.test(r.replace(/\s+/g, ' '))), `a row per class: ${rows.map((r) => r.replace(/\s+/g, ' ').trim()).join(' | ')}`);
         check(!(await p.locator('.gpa-sofar input').count()) && (await p.locator('.gpa-sofar-open').count()) === 1, 'the GPA so far is hidden until asked for');
         check(/GCU's undergraduate scale \(A 4\.0, A- 3\.7, B\+ 3\.3/.test(await text(p, '.gpa-source')), 'it says which scale');
       }
-      await p.screenshot({ path: `${OUT}/open-${label}-${scheme}.png`, fullPage: label === 'desktop' });
+      await p.screenshot({ path: `${OUT}/open-${label}-${scheme}.png` });
       // ---- what-if: BIO-181 ends at 80% ----
       await p.locator('.gpa-row').filter({ hasText: 'BIO-181' }).filter({ hasNotText: 'BIO-181L' }).locator('.gpa-class').click();
       await sleep(200);
@@ -88,25 +89,36 @@ try {
       const wHead = await text(p, '.gpa-head');
       const wNote = await text(p, '.gpa-note');
       if (L) {
-        check(wHead.toLowerCase().startsWith(`semester gpa ${two(fx.expect.whatIfBio80)} what-if`) && /Real: \d\.\d\d\. Reset what-if/.test(wNote) && /80\.0% · B-/.test(await text(p, '.gpa-try')), `what-if, clearly marked: "${wHead}", "${wNote}"`);
+        check(wHead.toLowerCase().startsWith(`${two(fx.expect.whatIfBio80)} what-if`) && /Real: \d\.\d\d\. Reset what-if/.test(wNote) && /80\.0% · B-/.test(await text(p, '.gpa-try')), `what-if, clearly marked: "${wHead}", "${wNote}"`);
       }
-      await p.screenshot({ path: `${OUT}/whatif-${label}-${scheme}.png`, fullPage: label === 'desktop' });
+      await p.screenshot({ path: `${OUT}/whatif-${label}-${scheme}.png` });
       if (L) {
         const stored = await p.evaluate((id) => JSON.parse(localStorage.getItem('school-dashboard:v1:demo')).courses.find((c) => c.id === id).haloGrade.percent, fx.expect.bioId);
         check(stored === 91, `the stored grade is untouched (${stored}%)`);
         await p.click('.gpa-reset');
         await sleep(200);
-        check((await text(p, '.gpa-head')).startsWith(`Semester GPA ${two(fx.expect.gpa)} projected`), 'Reset: back to the real GPA');
+        check((await text(p, '.gpa-head')).startsWith(`${two(fx.expect.gpa)} projected`), 'Reset: back to the real GPA');
+        // A what-if goes with the sheet: closed and opened again, it is gone.
+        await p.locator('.gpa-row').filter({ hasText: 'BIO-181' }).filter({ hasNotText: 'BIO-181L' }).locator('.gpa-class').click();
+        await p.locator('.gpa-try input[type="range"]').fill('80');
+        await sleep(200);
+        await p.keyboard.press('Escape');
+        await sleep(300);
+        await p.click('.gpa-chip');
+        await p.waitForSelector('.modal .gpa');
+        check((await text(p, '.gpa-head')).startsWith(`${two(fx.expect.gpa)} projected`) && (await text(p, '.gpa-chip')) === `GPA ${two(fx.expect.gpa)}`, 'closing the sheet drops the what-if; the chip never shows one');
         // ---- credits: BIO-181 at 2, kept ----
         await p.locator('input[aria-label="Credits for BIO-181"]').fill('2');
         await sleep(600);
         const cHead = await text(p, '.gpa-head');
         await p.reload({ waitUntil: 'load' });
-        await p.waitForSelector('.gpa');
+        await p.waitForSelector('.gpa-chip');
         await sleep(800);
-        await p.click('.gpa-head');
+        const cChip = await text(p, '.gpa-chip');
+        await p.click('.gpa-chip');
+        await p.waitForSelector('.modal .gpa');
         const kept = await p.locator('input[aria-label="Credits for BIO-181"]').inputValue();
-        check(cHead.startsWith(`Semester GPA ${two(fx.expect.bioTwoCredits)}`) && kept === '2', `an edited credit changes the GPA and is kept (${cHead.slice(13, 17)}, ${kept} cr after a reload)`);
+        check(cHead.startsWith(two(fx.expect.bioTwoCredits)) && cChip === `GPA ${two(fx.expect.bioTwoCredits)}` && kept === '2', `an edited credit changes the GPA and is kept (${cHead.slice(0, 4)}, chip "${cChip}", ${kept} cr after a reload)`);
         // ---- the GPA so far: 3.40 over 30 credits ----
         await p.click('.gpa-sofar-open');
         await p.locator('.gpa-sofar input').nth(0).fill('3.40');
@@ -117,10 +129,8 @@ try {
         const want = two((3.4 * 30 + sem * semCredits) / (30 + semCredits));
         const cum = await text(p, '.gpa-cum');
         check(cum === `Cumulative, projected: ${want}`, `the projected cumulative GPA: "${cum}" (by hand ${want})`);
-        await p.screenshot({ path: `${OUT}/cumulative-${label}-${scheme}.png`, fullPage: true });
-        await p.click('.gpa-head');
-        await sleep(200);
-        check((await text(p, '.gpa-head')).includes(`cumulative ${want}`), 'folded, it carries the cumulative too');
+        await p.screenshot({ path: `${OUT}/cumulative-${label}-${scheme}.png` });
+        check((await text(p, '.gpa-head')).includes(`cumulative ${want}`), 'the sheet’s line carries the cumulative too');
       }
       await ctx.close();
     }
@@ -135,9 +145,10 @@ try {
     await ctx.addInitScript(({ ses, key }) => { if (location.hostname === 'haloplus.app' && !localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: who.session, key: `sb-${ref}-auth-token` });
     const p = await ctx.newPage();
     await p.goto('https://haloplus.app/#/classes', { waitUntil: 'load' });
-    await p.waitForSelector('.gpa', { timeout: 30000 });
+    await p.waitForSelector('.gpa-chip', { timeout: 30000 });
     await sleep(1500);
-    await p.click('.gpa-head');
+    await p.click('.gpa-chip');
+    await p.waitForSelector('.modal .gpa');
     const first = p.locator('.gpa-credits input').first();
     const code = (await first.getAttribute('aria-label')).replace('Credits for ', '');
     await first.fill('5');
