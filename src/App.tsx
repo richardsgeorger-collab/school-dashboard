@@ -198,6 +198,7 @@ function HaloHandoff() {
         } catch {
           /* storage unavailable */
         }
+        accountReady(false);
       }
       return;
     }
@@ -207,6 +208,7 @@ function HaloHandoff() {
       } catch {
         /* storage unavailable */
       }
+      accountReady(!!k);
     });
   }, [userId, account.loading]);
   useEffect(() => {
@@ -396,6 +398,22 @@ function OnboardingHost() {
       />
     );
   return <TrialEnded />;
+}
+
+/**
+ * The account is settled in this tab (2026-10-24): its sync key written, or signed out. The extension asks for a sync it
+ * kept only then: asked earlier, with no key yet, it handed the sync to the tab instead of the account, and the key a
+ * moment later found nothing left to send (the flaky "a waiting sync lands when Halo+ opens"). Per tab, so a stale
+ * answer from another tab or session is never read; the message reaches a script already listening.
+ */
+export const ACCOUNT_READY_SLOT = 'school-dashboard:account-ready';
+function accountReady(signedIn: boolean) {
+  try {
+    sessionStorage.setItem(ACCOUNT_READY_SLOT, signedIn ? 'signed-in' : 'signed-out');
+  } catch {
+    /* storage unavailable */
+  }
+  window.postMessage({ kind: 'halo-account-ready', signedIn }, location.origin);
 }
 
 /** A signed-in student's classes on their way to a new device. */

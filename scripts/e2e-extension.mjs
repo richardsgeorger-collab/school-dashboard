@@ -77,7 +77,7 @@ const open = async (u, opts = {}) => {
   const ctx = await chromium.launchPersistentContext(dir, { channel: 'chromium', headless: true, colorScheme: opts.scheme ?? 'light', args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`], viewport: { width: 1280, height: 900 } });
   const calls = { n: 0 };
   await fakeHalo(ctx, calls, opts);
-  await ctx.addInitScript(({ s, key, settings }) => { if (location.hostname !== 'haloplus.app' || localStorage.getItem(key)) return; localStorage.setItem(key, JSON.stringify(s)); localStorage.setItem('school-dashboard:v1', JSON.stringify({ courses: [], items: [], settings })); }, { s: u.session, key: `sb-${ref}-auth-token`, settings });
+  if (!opts.signedOut) await ctx.addInitScript(({ s, key, settings }) => { if (location.hostname !== 'haloplus.app' || localStorage.getItem(key)) return; localStorage.setItem(key, JSON.stringify(s)); localStorage.setItem('school-dashboard:v1', JSON.stringify({ courses: [], items: [], settings })); }, { s: u.session, key: `sb-${ref}-auth-token`, settings });
   let [worker] = ctx.serviceWorkers();
   if (!worker) worker = await ctx.waitForEvent('serviceworker', { timeout: 15000 });
   const extId = worker.url().split('/')[2];
@@ -247,6 +247,12 @@ try {
     await p.screenshot({ path: `${OUT}/popup-not-landed.png` });
     check(!st.lastSyncAt && !!st.waiting && !/Last synced/.test(status) && /could not go to your account/.test(problem), `not landed: no "Last synced" ("${status}"), and "${problem}"`);
     await p.close();
+    // The order that made this check flaky, every time (0.10.4): Halo+ opens with no sync key on the page yet (the first
+    // Halo+ tab closed before it wrote one; the key is fetched just after sign-in, here 3 s late). The extension asked
+    // for the kept sync at once, had no key, handed it to the tab instead of the account, and the key a moment later
+    // found nothing left to send; whether the tab then got it into the account was luck. It must wait for the key.
+    await ctx.addInitScript(() => { if (location.hostname === 'haloplus.app' && !sessionStorage.getItem('e2e-cleared')) { sessionStorage.setItem('e2e-cleared', '1'); localStorage.removeItem('school-dashboard:sync-key'); } });
+    await ctx.route('**/rest/v1/rpc/my_sync_key', async (r) => { await new Promise((res) => setTimeout(res, 3000)); await r.continue(); });
     await dashboard(ctx);
     // Until it lands (a busy machine takes longer than a quiet one), at most 30 seconds.
     await until(async () => (await cloudCodes(u.id)).join() === 'CHM-113,CHM-113L' && !!(await worker.evaluate(() => chrome.storage.local.get('lastSyncAt').then((x) => x.lastSyncAt))), 30_000);
@@ -259,7 +265,24 @@ try {
       const pages = ctx.pages().map((pg) => pg.url().slice(0, 60));
       console.log('  diag:', JSON.stringify({ ext, drops, pages }).slice(0, 900));
     }
-    check(codes.join() === 'CHM-113,CHM-113L' && !after.waiting && !!after.lastSyncAt, `opening Halo+ signed in sent it to the account and applied it: ${codes.join(', ')}`);
+    // Through the account (its mailbox keeps a taken sync, marked taken), never handed to the tab for want of a key.
+    const viaAccount = ((await admin.from('pending_syncs').select('id').eq('user_id', u.id)).data ?? []).length > 0;
+    check(codes.join() === 'CHM-113,CHM-113L' && !after.waiting && !!after.lastSyncAt && viaAccount, `opening Halo+ signed in sent it to the account and applied it: ${codes.join(', ')}${viaAccount ? '' : ' (not through the account)'}`);
+    await ctx.close();
+  }
+  if (!ONLY || ONLY === 'signedout') {
+    // Signed out of Halo+ on this computer: no key will come, so the kept sync goes to the tab as before (0.10.4).
+    const u = await newUser();
+    const { ctx, calls, worker } = await open(u, { signedOut: true });
+    await new Promise((r) => setTimeout(r, 2500));
+    for (const pg of ctx.pages()) if (pg.url().startsWith('https://haloplus.app')) await pg.close().catch(() => undefined);
+    await worker.evaluate(async () => { await chrome.storage.local.set({ tier: 'max' }); await chrome.storage.local.remove('syncKey'); });
+    await fireAlarm(worker);
+    await until(async () => calls.n >= 1 && !(await worker.evaluate(() => chrome.storage.local.get('running').then((s) => s.running))), 120_000);
+    const kept = await worker.evaluate(() => chrome.storage.local.get('waiting').then((x) => !!x.waiting));
+    await dashboard(ctx);
+    const taken = await until(async () => !(await worker.evaluate(() => chrome.storage.local.get('waiting').then((x) => !!x.waiting))), 20_000);
+    check(kept && taken, `signed out: the kept sync went to the Halo+ tab (kept ${kept}, taken ${taken})`);
     await ctx.close();
   }
   if (!ONLY || ONLY === 'broken') {

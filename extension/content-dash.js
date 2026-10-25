@@ -26,6 +26,8 @@
 
   let last = null;
   let lastKey;
+  /** Whether this tab has asked for a sync the extension kept (once per page, once the account is settled). */
+  let tookWaiting = false;
   let lastSnap;
   let lastHalo;
   const read = (k) => {
@@ -36,6 +38,7 @@
     }
   };
   const report = () => {
+    takeWaiting();
     const tier = read('school-dashboard:tier');
     if (tier && tier !== last) {
       last = tier;
@@ -141,11 +144,34 @@
     return true;
   });
 
-  // A sync kept in the extension (the account could not be reached) goes in now: to the account when it can, else here.
-  chrome.runtime.sendMessage({ kind: 'take-waiting', key: read('school-dashboard:sync-key') || undefined }).then((r) => {
-    if (r && r.pending) window.postMessage({ kind: 'halo-pending' }, location.origin);
-    else if (r && r.payload) handOver(r.payload, (ok) => ok && chrome.runtime.sendMessage({ kind: 'landed', exportedAt: r.payload.exportedAt }));
-  }).catch(() => undefined);
+  // A sync kept in the extension (the account could not be reached) goes in once Halo+ knows its account (0.10.4): to the
+  // account with this tab's sync key, or, signed out, here. Asked before the key was written (it is fetched just after
+  // sign-in), the extension had no key, handed the sync to this tab instead, and the key a moment later found nothing
+  // left to send: the flaky test was this race. So: at once when the key is already here, else when the app says the
+  // account is settled (its message, or its per-tab note read on the early look below).
+  function takeWaiting() {
+    if (tookWaiting) return;
+    const key = read('school-dashboard:sync-key');
+    let ready = null;
+    try {
+      ready = sessionStorage.getItem('school-dashboard:account-ready');
+    } catch {
+      /* storage unavailable */
+    }
+    if (!key && ready !== 'signed-out' && ready !== 'signed-in') return;
+    tookWaiting = true;
+    chrome.runtime.sendMessage({ kind: 'take-waiting', key: key || undefined }).then((r) => {
+      if (r && r.pending) window.postMessage({ kind: 'halo-pending' }, location.origin);
+      else if (r && r.payload) handOver(r.payload, (ok) => ok && chrome.runtime.sendMessage({ kind: 'landed', exportedAt: r.payload.exportedAt }));
+    }).catch(() => undefined);
+  }
+  window.addEventListener('message', (e) => {
+    if (e.source === window && e.data && e.data.kind === 'halo-account-ready') {
+      report();
+      takeWaiting();
+    }
+  });
+  takeWaiting();
 
   // Halo+ applied a sync (any source, the bookmark too): the extension's popup stops saying "Syncing" (0.6.6).
   window.addEventListener('message', (e) => {
