@@ -550,8 +550,8 @@ Website: ${SITE}
 
 ## Plans (US dollars)
 
-- ${TIER_NAMES.free}: $0. Works from a syllabus PDF and items you add. No Halo sync, no AI.
-- ${TIER_NAMES.plus}: ${plus} a month. Halo sync, on its own every 3 hours with the Chrome extension or any time with the bookmark; Halo grades, announcements read for you, notifications.
+- ${TIER_NAMES.free}: $0. Halo syncs whenever you're on Halo (the Chrome extension) or any time with Sync now: due dates, points, grades and the GPA, Now, Calendar, Classes, and This week on Halo. No announcement reading, no AI.
+- ${TIER_NAMES.plus}: ${plus} a month. Every announcement read for you (hidden due dates, moved dates, extra steps), auto-sync every 3 hours even when you're not on Halo, reminders and the Sunday preview.
 - ${TIER_NAMES.max}: ${max} a month. Everything in ${TIER_NAMES.plus}, plus the AI study tools.
 - Every new account gets ${TIER_NAMES.max} free for ${trial}, no card: a day counts when you open Halo+, from your first sync, for up to 30 days. A friend link gives both people extra free time.
 

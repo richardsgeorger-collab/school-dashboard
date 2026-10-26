@@ -5,6 +5,7 @@
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-trial-preview.mjs
 import { mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright-core';
+import { createClient } from '@supabase/supabase-js';
 import { personaKit } from './lib/personas.mjs';
 
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
@@ -43,6 +44,13 @@ const state = async (id) => {
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const boss = await kit.persona('admin');
+  // The seeded admin is on a trial that has not started its days of use: the first open would start them (trial_sync_started)
+  // and move trial_ends_at, which is the app working, not the preview changing anything. Start them first.
+  {
+    const c = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+    await c.auth.setSession({ access_token: boss.session.access_token, refresh_token: boss.session.refresh_token });
+    console.log('     trial days started first:', JSON.stringify((await c.rpc('trial_sync_started')).data));
+  }
   await db.from('usage_log').insert([...Array.from({ length: 3 }, () => ({ user_id: boss.id, day: ago(2).slice(0, 10), kind: 'tutor', model: 'claude-haiku-4-5', created_at: ago(2) })), { user_id: boss.id, day: ago(1).slice(0, 10), kind: 'quiz', model: 'claude-haiku-4-5', created_at: ago(1) }]);
   await db.from('read_ledger').insert([0, 1, 2].map((i) => ({ user_id: boss.id, post_id: `prev-${i}`, hash: 'h', read_at: ago(3), action_count: 1 })));
   const before = await state(boss.id);
@@ -83,7 +91,7 @@ try {
     await p.waitForSelector('.story-plans', { timeout: 15000 });
     await p.waitForTimeout(2500);
     check((await p.locator('.trial-rating').count()) === 0 && (await p.locator('.story-continue').count()) === 0, 'one screen: no rating, no Continue (2026-10-09)');
-    check((await p.locator('.plan-choice[data-tier=max] .intro-price').innerText()) === '$2.99' && (await p.locator('.story-plans .drink-cup').count()) === 2 && (await p.locator('.plan-choice[data-tier=max] .cup-word').textContent()) === 'XS', 'the preview shows the intro offer, the cups, the XS cup');
+    check(/\$2\.99 the first month/.test(await p.locator('.plan-choice[data-tier=max] .plan-price').innerText()) && /then \$7\.99 a month/.test(await p.locator('.plan-choice[data-tier=max] .plan-price').innerText()) && (await p.locator('.story-plans .drink-cup').count()) === 0, 'the intro offer in the preview: $2.99 the first month, then $7.99 a month, no cups (Loop 268)');
     await p.click('button:has-text("Keep Max")');
     await p.click('button:has-text("Choose Plus")');
     await p.click('.gcbc-invite-line button:has-text("Invite a friend")');
@@ -91,12 +99,12 @@ try {
     check(p.url().includes('#/admin') && !(await p.evaluate(() => window.__shared === true)), 'Keep Max, Choose Plus and Invite do nothing in the preview');
     await p.click('.trial-preview-bar button:has-text("Plus from a friend")');
     await p.waitForTimeout(2600);
-    check(/Free until .+, from your friend's invite\./.test(await p.locator('.plan-choices').innerText()) && (await p.locator('.gcbc-free-link').innerText()) === 'Continue with Plus free' && p.url().includes('preview=trial-end-gift'), 'the friend-invite version: Plus covered, "Continue with Plus free"');
+    check(/Free until .+, from your friend's invite\./.test(await p.locator('.plan-choices').innerText()) && (await p.locator('.trial-end-choices .plan-choice[data-tier=free] .btn').innerText()) === 'Continue with Plus free' && p.url().includes('preview=trial-end-gift'), 'the friend-invite version: Plus covered, "Continue with Plus free"');
     await shotAll(p, `${OUT}/preview-gift-desk-light.png`);
     await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
     await p.reload({ waitUntil: 'load' });
     await p.waitForSelector('.story-plans', { timeout: 20000 });
-    await p.click('.gcbc-free-link');
+    await p.click('.trial-end-choices .plan-choice[data-tier=free] .btn');
     await p.waitForTimeout(800);
     check((await p.locator('.trial-ended').count()) === 0, 'Stay on Free in the preview just closes it');
     await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
@@ -110,7 +118,8 @@ try {
   await new Promise((r) => setTimeout(r, 2500));
   const after = await state(boss.id);
   check(checkout === 0, `no checkout and no rating sent (${checkout})`);
-  check(JSON.stringify(after.prof) === JSON.stringify(before.prof), 'the plan and trial dates are unchanged');
+  const changed = Object.keys({ ...before.prof, ...after.prof }).filter((k) => JSON.stringify(before.prof?.[k]) !== JSON.stringify(after.prof?.[k]));
+  check(changed.length === 0, `the plan and trial dates are unchanged${changed.length ? ` (changed: ${changed.map((k) => `${k} ${JSON.stringify(before.prof?.[k])} → ${JSON.stringify(after.prof?.[k])}`).join(', ')})` : ''}`);
   check(after.trialEndSeen === before.trialEndSeen && after.trialRating === before.trialRating, 'nothing marked seen or rated in settings');
   check(after.ratings === 0 && after.feedback === before.feedback, 'no rating and no feedback saved');
   // Not an admin: the same address shows nothing.

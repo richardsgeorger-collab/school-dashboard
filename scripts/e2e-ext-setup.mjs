@@ -1,11 +1,11 @@
 // The Chrome extension setup (George, 2026-10-04), on the real backend with throwaway accounts, desktop Chrome unless
 // said. Screens of every step and of the existing-user sheet in light and dark to docs/screens/ext-setup/.
 //   1. Someone already here (Plus) opens Halo+: the sheet, once. Why → Install (Add to Chrome to the store address
-//      from Admin, the Add-to-Chrome animation) → Pin it (the puzzle-piece animation) → Log into Halo → Connect: the
+//      from Admin, the Add-to-Chrome animation) → Connect (three screens since 2026-10-13; no pin or log-in step): the
 //      extension appearing on the page shows the check and "First sync running", and the page asks it for the sync.
 //   2. Skip for now: a "Get the extension" line on Now, gone 7 days later; never the sheet again.
 //   3. Already connected (its version on the page, or a sync via extension): no sheet.
-//   4. Free: the why with "Syncing … is part of Plus" and See plans, no pressure.
+//   4. Free: the same setup, worded for Free ("syncs whenever you're on Halo"); no plan wall (Loop 268).
 //   5. Safari on a computer: "Auto-sync needs Chrome", the bookmark still works. An iPhone: nothing.
 //   6. Someone new on the Max trial: the Max welcome is 3 screens (no Add to Chrome step any more), then the setup.
 //   7. Nothing seen after a minute: "Not seeing it? Reload this page".
@@ -47,13 +47,14 @@ const sheet = (p) => p.locator('.ext-setup-sheet');
 const person = async (kind) => {
   const who = await kit.persona(kind);
   const s = await settingsOf(who.id);
-  if (s.lastPull) await patch(who.id, { lastPull: { ...s.lastPull, via: 'bookmark' } });
+  // Synced with the bookmark (not yet set up); the Sunday review off, so nothing sits over the sheet on a Sunday evening.
+  await patch(who.id, { ...(s.lastPull ? { lastPull: { ...s.lastPull, via: 'bookmark' } } : {}), sundayReview: { off: true } });
   return who;
 };
 const shot = (p, name) => p.screenshot({ path: `${OUT}/${name}.png` });
 
 try {
-  // 1. Someone already here, on Plus: the five steps, light and dark.
+  // 1. Someone already here, on Plus: the three steps, light and dark.
   for (const scheme of ['light', 'dark']) {
     const plus = await person('plus');
     const { ctx, p } = await open(plus, { scheme });
@@ -66,17 +67,10 @@ try {
     if (scheme === 'light') check(href === STORE && (await p.locator('.ext-demo-install .ext-dialog').count()) === 1, `Install: Add to Chrome goes to the store address from Admin (${href}), with the animation`);
     await shot(p, `2-install-${scheme}`);
     await p.click('.ext-setup-sheet button:has-text("I\'ve added it")');
-    await p.waitForTimeout(2600);
-    if (scheme === 'light') check((await p.locator('.ext-demo-pin .ext-puzzle').count()) === 1 && /Sync now/.test(await sheet(p).innerText()), 'Pin it: the puzzle-piece animation, and Sync now is mentioned');
-    await shot(p, `3-pin-${scheme}`);
-    await p.click('.ext-setup-sheet button:has-text("Next")');
-    await p.waitForTimeout(500);
-    const halo = await sheet(p).innerText();
-    if (scheme === 'light') check(/quiet background tab/.test(halo) && /Auto-sync paused: log in to Halo/.test(halo) && /😇 Sync Halo bookmark still works as a backup/.test(halo), 'Log into Halo: the background tab, the paused note, and the bookmark as a backup');
-    await shot(p, `4-halo-${scheme}`);
-    await p.click('.ext-setup-sheet button:has-text("I\'m logged in")');
-    await p.waitForTimeout(800);
-    await shot(p, `5-waiting-${scheme}`);
+    await p.waitForTimeout(1200);
+    // Three screens since 2026-10-13: why, install, connect. No pin step, no log-in step.
+    if (scheme === 'light') check(/Looking for the extension/.test(await sheet(p).innerText()) && (await p.locator('.ext-demo-pin').count()) === 0, 'Connect: "Looking for the extension", no pin or log-in steps');
+    await shot(p, `3-connect-${scheme}`);
     // The extension shows up on this page (its Halo+ script writes its version).
     await p.evaluate(() => localStorage.setItem('school-dashboard:ext-version', '0.5.2'));
     await p.waitForSelector('.ext-check', { timeout: 5000 }).catch(() => undefined);
@@ -124,13 +118,14 @@ try {
     await b.ctx.close();
   }
 
-  // 4. Free: the why, a plain note, See plans.
+  // 4. Free (Loop 268: Free syncs whenever it is on Halo): the same setup, worded for Free. Not in the day after
+  //    "Stay on Free" (the sheet waits), so the trial-end screen was seen two days ago.
   for (const scheme of ['light', 'dark']) {
     const free = await person('ended');
-    await patch(free.id, { trialEndSeen: new Date().toISOString() });
+    await patch(free.id, { trialEndSeen: new Date(Date.now() - 2 * 864e5).toISOString() });
     const { ctx, p } = await open(free, { scheme });
     const t = await sheet(p).innerText().catch(() => '');
-    if (scheme === 'light') check(/Syncing Halo, on its own or by hand, is part of Plus\./.test(t) && (await p.locator('.ext-setup-sheet a:has-text("See plans")').getAttribute('href')) === '#/you?s=plan&to=plus' && !/Set it up/.test(t), 'Free: the why, "part of Plus", See plans, no install');
+    if (scheme === 'light') check(/Halo\+ syncs whenever you're on Halo\. No clicking\./.test(t) && /Set it up/.test(t) && !/part of Plus/.test(t) && (await p.locator('.ext-setup-sheet a:has-text("See plans")').count()) === 0, `Free: the real setup, worded for Free, no plan wall ("${t.replace(/\s+/g, ' ').slice(0, 90)}")`);
     await shot(p, `8-free-${scheme}`);
     await ctx.close();
   }
@@ -172,31 +167,32 @@ try {
     const plus = await person('plus');
     const { ctx, p } = await open(plus);
     await p.click('.ext-setup-sheet button:has-text("Set it up")');
-    for (const b of ["I've added it", 'Next', "I'm logged in"]) { await p.click(`.ext-setup-sheet button:has-text("${b}")`); await p.waitForTimeout(400); }
+    for (const b of ["I've added it"]) { await p.click(`.ext-setup-sheet button:has-text("${b}")`); await p.waitForTimeout(400); }
     await p.waitForSelector('.ext-late', { timeout: 75000 }).catch(() => undefined);
     const t = await p.locator('.ext-late').innerText().catch(() => '');
     check(/Not seeing it\?/.test(t) && /Reload this page/.test(t) && /Sync help/.test(t), 'after a minute: "Not seeing it? Reload this page" and help');
     await shot(p, '5b-not-seeing-it-light');
     await ctx.close();
   }
-  // 8. The top-bar chip (2026-10-05): "Turn on auto-sync" beside the streak until it is connected, a pop-up once a day.
+  // 8. The top-bar chip (2026-10-05): "Turn on auto-sync" beside the streak until it is connected. No pop-up any more
+  // (2026-10-25, Loop 268: never a pop-up; Now carries a gentle card during the trial instead).
   for (const scheme of ['light', 'dark']) {
     const plus = await person('plus');
     await patch(plus.id, { extSetup: { shownAt: new Date().toISOString(), skippedAt: new Date(Date.now() - 9 * 864e5).toISOString() } });
     const { ctx, p } = await open(plus, { scheme });
     const chip = p.locator('.topbar .autosync-chip');
     const order = await p.evaluate(() => { const c = document.querySelector('.topbar .autosync-chip-wrap'); return c?.nextElementSibling?.className ?? null; });
-    if (scheme === 'light') check((await chip.count()) === 1 && /Turn on auto-sync/.test(await chip.innerText()) && (await p.locator('.autosync-callout').count()) === 1, `the chip is in the top bar beside the streak (next: ${order}), with its pop-up`);
+    if (scheme === 'light') check((await chip.count()) === 1 && /Turn on auto-sync/.test(await chip.innerText()) && (await p.locator('.autosync-callout').count()) === 0, `the chip is in the top bar beside the streak (next: ${order}), with no pop-up`);
     await shot(p, `10-chip-popup-${scheme}`);
     if (scheme === 'light') {
-      await p.click('.autosync-callout button:has-text("Turn it on")');
+      await chip.click();
       await p.waitForTimeout(800);
-      check((await sheet(p).count()) === 1, 'Turn it on opens the setup');
+      check((await sheet(p).count()) === 1, 'the chip opens the setup');
       await p.click('.ext-setup-sheet .onboard-head button:has-text("Skip for now")');
       await p.waitForTimeout(800);
       await p.reload({ waitUntil: 'load' });
       await p.waitForTimeout(5000);
-      check((await chip.count()) === 1 && (await p.locator('.autosync-callout').count()) === 0, 'still in the top bar; the pop-up once a day');
+      check((await chip.count()) === 1 && (await p.locator('.autosync-callout').count()) === 0, 'still in the top bar, still no pop-up');
       await p.evaluate(() => localStorage.setItem('school-dashboard:ext-version', '0.5.2'));
       await p.waitForTimeout(3500);
       check((await chip.count()) === 0, 'the extension shows up: the chip goes by itself');

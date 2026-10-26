@@ -10,9 +10,13 @@ import { syncPress } from '../ui/presses';
 /** Free after the Max week, not in a referral, never upgraded: the only students win-back messages are for. */
 export function useWinbackEligible(): boolean {
   const { tier, profile, auth, planKnown } = useAccount();
+  const { data } = useStore();
   const invites = useInviteProgress();
   const grants = useMyGrants();
-  return planKnown && !!auth.session && tier === 'free' && trialState(profile) === 'used' && !profile?.referredBy && !profile?.friendFrom && (invites?.joined ?? 0) === 0 && grants.length === 0;
+  // Not in the day after "Stay on Free" (Loop 268): a pitch seconds after the student chose Free is the opposite of calm.
+  const seen = data.settings.trialEndSeen;
+  const justChoseFree = !!seen && Date.now() - Date.parse(seen) < 86_400_000;
+  return planKnown && !!auth.session && tier === 'free' && trialState(profile) === 'used' && !profile?.referredBy && !profile?.friendFrom && (invites?.joined ?? 0) === 0 && grants.length === 0 && !justChoseFree;
 }
 
 /**

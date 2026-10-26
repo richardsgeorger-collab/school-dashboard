@@ -55,6 +55,8 @@ import { RatePrompt } from './RatePrompt';
 import { SinceLastLooked, useSinceLastLooked } from './SinceLastLooked';
 import { WelcomeBackCard } from './WelcomeBackCard';
 import { SyncReminder, useSyncReminder } from './SyncReminder';
+import { ExtensionNudge } from './ExtensionNudge';
+import { trialEndDue } from './trialEnd/due';
 import { CaughtCard } from './trialEnd/CaughtCard';
 import { extSetupDue } from '../onboarding/extSetup';
 import { isTouchDevice } from '../ui/device';
@@ -228,7 +230,9 @@ export function Now() {
   // The extension setup is a first-run screen too (2026-10-04): the review waits for the next open rather than sit on it.
   const extInfo = useExtension();
   const extDue = !!extSetupDue({ settings: data.settings, browser: extInfo.browser, touch: isTouchDevice(), installed: installedVersion(), storeUrl: extInfo.url });
-  const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding) || extDue;
+  // The trial-end screen is one too (Loop 268): the review waits for the next open rather than sit on it.
+  const { profile: nowProfile, tier: nowTier } = useAccount();
+  const firstRun = isOpen(data.settings.onboarding) || maxOpen(data.settings.maxOnboarding) || extDue || trialEndDue(nowProfile, nowTier, data.settings.trialEndSeen);
   useEffect(() => {
     if (work.length === 0 || firstRun) return;
     if (shouldOfferSunday(data.settings.sundayReview, today, work.length)) {
@@ -558,6 +562,7 @@ export function Now() {
   return (
     <div className="now">
       <SyncReminder />
+      {!reminding && <ExtensionNudge />}
       <WrapCard />
       <TrialReminder />
       <CaughtCard />

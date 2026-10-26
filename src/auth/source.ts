@@ -6,7 +6,7 @@ import { supabase } from './client';
  * profile (profiles.signup_source) so Admin can count the market's sign-ups. Only sources we know are kept.
  */
 const SLOT = 'school-dashboard:src';
-export const SOURCES = ['market'] as const;
+export const SOURCES = ['market', 'store'] as const;
 export type Source = (typeof SOURCES)[number];
 
 export function captureSource(hash: string = window.location.hash): void {

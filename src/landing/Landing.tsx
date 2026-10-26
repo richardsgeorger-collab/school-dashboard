@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { pixel } from '../analytics/pixel';
 import { IconCheck, IconHalo, IconMoon, IconPlus, IconSun, IconYou } from '../components/Icons';
 import { ACCENTS, applyAccent, type AccentId } from '../config/accents';
+import { EXTENSION_URL } from '../config/extension';
 import { LiveNow } from './LiveNow';
 
 /**
@@ -136,7 +137,16 @@ export function Landing() {
       <footer className="landing-foot">
         <p>Halo+ is independent and not affiliated with GCU. No GCU marks are used.</p>
         <nav>
-          <a className="landing-help" href="./help/">Help</a> · <a href="./updates/">Updates</a> · <a href="./plans/">Plans</a> · <a href={CONTACT}>Contact</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="https://github.com/richardsgeorger-collab/school-dashboard" rel="noopener">Code</a> · <a href="#/login">Log in</a>
+          <a className="landing-help" href="./help/">Help</a> · <a href="./updates/">Updates</a> · <a href="./plans/">Plans</a> ·{' '}
+          {EXTENSION_URL && (
+            <>
+              <a href={EXTENSION_URL} target="_blank" rel="noopener">
+                Chrome extension
+              </a>{' '}
+              ·{' '}
+            </>
+          )}
+          <a href={CONTACT}>Contact</a> · <a href="./privacy.html">Privacy</a> · <a href="./terms.html">Terms</a> · <a href="https://github.com/richardsgeorger-collab/school-dashboard" rel="noopener">Code</a> · <a href="#/login">Log in</a>
         </nav>
       </footer>
     </div>

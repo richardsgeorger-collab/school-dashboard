@@ -34,13 +34,14 @@ describe('a sync never waits forever', () => {
   });
   it('reloads Halo and tries once more on its own before saying anything', () => {
     const run = fn('runSync');
-    expect(run).toMatch(/if \(!r\.payload && r\.retry\) \{[\s\S]*readHalo\(\{ fresh: true \}\)/);
+    // Not on a Halo visit's quiet sync (0.11.0): that one never reloads the page the student is reading.
+    expect(run).toMatch(/if \(!r\.payload && r\.retry && !visit\) \{[\s\S]*readHalo\(\{ fresh: true \}\)/);
     expect(bg).toMatch(/const retryable = \(raw\) => \/stopped answering\|did not answer\|No tab with id\|Frame with ID/);
   });
   it('ends every run in words, whatever went wrong, so no page waits forever', () => {
     const run = fn('runSync');
     expect(run).toContain('} catch (e) {');
-    expect(run).toMatch(/await failed\(explain\(why\), auto, \{ first \}\)/);
+    expect(run).toMatch(/await failed\(explain\(why\), auto, \{ first, visit \}\)/);
   });
   it('replaces a stuck run instead of joining it when Halo+ asks again', () => {
     expect(bg).toMatch(/msg\.kind === 'page-sync'[\s\S]{0,600}if \(state\.running && Date\.now\(\) - state\.lastProgressAt > STUCK_MS\) state\.running = false;/);
@@ -68,7 +69,8 @@ describe('back to Halo+ (George, 2026-10-21)', () => {
   it('brings Halo+ to the front after the first sync, opening it if needed, and after the install', () => {
     expect(fn('finish')).toMatch(/if \(first && !auto\) \{\s+await focusDash\(\);\s+await setupState\('done'\);/);
     expect(fn('focusDash')).toContain('chrome.tabs.create({ url: `${DASH_ORIGIN}/#/now`, active: true })');
-    expect(bg).toMatch(/if \(d\.reason === 'install'\) \{\s+await sleep\(800\);\s+await focusDash\(\);/);
+    // From Halo+'s own setup (a Halo+ tab open) back to Halo+; from the Web Store, the welcome tab (0.11.0).
+    expect(bg).toMatch(/if \(d\.reason === 'install'\) \{\s+await sleep\(800\);[\s\S]{0,400}else await focusDash\(\);/);
   });
   it('the popup says "Syncing your classes…", then "Done! Back to Halo+"', () => {
     expect(popup).toContain("'Syncing your classes…'");
@@ -91,3 +93,18 @@ describe('no new permissions', () => {
     expect(fn('logRun')).toContain('fetch(REPORT_URL');
   });
 });
+
+describe('Free syncs whenever it is on Halo (0.11.0)', () => {
+  it('a Halo visit syncs quietly when nothing tried in 30 minutes, with an account, never a reload or a badge', () => {
+    expect(bg).toContain('const VISIT_MS = 30 * 60_000;');
+    expect(bg).toMatch(/if \(lastAttemptAt && Date\.now\(\) - new Date\(lastAttemptAt\)\.getTime\(\) < VISIT_MS\) return;[\s\S]{0,120}runSync\(\{ auto: false, quiet: true, visit: true \}\)/);
+    expect(bg).toMatch(/if \(!syncKey \|\| state\.running/);
+    expect(fn('failed')).toMatch(/if \(visit\) return;/);
+  });
+  it('a Web Store install opens the welcome tab; one from Halo+ goes back to Halo+', () => {
+    // The install is counted before the open tabs get their scripts (the link an open Halo+ tab makes needs the row).
+    expect(bg).toMatch(/const source = dash\.length \? 'site' : 'store';\s+if \(d\.reason === 'install'\) await reportInstall\(source\);[\s\S]{0,700}chrome\.tabs\.create\(\{ url: WELCOME_URL, active: true \}\)[\s\S]{0,80}else await focusDash\(\);/);
+    expect(bg).toContain("const WELCOME_URL = `${DASH_ORIGIN}/#/welcome?src=store`;");
+  });
+});
+

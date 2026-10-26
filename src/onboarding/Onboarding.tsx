@@ -749,7 +749,7 @@ function Payoff({ onStart, schedule, today, tz, gift, onTrial, reads, invited = 
         <InviteButton label="Invite a friend" primary={false} />
         <p className="hint">You both get Plus free for 30 days, after your free trials.</p>
       </div>
-      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free trial of Max is on: 7 days of use. {invited ? "Then 30 days of Plus free, from your friend's invite." : TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: classes from their syllabi, added by you. Halo sync and announcements are part of Plus, the study tools Max; try Max free for 7 days any time from You.</p> : null}
+      {gift ? <p className="hint">Max, free from {gift.from} through {fmtDate(dateOf(gift.until, tz), 'short')}.</p> : onTrial ? <p className="hint">Your free trial of Max is on: 7 days of use. {invited ? "Then 30 days of Plus free, from your friend's invite." : TRIAL.after}</p> : !reads ? <p className="hint">You're on Free: Halo syncs whenever you're on Halo, with its due dates and grades. Announcements read for you are part of Plus, the study tools Max.</p> : null}
     </section>
   );
 }

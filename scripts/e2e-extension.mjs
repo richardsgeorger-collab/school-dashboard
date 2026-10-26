@@ -185,7 +185,8 @@ try {
     const focused = await work.evaluate(() => document.hasFocus() || document.visibilityState === 'visible');
     const haloLeft = await worker.evaluate(() => chrome.tabs.query({ url: 'https://halo.gcu.edu/*' }).then((t) => t.length));
     const toast = await dash.$eval('.done-toast', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '');
-    const modal = !!(await dash.$('.modal'));
+    // A review sheet is what must not open; the Sunday review (offered on a Sunday evening) is not one.
+    const modal = !!(await dash.$('.modal')) && !/Sunday review/.test((await dash.$eval('.modal', (e) => e.innerText).catch(() => '')) ?? '');
     await dash.bringToFront();
     await dash.screenshot({ path: `${OUT}/scheduled-sync-note.png` });
     const items = ((await admin.from('items').select('data').eq('user_id', u.id).is('deleted_at', null)).data ?? []).map((r) => r.data.title);

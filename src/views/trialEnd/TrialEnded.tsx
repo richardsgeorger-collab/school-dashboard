@@ -3,19 +3,19 @@ import { supabase } from '../../auth/client';
 import { useAccount } from '../../auth/AccountContext';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { trialState } from '../../config/flags';
-import { CANCEL_LINE, TAX_LINE } from '../../config/tiers';
+import { CANCEL_LINE, INTRO_FIRST_MONTH, PLAN_LINES, PRICES, TAX_LINE } from '../../config/tiers';
 import { dateOf, fmtDate } from '../../domain/dates';
 import type { PlusCredit } from '../../referral/credit';
 import { INVITE_RULE } from '../../referral/Invite';
 import { useStore } from '../../storage/store';
-import { Invite, PlanChoices, PreviewMode, usePlusAfter, useTrialNumbers } from '../TrialStatus';
+import { Invite, PlanButton, PreviewMode, usePlusAfter, useTrialNumbers } from '../TrialStatus';
 import { storyLines, type StoryLine } from './story';
 
 /**
- * The end of the free trial, as one screen (George, 2026-10-09; the two pages and the 1-to-10 rating of 2026-10-01
- * felt like a survey and were closed). A short recap of real things from the student's week, three or four numbers,
- * and right under it the plan choice: Keep Max, Choose Plus, the GCBC line, prices; Stay on Free a small plain link.
- * A week with nothing in it shows what Halo+ does instead of zeros. Fits a laptop screen without scrolling. Seen once.
+ * The end of the free trial, as one calm screen (George, 2026-10-09; reworked 2026-10-25, Loop 268). A short recap of
+ * real things from the student's week, then three equal choices side by side: Free (what they keep), Plus (what it
+ * adds) and Max ($2.99 the first month, then $7.99 a month, said together). Stay on Free is a button like the other two,
+ * never a small link: it is a real choice, and Free keeps syncing Halo. No countdown, no red. Seen once.
  */
 export interface TrialEndPreview {
   /** Show it as a student on Plus from a friend's invite, instead of one going back to Free. */
@@ -30,10 +30,66 @@ const FIRST_MS = 250;
 
 /** What Halo+ does, for a week it had nothing to count. */
 const WOULD_DO: StoryLine[] = [
-  { key: 'would-deadlines', score: 0, before: 'Every deadline from Halo in one list, synced every 3 hours.', after: '' },
-  { key: 'would-announcements', score: 0, before: 'Announcements read for you: the dates and asks pulled out, nothing missed.', after: '' },
-  { key: 'would-grades', score: 0, before: 'Grades the day they land, with what each one does to your average.', after: '' },
+  { key: 'would-deadlines', score: 0, before: 'Every deadline from Halo in one list, kept current.', after: '' },
+  { key: 'would-announcements', score: 0, before: 'Announcements read for you: hidden due dates, moved dates and extra steps, nothing missed.', after: '' },
+  { key: 'would-grades', score: 0, before: 'Grades the day they land, and your GPA.', after: '' },
 ];
+
+/**
+ * Free, Plus, Max as equals (Loop 268). The lines come from config/tiers.ts PLAN_LINES, the same words as every other
+ * price card. Every button is the same size and weight: the student chooses, nothing is pushed.
+ */
+function TrialEndChoices({ intro, onFree, freeLabel, plusCovered }: { intro: boolean; onFree: () => void; freeLabel: string; plusCovered?: string }) {
+  return (
+    <div className="plan-choices trial-end-choices">
+      <div className="plan-choice" data-tier="free">
+        <span className="plan-choice-name">
+          <b className="plan-price">Free · $0</b>
+          <span className="plan-choice-lede">You keep</span>
+          <ul className="plan-lines">
+            {PLAN_LINES.free.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </span>
+        <button type="button" className="btn small" onClick={onFree}>
+          {freeLabel}
+        </button>
+      </div>
+      <div className="plan-choice" data-tier="plus">
+        <span className="plan-choice-name">
+          <b className="plan-price">Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
+          <span className="plan-choice-lede">Adds</span>
+          <ul className="plan-lines">
+            {PLAN_LINES.plus.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </span>
+        {plusCovered ? <p className="gcbc-covered">{plusCovered}</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} />}
+      </div>
+      <div className="plan-choice" data-tier="max">
+        <span className="plan-choice-name">
+          {intro ? (
+            <b className="plan-price">
+              Max · ${INTRO_FIRST_MONTH.toFixed(2)} the first month
+              <span className="plan-then">then ${PRICES.max.month.toFixed(2)} a month</span>
+            </b>
+          ) : (
+            <b className="plan-price">Max · ${PRICES.max.month.toFixed(2)} a month</b>
+          )}
+          <span className="plan-choice-lede">What you had on the trial</span>
+          <ul className="plan-lines">
+            <li>Everything in Plus</li>
+            <li>Ask: a study partner that knows your classes</li>
+            <li>Study plans, practice and the help kit</li>
+          </ul>
+        </span>
+        <PlanButton tier="max" label="Keep Max" primary={false} offer={intro ? 'intro' : undefined} />
+      </div>
+    </div>
+  );
+}
 
 /** A number that counts up from zero once its line has appeared. */
 function useCountUp(n: number, delayMs: number): number {
@@ -150,7 +206,8 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
             <p className="eyebrow story-eyebrow">
               {onPlusGift ? 'Your free trial of Max' : 'Your free trial'} · {fmtDate(dateOf(since < until ? since : until, tz))} to {fmtDate(dateOf(until, tz))}
             </p>
-            <h1 className="story-title">{recap && !recap.real ? "Here's what Halo+ does." : "Here's what Halo+ did for you."}</h1>
+            <h1 className="story-title">Your free week is over. Everything you have stays.</h1>
+            <p className="story-sub">{recap && !recap.real ? "Here's what Halo+ does:" : 'What Halo+ did for you this week:'}</p>
             {recap === null ? (
               <p className="hint" aria-busy="true">
                 Looking back at your week…
@@ -164,20 +221,15 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
             )}
 
             <div className="story-plans" style={{ animationDelay: `${after}ms` }}>
-              <p className="story-plans-lede">{onPlusGift && plusAfter ? `Your friend's invite already covers Plus until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}. Keep Max, or carry on with Plus free.` : 'Nothing charges unless you choose a plan.'}</p>
-              <PlanChoices maxTag="What you had on the trial" cups intro={intro === true && !onPlusGift} plusCovered={onPlusGift && plusAfter ? `Free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.` : undefined} />
+              <p className="story-plans-lede">{onPlusGift && plusAfter ? `Your friend's invite already covers Plus until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}.` : 'Nothing charges unless you choose a plan. Free keeps syncing Halo.'}</p>
+              <TrialEndChoices intro={intro === true && !onPlusGift} onFree={done} freeLabel={onPlusGift ? 'Continue with Plus free' : 'Stay on Free'} plusCovered={onPlusGift && plusAfter ? `Free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.` : undefined} />
               <p className="gcbc-terms">
                 {CANCEL_LINE} · {TAX_LINE}
               </p>
-              <div className="gcbc-free">
-                <button type="button" className="gcbc-free-link" onClick={done}>
-                  {onPlusGift ? 'Continue with Plus free' : 'Stay on Free'}
-                </button>
-                <span className="gcbc-invite-line">
-                  <span>Or invite a friend: you both get 30 days of Plus free. {INVITE_RULE}</span>
-                  <Invite label="Invite a friend" />
-                </span>
-              </div>
+              <p className="gcbc-invite-line">
+                <span>Or invite a friend: you both get 30 days of Plus free. {INVITE_RULE}</span>
+                <Invite label="Invite a friend" />
+              </p>
             </div>
           </section>
         </div>

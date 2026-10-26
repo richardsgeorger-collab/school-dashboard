@@ -323,7 +323,7 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
   return (
     <section className="card settings-card" id="you-plan" aria-label="Plans">
       <h2 className="section-title">Plans</h2>
-      <p className="hint">Free keeps your syllabus classes and anything you add. Plus syncs Halo. Max adds every AI study tool. Change or cancel any time.</p>
+      <p className="hint">Free syncs Halo whenever you're on it: due dates, grades, your GPA. Plus reads every announcement for you and syncs on its own. Max adds every AI study tool. Change or cancel any time.</p>
       <TrialOffer lead={TRIAL.offer} />
       {/* One interval is offered (config/tiers.ts OFFERED_INTERVALS); a choice appears here only when there are two. */}
       {OFFERED_INTERVALS.length > 1 && (

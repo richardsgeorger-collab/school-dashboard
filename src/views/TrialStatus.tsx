@@ -139,7 +139,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
           <b className="plan-price">Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
           {cups && <span className="gcbc-line">About a small at GCBC. Except this one actually helps.</span>}
           <small className="tax-note">{TAX_LINE}</small>
-          <span>Auto-sync every 3 hours, real grades, announcements read for you. No study tools. {CANCEL_LINE}.</span>
+          <span>Every announcement read for you, auto-sync every 3 hours, reminders. No study tools. {CANCEL_LINE}.</span>
           {!cups && (
             <span className="gcbc">
               <Cup size="small" />
@@ -153,7 +153,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
         <div className="plan-choice">
           <span className="plan-choice-name">
             <b>Free</b>
-            <span>Classes from your syllabi and what you add yourself.</span>
+            <span>Halo syncs whenever you're on Halo: due dates, grades, your GPA.</span>
           </span>
           <button type="button" className="btn small" onClick={onFree}>
             {freeLabel}
@@ -315,7 +315,7 @@ export function TrialReminder() {
       <p className="hint">
         {plusAfter
           ? `${last ? 'Tomorrow' : 'After that'} ${creditFrom(plusAfter)} ${plusAfter.from === 'invited' ? 'gives' : 'give'} you Plus, free until ${fmtDate(dateOf(plusAfter.end, data.settings.timezone), 'long')}: sync and announcements keep going; Study locks unless you keep Max. Nothing charges.`
-          : `${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses, announcements aren't read, and Study locks. Everything you have stays. Nothing charges.`}
+          : `${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: announcements aren't read for you and Study locks. Halo keeps syncing, and everything you have stays. Nothing charges.`}
       </p>
       <InviteBlock headline="Not ready to pay? Invite a friend and you both get Plus free for 30 days." />
       <PlanChoices />

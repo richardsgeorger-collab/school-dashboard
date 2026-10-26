@@ -45,10 +45,21 @@ const STUCK_MS = 120_000;
  */
 function renderSetup(s) {
   const st = s.setup;
-  const live = !!st && Date.now() - Date.parse(st.at || 0) < 15 * 60_000 && ['syncing', 'done', 'login', 'failed'].includes(st.phase);
+  // No account on this computer yet (0.11.0: a Chrome Web Store install that has not signed up): one step, not a Sync
+  // now that would read Halo with nowhere to put it.
+  const noAccount = !s.syncKey && !s.tier && !s.lastSyncAt && !s.running;
+  const live = noAccount || (!!st && Date.now() - Date.parse(st.at || 0) < 15 * 60_000 && ['syncing', 'done', 'login', 'failed'].includes(st.phase));
   $('setup').hidden = !live;
   $('normal').hidden = live;
   if (!live) return;
+  if (noAccount) {
+    $('setupBar').hidden = true;
+    $('setupAlt').hidden = true;
+    $('setupTitle').textContent = 'One step left';
+    $('setupText').textContent = "Make your free Halo+ account, and your Halo classes come in on their own the next time you're on Halo.";
+    [$('setupGo').textContent, $('setupGo').dataset.act, $('setupGo').hidden] = ['Make your free account', 'welcome', false];
+    return;
+  }
   const phase = st.phase === 'syncing' && !s.running ? (s.lastErrorAt && s.lastErrorAt >= st.at ? 'failed' : 'syncing') : st.phase;
   $('setupBar').hidden = phase !== 'syncing';
   $('setupAlt').hidden = phase !== 'failed';
@@ -155,12 +166,14 @@ async function render() {
   const last = lastLine(s);
   // Never earlier than three hours after the last sync: an alarm that fires sooner skips (synced recently).
   const nextAt = alarm ? Math.max(alarm.scheduledTime, s.lastSyncAt ? new Date(s.lastSyncAt).getTime() + PERIOD_MINUTES * 60_000 : 0) : null;
-  const next = auto && nextAt && !/span/.test(last) ? `<span class="next">Syncs on its own, next around ${when(new Date(nextAt).toISOString())}</span>` : '';
+  // Free (0.11.0) has no schedule: it syncs whenever the student is on Halo, and says so.
+  const next = auto && nextAt && !/span/.test(last) ? `<span class="next">Syncs on its own, next around ${when(new Date(nextAt).toISOString())}</span>` : s.tier && !auto && !/span/.test(last) ? '<span class="next">Syncs whenever you\'re on Halo</span>' : '';
   $('status').innerHTML = s.running ? `${last.replace(/<span.*$/, '')}<span class="next">Syncing now</span>` : last + next;
   $('status').hidden = !$('status').innerHTML;
-  // Free: Halo sync (and auto-sync) is part of Plus. Nothing to say on Plus or Max, or before the plan is known.
+  // Free: syncing in the background, every 3 hours, is part of Plus. Said here only, where the student opened the
+  // popup; never on a Halo page. Nothing to say on Plus or Max, or before the plan is known.
   $('plus').hidden = auto || !s.tier;
-  $('plusText').textContent = 'Halo sync, on its own every 3 hours, is part of Plus.';
+  $('plusText').textContent = 'Plus also syncs on its own every 3 hours, and reads every announcement for you.';
   $('upgrade').textContent = 'See plans';
   $('upgrade').href = `${DASH_ORIGIN}/#/you?s=plan&to=plus`;
 
@@ -220,6 +233,9 @@ $('setupGo').addEventListener('click', async () => {
     window.close();
   } else if (act === 'reload') {
     await chrome.runtime.sendMessage({ kind: 'reload-sync', setup: true });
+  } else if (act === 'welcome') {
+    await chrome.tabs.create({ url: `${DASH_ORIGIN}/#/welcome?src=store`, active: true });
+    window.close();
   }
 });
 $('setupAlt').addEventListener('click', () => void chrome.runtime.sendMessage({ kind: 'sync-now', force: true }));

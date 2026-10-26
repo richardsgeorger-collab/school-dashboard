@@ -5,7 +5,7 @@ import { costOf, loadPrices, type ApiUsage } from '../ai/usage';
 import { useAccount } from '../auth/AccountContext';
 import { aiAvailable, loadApiKey } from '../chat/key';
 import { can } from '../config/flags';
-import type { Course, Item, Requirement } from '../domain/types';
+import type { Course, Item, LockedKind, Requirement } from '../domain/types';
 import { SYNC_EVENT } from '../ingest/auto';
 import { ACCOUNT_SYNCED_EVENT, useStore } from '../storage/store';
 import { readActions, rewriteLines } from './actions';
@@ -15,6 +15,7 @@ import { pushLedgerEntry, syncLedger } from './ledgerSync';
 import { syncPosts } from './postsSync';
 import { emptyOutcome, groupFailures, needsRead, planFromActions, readReason, type AutoOutcome, type AutoPlan } from './autoRead';
 import { withRetry } from './readAll';
+import { addPeeked, peekPost } from './peek';
 import { readGuard } from './readCost';
 
 /**
@@ -76,6 +77,43 @@ interface Args {
   latestItem?: (id: string) => Item | undefined;
   upsertCourse: (c: Course) => void;
   approved?: boolean;
+  /** Free: the posts the kinds-only check has looked at, and how to add to them (settings.peekedPosts). */
+  peeked?: string[];
+  onPeeked?: (ids: string[]) => void;
+}
+
+/** Free looks at the newest posts only: a month back, a few a run. */
+const PEEK_DAYS = 30;
+const PEEK_PER_RUN = 12;
+
+/**
+ * Free (Loop 268): the kinds-only check on posts the full reader has not read (halo/peek.ts). Puts the kind on the
+ * assignment and nothing else; the read ledger is left alone, so Plus still reads every one of these posts in full.
+ */
+async function peekBacklog(todo: StoredAnnouncement[], args: Args): Promise<void> {
+  if (!args.onPeeked) return;
+  const seen = new Set(args.peeked ?? []);
+  const since = Date.now() - PEEK_DAYS * 86_400_000;
+  const fresh = todo.filter((a) => !seen.has(a.id) && Date.parse(a.publishedAt ?? '') > since).slice(0, PEEK_PER_RUN);
+  const done: string[] = [];
+  for (const a of fresh) {
+    const course = args.courses.find((c) => c.id === a.courseId);
+    if (!course) continue;
+    try {
+      const items = args.items.map((i) => args.latestItem?.(i.id) ?? i);
+      const changes = await peekPost({ announcement: a, course, items, tz: args.tz });
+      for (const ch of changes) {
+        const item = args.latestItem?.(ch.itemId) ?? args.items.find((i) => i.id === ch.itemId);
+        if (!item) continue;
+        const kinds = [...new Set([...(item.lockedChange?.kinds ?? []), ...ch.kinds])].sort() as LockedKind[];
+        args.upsertItem({ ...item, lockedChange: { kinds, postId: a.id, at: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+      }
+      done.push(a.id);
+    } catch {
+      // Tried again on the next sync; a check that fails says nothing rather than something wrong.
+    }
+  }
+  if (done.length) args.onPeeked(done);
 }
 
 /**
@@ -111,6 +149,13 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     if (can('announcementAI', args.tier) && aiAvailable()) await rewriteOld({ ...args, onFile, ledger });
     return null;
   }
+  // Free: the kinds-only check, before the cost question (it is a fraction of a cent a post) and instead of the reader.
+  if (!can('announcementAI', args.tier) && can('announcementPeek', args.tier) && aiAvailable()) {
+    await peekBacklog(todo, args);
+    const outcome = { ...emptyOutcome(), todo: todo.length, noKey: false, locked: true };
+    set({ outcome, waiting: null, at: new Date().toISOString() });
+    return outcome;
+  }
   const guard = readGuard({ todo: todo.length, onFile: onFile.length, fresh: todo.filter((a) => !ledger.has(a.id)).length, edited: todo.filter((a) => ledger.has(a.id)).length });
   if (!args.approved && guard.ask) {
     set({ waiting: { count: todo.length, line: guard.line } });
@@ -124,6 +169,8 @@ export async function readBacklog(args: Args): Promise<AutoOutcome | null> {
     return outcome;
   }
 
+  // Plus reads these posts in full now: the locked kinds Free saw give way to the details.
+  for (const i of args.items) if (i.lockedChange) args.upsertItem({ ...(args.latestItem?.(i.id) ?? i), lockedChange: null });
   set({ running: true, waiting: null, progress: { done: 0, total: todo.length, title: '', why: '' } });
   const key = loadApiKey() || undefined;
   const at = new Date().toISOString();
@@ -305,7 +352,7 @@ export function useBackgroundRead(): void {
       const { data: d, actions: a, tier: t, planKnown: known } = latest.current;
       // Not before the plan is known: a run that saw the loading placeholder marked everything "part of Plus".
       if (d.courses.length === 0 || !known) return;
-      void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse, latestItem: (id) => latest.current.data.items.find((i) => i.id === id) });
+      void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse, peeked: d.settings.peekedPosts, onPeeked: (ids) => latest.current.actions.updateSettings({ peekedPosts: addPeeked(latest.current.data.settings.peekedPosts, ids) }), latestItem: (id) => latest.current.data.items.find((i) => i.id === id) });
     };
     const later = (ms: number) => {
       if (timer) window.clearTimeout(timer);
@@ -329,7 +376,7 @@ export function useBackgroundRead(): void {
     if (!canRead) return;
     const { data: d, actions: a, tier: t } = latest.current;
     if (d.courses.length === 0) return;
-    const timer = window.setTimeout(() => void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse, latestItem: (id) => latest.current.data.items.find((i) => i.id === id) }), SETTLE_MS);
+    const timer = window.setTimeout(() => void readBacklog({ items: d.items, courses: d.courses, tier: t, tz: d.settings.timezone, upsertItem: a.upsertItem, upsertCourse: a.upsertCourse, peeked: d.settings.peekedPosts, onPeeked: (ids) => latest.current.actions.updateSettings({ peekedPosts: addPeeked(latest.current.data.settings.peekedPosts, ids) }), latestItem: (id) => latest.current.data.items.find((i) => i.id === id) }), SETTLE_MS);
     return () => window.clearTimeout(timer);
   }, [canRead]);
 }

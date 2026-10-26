@@ -110,9 +110,14 @@ export function personaKit(env) {
     const { session } = await signIn(u.email);
     return { kind, id: u.id, email: u.email, session, courseIds: ids };
   };
+  /** An extension this run installed (its device id), so its ext_installs row goes with the throwaways (Loop 268). */
+  const devices = [];
+  const device = (id) => id && devices.push(id);
   const cleanup = async () => {
     // Only ever the throwaways this run made (guard.mjs).
     await assertThrowaways(db, made, 'the throwaway cleanup');
+    if (made.length) await db.from('ext_installs').delete().in('user_id', made);
+    if (devices.length) await db.from('ext_installs').delete().in('device_id', devices);
     for (const id of made) {
       for (const t of ['pending_syncs', 'sync_keys', 'reward_grants', 'subscriptions', 'courses', 'items', 'settings', 'announcements', 'read_ledger', 'usage_log', 'usage_events', 'onboarding_events', 'notification_plan', 'notification_prefs', 'push_subscriptions', 'feedback', 'winback_sends', 'calendar_feeds', 'trial_ratings']) await db.from(t).delete().eq('user_id', id);
       await db.from('referrals').delete().or(`inviter.eq.${id},invitee.eq.${id}`);
@@ -120,5 +125,5 @@ export function personaKit(env) {
     }
     return made.length;
   };
-  return { db, persona, cleanup, signIn };
+  return { db, persona, cleanup, signIn, device };
 }

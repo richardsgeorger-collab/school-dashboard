@@ -2568,3 +2568,97 @@
     height: 51px;
   }
 }
+
+/* The trial's end (Loop 268): Free, Plus and Max as three equal cards, each button the same and at the same height.
+   Tight enough to fit a 1366x640 laptop without scrolling (e2e-trial-end measures it). */
+.trial-end-choices {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 8px;
+}
+.trial-end-choices .plan-choice {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.trial-end-choices .plan-choice .btn {
+  width: 100%;
+}
+.trial-end-choices .plan-price {
+  display: grid;
+  gap: 2px;
+}
+.trial-end-choices .plan-then {
+  font: var(--t-small);
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.trial-end-choices .plan-choice-lede {
+  margin-top: 6px;
+  font-weight: 600;
+  color: var(--ink-1, inherit);
+}
+.trial-end-choices .plan-lines {
+  margin: 2px 0 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 3px;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+.story-sub {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+}
+.trial-ended .gcbc-invite-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font: var(--t-small);
+  color: var(--ink-2);
+}
+@media (max-width: 720px) {
+  .trial-end-choices {
+    grid-template-columns: 1fr;
+  }
+}
+/* A phone: the three choices as short rows, all three on one screen (the lists fold to their first line; the
+   button sits beside the name). */
+@media (max-width: 720px) {
+  .trial-end-choices .plan-choice {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'name btn' 'lines lines';
+    align-items: center;
+    gap: 6px 10px;
+    padding: 10px 12px;
+  }
+  .trial-end-choices .plan-choice-name {
+    grid-area: name;
+    display: contents;
+  }
+  .trial-end-choices .plan-price {
+    grid-area: name;
+  }
+  .trial-end-choices .plan-choice-lede {
+    display: none;
+  }
+  .trial-end-choices .plan-lines {
+    grid-area: lines;
+    margin: 0;
+    padding-left: 14px;
+  }
+  .trial-end-choices .plan-lines li:nth-child(n + 2) {
+    display: none;
+  }
+  .trial-end-choices .plan-choice .btn,
+  .trial-end-choices .plan-choice .gcbc-covered {
+    grid-area: btn;
+    width: auto;
+    margin: 0;
+  }
+}

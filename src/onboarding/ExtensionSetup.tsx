@@ -15,16 +15,17 @@ const WAIT_MS = 60_000;
  * Setting up the Chrome extension (George, 2026-10-04): why, install, connected. Pinning it and logging into Halo are
  * no longer steps (2026-10-13): pinning is optional (one line at the end), and the extension opens Halo itself. Shown once
  * after sign-up and once to everyone already here (desktop Chrome, Edge, Brave), in the onboarding's own look. Free
- * gets the why with a plain note that syncing is part of Plus. Safari and Firefox get one screen: it needs Chrome, and
+ * gets the same setup (2026-10-25: Free syncs whenever it is on Halo), worded for that. Safari and Firefox get one screen: it needs Chrome, and
  * the bookmark keeps working. The last step waits for the extension to say hello from this page, then asks it for the
  * first sync.
  */
 export function ExtensionSetup({ kind, onClose }: { kind: ExtSetupKind; onClose: (how: 'done' | 'skipped') => void }) {
   const ext = useExtension();
-  const syncs = useCan('haloAutoSync');
+  // Plus and Max sync on their own every 3 hours; Free syncs whenever the student is on Halo (Loop 268).
+  const auto = useCan('haloAutoSync');
   const [i, setI] = useState(0);
   const b = ext.browser ?? 'Chrome';
-  useEffect(() => track(`ext-setup-${kind}-${syncs ? i + 1 : 'free'}`, 'enter'), [kind, i, syncs]);
+  useEffect(() => track(`ext-setup-${kind}-${i + 1}${auto ? '' : '-free'}`, 'enter'), [kind, i, auto]);
   const skip = () => onClose('skipped');
   const next = () => (i + 1 < STEPS ? setI(i + 1) : onClose('done'));
 
@@ -34,29 +35,10 @@ export function ExtensionSetup({ kind, onClose }: { kind: ExtSetupKind; onClose:
         <section className="onboard-step ext-setup">
           <p className="eyebrow">Auto-sync</p>
           <h1 className="onboard-title">Auto-sync needs Chrome.</h1>
-          <p className="onboard-text">The Halo+ extension that syncs Halo every 3 hours runs in Chrome, Edge or Brave on a computer. In this browser, the {BOOKMARK_NAME} bookmark keeps working: click it on Halo whenever you want fresh data.</p>
+          <p className="onboard-text">The Halo+ extension that syncs Halo {auto ? 'every 3 hours' : "whenever you're on Halo"} runs in Chrome, Edge or Brave on a computer. In this browser, the {BOOKMARK_NAME} bookmark keeps working: click it on Halo whenever you want fresh data.</p>
           <div className="onboard-actions">
             <button type="button" className="btn primary" onClick={() => onClose('done')}>
               Got it
-            </button>
-          </div>
-        </section>
-      </Shell>
-    );
-
-  if (!syncs)
-    return (
-      <Shell label="Halo+ for Chrome" count={null} onSkip={skip}>
-        <section className="onboard-step ext-setup">
-          <p className="eyebrow">The Halo+ extension</p>
-          <h1 className="onboard-title">Halo+ syncs on its own every 3 hours. No clicking.</h1>
-          <p className="ext-note">Syncing Halo, on its own or by hand, is part of Plus. Free keeps your syllabus classes and what you add yourself.</p>
-          <div className="onboard-actions">
-            <a className="btn primary" href="#/you?s=plan&to=plus" onClick={() => onClose('skipped')}>
-              See plans
-            </a>
-            <button type="button" className="btn" onClick={skip}>
-              Skip for now
             </button>
           </div>
         </section>
@@ -68,9 +50,13 @@ export function ExtensionSetup({ kind, onClose }: { kind: ExtSetupKind; onClose:
       {i === 0 && (
         <section className="onboard-step ext-setup">
           <HaloDraw size={64} />
-          <p className="eyebrow">Auto-sync</p>
-          <h1 className="onboard-title">Halo+ syncs on its own every 3 hours. No clicking.</h1>
-          <p className="onboard-text">Add the Halo+ extension to {b} and your classes, due dates, grades and announcements stay current while {b} is open, even with Halo+ closed. About a minute to set up.</p>
+          <p className="eyebrow">{auto ? 'Auto-sync' : 'The Halo+ extension'}</p>
+          <h1 className="onboard-title">{auto ? 'Halo+ syncs on its own every 3 hours. No clicking.' : "Halo+ syncs whenever you're on Halo. No clicking."}</h1>
+          <p className="onboard-text">
+            {auto
+              ? `Add the Halo+ extension to ${b} and your classes, due dates, grades and announcements stay current while ${b} is open, even with Halo+ closed. About a minute to set up.`
+              : `Add the Halo+ extension to ${b}: whenever you open Halo, your classes, due dates and grades come in on their own, and This week sits on Halo's home page. About a minute to set up.`}
+          </p>
           <div className="onboard-actions">
             <button type="button" className="btn primary" onClick={next}>
               Set it up
@@ -139,6 +125,7 @@ function Shell({ label, count, onSkip, children }: { label: string; count: numbe
  * for the first sync. A sync that lands from it says so; nothing after a minute offers a reload and the help page.
  */
 function Connect({ browser, onDone }: { browser: string; onDone: () => void }) {
+  const auto = useCan('haloAutoSync');
   const { data } = useStore();
   const [version, setVersion] = useState<string | null>(installedVersion);
   const [late, setLate] = useState(false);
@@ -171,7 +158,7 @@ function Connect({ browser, onDone }: { browser: string; onDone: () => void }) {
         <p className="eyebrow">Connected</p>
         <h1 className="onboard-title">{landed ? 'First sync done.' : 'First sync running.'}</h1>
         <p className="onboard-text">
-          {landed ? 'Halo+ is up to date, and it syncs on its own every 3 hours from now on.' : `The Halo+ extension (${version}) is reading Halo in a background tab. It lands here on its own, then every 3 hours while ${browser} is open.`} Optional: pin Halo+ from the puzzle piece next to the address bar to see when it last synced.
+          {landed ? (auto ? 'Halo+ is up to date, and it syncs on its own every 3 hours from now on.' : "Halo+ is up to date, and it syncs whenever you're on Halo from now on.") : `The Halo+ extension (${version}) is reading Halo in a background tab. It lands here on its own, ${auto ? `then every 3 hours while ${browser} is open` : "then whenever you're on Halo"}.`} Optional: pin Halo+ from the puzzle piece next to the address bar to see when it last synced.
         </p>
         <div className="onboard-actions">
           <button type="button" className="btn primary" onClick={onDone}>

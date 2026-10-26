@@ -7,10 +7,11 @@
  */
 
 /**
- * The plans, as set by George on 2026-09-28. Free: the syllabus PDF drop and items added by hand, and Now, Calendar
- * and Classes built from them; no Halo sync, no announcements, no AI. Plus: Halo sync, Halo's real grades, every
- * announcement read for you, all notifications and the Sunday preview. Max: everything in Plus and every AI study
- * tool, plus the colour picker. `pro` is retired: it is no longer sold and has nothing of its own; it stays in the
+ * The plans (George, 2026-09-28; Free kept current from 2026-10-25, Loop 268). Free: what Halo already shows, kept
+ * current: Halo sync whenever the student is on Halo (the extension) or any time with Sync now, Halo's due dates,
+ * points and grades, the GPA, Now, Calendar, Classes and This week on Halo. Plus: what only Halo+ does: every
+ * announcement read for you, background auto-sync every 3 hours, every reminder and the Sunday preview, the calendar
+ * feed. Max: everything in Plus and every AI study tool, plus the colour picker. `pro` is retired: it is no longer sold and has nothing of its own; it stays in the
  * list only so an old row still reads (it ranks above Plus, so it keeps Plus).
  */
 export const TIERS = ['free', 'plus', 'pro', 'max'] as const;
@@ -107,7 +108,7 @@ export const LEGACY_SYNC_NOTE = 'Halo sync is now part of Plus. You were already
 /** After a failed payment the tier is kept this long before dropping to Free. */
 export const GRACE_DAYS = 7;
 
-/** Invite a friend: both get Plus for a month (Plus is what syncs Halo). */
+/** Invite a friend: both get Plus for a month (Plus reads every announcement and syncs on its own). */
 export const REFERRAL = { rewardTier: 'plus' as Tier, days: 30, both: true };
 
 /** Per-day and per-week caps. `null` means unlimited. */
@@ -125,7 +126,8 @@ export const LIMITS = {
  * AI_WARN_AT they get a heads-up; at 100% AI features pause until the first of next month. No student ever costs more
  * in AI than they pay.
  */
-export const AI_CEILING_USD: Record<Tier, number> = { free: 0, plus: 0.75, pro: 0.75, max: 4.0 };
+// Free's is only for the kinds-only announcement check (about $0.0002 a post on Haiku 5.5, so about 500 posts a month).
+export const AI_CEILING_USD: Record<Tier, number> = { free: 0.1, plus: 0.75, pro: 0.75, max: 4.0 };
 export const AI_WARN_AT = 0.8;
 
 /**
@@ -148,6 +150,8 @@ export const MAX_TOKENS = {
   links: 2500,
   audit: 12_000,
   needs: 1200,
+  /** Free's look at an announcement: which assignment it changed and how, nothing more (announcementPeek). */
+  changes: 600,
   recap: 1500,
   other: 1000,
 } as const;
@@ -162,6 +166,7 @@ export const AI_KIND_FEATURE: Record<AiKind, Feature> = {
   method: 'aiChat',
   announcement: 'announcementAI',
   needs: 'announcementAI',
+  changes: 'announcementPeek',
   audit: 'announcementAI',
   class_plan: 'syllabusAI',
   term_plan: 'syllabusAI',
@@ -185,11 +190,14 @@ export const FEATURES = {
   monthView: 'free',
   agendaView: 'free',
   nowBasic: 'free',
-  // Plus: Halo, its grades and announcements, and every reminder.
-  haloManualSync: 'plus',
-  // Auto-sync is Plus and Max (George, 2026-10-04; it was Max only from 2026-10-01). Free has no Halo sync at all.
+  // Free since 2026-10-25 (Loop 268): Halo sync when the student syncs or is on Halo, and Halo's own grades. A Free
+  // planner that froze at the trial's end lost the students it was meant to keep.
+  haloManualSync: 'free',
+  haloGrades: 'free',
+  // Free sees that an announcement changed something (the kind, never the details): "see it with Plus".
+  announcementPeek: 'free',
+  // Plus: what only Halo+ does. Auto-sync is Plus and Max (George, 2026-10-04): in the background, every 3 hours.
   haloAutoSync: 'plus',
-  haloGrades: 'plus',
   announcementAI: 'plus',
   nowSmart: 'plus',
   reminders: 'plus',
@@ -217,10 +225,11 @@ export const FEATURE_LINES: Record<Feature, string> = {
   monthView: 'See the month at a glance.',
   agendaView: 'Your work, day by day.',
   nowBasic: 'What to do right now.',
-  haloManualSync: 'Sync Halo any time: the bookmark, or Sync now in the Chrome extension.',
-  haloAutoSync: 'Auto-sync: Halo syncs on its own every 3 hours while Chrome is open (the Chrome extension).',
-  haloGrades: "Halo's real grades, exactly as Halo shows them.",
-  announcementAI: 'Every announcement read for you, with what it asks put on the assignment.',
+  haloManualSync: "Halo syncs whenever you're on Halo (the Chrome extension), or any time with Sync now.",
+  haloAutoSync: "Auto-sync: Halo syncs on its own every 3 hours while Chrome is open, even when you're not on Halo.",
+  haloGrades: "Halo's real grades, exactly as Halo shows them, and your GPA.",
+  announcementPeek: 'A heads-up when an announcement changed a due date or added a step.',
+  announcementAI: 'Every announcement read for you: hidden due dates, moved dates and extra steps, put on the assignment.',
   nowSmart: 'Now ranks everything by due date, time it takes, and points, all term long.',
   reminders: 'A morning note with your day, and a nudge before something slips.',
   heavyDayWarnings: 'A heads-up the night before a heavy day, while there is still time.',
@@ -240,8 +249,8 @@ export const FEATURE_LINES: Record<Feature, string> = {
 
 /** What each paid plan is, in the words every price card, locked message and the landing page share. */
 export const PLAN_LINES: Record<'free' | Paid, string[]> = {
-  free: ['Syllabus PDF drop and items you add', 'Now, Calendar and Classes built from them', 'No Halo sync, no announcements, no AI'],
-  plus: ['Auto-sync: Halo syncs on its own every 3 hours (the Chrome extension), or any time with the bookmark', "Halo's real grades and every announcement", 'Announcements read for you', 'Every notification and the Sunday preview'],
+  free: ["Halo syncs whenever you're on Halo", "Due dates, points and grades as Halo shows them, and your GPA", 'Now, Calendar, Classes, and This week on Halo'],
+  plus: ['Every announcement read for you: hidden due dates, moved dates, extra steps', "Auto-sync every 3 hours, even when you're not on Halo", 'Reminders: a morning note and a nudge before something slips', 'The Sunday preview and your deadlines in Google or Apple Calendar'],
   max: ['Everything in Plus, auto-sync included', 'Ask: a study partner that knows your classes, slides and announcements', 'Practice: study plans, worksheets with answers, quiz me, flashcards', 'Check my work against the rubric, lecture notes, your own colour'],
 };
 

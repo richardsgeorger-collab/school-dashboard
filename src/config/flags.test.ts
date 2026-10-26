@@ -8,7 +8,10 @@ describe('feature flags', () => {
   it('each tier has everything below it and nothing above it', () => {
     expect(can('nowBasic', 'free')).toBe(true);
     expect(can('syllabusDrop', 'free')).toBe(true);
-    expect(can('haloManualSync', 'free')).toBe(false);
+    // Free syncs Halo since 2026-10-25 (Loop 268); auto-sync and announcements are still Plus.
+    expect(can('haloManualSync', 'free')).toBe(true);
+    expect(can('haloAutoSync', 'free')).toBe(false);
+    expect(can('announcementAI', 'free')).toBe(false);
     expect(can('haloManualSync', 'plus')).toBe(true);
     expect(can('announcementAI', 'plus')).toBe(true);
     expect(can('aiChat', 'plus')).toBe(false);
@@ -55,12 +58,13 @@ describe('feature flags', () => {
     expect(Object.values(FEATURES)).not.toContain('pro');
   });
 
-  it('the plans are what George set on 2026-09-28 (auto-sync: Max on 2026-10-01, Plus and Max on 2026-10-04)', () => {
+  it('the plans are what George set on 2026-09-28 (auto-sync: Plus and Max on 2026-10-04; Free kept current on 2026-10-25)', () => {
     expect(PRICES.plus.month).toBe(4.99);
     expect(PRICES.max.month).toBe(7.99);
     expect(TRIAL.days).toBe(7);
-    for (const f of ['syllabusDrop', 'manualItems', 'monthView', 'agendaView', 'nowBasic'] as const) expect(FEATURES[f]).toBe('free');
-    for (const f of ['haloManualSync', 'haloGrades', 'announcementAI', 'reminders', 'weeklyRecap'] as const) expect(FEATURES[f]).toBe('plus');
+    // Free: what Halo already shows, kept current. Plus: what only Halo+ does.
+    for (const f of ['syllabusDrop', 'manualItems', 'monthView', 'agendaView', 'nowBasic', 'haloManualSync', 'haloGrades', 'announcementPeek'] as const) expect(FEATURES[f]).toBe('free');
+    for (const f of ['haloAutoSync', 'announcementAI', 'reminders', 'weeklyRecap', 'icsFeed', 'gradeProjection'] as const) expect(FEATURES[f]).toBe('plus');
     for (const f of ['aiChat', 'promptPanel', 'flashcards', 'examPlans', 'lectures', 'themes'] as const) expect(FEATURES[f]).toBe('max');
     // Plus syncs by hand; only Max syncs on its own. A trial or a friend link is Max, so it auto-syncs.
     expect(can('haloAutoSync', effectiveTier({ tier: 'free', trialEndsAt: '2099-01-01T00:00:00.000Z' }))).toBe(true);
@@ -71,14 +75,14 @@ describe('feature flags', () => {
     expect(can('haloManualSync', 'plus')).toBe(true);
   });
 
-  it('Halo sync: Plus, Max, a live trial or a kept legacy account; otherwise paused since the latest end', () => {
-    const now = '2026-10-05T12:00:00.000Z';
+  it('Halo sync: every signed-in plan since 2026-10-25 (Free when it syncs or is on Halo); the reason says which', () => {
+    const now = '2026-10-04T00:00:00.000Z';
     expect(syncAccess({ tier: 'plus' }, now)).toMatchObject({ allowed: true, via: 'plan' });
     expect(syncAccess({ tier: 'max' }, now)).toMatchObject({ allowed: true, via: 'plan' });
     expect(syncAccess({ tier: 'free', trialEndsAt: '2026-10-08T00:00:00.000Z' }, now)).toMatchObject({ allowed: true, via: 'trial' });
-    expect(syncAccess({ tier: 'free', trialEndsAt: '2026-10-03T07:00:00.000Z', trialStartedAt: '2026-09-26T07:00:00.000Z' }, now)).toEqual({ allowed: false, via: 'none', pausedSince: '2026-10-03T07:00:00.000Z', legacyUntil: null });
-    expect(syncAccess({ tier: 'free', legacySyncUntil: '2026-12-21T00:00:00.000Z' }, now)).toMatchObject({ allowed: true, via: 'legacy', legacyUntil: '2026-12-21T00:00:00.000Z' });
-    expect(syncAccess({ tier: 'free', legacySyncUntil: '2026-12-21T00:00:00.000Z', trialEndsAt: '2026-09-01T00:00:00.000Z' }, '2027-01-02T00:00:00.000Z').pausedSince).toBe('2026-12-21T00:00:00.000Z');
-    expect(syncAccess({ tier: 'free' }, now)).toEqual({ allowed: false, via: 'none', pausedSince: null, legacyUntil: null });
+    // The trial ended with nothing paid: still syncing, on Free. Nothing freezes, nothing is "paused".
+    expect(syncAccess({ tier: 'free', trialEndsAt: '2026-10-03T07:00:00.000Z', trialStartedAt: '2026-09-26T07:00:00.000Z' }, now)).toEqual({ allowed: true, via: 'plan', pausedSince: null, legacyUntil: null });
+    expect(syncAccess({ tier: 'free' }, now)).toEqual({ allowed: true, via: 'plan', pausedSince: null, legacyUntil: null });
+    expect(syncAccess(null, now)).toMatchObject({ allowed: false, via: 'none' });
   });
 });

@@ -99,11 +99,11 @@ export function haloPage(fx, url) {
 }
 
 /** Chrome (headless) or Edge (windowed off-screen), with unpacked extensions loaded over CDP. */
-export async function launch(BROWSER, label) {
+export async function launch(BROWSER, label, extraArgs = []) {
   const EXE = BROWSER === 'edge' ? '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' : chromium.executablePath();
   const port = 9300 + Math.floor(Math.random() * 600);
   const look = BROWSER === 'edge' ? ['--use-mock-keychain', '--window-position=-3000,-3000', '--window-size=1366,900'] : ['--headless=new'];
-  const proc = spawn(EXE, [`--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), `haloplus-${label}-${BROWSER}-`))}`, '--enable-unsafe-extension-debugging', ...look, '--no-first-run', '--no-default-browser-check', 'about:blank'], { stdio: 'ignore' });
+  const proc = spawn(EXE, [`--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), `haloplus-${label}-${BROWSER}-`))}`, '--enable-unsafe-extension-debugging', ...look, ...extraArgs, '--no-first-run', '--no-default-browser-check', 'about:blank'], { stdio: 'ignore' });
   const browser = await until(() => chromium.connectOverCDP(`http://127.0.0.1:${port}`), 30000, 500);
   const ctx = browser.contexts()[0];
   const cdp = await browser.newBrowserCDPSession();

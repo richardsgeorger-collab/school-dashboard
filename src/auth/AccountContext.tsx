@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import type { Tier } from '../config/tiers';
-import { syncAccess } from '../config/flags';
 import { pixelOnce } from '../analytics/pixel';
 import { captureFriend, captureRef, claimPendingFriend, claimPendingRef, rememberTier } from './referral';
 import { captureSource, claimPendingSource } from './source';
@@ -24,14 +23,17 @@ const Ctx = createContext<Account | null>(null);
 export function AccountProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const p = useProfile(auth.knownUserId);
-  // The plan on this device, for the extension (auto-sync is Plus and Max; Free has no sync) and nothing else.
-  // A free account kept on sync until its term ends counts as Plus for the extension, which only knows tiers.
-  const syncTier = p.tier === 'free' && syncAccess(p.profile).allowed ? 'plus' : p.tier;
+  // The plan on this device, for the extension (auto-sync is Plus and Max; Free syncs whenever it is on Halo, Loop
+  // 268) and nothing else. The real plan: a Free account told "plus" here got the 3-hour schedule it does not have.
+  const syncTier = p.tier;
   // Not while the account is still loading: the placeholder plan is Free, and the extension read that and never
   // auto-synced a Max student (2026-09-30).
+  // Only with an account signed in (Loop 268): a signed-out page's placeholder plan told the extension "Free" and the
+  // popup stopped saying "Make your free account".
+  const signedIn = !auth.configured || !!auth.session || !!auth.knownUserId;
   useEffect(() => {
-    if (p.planKnown && !p.loading) rememberTier(syncTier);
-  }, [syncTier, p.planKnown, p.loading]);
+    if (p.planKnown && !p.loading && signedIn) rememberTier(syncTier);
+  }, [syncTier, p.planKnown, p.loading, signedIn]);
   // An invite link is remembered on arrival and claimed once there is an account to claim it with.
   useEffect(() => {
     captureRef();

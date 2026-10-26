@@ -16,7 +16,7 @@ const M = ctx.HaloPlusModel as unknown as {
   caught: (v: View, i: unknown, now: number) => { line: string; more: string[] } | null;
   badge: (v: View, now: number) => { text: string; red: boolean; tomorrow?: boolean } | null;
   baseline: (v: View) => unknown;
-  notable: (v: View, base: unknown, now: number, flagged: string[]) => { kind: string; text: string } | null;
+  notable: (v: View, base: unknown, now: number, flagged: string[], lockedShown?: string[]) => { kind: string; text: string; key?: string } | null;
   nextAfter: (v: View, now: number, id: string) => { text: string } | null;
   stale: (v: View, now: number) => string | null;
   compactLive: (p: unknown) => unknown;
@@ -149,6 +149,21 @@ describe('the hover list', () => {
     expect(l.groups.flatMap((g) => g.rows)).toHaveLength(3);
     expect(l.groups[0].rows[0]).toMatchObject({ title: 'Item o', code: 'CHM-113', when: 'overdue', pts: 10 });
     expect(l.part).toBeNull();
+  });
+});
+
+describe('Free: an announcement changed something (Loop 268)', () => {
+  it('peeks once per assignment, the kind and never the details, after anything due soon or moved', () => {
+    const base = M.baseline(M.merge(snap([quiz]), null));
+    const locked = M.merge(snap([{ ...quiz, lk: ['due_date'] }]), null);
+    const n = M.notable(locked, base, NOW, [], []);
+    expect(n).toMatchObject({ kind: 'locked', text: 'An announcement changed the due date: Quiz #2 · see it with Plus' });
+    // Once per assignment, ever.
+    expect(M.notable(locked, base, NOW, [], ['h-q2'])).toBeNull();
+    const both = M.merge(snap([{ ...quiz, lk: ['due_date', 'extra_step'] }]), null);
+    expect(M.notable(both, base, NOW, [], [])?.text).toMatch(/^An announcement changed the due date and added a step/);
+    const step = M.merge(snap([{ ...quiz, lk: ['extra_step'] }]), null);
+    expect(M.notable(step, base, NOW, [], [])?.text).toMatch(/^An announcement added a step: /);
   });
 });
 

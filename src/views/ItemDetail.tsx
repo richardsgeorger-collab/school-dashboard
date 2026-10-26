@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { bump } from '../analytics/usage';
 import { NO_SUBMISSION_NOTE, noHaloSubmission } from '../domain/submission';
 import { CourseChip } from '../components/CourseChip';
 import { HaloJump } from '../components/HaloJump';
@@ -30,6 +31,7 @@ import { ParticipationChecklist } from './ParticipationWeek';
 import { Sure } from './PlanReview';
 import { PromptPanel } from './PromptPanel';
 import { SourceBlock } from './SourceBlock';
+import { LockedChange } from './LockedChange';
 import { useBrief } from './WorkPanel';
 import { HelpKitButton } from '../kit/HelpKit';
 
@@ -532,6 +534,8 @@ export function ItemDetail({ item: passed, isNew = false, onClose }: { item: Ite
           </div>
         </header>
         <Feedback item={item} />
+        <LockedChange item={item} onOpen={onClose} />
+        <AnnouncementChangeSeen item={item} />
         {item.haloLate && (
           <p className="hint late-note">
             <b>Halo says late:</b> {item.haloLate}{' '}
@@ -760,4 +764,14 @@ function SheetLine({ line, onToggle }: { line: TodoLine; onToggle: () => void })
       </div>
     </li>
   );
+}
+
+/** Counted for Admin's feature table (Loop 268): an assignment an announcement changed, opened. Once per opening. */
+function AnnouncementChangeSeen({ item }: { item: Item }) {
+  const changed = !!item.dateChange || (item.requirements ?? []).some((r) => r.source.kind === 'announcement') || item.origin?.kind === 'announcement';
+  useEffect(() => {
+    if (changed) bump('ann-change:view');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id]);
+  return null;
 }

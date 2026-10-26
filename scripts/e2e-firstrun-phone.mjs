@@ -113,13 +113,13 @@ try {
     check((await p.locator('.connect-halo').count()) === 1 && (await p.locator('.never-synced').count()) === 0, `${tag}: Now is the Connect Halo card, no sheet on the same visit`);
     await p.screenshot({ path: `${OUT}/7-now-empty-${tag}.png` });
     await audit(p, `${tag} Now empty`);
-    // 6. The next open: the never-synced sheet.
+    // 6. The next open: the Connect Halo card (the full-screen never-synced sheet gave way to it).
     await p.reload({ waitUntil: 'load' });
-    await p.waitForSelector('.never-synced', { timeout: 30000 });
+    await p.waitForSelector('.connect-halo', { timeout: 30000 });
     await sleep(800);
-    check(/You haven't synced Halo yet!/.test(await text(p, '.never-synced')), `${tag}: the next open shows the never-synced sheet`);
+    check(/Connect Halo to see your classes, due dates, and grades\./.test(await text(p, '.connect-halo')), `${tag}: the next open shows the Connect Halo card`);
     await p.screenshot({ path: `${OUT}/8-never-synced-${tag}.png` });
-    await audit(p, `${tag} never-synced sheet`);
+    await audit(p, `${tag} Connect Halo card`);
     await ctx.close();
   }
 } finally {

@@ -450,7 +450,14 @@
    * The one thing worth a re-peek since the baseline, or null: a graded item now due within 3 hours (not flagged yet),
    * a graded item whose due date moved, a new requirement on a 20+ point item. Nothing on first run (no baseline).
    */
-  function notable(view, base, now, flagged) {
+  /** Free (0.11.0): the kind of change an announcement made, never the details. Mirrors src/halo/peek.ts lockedLine. */
+  function lockedText(lk) {
+    const d = (lk || []).includes('due_date');
+    const x = (lk || []).includes('extra_step');
+    return `An announcement ${d && x ? 'changed the due date and added a step' : d ? 'changed the due date' : 'added a step'}`;
+  }
+
+  function notable(view, base, now, flagged, lockedShown) {
     if (!view || !base || base.v !== 2 || !base.items) return null;
     const t = nowMs(now);
     const out = [];
@@ -463,6 +470,8 @@
       const was = base.items[k];
       if (!was) continue;
       if (graded(i) && Math.abs(Math.round(due / MIN) - was[0]) * MIN >= MOVE_MS) out.push({ rank: 1, kind: 'moved', i, text: `Moved: ${clip(title(i), 36)} is now due ${dueWord(i.due, now, view.tz)}` });
+      // Free: once per assignment, ever (lockedShown), calm, and after anything that is due soon or moved.
+      if (i.lk && i.lk.length && !(lockedShown || []).includes(k)) out.push({ rank: 3, kind: 'locked', i, text: `${lockedText(i.lk)}: ${clip(title(i), 30)} · see it with Plus` });
       if ((i.pts || 0) >= BIG_PTS && boxLines(i).length > was[1]) {
         const what = boxLines(i)[was[1]] || boxLines(i)[0];
         out.push({ rank: 2, kind: 'req', i, text: what ? `New for ${clip(title(i), 28)}: ${clip(what, 44)}` : `New requirement on ${clip(title(i), 40)}` });

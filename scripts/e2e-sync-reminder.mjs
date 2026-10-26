@@ -1,5 +1,5 @@
 // The sync reminder (George, 2026-10-06), on the real backend with throwaway accounts, desktop and phone, light and
-// dark. (1) Never synced on the free week: "You haven't synced Halo yet!" before anything else, straight into this
+// dark. (1) Never synced on the free week: the Connect Halo card before anything else, straight into this
 // device's setup; Later closes it for the visit, the next open brings it back. (2) Last sync 2 days ago: the amber
 // banner on Now with Sync now (no extension: Halo opens in a new tab with the bookmark note); 4 days: red. (3) The
 // extension on this computer, 7 hours without a sync: "Auto-sync hasn't run since …" with Open Halo. Free: none of it.
@@ -37,6 +37,8 @@ const lastPull = (at, via = 'bookmark') => ({ lastPull: { at, build: null, count
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const open = async (s, dev, scheme, init) => {
+  // The Sunday review (offered on a Sunday evening) would sit over every prompt this test reads: off for these throwaways.
+  await patch(s.id, { sundayReview: { off: true } });
   const ctx = await browser.newContext({ ...DEV[dev], colorScheme: scheme });
   await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: s.session, key: `sb-${ref}-auth-token` });
   if (init) await ctx.addInitScript(init);
@@ -45,7 +47,12 @@ const open = async (s, dev, scheme, init) => {
   const p = await ctx.newPage();
   await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
   await sleep(5000);
-  for (const sel of ['.joy-card button:has-text("Nice")', '.levelup']) if (await p.locator(sel).count()) await p.locator(sel).first().click().catch(() => undefined);
+  // A joy card, a level-up, the trial's "caught" card or (on a Sunday evening) the Sunday review sit over the page until closed.
+  for (let i = 0; i < 3; i++) {
+    for (const sel of ['.joy-card button:has-text("Nice")', '.levelup', '[role="dialog"] button:has-text("Got it")', '.modal button[aria-label="Close"]']) if (await p.locator(sel).count()) await p.locator(sel).first().click().catch(() => undefined);
+    if (await p.locator('.modal-backdrop').count()) await p.keyboard.press('Escape');
+    await sleep(500);
+  }
   return { ctx, p };
 };
 const text = async (p, sel) => (await p.locator(sel).first().innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
@@ -61,22 +68,24 @@ try {
       await db.from('courses').delete().eq('user_id', s.id);
       await patch(s.id, { lastPull: null, haloPulls: {}, extSetup: { shownAt: new Date().toISOString(), skippedAt: new Date().toISOString() } });
       const { ctx, p } = await open(s, dev, scheme);
-      const sheet = await text(p, '.never-synced');
-      if (first) check(/You haven't synced Halo yet!/.test(sheet) && /can't show your deadlines, grades, or announcements until you do\. Takes 2 minutes\./.test(sheet), `never synced: the sheet before anything else ("${sheet.slice(0, 120)}")`);
-      if (scheme === 'light') check(dev === 'desk' ? /Add the extension to Chrome/.test(sheet) : /Set up on this phone/.test(sheet), `${dev}: it leads to this device's setup ("${await text(p, '.never-synced .btn.primary')}")`);
+      // A laptop gets the Connect Halo card (and setup reopens at Connect Halo by itself); a phone gets "Not synced yet ·
+      // Set up" and the laptop hand-off card ("Finish on your laptop in 2 minutes", "Email me the link").
+      const phone = dev === 'phone';
+      const card = phone ? await text(p, 'main') : await text(p, '.connect-halo');
+      if (first) check(/Connect Halo to see your classes, due dates, and grades\./.test(card) && (await p.locator('.sync-reminder').count()) === 0, `never synced: Connect Halo before anything else, no reminder line ("${card.slice(0, 100)}")`);
+      if (scheme === 'light') {
+        if (phone) check(/Not synced yet/.test(await text(p, 'body')) && /Finish on your laptop/.test(card) && /Email me the link/.test(card) && !/part of Plus/.test(card), 'phone: "Not synced yet · Set up" and the laptop hand-off, no plan wall');
+        else check(/Connect Halo/.test(await text(p, '.connect-halo .btn.primary')) && !/part of Plus/.test(card), `desk: its button connects Halo, no plan wall ("${await text(p, '.connect-halo .btn.primary')}")`);
+      }
       await p.screenshot({ path: `${OUT}/1-never-synced-${tag}.png` });
-      await p.click('.never-synced-later');
-      await sleep(800);
-      if (first) check((await p.locator('.never-synced').count()) === 0 && (await p.locator('.connect-halo').count()) === 1 && (await p.locator('.autosync-chip').count()) === 0, 'Later: gone for this visit, the Connect Halo card under it (the "Not synced yet" pill leads, no second chip)');
-      await p.screenshot({ path: `${OUT}/1b-after-later-${tag}.png` });
-      await p.reload({ waitUntil: 'load' });
-      await sleep(5000);
-      if (first) check((await p.locator('.never-synced').count()) === 1, 'the next open: back again');
-      await p.click('.never-synced .btn.primary');
-      await sleep(1500);
-      const ob = await text(p, '.onboard');
-      if (first) check((await p.locator('.never-synced').count()) === 0 && /Connect Halo the easy way|Add to Chrome/.test(ob), `its button opens the extension setup for desktop Chrome ("${ob.slice(0, 80)}")`);
-      if (dev === 'phone' && scheme === 'light') check((await p.locator('.never-synced').count()) === 0 && /bookmark|Copy/i.test(ob), `phone: its button opens the phone's setup ("${ob.slice(0, 80)}")`);
+      if (!phone) {
+        if ((await p.locator('.onboard[aria-label="Set up Halo+"]').count()) === 0) {
+          await p.click('.connect-halo .btn.primary');
+          await sleep(1500);
+        }
+        const ob = await text(p, '.onboard');
+        if (first) check(/Connect Halo the easy way|Add to Chrome|Halo\+ extension/.test(ob), `its button opens the extension setup for desktop Chrome ("${ob.slice(0, 80)}")`);
+      }
       await ctx.close();
     }
     // (2) Two days, then four, without a sync; no extension.
@@ -86,7 +95,9 @@ try {
       const { ctx, p } = await open(s, dev, scheme);
       const b = await text(p, '.sync-reminder');
       if (first) check(/^Last synced 2 days ago\. Sync now so you don't miss anything\. Sync now$/.test(b) && (await p.locator('.sync-reminder').getAttribute('data-level')) === 'amber', `2 days: "${b}" (amber)`);
-      if (first) check((await p.locator('.synced').count()) === 0 && (await p.locator('.autosync-paused, .autosync-callout').count()) === 0, 'one prompt: the synced line and the auto-sync pop-up step aside');
+      // The synced line is always there (one calm line, SyncedLine.tsx); while the reminder is up it carries no warning
+      // of its own and no second Sync now, and the auto-sync notes step aside.
+      if (first) check((await p.locator('.synced[data-level="amber"]').count()) === 0 && !/Sync now/.test(await text(p, '.synced')) && (await p.locator('.autosync-paused, .autosync-callout').count()) === 0, `one prompt: the synced line stays calm ("${await text(p, '.synced')}") and the auto-sync notes step aside`);
       await p.screenshot({ path: `${OUT}/2-two-days-${tag}.png` });
       if (first) {
         const [tab] = await Promise.all([ctx.waitForEvent('page', { timeout: 8000 }).catch(() => null), p.click('.sync-reminder .btn')]);
@@ -113,12 +124,13 @@ try {
       await p.screenshot({ path: `${OUT}/4-auto-sync-idle-${tag}.png` });
       await ctx.close();
     }
-    // Free: no reminder (its own paused banner stays as it is).
+    // Free syncs too (Loop 268): the same reminder as Plus, and no "paused" banner.
     if (first) {
       const s = await kit.persona('ended');
       await patch(s.id, lastPull(hoursAgo(98)));
       const { ctx, p } = await open(s, dev, scheme);
-      check((await p.locator('.sync-reminder, .never-synced').count()) === 0, `Free with a 4-day-old sync: no reminder${(await p.locator('.frozen-banner').count()) ? ', the paused banner as before' : ''}`);
+      const b = await text(p, '.sync-reminder');
+      check(/^Last synced 4 days ago\./.test(b) && (await p.locator('.frozen-banner').count()) === 0, `Free with a 4-day-old sync: the reminder, no paused banner ("${b}")`);
       await ctx.close();
     }
   }
@@ -136,6 +148,8 @@ let proc = null;
 let cdpBrowser = null;
 try {
 const who = await kit.persona('plus');
+// The Sunday review off for this one too: it sits over the reminder on a Sunday evening.
+await patch(who.id, { sundayReview: { off: true } });
 await patch(who.id, lastPull(hoursAgo(50)));
 const port = 9300 + Math.floor(Math.random() * 600);
 proc = spawn(chromium.executablePath(), [`--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'haloplus-remind-'))}`, '--enable-unsafe-extension-debugging', '--headless=new', '--no-first-run', '--no-default-browser-check', 'about:blank'], { stdio: 'ignore' });

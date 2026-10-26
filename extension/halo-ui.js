@@ -43,9 +43,9 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, tier: null, syncKey: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, tier: null, syncKey: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'tier', 'syncKey'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'tier', 'syncKey'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -68,7 +68,9 @@
     if (local && (!view.showAt || local.at > view.showAt)) return local.on !== false;
     return view.show !== false;
   };
-  const free = () => !view || view.plan === 'free' || !['plus', 'max'].includes(st.tier);
+  // Halo+ says whether this account can sync (0.11.0: every plan can, Free when it is on Halo); only an account that
+  // cannot gets the quiet "synced Oct 3" pill and no class lines. The plan alone no longer decides it.
+  const free = () => !view || view.plan === 'free';
   const today = () => M.dayOf(Date.now(), view.tz);
   /** Today's memory: peeked, how many re-peeks, closes without a click, what was flagged as due soon. */
   const ui = () => {
@@ -957,9 +959,14 @@ ul{list-style:none;margin:0;padding:0}
     const now = Date.now();
     // What changed since the last look, judged against a baseline in one shape; then the baseline moves on. On the
     // first run there is no baseline: it is only recorded.
-    const n = M.notable(view, st.haloBase, now, u.flagged);
+    const n = M.notable(view, st.haloBase, now, u.flagged, st.haloLocked);
     if (view.items.length) save({ haloBase: M.baseline(view) });
     if (n && n.kind === 'soon') u.flagged = [...(u.flagged || []), n.key].slice(-50);
+    // Free's "an announcement changed…" peek: once per assignment, ever (0.11.0), and counted for Admin.
+    if (n && n.kind === 'locked') {
+      save({ haloLocked: [...(st.haloLocked || []), n.key].slice(-200) });
+      count('locked-peek');
+    }
     if (!u.first) {
       u.first = true;
       save({ haloUi: u });
@@ -973,7 +980,29 @@ ul{list-style:none;margin:0;padding:0}
     save({ haloUi: u });
   }
 
+  /**
+   * Before there is any account on this computer (0.11.0: a Chrome Web Store install that has not signed up yet): one
+   * small, muted pill, "Set up Halo+", to the welcome tab. Nothing else on Halo's pages, nothing broken.
+   */
+  function setupPill(on) {
+    const w = wrap();
+    const el = w.querySelector('.pill-setup');
+    if (!on) return el && el.remove();
+    if (el) return;
+    const a = document.createElement('a');
+    a.className = 'pill pill-setup';
+    a.dataset.tone = 'muted';
+    a.href = `${ORIGIN}/#/welcome?src=store`;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.innerHTML = '<span class="mark" aria-hidden="true"></span><span class="txt">Set up Halo+</span>';
+    w.appendChild(a);
+  }
+
   const render = guard(function render() {
+    const noAccount = !view && !st.syncKey && !(st.haloUiOn && st.haloUiOn.on === false);
+    setupPill(noAccount);
+    if (noAccount) return;
     if (!view || !showing()) {
       clearLayer();
       weekPlaced = false;
@@ -1026,7 +1055,7 @@ ul{list-style:none;margin:0;padding:0}
       if (area !== 'local' || !KEYS.some((k) => k in changes)) return;
       void load().then(() => {
         // Only today's memory or the baseline changing (another Halo tab): just the pill.
-        if (Object.keys(changes).every((k) => k === 'haloUi' || k === 'haloBase')) renderPill();
+        if (Object.keys(changes).every((k) => k === 'haloUi' || k === 'haloBase' || k === 'haloLocked')) renderPill();
         else render();
       });
     }),

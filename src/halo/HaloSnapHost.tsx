@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { bump } from '../analytics/usage';
 import { useSettled } from '../joy/JoyHost';
 import { useRoute } from '../router';
+import { useAccount } from '../auth/AccountContext';
 import { useStore } from '../storage/store';
 import { useNow } from '../ui/useNow';
 import { useSyncAccess } from '../views/PlanWall';
@@ -17,6 +18,10 @@ const VIAS = ['card', 'next', 'pill', 'class', 'box', 'popup'];
 export function HaloSnapHost() {
   const { data, schedule } = useStore();
   const settled = useSettled();
+  const { auth } = useAccount();
+  // A signed-out page (the welcome tab after a Web Store install, Loop 268) has no account to describe: it writes
+  // nothing, so the extension keeps showing "Set up Halo+" instead of an empty panel.
+  const signedIn = !auth.configured || !!auth.session || !!auth.knownUserId;
   const access = useSyncAccess();
   const minute = useNow(15 * 60_000);
   const { params } = useRoute();
@@ -27,14 +32,14 @@ export function HaloSnapHost() {
   // Written only when something other than the time it was written changed.
   const body = useMemo(() => JSON.stringify({ ...snap, at: undefined }), [snap]);
   useEffect(() => {
-    if (!settled) return;
+    if (!settled || !signedIn) return;
     try {
       localStorage.setItem(HALO_SNAP_SLOT, JSON.stringify(snap));
     } catch {
       /* storage unavailable */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [body, settled]);
+  }, [body, settled, signedIn]);
   const from = params.get('from');
   const via = params.get('via');
   useEffect(() => {

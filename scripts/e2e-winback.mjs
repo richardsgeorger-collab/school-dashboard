@@ -1,6 +1,6 @@
-// Win-back (2026-09-29), on the real backend: a throwaway student on Free a week after their Max week ended, with a
-// quiz 4 days out as of a sync 8 days ago. The frozen banner invites a peek; Sync shows what Halo has (counts only,
-// nothing applied); the exam-week card on Now; the exam push and the out-of-date push as the planner writes them;
+// Win-back (2026-09-29; Free syncs since 2026-10-25, Loop 268), on the real backend: a throwaway student on Free a week
+// after their Max week ended, with a quiz 4 days out as of a sync 8 days ago. No frozen banner (Free keeps syncing);
+// a sync applies instead of a peek; the exam-week card on Now; the exam push and the out-of-date push as the planner writes them;
 // the log a sent push leaves; the push opening the peek; one a week; none after three ignored; none once a referral
 // starts; the Admin numbers. Screens in light and dark to docs/screens/winback/.
 //   KEYS_ENV=... BASE=http://localhost:4174/school-dashboard/ node scripts/e2e-winback.mjs
@@ -34,6 +34,8 @@ const localDay = (n) => new Date(Date.now() - 7 * 3_600_000 + n * DAY).toISOStri
 const dueLocal = (n) => `${localDay(n)}T23:59:00-07:00`;
 const lastPullAt = new Date(Date.now() - 8 * DAY).toISOString();
 const quizDay = new Date(`${localDay(4)}T12:00:00-07:00`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Phoenix' });
+// After the sync applies (Free syncs, Loop 268), the quiz is on its moved day: the push says that one.
+const quizDayMoved = new Date(`${localDay(5)}T12:00:00-07:00`).toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Phoenix' });
 
 const seed = async (u, { quiz = true } = {}) => {
   await admin.from('profiles').update({ tier: 'free', trial_started_at: new Date(Date.now() - 14 * DAY).toISOString(), trial_ends_at: new Date(Date.now() - 7 * DAY).toISOString() }).eq('user_id', u.id);
@@ -49,7 +51,7 @@ const seed = async (u, { quiz = true } = {}) => {
 };
 const settingsOf = () => ({ timezone: 'America/Phoenix', lastPull: { at: lastPullAt, source: 'bookmarklet' }, onboarding: { startedAt: 'x', step: 'done', doneAt: lastPullAt, skippedAt: null, tourDoneAt: 'x' }, upgradeSeen: { plus: 'x', max: 'x' }, trialEndSeen: 'x', reminders: { pushEnabled: true, morningTime: '07:30', quietFrom: '22:00', quietTo: '07:00' } });
 // What Halo has now: the quiz moved a day, two new assignments, one announcement asking for work, one that does not.
-const payload = () => ({ kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'bookmarklet', alerts: [], problems: [], pulls: ['assessments', 'grades', 'announcements'],
+const payload = () => ({ kind: 'halo-export', version: 1, build: BUILD, exportedAt: new Date().toISOString(), source: 'extension', alerts: [], problems: [], pulls: ['assessments', 'grades', 'announcements'],
   classes: [{ id: 'hc-chm', slugId: 'chm', classCode: 'CHM-113-O500', courseCode: 'CHM-113', name: 'General Chemistry I', instructors: ['Dr. Awad'], startDate: '2026-09-01', endDate: '2026-12-15', stage: 'CURRENT', modality: 'ONGROUND', credits: 3,
     assessments: [
       { id: 'a1', title: 'Topic 3 Homework', dueDate: new Date(dueLocal(2)).toISOString(), points: 20, type: 'ASSIGNMENT', status: null, score: null, description: '' },
@@ -96,9 +98,8 @@ try {
       const tag = `${name}-${scheme}`;
       const first = name === 'desk';
       const { ctx, page } = await open(u, scheme, device);
-      await page.waitForSelector('.frozen-banner', { timeout: 15000 }).catch(() => undefined);
-      const banner = await text(page, '.frozen-banner');
-      if (first) say(/Halo sync paused since \w{3} \d{1,2}\./.test(banner) && /Tap Sync to see what's changed/.test(banner), `the frozen banner invites a peek: "${banner.slice(0, 80)}"`);
+      // Free syncs Halo (Loop 268): no frozen banner, nothing "paused".
+      if (first) say((await page.locator('.frozen-banner').count()) === 0 && !/sync paused/i.test(await text(page, 'main')), 'no frozen banner on Free: Halo keeps syncing');
       // The exam-week card.
       await page.waitForSelector('.exam-week', { timeout: 10000 }).catch(() => undefined);
       const card = await text(page, '.exam-week');
@@ -108,30 +109,25 @@ try {
       }
       await page.locator('.exam-week').scrollIntoViewIfNeeded().catch(() => undefined);
       await page.screenshot({ path: `${OUT}/exam-week-card-${tag}.png` });
-      // Peek sync: Sync, then the bookmark's export arrives.
+      // Sync on Free (Loop 268): the extension's export arrives and applies, quietly. No peek, nothing walled.
       const before = await localItems(page);
-      await page.click('.frozen-banner button:has-text("Sync")');
-      await page.waitForTimeout(800);
-      if (first) say(/See what's changed in Halo/i.test(await text(page, '.modal')), 'Sync on Free opens "See what\'s changed in Halo"');
       await page.evaluate((pl) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: pl, source: window })), payload());
-      await page.waitForSelector('.peek', { timeout: 10000 }).catch(() => undefined);
-      await page.waitForTimeout(600);
-      const peek = await text(page, '.modal');
-      await page.screenshot({ path: `${OUT}/peek-summary-${tag}.png` });
+      await page.waitForTimeout(4000);
+      await page.screenshot({ path: `${OUT}/sync-applied-${tag}.png` });
       if (first) {
-        say(/Since \w{3} \d{1,2}: 2 new assignments, 1 due date moved and 1 announcement that looks like work\./.test(peek), `the peek, from the real export: "${(peek.match(/Since[^.]*\./) ?? [''])[0]}"`);
-        say(['Bring it all in with Plus $4.99', 'Get Max $7.99', 'Invite a friend for 30 days free'].every((b) => peek.includes(b)), 'the three ways in: Plus $4.99, Max $7.99, invite a friend');
-        await page.waitForTimeout(1500);
-        const after = await localItems(page);
-        const cloud = (await admin.from('items').select('id').eq('user_id', u.id).is('deleted_at', null)).data?.length ?? 0;
-        say(after === before && cloud === 3, `nothing applied or saved: ${after} items on the device, ${cloud} in the account, as before`);
+        say((await page.locator('.peek').count()) === 0 && !/See what's changed in Halo/.test(await text(page, '.modal')), 'no peek on Free: the sync applies');
+        const cloud = await until(async () => { const n = (await admin.from('items').select('id').eq('user_id', u.id).is('deleted_at', null)).data?.length ?? 0; return n >= 5 ? n : null; }, 25000);
+        say(cloud === 5 && (await localItems(page)) >= before, `the sync applied: ${cloud} items in the account (3 before, two new ones from Halo)`);
+        // The planner runs in the page: give it time to write the exam push from the fresh dates before the page goes.
+        await until(async () => (await planned(u.id)).find((r) => r.kind === 'winback_exam' && r.body.includes(quizDayMoved)), 40000);
       }
       await ctx.close();
     }
     if (!main) continue;
     // The planner, as the app left it: the exam-week push at 9 today (or now), opening Practice for the quiz.
     const exam = await until(async () => (await planned(u.id)).find((r) => r.kind === 'winback_exam'));
-    check(!!exam && exam.body.startsWith(`Your Chem Quiz 2 is ${quizDay}.`) && /^#\/practice\?i=.+&wb=exam$/.test(exam.url), `the exam-week push is planned: "${exam?.body}" → ${exam?.url}`);
+    if (!exam) console.log('planned rows:', JSON.stringify(await admin.from('notification_plan').select('kind, send_at, body').eq('user_id', u.id).then((r) => r.data)), 'items:', JSON.stringify((await admin.from('items').select('data->title, data->dueAt, data->type, data->status, data->flags, data->haloId').eq('user_id', u.id)).data), 'settings:', JSON.stringify((await admin.from('settings').select('data->lastPull, data->winbackOwnOpenAt, data->reminders').eq('user_id', u.id).single()).data));
+    check(!!exam && exam.body.startsWith(`Your Chem Quiz 2 is ${quizDayMoved}.`) && !/as of your last sync/.test(exam.body) && /^#\/practice\?i=.+&wb=exam$/.test(exam.url), `the exam-week push is planned from the fresh sync (the quiz's moved day, no "as of"): "${exam?.body}" → ${exam?.url}`);
     check((await planned(u.id)).filter((r) => !r.sent_at).length === 1, 'one win-back push planned at a time');
 
     // Out-of-date: a student without a test coming up.
@@ -150,12 +146,13 @@ try {
     check(log.length === 1 && log[0].kind === 'stale', 'a sent win-back push is logged (kind "stale")');
     // Tapping it: the peek opens by itself.
     ({ ctx, page } = await open(s, 'light', { ...devices['iPhone 14'], deviceScaleFactor: 2 }, '#/now?peek=1&wb=stale'));
-    await page.waitForSelector('.modal', { timeout: 8000 }).catch(() => undefined);
-    check(/See what's changed in Halo/i.test(await text(page, '.modal')), 'the push opens straight into the peek');
+    // On a Sunday evening the Sunday review opens too; the sync sheet is the modal that says Sync Halo.
+    await page.locator('.modal', { hasText: 'Sync Halo' }).first().waitFor({ timeout: 8000 }).catch(() => undefined);
+    check((await page.locator('.modal', { hasText: 'Sync Halo' }).count()) === 1, 'the push opens straight into the sync sheet (Free syncs, Loop 268)');
     if (process.env.DBG) console.log('hashes', await page.evaluate(() => [window.__h, JSON.parse(localStorage.getItem('school-dashboard:v1')).settings.winbackOwnOpenAt]));
     await page.evaluate((pl) => window.dispatchEvent(new MessageEvent('message', { origin: 'https://halo.gcu.edu', data: pl, source: window })), payload());
-    await page.waitForSelector('.peek', { timeout: 10000 }).catch(() => undefined);
-    await page.screenshot({ path: `${OUT}/stale-push-peek-phone-light.png` });
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: `${OUT}/stale-push-sync-phone-light.png` });
     const next = (await until(async () => { const r = (await planned(s.id)).filter((x) => !x.sent_at); return r.length ? r : null; })) ?? [];
     if (!next.length) console.log('planned:', JSON.stringify(await planned(s.id)), 'log:', JSON.stringify((await admin.from('winback_sends').select('*').eq('user_id', s.id)).data));
     check(next.length === 1 && new Date(next[0].send_at) - new Date(sentAt) >= 7 * DAY - 60_000, `at most one a week: the next one waits until ${next[0]?.send_at}`);
@@ -164,7 +161,7 @@ try {
     await page.waitForTimeout(2500);
     await ctx.close();
     const ev = (await admin.from('usage_events').select('key, n').eq('user_id', s.id).like('key', 'winback:%')).data ?? [];
-    check(ev.some((e) => e.key === 'winback:open:stale') && ev.some((e) => e.key === 'winback:peek'), `counted for Admin: ${ev.map((e) => e.key).join(', ')}`);
+    check(ev.some((e) => e.key === 'winback:open:stale'), `counted for Admin: ${ev.map((e) => e.key).join(', ')}`);
     // Three ignored in a row: nothing more until they open the app on their own.
     await admin.from('winback_sends').insert([1, 2].map((k) => ({ user_id: s.id, kind: 'stale', sent_at: new Date(Date.now() - k * 1000).toISOString() })));
     ({ ctx, page } = await open(s, 'light', { viewport: { width: 1280, height: 900 } }, '#/now?wb=stale'));

@@ -7,8 +7,8 @@ import { bump } from './analytics/usage';
  * The bare root (no hash) is `home`: the landing page for a stranger, Now for everyone else. `start` opens the
  * app with sign-up first; `login` is the sign-in screen on its own.
  */
-export type Route = 'home' | 'start' | 'login' | 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'class' | 'ingest' | 'study' | 'ask' | 'practice' | 'check' | 'admin' | 'looks';
-const ROUTES: Route[] = ['home', 'start', 'login', 'now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'class', 'ingest', 'study', 'ask', 'practice', 'check', 'admin', 'looks'];
+export type Route = 'home' | 'start' | 'login' | 'welcome' | 'now' | 'calendar' | 'classes' | 'inbox' | 'you' | 'load' | 'library' | 'grades' | 'class' | 'ingest' | 'study' | 'ask' | 'practice' | 'check' | 'admin' | 'looks';
+const ROUTES: Route[] = ['home', 'start', 'login', 'welcome', 'now', 'calendar', 'classes', 'inbox', 'you', 'load', 'library', 'grades', 'class', 'ingest', 'study', 'ask', 'practice', 'check', 'admin', 'looks'];
 // The AI screens before loop 110: the hub, the tutor and the quiz land on the tool that replaced each.
 const ALIASES: Record<string, Route> = { '': 'home', record: 'library', news: 'inbox', settings: 'you', plan: 'load', signin: 'login', signup: 'start', ai: 'study', tutor: 'ask', quiz: 'practice' };
 
@@ -20,6 +20,7 @@ export const TAB_OF: Record<Route, Tab> = {
   home: 'now',
   start: 'now',
   login: 'you',
+  welcome: 'now',
   now: 'now',
   calendar: 'calendar',
   classes: 'classes',

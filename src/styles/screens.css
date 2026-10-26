@@ -4351,3 +4351,58 @@ button.sheet-line-text:focus-visible {
   color: var(--ink-2);
   white-space: nowrap;
 }
+/* Free: an announcement changed this assignment, the kind only (Loop 268). Calm: muted text, the gold dot, no red. */
+.locked-change {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+}
+.locked-change::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold, #c9a227);
+  flex: none;
+  transform: translateY(-1px);
+}
+/* Now's gentle extension card during the trial (Loop 268): twice at most, never a pop-up. */
+.ext-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ext-nudge-title {
+  margin: 0 0 2px;
+  font-weight: 600;
+}
+.ext-nudge .hint {
+  margin: 0;
+}
+.ext-nudge-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* The welcome tab after a Web Store install (Loop 268). */
+.welcome .welcome-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0 10px;
+}
+/* Admin: plans and retention (Loop 268). */
+.admin-plans .admin-sub {
+  margin: 16px 0 4px;
+  font-size: 0.95rem;
+}
+.admin-plans .admin-line {
+  margin: 2px 0;
+}
+.admin-plans .admin-line .hint {
+  display: block;
+}

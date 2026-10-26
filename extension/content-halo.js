@@ -110,8 +110,8 @@
     } catch {
       /* the extension was updated under this page */
     }
-    // Plus and Max (a Max trial is Max here). Free has no sync to update, so nothing happens there.
-    if (s.tier !== 'plus' && s.tier !== 'max') return;
+    // Every plan with an account (0.11.0: Free syncs when it is on Halo, so it has a Halo+ to update too).
+    if (!s.tier) return;
     chrome.runtime.sendMessage({ kind: 'submitted' }).catch(() => undefined);
     // Halo+ on Halo (0.8.0): "Nice. Next: …" a moment after the confetti.
     window.dispatchEvent(new CustomEvent('haloplus:submitted', { detail: { id: haloId } }));

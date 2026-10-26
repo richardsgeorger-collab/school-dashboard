@@ -44,7 +44,7 @@ describe('what to send and when', () => {
       ['2026-10-04T01:00:00.000Z', 'Your free Max ends in 2 days'],
       ['2026-10-05T15:00:00.000Z', 'Last day of your free Max'],
     ]);
-    expect(t[0].body).toBe('Max during your trial: read 12 announcements, found 3 hidden requirements. After that you go back to Free: Halo sync pauses and the study tools lock. Nothing charges.');
+    expect(t[0].body).toBe('Max during your trial: read 12 announcements, found 3 hidden requirements. After that you go back to Free: announcements stop being read for you and the study tools lock. Halo keeps syncing. Nothing charges.');
     expect(t[1].body).toContain('Tomorrow you go back to Free');
     // After the first has gone, only the last-day one is planned; after the end, none.
     expect(planNotices({ ...base, today: '2026-10-04', now: '2026-10-04T13:00:00.000Z' }).filter((x) => x.kind === 'trial_ends')).toHaveLength(1);

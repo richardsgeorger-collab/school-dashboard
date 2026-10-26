@@ -17,6 +17,8 @@ import './halo-model.js';
 
 // Scheduled syncs run on Plus and Max; Sync now runs on any plan (the app and the server apply the same rule).
 const AUTO = ['plus', 'max'];
+/** A Halo visit syncs when the last try was at least this long ago (0.11.0): Free's sync, and fresher data on every plan. */
+const VISIT_MS = 30 * 60_000;
 const HALO = 'https://halo.gcu.edu/';
 const ALARM = 'auto-sync';
 // A real account takes minutes to read: the worker waits as long as the sync keeps reporting progress, and gives up
@@ -67,6 +69,31 @@ function browserName() {
  * How one sync run went (0.7.6), for Admin's sync success rate: when it started, how it ended and why, whether reloading
  * Halo rescued it. Filed under the account of this browser's sync key. Nothing about the student's classes.
  */
+/** The welcome tab after a Web Store install (0.11.0): sign up in one step. `src=store` marks the account's source. */
+const WELCOME_URL = `${DASH_ORIGIN}/#/welcome?src=store`;
+
+/** "Installed" (with no account yet), and later the account it linked to: Admin's Web Store funnel (0.11.0). */
+async function reportInstall(source) {
+  try {
+    // A headless browser is a test run, never a student: the server leaves it out of the count.
+    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-install', source, device_id: await deviceIdP, ext_version: VERSION, browser: browserName(), headless: /Headless/.test(navigator.userAgent) }) });
+  } catch {
+    /* a count, never in the way */
+  }
+}
+async function reportLinked(key) {
+  const { linkedSent } = await get('linkedSent');
+  if (linkedSent || !key) return;
+  try {
+    const r = await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-linked', key, device_id: await deviceIdP }) });
+    const j = r.ok ? await r.json().catch(() => ({})) : {};
+    // Only once the server says the link took (the row may not be there yet on a slow install); else the next key says it again.
+    if (j && j.linked) await set({ linkedSent: new Date().toISOString() });
+  } catch {
+    /* tried again with the next key */
+  }
+}
+
 async function logRun(r) {
   try {
     const { syncKey } = await chrome.storage.local.get('syncKey');
@@ -128,13 +155,21 @@ chrome.runtime.onInstalled.addListener(async (d) => {
   // Versions compare as numbers: as text, "0.10.0" sorts before "0.3.0" (0.10.0 would have wiped this on every update).
   if (d.reason === 'update' && d.previousVersion && olderThan(d.previousVersion, '0.3.0')) await chrome.storage.local.remove(['lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt']);
   await ensureSchedule();
+  // A new install (0.11.0) is counted first, before the open tabs get their scripts: an open Halo+ tab sends the
+  // account's key at once, and the link it makes needs the install's row to be there.
+  const dash = d.reason === 'install' ? await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }).catch(() => []) : [];
+  const source = dash.length ? 'site' : 'store';
+  if (d.reason === 'install') await reportInstall(source);
   // Tabs already open get this extension's scripts now (0.5.2), not after a reload: an open Halo+ tab learns the plan
   // and the account at once (the setup screen sees the extension in seconds), and an open Halo tab can carry a sync.
   await addToOpenTabs();
-  // A new install comes from the store's tab: the student is taken back to Halo+, where the first sync shows (0.7.6).
+  // From Halo+'s own setup (a Halo+ tab is open) the student goes back to it, where the first sync shows (0.7.6). From
+  // the Chrome Web Store with no Halo+ tab, a short welcome tab opens instead: make the free account in one step, and
+  // the first sync happens on its own the next time they are on Halo.
   if (d.reason === 'install') {
     await sleep(800);
-    await focusDash();
+    if (source === 'store') await chrome.tabs.create({ url: WELCOME_URL, active: true }).catch(() => undefined);
+    else await focusDash();
   }
 });
 // A sync that was due while no browser window was open (Windows keeps the browser running in the background) runs when
@@ -182,6 +217,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       if (next && (waitingKey || before) && next !== (waitingKey || before)) await chrome.storage.local.remove(['waiting', 'waitingKey']);
       await set({ syncKey: next });
       if (next && next !== before) void fetchDone(true);
+      if (next) void reportLinked(next);
       if (next) await sendWaiting();
     })();
     reply({ ok: true });
@@ -304,10 +340,19 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
         if (!state.running) await runSync({ auto: false, quiet: true, setup: inSetup });
         return;
       }
-      if (!AUTO.includes(tier) || !autoPaused || state.running) return;
-      if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < 2 * 60_000) return;
+      if (AUTO.includes(tier) && autoPaused && !state.running) {
+        if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < 2 * 60_000) return;
+        await sleep(3000);
+        if (!state.running) await runSync({ auto: true });
+        return;
+      }
+      // On Halo, on any plan (0.11.0, Free syncs whenever it is on Halo): a quiet read of the tab the student is on,
+      // when nothing has tried in the last 30 minutes. Only with an account to land in; never a reload, never a badge.
+      const { syncKey } = await get('syncKey');
+      if (!syncKey || state.running || (setup && setup.phase && setup.phase !== 'done')) return;
+      if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < VISIT_MS) return;
       await sleep(3000);
-      if (!state.running) await runSync({ auto: true });
+      if (!state.running) await runSync({ auto: false, quiet: true, visit: true });
     })();
     reply({ ok: true });
   } else if (msg.kind === 'status') {
@@ -318,7 +363,8 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     // The extension setup in Halo+ just saw this extension: the first sync now, quietly (Halo+ is already in front).
     if (sender.tab) state.askedFrom = sender.tab.id;
     void get(['tier']).then(({ tier }) => {
-      if (!state.running && ['plus', 'pro', 'max'].includes(tier)) void runSync({ auto: false, quiet: true, setup: true });
+      // Any plan (0.11.0): Free syncs too, it just has no schedule.
+      if (!state.running && tier) void runSync({ auto: false, quiet: true, setup: true });
     });
     reply({ ok: true });
   } else if (msg.kind === 'reload-sync') {
@@ -628,7 +674,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 });
 
 /** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
-const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more'];
+const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek'];
 async function countHaloUi(event) {
   if (!HALO_UI.includes(event)) return;
   try {
@@ -694,7 +740,7 @@ async function letHaloSettle() {
   if (since < 12_000) await sleep(Math.min(20_000, 12_000 - since));
 }
 
-async function runSync({ auto, quiet = false, setup = false }) {
+async function runSync({ auto, quiet = false, setup = false, visit = false }) {
   if (state.running) return;
   state.running = true;
   if (auto || quiet) await letHaloSettle().catch(() => undefined);
@@ -709,7 +755,7 @@ async function runSync({ auto, quiet = false, setup = false }) {
   // Setup's first sync, asked for by Halo+'s Connect Halo (or resumed): only then does Halo+ come to the front after.
   const first = setup;
   await set({ running: true, runningSince: new Date().toISOString(), runningAuto: auto, runningSetup: first, runKey: run, progress: 'Opening Halo…', progressAt: new Date().toISOString(), lastAttemptAt: new Date().toISOString() });
-  void logRun({ run, phase: 'start', auto, setup: first });
+  void logRun({ run, phase: 'start', auto, setup: first, visit });
   const end = { outcome: 'failed', cause: 'other', retried: false, tab: null };
   try {
     // No browser window at all (Windows keeps Chrome and Edge running in the background): nothing to read Halo in.
@@ -722,8 +768,9 @@ async function runSync({ auto, quiet = false, setup = false }) {
     }
     if (first && !auto) await setupState('syncing');
     let r = await readHalo({ fresh: false });
-    // Reloading Halo fixes most failures (George, 2026-10-21): once, on its own, before anything is said.
-    if (!r.payload && r.retry) {
+    // Reloading Halo fixes most failures (George, 2026-10-21): once, on its own, before anything is said. Not on a visit's
+    // sync: that one is a quiet look at the page the student is reading, and simply waits for the next visit.
+    if (!r.payload && r.retry && !visit) {
       await set({ progress: 'Reloading Halo and trying again…', progressAt: new Date().toISOString() });
       void progressToTabs('Reloading Halo and trying again…');
       r = { ...(await readHalo({ fresh: true })), retried: true };
@@ -733,9 +780,10 @@ async function runSync({ auto, quiet = false, setup = false }) {
     if (!r.payload) {
       const e = explain(r.error);
       end.cause = causeOf(r.error, e.kind);
-      await failed(e, auto, { first, retried: end.retried });
+      await failed(visit ? { ...e, quiet: true } : e, auto, { first, retried: end.retried, visit });
       return;
     }
+    if (visit) r.payload.visit = true;
     const done = await finish(r.payload, auto, quiet, first);
     end.outcome = done.landed ? 'landed' : done.kind === 'foreign' || done.kind === 'plan' ? 'failed' : 'kept';
     end.cause = done.landed ? null : done.kind || 'not-landed';
@@ -743,7 +791,7 @@ async function runSync({ auto, quiet = false, setup = false }) {
     // Anything unexpected still ends the run in words, so no page waits forever.
     const why = e && e.message ? e.message : String(e);
     end.cause = causeOf(why);
-    await failed(explain(why), auto, { first }).catch(() => undefined);
+    await failed(explain(why), auto, { first, visit }).catch(() => undefined);
   } finally {
     clearInterval(alive);
     if (state.runId === myRun) {
@@ -752,7 +800,7 @@ async function runSync({ auto, quiet = false, setup = false }) {
       state.running = false;
       await set({ running: false, progress: null });
     }
-    void logRun({ run, phase: 'end', auto, setup: first, seconds: (Date.now() - t0) / 1000, ...end });
+    void logRun({ run, phase: 'end', auto, setup: first, visit, seconds: (Date.now() - t0) / 1000, ...end });
   }
 }
 
@@ -908,7 +956,9 @@ async function setPaused(why) {
   for (const t of tabs) chrome.tabs.sendMessage(t.id, { kind: 'ext-status', autoPaused: next }).catch(() => undefined);
 }
 
-async function failed(e, auto, { first = false, retried = false } = {}) {
+async function failed(e, auto, { first = false, retried = false, visit = false } = {}) {
+  // A visit's quiet sync that did not get through leaves the last real result alone: no error line, no mark.
+  if (visit) return;
   await set({ lastError: e.text, lastErrorKind: e.kind, lastErrorAt: new Date().toISOString() });
   void tellTabs({ ok: false, kind: e.kind, why: e.text, auto, retried });
   // Setup's popup says what is next: log in to Halo (it syncs by itself after), or that it did not finish.

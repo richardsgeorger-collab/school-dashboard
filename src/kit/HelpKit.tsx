@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { bump } from '../analytics/usage';
 import { useCan } from '../config/useCan';
 import { todoLines } from '../domain/sheet';
 import type { Course, Item } from '../domain/types';
@@ -28,6 +29,7 @@ export function HelpKitButton({ item, course }: { item: Item; course: Course }) 
   const tz = data.settings.timezone;
 
   const build = async () => {
+    bump('helpkit:build');
     setPhase('building');
     setNote('Gathering the assignment…');
     try {

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { bump } from '../analytics/usage';
 import { CourseChip } from '../components/CourseChip';
 import { Modal } from '../components/Modal';
 import { creditsFor, cumulativeGpa, fmtGpa, letterForPercent, semesterGpa } from '../domain/gpa';
@@ -19,7 +20,16 @@ export function GpaChip() {
   if (!data.courses.length || real.gpa === null) return null;
   return (
     <>
-      <button type="button" className="btn small gpa-chip" onClick={() => setOpen(true)} aria-haspopup="dialog" title="Semester GPA: by class, credits, what-if">
+      <button
+        type="button"
+        className="btn small gpa-chip"
+        onClick={() => {
+          setOpen(true);
+          bump('gpa:open');
+        }}
+        aria-haspopup="dialog"
+        title="Semester GPA: by class, credits, what-if"
+      >
         GPA <b>{fmtGpa(real.gpa)}</b>
       </button>
       {open && (

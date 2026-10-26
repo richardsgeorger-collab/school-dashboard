@@ -82,6 +82,9 @@ export interface Award {
   scoreFactor: number | null;
 }
 
+/** What kind of change an announcement made to an assignment, for Free's locked line. */
+export type LockedKind = 'due_date' | 'extra_step';
+
 export interface Item {
   id: string;
   courseId: string;
@@ -144,6 +147,11 @@ export interface Item {
   origin?: ReqSource;
   /** A date an announcement moved automatically. Shown struck through for a few days so the move is noticed. */
   dateChange?: { from: string; at: string; source: ReqSource };
+  /**
+   * Free (Loop 268): an announcement changed this assignment, and only the kind is known ("due date", "extra step"),
+   * never the details, which are part of Plus. Set by the kinds-only check (halo/peek.ts); cleared once Plus reads it.
+   */
+  lockedChange?: { kinds: LockedKind[]; postId: string; at: string } | null;
   /** The steps inside a big assignment. One item everywhere; this is just its inside. */
   steps?: Step[];
   /** Files Halo attached to the assignment (id, Halo's resource id, name); the help kit fetches them through the extension (2026-10-08). */
@@ -591,10 +599,14 @@ export interface Settings {
   upgradeSeen?: { plus?: string | null; max?: string | null };
   /** When the "Your free trial ended" screen was seen (once, the first open after the trial). */
   trialEndSeen?: string | null;
+  /** Announcements the Free kinds-only check has looked at (halo/peek.ts), so none is checked twice. Newest last, capped. */
+  peekedPosts?: string[];
   /** The GPA and credits on the transcript so far, for the projected cumulative GPA on Classes (2026-10-24). */
   gpaSoFar?: { gpa: number; credits: number } | null;
   /** The Chrome extension setup (2026-10-04): shown once; skipped puts a "Get the extension" line on Now for 7 days. */
   extSetup?: { shownAt?: string | null; skippedAt?: string | null; doneAt?: string | null };
+  /** Now's gentle "get the extension" card during the trial (Loop 268): the days it showed (twice at most). */
+  extNudge?: { shown: string[]; closed?: string[] } | null;
   /** The end-of-week "How much did Halo+ help?" answer: the number, or null when skipped. Asked once. */
   trialRating?: { rating: number | null; at: string } | null;
   /** When a friend-link student was asked, once, what is confusing or broken (day 3). */

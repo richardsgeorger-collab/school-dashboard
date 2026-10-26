@@ -226,7 +226,7 @@ export function planNotices(input: PlanInput): Notice[] {
         kind: 'trial_ends',
         sendAt: r.sendAt,
         title: last ? 'Last day of your free Max' : 'Your free Max ends in 2 days',
-        body: `${recap.trim() ? `${recap.trim()} ` : ''}${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: Halo sync pauses and the study tools lock. Nothing charges.`,
+        body: `${recap.trim() ? `${recap.trim()} ` : ''}${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: announcements stop being read for you and the study tools lock. Halo keeps syncing. Nothing charges.`,
         url: '#/you?s=plan',
         key: `trial_ends:${cal.lastDay}:${r.daysBefore}`,
       });

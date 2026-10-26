@@ -49,6 +49,8 @@ export interface HaloSnapItem {
   /** Halo's topic (course unit) the assignment sits on, and Halo's own type ("QUIZ"): where "open in Halo" goes. */
   u?: string;
   hy?: string;
+  /** Free (Loop 268): the kinds of change an announcement made, never the details ("due_date", "extra_step"). */
+  lk?: string[];
 }
 
 export interface HaloSnapClass {
@@ -129,6 +131,7 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
       done: open ? 0 : 1,
       x: open ? extras.length : 0,
       ...(open && extras.length ? { xs: extras.slice(0, 3).map((r) => shortLine(r.text)) } : {}),
+      ...(open && i.lockedChange?.kinds.length ? { lk: [...i.lockedChange.kinds] } : {}),
       ...(moved ? { m: new Date(moved).toISOString() } : {}),
       ...(isParticipation(i) ? { pa: 1 as const } : {}),
       ...(noHaloSubmission(i) ? { ns: 1 as const } : {}),

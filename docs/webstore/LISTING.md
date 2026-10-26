@@ -1,6 +1,29 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.10.4 (2026-10-24): paste exactly this
+## The listing now: 0.11.0 (2026-10-25): paste exactly this
+
+0.11.0 (Loop 268): Free syncs whenever the student is on Halo (one quiet read of the page they are on, at most every 30
+minutes; Plus and Max keep the 3-hour background schedule); a Web Store install with no Halo+ tab open gets a short
+welcome tab (one step: make the free account) and syncs on its own on the next Halo visit; before an account exists a
+Halo page shows only a small "Set up Halo+" pill; Free is told, once per assignment and only the kind, when an
+announcement changed a due date or added a step ("see it with Plus"). No new permission since 0.7.2; the Privacy tab is
+unchanged. The description's last bullet changes (sync on any plan).
+
+| Where in the dashboard | What |
+|---|---|
+| **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.11.0.zip` |
+| **Store listing → Description** | the Description block below, all of it (the last bullet is new) |
+| **Store listing → Screenshots** | unchanged from 0.10.4 (`webstore-upload/screenshots/1-this-week-on-halo.png` … `5-announcements-caught.png`) |
+| **Privacy** | unchanged (no new permission) |
+| Then | **Submit for review** |
+
+The 0.11.0 description is the 0.10.4 one below with its last bullet replaced by:
+
+```
+• Syncs whenever you're on Halo. Plus and Max also sync on their own every 3 hours while Chrome is open.
+```
+
+## The listing before: 0.10.4 (2026-10-24)
 
 Same title and summary (they live in the package, unchanged since 0.7.2). The description gains one line for "This
 week" on Halo's home page and one for the GPA, and loses "7 days free, no card" (no price or trial talk before someone

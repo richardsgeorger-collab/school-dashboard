@@ -1,7 +1,7 @@
 import { ExtensionSetup } from './onboarding/ExtensionSetup';
 import { isDemo } from './demo/demo';
 import { DemoHost } from './demo/DemoHost';
-import { extSetupDue } from './onboarding/extSetup';
+import { type ExtSetupKind, extSetupDue } from './onboarding/extSetup';
 import { useNeverSynced } from './onboarding/Setup';
 import { useTrialSyncStart } from './auth/useTrialSyncStart';
 import { useTrialTouch } from './auth/useTrialTouch';
@@ -44,6 +44,7 @@ import './styles/trial.css';
 import './styles/joy.css';
 import { Landing } from './landing/Landing';
 import { Login } from './landing/Login';
+import { Welcome } from './landing/Welcome';
 import { useFront } from './landing/useShowLanding';
 import { accentToShow, applyAccent } from './config/accents';
 import { can, trialState } from './config/flags';
@@ -80,6 +81,7 @@ import { NowTour } from './onboarding/NowTour';
 import { Onboarding } from './onboarding/Onboarding';
 import { Upgrade, upgradeDue } from './onboarding/Upgrade';
 import { TrialEnded } from './views/trialEnd/TrialEnded';
+import { trialEndDue } from './views/trialEnd/due';
 import { JoyHost } from './joy/JoyHost';
 import { HaloSnapHost } from './halo/HaloSnapHost';
 import { connectReopen, initialState, isOpen, normalStep, tourPending } from './onboarding/state';
@@ -325,6 +327,10 @@ function OnboardingHost() {
   const { route, params, navigate } = useRoute();
   const front = useFront();
   const ext = useExtension();
+  // Once open, the extension setup stays until Done or Skip (2026-10-25): the extension arriving mid-setup (its version
+  // written on this page) made the gate below say "connected" and unmounted the sheet before its Connect step could say
+  // "First sync running".
+  const extLatch = useRef<ExtSetupKind | null>(null);
   // Settled: the sign-in is known and, when signed in, the account's first load is done. Before that a signed-in
   // student on a new device looked signed out for a few seconds on a slow network, and onboarding started (audit).
   const signedIn = !!auth.session || !!auth.knownUserId;
@@ -333,7 +339,7 @@ function OnboardingHost() {
   const settled = !auth.loading && (!signedIn || sync.checked);
   const fresh = data.courses.length === 0 && data.items.length === 0 && !data.settings.lastPull;
   useEffect(() => {
-    if (front !== 'app' || route === 'login' || !settled) return;
+    if (front !== 'app' || route === 'login' || route === 'welcome' || !settled) return;
     const s = initialState(data.settings, data.courses);
     if (!s) return;
     // Sign up, then Connect Halo (2026-10-13): no welcome screen and no plan story in between.
@@ -352,7 +358,7 @@ function OnboardingHost() {
   const access = useSyncAccess();
   const createdAt = auth.session?.user.created_at ?? null;
   useEffect(() => {
-    if (front !== 'app' || route === 'login' || !settled || !never || !auth.session || !access.allowed || !planKnown || profile?.isAdmin || isDemo()) return;
+    if (front !== 'app' || route === 'login' || route === 'welcome' || !settled || !never || !auth.session || !access.allowed || !planKnown || profile?.isAdmin || isDemo()) return;
     const patch = connectReopen(ob, { touch: isTouchDevice(), createdAt });
     if (!patch) return;
     track('connect:reopen', 'enter');
@@ -363,7 +369,7 @@ function OnboardingHost() {
   const preview = params.get('preview');
   if (profile?.isAdmin && (preview === 'trial-end' || preview === 'trial-end-gift'))
     return <TrialEnded preview={{ gift: preview === 'trial-end-gift', onGift: (g: boolean) => navigate(route, { preview: g ? 'trial-end-gift' : 'trial-end' }), onClose: () => navigate(route, {}) }} />;
-  if (front !== 'app' || route === 'login') return null;
+  if (front !== 'app' || route === 'login' || route === 'welcome') return null;
   // An account still arriving on a device with nothing of its own: a quiet wait, never onboarding or an empty Now.
   if (signedIn && !settled && fresh) return <AccountLoading failed={sync.status === 'error'} onRetry={() => void actions.syncNow()} />;
   if (isOpen(ob)) return <Onboarding />;
@@ -378,19 +384,22 @@ function OnboardingHost() {
   if (due) return <Upgrade kind={due} />;
   if (loading || !planKnown) return null;
   // The first open after a trial ends: one clear screen, before anything else.
-  if (trialState(profile) === 'used' && tier === 'free' && !!profile?.trialEndsAt && !profile.friendFrom && !data.settings.trialEndSeen) return <TrialEnded />;
+  if (trialEndDue(profile, tier, data.settings.trialEndSeen)) return <TrialEnded />;
   // The Chrome extension setup (2026-10-04): once for everyone on a computer without it (after sign-up for someone new),
   // and again from the "Get the extension" line on Now (#/now?ext=1).
   const again = params.get('ext') === '1';
   // Not straight after "Stay on Free" (2026-10-24): on Free its screen is "syncing is part of Plus", a second pitch
   // seconds after the student chose Free. It waits a day.
   const justChoseFree = tier === 'free' && !!data.settings.trialEndSeen && Date.now() - Date.parse(data.settings.trialEndSeen) < 86_400_000;
-  const extKind = again ? (ext.browser ? 'setup' : 'needs-chrome') : justChoseFree ? null : extSetupDue({ settings: data.settings, browser: ext.browser, touch: isTouchDevice(), installed: installedVersion(), storeUrl: ext.url });
+  const extKindNow = again ? (ext.browser ? 'setup' : 'needs-chrome') : justChoseFree ? null : extSetupDue({ settings: data.settings, browser: ext.browser, touch: isTouchDevice(), installed: installedVersion(), storeUrl: ext.url });
+  if (extKindNow && !extLatch.current) extLatch.current = extKindNow;
+  const extKind = extLatch.current ?? extKindNow;
   if (extKind && (!again || !isTouchDevice()))
     return (
       <ExtensionSetup
         kind={extKind}
         onClose={(how) => {
+          extLatch.current = null;
           const now = new Date().toISOString();
           actions.updateSettings({ extSetup: { ...(data.settings.extSetup ?? {}), shownAt: data.settings.extSetup?.shownAt ?? now, ...(how === 'done' ? { doneAt: now } : { skippedAt: data.settings.extSetup?.skippedAt ?? now }) } });
           if (again) navigate(route, {});
@@ -573,6 +582,8 @@ function Shell({ captureOpen, paletteOpen, onSync, onCapture, onCloseCapture, on
     );
   if (front === 'landing') return <Landing />;
   if (route === 'login') return <Login />;
+  // After a Chrome Web Store install (Loop 268): sign up in one step, nothing else.
+  if (route === 'welcome') return <Welcome />;
   return (
     <div className="app">
       <TopBar onSync={onSync} onCapture={onCapture} />
