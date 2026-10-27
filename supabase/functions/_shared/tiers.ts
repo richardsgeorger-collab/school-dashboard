@@ -250,7 +250,7 @@ export const FEATURE_LINES: Record<Feature, string> = {
 
 /** What each paid plan is, in the words every price card, locked message and the landing page share. */
 export const PLAN_LINES: Record<'free' | Paid, string[]> = {
-  free: ["Halo syncs whenever you're on Halo", "Due dates, points and grades as Halo shows them, and your GPA", 'Now, Calendar, Classes, and This week on Halo'],
+  free: ["Halo syncs whenever you're on Halo", "Due dates, points and grades as Halo shows them, and your GPA", 'Now, Calendar, Classes, and This week on Halo', 'A heads-up when an announcement changed a due date or added a step'],
   plus: ['Every announcement read for you: hidden due dates, moved dates, extra steps', "Auto-sync every 3 hours, even when you're not on Halo", 'Reminders: a morning note and a nudge before something slips', 'The Sunday preview and your deadlines in Google or Apple Calendar'],
   max: ['Everything in Plus, auto-sync included', 'Ask: a study partner that knows your classes, slides and announcements', 'Practice: study plans, worksheets with answers, quiz me, flashcards', 'Check my work against the rubric, lecture notes, your own colour'],
 };

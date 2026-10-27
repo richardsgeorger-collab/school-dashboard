@@ -300,6 +300,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   } else if (msg.kind === 'week-undo') {
     void weekUndo(msg.id);
     reply({ ok: true });
+  } else if (msg.kind === 'grade') {
+    // A class grade read straight from Halo's page (0.11.1): to the account, so the app and the GPA match. No sync.
+    void sendGrade(msg);
+    reply({ ok: true });
   } else if (msg.kind === 'halo-ui') {
     // What happened to Halo+ on a Halo page (shown, closed, clicked), counted for Admin (0.8.0).
     void countHaloUi(msg.event);
@@ -610,6 +614,17 @@ async function weekUndo(id) {
   }
 }
 let sendingMarks = false;
+/** One class's fresh grade to the account through the sync key (0.11.1): only that class's Halo grade changes. */
+async function sendGrade(m) {
+  try {
+    const { syncKey } = await get(['syncKey']);
+    if (!syncKey || typeof m.slug !== 'string' || !m.slug) return;
+    await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, grade: { slug: m.slug, letter: m.letter ?? null, points: m.points, maxPoints: m.maxPoints, at: m.at } }) });
+  } catch {
+    /* the page keeps the grade; the next sync brings it to the account anyway */
+  }
+}
+
 async function sendMarks() {
   if (sendingMarks) return;
   sendingMarks = true;
@@ -674,7 +689,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 });
 
 /** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
-const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek'];
+const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed'];
 async function countHaloUi(event) {
   if (!HALO_UI.includes(event)) return;
   try {

@@ -70,7 +70,7 @@ export function Landing() {
         <Tile title="On your phone" text="Add it to your Home Screen.">
           <Phone />
         </Tile>
-        <Tile title="Syncs on its own" text="Every 3 hours. Never your password.">
+        <Tile title="Keeps itself current" text="Whenever you’re on Halo, or every 3 hours on its own. Never your password.">
           <SyncSpin />
         </Tile>
         <Tile wide title="Ask anything about your classes" text="Answers from your own class material.">
@@ -117,7 +117,7 @@ export function Landing() {
         <dl>
           <div>
             <dt>Does it need my GCU password?</dt>
-            <dd>No, and it never asks. It uses the Halo session already in your browser, and its code is public.</dd>
+            <dd>No, and it never asks. The Chrome extension reads only your own classes, grades and announcements, and only while you’re already logged in to Halo in that browser. It sends them to your own Halo+ account, and its code is public so anyone can check.</dd>
           </div>
           <div>
             <dt>Is this from GCU?</dt>
@@ -125,7 +125,7 @@ export function Landing() {
           </div>
           <div>
             <dt>What happens to my data?</dt>
-            <dd>It is yours. Export it or delete all of it any time.</dd>
+            <dd>It is yours. It is never sold or shared with advertisers, and you can export or delete all of it any time.</dd>
           </div>
           <div>
             <dt>Does it work on my phone?</dt>

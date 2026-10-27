@@ -10,6 +10,11 @@ export async function recordExtInstall(db: any, b: Record<string, unknown>): Pro
   if (b.kind === 'ext-install') {
     // Test browsers (headless) install the extension all day; they are not students.
     if (b.headless === true) return { ok: true, why: 'headless' };
+    // Anyone can say "installed" (a Web Store install has no account yet), so a flood is cut off: at most 30 unlinked
+    // installs in any 10 minutes (Loop 269 review). Admin's trusted number is installs that later linked to an account.
+    const since = new Date(Date.now() - 10 * 60_000).toISOString();
+    const { count } = await db.from('ext_installs').select('device_id', { count: 'exact', head: true }).is('user_id', null).gte('installed_at', since);
+    if ((count ?? 0) >= 30) return { ok: true, why: 'busy' };
     const source = b.source === 'store' ? 'store' : 'site';
     const { error } = await db.from('ext_installs').upsert({ device_id: device, source, ext_version: typeof b.ext_version === 'string' ? b.ext_version.slice(0, 20) : null, browser: typeof b.browser === 'string' ? b.browser.slice(0, 20) : null }, { onConflict: 'device_id', ignoreDuplicates: true });
     return { ok: !error, why: error?.message };

@@ -120,6 +120,8 @@
         code: c.courseCode || '',
         name: c.name || '',
         g: c.finalGrade && typeof c.finalGrade.finalPoints === 'number' && c.finalGrade.maxPoints ? Math.round((c.finalGrade.finalPoints / c.finalGrade.maxPoints) * 1000) / 10 : null,
+        // Halo's own letter (gradeValue), as its gradebook shows it (0.11.1).
+        gl: c.finalGrade && c.finalGrade.letter ? String(c.finalGrade.letter).slice(0, 4) : null,
         // The eighth field: no submission in Halo, as Halo itself says it (0.9.2): an outside tool (LTI), or its own inPerson
         // ("Not Submitted in Halo"); never the IN_PERSON tag alone, and never anything handed in.
         a: (c.assessments || []).filter((a) => a && a.id && a.type !== 'PARTICIPATION').map((a) => [a.id, String(a.title || '').slice(0, 120), a.dueDate || null, a.points || 0, a.type || '', done(a) ? 1 : 0, a.unitId || null, !a.submittedAt && !/SUBMITTED/i.test(a.status || '') && (a.type === 'LTI' || a.inPerson === true) ? 1 : 0]),
@@ -149,7 +151,7 @@
     const classes = [];
     const bySlug = new Map();
     for (const c of (s && s.classes) || []) {
-      const k = { key: c.id, code: c.code, cc: c.cc || '', slug: c.slug || '', name: c.name || '', g: typeof c.g === 'number' ? c.g : null, col: c.col || null };
+      const k = { key: c.id, code: c.code, cc: c.cc || '', slug: c.slug || '', name: c.name || '', g: typeof c.g === 'number' ? c.g : null, gl: c.gl || null, ga: c.ga || snapAt(s), col: c.col || null };
       classes.push(k);
       if (k.slug) bySlug.set(k.slug, k);
     }
@@ -159,12 +161,16 @@
     for (const lc of (l && l.classes) || []) {
       let k = bySlug.get(lc.slug);
       if (!k) {
-        k = { key: `live:${lc.slug}`, code: lc.code, cc: lc.cc, slug: lc.slug, name: lc.name, g: null, col: null };
+        k = { key: `live:${lc.slug}`, code: lc.code, cc: lc.cc, slug: lc.slug, name: lc.name, g: null, gl: null, ga: null, col: null };
         classes.push(k);
         bySlug.set(lc.slug, k);
       }
       if (!k.cc) k.cc = lc.cc;
-      if (typeof lc.g === 'number' && (!snapSynced || l.at >= snapSynced)) k.g = lc.g;
+      if (typeof lc.g === 'number' && (!snapSynced || l.at >= snapSynced)) {
+        k.g = lc.g;
+        k.gl = lc.gl || null;
+        k.ga = l.at;
+      }
       for (const [id, t, due, pts, type, done, unit, ns] of lc.a) {
         const it = byHalo.get(id);
         if (it) {
@@ -370,6 +376,31 @@
   }
 
   /** The line under a class card: gray by default, gold for a real extra requirement, red for graded work overdue. */
+  /** When the snapshot's grades were last true: its sync. */
+  const snapAt = (s) => (s && s.syncedAt) || null;
+
+  /**
+   * Grades read straight from Halo's page (0.11.1, the refresh on a class line): each class's, by slug, over what the
+   * snapshot and the last sync say when it is newer. `grades`: { [slug]: { g, gl, at } }.
+   */
+  function withGrades(view, grades) {
+    if (!view || !grades) return view;
+    for (const c of view.classes) {
+      const f = c.slug && grades[c.slug];
+      if (!f || typeof f.g !== 'number' || (c.ga && f.at < c.ga)) continue;
+      c.g = f.g;
+      c.gl = f.gl || null;
+      c.ga = f.at;
+    }
+    return view;
+  }
+
+  /** "B 86.0%": Halo's letter and percent, as its gradebook shows them. Null when Halo has no grade yet. */
+  function gradeText(cls) {
+    if (!cls || typeof cls.g !== 'number') return null;
+    return `${cls.gl ? `${cls.gl} ` : ''}${cls.g.toFixed(1)}%`;
+  }
+
   function classLine(view, cls, now) {
     const t = nowMs(now);
     const mine = view.items.filter((i) => i.c === cls.key && !i.done && !isPart(i) && !quietPast(i, t));
@@ -378,6 +409,9 @@
     // Assignments (due in the next two weeks) with something an announcement added: one per assignment, not per line.
     const extra = mine.filter((i) => boxLines(i).length > 0 && ms(i.due) >= t && ms(i.due) - t <= 14 * DAY);
     const parts = [];
+    // The class grade first (0.11.1): what the student looks for on the card. The page drops later parts, never this one.
+    const grade = gradeText(cls);
+    if (grade) parts.push({ tone: 'grade', text: grade });
     // Short enough for Halo's narrowest card (0.10.3, George: "1 with extra require…" was cut off); the page drops the
     // last part rather than cut one (halo-ui.js).
     if (overdue) parts.push({ tone: 'red', text: `${overdue} overdue` });
@@ -510,6 +544,6 @@
     return `${origin}/#/now?${q({ from: 'halo', via })}`;
   }
 
-  const api = { doneFrom, haloHref, rowTime, week, quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
+  const api = { withGrades, gradeText, doneFrom, haloHref, rowTime, week, quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
   root.HaloPlusModel = api;
 })(globalThis);

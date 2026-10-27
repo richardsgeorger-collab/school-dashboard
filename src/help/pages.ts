@@ -55,7 +55,7 @@ export const HELP_PAGES: HelpPage[] = [
 </ul>`,
       },
     ],
-    haloPlus: `Halo+ is a planner that does the copying for you. You click one bookmark while you're logged in to Halo, and your classes, assignments, due dates, grades and announcements come over into one list ranked by what's due first, how long it takes and how many points it's worth. When a date moves in Halo, it moves in Halo+ on the next sync. Halo sync is part of ${TIER_NAMES.plus} (${plus} a month), and every new account gets ${TIER_NAMES.max} free for ${trial} with no card.`,
+    haloPlus: `Halo+ is a planner that does the copying for you. With the Chrome extension, every time you're on Halo your classes, assignments, due dates, grades and announcements come over into one list ranked by what's due first, how long it takes and how many points it's worth. When a date moves in Halo, it moves in Halo+ on the next sync. Halo sync, due dates and Halo's grades are on the Free plan; reading every announcement for you is part of ${TIER_NAMES.plus} (${plus} a month), and every new account gets ${TIER_NAMES.max} free for ${trial} with no card.`,
     faq: [
       {
         q: 'Does Halo have one page with every due date from every class?',
@@ -97,7 +97,7 @@ export const HELP_PAGES: HelpPage[] = [
         body: `<p>Twice a week, say Monday and Thursday, open every class's announcements and read anything new. It takes five minutes, and it's the habit that saves the most points.</p>`,
       },
     ],
-    haloPlus: `Halo+ reads every announcement in every class for you. When one asks for something (a moved date, a format, a thing to bring), it puts that on the assignment it's about, in your professor's own words, and flags it on your Now screen. Announcements come with Halo sync on ${TIER_NAMES.plus} (${plus} a month), and the free ${TIER_NAMES.max} every new account gets (${trial}) includes it.`,
+    haloPlus: `Halo+ reads every announcement in every class for you. When one asks for something (a moved date, a format, a thing to bring), it puts that on the assignment it's about, in your professor's own words, and flags it on your Now screen. On Free you're told when an announcement changed a due date or added a step, not what it changed to; the reading is part of ${TIER_NAMES.plus} (${plus} a month), and the free ${TIER_NAMES.max} every new account gets (${trial}) includes it.`,
     faq: [
       {
         q: 'Why do GCU professors put requirements in announcements?',
@@ -139,7 +139,7 @@ export const HELP_PAGES: HelpPage[] = [
         body: `<p>An imported file is a snapshot. It won't know when a professor moves a date, it has no grades or points, and it doesn't include what announcements ask for. Re-import every week or two, and keep reading announcements.</p>`,
       },
     ],
-    haloPlus: `Halo+ keeps your Halo work in its own calendar (month and day-by-day views), and each sync re-reads Halo, so a moved date moves. It can also put every due date into Google Calendar, Apple Calendar or Outlook through a private link you add once: Apple and Outlook re-read it about every hour, Google a few times a day. The calendar views are free; Halo sync and the calendar link are part of ${TIER_NAMES.plus} (${plus} a month), with ${TIER_NAMES.max} free for ${trial} when you sign up.`,
+    haloPlus: `Halo+ keeps your Halo work in its own calendar (month and day-by-day views), and each sync re-reads Halo, so a moved date moves. It can also put every due date into Google Calendar, Apple Calendar or Outlook through a private link you add once: Apple and Outlook re-read it about every hour, Google a few times a day. The calendar views and Halo sync are free; the calendar link is part of ${TIER_NAMES.plus} (${plus} a month), with ${TIER_NAMES.max} free for ${trial} when you sign up.`,
     faq: [
       {
         q: 'Can I subscribe to my GCU Halo due dates in Google Calendar?',
@@ -181,7 +181,7 @@ export const HELP_PAGES: HelpPage[] = [
 </ul>`,
       },
     ],
-    haloPlus: `Halo+ works on iPhone and iPad as a Home Screen app, with notifications for what's due (on iPhone, notifications need it added to the Home Screen, which the app walks you through). The sync bookmark works on a phone too: you add it once and tap it while you're logged in to Halo in Safari. Halo sync is part of ${TIER_NAMES.plus} (${plus} a month); every new account gets ${TIER_NAMES.max} free for ${trial}.`,
+    haloPlus: `Halo+ works on iPhone and iPad as a Home Screen app, with notifications for what's due (on iPhone, notifications need it added to the Home Screen, which the app walks you through). Your laptop's Chrome extension syncs Halo; on a phone, the sync bookmark does the same: add it once and tap it while you're logged in to Halo in Safari. Halo sync is free; reminders are part of ${TIER_NAMES.plus} (${plus} a month), and every new account gets ${TIER_NAMES.max} free for ${trial}.`,
     faq: [
       {
         q: 'Is there an official Halo app for iPhone?',
@@ -223,7 +223,7 @@ export const HELP_PAGES: HelpPage[] = [
         body: `<p>If you have a couple of classes, check Halo every day and keep a list you trust, Halo on its own is fine. Halo+ is for when you have five or six classes, deadlines keep sneaking up, or announcements keep changing what an assignment needs.</p>`,
       },
     ],
-    haloPlus: `How Halo+ gets your data: you click a bookmark while you're logged in to Halo, and it reads your classes, assignments, grades and announcements from that page. It never sees your password, and its code is public on GitHub. The Free plan works from a syllabus and things you add; Halo sync is ${TIER_NAMES.plus} (${plus} a month); the AI study tools are ${TIER_NAMES.max} (${max} a month). Every new account gets ${TIER_NAMES.max} free for ${trial}, no card.`,
+    haloPlus: `How Halo+ gets your data: the Chrome extension reads your classes, assignments, grades and announcements while you're on Halo (on a phone, a bookmark does the same). It never sees your password, and its code is public on GitHub. Free syncs Halo whenever you're on Halo and shows due dates, points, grades and your GPA. ${TIER_NAMES.plus} (${plus} a month) reads every announcement for you and syncs on its own every 3 hours. ${TIER_NAMES.max} (${max} a month) adds the AI study tools. Every new account gets ${TIER_NAMES.max} free for ${trial}, no card.`,
     faq: [
       {
         q: 'Is Halo+ made by GCU?',
@@ -235,7 +235,7 @@ export const HELP_PAGES: HelpPage[] = [
       },
       {
         q: 'Does Halo+ need my GCU password?',
-        a: 'No, and it never asks. The sync bookmark works because you are already logged in to Halo in that browser.',
+        a: 'No, and it never asks. The Chrome extension (or the sync bookmark) works because you are already logged in to Halo in that browser.',
       },
     ],
   },
@@ -257,7 +257,7 @@ export const HELP_PAGES: HelpPage[] = [
 <p>Example: a class worth 1,000 points. You've earned 520 of the 600 graded so far (86.7%). You want 90% overall, which is 900 points. You need 900 − 520 = 380 of the remaining 400, or 95% on everything left. If that's not realistic, an 80% (B) needs 280 of 400, or 70%.</p>`,
       },
     ],
-    haloPlus: `Halo+ shows Halo's real grades for every class on one screen and works out what you need on the rest of the term for the grade you want. Grades come with Halo sync on ${TIER_NAMES.plus} (${plus} a month), and ${TIER_NAMES.max} is free for ${trial} when you sign up.`,
+    haloPlus: `Halo+ shows Halo's real grades for every class on one screen, with your GPA, and works out what you need on the rest of the term for the grade you want. Grades and the GPA are free with Halo sync; what you need on the rest of the term is part of ${TIER_NAMES.plus} (${plus} a month), and ${TIER_NAMES.max} is free for ${trial} when you sign up.`,
     faq: [
       {
         q: 'Why does my Halo grade change so much early in the class?',
@@ -293,8 +293,8 @@ export const HELP_PAGES: HelpPage[] = [
       {
         h: 'How Halo+ handles it',
         body: `<ul>
-<li><b>No password.</b> The sync bookmark runs on Halo's own page while you're logged in there. It never sees your GCU password and never asks for it.</li>
-<li><b>What it reads</b>: your classes, assignments, due dates, grades, feedback and announcements, and you approve the changes before they're applied.</li>
+<li><b>No password.</b> The Chrome extension (or the sync bookmark) runs on Halo's own page while you're logged in there. It never sees your GCU password and never asks for it.</li>
+<li><b>What it reads</b>: your classes, assignments, due dates, grades, feedback and announcements. Each sync shows what changed, with an Undo; anything that would remove something from your planner waits for your OK.</li>
 <li><b>Your account</b>: each account can read only its own data, enforced by the database.</li>
 <li><b>AI features</b> send only the text they need, and the AI provider does not train on it.</li>
 <li><b>Export or delete</b> everything from the You page at any time.</li>
@@ -307,7 +307,7 @@ export const HELP_PAGES: HelpPage[] = [
     faq: [
       {
         q: 'Does Halo+ need my GCU password?',
-        a: 'No, and it never asks. The bookmark works because you are already logged in to Halo in that browser. The code is public on GitHub, so anyone can check.',
+        a: 'No, and it never asks. The Chrome extension (or the bookmark) works because you are already logged in to Halo in that browser. The code is public on GitHub, so anyone can check.',
       },
       {
         q: 'Is Halo+ from GCU?',
@@ -544,8 +544,8 @@ Website: ${SITE}
 
 ## How it connects to Halo
 
-- A bookmark ("Sync Halo") the student clicks while logged in to halo.gcu.edu. It runs on Halo's page and never sees or asks for the student's GCU password. An optional Chrome extension syncs on its own every 3 hours while Chrome is open, and any time the student presses Sync now (${TIER_NAMES.plus} and ${TIER_NAMES.max}).
-- The student reviews changes before they are applied. Assignments are still submitted in Halo; Halo+ only plans.
+- The Halo+ Chrome extension (the main way) runs on Halo's own page while the student is logged in to halo.gcu.edu and never sees or asks for the GCU password. On every plan it syncs whenever the student is on Halo, and any time they press Sync now. On ${TIER_NAMES.plus} and ${TIER_NAMES.max} it also syncs on its own every 3 hours while Chrome is open. On a phone or in a browser without the extension, a bookmark ("Sync Halo") does the same sync by hand.
+- The first sync and the extension's own syncs apply on their own, with a note that says what changed and an Undo; anything that would remove an item waits for the student's review, and a bookmark sync is shown for review first. Assignments are still submitted in Halo; Halo+ only plans.
 - Source code is public: https://github.com/richardsgeorger-collab/school-dashboard
 
 ## Plans (US dollars)

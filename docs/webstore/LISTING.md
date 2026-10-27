@@ -1,26 +1,43 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.11.0 (2026-10-25): paste exactly this
+## The listing now: 0.11.1 (2026-10-26): paste exactly this
 
-0.11.0 (Loop 268): Free syncs whenever the student is on Halo (one quiet read of the page they are on, at most every 30
-minutes; Plus and Max keep the 3-hour background schedule); a Web Store install with no Halo+ tab open gets a short
-welcome tab (one step: make the free account) and syncs on its own on the next Halo visit; before an account exists a
-Halo page shows only a small "Set up Halo+" pill; Free is told, once per assignment and only the kind, when an
-announcement changed a due date or added a step ("see it with Plus"). No new permission since 0.7.2; the Privacy tab is
-unchanged. The description's last bullet changes (sync on any plan).
+0.11.1 (Loop 269): each class's grade on its Halo Student Home card ("Halo+ · B 86.0% ↻ · 1 this week"), Halo's own
+letter and percent, with a refresh that reads that one class's grade straight from Halo (no sync, no Halo tab), saved
+to the account; nothing twice when Better Halo already shows the grade. 0.11.0 (Loop 268): Free syncs whenever the
+student is on Halo; a Web Store install gets a one-step welcome tab; a small "Set up Halo+" pill before an account
+exists. No new permission since 0.7.2; the Privacy tab is unchanged. The description below is complete (two bullets
+are new and the closing paragraph is rewritten: it still said Plus was what synced Halo).
 
 | Where in the dashboard | What |
 |---|---|
-| **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.11.0.zip` |
-| **Store listing → Description** | the Description block below, all of it (the last bullet is new) |
+| **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.11.1.zip` |
+| **Store listing → Description** | the Description block below, all of it |
 | **Store listing → Screenshots** | unchanged from 0.10.4 (`webstore-upload/screenshots/1-this-week-on-halo.png` … `5-announcements-caught.png`) |
 | **Privacy** | unchanged (no new permission) |
 | Then | **Submit for review** |
 
-The 0.11.0 description is the 0.10.4 one below with its last bullet replaced by:
+**Description** (Store listing → Description):
 
 ```
+Halo buries your due dates in five places: the assignment page, the gradebook, the syllabus, a discussion thread, and the announcements your professor posts on a Tuesday night that move a quiz or add "bring goggles to lab." Miss one and it costs you points.
+
+Halo+ reads all of it and gives every GCU class one plan: what's due next, what changed, and what to start today.
+
+What Halo+ does that a plain calendar can't:
+• Reads your Halo announcements for you. A due date that moved, a new requirement, "closed-toe shoes for Lab 4": caught and put on the right assignment.
+• "This week" on Halo's home page: everything due across your classes, in Halo's own look.
+• Your grade on every class card on Halo's home page, with a refresh that reads it straight from Halo.
+• Tells you what's due next, not just what's due. One card says what to start now, with how long it takes and what it's worth.
+• Your real Halo grades for every class, and your semester GPA worked out from them.
+• Works on your phone. Your laptop syncs Halo; open Halo+ on your phone and the whole week is there.
 • Syncs whenever you're on Halo. Plus and Max also sync on their own every 3 hours while Chrome is open.
+
+After Add to Chrome: make a free Halo+ account (one step), then open Halo. Your classes, due dates and grades come in on their own, and This week shows on Halo's home page. About two minutes.
+
+Built for Grand Canyon University students who use Halo: assignments, due dates, a calendar and a planner in one place. The extension reads only your own Halo, while you're logged in there. It never asks for, sees or stores your GCU password, and it sends your classes only to your own Halo+ account. The code is public: https://github.com/richardsgeorger-collab/school-dashboard. Free syncs Halo whenever you're on Halo and shows your due dates, grades and GPA; Plus reads every announcement for you and syncs on its own every 3 hours; Max adds the study tools.
+
+Not affiliated with GCU.
 ```
 
 ## The listing before: 0.10.4 (2026-10-24)

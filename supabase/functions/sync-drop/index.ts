@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       return reply(origin, 400, { ok: false, why: 'The sync arrived damaged. Press Sync now to try again.' });
     }
     if (raw.length > MAX_BYTES) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
-    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown; done?: unknown; mark?: unknown };
+    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown; done?: unknown; mark?: unknown; grade?: unknown };
     try {
       body = JSON.parse(raw);
     } catch {
@@ -102,6 +102,31 @@ Deno.serve(async (req) => {
       const { error } = await dbm.from('items').update({ data: next, updated_at: now }).eq('user_id', who.user_id).eq('id', id);
       if (error) return reply(origin, 500, { ok: false, why: 'Could not save that. Try again.' });
       return reply(origin, 200, { ok: true, prev: m.done === true ? was : undefined });
+    }
+    // One class's grade, read straight from Halo's page by the extension (0.11.1: the refresh on the class line). Only
+    // that class's Halo grade changes, and only when it is newer than the one on file; no sync, nothing else touched.
+    if (body.grade && typeof body.grade === 'object') {
+      const g = body.grade as { slug?: unknown; letter?: unknown; points?: unknown; maxPoints?: unknown; at?: unknown };
+      const slug = typeof g.slug === 'string' ? g.slug.slice(0, 120) : '';
+      const pts = typeof g.points === 'number' && Number.isFinite(g.points) && g.points >= 0 ? g.points : null;
+      const max = typeof g.maxPoints === 'number' && Number.isFinite(g.maxPoints) && g.maxPoints > 0 ? g.maxPoints : null;
+      const at = typeof g.at === 'string' && !Number.isNaN(Date.parse(g.at)) ? new Date(Math.min(Date.parse(g.at), Date.now())).toISOString() : new Date().toISOString();
+      const letter = typeof g.letter === 'string' && g.letter.trim() ? g.letter.trim().slice(0, 4) : null;
+      if (!slug || pts === null || max === null || pts > max * 2) return reply(origin, 400, { ok: false, why: 'Which grade?' });
+      const dbg = admin();
+      const { data: who } = await dbg.from('sync_keys').select('user_id').eq('key', key).maybeSingle();
+      if (!who) return reply(origin, 401, { ok: false, why: 'This sync key was reset. Open Halo+ once on this computer.' });
+      const { data: rows } = await dbg.from('courses').select('id, data').eq('user_id', who.user_id).is('deleted_at', null).eq('data->>haloSlugId', slug).limit(1);
+      const row = rows?.[0];
+      if (!row) return reply(origin, 404, { ok: false, why: 'That class is not in Halo+ yet.' });
+      const course = row.data as Record<string, unknown>;
+      const was = course.haloGrade as { at?: string } | null | undefined;
+      if (was?.at && was.at >= at) return reply(origin, 200, { ok: true, already: true });
+      const now = new Date().toISOString();
+      const next = { ...course, haloGrade: { letter, points: pts, maxPoints: max, percent: (pts / max) * 100, at }, updatedAt: now };
+      const { error } = await dbg.from('courses').update({ data: next, updated_at: now }).eq('user_id', who.user_id).eq('id', row.id);
+      if (error) return reply(origin, 500, { ok: false, why: 'Could not save that. Try again.' });
+      return reply(origin, 200, { ok: true });
     }
     if (body.status === true) {
       const db0 = admin();

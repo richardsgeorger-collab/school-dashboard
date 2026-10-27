@@ -43,9 +43,9 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, tier: null, syncKey: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'tier', 'syncKey'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -53,7 +53,7 @@
       /* the extension was updated under this page */
     }
     // Done in Halo+ (any device), and this computer's own check-offs still on their way there.
-    view = M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, st.haloMarks));
+    view = M.withGrades(M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, st.haloMarks)), st.haloGrades);
   };
   const save = (patch) => {
     Object.assign(st, patch);
@@ -326,6 +326,14 @@
   const LINE_CSS = `:host{all:initial}
 .l{display:block;margin:6px 0 2px;padding:0 2px;font:500 12px/1.35 Inter,-apple-system,"Segoe UI",Roboto,sans-serif;color:#6b7280;white-space:nowrap;overflow:hidden;cursor:pointer}
 .l[data-wrap]{white-space:normal}
+.l [data-tone=grade]{color:inherit;font-weight:600}
+.l .hp-r{all:unset;display:inline-block;width:14px;height:14px;margin:0 0 0 3px;vertical-align:-2px;cursor:pointer;border-radius:3px;color:inherit;opacity:.6;text-align:center;line-height:14px}
+.l .hp-r:hover,.l .hp-r:focus-visible{opacity:1;outline:1px solid currentColor;outline-offset:1px}
+.l .hp-r svg{width:12px;height:12px;display:block;margin:1px}
+.l .hp-r[data-spin] svg{animation:hpspin .8s linear infinite}
+.l .asof{font-weight:400;opacity:.8;margin-left:3px}
+@keyframes hpspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.l .hp-r[data-spin] svg{animation:none;opacity:.4}}
 @media (prefers-color-scheme: dark){.l{color:#9aa3ad}}
 .l b{font-weight:700}
 .l [data-tone=red]{color:#d93a3f}.l [data-tone=gold]{color:#a87400}
@@ -355,6 +363,90 @@
     return out;
   }
   /** One line's element, in its own shadow root; clicks open the class in Halo+ and never reach Halo's card link. */
+  // ---- the class grade, straight from Halo (0.11.1) -------------------------------------------------------------------
+  // One GradeOverview call for one class with the page's own Halo session: no sync, no Halo tab, no reload. Only when
+  // Student Home opens (a grade older than GRADE_FRESH_MS, once a class per page load, one at a time) and when the
+  // student presses the refresh. The same query and numbers as Halo's gradebook (the sync's src/halo/bookmarklet.ts).
+  const GATEWAY = 'https://gateway.halo.gcu.edu/';
+  const Q_GRADE = 'query GradeOverview($courseClassSlugId: String!) { gradeOverview: getAllClassGrades(courseClassSlugId: $courseClassSlugId) { finalGrade { id finalPoints gradeValue isPublished maxPoints } } }';
+  const GRADE_FRESH_MS = 30 * 60_000;
+  const gradeState = {};
+  const askedOnOpen = new Set();
+  let session = null;
+  let gradeQueue = Promise.resolve();
+  const clock = (iso) => {
+    try {
+      return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+  async function haloSession() {
+    if (session && Date.now() - session.t < 5 * 60_000) return session;
+    const r = await fetch('/api/auth/session', { credentials: 'include' });
+    const s = await r.json();
+    if (!s || !s.authToken || !s.contextToken) throw new Error('no session');
+    session = { a: s.authToken, c: s.contextToken, t: Date.now() };
+    return session;
+  }
+  async function readGrade(slug) {
+    const s = await haloSession();
+    const r = await fetch(GATEWAY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.a}`, ContextToken: `Bearer ${s.c}` },
+      body: JSON.stringify({ operationName: 'GradeOverview', variables: { courseClassSlugId: slug }, query: Q_GRADE }),
+    });
+    if (r.status === 401) session = null;
+    const j = await r.json();
+    const f = j && j.data && j.data.gradeOverview && j.data.gradeOverview[0] && j.data.gradeOverview[0].finalGrade;
+    if (!f || typeof f.finalPoints !== 'number' || !f.maxPoints) throw new Error('no grade');
+    return { g: Math.round((f.finalPoints / f.maxPoints) * 1000) / 10, gl: f.gradeValue == null ? null : String(f.gradeValue).slice(0, 4), pts: f.finalPoints, max: f.maxPoints, at: new Date().toISOString() };
+  }
+  /** Read one class's grade; on success keep it here and send it to the account, on failure say "as of" the last one. */
+  function refreshGrade(slug, pressed) {
+    if (!slug || (gradeState[slug] && gradeState[slug].spin)) return gradeQueue;
+    gradeState[slug] = { spin: true };
+    renderClassLines();
+    gradeQueue = gradeQueue.then(async () => {
+      const t0 = Date.now();
+      try {
+        const fresh = await readGrade(slug);
+        // A spinner long enough to see, short enough not to wait on.
+        if (pressed) await new Promise((r) => setTimeout(r, Math.max(0, 450 - (Date.now() - t0))));
+        save({ haloGrades: { ...(st.haloGrades || {}), [slug]: fresh } });
+        gradeState[slug] = {};
+        chrome.runtime.sendMessage({ kind: 'grade', slug, letter: fresh.gl, points: fresh.pts, maxPoints: fresh.max, at: fresh.at }).catch(() => undefined);
+        if (pressed) count('grade-refresh');
+      } catch {
+        const cls = view && view.classes.find((c) => c.slug === slug);
+        gradeState[slug] = { asof: cls && cls.ga ? clock(cls.ga) : '' };
+        if (pressed) count('grade-refresh-failed');
+      }
+      view = M.withGrades(view, st.haloGrades);
+      renderClassLines();
+      // Halo is never asked twice at once, and never in a burst.
+      await new Promise((r) => setTimeout(r, 250));
+    });
+    return gradeQueue;
+  }
+  /** Student Home opened: the classes on its cards whose grade is older than half an hour, once each this page load. */
+  function gradesOnOpen() {
+    if (!view) return;
+    for (const [card, cls] of homeCards()) {
+      if (!cls.slug || askedOnOpen.has(cls.slug) || card.querySelector('.better-halo-grade-indicator')) continue;
+      askedOnOpen.add(cls.slug);
+      if (cls.ga && Date.now() - Date.parse(cls.ga) < GRADE_FRESH_MS) continue;
+      void refreshGrade(cls.slug, false);
+    }
+  }
+  function renderClassLines() {
+    try {
+      classLines();
+    } catch {
+      /* the line is a nicety */
+    }
+  }
+
   function lineHost() {
     const h = document.createElement('div');
     h.setAttribute('data-haloplus', 'class');
@@ -364,13 +456,23 @@
     const go = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      // The refresh beside the grade (0.11.1): that class's grade from Halo, now; not the class in Halo+.
+      if (e.composedPath && e.composedPath().some((n) => n && n.classList && n.classList.contains('hp-r'))) {
+        if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') void refreshGrade(h.dataset.slug || '', true);
+        return;
+      }
       openHaloPlus({ courseId: String(h.dataset.course || '').startsWith('live:') ? null : h.dataset.course }, 'class');
     };
     h.addEventListener('click', go, true);
     h.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && go(e));
     return h;
   }
-  const lineHtml = (code, parts, wrap) => `<div class="l" role="link" tabindex="0" title="Open ${esc(code)} in Halo+"${wrap ? ' data-wrap' : ''}><b>Halo+</b> · ${parts.map((p) => `<span data-tone="${p.tone}">${esc(p.text)}</span>`).join(' · ')}</div>`;
+  const REFRESH_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12.4 1.6v3h-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  /** The grade, with its refresh (0.11.1): a spinner while Halo answers, and "as of 3:12 PM" when it could not. */
+  const gradeHtml = (p, g) =>
+    `<span data-tone="grade">${esc(p.text)}</span><button class="hp-r" type="button" aria-label="Refresh your grade from Halo" title="Refresh your grade from Halo"${g.spin ? ' data-spin' : ''}>${REFRESH_SVG}</button>${g.asof ? ` <span class="asof">as of ${esc(g.asof)}</span>` : ''}`;
+  const lineHtml = (code, parts, wrap, g = {}) =>
+    `<div class="l" role="link" tabindex="0" title="Open ${esc(code)} in Halo+"${wrap ? ' data-wrap' : ''}><b>Halo+</b> · ${parts.map((p) => (p.tone === 'grade' ? gradeHtml(p, g) : `<span data-tone="${p.tone}">${esc(p.text)}</span>`)).join(' · ')}</div>`;
   /**
    * The line in the room the card has (0.10.3, George: "1 with extra require…"): all of it when it fits, else without
    * its last parts, never cut mid-word with "…"; if even the first part does not fit, it wraps.
@@ -378,19 +480,29 @@
   function fitLine(h) {
     const inner = h.shadowRoot.querySelector('div');
     const parts = JSON.parse(h.dataset.parts || '[]');
+    const g = { spin: h.dataset.gspin === '1', asof: h.dataset.gasof || '' };
     for (let n = parts.length; n >= 1; n--) {
-      inner.innerHTML = lineHtml(h.dataset.code || '', parts.slice(0, n), false);
+      inner.innerHTML = lineHtml(h.dataset.code || '', parts.slice(0, n), false, g);
       const l = inner.firstElementChild;
       if (!l.clientWidth || l.scrollWidth <= l.clientWidth + 1) return;
     }
-    inner.innerHTML = lineHtml(h.dataset.code || '', parts.slice(0, 1), true);
+    inner.innerHTML = lineHtml(h.dataset.code || '', parts.slice(0, 1), true, g);
   }
   function fill(h, cls, now) {
     h.dataset.course = cls.key;
-    const parts = JSON.stringify(M.classLine(view, cls, now));
+    h.dataset.slug = cls.slug || '';
+    // Better Halo already shows this card's grade (its grade indicator): not twice (0.11.1).
+    const card = h.parentElement && (h.closest('[class*="CourseCard_cardContainer"]') || h.parentElement);
+    const bhGrade = !!(card && card.querySelector('.better-halo-grade-indicator'));
+    const all = M.classLine(view, cls, now).filter((p) => !(bhGrade && p.tone === 'grade'));
+    const g = gradeState[cls.slug] || {};
+    const parts = JSON.stringify(all) + (g.spin ? '|spin' : '') + (g.asof ? `|${g.asof}` : '');
+    h.dataset.gspin = g.spin ? '1' : '';
+    h.dataset.gasof = g.asof || '';
     const width = String(Math.round(h.getBoundingClientRect().width));
-    if (h.dataset.parts === parts && h.dataset.w === width) return;
-    h.dataset.parts = parts;
+    if (h.dataset.key === parts && h.dataset.w === width) return;
+    h.dataset.parts = JSON.stringify(all);
+    h.dataset.key = parts;
     h.dataset.code = cls.code;
     h.dataset.w = width;
     fitLine(h);
@@ -740,7 +852,7 @@ ul{list-style:none;margin:0;padding:0}
   function weekView() {
     const marks = { ...(st.haloMarks || {}) };
     for (const id of checking.keys()) delete marks[id];
-    return M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, marks));
+    return M.withGrades(M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, marks)), st.haloGrades);
   }
   // Folded until the student opens it (0.10.3, George: "starts CLOSED for everyone, including existing users"): a new
   // key, so 0.10.x's remembered "open" does not carry over; opening or folding it is remembered from then on.
@@ -932,6 +1044,7 @@ ul{list-style:none;margin:0;padding:0}
   }
   function home() {
     if (!view) return;
+    gradesOnOpen();
     weekPlaced = weekPanel();
     if (weekPlaced) {
       // The day's look is the panel: no peek here, and it counts as today's (no peek later on another page either).

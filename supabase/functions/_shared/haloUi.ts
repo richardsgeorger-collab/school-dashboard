@@ -4,7 +4,7 @@
 const EVENTS = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click',
   // "This week" on Halo's Student Home (0.10.0): shown, opened, collapsed, a row opened on Halo, "Open in Halo+", a check-off and
   // its undo, "Show all".
-  'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek'];
+  'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed'];
 
 export async function recordHaloUi(db: any, b: Record<string, unknown>): Promise<{ ok: boolean; why?: string }> {
   const event = typeof b.event === 'string' ? b.event : '';

@@ -8,6 +8,8 @@ ctx.globalThis = ctx;
 runInNewContext(readFileSync('extension/halo-model.js', 'utf8'), ctx);
 const M = ctx.HaloPlusModel as unknown as {
   merge: (s: unknown, l: unknown, server?: unknown) => View;
+  withGrades: (v: View, g: unknown) => View;
+  gradeText: (c: unknown) => string | null;
   pill: (v: View, now: number) => { tone: string; text: string; parts?: { tone: string; text: string }[] };
   peek: (v: View, now: number) => { text: string; tone: string; key: string } | null;
   hoverList: (v: View, now: number) => { groups: { head: string; rows: { title: string; code: string; when: string; pts: number }[] }[]; todayDone: boolean; part: string | null };
@@ -205,13 +207,13 @@ describe('class lines, the assignment box, the badge', () => {
   });
   it('gray by default, red for graded overdue, gold per assignment with extra requirements; participation left out', () => {
     const v = M.merge(snap([item('a', 'chm', 30, { x: 4, xb: ['Bring goggles'] }), item('b', 'chm', -5), part('p', -3), item('c', 'eng', 400), item('r', 'eng', 30, { x: 1, xs: ['Review chapter 3'] })]), null);
-    expect(M.classLine(v, v.classes[0], NOW)).toEqual([
+    expect(M.classLine(v, v.classes[0], NOW).filter((p) => p.tone !== 'grade')).toEqual([
       { tone: 'red', text: '1 overdue' },
       { tone: 'plain', text: '1 this week' },
       { tone: 'gold', text: '1 extra step' },
     ]);
     // A reading reminder is not an extra requirement worth gold.
-    expect(M.classLine(v, v.classes[2], NOW)).toEqual([{ tone: 'plain', text: '1 this week' }]);
+    expect(M.classLine(v, v.classes[2], NOW)).toEqual([{ tone: 'grade', text: '91.0%' }, { tone: 'plain', text: '1 this week' }]);
   });
   it('the assignment-page line: one line, the rest inline; only for a move, something to bring, a deliverable', () => {
     const v = M.merge(snap([item('a', 'lab', 30, { xb: ['Bring lab coat', 'Goggles', 'Closed-toe shoes', 'Submit the data table as one PDF', 'Bring a calculator'] }), item('b', 'chm', 30, { x: 2, xs: ['Review chapter 3'] }), item('m', 'chm', 50, { m: at(26) })]), null);
@@ -242,7 +244,7 @@ describe('done in Halo+ is done; no Halo submission goes quiet', () => {
     const v = M.merge(snap([late]), null, { v: 1, done: ['h-q'] });
     expect(M.pill(v, NOW).tone).toBe('green');
     expect(M.badge(v, NOW)).toBeNull();
-    expect(M.classLine(v, v.classes[0], NOW)).toEqual([{ tone: 'plain', text: 'Nothing this week' }]);
+    expect(M.classLine(v, v.classes[0], NOW).filter((p) => p.tone !== 'grade')).toEqual([{ tone: 'plain', text: 'Nothing this week' }]);
   });
   it('done in the snapshot beats Halo saying OVERDUE (an in-class quiz not graded yet)', () => {
     const halo = { v: 1, at: at(0), classes: [{ slug: 'CHM-113-WF700A-20260908', cc: 'CHM-113-WF700A', code: 'CHM-113', name: 'x', g: 90, a: [['h-q', 'Quiz #2', at(-3), 50, 'ASSIGNMENT', 0, null, 1]] }] };
@@ -255,7 +257,7 @@ describe('done in Halo+ is done; no Halo submission goes quiet', () => {
     expect(M.pill(v, NOW)).toEqual({ tone: 'red', text: '1 overdue' });
     expect(M.hoverList(v, NOW).groups.flatMap((g) => g.rows.map((r) => r.title))).toEqual(['Lab Report']);
     expect(M.badge(v, NOW)?.text).toBe('1');
-    expect(M.classLine(v, v.classes[0], NOW)[0]).toEqual({ tone: 'red', text: '1 overdue' });
+    expect(M.classLine(v, v.classes[0], NOW).filter((p) => p.tone !== 'grade')[0]).toEqual({ tone: 'red', text: '1 overdue' });
   });
 });
 
@@ -313,3 +315,27 @@ describe('this week', () => {
     expect(r).toMatchObject({ title: 'Topic 8 Homework', canCheck: false, href: 'https://halo.gcu.edu/courses/CHM-113-WF700A-20260908/course-units/u8' });
   });
 });
+
+describe('the class grade on the class line (0.11.1)', () => {
+  const chm = (v: View) => v.classes.find((c) => c.key === 'chm')!;
+  it("puts Halo's letter and percent first, from the snapshot", () => {
+    const v = M.merge(snap([quiz], { classes: [{ id: 'chm', code: 'CHM-113', cc: 'CHM-113-WF700A', slug: 'CHM-113-WF700A-20260908', name: 'Chem', g: 86, gl: 'B', ga: at(-2) }] }), null);
+    expect(M.classLine(v, chm(v), NOW)[0]).toEqual({ tone: 'grade', text: 'B 86.0%' });
+  });
+  it('no grade part when Halo has no grade yet', () => {
+    const v = M.merge(snap([quiz], { classes: [{ id: 'chm', code: 'CHM-113', cc: 'CHM-113-WF700A', slug: 'CHM-113-WF700A-20260908', name: 'Chem', g: null }] }), null);
+    expect(M.classLine(v, chm(v), NOW).some((p) => p.tone === 'grade')).toBe(false);
+  });
+  it('a grade read from Halo just now wins over the synced one; an older one does not', () => {
+    const base = () => M.merge(snap([quiz], { classes: [{ id: 'chm', code: 'CHM-113', cc: 'CHM-113-WF700A', slug: 'CHM-113-WF700A-20260908', name: 'Chem', g: 86, gl: 'B', ga: at(-2) }] }), null);
+    const fresh = M.withGrades(base(), { 'CHM-113-WF700A-20260908': { g: 90.4, gl: 'A-', at: at(0) } });
+    expect(M.gradeText(chm(fresh))).toBe('A- 90.4%');
+    const old = M.withGrades(base(), { 'CHM-113-WF700A-20260908': { g: 70, gl: 'C', at: at(-5) } });
+    expect(M.gradeText(chm(old))).toBe('B 86.0%');
+  });
+  it("the last sync's letter comes with its grade (compactLive)", () => {
+    const live = M.compactLive({ exportedAt: at(0), classes: [{ slugId: 'CHM-113-WF700A-20260908', classCode: 'CHM-113-WF700A', courseCode: 'CHM-113', name: 'Chem', finalGrade: { finalPoints: 430, maxPoints: 500, letter: 'B' }, assessments: [] }] }) as { classes: { g: number; gl: string }[] };
+    expect(live.classes[0]).toMatchObject({ g: 86, gl: 'B' });
+  });
+});
+

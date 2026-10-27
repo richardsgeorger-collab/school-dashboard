@@ -48,14 +48,15 @@ export function Welcome() {
               Open Halo+
             </a>
           </div>
-          <p className="hint">Your free week of everything starts with your first sync. No card.</p>
+          <p className="hint">Nothing else to set up. Your first sync starts on its own the next time you're on Halo.</p>
         </section>
       ) : (
         <section className="login-box" aria-label="Make your free account">
           <p className="eyebrow">The extension is installed</p>
           <h1 className="landing-title">One step left.</h1>
-          <p className="landing-lede">Make your free Halo+ account. The next time you're on Halo, your classes come in on their own.</p>
+          <p className="landing-lede">Make your free Halo+ account (not your GCU login). The next time you're on Halo, your classes, due dates and grades come in on their own.</p>
           <SignIn auth={auth} title="Make your free account" mode="signup" />
+          <p className="hint">Not affiliated with Grand Canyon University. Halo+ never asks for your GCU password.</p>
         </section>
       )}
     </div>

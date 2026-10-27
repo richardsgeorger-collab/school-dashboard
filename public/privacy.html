@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Privacy · Halo+</title><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet"><style>body{margin:0;background:#f6f7f9;color:#14171c;font:15px/1.55 Inter,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}.wrap{max-width:640px;margin:0 auto;padding:24px 20px 64px}h1{font:700 32px/1.1 "Plus Jakarta Sans",Inter,sans-serif;letter-spacing:-.02em;margin:16px 0 8px}h2{font-size:16px;font-weight:600;margin:28px 0 6px}a{color:inherit}ul{padding-left:20px}p,li{color:#4b5261;margin:6px 0}@media(prefers-color-scheme:dark){body{background:#0b0d10;color:#f2f4f7}p,li{color:#a9b0bc}}</style></head><body><div class="wrap"><p><a href="./">← Halo+</a></p>
 <h1>Privacy</h1>
 
-<p>Last updated 2026-10-01. Plain words; the short version is that your data is yours, we keep only what the app needs to work, and you can take it or delete it any time.</p>
+<p>Last updated 2026-10-26. Plain words; the short version is that your data is yours, we keep only what the app needs to work, and you can take it or delete it any time.</p>
 
 <h2>Who we are</h2>
 
@@ -18,7 +18,7 @@
 <h2>What we collect</h2>
 
 <ul><li><b>Your account</b>: your email address.</li>
-<li><b>What you sync from Halo, when you choose to</b>: your classes, assignments, due dates, grades, rubrics, instructor feedback, announcements, class resources and messages. The bookmark or the Chrome extension reads these from Halo while you are logged in there and sends them to your account. You review the changes before they are applied.</li>
+<li><b>What you sync from Halo, when you choose to</b>: your classes, assignments, due dates, grades, rubrics, instructor feedback, announcements, class resources and messages. The Chrome extension (or the sync bookmark) reads these from Halo while you are logged in there and sends them to your account. Each sync is applied to your planner with a note that says what changed and an Undo; anything that would remove an item waits for you to review it first, and a sync sent from the bookmark is shown for review before it is applied. The extension can also read one class's current grade from Halo when you press its refresh on Halo's home page, and saves only that grade to your account.</li>
 <li><b>What you add</b>: items, notes, study hours, preferences, lecture notes, recordings and files you choose to upload, and feedback you send (with a screenshot if you attach one).</li>
 <li><b>How the app is used</b>: how many times each feature was used each day, which onboarding steps were completed or skipped, when a sync ran and from what kind of device, and how much AI each account uses (tokens and cost). We use this to run and improve Halo+; we do not sell it or share it with advertisers.</li>
 <li><b>Payments</b>: handled by Stripe. We never see or store card numbers. We keep your Stripe customer id and your subscription status.</li>
@@ -41,7 +41,7 @@
 
 <h2>AI features</h2>
 
-<p>On paid plans, some features send text to Anthropic's API through our server: an announcement to be read, a syllabus, a lecture transcript, the slides and lectures you have on file when Practice or Ask build from them, the work you paste or drop into Check, and your question in Ask with a summary of your open work and grades. Only what the feature needs is sent, and Anthropic's API does not train on it. Every call is capped and metered per account.</p>
+<p>Some features send text to Anthropic's API through our server. On every plan, including Free: each new announcement, so Halo+ can tell you whether it changed a due date or added a step (on Free you are told only the kind of change, never the details). On Plus and Max: the announcement itself, to be read in full. On Max: a syllabus, a lecture transcript, the slides and lectures you have on file when Practice or Ask build from them, the work you paste or drop into Check, and your question in Ask with a summary of your open work and grades. Only what the feature needs is sent, and Anthropic's API does not train on it. Every call is capped and metered per account.</p>
 <p>If you upload a lecture recording to be turned into text (Max), its audio is sent through our server to Groq to transcribe, and only the text comes back. We keep only how many seconds were transcribed, for the daily limit.</p>
 
 <h2>Cookies and analytics</h2>

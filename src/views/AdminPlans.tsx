@@ -11,7 +11,7 @@ import { supabase } from '../auth/client';
 type Ending = { next: { day: string; n: number }[]; ended: Record<string, number> };
 type Retention = Record<'extension' | 'no_extension', { total: number; opening: number } | undefined>;
 type Locked = { saw: number; clicked: number; upgraded: number; upgraded_plus: number; upgraded_max: number };
-type Store = { days: number; installs: number; site_installs: number; signed_up: number; first_sync: number; week_eligible: number; week_later: number };
+type Store = { days: number; installs: number; installs_linked?: number; site_installs: number; signed_up: number; first_sync: number; week_eligible: number; week_later: number };
 type Usage = { week: string; cells: Record<string, number> }[];
 
 const FEATURES: [string, string][] = [
@@ -100,7 +100,7 @@ export function AdminPlans() {
       {store.err && <p className="hint">{store.err}</p>}
       {store.data && (
         <p className="admin-line">
-          Installed: <b>{store.data.installs}</b> → signed up: <b>{store.data.signed_up}</b> → first sync: <b>{store.data.first_sync}</b> → still using a week later: <b>{store.data.week_later}</b> of {store.data.week_eligible} old enough
+          Installed: <b>{store.data.installs}</b>{typeof store.data.installs_linked === 'number' ? ` (${store.data.installs_linked} linked to an account)` : ''} → signed up: <b>{store.data.signed_up}</b> → first sync: <b>{store.data.first_sync}</b> → still using a week later: <b>{store.data.week_later}</b> of {store.data.week_eligible} old enough
           <span className="hint"> (installs from Halo+'s own setup: {store.data.site_installs})</span>
         </p>
       )}

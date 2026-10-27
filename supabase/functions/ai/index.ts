@@ -48,6 +48,13 @@ Deno.serve(async (req) => {
   }
   const kind = String(body.kind ?? 'other') as keyof typeof MAX_TOKENS;
   if (!(kind in MAX_TOKENS) || !body.request) return json(400, { error: { code: 'upstream', message: 'Unknown kind of call.' } });
+  // Free's one AI call (Loop 268, the kinds-only announcement check) is only ever that: the forced announcement_kinds
+  // tool, so a Free account cannot use its small budget as a general model (Loop 269 review).
+  if (kind === 'changes') {
+    const tools = (body.request.tools as { name?: string }[] | undefined) ?? [];
+    const choice = body.request.tool_choice as { type?: string; name?: string } | undefined;
+    if (tools.length !== 1 || tools[0]?.name !== 'announcement_kinds' || choice?.type !== 'tool' || choice?.name !== 'announcement_kinds') return json(400, { error: { code: 'upstream', message: 'Not an announcement check.' } });
+  }
 
   // The meter: tier from the profile, usage from the log, both server-side truth.
   // The plan comes from the one server function that decides it (paid, trial, friend link, referral, admin): this

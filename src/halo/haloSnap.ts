@@ -62,6 +62,9 @@ export interface HaloSnapClass {
   name: string;
   /** Halo's class grade, percent. */
   g: number | null;
+  /** Halo's own letter ("B"), and when the grade was read (0.11.1: the grade on the class line). */
+  gl?: string;
+  ga?: string;
   /** The class's color in Halo+ (the dot beside its code). */
   col?: string;
 }
@@ -155,6 +158,6 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
     hidden,
     pw: week.length ? week.reduce((n, e) => n + e.left, 0) : null,
     items: items.sort((a, b) => a.due.localeCompare(b.due)),
-    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.color ? { col: c.color } : {}) })),
+    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.haloGrade?.letter ? { gl: c.haloGrade.letter } : {}), ...(c.haloGrade?.at ? { ga: c.haloGrade.at } : {}), ...(c.color ? { col: c.color } : {}) })),
   };
 }
