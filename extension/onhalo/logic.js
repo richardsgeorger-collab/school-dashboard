@@ -383,6 +383,78 @@
     return `${g('month')} ${g('day')}, ${g('year')}, ${clock}`;
   }
 
+  // ---- the calendar (feature 1, 0.12.1) -------------------------------------------------------------------------------
+  /** "11:59 PM" in Halo's zone. */
+  function haloTime(t, tz) {
+    const f = haloFormat(t, tz, 'day');
+    return f.slice(f.indexOf(' ') + 1);
+  }
+  /**
+   * A title short enough for a calendar chip: a long one is cut at its colon ("Topic 3 Homework: Cell Division" →
+   * "Topic 3 Homework"); otherwise as it is (the chip trims what does not fit, the full title is on hover).
+   */
+  function chipTitle(title) {
+    const t = String(title || '').trim();
+    const i = t.indexOf(': ');
+    return t.length > 24 && i >= 4 ? t.slice(0, i) : t;
+  }
+  const CAL_KINDS = ['assignment', 'quiz', 'discussion', 'participation', 'lti'];
+  const HALO_DONE = /^(LATE|SUBMITTED|PUBLISHED)$/;
+  /**
+   * The calendar's days (feature 1, 0.12.1, George: "calm and useful at a glance"). Each assignment, quiz, discussion,
+   * outside-tool item and participation shows on its due day only. The due date is the one Halo's own calendar uses:
+   * the student's own (`live[slug]`, Halo's answer for that class: a Map of id → { dueDate, status }), else the class's;
+   * a class Halo did not answer for is left out, never guessed. Days and times are Halo's school zone (`tz`). Done:
+   * Halo's own rule (late, submitted, published), the sync's, or a Halo+ check-off (`doneIds`). No submission in Halo and
+   * past its date (`ns`, or `quietIds`): quiet, as everywhere in Halo+. Past, open, graded work: overdue. Participation
+   * is never urgent. Returns a Map of day key ("2026-10-30") → { items, part, hol }: items graded first, then by time,
+   * then title; participation by time; holiday titles.
+   */
+  function calendarDays(index, live, tz, now, { doneIds = new Set(), quietIds = new Set() } = {}) {
+    const days = new Map();
+    const day = (k) => {
+      if (!days.has(k)) days.set(k, { items: [], part: [], hol: [] });
+      return days.get(k);
+    };
+    if (!index || !Array.isArray(index.classes) || !Array.isArray(index.rows) || !tz) return days;
+    index.classes.forEach((c, k) => {
+      const g = live && live[c.slug];
+      if (!g) return;
+      for (const r of index.rows) {
+        if (r.c !== k || !CAL_KINDS.includes(r.kind) || !r.id) continue;
+        const h = g.get(r.id);
+        const due = (h && h.dueDate) || r.cdue || null;
+        const t = Date.parse(due || '');
+        if (!Number.isFinite(t)) continue;
+        const key = dayOf(t, tz);
+        if (!key) continue;
+        const part = r.kind === 'participation';
+        const done = !!((h && HALO_DONE.test(h.status || '')) || r.done || doneIds.has(r.id));
+        const quiet = !done && t < now && !!(r.ns || quietIds.has(r.id));
+        const graded = !part && (r.pts || 0) > 0;
+        const item = { id: r.id, c: k, code: c.code || c.cc || '', col: c.col || c.hex || null, title: r.title, short: chipTitle(r.title), href: r.href || null, t, time: haloTime(t, tz), full: haloFormat(t, tz), done, quiet, over: !done && !quiet && !part && t < now, graded, part, pts: r.pts || 0 };
+        (part ? day(key).part : day(key).items).push(item);
+      }
+    });
+    const seen = new Set();
+    for (const c of index.classes)
+      for (const hd of c.hol || []) {
+        const s0 = dayOf(hd.s, tz);
+        if (!s0) continue;
+        for (let i = 0; i < Math.max(1, hd.n || 1); i++) {
+          const k = new Date((dayNum(s0) + i) * DAY).toISOString().slice(0, 10);
+          if (seen.has(`${k}|${hd.t}`)) continue;
+          seen.add(`${k}|${hd.t}`);
+          day(k).hol.push(hd.t);
+        }
+      }
+    for (const d of days.values()) {
+      d.items.sort((a, b) => Number(b.graded) - Number(a.graded) || a.t - b.t || a.title.localeCompare(b.title));
+      d.part.sort((a, b) => a.t - b.t || a.title.localeCompare(b.title));
+    }
+    return days;
+  }
+
   // ---- Halo's class colours -------------------------------------------------------------------------------------------
   // Halo colours each class (its Home card's top border, the My Classes menu, alerts) by a hash of its slug into 44
   // colours (_app 88863 and 6489 17817); the same colour here, from Halo's own variable when the page has it.
@@ -449,7 +521,7 @@
         const kind = KIND_OF[a.type] || 'assignment';
         const item = { id: a.id, type: a.type || 'ASSIGNMENT', unitId: a.unitId || null, forumId: forumOf[a.id] || null, group: !!a.isGroupEnabled };
         const href = kind === 'lti' ? null : hrefFor(c.slugId, item);
-        rows.push({ c: k, kind, id: a.id, title: String(a.title).slice(0, 160), topic: a.unit || '', unit: a.unitId || null, href, due: a.dueDate || null, cdue: a.classDueDate || null, start: a.startDate || null, type: a.type || 'ASSIGNMENT', pts: a.points || 0, forum: item.forumId, group: item.group, done: !!a.submittedAt || typeof a.score === 'number' || /^(SUBMITTED|LATE|PUBLISHED)$/.test(a.status || '') });
+        rows.push({ c: k, kind, id: a.id, title: String(a.title).slice(0, 160), topic: a.unit || '', unit: a.unitId || null, href, due: a.dueDate || null, cdue: a.classDueDate || null, start: a.startDate || null, type: a.type || 'ASSIGNMENT', pts: a.points || 0, forum: item.forumId, group: item.group, ns: !a.submittedAt && !/SUBMITTED/i.test(a.status || '') && (a.type === 'LTI' || a.inPerson === true) ? 1 : 0, done: !!a.submittedAt || typeof a.score === 'number' || /^(SUBMITTED|LATE|PUBLISHED)$/.test(a.status || '') });
         for (const f of a.attachments || []) if (f && f.resourceId && f.title) rows.push({ c: k, kind: 'file', title: String(f.title).slice(0, 160), topic: a.unit || '', href: `/resource/${encodeURIComponent(f.resourceId)}` });
       }
       for (const [id, u] of units) rows.push({ c: k, kind: 'topic', id, title: u.t || `Topic ${u.n}`, href: `/courses/${S}/course-units/${encodeURIComponent(id)}`, n: u.n });
@@ -479,5 +551,5 @@
     return true;
   }
 
-  globalThis.HaloPlusOnLogic = { preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
+  globalThis.HaloPlusOnLogic = { calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
 })();

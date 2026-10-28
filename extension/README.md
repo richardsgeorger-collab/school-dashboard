@@ -37,6 +37,13 @@ Halo, and why it shows nothing when it is not sure, is in `docs/halo-pages.md`. 
 per feature (stand-ins of Halo's pages with Halo's real stylesheets; `BROWSER=edge`, `BH_DIR=` for Better Halo); cost:
 `scripts/measure-onhalo.mjs`.
 
+0.12.1 (2026-10-28, George's fixes after testing 0.12.0 on real Halo): Halo's own "View Rubric" opens the rubric under
+its row (`rubric.js`); a handed-in card shows only the time and file, under Halo's chip (`submit.js`); the all-classes
+calendar is chips on due days, drawn by `calendar.js` for a class calendar and for the new "Calendar" tab on Student
+Home (`homecal.js`; the tab shares the calendar's switch through a feature's `switch`); the draft offer is a "Restore
+your draft from 10:42 AM?" prompt above the box (`drafts.js`); the mark is Halo+'s logo (`core.js MARK_SVG`,
+`--hp-gold` in `tokens.css`).
+
 ## Build
 
     npm run build:extension

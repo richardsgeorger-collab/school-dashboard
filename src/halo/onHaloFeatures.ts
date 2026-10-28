@@ -9,7 +9,7 @@ export const ON_HALO_FEATURES = [
   ['next', 'Next item on each class card'],
   ['drafts', 'Keep drafts of your posts'],
   ['words', 'Word count in the reply box'],
-  ['rubric', 'Rubric under the instructions'],
+  ['rubric', 'View Rubric opens on the page'],
   ['duein', 'How long you have, beside due dates'],
   ['calendar', 'All classes on one calendar'],
   ['topic', 'Topic progress'],

@@ -1,6 +1,15 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.12.0 (2026-10-27): paste exactly this
+## The listing now: 0.12.1 (2026-10-28): paste exactly this
+
+0.12.1 (Loop 272): George's fixes after testing 0.12.0 on real Halo. Halo's own "View Rubric" opens the rubric right
+under its row (a second click closes it); a handed-in card shows only what Halo's card does not (when it was sent and
+which file); the all-classes calendar shows each item on its due day as a small chip, and has its own "Calendar" tab
+on Student Home; a clearer "Restore your draft from 10:42 AM?" above the reply box; Halo+'s real logo mark (the gold
+ring with the plus) on everything it adds. **No new permission.** Upload `webstore-upload/halo-plus-extension-0.12.1.zip`;
+the Privacy tab is the 0.12.0 one below, unchanged; in the 0.12.0 description below, one phrase changed ("the rubric right on the assignment"): paste it again.
+
+## 0.12.0 (2026-10-27)
 
 0.12.0 (Loop 271): Halo+ on Halo's own pages, for Plus and Max (the trial included), each with its own switch in the
 popup under "Show Halo+ on Halo pages": search across classes (Student Home and Ctrl/⌘+K), "Next" on each class card,
@@ -31,7 +40,7 @@ What Halo+ does that a plain calendar can't:
 • Reads your Halo announcements for you. A due date that moved, a new requirement, "closed-toe shoes for Lab 4": caught and put on the right assignment.
 • "This week" on Halo's home page: everything due across your classes, in Halo's own look.
 • Your grade on every class card on Halo's home page, with a refresh that reads it straight from Halo.
-• On Halo's own pages, with Plus or Max: search every class with Ctrl+K, the rubric right under the instructions, how long you have beside each due date, all your classes on Halo's calendar, PDFs that open on the page, a copy of your discussion drafts on your computer, your words against the minimum, and Halo's own proof that your file went through.
+• On Halo's own pages, with Plus or Max: search every class with Ctrl+K, the rubric right on the assignment, how long you have beside each due date, all your classes on Halo's calendar, PDFs that open on the page, a copy of your discussion drafts on your computer, your words against the minimum, and Halo's own proof that your file went through.
 • Tells you what's due next, not just what's due. One card says what to start now, with how long it takes and what it's worth.
 • Your real Halo grades for every class, and your semester GPA worked out from them.
 • Works on your phone. Your laptop syncs Halo; open Halo+ on your phone and the whole week is there.

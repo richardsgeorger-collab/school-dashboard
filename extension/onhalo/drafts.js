@@ -1,10 +1,13 @@
-// Feature 18 (0.12.0): drafts never get lost. What the student types in Halo's discussion boxes (a reply, a new post, a
-// DQ response, an edit) is kept on this computer while they type, never sent anywhere. Halo itself saves replies, new
+// Feature 18: drafts never get lost. What the student types in Halo's discussion boxes (a reply, a new post, a DQ
+// response, an edit) is kept on this computer while they type, never sent anywhere. Halo itself saves replies, new
 // posts and DQ responses to its server 5 seconds after typing stops and puts them back on the next visit (research
 // 2026-10-27), so Halo+ offers its copy only when Halo's did not come back: the box is empty once Halo has had its
-// moment, or an edit (Halo keeps no draft of edits) reopened without the changes. Offered once ("Restore your
-// draft"); deleted once the post goes through (Halo's own "has been submitted" message, or the words already in one of
-// the student's own posts on the page). Kept 30 days at most, 40 at most, per Halo account.
+// moment, or an edit (Halo keeps no draft of edits) reopened without the changes. 0.12.1 (George: the offer was too
+// hidden): a clear, calm prompt right above the box in Halo's own info style, "Restore your draft from 10:42 AM?",
+// with Restore and Dismiss; it comes back every time the box opens empty with a draft kept, Dismiss deletes the draft,
+// and it never shows when the box already holds the same words. The draft is deleted once the post goes through
+// (Halo's own "has been submitted" message, or the words already in one of the student's own posts on the page). Kept
+// 30 days at most, 40 at most, per Halo account.
 (function () {
   'use strict';
   const O = globalThis.HaloPlusOn;
@@ -116,14 +119,19 @@
 
   // ---- offering it back -------------------------------------------------------------------------------------------------
   const seen = new WeakSet();
+  // Halo's own info alert (MUI's standard info Alert, as Halo shows "Preview not available"), on Better Halo's colours
+  // under its themes.
   const CSS = `
-.o{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;margin:8px 0 2px;padding:8px 12px;border-radius:var(--hp-radius);background:var(--hp-tint);font:13px/1.5 var(--hp-font);color:var(--hp-text)}
-.o .t{color:var(--hp-text)}
-.o .s{color:var(--hp-text-2)}
-.o button{all:unset;cursor:pointer;font:600 12px/1.75 var(--hp-font);text-transform:uppercase;letter-spacing:.02857em;color:var(--hp-link);padding:2px 6px;border-radius:4px}
+.o{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin:8px 0 6px;padding:6px 8px 6px 14px;border-radius:var(--hp-radius);background:#e8f4fd;color:#0d3c61;font:14px/1.43 var(--hp-font)}
+:host-context(:root[data-better-halo-theme]:not([data-better-halo-theme=''])) .o{background:var(--hp-select);color:var(--hp-text)}
+.o .i{display:inline-flex;width:20px;height:20px;color:#2196f3;flex:none}
+:host-context(:root[data-better-halo-theme]:not([data-better-halo-theme=''])) .o .i{color:var(--hp-link)}
+.o .i svg{width:100%;height:100%;fill:currentColor}
+.o .t{flex:1;min-width:12em}
+.o button{all:unset;cursor:pointer;font:600 13px/1.75 var(--hp-font);text-transform:uppercase;letter-spacing:.02857em;color:var(--hp-link);padding:3px 8px;border-radius:4px}
 .o button:hover{background:var(--hp-hover)}
-.o button:focus-visible{outline:1px solid var(--hp-focus)}
-.o .sp{flex:1}`;
+.o button:focus-visible{outline:1px solid var(--hp-focus)}`;
+  const INFO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg>';
   function ownPosts() {
     return [...document.querySelectorAll('[class*="forumCommonStyles_studentPostIndicator"]')]
       .map((head) => {
@@ -136,15 +144,16 @@
   async function consider(w) {
     if (seen.has(w)) return;
     seen.add(w);
-    const key = boxKey(w);
-    if (!key) return;
     const pm = w.querySelector('.ProseMirror');
     const first = textOf(pm);
-    // Halo's own draft has its moment first (its restore, and for a DQ response its draft query).
+    // Halo's own draft has its moment first (its restore, and for a DQ response its draft query), and the box is
+    // named once Halo has finished drawing it (its "Replying to …" label).
     await new Promise((r) => setTimeout(r, SETTLE_MS));
     if (!w.isConnected || !O.enabled('drafts')) return;
+    const key = boxKey(w);
+    if (!key) return;
     const d = await get(key);
-    if (!d || d.offered) return;
+    if (!d) return;
     const now = textOf(pm);
     const posted = L.postedAlready(d.text, ownPosts());
     if (posted) return void put(key, null);
@@ -152,24 +161,43 @@
     // A new box must be empty; an edit must still be what it was when it opened, and not already the draft.
     const offer = edit ? now === first && now !== d.text && L.draftWorth(d.text) : L.offerDraft(d, now, Date.now(), []);
     if (!offer) return;
-    await put(key, { ...d, offered: new Date().toISOString() });
-    show(w, pm, d, edit);
+    show(w, pm, d, edit, key);
   }
-  function show(w, pm, d, edit) {
-    const { h, root } = O.host('draft-offer', CSS, { tag: 'div', display: 'block' });
+  /** "10:42 AM" for a draft from today, "Oct 26, 10:42 AM" for an older one, in Halo's zone. */
+  function from(at) {
     const z = O.zone();
-    const at = z ? L.haloFormat(Date.parse(d.at), z, 'short') : '';
-    const n = L.countWords(d.text);
-    root.innerHTML = `<div class="o" role="status">${O.mark()}<span class="t">${edit ? 'Your unsaved changes to this post' : 'Your draft'}${at ? ` from ${O.esc(at)}` : ''}</span><span class="s">${n} words, saved on this computer</span><span class="sp"></span><button type="button" class="r">Restore your draft</button><button type="button" class="x">Dismiss</button></div>`;
+    const t = Date.parse(at);
+    if (!z || !Number.isFinite(t)) return '';
+    return L.dayOf(t, z) === L.dayOf(Date.now(), z) ? L.haloTime(t, z) : L.haloFormat(t, z, 'short');
+  }
+  function show(w, pm, d, edit, key) {
+    if (w.previousElementSibling && w.previousElementSibling.getAttribute('data-haloplus') === 'draft-offer') return;
+    const { h, root } = O.host('draft-offer', CSS, { tag: 'div', display: 'block' });
+    const at = from(d.at);
+    const what = edit ? 'your unsaved changes' : 'your draft';
+    root.innerHTML = `<div class="o" role="status"><span class="i">${INFO}</span><span class="t">Restore ${what}${at ? ` from ${O.esc(at)}` : ''}?</span><button type="button" class="r">Restore</button><button type="button" class="x">Dismiss</button>${O.mark()}</div>`;
+    h.title = `${L.countWords(d.text)} words, kept on this computer by Halo+`;
     w.before(h);
     O.count('draft-offer');
-    root.querySelector('.x').addEventListener('click', () => h.remove());
+    // Typing in the box answers it: the new words are the draft from now on.
+    const watch = () => {
+      if (!h.isConnected) return pm.removeEventListener('input', watch);
+      if (textOf(pm)) {
+        h.remove();
+        pm.removeEventListener('input', watch);
+      }
+    };
+    pm.addEventListener('input', watch);
+    root.querySelector('.x').addEventListener('click', () => {
+      h.remove();
+      void put(key, null);
+    });
     root.querySelector('.r').addEventListener('click', () => {
       if (restore(pm, d, edit)) {
         h.remove();
         O.count('draft-restore', false);
       } else {
-        root.querySelector('.o').innerHTML = `${O.mark()}<span class="t">Halo+ could not put it back in the box.</span><span class="sp"></span><button type="button" class="c">Copy your draft</button>`;
+        root.querySelector('.o').innerHTML = `<span class="i">${INFO}</span><span class="t">Halo+ could not put it back in the box.</span><button type="button" class="c">Copy your draft</button>${O.mark()}`;
         root.querySelector('.c').addEventListener('click', () => void navigator.clipboard.writeText(d.text).then(() => (root.querySelector('.c').textContent = 'Copied')));
       }
     });

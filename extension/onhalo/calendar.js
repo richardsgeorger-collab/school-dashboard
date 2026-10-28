@@ -1,19 +1,16 @@
-// Feature 1 (0.12.0): all classes on Halo's calendar. Halo's calendar (a class's "Calendar" page) shows one class; Halo+
-// adds "This class | All classes" beside Halo's own "Show 1 Week | 2 Weeks | All", in the same button style. All
-// classes draws the same days Halo is showing, with Halo's own calendar styles, every class's work in that class's
-// Halo colour (the colour Halo gives it on Student Home), each bar opening the item on Halo. The dates are Halo's: the
-// student's own due dates, asked of Halo when the view opens (one question per class, kept ten minutes on this
-// computer), bucketed
-// into days in Halo's school time zone, the bar from the start day to the due day, as Halo draws its own. A class
-// Halo does not answer for is left out and named; with any doubt about the days on screen, nothing is drawn.
+// Feature 1: all classes on one calendar. Halo's calendar (a class's "Calendar" page) shows one class; Halo+ adds "This
+// class | All classes" beside Halo's own "Show 1 Week | 2 Weeks | All", in the same button style, and (0.12.1) a
+// "Calendar" tab on Student Home (homecal.js), both drawn here. Every class's work shows on its due day as a chip in
+// that class's Halo colour (the colour Halo gives it on Student Home), each opening the item on Halo. The dates are
+// Halo's: the student's own due dates, asked of Halo when the view opens (one question per class, kept ten minutes on
+// this computer), placed in days in Halo's school time zone. A class Halo does not answer for is left out and named;
+// with any doubt about the days on screen, nothing is drawn.
 (function () {
   'use strict';
   const O = globalThis.HaloPlusOn;
   const L = globalThis.HaloPlusOnLogic;
   if (!O || !L) return;
   const Q = 'query StudentAssessmentDetails($courseClassSlugId:String!,$courseUnitId:String){assessmentGrades:getAllClassGrades(courseClassSlugId:$courseClassSlugId courseUnitId:$courseUnitId){...StudentAssessmentDetails_assessmentGrades}}fragment StudentAssessmentDetails_assessmentGrades on UserCourseClassGrade{grades{...StudentAssessmentDetails_assessmentGrades_grades}}fragment StudentAssessmentDetails_assessmentGrades_grades on UserCourseClassAssessmentGrade{assessment{...StudentAssessmentDetails_assessmentGrades_grades_assessment}userLastSeenDate dueDate accommodatedDueDate id status userQuizAssessment{...StudentAssessmentDetails_assessmentGrades_grades_userQuizAssessment}isEverReassigned history{assignmentSubmissionId comment gradeId status points reassignAttachments{modifiedDate resource{active context createdBy createdDate description embedReady id kind modifiedBy modifiedDate name type url}}userCourseClassAssessmentId}}fragment StudentAssessmentDetails_assessmentGrades_grades_assessment on CourseClassAssessment{id title}fragment StudentAssessmentDetails_assessmentGrades_grades_userQuizAssessment on QuizUserCourseClassAssessment{userQuizId accommodatedDuration}';
-  const NEED = ['WeeklyCalendar_calendarWrapper', 'sizes_calendarRow', 'DayHeader_header', 'ContentRow_contentRowWrapper', 'ContentRow_contentRow', 'DayContent_content', 'ContentRow_eventContainer', 'WeeklyCalendar_eventBar', 'AssessmentBar_customEventBar', 'WeeklyCalendar_eventInner', 'AssessmentBar_assessmentBarContent', 'AssessmentBar_assessmentBarLeft', 'AssessmentBar_assessmentBarTitle'];
-  const DONE = /^(LATE|SUBMITTED|PUBLISHED)$/;
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const esc = O.esc;
@@ -116,67 +113,81 @@
     return loading;
   }
 
-  // ---- drawing ----------------------------------------------------------------------------------------------------------------
-  function events(idx, grades, z) {
-    const out = [];
-    idx.classes.forEach((c, k) => {
-      const g = grades[c.slug];
-      if (!g) return;
-      for (const r of idx.rows) {
-        if (r.c !== k || !['assignment', 'quiz', 'discussion', 'participation', 'lti'].includes(r.kind) || !r.start) continue;
-        const row = g.get(r.id);
-        // Halo draws the bar to the student's own due date, else the class's; never the accommodated one.
-        const due = (row && row.dueDate) || r.cdue;
-        const s = zoneDay(r.start, z);
-        const e = due ? zoneDay(due, z) : null;
-        if (s == null || e == null || s > e) continue;
-        out.push({ c, title: r.title, href: r.href, due, s, e, done: !!(row && DONE.test(row.status || '')) });
-      }
-    });
-    const seen = new Set();
-    for (const c of idx.classes)
-      for (const h of c.hol || []) {
-        const key = `${h.t}|${h.s}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const s = zoneDay(h.s, z);
-        if (s != null) out.push({ holiday: true, title: h.t, s, e: s + Math.max(0, (h.n || 1) - 1) });
-      }
-    out.sort((a, b) => (a.holiday ? 1 : 0) - (b.holiday ? 1 : 0) || String(a.due || '').localeCompare(String(b.due || '')) || a.title.localeCompare(b.title));
-    return out;
+  // ---- drawing (0.12.1) ----------------------------------------------------------------------------------------------------
+  // George, 2026-10-28: the bars across the week were "overwhelming and disorganized". Each item now shows only on its
+  // due day, as a small chip in its class's colour: the class code (never cut), a short title (the full one on hover)
+  // and Halo's time. Graded work first, then by time; at most five a day and "+N more"; participation folded into one
+  // line a day; done work faded with a check; work with no submission in Halo that has passed goes quiet. The grid is
+  // Halo's own calendar (its day headers, cells, today's colours, as its stylesheet draws them, on Halo's variables, so
+  // Better Halo's themes recolour it as they recolour Halo's).
+  const MAX_A_DAY = 5;
+  const headHtml = (d, compact) => {
+    const k = keyOf(d);
+    const wd = WEEK[new Date(`${k}T12:00:00Z`).getUTCDay()];
+    return compact ? `<span class="font-semibold">${wd[0]}</span><br><span class="font-extralight">${Number(k.slice(8))}</span>` : `<span class="font-semibold">${wd}, </span><span class="font-extralight">${MONTHS[Number(k.slice(5, 7)) - 1]} ${Number(k.slice(8))}</span>`;
+  };
+  function chip(i) {
+    const tip = `${i.code} · ${i.title} · Due ${i.full}${i.done ? ' · Done' : i.over ? ' · Past due' : ''}`;
+    const cls = `hp-chip${i.done ? ' hp-done' : ''}${i.quiet ? ' hp-quiet' : ''}${i.over ? ' hp-over' : ''}`;
+    const inner = `<span class="hp-code">${i.done ? '<span class="hp-check" aria-label="Done">✓</span>' : ''}${esc(i.code)}</span><span class="hp-ttl">${esc(i.short)}</span><span class="hp-time">${esc(i.time)}</span>`;
+    const style = i.col ? ` style="--c:${esc(i.col)}"` : '';
+    return i.href ? `<a class="${cls}" href="${esc(i.href)}" title="${esc(tip)}" data-id="${esc(i.id)}"${style}>${inner}</a>` : `<span class="${cls}" title="${esc(tip)}" data-id="${esc(i.id)}"${style}>${inner}</span>`;
   }
-  function draw(host, weeks, idx, grades) {
-    const z = O.zone();
-    const K = Object.fromEntries(NEED.concat(['HeaderRow_currentDay', 'ContentRow_currentDay', 'HeaderRow_borderBottom', 'sizes_radiusTopLeft', 'sizes_radiusTopRight', 'AssessmentBar_holidayBar', 'AssessmentBar_pointer', 'OverflowTooltip_overflowStyles']).map((n) => [n, O.cssClass(n) || '']));
-    const dur = (n) => O.cssClass(`WeeklyCalendar_duration${n}`) || '';
-    const off = (n) => (n ? O.cssClass(`WeeklyCalendar_offset${n}`) || '' : '');
-    const today = zoneDay(Date.now(), z);
-    const evs = events(idx, grades, z);
-    const compact = window.innerWidth <= 1024;
-    const head = (d) => {
-      const k = keyOf(d);
-      const wd = WEEK[new Date(`${k}T12:00:00Z`).getUTCDay()];
-      const md = `${MONTHS[Number(k.slice(5, 7)) - 1]} ${Number(k.slice(8))}`;
-      return compact ? `<span class="font-semibold">${wd[0]}</span><br><span class="font-extralight">${Number(k.slice(8))}</span>` : `<span class="font-semibold">${wd}, </span><span class="font-extralight">${md}</span>`;
-    };
-    let html = '';
-    weeks.forEach((w, wi) => {
-      html += `<div><div class="${K.sizes_calendarRow}">${w.map((d, i) => `<div class="${K.DayHeader_header}${d === today ? ` ${K.HeaderRow_currentDay}` : ''}${wi === 0 && i === 0 ? ` ${K.sizes_radiusTopLeft}` : ''}${wi === 0 && i === 6 ? ` ${K.sizes_radiusTopRight}` : ''}${wi > 0 ? ` ${K.HeaderRow_borderBottom}` : ''}">${head(d)}</div>`).join('')}</div>`;
-      html += `<div class="${K.ContentRow_contentRowWrapper}"><div><div class="${K.sizes_calendarRow} ${K.ContentRow_contentRow}">${w.map((d) => `<div class="${K.DayContent_content}${d === today ? ` ${K.ContentRow_currentDay}` : ''}"></div>`).join('')}</div><div class="${K.ContentRow_eventContainer}"><div>`;
-      for (const ev of evs) {
-        if (ev.e < w[0] || ev.s > w[6]) continue;
-        const a = Math.max(ev.s, w[0]) - w[0];
-        const b = Math.min(ev.e, w[6]) - w[0];
-        const col = ev.holiday ? null : ev.c.col || ev.c.hex;
-        const style = col ? `border-left:8px solid ${col};border-right:8px solid ${col};background:color-mix(in srgb, ${col} 16%, var(--hp-surface))` : '';
-        const tip = ev.holiday ? ev.title : `${ev.c.code || ev.c.cc} · ${ev.title} · Due ${z ? L.haloFormat(Date.parse(ev.due), z) : ''}`;
-        const inner = `<div class="${K.AssessmentBar_customEventBar} ${K.WeeklyCalendar_eventInner} ${ev.holiday ? K.AssessmentBar_holidayBar : ''} ${K.AssessmentBar_pointer}"${style ? ` style="${style}"` : ''}><div class="${K.AssessmentBar_assessmentBarContent}"><div class="${K.AssessmentBar_assessmentBarLeft}"><div class="${K.AssessmentBar_assessmentBarTitle}"><div class="${K.OverflowTooltip_overflowStyles} min-w-0" role="presentation">${ev.done ? '✓ ' : ''}${ev.holiday ? '' : `<b>${esc(ev.c.code || ev.c.cc)}</b> · `}${esc(ev.title)}</div></div></div></div></div>`;
-        const cls = `${K.WeeklyCalendar_eventBar} ${dur(b - a + 1)} ${off(a)} relative`;
-        html += ev.href ? `<div><a class="${cls}" style="display:block;text-decoration:none;color:inherit" href="${esc(ev.href)}" title="${esc(tip)}">${inner}</a></div>` : `<div><div class="${cls}" title="${esc(tip)}">${inner}</div></div>`;
-      }
-      html += '</div></div></div></div></div>';
+  function dayHtml(d, info, today) {
+    const k = keyOf(d);
+    let h = '';
+    for (const t of (info && info.hol) || []) h += `<div class="hp-hol" title="${esc(t)}">${esc(t)}</div>`;
+    const items = (info && info.items) || [];
+    items.forEach((i, n) => {
+      h += n < MAX_A_DAY ? chip(i) : chip(i).replace(/^<(a|span) class="hp-chip/, '<$1 class="hp-chip hp-extra');
     });
-    host.querySelector('.hp-grid').innerHTML = html;
+    if (items.length > MAX_A_DAY) h += `<button type="button" class="hp-more" aria-expanded="false">+${items.length - MAX_A_DAY} more</button>`;
+    const part = (info && info.part) || [];
+    if (part.length) h += `<div class="hp-part"><button type="button" class="hp-ptog" aria-expanded="false">${O.CHEVRON}<span>${part.length} participation</span></button><div class="hp-plist" hidden>${part.map(chip).join('')}</div></div>`;
+    return `<div class="hp-day${d === today ? ' hp-today' : ''}" data-day="${k}">${h}</div>`;
+  }
+  /** Halo's calendar grid for these weeks (arrays of seven day numbers), with each day's chips. */
+  function gridHtml(weeks, days, { compact = window.innerWidth <= 1024 } = {}) {
+    const today = zoneDay(Date.now(), O.zone());
+    return weeks
+      .map((w, wi) => `<div class="hp-week"><div class="hp-row hp-heads${wi ? ' hp-later' : ''}">${w.map((d) => `<div class="hp-dh${d === today ? ' hp-today' : ''}">${headHtml(d, compact)}</div>`).join('')}</div><div class="hp-row hp-days">${w.map((d) => dayHtml(d, days.get(keyOf(d)), today)).join('')}</div></div>`)
+      .join('');
+  }
+  function legendHtml(idx, grades) {
+    return idx.classes.map((c) => `<span class="hp-key"><span class="hp-dot" style="background:${esc(c.col || c.hex)}"></span>${esc(c.code || c.cc)}${grades[c.slug] ? '' : ' <span>(Halo did not answer)</span>'}</span>`).join('');
+  }
+  /** Halo's answers as calendar days: Halo+ check-offs count as done, and work with no submission in Halo goes quiet. */
+  function daysFor(idx, grades) {
+    const doneIds = new Set();
+    const quietIds = new Set();
+    for (const i of (O.view && O.view.items) || []) {
+      if (!i.h) continue;
+      if (i.done === 1) doneIds.add(i.h);
+      if (i.ns === 1) quietIds.add(i.h);
+    }
+    return L.calendarDays(idx, grades, O.zone(), Date.now(), { doneIds, quietIds });
+  }
+  /** "+N more" and the participation line open in place. */
+  function bindGrid(el) {
+    if (el.dataset.bound) return;
+    el.dataset.bound = '1';
+    el.addEventListener('click', (e) => {
+      const more = e.target.closest('.hp-more');
+      if (more) {
+        const day = more.closest('.hp-day');
+        const open = !day.classList.contains('hp-open');
+        day.classList.toggle('hp-open', open);
+        more.setAttribute('aria-expanded', String(open));
+        more.textContent = open ? 'Show less' : `+${day.querySelectorAll('.hp-extra').length} more`;
+        return;
+      }
+      const tog = e.target.closest('.hp-ptog');
+      if (tog) {
+        const open = tog.getAttribute('aria-expanded') !== 'true';
+        tog.setAttribute('aria-expanded', String(open));
+        tog.nextElementSibling.hidden = !open;
+      }
+    });
   }
 
   // ---- the switch beside Halo's "Show" ------------------------------------------------------------------------------------
@@ -184,10 +195,11 @@
     const opt = (on, v, label) => `<button type="button" data-hp-cal="${v}" aria-pressed="${on}" class="MuiButtonBase-root MuiButton-root MuiButtonGroup-grouped MuiButtonGroup-groupedHorizontal MuiButton-sizeSmall ${on ? 'MuiButton-contained MuiButton-containedSecondary' : 'MuiButton-outlined MuiButton-outlinedSecondary MuiButtonGroup-groupedOutlined MuiButtonGroup-groupedOutlinedHorizontal'}"><span class="MuiButton-label">${label}</span></button>`;
     return `<div role="group" aria-label="Which classes" class="MuiButtonGroup-root">${opt(!all, 'one', 'This class')}${opt(all, 'all', 'All classes')}</div><span class="text-secondary" style="margin-left:6px;font-size:13px">${O.mark()}</span>`;
   }
-  function remember() {
+  /** Kept for the next visit (feature 14), only while remembering view choices is on: this switch, or `o` (Home's). */
+  function remember(o) {
     if (!O.enabled('views')) return;
     try {
-      void chrome.storage.local.get('haloViews').then(({ haloViews }) => chrome.storage.local.set({ haloViews: { ...(haloViews || {}), calAll: all } }));
+      void chrome.storage.local.get('haloViews').then(({ haloViews }) => chrome.storage.local.set({ haloViews: { ...(haloViews || {}), ...(o || { calAll: all }) } }));
     } catch {
       /* the extension was updated under this page */
     }
@@ -195,7 +207,6 @@
   // The saved choice is read once per page, and every pass waits for that one read.
   let savedP = null;
   let applied = false;
-  let cssTries = 0;
   function saved() {
     if (!savedP)
       savedP = (async () => {
@@ -235,14 +246,6 @@
     const row = paper && paper.firstElementChild;
     const idx = O.st.haloIndex;
     if (!paper || !wrap || !row || !idx || !Array.isArray(idx.classes) || idx.classes.length < 2) return clear();
-    if (NEED.some((n) => !O.cssClass(n))) {
-      // Halo's calendar stylesheet can still be on its way: look again shortly, a few times, then leave it.
-      if (cssTries < 6) {
-        cssTries += 1;
-        setTimeout(() => O.soon(), 1200);
-      }
-      return clear();
-    }
     await saved();
     let sw = row.querySelector('[data-haloplus="calendar-switch"]');
     if (!sw) {
@@ -282,15 +285,17 @@
     if (!host) {
       host = document.createElement('div');
       host.setAttribute('data-haloplus', 'calendar-all');
-      host.innerHTML = `<div class="hp-legend flex flex-wrap items-center text-sm text-secondary" style="gap:4px 14px;margin:0 0 10px"></div><div class="${O.cssClass('WeeklyCalendar_calendarWrapper')} hp-grid"></div>`;
+      host.className = 'hp-cal';
+      host.innerHTML = '<div class="hp-legend"></div><div class="hp-grid"></div>';
       wrap.after(host);
+      bindGrid(host);
     }
     wrap.style.display = 'none';
     const grades = await refresh(idx);
     // Halo redrew its calendar while Halo's answers were coming: start again on the new one.
     if (!paper.isConnected || !host.isConnected) return void (again = true);
     const sig = `${weeks.map((w) => w[0]).join(',')}|${liveAt}|${window.innerWidth <= 1024}`;
-    const legend = idx.classes.map((c) => `<span class="inline-flex items-center" style="gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:${c.col || c.hex};display:inline-block"></span>${esc(c.code || c.cc)}${grades[c.slug] ? '' : ' <span>(Halo did not answer)</span>'}</span>`).join('');
+    const legend = legendHtml(idx, grades);
     const lg = host.querySelector('.hp-legend');
     if (lg.dataset.sig !== legend || !lg.firstElementChild) {
       lg.innerHTML = legend;
@@ -298,13 +303,22 @@
     }
     if (sig === lastSig) return;
     lastSig = sig;
-    draw(host, weeks, idx, grades);
+    host.querySelector('.hp-grid').innerHTML = gridHtml(weeks, daysFor(idx, grades));
   }
   function clear() {
     document.querySelectorAll('[data-haloplus="calendar-switch"], [data-haloplus="calendar-all"]').forEach((n) => n.remove());
     const wrap = document.getElementById('guide_anchor_dashboard_calendar');
     if (wrap) wrap.style.removeProperty('display');
   }
+  // Halo redraws its calendar when the window is resized (compact day headers at 1024px and narrower); so does Halo+.
+  let resizeT = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => {
+      if (document.querySelector('[data-haloplus="calendar-all"], [data-haloplus="home-calendar"]')) O.soon();
+    }, 500);
+  });
+  O.cal = { refresh, gridHtml, legendHtml, daysFor, bindGrid, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
   O.feature({
     id: 'calendar',
     routes: ['class'],
@@ -319,7 +333,6 @@
       all = false;
       savedP = null;
       applied = false;
-      cssTries = 0;
       lastSig = '';
     },
   });

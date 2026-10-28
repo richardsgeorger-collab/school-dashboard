@@ -1,7 +1,8 @@
 // Features 18 and 19 (extension 0.12.0) on Halo's discussion page stand-in, with a real TipTap editor (the library
 // Halo's editor is built on), Halo's own 5-second server autosave and its restore, and the demo student (made up).
-// Drafts: typed text is kept on this computer; after a reload with nothing from Halo in the box, "Restore your draft"
-// is offered once and puts the words back through the editor; when Halo brought its own draft back, nothing is
+// Drafts (0.12.1): typed text is kept on this computer; after a reload with nothing from Halo in the box, "Restore your
+// draft from <time>?" shows right above the box, every time the box opens empty, and Restore puts the words back
+// through the editor; Dismiss deletes the draft; when Halo brought its own draft back (the same words), nothing is
 // offered; once the post goes through (Halo's message), the draft is gone. Word count: "N / 150 words" in Halo's
 // footer only when the prompt states a minimum for that box (150 for the post, 75 for a reply), nothing otherwise.
 //   [BROWSER=chrome|edge] [BH_DIR=<Better Halo unpacked>] node scripts/e2e-onhalo-discussion.mjs
@@ -80,13 +81,24 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await sleep(1500);
     check((await draftKeys()).some((k) => k.includes(`reply:${dq.forumId}:`)), `${tag}: the reply is kept on this computer while typing`);
     check(forum.sent.length === 0, `${tag}: nothing sent anywhere by Halo+ (Halo's own autosave had not run yet)`);
-    await p.reload({ waitUntil: 'load' });
+    await p.reload({ waitUntil: 'domcontentloaded' });
     await editorsReady(p);
     check((await p.locator(replySel).count()) === 0, `${tag}: after the reload Halo has no draft: its reply box stays closed`);
     await openReply(p, jordan);
     const offered = await until(async () => (await p.locator('[data-haloplus="draft-offer"]').count()) === 1, 9000, 200);
-    check(offered, `${tag}: the empty reply box offers "Restore your draft"`);
+    const ask = offered ? (await p.locator('[data-haloplus="draft-offer"] .t').innerText()).trim() : '';
+    check(offered && /^Restore your draft from \d{1,2}:\d{2} (AM|PM)\?$/.test(ask), `${tag}: the empty reply box asks "${ask}"`);
+    check(await p.evaluate((s) => {
+      const h = document.querySelector('[data-haloplus="draft-offer"]');
+      return !!h && h.nextElementSibling === document.querySelector(s);
+    }, replySel), `${tag}: right above the reply box`);
+    check((await p.locator('[data-haloplus="draft-offer"] button').allInnerTexts()).map((t) => t.trim().toLowerCase()).join('|') === 'restore|dismiss', `${tag}: with Restore and Dismiss`);
     await p.screenshot({ path: `${OUT}/${tag}-draft-offer.png` });
+    // Not acted on: the next time the box opens empty, it asks again.
+    await p.reload({ waitUntil: 'domcontentloaded' });
+    await editorsReady(p);
+    await openReply(p, jordan);
+    check(await until(async () => (await p.locator('[data-haloplus="draft-offer"]').count()) === 1, 9000, 200), `${tag}: not answered: asked again the next time`);
     await p.locator('[data-haloplus="draft-offer"] .r').click();
     await sleep(600);
     const box = await p.evaluate((s) => document.querySelector(`${s} .ProseMirror`).innerText.trim(), replySel);
@@ -97,7 +109,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     // Halo's own autosave then runs; a reload brings Halo's draft back, and Halo+ offers nothing.
     await sleep(6500);
     check(forum.drafts.reply[jordan] && forum.sent.some((x) => x.draft), `${tag}: Halo's own autosave saved it on Halo's server`);
-    await p.reload({ waitUntil: 'load' });
+    await p.reload({ waitUntil: 'domcontentloaded' });
     await editorsReady(p);
     await until(async () => (await p.locator(replySel).count()) === 1, 8000, 200);
     await sleep(4500);
@@ -112,7 +124,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     check((await p.locator('[data-haloplus="draft-offer"]').count()) === 0, `${tag}: a new reply box offers nothing`);
     await p.close();
 
-    // A draft is offered once only; a two-word draft is never kept.
+    // Dismiss deletes the draft; a two-word draft is never kept.
     await b.store({ haloDrafts: null });
     p = await b.page(url);
     await editorsReady(p);
@@ -122,16 +134,18 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     check(!(await draftKeys()).some((k) => k.endsWith(`post:${dq.forumId}`)), `${tag}: two words are not kept`);
     await typeIn(p, '#compose', ' and here is the rest of a longer new post about listening.');
     await sleep(1500);
-    await p.reload({ waitUntil: 'load' });
+    await p.reload({ waitUntil: 'domcontentloaded' });
     await editorsReady(p);
     await p.locator('#guide_anchor_discussion_reply').click();
     check(await until(async () => (await p.locator('[data-haloplus="draft-offer"]').count()) === 1, 9000, 200), `${tag}: the new post's draft is offered`);
     await p.locator('[data-haloplus="draft-offer"] .x').click();
-    await p.reload({ waitUntil: 'load' });
+    await sleep(400);
+    check(!(await draftKeys()).some((k) => k.endsWith(`post:${dq.forumId}`)), `${tag}: Dismiss deletes the draft`);
+    await p.reload({ waitUntil: 'domcontentloaded' });
     await editorsReady(p);
     await p.locator('#guide_anchor_discussion_reply').click();
     await sleep(4500);
-    check((await p.locator('[data-haloplus="draft-offer"]').count()) === 0, `${tag}: dismissed: never offered again`);
+    check((await p.locator('[data-haloplus="draft-offer"]').count()) === 0, `${tag}: dismissed: not offered again`);
     await p.close();
 
     // Show nothing: no minimum in the prompt; two different minimums for the same box; drafts switched off; Free.

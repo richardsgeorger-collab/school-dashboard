@@ -78,6 +78,7 @@ const MUI = `
 `;
 
 /** A page in Halo's frame: Halo's stylesheets for `route`, its fonts, its own data (school time zone), the header bar. */
+// MUI's styles come first, as on Halo (its StylesProvider injectFirst), so Halo's own CSS wins at equal specificity.
 function shell(build, route, title, body, { sidebar = null } = {}) {
   const next = { props: { pageProps: {}, tenantConfig: { timezone: { id: PHX, utcOffset: -7 } } }, page: route, query: {}, buildId: build.buildId, runtimeConfig: { orchestrationApiEndpoint: 'https://orchestration.halo.gcu.edu/api/v1/orchestrate/', gatewayEndpoint: 'https://gateway.halo.gcu.edu/' } };
   const header = `<div class="${build.cls('Header_headerContainer')} hideFromMobile" id="header_main_container"><header class="MuiPaper-root MuiAppBar-root MuiAppBar-positionStatic MuiAppBar-colorPrimary h-20 MuiPaper-elevation0"><div class="MuiToolbar-root MuiToolbar-regular ${build.cls('Header_toolbar')} MuiToolbar-gutters">
@@ -91,7 +92,7 @@ function shell(build, route, title, body, { sidebar = null } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(title)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400;1,500;1,600;1,700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-${build.links(route)}<style>${MUI}</style></head><body>
+<style>${MUI}</style>${build.links(route)}</head><body>
 <div id="__next"><div class="theme-gcu h-screen overflow-hidden"><div class="flex flex-col h-screen overflow-hidden bg-main text-main">${header}
 <div class="flex flex-grow min-h-0 overflow-hidden"><div class="${build.cls('CourseLayout_layoutContainer')}">${aside}
 <main id="CourseLayout--main" tabindex="-1" class="flex flex-col min-w-0 w-full h-full overflow-y-auto focus:outline-none"><div class="MuiContainer-root ${build.cls('CourseLayout_mainContainer')} flex flex-col flex-1 MuiContainer-maxWidthLg">${body}</div></main>
@@ -135,9 +136,39 @@ export function homePage(build, fx, { bh = false, badges = null } = {}) {
 <header class="${C('PageTitle_headerContainer')} "><div class="flex items-center"><span class="${C('PageTitle_icon')}"><svg class="MuiSvgIcon-root" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg></span><h1 class="${C('PageTitle_headerText')} focus:outline-none">Student home</h1></div></header>
 ${tabs}
 <section><div class="MuiGrid-root MuiGrid-container MuiGrid-spacing-xs-4">${cards}</div></section></div>
-<footer class="py-10"><hr class="MuiDivider-root"><div class="pt-2 text-center"><p class="text-xs">Grand Canyon University © 2026 All Rights Reserved</p></div></footer></div>`;
+<footer class="py-10"><hr class="MuiDivider-root"><div class="pt-2 text-center"><p class="text-xs">Grand Canyon University © 2026 All Rights Reserved</p></div></footer></div>
+<script>${HOME_TABS_JS.replace('%ON%', C('Tab_activeTab')).replace('%OFF%', C('Tab_tab'))}</script>`;
   return shell(build, '/', 'Halo Classes', body);
 }
+
+// Halo's Student Home tabs as its React code runs them (research A §1): one selected tab in state; choosing another
+// re-renders both buttons (class, aria-selected, tabindex) and mounts that tab's panel as a new <section> at the end of
+// #Home--main; choosing the tab already selected changes nothing.
+const HOME_TABS_JS = `
+(function () {
+  const ON = '%ON%', OFF = '%OFF%';
+  const main = document.getElementById('Home--main');
+  const list = main.querySelector('[role="tablist"]');
+  const tabs = [...list.querySelectorAll('[role="tab"]')];
+  const panels = [main.querySelector('section').innerHTML, '<div class="MuiGrid-root MuiGrid-container MuiGrid-spacing-xs-4"><p class="p-4 text-secondary">You have no past classes.</p></div>'];
+  let sel = 0;
+  list.addEventListener('click', (e) => {
+    const b = e.target.closest('[role="tab"]');
+    const i = tabs.indexOf(b);
+    if (i < 0 || i === sel) return;
+    sel = i;
+    tabs.forEach((t, k) => {
+      t.className = 'MuiButtonBase-root MuiButton-root MuiButton-text ' + (k === sel ? ON : OFF) + ' undefined';
+      t.setAttribute('aria-selected', String(k === sel));
+      t.setAttribute('tabindex', k === sel ? '0' : '-1');
+    });
+    main.querySelector('section').remove();
+    const s = document.createElement('section');
+    s.innerHTML = panels[sel];
+    main.appendChild(s);
+  });
+})();
+`;
 
 /**
  * A discussion forum (`/courses/<slug>/forums/discussion/<forumId>`): the prompt, the posts (the student's own marked as

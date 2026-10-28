@@ -1,6 +1,7 @@
 // Features 21, 5 and 7 (extension 0.12.0) on Halo's topic page stand-in, with the demo student (made up):
-// - 21: a folded "Rubric" under the instructions of each card that has Halo's "View Rubric"; nothing asked of Halo
-//   until it is opened; then exactly Halo's list (criteria, points, levels from the top, total); Halo silent: it says so.
+// - 21 (0.12.1): Halo's own "View Rubric" opens the rubric right below its row instead of a new tab, exactly Halo's
+//   list (criteria, points, levels from the top, total); a second click closes it; Ctrl/⌘-click is Halo's new tab as
+//   before; Halo silent: Halo's own rubric page opens, as it always did.
 // - 5: " · in 5h" / " · tomorrow" / " · in 3 days" beside Halo's own due date, from Halo's text in Halo's zone; not for
 //   handed-in work, past due or more than six days out; a personal (accommodated) date counts instead.
 // - 7: "N of M done" beside Max Points; nothing until every card's status is known.
@@ -91,48 +92,77 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     const acc = labels.find((l, k) => plan[k % plan.length].accommodatedDueDate);
     if (acc && acc.text) check(/timePart/.test(String(acc.beside)), `${tag}: the personal date's label sits beside the personal date`);
 
-    // 21: rubric folds.
+    // 21: Halo's "View Rubric" opens the rubric under its row.
     const withRubric = items.filter((a) => rubricFor(a));
-    const folds = await p.locator('[data-haloplus="rubric"]').count();
-    check(folds === withRubric.length && folds > 0, `${tag}: a folded "Rubric" on each card with Halo's View Rubric (${folds} of ${withRubric.length})`);
-    check(b.bench.calls.gateway.slice(calls0).every((c) => c.op !== 'AssessmentRubric'), `${tag}: nothing asked of Halo before it is opened`);
+    check((await p.locator('[data-haloplus="rubric"]').count()) === 0 && withRubric.length > 0, `${tag}: nothing added to the cards until View Rubric is pressed`);
+    check(b.bench.calls.gateway.slice(calls0).every((c) => c.op !== 'AssessmentRubric'), `${tag}: nothing asked of Halo before then`);
     await p.screenshot({ path: `${OUT}/${tag}-2-after.png` });
     const a = withRubric[0];
     const card = p.locator('[data-testid="assessment_card"]', { has: p.locator(`[data-testid="assessment_title"]:text-is("${a.title}")`) });
     // Halo folds handed-in cards: open the card first, as a student would.
     if ((await card.locator('button[aria-expanded="false"][data-toggle]').count()) === 1) await card.locator('button[data-toggle]').click();
-    await card.locator('[data-haloplus="rubric"] .hp-fold').click();
+    let tabs = 0;
+    const onTab = () => (tabs += 1);
+    b.ctx.on('page', onTab);
+    const link = card.locator('a[data-testid="print_rubric_link"]');
+    await link.hover();
+    await link.click();
     await until(async () => (await card.locator('[data-testid="hp-rubric-total"]').count()) === 1, 8000, 150);
-    const shown = (await card.locator('[data-haloplus="rubric"] .hp-body').innerText()).replace(/\s+/g, ' ').trim();
+    await sleep(500);
+    check(tabs === 0, `${tag}: View Rubric opens no new tab`);
+    const below = await card.evaluate((el) => {
+      const row = el.querySelector('a[data-testid="print_rubric_link"]').closest('.bg-grayF2');
+      return row && row.nextElementSibling && row.nextElementSibling.getAttribute('data-haloplus');
+    });
+    check(below === 'rubric', `${tag}: the rubric is right below Halo's Start / Due / Points / Rubric row`);
+    const shown = (await card.locator('[data-haloplus="rubric"]').innerText()).replace(/\s+/g, ' ').trim().replace(/^Rubric Criteria\s*/, '');
     const r = rubricFor(a);
     const r2 = (n) => Math.round(n * 100) / 100;
     const want = [...r.criteria].sort((x, y) => x.sequence - y.sequence).map((c) => `${c.name} ${r2(c.points)} points Criteria Description ${c.description} ${[...c.achievementLevels].sort((x, y) => y.sequence - x.sequence).map((l) => `${l.sequence}. ${l.name} ${r2(l.points)} points ${l.description}`).join(' ')}`).join(' ') + ` Total${r2(r.criteria.reduce((n, c) => n + c.points, 0))} points`; // Halo's two spans, spaced by margin
     const diff = [...want].findIndex((ch, i) => ch !== shown[i]);
-    check(shown === want, `${tag}: opened: exactly Halo's rubric (${shown.length} characters${shown === want ? '' : `; differs at ${diff}: got "…${shown.slice(Math.max(0, diff - 40), diff + 60)}…" want "…${want.slice(Math.max(0, diff - 40), diff + 60)}…"`})`);
+    check(shown === want, `${tag}: exactly Halo's rubric (${shown.length} characters${shown === want ? '' : `; differs at ${diff}: got "…${shown.slice(Math.max(0, diff - 40), diff + 60)}…" want "…${want.slice(Math.max(0, diff - 40), diff + 60)}…"`})`);
     const rubricCalls = () => b.bench.calls.gateway.filter((c) => c.op === 'AssessmentRubric').length;
     check(rubricCalls() === 1, `${tag}: one question to Halo for it`);
-    await card.locator('[data-haloplus="rubric"]').scrollIntoViewIfNeeded();
-    await p.screenshot({ path: `${OUT}/${tag}-3-rubric-open.png` });
-    await card.locator('[data-haloplus="rubric"] .hp-fold').click();
-    await card.locator('[data-haloplus="rubric"] .hp-fold').click();
+    // The picture: Halo's row with the rubric opening under it.
+    await card.evaluate((el) => {
+      const row = el.querySelector('.bg-grayF2');
+      const main = document.getElementById('CourseLayout--main');
+      row.scrollIntoView({ block: 'start' });
+      if (main) main.scrollTop -= 140;
+    });
     await sleep(300);
-    check(rubricCalls() === 1, `${tag}: closing and opening again asks Halo nothing more`);
+    await p.screenshot({ path: `${OUT}/${tag}-3-rubric-open.png` });
+    await link.click();
+    await sleep(300);
+    check((await card.locator('[data-haloplus="rubric"]').count()) === 0 && (await link.getAttribute('aria-expanded')) === 'false', `${tag}: View Rubric again closes it`);
+    await link.click();
+    await until(async () => (await card.locator('[data-testid="hp-rubric-total"]').count()) === 1, 8000, 150);
+    check(rubricCalls() === 1 && tabs === 0, `${tag}: and opens it again, asking Halo nothing more`);
+    await link.click();
+    await link.click({ modifiers: [process.platform === 'darwin' ? 'Meta' : 'Control'] });
+    await until(async () => tabs === 1, 5000, 100);
+    check(tabs === 1 && (await card.locator('[data-haloplus="rubric"]').count()) === 0, `${tag}: ${process.platform === 'darwin' ? '⌘' : 'Ctrl'}-click is Halo's own new tab, as before`);
+    for (const pg of b.ctx.pages()) if (/\/rubrics\//.test(pg.url())) await pg.close().catch(() => undefined);
     await p.close();
 
-    // Halo silent: it says so; no rubric, no fold.
-    if (withRubric[1] || withRubric[0]) {
+    // Halo silent: Halo's own rubric page opens, as it always did.
+    {
       b.bench.state.failGateway = true;
       p = await b.page(url);
-      await until(async () => (await p.locator('[data-haloplus="rubric"]').count()) > 0, 10000, 200);
-      const c2 = p.locator('[data-haloplus="rubric"]').first();
-      const holder = p.locator('[data-testid="assessment_card"]', { has: c2 });
+      await sleep(1500);
+      const holder = p.locator('[data-testid="assessment_card"]', { has: p.locator('a[data-testid="print_rubric_link"]') }).first();
       if ((await holder.locator('button[aria-expanded="false"][data-toggle]').count()) === 1) await holder.locator('button[data-toggle]').click();
-      await c2.locator('.hp-fold').click();
-      await until(async () => /did not send/.test(await c2.innerText()), 8000, 200);
-      check(/Halo did not send the rubric just now/.test(await c2.innerText()), `${tag}: Halo does not answer: it says so, Halo's own link still there`);
+      const before = tabs;
+      const opened = b.ctx.waitForEvent('page', { timeout: 8000 }).catch(() => null);
+      await holder.locator('a[data-testid="print_rubric_link"]').click();
+      const np = await opened;
+      check(np && /\/rubrics\//.test(np.url() || (await np.waitForURL(/rubrics/, { timeout: 3000 }).then(() => np.url()).catch(() => ''))) && tabs === before + 1, `${tag}: Halo does not answer: Halo's own rubric page opens (${np ? np.url() : 'no tab'})`);
+      check((await holder.locator('[data-haloplus="rubric"]').count()) === 0, `${tag}: and nothing is left on the card`);
+      if (np) await np.close().catch(() => undefined);
       b.bench.state.failGateway = false;
       await p.close();
     }
+    b.ctx.off('page', onTab);
 
     // 7: a card whose state Halo has not drawn: no progress at all.
     b.bench.state.grades[items[0].id] = { ...plan[0], noStatus: true };

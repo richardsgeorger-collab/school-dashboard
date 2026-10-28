@@ -31,6 +31,8 @@
   --hp-shadow-menu: 0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12);
   --hp-shadow-dialog: 0 11px 15px -7px rgba(0, 0, 0, 0.2), 0 24px 38px 3px rgba(0, 0, 0, 0.14), 0 9px 46px 8px rgba(0, 0, 0, 0.12);
   --hp-backdrop: rgba(0, 0, 0, 0.5);
+  /* Halo+'s mark: a deeper gold than the icon's on Halo's white page, so the ring reads at text size. */
+  --hp-gold: #c98a17;
 }
 /* Better Halo's themes, light or dark: its own variables. */
 :root[data-better-halo-theme]:not([data-better-halo-theme='']) {
@@ -61,19 +63,23 @@
   --hp-shadow-card: var(--better-halo-shadow-xs);
   --hp-shadow-menu: var(--better-halo-shadow-md, var(--better-halo-shadow-xs));
 }
+/* Better Halo's dark themes: the icon's own gold. */
+:root[data-better-halo-theme]:not([data-better-halo-theme='']).dark {
+  --hp-gold: #f2b84b;
+}
 /* Halo+'s light-DOM additions keep their own text colour where Better Halo forces every text to its foreground. */
 :root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus] .hp-keep,
 :root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus] .hp-keep * {
   color: inherit !important;
 }
-/* The Halo+ mark (⊕) beside Halo's own text: inline, the size and gray of that text. Halo's stylesheet makes every svg a
-   block (its Tailwind reset), so the mark holds its own. */
+/* The Halo+ mark (Halo+'s logo: the gold ring with the plus) beside Halo's own text: inline, as tall as that text,
+   slightly faded. Halo's stylesheet makes every svg a block (its Tailwind reset), so the mark holds its own. */
 [data-haloplus] .hp-mark {
   display: inline-flex;
-  vertical-align: -0.1em;
-  width: 0.85em;
-  height: 0.85em;
-  opacity: 0.7;
+  vertical-align: -0.14em;
+  width: 0.95em;
+  height: 0.95em;
+  opacity: 0.8;
   flex: none;
   color: inherit;
   cursor: default;
@@ -82,6 +88,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 /* A fold Halo+ adds (Rubric, Last feedback): Halo's own chevron, label and spacing. */
 [data-haloplus] .hp-fold {
@@ -104,4 +111,303 @@
 }
 [data-haloplus] .hp-fold[aria-expanded='true'] svg {
   transform: rotate(90deg);
+}
+/* ---- The calendar (feature 1, 0.12.1): Halo's own calendar grid, as Halo's stylesheet draws it (DayHeader, DayContent,
+   today's colours, the wrapper's shadow), on Halo's variables so Better Halo's themes recolour it as they recolour
+   Halo's; each item a chip on its due day. ---------------------------------------------------------------------------- */
+.hp-cal {
+  font-family: var(--hp-font);
+  color: var(--hp-text);
+}
+.hp-cal .hp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--hp-text-2);
+}
+.hp-cal .hp-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hp-cal .hp-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.hp-cal .hp-grid {
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 4px 6px -1px #0000001a, 0 2px 4px -1px #0000000f;
+}
+.hp-cal .hp-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.hp-cal .hp-dh {
+  background-color: var(--lms-gray43, #434343);
+  border-right: 1px solid var(--lms-grayBD, #bdbdbd);
+  border-bottom: 1px solid var(--lms-grayBD, #bdbdbd);
+  color: #fff;
+  letter-spacing: 0.3px;
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.hp-cal .hp-dh:last-of-type,
+.hp-cal .hp-day:last-of-type {
+  border-right: none;
+}
+.hp-cal .hp-week:first-child .hp-dh:first-child {
+  border-top-left-radius: 5px;
+}
+.hp-cal .hp-week:first-child .hp-dh:last-child {
+  border-top-right-radius: 5px;
+}
+.hp-cal .hp-heads.hp-later .hp-dh {
+  border-top: 1px solid var(--lms-grayF7, #f7f7f7);
+}
+.hp-cal .hp-dh.hp-today {
+  background-color: var(--hp-purple);
+}
+.hp-cal .hp-day {
+  min-width: 0;
+  min-height: 120px;
+  background-color: var(--lms-grayFA, #fafafa);
+  border-right: 1px solid var(--lms-grayBD, #bdbdbd);
+  padding: 6px 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  container-type: inline-size;
+}
+.hp-cal .hp-day.hp-today {
+  background-color: var(--lms-colorDashboardLightPurple, #f2f4fa);
+}
+/* Under Better Halo's themes: its own treatment of Halo's calendar (Better Halo 0.8.4's rules for DayHeader_header,
+   HeaderRow_currentDay, DayContent_content and ContentRow_currentDay), on Halo+'s grid. */
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) .hp-cal .hp-dh {
+  background-color: var(--better-halo-secondary);
+  border-right-color: color-mix(in srgb, var(--better-halo-secondary) 50%, var(--better-halo-secondary-foreground));
+  color: var(--better-halo-secondary-foreground);
+}
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) .hp-cal .hp-dh span {
+  color: var(--better-halo-secondary-foreground) !important;
+}
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) .hp-cal .hp-dh.hp-today {
+  background-color: color-mix(in srgb, var(--better-halo-secondary) 85%, var(--better-halo-secondary-foreground));
+}
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) .hp-cal .hp-day {
+  background-color: var(--better-halo-muted);
+  border-right-color: color-mix(in srgb, var(--better-halo-muted) 50%, var(--better-halo-muted-foreground));
+}
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) .hp-cal .hp-day.hp-today {
+  background-color: color-mix(in srgb, var(--better-halo-muted) 95%, var(--better-halo-muted-foreground));
+}
+/* A chip: the class code (never cut) and Halo's time on top (the time takes its own line when the day is too narrow
+   for both), the short title under them; all on one line when the day is wide enough ("CHM-113 · Exam 1 · 11:59 PM"). */
+.hp-cal .hp-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  padding: 3px 6px 3px 7px;
+  border-radius: 4px;
+  border-left: 3px solid var(--c, var(--hp-text-3));
+  background: color-mix(in srgb, var(--c, var(--hp-text-3)) 13%, var(--hp-surface));
+  color: var(--hp-text);
+  font-size: 12px;
+  line-height: 1.4;
+  text-decoration: none;
+  min-width: 0;
+}
+.hp-cal a.hp-chip:hover {
+  background: color-mix(in srgb, var(--c, var(--hp-text-3)) 24%, var(--hp-surface));
+}
+.hp-cal a.hp-chip:focus-visible {
+  outline: 2px solid var(--hp-focus);
+  outline-offset: 1px;
+}
+.hp-cal .hp-code {
+  order: 0;
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.hp-cal .hp-check {
+  margin-right: 3px;
+  color: var(--hp-success);
+}
+.hp-cal .hp-time {
+  order: 1;
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--hp-text-2);
+}
+.hp-cal .hp-ttl {
+  order: 2;
+  flex: 1 0 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@container (min-width: 230px) {
+  .hp-cal .hp-chip {
+    flex-wrap: nowrap;
+  }
+  .hp-cal .hp-ttl {
+    order: 1;
+    flex: 1 1 auto;
+  }
+  .hp-cal .hp-time {
+    order: 2;
+    margin-left: 0;
+  }
+  .hp-cal .hp-ttl::before,
+  .hp-cal .hp-time::before {
+    content: '· ';
+    color: var(--hp-text-2);
+  }
+}
+.hp-cal .hp-chip.hp-done,
+.hp-cal .hp-chip.hp-quiet {
+  opacity: 0.55;
+}
+.hp-cal .hp-chip.hp-over .hp-time {
+  color: var(--lms-colorRed, #d32f2f);
+}
+.hp-cal .hp-chip.hp-extra {
+  display: none;
+}
+.hp-cal .hp-day.hp-open .hp-chip.hp-extra {
+  display: flex;
+}
+.hp-cal .hp-more,
+.hp-cal .hp-ptog {
+  all: unset;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--hp-text-2);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.hp-cal .hp-more:hover,
+.hp-cal .hp-ptog:hover {
+  background: var(--hp-hover);
+}
+.hp-cal .hp-more:focus-visible,
+.hp-cal .hp-ptog:focus-visible {
+  outline: 1px solid var(--hp-focus);
+}
+.hp-cal .hp-ptog {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: -4px;
+}
+.hp-cal .hp-ptog svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  transition: transform 0.2s;
+}
+.hp-cal .hp-ptog[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+.hp-cal .hp-plist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.hp-cal .hp-plist[hidden] {
+  display: none;
+}
+.hp-cal .hp-hol {
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--lms-colorYellow, #ffc200) 30%, var(--hp-surface));
+  color: var(--hp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* ---- Student Home's "Calendar" tab (0.12.1): while it is open, Halo's own class list (the tab panel Halo mounts) is
+   hidden and Halo's selected tab loses its underline; Halo's own tabs bring everything back. --------------------------- */
+#Home--main[data-hp-tab='calendar'] > section {
+  display: none !important;
+}
+#Home--main[data-hp-tab='calendar'] [role='tablist'] > [role='tab']:not([data-haloplus]) {
+  border-bottom-color: transparent !important;
+  border-bottom-width: 0 !important;
+}
+[data-haloplus='home-tab'] .hp-mark {
+  margin-left: 6px;
+}
+[data-haloplus='home-calendar'] .hp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 1.25rem;
+}
+[data-haloplus='home-calendar'] .hp-range {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hp-text);
+  min-width: 9.5em;
+}
+[data-haloplus='home-calendar'] .hp-arrow {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--hp-text-2);
+}
+[data-haloplus='home-calendar'] .hp-arrow:hover {
+  background: var(--hp-hover);
+}
+[data-haloplus='home-calendar'] .hp-arrow:focus-visible {
+  outline: 1px solid var(--hp-focus);
+}
+[data-haloplus='home-calendar'] .hp-arrow svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+[data-haloplus='home-calendar'] .hp-sp {
+  flex: 1;
+}
+[data-haloplus='home-calendar'] .hp-group {
+  display: inline-flex;
+}
+[data-haloplus='home-calendar'] .hp-group > button:not(:first-child) {
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+[data-haloplus='home-calendar'] .hp-group > button:not(:last-child) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+[data-haloplus='home-calendar'] .hp-status {
+  font-size: 14px;
+  color: var(--hp-text-2);
+  padding: 24px 0;
 }

@@ -1,6 +1,6 @@
 // Features 8 and 23 (extension 0.12.0) on Halo's topic page stand-in and its assignment submission view, with the demo
-// student (made up). 8: handed-in work shows Halo's own confirmation ("Submitted ✓ <when> · <file>") from Halo's
-// submission record; before submitting, a file clearly not the one type the instructions ask for gets one line, in
+// student (made up). 8: handed-in work shows what Halo's card does not (0.12.1): when it was sent and which file, under
+// Halo's own "Submitted" chip ("<when> · <file>"), from Halo's submission record, never a second "Submitted"; before submitting, a file clearly not the one type the instructions ask for gets one line, in
 // the working files and in Review and Submit; nothing when the instructions allow two types or name none, nothing for
 // graded work or a record with no final file. 23: open work shows the instructor's comment on the same assignment one
 // topic earlier, folded, word for word, never a script; nothing without a graded earlier one with a comment.
@@ -46,7 +46,11 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     let p = await b.page(`https://halo.gcu.edu/courses/${handed.slug}/course-units/${handed.unitId}`);
     await until(async () => (await p.locator('[data-haloplus="submitted"]').count()) === 1, 10000, 200);
     const line = (await p.locator('[data-haloplus="submitted"]').textContent()).replace(/\s+/g, ' ').trim();
-    check(line === `Submitted ✓ ${dayFmt(subAt)} · Lab report final.docx +1 more`, `${tag}: handed in: "${line}"`);
+    check(line === `${dayFmt(subAt)} · Lab report final.docx +1 more`, `${tag}: handed in: "${line}"`);
+    check(await p.evaluate(() => {
+      const el = document.querySelector('[data-haloplus="submitted"]');
+      return !!el.parentElement.querySelector('[data-testid="status"]') && !/Submitted/.test(el.textContent);
+    }), `${tag}: under Halo's own status chip, without saying "Submitted" again`);
     const card = p.locator('[data-testid="assessment_card"]', { has: p.locator('[data-haloplus="submitted"]') });
     await card.locator('button[data-toggle]').click();
     await sleep(300);

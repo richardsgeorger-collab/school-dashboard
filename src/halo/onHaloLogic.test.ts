@@ -357,3 +357,85 @@ describe('fetching ahead only when it costs nothing (feature 13)', () => {
     expect(L.preloadOk({ ...base, battery: { charging: false, level: 0.19 } })).toBe(false);
   });
 });
+
+describe('the calendar: each item on its due day, as Halo dates it (feature 1, 0.12.1)', () => {
+  type Item = { id: string; code: string; short: string; time: string; done: boolean; quiet: boolean; over: boolean; graded: boolean; part: boolean };
+  type Day = { items: Item[]; part: Item[]; hol: string[] };
+  const C = L as unknown as {
+    calendarDays: (index: unknown, live: Record<string, Map<string, { dueDate: string | null; status: string | null }> | null>, tz: string, now: number, o?: { doneIds?: Set<string>; quietIds?: Set<string> }) => Map<string, Day>;
+    chipTitle: (t: string) => string;
+  };
+  const PHX = 'America/Phoenix';
+  const index = {
+    classes: [
+      { slug: 'CHM-113-A', code: 'CHM-113', cc: 'CHM-113-MW900A', col: '#e91e63', hol: [{ t: 'Fall Break', s: '2026-11-26T07:00:00Z', n: 2 }] },
+      { slug: 'PSY-102-B', code: 'PSY-102', cc: 'PSY-102-O500', col: '#2196f3', hol: [{ t: 'Fall Break', s: '2026-11-26T07:00:00Z', n: 2 }] },
+    ],
+    rows: [
+      { c: 0, kind: 'quiz', id: 'exam1', title: 'Exam 1', href: '/quiz/exam1', cdue: '2026-10-31T06:59:00Z', pts: 100 },
+      { c: 0, kind: 'assignment', id: 'hw3', title: 'Topic 3 Homework: Stoichiometry and Limiting Reagents', href: '/x', cdue: '2026-10-31T06:59:00Z', pts: 20 },
+      { c: 0, kind: 'assignment', id: 'survey', title: 'Course Survey', href: '/s', cdue: '2026-10-30T16:00:00Z', pts: 0 },
+      { c: 0, kind: 'participation', id: 'p1', title: 'Topic 3 Participation', href: '/p', cdue: '2026-10-31T06:59:00Z', pts: 10 },
+      { c: 0, kind: 'lti', id: 'lab', title: 'In-lab practical', href: null, cdue: '2026-10-28T20:00:00Z', pts: 15, ns: 1 },
+      { c: 0, kind: 'assignment', id: 'midnight', title: 'Reading Notes', href: '/m', cdue: '2026-11-02T07:00:00Z', pts: 5 },
+      { c: 0, kind: 'announcement', id: 'a1', title: 'Welcome', href: '/a' },
+      { c: 1, kind: 'discussion', id: 'dq', title: 'Topic 3 DQ 1: Memory', href: '/d', cdue: '2026-10-30T06:59:00Z', pts: 10 },
+    ],
+  };
+  const live = (over: Record<string, { dueDate: string | null; status: string | null }> = {}) => ({
+    'CHM-113-A': new Map(['exam1', 'hw3', 'survey', 'p1', 'lab', 'midnight'].map((id) => [id, over[id] ?? { dueDate: null, status: 'ACTIVE' }])),
+    'PSY-102-B': new Map([['dq', over.dq ?? { dueDate: null, status: 'ACTIVE' }]]),
+  });
+  const now = Date.parse('2026-10-29T19:00:00Z'); // Thu Oct 29, 12:00 PM in Phoenix
+  it('on its due day only, in Halo’s school zone, with Halo’s time', () => {
+    const d = C.calendarDays(index, live(), PHX, now);
+    expect(d.get('2026-10-30')!.items.map((i) => `${i.code} · ${i.short} · ${i.time}`)).toEqual(['CHM-113 · Exam 1 · 11:59 PM', 'CHM-113 · Topic 3 Homework · 11:59 PM', 'CHM-113 · Course Survey · 9:00 AM']);
+    expect(d.get('2026-10-29')!.items.map((i) => i.code)).toEqual(['PSY-102']);
+    expect(d.has('2026-10-31')).toBe(false);
+  });
+  it('an item due at midnight is on the day Halo shows ("Nov 2, 2026, 12:00 AM")', () => {
+    const d = C.calendarDays(index, live(), PHX, now);
+    expect(d.get('2026-11-02')!.items.map((i) => [i.id, i.time])).toEqual([['midnight', '12:00 AM']]);
+    expect(d.get('2026-11-01')).toBeUndefined();
+  });
+  it('a date Halo moved for this student is on its new day; the class’s date is not used', () => {
+    const d = C.calendarDays(index, live({ exam1: { dueDate: '2026-11-03T06:59:00Z', status: 'ACTIVE' } }), PHX, now);
+    expect(d.get('2026-10-30')!.items.some((i) => i.id === 'exam1')).toBe(false);
+    expect(d.get('2026-11-02')!.items.some((i) => i.id === 'exam1')).toBe(true);
+  });
+  it('a class Halo did not answer for is left out, not guessed', () => {
+    const d = C.calendarDays(index, { 'CHM-113-A': live()['CHM-113-A'], 'PSY-102-B': null }, PHX, now);
+    expect([...d.values()].flatMap((x) => x.items).some((i) => i.code === 'PSY-102')).toBe(false);
+  });
+  it('graded work first, then by time; participation on its own line, never overdue', () => {
+    const later = Date.parse('2026-11-01T12:00:00Z');
+    const d = C.calendarDays(index, live(), PHX, later);
+    const fri = d.get('2026-10-30')!;
+    expect(fri.items.map((i) => i.id)).toEqual(['exam1', 'hw3', 'survey']);
+    expect(fri.part.map((i) => i.id)).toEqual(['p1']);
+    expect(fri.part[0].over).toBe(false);
+    expect(fri.items[0].over).toBe(true);
+  });
+  it('done: Halo’s own status or a Halo+ check-off; no submission in Halo and past: quiet, not overdue', () => {
+    const d = C.calendarDays(index, live({ exam1: { dueDate: null, status: 'SUBMITTED' } }), PHX, Date.parse('2026-11-01T12:00:00Z'), { doneIds: new Set(['hw3']) });
+    const fri = d.get('2026-10-30')!;
+    expect(fri.items.filter((i) => i.done).map((i) => i.id)).toEqual(['exam1', 'hw3']);
+    const lab = d.get('2026-10-28')!.items[0];
+    expect([lab.quiet, lab.over, lab.done]).toEqual([true, false, false]);
+  });
+  it('the same holiday from two classes is one line a day', () => {
+    const d = C.calendarDays(index, live(), PHX, now);
+    expect(d.get('2026-11-26')!.hol).toEqual(['Fall Break']);
+    expect(d.get('2026-11-27')!.hol).toEqual(['Fall Break']);
+    expect(d.get('2026-11-28')).toBeUndefined();
+  });
+  it('a long title is cut at its colon; a short one is kept', () => {
+    expect(C.chipTitle('Topic 3 Homework: Stoichiometry and Limiting Reagents')).toBe('Topic 3 Homework');
+    expect(C.chipTitle('Exam 1: Ch 1-4')).toBe('Exam 1: Ch 1-4');
+    expect(C.chipTitle('A really long title without any colon at all here')).toBe('A really long title without any colon at all here');
+  });
+  it('nothing without Halo’s zone or an index', () => {
+    expect(C.calendarDays(index, live(), '', now).size).toBe(0);
+    expect(C.calendarDays(null, live(), PHX, now).size).toBe(0);
+  });
+});

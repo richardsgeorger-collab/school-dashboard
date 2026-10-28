@@ -116,11 +116,12 @@ async function session(which, ext) {
   await v.p.close();
   // A topic page, a rubric opened, then the assignment view.
   v = await visit(`https://halo.gcu.edu/courses/${mat.slugId}/course-units/${unit.unitId}`, async (p) => {
-    const fold = p.locator('[data-haloplus="rubric"] .hp-fold').first();
-    if (await fold.count()) {
-      const card = p.locator('[data-testid="assessment_card"]', { has: fold });
+    const link = p.locator('a[data-testid="print_rubric_link"]').first();
+    if (await link.count()) {
+      const card = p.locator('[data-testid="assessment_card"]', { has: link });
       if ((await card.locator('button[aria-expanded="false"][data-toggle]').count()) === 1) await card.locator('button[data-toggle]').click();
-      await fold.click({ timeout: 3000 });
+      await link.hover();
+      await link.click({ timeout: 3000 });
     }
     await sleep(1500);
     const open = p.locator('[data-open]').first();

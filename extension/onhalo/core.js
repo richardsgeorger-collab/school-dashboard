@@ -97,13 +97,13 @@
   }
 
   // ---- the Halo+ mark -------------------------------------------------------------------------------------------------
-  // A small circle with a plus (⊕, George: "a small circle with a plus, like our logo, in the page's gray"), in the gray of
-  // the text beside it (currentColor at 70%), never bigger than that text (0.85em). Hover: "Added by Halo+". The same
-  // everywhere. (The logo's open ring with the plus in its gap read as a refresh arrow at text size, beside the grade's
-  // real refresh button.)
+  // Halo+'s own logo mark (0.12.1, George: the gray ⊕ was "unrecognizable, even to George"): the gold open ring with the
+  // plus, as on the app icon, without its dark square. The ring is Halo+ gold (a deeper gold on light pages, the icon's
+  // gold under Better Halo's dark themes), the plus the colour of the text beside it (dark on Halo's white page, light
+  // on a dark theme, as the icon's white plus). As tall as that text, slightly faded. Hover: "Added by Halo+".
   const MARK_SVG =
-    '<svg viewBox="0 0 16 16" width="1em" height="1em" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.8v6.4M4.8 8h6.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
-  const MARK_CSS = '.hp-mark{display:inline-flex;vertical-align:-0.1em;width:.85em;height:.85em;opacity:.7;flex:none;color:inherit;cursor:default}.hp-mark svg{width:100%;height:100%}';
+    '<svg viewBox="5 3 56 56" width="1em" height="1em" aria-hidden="true" focusable="false"><path d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" fill="none" stroke="var(--hp-gold, #c98a17)" stroke-width="7.5" stroke-linecap="round"/><path d="M47.1 9.3v15.2M39.5 16.9h15.2" fill="none" stroke="currentColor" stroke-width="7.5" stroke-linecap="round"/></svg>';
+  const MARK_CSS = '.hp-mark{display:inline-flex;vertical-align:-0.14em;width:.95em;height:.95em;opacity:.8;flex:none;color:inherit;cursor:default}.hp-mark svg{width:100%;height:100%;overflow:visible}';
   const mark = () => `<span class="hp-mark" title="Added by Halo+" role="img" aria-label="Added by Halo+">${MARK_SVG}</span>`;
 
   /**
@@ -130,7 +130,8 @@
     if (!alive()) return stopAll();
     const r = route();
     for (const def of defs.values()) {
-      const want = enabled(def.id) && (!def.routes || def.routes.includes(r.kind));
+      // A feature can share another's switch (`switch`): the calendar on Student Home and on a class page are one.
+      const want = enabled(def.switch || def.id) && (!def.routes || def.routes.includes(r.kind));
       const on = running.has(def.id);
       try {
         if (want && !on) {

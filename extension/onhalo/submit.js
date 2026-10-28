@@ -1,7 +1,9 @@
-// Feature 8 (0.12.0): "Did it go through?"
-// - On a topic page, each assignment Halo shows as handed in (submitted or late, not graded yet) gets Halo's own
-//   confirmation in its details: "Submitted ✓ Sun 3:12 PM · essay.docx", from Halo's submission record (the files Halo
-//   marks final, its submission time, in Halo's school time zone). Halo itself shows this only inside the assignment.
+// Feature 8: "Did it go through?"
+// - On a topic page, Halo shows a handed-in assignment's state on its card (its check and its "Submitted" or "Late"
+//   chip) but not when it was sent or which file it has: those appear only inside the assignment ("Submitted on …" and
+//   the Submitted Files table; research 2026-10-27). 0.12.1 (George: "Halo already shows submission status ... only keep
+//   anything Halo truly doesn't show"): Halo+ adds only those two, in small text under Halo's own chip: "Sun 3:12 PM ·
+//   essay.docx", from Halo's submission record (the files Halo marks final, its submission time, in Halo's zone).
 // - Before submitting, in the assignment's own view, a file that is clearly another type than the one the instructions
 //   ask for gets one quiet line under it. Only when the instructions name exactly one file type for the submission
 //   (logic.js requiredType) and the file's name ends in another one; any doubt, nothing.
@@ -35,14 +37,16 @@
     const files = ((s && s.resources) || []).filter((r) => r && r.isFinal && r.resource && r.resource.name).map((r) => r.resource.name);
     const at = when(t);
     if (!at || !files.length || !c.card.isConnected) return;
-    const box = c.card.querySelector('.bg-grayF2');
-    if (!box || box.querySelector('[data-haloplus="submitted"]')) return;
+    // Under Halo's own status chip, in its Status cell.
+    const chip = c.card.querySelector('[data-testid="status"]');
+    const cell = chip && chip.parentElement;
+    if (!cell || cell.querySelector('[data-haloplus="submitted"]')) return;
     const el = document.createElement('div');
     el.setAttribute('data-haloplus', 'submitted');
-    el.className = 'flex-auto my-2';
-    el.innerHTML = `<div class="text-xs text-secondary">Submitted <span style="margin-left:2px">${O.mark()}</span></div><div class="pt-1 text-sm text-main">✓ ${O.esc(at)} · ${O.esc(files[0])}${files.length > 1 ? ` <span class="text-secondary">+${files.length - 1} more</span>` : ''}</div>`;
-    el.title = `Halo has ${files.length === 1 ? 'this file' : 'these files'} on record: ${files.join(', ')}`;
-    box.appendChild(el);
+    el.className = 'pt-1 text-xs text-secondary';
+    el.innerHTML = `${O.esc(at)} · ${O.esc(files[0])}${files.length > 1 ? ` +${files.length - 1} more` : ''} ${O.mark()}`;
+    el.title = `Sent to Halo ${at}. Halo has ${files.length === 1 ? 'this file' : 'these files'} on record: ${files.join(', ')}`;
+    cell.appendChild(el);
     O.count('submit-shown');
   }
   function cardsPass() {
