@@ -14,7 +14,16 @@
 // Screens at full width and 1024px, plain and Better Halo dark.
 //   [BROWSER=chrome|edge] [BH_DIR=<Better Halo unpacked>] node scripts/e2e-onhalo-calendar.mjs
 import { classPage, gradesGateway } from './lib/haloPages.mjs';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { BROWSER, bhPath, checker, openBench, out, sleep, until } from './lib/onHaloRun.mjs';
+
+const L = (() => {
+  const c = { URL, Intl, Date };
+  c.globalThis = c;
+  runInNewContext(readFileSync('extension/onhalo/logic.js', 'utf8'), c);
+  return c.HaloPlusOnLogic;
+})();
 
 const OUT = out('docs/screens/on-halo/calendar');
 const { check, passed } = checker(BROWSER);
@@ -69,7 +78,7 @@ function expected(fx, grades) {
     if (!['assignment', 'quiz', 'discussion', 'participation', 'lti'].includes(r.kind)) continue;
     const due = grades[r.id]?.dueDate ?? r.cdue;
     if (!due) continue;
-    out.set(r.id, { day: dayKey(due), time: time(due), code: fx.index.classes[r.c].code, title: r.title, part: r.kind === 'participation', href: r.href, graded: r.kind !== 'participation' && (r.pts || 0) > 0, t: Date.parse(due), col: fx.index.classes[r.c].col });
+    out.set(r.id, { slug: fx.index.classes[r.c].slug, day: dayKey(due), time: time(due), code: fx.index.classes[r.c].code, title: r.title, part: r.kind === 'participation', href: r.href, graded: r.kind !== 'participation' && (r.pts || 0) > 0, t: Date.parse(due), col: fx.index.classes[r.c].col });
   }
   return out;
 }
@@ -126,50 +135,71 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     const index = JSON.parse(JSON.stringify(fx.index));
     const want = expected(fx, st.grades);
 
-    // ======== Student Home: the Calendar tab ========
-    await b.store({ haloFeat: { off: ['calendar', 'views'], at: new Date().toISOString() }, haloIndex: index });
+    // ======== Student Home: "Calendar · All classes" below the class cards ========
+    await b.store({ haloFeat: { off: ['calendar', 'views'], at: new Date().toISOString() }, haloIndex: index, lastAttemptAt: new Date().toISOString() });
     let p = await b.page('https://halo.gcu.edu/');
     await sleep(2500);
-    check((await p.locator('[data-haloplus="home-tab"]').count()) === 0, `${tag}: Home, switched off: Halo's tabs alone`);
-    await p.screenshot({ path: `${OUT}/${tag}-home-0-before.png` });
+    check((await p.locator('[data-haloplus="home-calendar"]').count()) === 0, `${tag}: Home, switched off: Halo's Student Home alone`);
     await p.close();
 
-    await b.store({ haloFeat: { off: [], at: new Date().toISOString() }, haloViews: null, haloIndex: index });
+    await b.store({ haloFeat: { off: [], at: new Date().toISOString() }, haloViews: null, haloCalFold: null, haloIndex: index });
     const g0 = b.bench.calls.gateway.length;
     p = await b.page('https://halo.gcu.edu/');
-    await until(async () => (await p.locator('[data-haloplus="home-tab"]').count()) === 1, 10000, 200);
-    const tabLook = await p.evaluate(() => {
-      const list = document.querySelector('#Home--main [role="tablist"]');
-      const tabs = [...list.querySelectorAll('[role="tab"]')];
-      const ours = list.querySelector('[data-haloplus="home-tab"]');
-      const past = tabs.find((t) => t !== ours && t.getAttribute('aria-selected') === 'false');
-      const cs = (e) => getComputedStyle(e);
-      return { last: tabs[tabs.length - 1] === ours, same: past && ours.className === past.className, text: ours.innerText.trim(), font: cs(ours).fontSize + cs(ours).fontWeight + cs(ours).textTransform, haloFont: past && cs(past).fontSize + cs(past).fontWeight + cs(past).textTransform, sel: ours.getAttribute('aria-selected') };
-    });
-    check(tabLook.last && tabLook.same && tabLook.font === tabLook.haloFont && /^CALENDAR$/.test(tabLook.text) && tabLook.sel === 'false', `${tag}: a "Calendar" tab after Halo's own, in Halo's tab style (${tabLook.text}, ${tabLook.font})`);
-    check(b.bench.calls.gateway.length === g0, `${tag}: nothing asked of Halo until it is opened`);
-    await p.locator('[data-haloplus="home-tab"]').click();
     await until(async () => (await p.locator('[data-haloplus="home-calendar"] .hp-chip').count()) > 0, 15000, 200);
     await sleep(500);
+    const place = await p.evaluate(() => {
+      const sec = document.querySelector('[data-haloplus="home-calendar"]');
+      const list = [...document.querySelectorAll('#Home--main > section')].pop();
+      const cards = [...document.querySelectorAll('[class*="CourseCard_cardContainer"]')];
+      const lastCard = cards[cards.length - 1].getBoundingClientRect();
+      return { after: list.nextElementSibling === sec, below: sec.getBoundingClientRect().top >= lastCard.bottom, head: sec.querySelector('.hp-sec-title').textContent.replace(/\s+/g, ' ').trim(), open: sec.querySelector('.hp-sec-head').getAttribute('aria-expanded'), mark: !!sec.querySelector('.hp-sec-head .hp-mark') };
+    });
+    check(place.after && place.below && place.head === 'Calendar · All classes' && place.open === 'true' && place.mark, `${tag}: "Calendar · All classes" below the class cards, open (${JSON.stringify(place)})`);
     const asked = b.bench.calls.gateway.slice(g0).filter((c) => c.op === 'StudentAssessmentDetails');
     check(asked.length === fx.index.classes.length, `${tag}: one question per class to Halo (${asked.length})`);
-    const tabState = await p.evaluate(() => {
-      const list = document.querySelector('#Home--main [role="tablist"]');
-      const ours = list.querySelector('[data-haloplus="home-tab"]');
-      const halo = [...list.querySelectorAll('[role="tab"]:not([data-haloplus])')];
-      const sec = document.querySelector('#Home--main > section');
-      return { ours: ours.getAttribute('aria-selected'), line: getComputedStyle(ours).borderBottomWidth, halo: halo.map((t) => t.getAttribute('aria-selected')), haloLine: halo.map((t) => getComputedStyle(t).borderBottomWidth), list: sec ? getComputedStyle(sec).display : 'gone' };
-    });
-    check(tabState.ours === 'true' && tabState.line === '3px' && tabState.halo.every((x) => x === 'false') && tabState.haloLine.every((x) => x === '0px') && tabState.list === 'none', `${tag}: open: the Calendar tab selected (Halo's underline), Halo's class list put aside (${JSON.stringify(tabState)})`);
     const hk = await dayKeys(p, '[data-haloplus="home-calendar"]');
     const today = dayKey(Date.now());
     const wd = new Date(`${today}T12:00:00Z`).getUTCDay();
     const monday = dayKey(Date.parse(`${today}T12:00:00Z`) - ((wd + 6) % 7) * DAY);
-    check(hk.length === 14 && hk[0] === monday && hk.includes(today), `${tag}: this week and the next, from Monday (${hk[0]}…${hk[13]})`);
+    check(hk.length === 7 && hk[0] === monday && hk.includes(today), `${tag}: this week, from Monday, one week to start (${hk[0]}…${hk[6]})`);
+    // Each class in the colour of its own card's stripe (the bold version on a light page), chips and legend alike.
+    const stripes = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('[class*="CourseCard_cardContainer"]')].map((c) => {
+      const cs = getComputedStyle(c);
+      let col = parseFloat(cs.borderTopWidth) >= 2 ? cs.borderTopColor : null;
+      if (!col) col = c.style.borderTopColor.trim();
+      return [decodeURIComponent(/\/courses\/([^/?#]+)/.exec(c.querySelector('a[href^="/courses/"]').getAttribute('href'))[1]), col];
+    })));
+    const colorWant = Object.fromEntries(Object.entries(stripes).map(([slug, c]) => [slug, L.boldColor(c, run.dark)]));
+    for (const w of want.values()) w.col = colorWant[w.slug];
+    const legendCols = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="home-calendar"] .hp-dot')].map((d) => d.style.background));
+    check(Object.keys(stripes).length === fx.index.classes.length && fx.index.classes.every((c, i) => legendCols[i] === colorWant[c.slug]), `${tag}: the legend in each card's own colour${run.dark ? '' : ' (bold version)'} (${legendCols.join(' ')})`);
     let got = await chips(p, '[data-haloplus="home-calendar"]');
     chipChecks(tag, 'Home', got, want, hk);
+    const contrast = await p.evaluate(() => {
+      const lum = (c) => {
+        const n = c.match(/\d*\.?\d+/g).map(Number);
+        const k = /^color\(srgb/.test(c) ? 1 : 255;
+        const [r, g, b] = n.slice(0, 3).map((v) => {
+          const x = v / k;
+          return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      return Math.min(...[...document.querySelectorAll('[data-haloplus="home-calendar"] .hp-chip:not(.hp-done):not(.hp-quiet)')].filter((c) => c.getBoundingClientRect().height).map((c) => {
+        const a = lum(getComputedStyle(c).color);
+        const bg = lum(getComputedStyle(c).backgroundColor);
+        return (Math.max(a, bg) + 0.05) / (Math.min(a, bg) + 0.05);
+      }));
+    });
+    check(contrast >= 4.5, `${tag}: chip text easy to read on its tint (lowest contrast ${contrast.toFixed(1)}:1)`);
     const cm = got.find((c) => c.id === moved.id);
     check(!cm || cm.day === dayKey(st.grades[moved.id].dueDate), `${tag}: a date Halo moved since the last sync is on Halo's new day (${cm ? cm.day : 'not in view'})`);
+    // Two weeks, to see the busy day and the midnight item.
+    await p.locator('[data-haloplus="home-calendar"] [data-hp-weeks="2"]').click();
+    await sleep(500);
+    const hk2 = await dayKeys(p, '[data-haloplus="home-calendar"]');
+    check(hk2.length === 14 && hk2[0] === monday, `${tag}: 2 Weeks: this week and the next`);
+    got = await chips(p, '[data-haloplus="home-calendar"]');
     const cmid = got.find((c) => c.id === midnight.id);
     check(cmid && cmid.day === dayKey(phx(3, 0, 0)) && cmid.time === '12:00 AM', `${tag}: due at midnight: on the day Halo shows, "12:00 AM" (${cmid ? `${cmid.day} ${cmid.time}` : 'missing'})`);
     const ch = got.find((c) => c.id === handed.id);
@@ -184,6 +214,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     const more = p.locator(`[data-haloplus="home-calendar"] .hp-day[data-day="${crowdDay}"] .hp-more`);
     check((await more.innerText()).trim() === `+${inCrowd.length - 5} more`, `${tag}: and "+${inCrowd.length - 5} more"`);
     await p.setViewportSize({ width: 1366, height: 1100 });
+    await p.locator('[data-haloplus="home-calendar"]').evaluate((e) => e.scrollIntoView({ block: 'start' }));
     await p.mouse.move(5, 5);
     await sleep(700);
     await p.screenshot({ path: `${OUT}/${tag}-home-1-calendar.png` });
@@ -198,64 +229,70 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
       check(/^\d+ participation$/.test(label) && opened, `${tag}: "${label}" opens to its items`);
       await ptog.click();
     }
-    // Moving through the weeks, and 1 Week.
     await p.locator('[data-haloplus="home-calendar"] [data-hp-move="1"]').click();
     await sleep(400);
     let k2 = await dayKeys(p, '[data-haloplus="home-calendar"]');
-    check(k2[0] === hk[7], `${tag}: the next-week arrow moves a week (${k2[0]})`);
+    check(k2[0] === hk2[7], `${tag}: the next-week arrow moves a week (${k2[0]})`);
     await p.locator('[data-haloplus="home-calendar"] [data-hp-move="0"]').click();
     await sleep(400);
     k2 = await dayKeys(p, '[data-haloplus="home-calendar"]');
-    check(k2[0] === hk[0], `${tag}: This week comes back`);
-    await p.locator('[data-haloplus="home-calendar"] [data-hp-weeks="1"]').click();
-    await sleep(400);
-    check((await dayKeys(p, '[data-haloplus="home-calendar"]')).length === 7, `${tag}: 1 Week`);
+    check(k2[0] === hk2[0], `${tag}: This week comes back`);
     // 1024px.
     await p.setViewportSize({ width: 1024, height: 900 });
     await sleep(900);
     got = await chips(p, '[data-haloplus="home-calendar"]');
     check((await fits(p)) && got.every((c) => !c.codeCut && !c.clash), `${tag}: at 1024px it fits and no class code is cut or covered`);
     check((await p.evaluate(() => document.querySelector('[data-haloplus="home-calendar"] .hp-dh').innerText.trim())).length <= 4, `${tag}: at 1024px, Halo's compact day headers`);
+    await p.locator('[data-haloplus="home-calendar"]').evaluate((e) => e.scrollIntoView({ block: 'start' }));
     await p.mouse.move(5, 5);
+    await sleep(300);
     await p.screenshot({ path: `${OUT}/${tag}-home-2-1024.png` });
-    // Halo's own tab brings the classes back.
+    // The "This week" bar's Calendar link scrolls to it (and opens it when folded).
     await p.setViewportSize({ width: 1366, height: 900 });
-    await p.locator('#Home--main [role="tablist"] [role="tab"]:not([data-haloplus])').first().click();
-    await sleep(500);
-    const back = await p.evaluate(() => {
-      const list = document.querySelector('#Home--main [role="tablist"]');
-      const sec = document.querySelector('#Home--main > section');
-      const cal = document.querySelector('[data-haloplus="home-calendar"]');
-      return { cards: !!sec && getComputedStyle(sec).display !== 'none' && !!sec.querySelector('[class*="CourseCard_cardContainer"]'), first: list.querySelector('[role="tab"]').getAttribute('aria-selected'), ours: list.querySelector('[data-haloplus="home-tab"]').getAttribute('aria-selected'), cal: !cal || cal.hidden };
+    await p.evaluate(() => (document.getElementById('CourseLayout--main').scrollTop = 0));
+    await p.locator('[data-haloplus="home-calendar"] .hp-sec-head').click();
+    await sleep(300);
+    check(await p.evaluate(() => document.querySelector('[data-haloplus="home-calendar"] .hp-sec-body').hidden), `${tag}: the header folds it`);
+    await p.evaluate(() => (document.getElementById('CourseLayout--main').scrollTop = 0));
+    const link = await p.evaluate(() => {
+      const w = document.querySelector('[data-haloplus="week"]');
+      const a = w && w.shadowRoot.querySelector('[data-cal]');
+      if (!a) return null;
+      const t = a.getBoundingClientRect();
+      return { text: a.textContent.trim(), x: t.left + t.width / 2, y: t.top + t.height / 2 };
     });
-    check(back.cards && back.first === 'true' && back.ours === 'false' && back.cal, `${tag}: Halo's own Current Classes brings the class cards back (${JSON.stringify(back)})`);
-    await p.locator('[data-haloplus="home-tab"]').click();
-    await sleep(500);
-    await p.locator('#Home--main [role="tablist"] [role="tab"]:not([data-haloplus])').nth(1).click();
-    await sleep(500);
-    const past = await p.evaluate(() => ({ sel: [...document.querySelectorAll('#Home--main [role="tablist"] [role="tab"]')].map((t) => t.getAttribute('aria-selected')).join(','), text: document.querySelector('#Home--main > section').innerText }));
-    check(past.sel === 'false,true,false' && /no past classes/.test(past.text), `${tag}: and Past Classes works as Halo's (${past.sel})`);
+    check(link && link.text === 'Calendar', `${tag}: a quiet "Calendar" link in the This week bar`);
+    if (link) await p.mouse.click(link.x, link.y);
+    await sleep(1500);
+    const went = await p.evaluate(() => {
+      const sec = document.querySelector('[data-haloplus="home-calendar"]');
+      const r = sec.getBoundingClientRect();
+      return { top: Math.round(r.top), open: !sec.querySelector('.hp-sec-body').hidden };
+    });
+    check(went.open && went.top >= -2 && went.top < 200, `${tag}: it scrolls to the calendar and opens it (${JSON.stringify(went)})`);
     await p.close();
-    // 14: the tab and the weeks are kept for the next visit.
-    p = await b.page('https://halo.gcu.edu/');
-    await until(async () => (await p.locator('[data-haloplus="home-tab"]').count()) === 1, 10000, 200);
-    await p.locator('[data-haloplus="home-tab"]').click();
-    await sleep(800);
-    await p.close();
+    // The fold and the weeks are kept for the next visit.
     p = await b.page('https://halo.gcu.edu/');
     await until(async () => (await p.locator('[data-haloplus="home-calendar"] .hp-chip').count()) > 0, 10000, 200);
-    const kept = await p.evaluate(() => ({ sel: document.querySelector('[data-haloplus="home-tab"]').getAttribute('aria-selected'), days: document.querySelectorAll('[data-haloplus="home-calendar"] .hp-day').length }));
-    check(kept.sel === 'true' && kept.days === 7, `${tag}: next visit: the Calendar tab and 1 Week again (${JSON.stringify(kept)})`);
-    await p.locator('#Home--main [role="tablist"] [role="tab"]:not([data-haloplus])').first().click();
-    await sleep(800);
+    check((await dayKeys(p, '[data-haloplus="home-calendar"]')).length === 14, `${tag}: next visit: 2 Weeks again`);
+    await p.locator('[data-haloplus="home-calendar"] .hp-sec-head').click();
+    await sleep(500);
     await p.close();
     p = await b.page('https://halo.gcu.edu/');
-    await until(async () => (await p.locator('[data-haloplus="home-tab"]').count()) === 1, 10000, 200);
+    await sleep(2500);
+    check(await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); return !!s && s.querySelector('.hp-sec-body').hidden && s.querySelector('.hp-sec-head').getAttribute('aria-expanded') === 'false'; }), `${tag}: folded, it stays folded on the next visit`);
+    await p.locator('[data-haloplus="home-calendar"] .hp-sec-head').click();
+    await sleep(500);
+    // Halo's Past Classes: no calendar under them; Current Classes: back.
+    await p.locator('#Home--main [role="tablist"] [role="tab"]').nth(1).click();
+    await sleep(600);
+    const pastHidden = await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); return !s || s.hidden; });
+    await p.locator('#Home--main [role="tablist"] [role="tab"]').first().click();
     await sleep(800);
-    check((await p.locator('[data-haloplus="home-tab"]').getAttribute('aria-selected')) === 'false', `${tag}: after Current Classes, the next visit opens on the classes`);
+    const backShown = await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); return !!s && !s.hidden && [...document.querySelectorAll('#Home--main > section')].pop().nextElementSibling === s; });
+    check(pastHidden && backShown, `${tag}: under Past Classes no calendar; back under Current Classes, after the cards`);
     await p.close();
     // Another time zone in the browser: the same days.
-    await b.store({ haloViews: { homeTab: 'calendar', homeWeeks: 2 } });
     p = await b.page('https://halo.gcu.edu/');
     const cdp = await p.context().newCDPSession(p);
     await cdp.send('Emulation.setTimezoneOverride', { timezoneId: 'America/New_York' });
@@ -328,14 +365,14 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
 
     // Show nothing: Free; switched off; no index.
     for (const [name, extra] of [['Free', { tier: 'free' }], ['switched off', { haloFeat: { off: ['calendar'], at: new Date().toISOString() } }], ['no index', { haloIndex: null }]]) {
-      await b.seed({ ...extra, haloViews: { calAll: true, homeTab: 'calendar' } });
+      await b.seed({ ...extra, haloViews: { calAll: true }, lastAttemptAt: new Date().toISOString() });
       p = await b.page(url);
       await sleep(2500);
       const cal = (await p.locator('[data-haloplus^="calendar"]').count()) === 0 && (await p.evaluate(() => getComputedStyle(document.getElementById('guide_anchor_dashboard_calendar')).display !== 'none'));
       await p.close();
       p = await b.page('https://halo.gcu.edu/');
       await sleep(2500);
-      const home = name === 'no index' ? (await p.locator('[data-haloplus="home-calendar"] .hp-chip').count()) === 0 : (await p.locator('[data-haloplus="home-tab"], [data-haloplus="home-calendar"]').count()) === 0;
+      const home = (await p.locator('[data-haloplus="home-calendar"]').count()) === 0;
       check(cal && home && (await p.evaluate(() => getComputedStyle(document.querySelector('#Home--main > section')).display !== 'none')), `${tag}: ${name}: Halo's calendar and Student Home alone`);
       await p.close();
     }

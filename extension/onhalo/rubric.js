@@ -16,19 +16,84 @@
   O.CHEVRON = CHEVRON;
   const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
   const bySeq = (a, b) => (Number(a.sequence) || 0) - (Number(b.sequence) || 0);
-  /** Halo's list view of a rubric (its EmbeddedRubric component), in Halo's own utility classes. */
+  const critName = (c) => c.name || `Criteria ${c.sequence}`;
+  const levelsOf = (c) => [...(c.achievementLevels || [])].sort(bySeq).reverse();
+  const totalOf = (crit) => round2(crit.reduce((n, c) => n + (Number(c.points) || 0), 0));
+  /** One criterion as Halo's list view shows it (its EmbeddedRubric component), in Halo's own utility classes. */
+  function fullCrit(c) {
+    return `<h6 class="font-semibold text-xs mt-2">Criteria Description</h6><p class="pt-1 pb-3 text-sm">${esc(c.description || '')}</p>${levelsOf(c)
+      .map((l) => `<div class="pb-2"><div class="px-3 py-3 bg-grayF2 rounded"><div class="flex w-full"><h5 class="font-semibold flex-grow pb-2 text-sm">${esc(`${l.sequence}. ${l.name || ''}`)}</h5><span class="text-secondary text-sm">${round2(l.points)} points</span></div><p class="text-sm">${esc(l.description || '')}</p></div></div>`)
+      .join('')}`;
+  }
+  /** Halo's whole list view of a rubric. */
   function listHtml(rubric) {
     const crit = [...(rubric.criteria || [])].sort(bySeq);
-    const total = round2(crit.reduce((n, c) => n + (Number(c.points) || 0), 0));
-    return `${crit
+    return `${crit.map((c) => `<div class="border-t border-grayE0 pt-3 mt-3"><div class="flex items-center justify-between"><h5 class="font-semibold text-sm">${esc(critName(c))}</h5><span class="text-secondary text-sm">${round2(c.points)} points</span></div>\n${fullCrit(c)}</div>`).join('')}<div class="pt-3 mt-1" data-testid="hp-rubric-total"><span class="font-semibold mr-2 text-sm">Total</span><span class="text-secondary font-normal text-sm">${totalOf(crit)} points</span></div>`;
+  }
+  /**
+   * The short view (0.12.2, George: "it works but it's super long"): the total at the top, each criterion on one line
+   * with its points and only its top level's description; "Show all levels" opens that criterion as Halo lists it, and
+   * "Show everything" opens them all (then it is Halo's whole list, word for word, with Halo's Total under it).
+   */
+  function shortHtml(rubric) {
+    const crit = [...(rubric.criteria || [])].sort(bySeq);
+    const btn = 'class="hp-rb text-xs" type="button"';
+    return `<div class="flex items-center flex-wrap" style="gap:4px 14px"><h4 class="text-base font-semibold" data-testid="hp-rubric-head">Rubric · ${totalOf(crit)} pts</h4><span style="flex:1"></span><button ${btn} data-all aria-pressed="false">Show everything</button><button ${btn} data-print>Open in new tab</button><span class="text-secondary text-sm">${O.mark()}</span></div>${crit
       .map((c) => {
-        const levels = [...(c.achievementLevels || [])].sort(bySeq).reverse();
-        return `<div class="border-t border-grayE0 pt-3 mt-3"><div class="flex items-center justify-between"><h5 class="font-semibold text-sm">${esc(c.name || `Criteria ${c.sequence}`)}</h5><span class="text-secondary text-sm">${round2(c.points)} points</span></div>
-<h6 class="font-semibold text-xs mt-2">Criteria Description</h6><p class="pt-1 pb-3 text-sm">${esc(c.description || '')}</p>${levels
-          .map((l) => `<div class="pb-2"><div class="px-3 py-3 bg-grayF2 rounded"><div class="flex w-full"><h5 class="font-semibold flex-grow pb-2 text-sm">${esc(`${l.sequence}. ${l.name || ''}`)}</h5><span class="text-secondary text-sm">${round2(l.points)} points</span></div><p class="text-sm">${esc(l.description || '')}</p></div></div>`)
-          .join('')}</div>`;
+        const top = levelsOf(c)[0];
+        return `<div class="hp-crit border-t border-grayE0 pt-3 mt-3"><div class="flex items-baseline justify-between" style="gap:12px"><h5 class="font-semibold text-sm" data-testid="hp-crit-line">${esc(critName(c))} · ${round2(c.points)} pts</h5><button ${btn} data-levels aria-expanded="false">Show all levels</button></div>${top ? `<p class="hp-top text-sm pt-1"><span class="text-secondary">${esc(`${top.sequence}. ${top.name || ''}`)}:</span> ${esc(top.description || '')}</p>` : ''}<div class="hp-full" hidden>${fullCrit(c)}</div></div>`;
       })
-      .join('')}<div class="pt-3 mt-1" data-testid="hp-rubric-total"><span class="font-semibold mr-2 text-sm">Total</span><span class="text-secondary font-normal text-sm">${total} points</span></div>`;
+      .join('')}<div class="pt-3 mt-1 hp-total" hidden data-testid="hp-rubric-total"><span class="font-semibold mr-2 text-sm">Total</span><span class="text-secondary font-normal text-sm">${totalOf(crit)} points</span></div>`;
+  }
+  /** Open one criterion's levels, or all of them. */
+  function showLevels(crit, on) {
+    crit.querySelector('.hp-full').hidden = !on;
+    const top = crit.querySelector('.hp-top');
+    if (top) top.hidden = on;
+    const b = crit.querySelector('[data-levels]');
+    b.setAttribute('aria-expanded', String(on));
+    b.textContent = on ? 'Show fewer' : 'Show all levels';
+  }
+  function bindShort(box) {
+    box.addEventListener('click', (e) => {
+      const lv = e.target.closest('[data-levels]');
+      if (lv) return showLevels(lv.closest('.hp-crit'), lv.getAttribute('aria-expanded') !== 'true');
+      const all = e.target.closest('[data-all]');
+      if (all) {
+        const on = all.getAttribute('aria-pressed') !== 'true';
+        all.setAttribute('aria-pressed', String(on));
+        all.textContent = on ? 'Show less' : 'Show everything';
+        box.querySelectorAll('.hp-crit').forEach((c) => showLevels(c, on));
+        box.querySelector('.hp-total').hidden = !on;
+        return undefined;
+      }
+      const pr = e.target.closest('[data-print]');
+      if (pr) return printable(box);
+      return undefined;
+    });
+  }
+  // ---- the printable page ("Open in new tab") ---------------------------------------------------------------------------
+  /**
+   * The whole rubric as a clean page of its own, to print or save as a PDF: the assignment, its class, its due date as
+   * Halo shows it, the total, then every criterion with its description and every level, word for word from Halo. Made
+   * here (a page in this browser, nothing sent anywhere), with no script in it.
+   */
+  function printableHtml({ title, cls, due, rubric }) {
+    const crit = [...(rubric.criteria || [])].sort(bySeq);
+    const css = `body{font:14px/1.5 "Open Sans",Arial,sans-serif;color:#212121;margin:32px auto;max-width:860px;padding:0 24px}h1{font-size:22px;margin:0 0 4px}.meta{color:#616161;margin:0 0 4px}.how{color:#616161;font-size:12px;margin:12px 0 24px}.c{border-top:1px solid #e0e0e0;padding:14px 0 6px;break-inside:avoid}.c h2{font-size:15px;margin:0;display:flex;justify-content:space-between;gap:16px}.d{margin:6px 0 10px}.l{background:#f5f5f5;border-radius:4px;padding:8px 12px;margin:0 0 6px}.l b{display:flex;justify-content:space-between;gap:16px}.l p{margin:4px 0 0}.t{border-top:2px solid #212121;padding-top:10px;font-weight:600}@media print{body{margin:0;max-width:none}.how{display:none}.l{background:none;border:1px solid #ddd}}`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(title)} - Rubric</title><style>${css}</style></head><body><h1>${esc(title)} - Rubric</h1>${cls ? `<p class="meta">${esc(cls)}</p>` : ''}${due ? `<p class="meta">Due ${esc(due)}</p>` : ''}<p class="meta">Total ${totalOf(crit)} points</p><p class="how">To print it or save it as a PDF: Ctrl+P (⌘P on a Mac). From Halo, by Halo+.</p>${crit
+      .map((c) => `<div class="c"><h2><span>${esc(critName(c))}</span><span>${round2(c.points)} points</span></h2><p class="d">${esc(c.description || '')}</p>${levelsOf(c).map((l) => `<div class="l"><b><span>${esc(`${l.sequence}. ${l.name || ''}`)}</span><span>${round2(l.points)} points</span></b><p>${esc(l.description || '')}</p></div>`).join('')}</div>`)
+      .join('')}<p class="t">Total ${totalOf(crit)} points</p></body></html>`;
+  }
+  function printable(box) {
+    const d = box.__hpRubric;
+    if (!d) return;
+    const url = URL.createObjectURL(new Blob([printableHtml(d)], { type: 'text/html' }));
+    const w = window.open(url, '_blank');
+    // The browser kept the new tab from opening: Halo's own rubric page instead.
+    if (!w) window.open(d.href, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    O.count('rubric-open', false);
   }
   const WAIT_MS = 3000;
   const idOf = (a) => {
@@ -89,7 +154,15 @@
     const r = await within(load(id), WAIT_MS);
     if (!box.isConnected) return;
     if (r) {
-      box.innerHTML = `<div class="flex items-center justify-between"><h4 class="text-base font-semibold">Rubric Criteria</h4><span class="text-secondary text-sm">${O.mark()}</span></div>${listHtml(r)}`;
+      // What the printable page says beside the rubric: the assignment, its class, its due date as Halo shows it.
+      const card = a.closest('[data-testid="assessment_card"]');
+      const titleEl = card && card.querySelector('[data-testid="assessment_title"]');
+      const dueEl = card && card.querySelector('[data-testid="date_time_data_due_date"]');
+      const idx = O.st.haloIndex;
+      const k = idx && Array.isArray(idx.classes) ? idx.classes.find((c) => c.slug === O.route().slug) : null;
+      box.__hpRubric = { title: (titleEl && titleEl.textContent.trim()) || 'Assignment', cls: k ? `${k.code || k.cc}${k.name ? ` · ${k.name}` : ''}` : '', due: dueEl ? (dueEl.childNodes.length ? [...dueEl.childNodes].filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join('').trim() || dueEl.textContent.trim() : '') : '', rubric: r, href };
+      box.innerHTML = shortHtml(r);
+      bindShort(box);
       O.count('rubric-open');
       return;
     }
@@ -122,4 +195,5 @@
     },
   });
   O.rubricHtml = listHtml;
+  O.rubricPrintable = printableHtml;
 })();

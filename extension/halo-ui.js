@@ -746,6 +746,11 @@
 *{box-sizing:border-box}
 .wk{position:relative;margin:0 0 16px;background:var(--bg);color:var(--ink);border:var(--border);border-radius:var(--radius);box-shadow:var(--shadow);font:14px/1.4 var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
 .wk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
+.hrow{display:flex;align-items:center}
+.hrow .hd{flex:1;min-width:0}
+.cal{flex:none;margin:0 14px 0 -4px;padding:4px 6px;border-radius:4px;font:600 12.5px/1 var(--font);color:var(--muted);text-decoration:none}
+.cal:hover{color:var(--ink);background:var(--hover)}
+.cal:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .hd{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px 12px 20px;cursor:pointer;font:600 15px/1.3 var(--font);color:var(--ink)}
 .hd:focus-visible{outline:2px solid var(--gold);outline-offset:-3px;border-radius:var(--radius)}
 .hd .n{color:var(--muted);font-weight:500;white-space:nowrap}
@@ -936,7 +941,10 @@ ul{list-style:none;margin:0;padding:0}
     const near = n ? `<span class="n" data-tone="${w.near.tone}">· ${esc(w.near.text)}</span>` : '';
     const head = `<button class="hd" type="button" aria-expanded="${open}"><span>This week</span><span class="n">· ${n ? `${n} due` : 'nothing due'}</span>${near}${asof ? `<span class="asof">${esc(asof)}</span>` : ''}<span class="mk" aria-hidden="true"><i></i>Halo+</span>${CHEV}</button>`;
     const vars = `--bg:${look.bg};--ink:${look.ink};--muted:${look.muted};--line:${look.line};--hover:${look.hover};--border:${look.border};--radius:${look.radius};--shadow:${look.shadow};--font:${look.font};--gold:${look.gold};--gold-ink:${look.goldInk};--red:${look.red};--green:${look.green}`;
-    const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}">${head}<div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
+    // 0.12.2: a quiet "Calendar" link beside the header, to Halo+'s all-classes calendar below the cards (when it is on).
+    const On = globalThis.HaloPlusOn;
+    const cal = On && On.enabled('calendar') ? '<a class="cal" href="#hp-home-calendar" data-cal>Calendar</a>' : '';
+    const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}"><div class="hrow">${head}${cal}</div><div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
     let h = old;
     if (!h || h.nextElementSibling !== spot.grid) {
       if (h) h.remove();
@@ -980,6 +988,15 @@ ul{list-style:none;margin:0;padding:0}
       'click',
       guard((e) => {
         const t = e.target;
+        if (t.closest('[data-cal]')) {
+          e.preventDefault();
+          const sec = document.querySelector('[data-haloplus="home-calendar"]');
+          if (!sec) return undefined;
+          sec.dispatchEvent(new CustomEvent('hp-open'));
+          const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+          sec.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+          return undefined;
+        }
         if (t.closest('.hd')) {
           const open = !weekOpen();
           save({ haloWeekOpen: { open, at: new Date().toISOString() } });

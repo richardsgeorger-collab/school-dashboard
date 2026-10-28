@@ -90,7 +90,9 @@ const hard = setTimeout(() => (console.log('HARD TIMEOUT'), process.exit(3)), 15
       if (u.hostname === 'halo.gcu.edu' && /^\/_next\/static\/(chunks|css)\//.test(u.pathname)) halo.push(u.pathname);
     });
     // Halo+'s grade refresh on Student Home asks Halo for grades (0.11.1); anything else would be preload's.
-    const api = () => b.bench.calls.gateway.filter((c) => c.op !== 'GradeOverview').length + b.bench.calls.rest.length;
+    // Fetch-ahead's own load on Halo: not the grade refresh's question, nor the all-classes calendar's (0.12.2: open on
+    // Student Home), which are theirs.
+    const api = () => b.bench.calls.gateway.filter((c) => c.op !== 'GradeOverview' && c.op !== 'StudentAssessmentDetails').length + b.bench.calls.rest.length;
     const api0 = api();
     let p = await b.page('https://halo.gcu.edu/');
     // This computer's own battery decides (the rule is unit-tested for every case): on a low battery, nothing.

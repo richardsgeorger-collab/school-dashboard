@@ -44,6 +44,12 @@ Home (`homecal.js`; the tab shares the calendar's switch through a feature's `sw
 your draft from 10:42 AM?" prompt above the box (`drafts.js`); the mark is Halo+'s logo (`core.js MARK_SVG`,
 `--hp-gold` in `tokens.css`).
 
+0.12.2 (2026-10-28, George's changes after testing 0.12.1): `homeheader.js` (a compact Student Home header, own
+switch); `homecal.js` is now a "Calendar · All classes" section below the class cards (the This week bar in
+`halo-ui.js` links to it), each class in its card's colour (`calendar.js` reads the stripes, `logic.js boldColor`);
+`rubric.js` opens short (total, one line per criterion) with "Show all levels", "Show everything" and a printable
+"Open in new tab".
+
 ## Build
 
     npm run build:extension

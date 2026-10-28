@@ -398,6 +398,51 @@
     const i = t.indexOf(': ');
     return t.length > 24 && i >= 4 ? t.slice(0, i) : t;
   }
+  /**
+   * The bold version of a class's Halo colour (0.12.2, George: "each class's real Halo color, the color stripe on top
+   * of its Halo class card, the bold version"): the stripe's own hue, deepened only when it is a pale pastel (Halo's
+   * light card colours, lightness above 62%) so a chip's edge and the legend dot read on a white page; a colour that is
+   * already strong is left as it is (under a dark theme, `dark`: a very deep colour is lifted instead). "rgb(r, g, b)" or
+   * "#rrggbb" in, "rgb(r, g, b)" out; null for anything else.
+   */
+  function boldColor(c, dark = false) {
+    let r, g, b;
+    let m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(String(c || '').trim());
+    if (m) [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    else if ((m = /^#([0-9a-f]{6})$/i.exec(String(c || '').trim()))) [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+    else return null;
+    const R = r / 255;
+    const G = g / 255;
+    const B = b / 255;
+    const max = Math.max(R, G, B);
+    const min = Math.min(R, G, B);
+    let l = (max + min) / 2;
+    let s = 0;
+    let h = 0;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      h = max === R ? (G - B) / d + (G < B ? 6 : 0) : max === G ? (B - R) / d + 2 : (R - G) / d + 4;
+      h /= 6;
+    }
+    // On a dark theme the other way round: a deep colour (lightness under 42%) is lifted so it shows on the dark page.
+    if (dark ? l >= 0.42 : l <= 0.62) return `rgb(${r}, ${g}, ${b})`;
+    l = dark ? 0.62 : 0.52;
+    // A grayish pastel stays grayish; a coloured one becomes a clear, not neon, version of itself.
+    s = s < 0.25 ? s : Math.min(Math.max(s, 0.55), 0.72);
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p2 = 2 * l - q;
+    const ch = (t) => {
+      let x = t;
+      if (x < 0) x += 1;
+      if (x > 1) x -= 1;
+      if (x < 1 / 6) return p2 + (q - p2) * 6 * x;
+      if (x < 1 / 2) return q;
+      if (x < 2 / 3) return p2 + (q - p2) * (2 / 3 - x) * 6;
+      return p2;
+    };
+    return `rgb(${Math.round(ch(h + 1 / 3) * 255)}, ${Math.round(ch(h) * 255)}, ${Math.round(ch(h - 1 / 3) * 255)})`;
+  }
   const CAL_KINDS = ['assignment', 'quiz', 'discussion', 'participation', 'lti'];
   const HALO_DONE = /^(LATE|SUBMITTED|PUBLISHED)$/;
   /**
@@ -551,5 +596,5 @@
     return true;
   }
 
-  globalThis.HaloPlusOnLogic = { calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
+  globalThis.HaloPlusOnLogic = { boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
 })();

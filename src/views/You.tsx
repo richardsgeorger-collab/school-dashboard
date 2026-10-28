@@ -5,7 +5,7 @@ import { AI_DIRECT_ALLOWED, latestMeter, onMeter } from '../ai/gateway';
 import { warningLine, type Meter } from '../ai/meter';
 import { useAccount } from '../auth/AccountContext';
 import { installedVersion } from '../config/extension';
-import { featureLabel, ON_HALO_FEATURES, ON_HALO_SINCE, versionAtLeast } from '../halo/onHaloFeatures';
+import { featureLabel, ON_HALO_FEATURE_SINCE, ON_HALO_FEATURES, ON_HALO_SINCE, versionAtLeast } from '../halo/onHaloFeatures';
 import { deleteMyAccount, exportEverything } from '../auth/account';
 import { SignIn } from '../auth/SignIn';
 import { loadApiKey, saveApiKey } from '../chat/key';
@@ -610,7 +610,7 @@ export function You() {
             <input type="checkbox" checked={data.settings.haloOnHalo !== false} onChange={(e) => actions.updateSettings({ haloOnHalo: e.target.checked })} />
             <span>Show Halo+ on Halo pages: today's work on Halo's home page, a line under each class, and what announcements added on an assignment. Needs the Chrome extension.</span>
           </label>
-          {data.settings.haloOnHalo !== false && (tier === 'plus' || tier === 'max') && versionAtLeast(installedVersion(), ON_HALO_SINCE) && <OnHaloSwitches off={data.settings.haloFeaturesOff ?? []} onChange={(off) => actions.updateSettings({ haloFeaturesOff: off })} />}
+          {data.settings.haloOnHalo !== false && (tier === 'plus' || tier === 'max') && versionAtLeast(installedVersion(), ON_HALO_SINCE) && <OnHaloSwitches version={installedVersion()} off={data.settings.haloFeaturesOff ?? []} onChange={(off) => actions.updateSettings({ haloFeaturesOff: off })} />}
           <label className="field">
             <span>Time zone</span>
             <input list="zones" value={data.settings.timezone} onChange={(e) => actions.updateSettings({ timezone: e.target.value })} />
@@ -791,11 +791,14 @@ export function You() {
  * One switch per Halo+-on-Halo feature (extension 0.12.0), under "Show Halo+ on Halo pages", so any one can be turned
  * off. Plus and Max only (the trial is Max): Free never sees switches for things it does not have.
  */
-function OnHaloSwitches({ off, onChange }: { off: string[]; onChange: (off: string[]) => void }) {
+function OnHaloSwitches({ version, off, onChange }: { version: string | null | undefined; off: string[]; onChange: (off: string[]) => void }) {
   return (
     <fieldset className="field on-halo-switches">
       <legend className="hint">On Halo's pages</legend>
-      {ON_HALO_FEATURES.map(([id, label]) => (
+      {ON_HALO_FEATURES.filter(([id]) => {
+        const since = ON_HALO_FEATURE_SINCE[id];
+        return !since || versionAtLeast(version, since);
+      }).map(([id, label]) => (
         <label key={id} className="field-check">
           <input type="checkbox" checked={!off.includes(id)} onChange={(e) => onChange(e.target.checked ? off.filter((x) => x !== id) : [...off.filter((x) => x !== id), id])} />
           <span>{featureLabel(label)}</span>

@@ -1,109 +1,100 @@
-// Feature 1 on Student Home (0.12.1, George 2026-10-28: "add a CALENDAR tab on Student Home next to Halo's CURRENT
-// CLASSES / PAST CLASSES tabs, in the exact same tab style. That's the main home for it."). A "Calendar" tab at the end
-// of Halo's own tab row, made from Halo's own tab button (its classes copied from Halo's tabs, so Halo's look and Better
-// Halo's restyling both apply). Open, it shows every class's work on one calendar (calendar.js draws it: chips on their
-// due days in Halo's calendar grid), a week or two at a time, from this week; Halo's class list is hidden while it is
-// open and Halo's own tabs bring it back. The last tab and 1 Week / 2 Weeks are kept for the next visit while
-// "Remember view choices" is on. Halo's dates: asked of Halo when the tab opens (one question per class, kept ten
-// minutes on this computer, shared with the class calendars).
+// Feature 1 on Student Home. 0.12.2 (George, after testing 0.12.1: the calendar belongs where every student sees it
+// without it crowding the page): its own section below Halo's class cards, "Calendar · All classes", in Halo's page
+// header style, folding (the fold is kept), a week at a time from this week (1 Week / 2 Weeks kept with "Remember view
+// choices"), arrows and This week. The "This week" bar's "Calendar" link scrolls to it. Every class's work on one
+// calendar, drawn by calendar.js (chips on their due days in Halo's calendar grid), each class in the colour of the
+// stripe on its own card. Only under Halo's Current Classes; Halo's dates, asked of Halo when the section is open (one
+// question per class, kept ten minutes on this computer, shared with the class calendars).
 (function () {
   'use strict';
   const O = globalThis.HaloPlusOn;
   if (!O) return;
   const ARROW_L = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"></path></svg>';
   const ARROW_R = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg>';
+  // Halo's own "Event" icon (its class calendar's page title).
+  const EVENT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"></path></svg>';
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  let active = false;
-  let weeksN = 2;
+  let open = true;
+  let weeksN = 1;
   let offset = 0;
-  let swapped = [];
   let savedP = null;
-  let applied = false;
   let lastKey = '';
   let busy = false;
   let again = false;
 
   const main = () => document.getElementById('Home--main');
-  const tablist = () => {
+  /** Halo's Current Classes tab is the one shown (the calendar is about the current classes). */
+  function currentTab() {
     const m = main();
-    return m && m.querySelector('[role="tablist"]');
+    const list = m && m.querySelector('[role="tablist"]');
+    const first = list && list.querySelector('[role="tab"]');
+    return !!(first && first.getAttribute('aria-selected') === 'true');
+  }
+  const hasIndex = () => {
+    const idx = O.st.haloIndex;
+    return !!(idx && Array.isArray(idx.classes) && idx.classes.length);
   };
-  const haloTabs = (list) => [...list.querySelectorAll('[role="tab"]:not([data-haloplus])')];
 
-  // ---- the tab ------------------------------------------------------------------------------------------------------------
-  /** Halo's tab classes, read from Halo's own tabs (the selected one's and the others'). */
-  function tabClasses(list) {
-    const tabs = haloTabs(list);
-    const on = O.cssClass('Tab_activeTab');
-    const off = O.cssClass('Tab_tab');
-    const sel = tabs.find((b) => (on && b.classList.contains(on)) || (!swapped.length && b.getAttribute('aria-selected') === 'true')) || tabs[0];
-    const other = tabs.find((b) => b !== sel);
-    const activeCls = sel ? sel.className : '';
-    const inactiveCls = other ? other.className : on && off ? activeCls.replace(on, off) : activeCls;
-    return { activeCls, inactiveCls };
+  // ---- the section --------------------------------------------------------------------------------------------------------
+  function headHtml() {
+    return `<button type="button" class="hp-sec-head" aria-expanded="${open}" aria-controls="hp-home-cal-body"><span class="hp-sec-icon">${EVENT}</span><h2 class="hp-sec-title">Calendar <span class="hp-sec-sub">· All classes</span></h2><span class="hp-sec-mark">${O.mark()}</span><span class="hp-sec-chev">${O.CHEVRON}</span></button>`;
   }
-  function ensureTab() {
-    const list = tablist();
-    if (!list || !haloTabs(list).length) return null;
-    let b = list.querySelector('[data-haloplus="home-tab"]');
-    const { activeCls, inactiveCls } = tabClasses(list);
-    if (!b) {
-      b = document.createElement('button');
-      b.type = 'button';
-      b.setAttribute('role', 'tab');
-      b.setAttribute('data-haloplus', 'home-tab');
-      b.innerHTML = `<span class="MuiButton-label"><span data-testid="hp_calendar_tab">Calendar</span>${O.mark()}</span>`;
-      list.appendChild(b);
-    }
-    const want = active ? activeCls : inactiveCls;
-    if (want && b.className !== want) b.className = want;
-    b.setAttribute('aria-selected', String(active));
-    b.tabIndex = active ? 0 : -1;
-    return b;
-  }
-
-  // ---- open and close -----------------------------------------------------------------------------------------------------
-  function open(save = true) {
-    const list = tablist();
+  function ensureHost() {
     const m = main();
-    if (!list || !m) return;
-    if (!active) {
-      swapped = haloTabs(list).map((b) => ({ b, sel: b.getAttribute('aria-selected'), tab: b.getAttribute('tabindex') }));
-      for (const { b } of swapped) {
-        b.setAttribute('aria-selected', 'false');
-        b.setAttribute('tabindex', '-1');
-      }
+    const section = m && [...m.querySelectorAll(':scope > section')].pop();
+    if (!section) return null;
+    let h = m.querySelector(':scope > [data-haloplus="home-calendar"]');
+    if (!h) {
+      h = document.createElement('div');
+      h.setAttribute('data-haloplus', 'home-calendar');
+      h.id = 'hp-home-calendar';
+      h.className = 'hp-sec';
+      h.innerHTML = `${headHtml()}<div class="hp-sec-body MuiPaper-root py-6 px-4 MuiPaper-elevation3 MuiPaper-rounded" id="hp-home-cal-body"${open ? '' : ' hidden'}><div class="hp-bar"></div><div class="hp-cal"><div class="hp-legend"></div><div class="hp-status" hidden></div><div class="hp-grid"></div></div></div>`;
+      h.addEventListener('click', (e) => {
+        if (e.target.closest('.hp-sec-head')) return void setOpen(!open, true);
+        const mv = e.target.closest('[data-hp-move]');
+        if (mv) {
+          const n = Number(mv.getAttribute('data-hp-move'));
+          offset = n === 0 ? 0 : offset + n;
+          lastKey = '';
+          return void pass();
+        }
+        const wk = e.target.closest('[data-hp-weeks]');
+        if (wk) {
+          weeksN = Number(wk.getAttribute('data-hp-weeks')) === 2 ? 2 : 1;
+          O.cal.saveView({ homeWeeks: weeksN });
+          lastKey = '';
+          void pass();
+        }
+      });
+      // The "This week" bar's Calendar link opens it if folded (the bar scrolls to it).
+      h.addEventListener('hp-open', () => {
+        if (!open) setOpen(true, true);
+      });
+      O.cal.bindGrid(h.querySelector('.hp-cal'));
     }
-    active = true;
-    m.setAttribute('data-hp-tab', 'calendar');
-    ensureTab();
-    if (save) O.cal.saveView({ homeTab: 'calendar' });
-    O.count('calendar-all', false);
-    lastKey = '';
-    void pass();
+    // Right after Halo's class list (Halo mounts a new list when its tabs change).
+    if (section.nextElementSibling !== h) section.after(h);
+    return h;
   }
-  function close(save = true) {
-    if (!active) return;
-    active = false;
-    // Halo's own tabs as they were (React then moves the selection itself if another tab was chosen).
-    for (const { b, sel, tab } of swapped) {
-      if (!b.isConnected) continue;
-      if (sel != null) b.setAttribute('aria-selected', sel);
-      if (tab != null) b.setAttribute('tabindex', tab);
-    }
-    swapped = [];
-    const m = main();
-    if (m) m.removeAttribute('data-hp-tab');
+  function setOpen(v, save) {
+    open = v;
     const h = document.querySelector('[data-haloplus="home-calendar"]');
-    if (h) h.hidden = true;
-    ensureTab();
-    if (save) O.cal.saveView({ homeTab: 'classes' });
-  }
-  function onClick(e) {
-    const t = e.target && e.target.closest && e.target.closest('#Home--main [role="tablist"] [role="tab"]');
-    if (!t) return;
-    if (t.getAttribute('data-haloplus') === 'home-tab') return void (active || open());
-    close();
+    if (h) {
+      h.querySelector('.hp-sec-head').setAttribute('aria-expanded', String(open));
+      h.querySelector('.hp-sec-body').hidden = !open;
+    }
+    if (save)
+      try {
+        void chrome.storage.local.set({ haloCalFold: { open, at: new Date().toISOString() } });
+      } catch {
+        /* this page only */
+      }
+    if (open) {
+      O.count('calendar-all', false);
+      lastKey = '';
+      void pass();
+    }
   }
 
   // ---- the calendar -------------------------------------------------------------------------------------------------------
@@ -119,63 +110,21 @@
   };
   function barHtml(first, last) {
     const btn = (on, v, text) => `<button type="button" data-hp-weeks="${v}" aria-pressed="${on}" class="MuiButtonBase-root MuiButton-root MuiButton-sizeSmall ${on ? 'MuiButton-contained MuiButton-containedSecondary' : 'MuiButton-outlined MuiButton-outlinedSecondary'}"><span class="MuiButton-label">${text}</span></button>`;
-    return `<button type="button" class="hp-arrow" data-hp-move="-1" aria-label="Previous week">${ARROW_L}</button><button type="button" class="hp-arrow" data-hp-move="1" aria-label="Next week">${ARROW_R}</button><span class="hp-range">${label(first)} – ${label(last)}, ${O.cal.keyOf(last).slice(0, 4)}</span>${offset ? '<button type="button" data-hp-move="0" class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSecondary MuiButton-sizeSmall"><span class="MuiButton-label">This week</span></button>' : ''}<span class="hp-sp"></span><span class="text-secondary text-sm">Show</span><span class="hp-group" role="group" aria-label="How many weeks">${btn(weeksN === 1, 1, '1 Week')}${btn(weeksN === 2, 2, '2 Weeks')}</span>${O.mark()}`;
-  }
-  function ensureHost() {
-    const m = main();
-    const list = tablist();
-    if (!m || !list) return null;
-    let h = m.querySelector(':scope > [data-haloplus="home-calendar"]');
-    if (!h) {
-      h = document.createElement('div');
-      h.setAttribute('data-haloplus', 'home-calendar');
-      h.className = 'MuiPaper-root py-6 px-4 MuiPaper-elevation3 MuiPaper-rounded';
-      h.style.marginBottom = '28px';
-      h.innerHTML = '<div class="hp-bar"></div><div class="hp-cal"><div class="hp-legend"></div><div class="hp-status" hidden></div><div class="hp-grid"></div></div>';
-      h.addEventListener('click', (e) => {
-        const mv = e.target.closest('[data-hp-move]');
-        if (mv) {
-          const n = Number(mv.getAttribute('data-hp-move'));
-          offset = n === 0 ? 0 : offset + n;
-          lastKey = '';
-          return void pass();
-        }
-        const wk = e.target.closest('[data-hp-weeks]');
-        if (wk) {
-          weeksN = Number(wk.getAttribute('data-hp-weeks')) === 1 ? 1 : 2;
-          O.cal.saveView({ homeWeeks: weeksN });
-          lastKey = '';
-          void pass();
-        }
-      });
-      O.cal.bindGrid(h.querySelector('.hp-cal'));
-    }
-    // Below Halo's tabs (and Halo+'s search, when it is there), above Halo's class list.
-    const section = m.querySelector(':scope > section');
-    if (section && h.nextElementSibling !== section) section.before(h);
-    else if (!section && !h.isConnected) (list.closest('.better-halo-tabs-wrapper') || list).after(h);
-    return h;
+    return `<button type="button" class="hp-arrow" data-hp-move="-1" aria-label="Previous week">${ARROW_L}</button><button type="button" class="hp-arrow" data-hp-move="1" aria-label="Next week">${ARROW_R}</button><span class="hp-range">${label(first)} – ${label(last)}, ${O.cal.keyOf(last).slice(0, 4)}</span>${offset ? '<button type="button" data-hp-move="0" class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedSecondary MuiButton-sizeSmall"><span class="MuiButton-label">This week</span></button>' : ''}<span class="hp-sp"></span><span class="text-secondary text-sm">Show</span><span class="hp-group" role="group" aria-label="How many weeks">${btn(weeksN === 1, 1, '1 Week')}${btn(weeksN === 2, 2, '2 Weeks')}</span>`;
   }
   async function draw() {
-    if (!active) {
-      const h0 = document.querySelector('[data-haloplus="home-calendar"]');
-      if (h0) h0.hidden = true;
-      return;
-    }
     const h = ensureHost();
-    const idx = O.st.haloIndex;
     if (!h) return;
-    h.hidden = !active;
-    if (!active) return;
+    h.hidden = !currentTab();
+    if (h.hidden) return;
+    // Each card's colour, read while the cards are on the page (kept for the class calendars too).
+    await O.cal.readStripes();
+    if (!open) return;
+    const idx = O.st.haloIndex;
     const mon = thisMonday();
-    if (mon == null || !idx || !Array.isArray(idx.classes) || !idx.classes.length) {
-      h.querySelector('.hp-bar').innerHTML = '';
-      h.querySelector('.hp-grid').innerHTML = '';
-      const st = h.querySelector('.hp-status');
-      st.hidden = false;
-      st.textContent = 'Halo+ shows the calendar once it has synced your classes.';
-      return;
-    }
+    const st = h.querySelector('.hp-status');
+    const grid = h.querySelector('.hp-grid');
+    if (mon == null) return;
     const first = mon + offset * 7;
     const weeks = Array.from({ length: weeksN }, (_, w) => [0, 1, 2, 3, 4, 5, 6].map((i) => first + w * 7 + i));
     const bar = h.querySelector('.hp-bar');
@@ -184,15 +133,12 @@
       bar.innerHTML = barNow;
       bar.dataset.html = barNow;
     }
-    const st = h.querySelector('.hp-status');
-    const grid = h.querySelector('.hp-grid');
     if (!grid.firstElementChild) {
       st.hidden = false;
       st.textContent = 'Getting your due dates from Halo…';
     }
     const grades = await O.cal.refresh(idx);
-    if (!h.isConnected || !active) return;
-    const key = `${first}|${weeksN}|${window.innerWidth <= 1024}|${Object.keys(grades).filter((k) => grades[k]).length}|${JSON.stringify(Object.values(grades).map((g) => (g ? g.size : -1)))}`;
+    if (!h.isConnected || !open) return;
     const legend = O.cal.legendHtml(idx, grades);
     const lg = h.querySelector('.hp-legend');
     if (lg.dataset.html !== legend) {
@@ -202,29 +148,21 @@
     if (!Object.values(grades).some(Boolean)) {
       grid.innerHTML = '';
       st.hidden = false;
-      st.textContent = 'Halo did not send your due dates just now. Open this tab again in a moment.';
+      st.textContent = 'Halo did not send your due dates just now. Fold and open this again in a moment.';
       return;
     }
     st.hidden = true;
+    const key = `${first}|${weeksN}|${window.innerWidth <= 1024}|${O.cal.themeKey()}|${JSON.stringify(O.cal.stripes)}|${JSON.stringify(Object.values(grades).map((g) => (g ? g.size : -1)))}`;
     if (key === lastKey && grid.firstElementChild) return;
     lastKey = key;
     grid.innerHTML = O.cal.gridHtml(weeks, O.cal.daysFor(idx, grades));
   }
-  /** Nothing to show without Halo+'s list of the classes (the last sync's index): no tab at all. */
-  const hasIndex = () => {
-    const idx = O.st.haloIndex;
-    return !!(idx && Array.isArray(idx.classes) && idx.classes.length);
-  };
   async function pass() {
     if (busy) return void (again = true);
     busy = true;
     try {
-      if (!hasIndex()) {
-        if (active || document.querySelector('[data-haloplus="home-tab"]')) teardown();
-        return;
-      }
+      if (!hasIndex()) return void teardown();
       await saved();
-      if (!ensureTab()) return;
       await draw();
     } finally {
       busy = false;
@@ -234,49 +172,40 @@
       }
     }
   }
-  // The kept tab and weeks, read once per visit to Student Home.
+  // The fold and the weeks, read once per visit to Student Home.
   function saved() {
     if (!savedP)
       savedP = (async () => {
         try {
-          return (await chrome.storage.local.get('haloViews')).haloViews || {};
+          const { haloViews, haloCalFold } = await chrome.storage.local.get(['haloViews', 'haloCalFold']);
+          if (haloCalFold && typeof haloCalFold.open === 'boolean') open = haloCalFold.open;
+          if (O.enabled('views') && haloViews && (haloViews.homeWeeks === 1 || haloViews.homeWeeks === 2)) weeksN = haloViews.homeWeeks;
         } catch {
-          return {};
+          /* defaults */
         }
       })();
-    return savedP.then((v) => {
-      if (applied || !tablist()) return;
-      applied = true;
-      if (!O.enabled('views')) return;
-      if (v.homeWeeks === 1 || v.homeWeeks === 2) weeksN = v.homeWeeks;
-      if (v.homeTab === 'calendar' && !active) open(false);
-    });
+    return savedP;
   }
   function teardown() {
-    close(false);
-    document.querySelectorAll('[data-haloplus="home-tab"], [data-haloplus="home-calendar"]').forEach((n) => n.remove());
-    savedP = null;
-    applied = false;
+    document.querySelectorAll('[data-haloplus="home-calendar"]').forEach((n) => n.remove());
     lastKey = '';
-    offset = 0;
-    weeksN = 2;
-  }
-  function stop() {
-    teardown();
-    document.removeEventListener('click', onClick, true);
   }
   O.feature({
     id: 'calendar-home',
     switch: 'calendar',
     routes: ['home'],
     start() {
-      if (!O.cal) return;
-      document.addEventListener('click', onClick, true);
-      void pass();
+      if (O.cal) void pass();
     },
     update() {
       if (O.cal) void pass();
     },
-    stop,
+    stop() {
+      teardown();
+      savedP = null;
+      offset = 0;
+      weeksN = 1;
+      open = true;
+    },
   });
 })();

@@ -104,7 +104,10 @@ function shell(build, route, title, body, { sidebar = null } = {}) {
  * Halo's Student Home: title, tabs, class cards. `bh`: Better Halo's card buttons (Calendar and three icons, with its
  * count badges from `badges`), as its own code adds them; Better Halo itself, when loaded, adds the rest (its tab row).
  */
-export function homePage(build, fx, { bh = false, badges = null } = {}) {
+// The sponsor logo's place on Student Home (Halo shows the school's sponsor there, Global Credit Union for GCU): a plain
+// labelled stand-in image, not GCU's or the sponsor's artwork.
+const SPONSOR = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="62" viewBox="0 0 300 62"><rect x="1" y="1" width="298" height="60" rx="6" fill="#fff" stroke="#c8ccd4"/><circle cx="32" cy="31" r="17" fill="#1d4f91"/><text x="58" y="30" font-family="Arial" font-size="17" font-weight="700" fill="#1d4f91">Global Credit Union</text><text x="58" y="47" font-family="Arial" font-size="11" fill="#8a8f98">sponsor logo (stand-in)</text></svg>')}`;
+export function homePage(build, fx, { bh = false, badges = null, header = 'halo' } = {}) {
   const C = (n) => build.cls(n);
   const cards = fx.payload.classes
     .map((c) => {
@@ -133,7 +136,8 @@ export function homePage(build, fx, { bh = false, badges = null } = {}) {
     .join('');
   const tabs = `<div class="${C('Tabs_tabs')} mb-8 undefined" role="tablist"><button class="MuiButtonBase-root MuiButton-root MuiButton-text ${C('Tab_activeTab')} undefined" role="tab" aria-selected="true" tabindex="0" type="button"><span class="MuiButton-label"><span data-testid="current_classes">Current Classes (${fx.payload.classes.length})</span></span></button><button class="MuiButtonBase-root MuiButton-root MuiButton-text ${C('Tab_tab')} undefined" role="tab" aria-selected="false" tabindex="-1" type="button"><span class="MuiButton-label"><span data-testid="past_classes">Past Classes (0)</span></span></button></div>`;
   const body = `<div class="MuiContainer-root ${C('Home_container')} MuiContainer-maxWidthLg"><div id="Home--main" role="main" tabindex="-1" class="w-full focus:outline-none">
-<header class="${C('PageTitle_headerContainer')} "><div class="flex items-center"><span class="${C('PageTitle_icon')}"><svg class="MuiSvgIcon-root" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg></span><h1 class="${C('PageTitle_headerText')} focus:outline-none">Student home</h1></div></header>
+<header class="${C('PageTitle_headerContainer')} "><div class="flex items-center"><span class="${C('PageTitle_icon')}"><svg class="MuiSvgIcon-root" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"></path></svg></span><h1 class="${C('PageTitle_headerText')} focus:outline-none">Student home</h1></div>${header === 'none' ? '' : `<div><div class="my-auto mx-auto cursor-pointer"><a target="_blank" href="#sponsor"><img class="ml-2 mt-2" alt="Sponsors Logo: Global Credit Union - stand-in" src="${SPONSOR}" style="max-width:315px;max-height:62px"></a></div></div>`}${header === 'odd' ? '<div class="ml-4 text-sm">A new Halo notice</div>' : ''}</header>
+${header === 'none' ? '' : '<div class="mb-4 text-sm text-gray-700"><div>Students will see their classes in Halo three days before each class’s start date</div><div>Missing a class? <a target="_blank" href="https://classschedule.gcu.edu" class="text-blue-600 hover:underline">View your full schedule.</a></div></div>'}
 ${tabs}
 <section><div class="MuiGrid-root MuiGrid-container MuiGrid-spacing-xs-4">${cards}</div></section></div>
 <footer class="py-10"><hr class="MuiDivider-root"><div class="pt-2 text-center"><p class="text-xs">Grand Canyon University © 2026 All Rights Reserved</p></div></footer></div>
@@ -742,7 +746,7 @@ export async function standIn(ctx, fx, opts = {}) {
     if (u.pathname.startsWith('/api/')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     const page = Object.entries(state.pages).find(([re]) => new RegExp(re).test(u.pathname));
     if (page) return route.fulfill({ status: 200, contentType: 'text/html', body: page[1](build, fx, u, state) });
-    if (u.pathname === '/' || u.pathname === '') return route.fulfill({ status: 200, contentType: 'text/html', body: homePage(build, fx, { bh: state.bh, badges: state.badges }) });
+    if (u.pathname === '/' || u.pathname === '') return route.fulfill({ status: 200, contentType: 'text/html', body: homePage(build, fx, { bh: state.bh, badges: state.badges, header: state.homeHeader || 'halo' }) });
     return route.fulfill({ status: 200, contentType: 'text/html', body: shell(build, '/courses/[slugId]', 'Halo', `<div class="py-4"><h1 class="${build.cls('PageTitle_headerText')}">Page</h1></div>`) });
   });
   // The editor library the discussion stand-in loads (TipTap, from a public module CDN): kept on disk after the first

@@ -218,8 +218,8 @@
   column-gap: 6px;
   padding: 3px 6px 3px 7px;
   border-radius: 4px;
-  border-left: 3px solid var(--c, var(--hp-text-3));
-  background: color-mix(in srgb, var(--c, var(--hp-text-3)) 13%, var(--hp-surface));
+  border-left: 4px solid var(--c, var(--hp-text-3));
+  background: color-mix(in srgb, var(--c, var(--hp-text-3)) 12%, var(--hp-surface));
   color: var(--hp-text);
   font-size: 12px;
   line-height: 1.4;
@@ -343,17 +343,78 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* ---- Student Home's "Calendar" tab (0.12.1): while it is open, Halo's own class list (the tab panel Halo mounts) is
-   hidden and Halo's selected tab loses its underline; Halo's own tabs bring everything back. --------------------------- */
-#Home--main[data-hp-tab='calendar'] > section {
+/* ---- Student Home's calendar section (0.12.2): below Halo's class cards, with a header in Halo's own page-title style
+   (PageTitle_underlinedHeaderContainer: the Event icon in Halo's gray, semibold title, a hairline under it). ------------ */
+[data-haloplus='home-calendar'].hp-sec {
+  margin: 36px 0 28px;
+  font-family: var(--hp-font);
+}
+[data-haloplus='home-calendar'] .hp-sec-head {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 0 0.625rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--lms-grayE0, #e0e0e0);
+  color: var(--hp-text);
+}
+[data-haloplus='home-calendar'] .hp-sec-head:focus-visible {
+  outline: 2px solid var(--hp-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+[data-haloplus='home-calendar'] .hp-sec-icon {
+  display: inline-flex;
+  color: var(--lms-gray70, #707070);
+}
+[data-haloplus='home-calendar'] .hp-sec-icon svg {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: currentColor;
+}
+[data-haloplus='home-calendar'] .hp-sec-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.375;
+}
+[data-haloplus='home-calendar'] .hp-sec-sub {
+  font-weight: 400;
+  color: var(--hp-text-2);
+}
+[data-haloplus='home-calendar'] .hp-sec-mark {
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--hp-text-2);
+}
+[data-haloplus='home-calendar'] .hp-sec-chev {
+  display: inline-flex;
+  color: var(--hp-text-2);
+}
+[data-haloplus='home-calendar'] .hp-sec-chev svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transform: rotate(90deg);
+  transition: transform 0.2s;
+}
+[data-haloplus='home-calendar'] .hp-sec-head[aria-expanded='false'] .hp-sec-chev svg {
+  transform: none;
+}
+[data-haloplus='home-calendar'] .hp-sec-body[hidden],
+[data-haloplus='home-calendar'][hidden] {
   display: none !important;
 }
-#Home--main[data-hp-tab='calendar'] [role='tablist'] > [role='tab']:not([data-haloplus]) {
-  border-bottom-color: transparent !important;
-  border-bottom-width: 0 !important;
-}
-[data-haloplus='home-tab'] .hp-mark {
-  margin-left: 6px;
+@media (prefers-reduced-motion: reduce) {
+  [data-haloplus='home-calendar'] .hp-sec-chev svg {
+    transition: none;
+  }
 }
 [data-haloplus='home-calendar'] .hp-bar {
   display: flex;
@@ -410,4 +471,72 @@
   font-size: 14px;
   color: var(--hp-text-2);
   padding: 24px 0;
+}
+/* ---- A compact Student Home header (0.12.2): Halo's title and the sponsor logo on one row, the logo a little smaller,
+   Halo's two schedule lines hidden, "View your full schedule" beside the title in Halo's link style. ---------------- */
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] {
+  flex-wrap: nowrap;
+  gap: 16px;
+}
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child {
+  flex: none;
+}
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child img {
+  max-height: 44px !important;
+  max-width: 260px !important;
+  margin-top: 0 !important;
+}
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child [data-better-halo-original-img-src] {
+  width: var(--hp-logo-w, auto) !important;
+  height: var(--hp-logo-h, 44px) !important;
+  margin-top: 0 !important;
+}
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child [data-better-halo-original-img-src] > * {
+  width: 100% !important;
+  height: 100% !important;
+}
+#Home--main[data-hp-compact] > [data-hp-schedule] {
+  display: none !important;
+}
+#Home--main [data-haloplus='schedule-link'] {
+  margin-left: 14px;
+  font-size: 0.875rem;
+  font-family: var(--hp-font);
+  color: var(--hp-link);
+  text-decoration: none;
+  white-space: nowrap;
+}
+#Home--main [data-haloplus='schedule-link']:hover {
+  text-decoration: underline;
+}
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] + [role='tablist'],
+#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] + .better-halo-tabs-wrapper {
+  margin-top: 12px;
+}
+/* The rubric's own small buttons (0.12.2): Halo's text-button look (uppercase 12px, its link blue). */
+[data-haloplus='rubric'] .hp-rb {
+  all: unset;
+  cursor: pointer;
+  flex: none;
+  font: 600 12px/1.75 var(--hp-font);
+  text-transform: uppercase;
+  letter-spacing: 0.02857em;
+  color: var(--hp-link);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+[data-haloplus='rubric'] .hp-rb:hover {
+  background: var(--hp-hover);
+}
+[data-haloplus='rubric'] .hp-rb:focus-visible {
+  outline: 1px solid var(--hp-focus);
+}
+[data-haloplus='rubric'] [hidden] {
+  display: none !important;
 }

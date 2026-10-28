@@ -1,6 +1,16 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.12.1 (2026-10-28): paste exactly this
+## The listing now: 0.12.2 (2026-10-28): paste exactly this
+
+0.12.2 (Loop 273): George's changes after testing 0.12.1. A compact Student Home header (the title and the school's
+sponsor logo on one row, Halo's two schedule lines folded into a "View your full schedule" link; its own switch); the
+all-classes calendar as its own section below the class cards ("Calendar · All classes", folds, starts on one week,
+each class in its card's own colour), reached from a "Calendar" link in the This week bar; the rubric short first
+(the total, one line per criterion with its top level), with "Show all levels", "Show everything" and a printable
+"Open in new tab". **No new permission.** Upload `webstore-upload/halo-plus-extension-0.12.2.zip`; the description and
+the Privacy tab are as below (0.12.1/0.12.0), unchanged.
+
+## 0.12.1 (2026-10-28)
 
 0.12.1 (Loop 272): George's fixes after testing 0.12.0 on real Halo. Halo's own "View Rubric" opens the rubric right
 under its row (a second click closes it); a handed-in card shows only what Halo's card does not (when it was sent and

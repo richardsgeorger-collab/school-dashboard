@@ -21,6 +21,7 @@ export const ON_HALO_FEATURES = [
   ['links', 'Clickable links in announcements'],
   ['views', 'Remember view choices'],
   ['preload', 'Open your next pages faster'],
+  ['homeheader', 'Compact Student Home header'],
 ] as const;
 
 export type OnHaloFeature = (typeof ON_HALO_FEATURES)[number][0];
@@ -30,6 +31,9 @@ export function featureLabel(label: string): string {
   const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   return mac ? label.replace('(Ctrl+K)', '(⌘K)') : label;
 }
+
+/** Features added after 0.12.0: their switch shows only with that extension version or later on this computer. */
+export const ON_HALO_FEATURE_SINCE: Partial<Record<OnHaloFeature, string>> = { homeheader: '0.12.2' };
 
 /** The first extension with these features: the switches show only with it on this computer. */
 export const ON_HALO_SINCE = '0.12.0';

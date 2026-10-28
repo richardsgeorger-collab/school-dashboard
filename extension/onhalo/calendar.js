@@ -153,8 +153,69 @@
       .map((w, wi) => `<div class="hp-week"><div class="hp-row hp-heads${wi ? ' hp-later' : ''}">${w.map((d) => `<div class="hp-dh${d === today ? ' hp-today' : ''}">${headHtml(d, compact)}</div>`).join('')}</div><div class="hp-row hp-days">${w.map((d) => dayHtml(d, days.get(keyOf(d)), today)).join('')}</div></div>`)
       .join('');
   }
+  // ---- each class's real Halo colour (0.12.2) -----------------------------------------------------------------------------
+  // The stripe on top of each class's card on Student Home, as drawn (Halo's own colour, or Better Halo's, whatever the
+  // page shows), read there and kept on this computer for the class calendars; per look (plain, or a Better Halo theme),
+  // since a theme redraws the stripes. On Halo's white page the bold version of it (logic.js boldColor); under a dark
+  // theme as it is. Without a reading, Halo's own colour for the class (the same hash Halo uses).
+  const themeKey = () => `${document.documentElement.getAttribute('data-better-halo-theme') || ''}|${document.documentElement.classList.contains('dark') ? 'dark' : 'light'}`;
+  const darkTheme = () => !!document.documentElement.getAttribute('data-better-halo-theme') && document.documentElement.classList.contains('dark');
+  let stripes = null;
+  let stripesKey = '';
+  async function loadStripes() {
+    const k = themeKey();
+    if (stripes && stripesKey === k) return stripes;
+    stripesKey = k;
+    try {
+      const { haloCardColors } = await chrome.storage.local.get('haloCardColors');
+      stripes = (haloCardColors && haloCardColors[k]) || {};
+    } catch {
+      stripes = {};
+    }
+    return stripes;
+  }
+  /** A colour as Halo writes it on the card ("#522398" or "var(--lms-colorClassCardPurple)"), as a colour. */
+  function ownColor(v) {
+    const t = String(v || '').trim();
+    if (/^(#[0-9a-f]{6}|rgb)/i.test(t)) return t;
+    const m = /^var\((--[\w-]+)(?:,\s*([^)]+))?\)$/.exec(t);
+    if (!m) return null;
+    const got = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
+    return got || (m[2] ? m[2].trim() : null);
+  }
+  /** Student Home: each card's stripe, by the class it opens. Kept when it changed. */
+  async function readStripes() {
+    const found = {};
+    for (const card of document.querySelectorAll('[class*="CourseCard_cardContainer"]')) {
+      const a = card.querySelector('a[href^="/courses/"]');
+      const m = a && /^\/courses\/([^/?#]+)/.exec(a.getAttribute('href') || '');
+      if (!m) continue;
+      const cs = getComputedStyle(card);
+      let col = parseFloat(cs.borderTopWidth) >= 2 ? cs.borderTopColor : null;
+      // A theme that draws no stripe (Better Halo's): the colour Halo gave the card (its own style on the card).
+      if (!col) col = ownColor(card.style.borderTopColor);
+      if (col && /^(rgb|#)/.test(col)) found[decodeURIComponent(m[1])] = col;
+    }
+    if (!Object.keys(found).length) return;
+    const k = themeKey();
+    const have = await loadStripes();
+    if (JSON.stringify(have) === JSON.stringify({ ...have, ...found })) return;
+    stripes = { ...have, ...found };
+    try {
+      const { haloCardColors } = await chrome.storage.local.get('haloCardColors');
+      await chrome.storage.local.set({ haloCardColors: { ...(haloCardColors || {}), [k]: stripes } });
+    } catch {
+      /* this page only */
+    }
+  }
+  function colorOf(c) {
+    const real = stripes && stripes[c.slug];
+    return L.boldColor(real || c.hex, darkTheme()) || c.col || c.hex;
+  }
+  /** The index with each class in its colour for the calendar. */
+  const colored = (idx) => ({ ...idx, classes: idx.classes.map((c) => ({ ...c, col: colorOf(c) })) });
   function legendHtml(idx, grades) {
-    return idx.classes.map((c) => `<span class="hp-key"><span class="hp-dot" style="background:${esc(c.col || c.hex)}"></span>${esc(c.code || c.cc)}${grades[c.slug] ? '' : ' <span>(Halo did not answer)</span>'}</span>`).join('');
+    return colored(idx).classes.map((c) => `<span class="hp-key"><span class="hp-dot" style="background:${esc(c.col)}"></span>${esc(c.code || c.cc)}${grades[c.slug] ? '' : ' <span>(Halo did not answer)</span>'}</span>`).join('');
   }
   /** Halo's answers as calendar days: Halo+ check-offs count as done, and work with no submission in Halo goes quiet. */
   function daysFor(idx, grades) {
@@ -165,7 +226,7 @@
       if (i.done === 1) doneIds.add(i.h);
       if (i.ns === 1) quietIds.add(i.h);
     }
-    return L.calendarDays(idx, grades, O.zone(), Date.now(), { doneIds, quietIds });
+    return L.calendarDays(colored(idx), grades, O.zone(), Date.now(), { doneIds, quietIds });
   }
   /** "+N more" and the participation line open in place. */
   function bindGrid(el) {
@@ -292,9 +353,10 @@
     }
     wrap.style.display = 'none';
     const grades = await refresh(idx);
+    await loadStripes();
     // Halo redrew its calendar while Halo's answers were coming: start again on the new one.
     if (!paper.isConnected || !host.isConnected) return void (again = true);
-    const sig = `${weeks.map((w) => w[0]).join(',')}|${liveAt}|${window.innerWidth <= 1024}`;
+    const sig = `${weeks.map((w) => w[0]).join(',')}|${liveAt}|${window.innerWidth <= 1024}|${themeKey()}|${JSON.stringify(stripes)}`;
     const legend = legendHtml(idx, grades);
     const lg = host.querySelector('.hp-legend');
     if (lg.dataset.sig !== legend || !lg.firstElementChild) {
@@ -318,7 +380,7 @@
       if (document.querySelector('[data-haloplus="calendar-all"], [data-haloplus="home-calendar"]')) O.soon();
     }, 500);
   });
-  O.cal = { refresh, gridHtml, legendHtml, daysFor, bindGrid, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
+  O.cal = { refresh, gridHtml, legendHtml, daysFor, bindGrid, loadStripes, readStripes, themeKey, get stripes() { return stripes; }, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
   O.feature({
     id: 'calendar',
     routes: ['class'],

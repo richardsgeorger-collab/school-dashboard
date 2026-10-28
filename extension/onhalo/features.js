@@ -17,4 +17,5 @@ globalThis.HaloPlusOnFeatures = [
   ['links', 'Clickable links in announcements'],
   ['views', 'Remember view choices'],
   ['preload', 'Open your next pages faster'],
+  ['homeheader', 'Compact Student Home header'],
 ];

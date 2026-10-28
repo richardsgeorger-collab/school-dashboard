@@ -439,3 +439,24 @@ describe('the calendar: each item on its due day, as Halo dates it (feature 1, 0
     expect(C.calendarDays(null, live(), PHX, now).size).toBe(0);
   });
 });
+
+describe('each class in its card’s colour, the bold version (feature 1, 0.12.2)', () => {
+  const C = L as unknown as { boldColor: (c: string, dark?: boolean) => string | null };
+  it('a pale pastel stripe becomes a clear version of its own hue on a light page', () => {
+    expect(C.boldColor('#c0a5ff')).toBe('rgb(97, 44, 221)');
+    expect(C.boldColor('rgb(190, 228, 250)')).toBe('rgb(44, 156, 221)');
+  });
+  it('a strong colour stays as Halo drew it; a grayish one stays grayish', () => {
+    expect(C.boldColor('#522398')).toBe('rgb(82, 35, 152)');
+    expect(C.boldColor('#e91e63')).toBe('rgb(233, 30, 99)');
+    expect(C.boldColor('#d5cdc9')).toBe('rgb(148, 128, 117)');
+  });
+  it('under a dark theme, a very deep colour is lifted so it shows; a light one stays', () => {
+    expect(C.boldColor('#522398', true)).toBe('rgb(146, 97, 219)');
+    expect(C.boldColor('#c0a5ff', true)).toBe('rgb(192, 165, 255)');
+  });
+  it('nothing for what is not a colour', () => {
+    expect(C.boldColor('var(--x)')).toBeNull();
+    expect(C.boldColor('')).toBeNull();
+  });
+});

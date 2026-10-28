@@ -115,12 +115,54 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
       return row && row.nextElementSibling && row.nextElementSibling.getAttribute('data-haloplus');
     });
     check(below === 'rubric', `${tag}: the rubric is right below Halo's Start / Due / Points / Rubric row`);
-    const shown = (await card.locator('[data-haloplus="rubric"]').innerText()).replace(/\s+/g, ' ').trim().replace(/^Rubric Criteria\s*/, '');
+    // 0.12.2: short first: the total at the top, each criterion on one line with its points and only its top level.
     const r = rubricFor(a);
     const r2 = (n) => Math.round(n * 100) / 100;
-    const want = [...r.criteria].sort((x, y) => x.sequence - y.sequence).map((c) => `${c.name} ${r2(c.points)} points Criteria Description ${c.description} ${[...c.achievementLevels].sort((x, y) => y.sequence - x.sequence).map((l) => `${l.sequence}. ${l.name} ${r2(l.points)} points ${l.description}`).join(' ')}`).join(' ') + ` Total${r2(r.criteria.reduce((n, c) => n + c.points, 0))} points`; // Halo's two spans, spaced by margin
-    const diff = [...want].findIndex((ch, i) => ch !== shown[i]);
-    check(shown === want, `${tag}: exactly Halo's rubric (${shown.length} characters${shown === want ? '' : `; differs at ${diff}: got "…${shown.slice(Math.max(0, diff - 40), diff + 60)}…" want "…${want.slice(Math.max(0, diff - 40), diff + 60)}…"`})`);
+    const crit = [...r.criteria].sort((x, y) => x.sequence - y.sequence);
+    const lv = (c) => [...c.achievementLevels].sort((x, y) => y.sequence - x.sequence);
+    const total = r2(crit.reduce((n, c) => n + c.points, 0));
+    const vis = () => card.evaluate((el) => {
+      const box = el.querySelector('[data-haloplus="rubric"]');
+      const on = (n) => n.getBoundingClientRect().height > 0;
+      return {
+        head: box.querySelector('[data-testid="hp-rubric-head"]').textContent.trim(),
+        lines: [...box.querySelectorAll('[data-testid="hp-crit-line"]')].map((n) => n.textContent.trim()),
+        tops: [...box.querySelectorAll('.hp-top')].filter(on).map((n) => n.textContent.replace(/\s+/g, ' ').trim()),
+        levels: [...box.querySelectorAll('.bg-grayF2')].filter(on).length,
+        crits: [...box.querySelectorAll('.hp-crit')].map((c) => (on(c.querySelector('.hp-full')) ? c.querySelector('.hp-full').innerText.replace(/\s+/g, ' ').trim() : null)),
+        total: on(box.querySelector('.hp-total')) ? box.querySelector('.hp-total').innerText.replace(/\s+/g, ' ').trim() : null,
+      };
+    });
+    let v = await vis();
+    check(v.head === `Rubric · ${total} pts`, `${tag}: the total at the top ("${v.head}")`);
+    check(JSON.stringify(v.lines) === JSON.stringify(crit.map((c) => `${c.name} · ${r2(c.points)} pts`)), `${tag}: each criterion on one line with its points (${v.lines[0]} …)`);
+    check(JSON.stringify(v.tops) === JSON.stringify(crit.map((c) => `${lv(c)[0].sequence}. ${lv(c)[0].name}: ${lv(c)[0].description}`)) && v.levels === 0, `${tag}: only each criterion's top level, word for word from Halo`);
+    const fullOf = (c) => `Criteria Description ${c.description} ${lv(c).map((l) => `${l.sequence}. ${l.name} ${r2(l.points)} points ${l.description}`).join(' ')}`;
+    await card.locator('[data-haloplus="rubric"] [data-levels]').first().click();
+    v = await vis();
+    check(v.crits[0] === fullOf(crit[0]) && v.crits.slice(1).every((x) => x === null) && v.tops.length === crit.length - 1, `${tag}: "Show all levels" opens that criterion's levels with their points, exactly as Halo lists them`);
+    await card.locator('[data-haloplus="rubric"] [data-levels]').first().click();
+    await card.locator('[data-haloplus="rubric"] [data-all]').click();
+    v = await vis();
+    const okAll = v.crits.every((x, i) => x === fullOf(crit[i])) && v.total === `Total${total} points` && v.tops.length === 0;
+    check(okAll, `${tag}: "Show everything": every criterion and level, word for word from Halo, and Halo's Total${okAll ? '' : ` (${JSON.stringify(v).slice(0, 300)})`}`);
+    await card.locator('[data-haloplus="rubric"] [data-all]').click();
+    // "Open in new tab": the whole rubric as a clean page to print.
+    const pagePromise = b.ctx.waitForEvent('page', { timeout: 8000 }).catch(() => null);
+    await card.locator('[data-haloplus="rubric"] [data-print]').click();
+    const pp = await pagePromise;
+    if (pp) await pp.waitForLoadState('load').catch(() => undefined);
+    const ptext = pp ? (await pp.locator('body').innerText()).replace(/\s+/g, ' ') : '';
+    const dueText = (await card.locator('[data-testid="date_time_data_due_date"]').evaluate((e) => [...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join('').trim()));
+    const clsRow = b.fx.index.classes.find((c) => c.slug === cls.slugId);
+    const printOk = !!pp && ptext.includes(`${a.title} - Rubric`) && ptext.includes(clsRow.code) && ptext.includes(`Due ${dueText}`) && ptext.includes(`Total ${total} points`) && crit.every((c) => ptext.includes(`${c.name} ${r2(c.points)} points ${c.description}`) && lv(c).every((l) => ptext.includes(`${l.sequence}. ${l.name} ${r2(l.points)} points ${l.description}`)));
+    check(printOk && tabs >= 1, `${tag}: "Open in new tab": a clean page with the assignment, class, due date (${dueText}), every criterion and level`);
+    if (pp) {
+      await pp.setViewportSize({ width: 1000, height: 1100 });
+      await pp.screenshot({ path: `${OUT}/${tag}-5-rubric-print.png` });
+      await pp.close();
+    }
+    tabs = 0;
     const rubricCalls = () => b.bench.calls.gateway.filter((c) => c.op === 'AssessmentRubric').length;
     check(rubricCalls() === 1, `${tag}: one question to Halo for it`);
     // The picture: Halo's row with the rubric opening under it.
