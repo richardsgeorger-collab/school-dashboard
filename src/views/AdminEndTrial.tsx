@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../auth/client';
 
-/** Ends a test account's free trial now, so the end-of-trial screen and the $2.99 checkout can be tried for real (2026-10-10). */
+/** Ends a test account's free trial now, so the end-of-trial screen and the first-month checkouts can be tried for real (2026-10-10). */
 export function AdminEndTrial() {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
@@ -13,7 +13,7 @@ export function AdminEndTrial() {
     setBusy(false);
     if (error) return setNote(error.message);
     const r = data as { ok: boolean; why?: string };
-    setNote(r.ok ? `Done. ${email.trim()}'s free trial ended a minute ago: sign in as it and the end-of-trial screen shows, with the $2.99 offer if it never paid.` : r.why ?? 'Could not end it.');
+    setNote(r.ok ? `Done. ${email.trim()}'s free trial ended a minute ago: sign in as it and the end-of-trial screen shows, with the first-month offers if it never paid.` : r.why ?? 'Could not end it.');
   };
   return (
     <section className="card settings-card admin-end-trial" aria-label="End a test account's trial">

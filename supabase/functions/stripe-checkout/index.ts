@@ -3,7 +3,7 @@
 import Stripe from 'npm:stripe@18';
 import { admin, json, guard, userFromRequest } from '../_shared/admin.ts';
 import { OFFERED_INTERVALS, STRIPE_LIVE_PRICE_IDS, STRIPE_PRICE_IDS, type Interval } from '../_shared/tiers.ts';
-import { introCoupon, introEligible } from '../_shared/intro.ts';
+import { introCoupon, introEligible, isIntroTier } from '../_shared/intro.ts';
 
 // Created per request, after the key check: constructing it with no key set throws and takes the function down.
 const stripeClient = () => new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', { httpClient: Stripe.createFetchHttpClient() });
@@ -42,15 +42,16 @@ Deno.serve(guard(async (req) => {
   const db = admin();
   const { data: profile } = await db.from('profiles').select('stripe_customer_id, trial_started_at, intro_offer_at').eq('user_id', user.id).maybeSingle();
   let customer = profile?.stripe_customer_id as string | null;
-  // The intro offer (2026-10-09): Max's first month at $2.99 through a coupon, for an account finishing its free week
-  // that never paid, once. The client may ask; this decides. Not eligible: a plain checkout, and the client is told.
+  // The intro offer: the first month through a coupon (Max $2.99 since 2026-10-09, Plus $0.99 since 2026-10-27), for an
+  // account finishing its free week that never paid, once per account. The client may ask; this decides. Not
+  // eligible: a plain checkout, and the client is told.
   let intro = false;
   if (body.offer === 'intro') {
     const { data: sub } = await db.from('subscriptions').select('user_id').eq('user_id', user.id).maybeSingle();
     const ok = introEligible({ tier, interval, trialStartedAt: (profile?.trial_started_at as string | null) ?? null, introOfferAt: (profile?.intro_offer_at as string | null) ?? null, everPaid: !!sub });
-    if (!ok.ok) return json(409, { error: `The first-month offer is not available on this account (${ok.why}). The regular price applies; choose the plan again.`, offer: 'unavailable' });
+    if (!ok.ok || !isIntroTier(tier)) return json(409, { error: `The first-month offer is not available on this account (${ok.ok ? 'plan' : ok.why}). The regular price applies; choose the plan again.`, offer: 'unavailable' });
     intro = true;
-    const c = introCoupon();
+    const c = introCoupon(tier);
     const have = await stripe.coupons.retrieve(c.id).catch(() => null);
     if (!have || (have as { deleted?: boolean }).deleted) await stripe.coupons.create(c);
   }
@@ -67,11 +68,11 @@ Deno.serve(guard(async (req) => {
     customer,
     line_items: [{ price, quantity: 1 }],
     // Stripe takes a discount or a promotion-code box, not both.
-    ...(intro ? { discounts: [{ coupon: introCoupon().id }] } : { allow_promotion_codes: true }),
+    ...(intro && isIntroTier(tier) ? { discounts: [{ coupon: introCoupon(tier).id }] } : { allow_promotion_codes: true }),
     success_url: `${returnTo}#${next}${next.includes('?') ? '&' : '?'}checkout=success`,
     cancel_url: `${returnTo}#/you?s=plan&checkout=cancel`,
-    metadata: { user_id: user.id, ...(intro ? { offer: 'intro' } : {}) },
-    subscription_data: { metadata: { user_id: user.id, ...(intro ? { offer: 'intro' } : {}) } },
+    metadata: { user_id: user.id, ...(intro ? { offer: 'intro', offer_tier: tier } : {}) },
+    subscription_data: { metadata: { user_id: user.id, ...(intro ? { offer: 'intro', offer_tier: tier } : {}) } },
   });
   return json(200, { url: session.url });
 }, 'stripe-checkout'));

@@ -1,5 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../auth/client';
+import { warmCheckout } from '../../billing/client';
 import { useAccount } from '../../auth/AccountContext';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { trialState } from '../../config/flags';
@@ -14,7 +15,8 @@ import { storyLines, type StoryLine } from './story';
 /**
  * The end of the free trial, as one calm screen (George, 2026-10-09; reworked 2026-10-25, Loop 268). A short recap of
  * real things from the student's week, then three equal choices side by side: Free (what they keep), Plus (what it
- * adds) and Max ($2.99 the first month, then $7.99 a month, said together). Stay on Free is a button like the other two,
+ * adds) and Max. An account that may take the first-month offer sees it on both paid plans, the regular price said in
+ * the same line: Plus $0.99 then $4.99 (2026-10-27), Max $2.99 then $7.99. Stay on Free is a button like the other two,
  * never a small link: it is a real choice, and Free keeps syncing Halo. No countdown, no red. Seen once.
  */
 export interface TrialEndPreview {
@@ -40,6 +42,11 @@ const WOULD_DO: StoryLine[] = [
  * price card. Every button is the same size and weight: the student chooses, nothing is pushed.
  */
 function TrialEndChoices({ intro, onFree, freeLabel, plusCovered }: { intro: boolean; onFree: () => void; freeLabel: string; plusCovered?: string }) {
+  // The checkout function and the session are woken as the choices appear, so a press is quick (2026-10-09; lost in
+  // the Loop 268 rework, back 2026-10-27).
+  useEffect(() => {
+    warmCheckout();
+  }, []);
   return (
     <div className="plan-choices trial-end-choices">
       <div className="plan-choice" data-tier="free">
@@ -58,7 +65,14 @@ function TrialEndChoices({ intro, onFree, freeLabel, plusCovered }: { intro: boo
       </div>
       <div className="plan-choice" data-tier="plus">
         <span className="plan-choice-name">
-          <b className="plan-price">Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
+          {intro ? (
+            <b className="plan-price">
+              Plus · ${INTRO_FIRST_MONTH.plus.toFixed(2)} the first month
+              <span className="plan-then">then ${PRICES.plus.month.toFixed(2)} a month</span>
+            </b>
+          ) : (
+            <b className="plan-price">Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
+          )}
           <span className="plan-choice-lede">Adds</span>
           <ul className="plan-lines">
             {PLAN_LINES.plus.map((l) => (
@@ -66,13 +80,13 @@ function TrialEndChoices({ intro, onFree, freeLabel, plusCovered }: { intro: boo
             ))}
           </ul>
         </span>
-        {plusCovered ? <p className="gcbc-covered">{plusCovered}</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} />}
+        {plusCovered ? <p className="gcbc-covered">{plusCovered}</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} offer={intro ? 'intro' : undefined} />}
       </div>
       <div className="plan-choice" data-tier="max">
         <span className="plan-choice-name">
           {intro ? (
             <b className="plan-price">
-              Max · ${INTRO_FIRST_MONTH.toFixed(2)} the first month
+              Max · ${INTRO_FIRST_MONTH.max.toFixed(2)} the first month
               <span className="plan-then">then ${PRICES.max.month.toFixed(2)} a month</span>
             </b>
           ) : (

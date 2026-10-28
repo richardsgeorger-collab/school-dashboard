@@ -94,7 +94,7 @@ export function Cup({ size }: { size: 'small' | 'large' }) {
  * the student has (or had) this week. The GCBC line (George, 2026-10-01): Plus costs about a small drink at the Grand
  * Canyon Beverage Company, Max about a large, except these help.
  */
-export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now', plusCovered, intro = false, cups = false }: { onFree?: () => void; freeLabel?: string; maxTag?: string; /** Plus is already paid for (a friend's invite): shown in place of the Plus button. */ plusCovered?: string; /** The intro offer: Max $2.99 for the first month, then $7.99 (2026-10-09). */ intro?: boolean; /** The animated GCBC cups as each plan's visual. */ cups?: boolean }) {
+export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now', plusCovered, intro = false, cups = false }: { onFree?: () => void; freeLabel?: string; maxTag?: string; /** Plus is already paid for (a friend's invite): shown in place of the Plus button. */ plusCovered?: string; /** The intro offer on the Max card: Max $2.99 for the first month, then $7.99 (2026-10-09). */ intro?: boolean; /** The animated GCBC cups as each plan's visual. */ cups?: boolean }) {
   // The checkout function and the session are woken as the choice appears, so the press itself is quick (2026-10-09).
   useEffect(() => {
     warmCheckout();
@@ -109,7 +109,7 @@ export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What
             <span className="intro-hero">
               <span className="intro-badge">First month</span>
               <span className="intro-price-row">
-                <b className="intro-price">${INTRO_FIRST_MONTH.toFixed(2)}</b>
+                <b className="intro-price">${INTRO_FIRST_MONTH.max.toFixed(2)}</b>
                 <s className="intro-was" aria-label={`instead of $${PRICES.max.month.toFixed(2)}`}>${PRICES.max.month.toFixed(2)}</s>
                 {cups && <span className="gcbc-line">Less than a small at GCBC.</span>}
               </span>
