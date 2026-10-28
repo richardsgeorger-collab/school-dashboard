@@ -246,17 +246,59 @@ void chrome.storage.local.get(['haloUiOn', 'haloSnap', 'badgeShown']).then(({ ha
   const fromApp = haloSnap && haloSnap.v === 1 ? { on: haloSnap.show !== false, at: haloSnap.showAt || '' } : { on: true, at: '' };
   const on = haloUiOn && haloUiOn.at > fromApp.at ? haloUiOn.on !== false : fromApp.on;
   $('onHalo').checked = on;
+  void feats();
   // Opened while the toolbar showed today's count: counted for Admin.
   if (badgeShown) void chrome.runtime.sendMessage({ kind: 'halo-ui', event: 'badge-click' }).catch(() => undefined);
 });
-$('onHalo').addEventListener('change', () => void chrome.storage.local.set({ haloUiOn: { on: $('onHalo').checked, at: new Date().toISOString() } }));
+$('onHalo').addEventListener('change', () => {
+  void chrome.storage.local.set({ haloUiOn: { on: $('onHalo').checked, at: new Date().toISOString() } });
+  void feats();
+});
+
+// One switch per Halo+-on-Halo feature (0.12.0), under "Show Halo+ on Halo pages": Plus and Max (the trial is Max),
+// while that is on. Whichever list changed last wins, here or in Halo+. Free sees no switches for what it does not have.
+async function feats() {
+  const { tier, haloFeat, haloSnap } = await chrome.storage.local.get(['tier', 'haloFeat', 'haloSnap']);
+  const box = $('feats');
+  const list = globalThis.HaloPlusOnFeatures || [];
+  box.hidden = !$('onHalo').checked || !(tier === 'plus' || tier === 'max') || !list.length;
+  if (box.hidden) return;
+  const snap = haloSnap && haloSnap.hf ? haloSnap.hf : null;
+  const off = haloFeat && (!snap || !snap.at || haloFeat.at > snap.at) ? haloFeat.off || [] : (snap && snap.off) || [];
+  const wrap = $('featList');
+  if (wrap.childElementCount !== list.length) {
+    wrap.textContent = '';
+    for (const [id, label] of list) {
+      const row = document.createElement('label');
+      row.className = 'feat';
+      const span = document.createElement('span');
+      // Search's shortcut is ⌘K on a Mac.
+      span.textContent = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? label.replace('(Ctrl+K)', '(⌘K)') : label;
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.setAttribute('role', 'switch');
+      input.dataset.id = id;
+      input.addEventListener('change', () => {
+        const now = [...wrap.querySelectorAll('input')].filter((i) => !i.checked).map((i) => i.dataset.id);
+        void chrome.storage.local.set({ haloFeat: { off: now, at: new Date().toISOString() } });
+      });
+      row.append(span, input);
+      wrap.append(row);
+    }
+  }
+  for (const input of wrap.querySelectorAll('input')) input.checked = !off.includes(input.dataset.id);
+}
+void feats();
 
 // A setup still running keeps its mark on the icon.
 // Today's due count stays (0.8.0): only the "!" of a failed Sync now goes.
 void chrome.storage.local.get(['setup', 'badgeShown']).then(({ setup, badgeShown }) => {
   if ((!setup || setup.phase !== 'syncing') && !badgeShown) void chrome.action.setBadgeText({ text: '' });
 });
-chrome.storage.onChanged.addListener(() => void render());
+chrome.storage.onChanged.addListener(() => {
+  void render();
+  void feats();
+});
 // Re-checked while open, so a sync that goes quiet turns into "stopped partway" without reopening the popup.
 setInterval(() => void render(), 10_000);
 void render();

@@ -420,6 +420,28 @@
     return parts;
   }
 
+  /**
+   * The class's next thing due (0.12.0, feature 6): the soonest graded item still ahead that is not done, never
+   * participation, never something with no submission in Halo. Null when there is none.
+   */
+  function nextFor(view, cls, now) {
+    const t = nowMs(now);
+    const mine = view.items.filter((i) => i.c === cls.key && !i.done && graded(i) && !quietPast(i, t) && i.ns !== 1 && ms(i.due) >= t);
+    mine.sort((a, b) => ms(a.due) - ms(b.due));
+    return mine[0] || null;
+  }
+  /**
+   * A short name for "Next: …" on the class line: Halo's own title, or Halo+'s shorter label, without what follows a
+   * colon when that is what makes it long ("Topic 3 Homework: Cell Division" → "Topic 3 Homework"). Null when even
+   * that is longer than 30 characters: the line never cuts a title.
+   */
+  function nextName(i) {
+    const names = [title(i), i.t || ''].filter(Boolean).map((x) => String(x).trim());
+    const short = names.map((x) => (x.length > 30 && x.includes(':') ? x.slice(0, x.indexOf(':')).trim() : x)).filter((x) => x.length >= 3 && x.length <= 30);
+    short.sort((a, b) => a.length - b.length);
+    return short[0] || null;
+  }
+
   /** Halo's class code for a class ("CHM-113-WF700A"). */
   const codeOfClass = (c) => (c.cc || (c.slug || '').replace(/-\d{8}$/, '')).toUpperCase();
   /**
@@ -544,6 +566,6 @@
     return `${origin}/#/now?${q({ from: 'halo', via })}`;
   }
 
-  const api = { withGrades, gradeText, doneFrom, haloHref, rowTime, week, quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
+  const api = { nextFor, nextName, withGrades, gradeText, doneFrom, haloHref, rowTime, week, quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
   root.HaloPlusModel = api;
 })(globalThis);

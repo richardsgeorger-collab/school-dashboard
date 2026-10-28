@@ -4,7 +4,11 @@
 const EVENTS = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click',
   // "This week" on Halo's Student Home (0.10.0): shown, opened, collapsed, a row opened on Halo, "Open in Halo+", a check-off and
   // its undo, "Show all".
-  'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed'];
+  'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed',
+  // Halo+ on Halo's pages (0.12.0): search opened and used, "Next" clicked, a draft offered and restored, the word
+  // minimum shown, a rubric opened, all classes on the calendar, a view choice picked again, a submission confirmed, a
+  // wrong file type flagged, last feedback opened, participation shown, a file opened on the page, page code fetched ahead.
+  'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done'];
 
 export async function recordHaloUi(db: any, b: Record<string, unknown>): Promise<{ ok: boolean; why?: string }> {
   const event = typeof b.event === 'string' ? b.event : '';

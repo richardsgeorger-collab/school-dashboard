@@ -26,6 +26,17 @@ Test: `node scripts/e2e-autosync-alarm.mjs` (the popup is never opened; the sche
 
 It never sees your password. It runs on Halo only while you are already logged in there; if you are not, it says so.
 
+On Halo's own pages (0.12.0, 2026-10-27): `onhalo/` adds search, discussion drafts, word minimums, the rubric, how
+long is left, topic progress, an all-classes calendar, remembered calendar views, a submission check, last feedback,
+participation, PDFs on the page, clickable links, card counts and fetch-ahead, for Plus and Max (and the trial);
+`halo-ui.js` adds Next on each class card. Each has its own switch in the popup and in Halo+'s You → Display.
+`core.js` decides who sees what (plan, the "Show Halo+ on Halo pages" switch, the feature's switch), watches the page
+with one observer, and asks Halo read-only questions one at a time; `logic.js` holds the rules (tested in
+`src/halo/onHaloLogic.test.ts`); everything added carries the ⊕ mark ("Added by Halo+"). What each feature reads on
+Halo, and why it shows nothing when it is not sure, is in `docs/halo-pages.md`. Tests: `scripts/e2e-onhalo-*.mjs`, one
+per feature (stand-ins of Halo's pages with Halo's real stylesheets; `BROWSER=edge`, `BH_DIR=` for Better Halo); cost:
+`scripts/measure-onhalo.mjs`.
+
 ## Build
 
     npm run build:extension

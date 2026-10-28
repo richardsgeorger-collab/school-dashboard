@@ -537,6 +537,8 @@ export interface Settings {
   celebrations?: boolean;
   /** Halo+ on Halo pages through the extension (2026-10-22): the daily card, the pill, class lines, the assignment box. On unless turned off. */
   haloOnHalo?: boolean;
+  /** The Halo+-on-Halo features turned off one by one (extension 0.12.0; ids in halo/onHaloFeatures.ts). */
+  haloFeaturesOff?: string[];
   joy?: JoyState;
   timezone: string;
   weekdayMinutes: number;

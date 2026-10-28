@@ -14,6 +14,8 @@
 import { DASH_ORIGIN, DASH_URL, DROP_URL, PERIOD_MINUTES, REPORT_URL } from './config.js';
 // Halo+ on Halo (0.8.0): the same rules the Halo pages use, for the toolbar badge.
 import './halo-model.js';
+// Halo+ on Halo's pages (0.12.0): the index of the student's classes the Halo pages search and link from.
+import './onhalo/logic.js';
 
 // Scheduled syncs run on Plus and Max; Sync now runs on any plan (the app and the server apply the same rule).
 const AUTO = ['plus', 'max'];
@@ -689,7 +691,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 });
 
 /** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
-const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed'];
+const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed', 'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done'];
 async function countHaloUi(event) {
   if (!HALO_UI.includes(event)) return;
   try {
@@ -1104,6 +1106,12 @@ async function finish(payload, auto, quiet = false, first = false) {
   try {
     await set({ haloLive: globalThis.HaloPlusModel.compactLive(payload) });
     void updateBadge();
+  } catch {
+    /* never fails a sync */
+  }
+  // The index on this computer for Halo+ on Halo's pages (0.12.0): titles, Halo's addresses, dates, class colours.
+  try {
+    await set({ haloIndex: globalThis.HaloPlusOnLogic.buildIndex(payload, readAt) });
   } catch {
     /* never fails a sync */
   }

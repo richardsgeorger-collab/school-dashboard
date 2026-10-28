@@ -25,6 +25,16 @@ const FEATURES: [string, string][] = [
   ['extension_panel', 'This week on Halo'],
   ['pill_clicks', 'Pill clicks'],
   ['gpa', 'GPA'],
+  ['on_halo_search', 'On Halo: search'],
+  ['on_halo_next', 'On Halo: Next on class cards'],
+  ['on_halo_drafts', 'On Halo: drafts offered or restored'],
+  ['on_halo_words', 'On Halo: word minimum'],
+  ['on_halo_rubric', 'On Halo: rubric opened'],
+  ['on_halo_calendar', 'On Halo: all classes calendar'],
+  ['on_halo_submit', 'On Halo: submission check'],
+  ['on_halo_feedback', 'On Halo: last feedback'],
+  ['on_halo_participation', 'On Halo: participation'],
+  ['on_halo_files', 'On Halo: files on the page'],
 ];
 const GROUPS: [string, string][] = [
   ['trial', 'Trial'],

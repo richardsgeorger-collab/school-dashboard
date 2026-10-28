@@ -69,7 +69,7 @@ const Q_RUBRIC =
 const Q_RESOURCES =
   'query courseClassResources($slugId: String!) { courseClassResources: getCourseClassBySlugId(slugId: $slugId) { id resources { id title description instructorAdded instructorOnly sequence resources { id resource { id kind name type } } } units { id title resources { id title description instructorAdded instructorOnly sequence resources { id resource { id kind name type } } } } } }';
 const Q_DQ =
-  'query AllDQForCourseClass($courseClassId: String!, $sortBy: String, $pgNum: Int, $pgSize: Int) { allDQForCourseClass: getAllDQForCourseClass(courseClassId: $courseClassId, sortBy: $sortBy, pgNum: $pgNum, pgSize: $pgSize) { forumId title description startDate dueDate totalPosts active } }';
+  'query AllDQForCourseClass($courseClassId: String!, $sortBy: String, $pgNum: Int, $pgSize: Int) { allDQForCourseClass: getAllDQForCourseClass(courseClassId: $courseClassId, sortBy: $sortBy, pgNum: $pgNum, pgSize: $pgSize) { forumId contextId title description startDate dueDate totalPosts active } }';
 const Q_QUIZ =
   'query GetQuizResult($userQuizId: String!) { userQuiz: userQuiz(id: $userQuizId) { id submitTime quizStatus userQuestions { id sortOrder question { id questionType content } userQuestionOptions { id isSelected response option { id content } } } } userQuizResults: userQuizResult(id: $userQuizId) { finalScore questionsAnswered totalCorrect totalIncorrect } }';
 const Q_ALERTS =
@@ -262,7 +262,7 @@ for(var ui=0;ui<ru.length;ui++){if(ru[ui]){pushRes(ru[ui].resources,ru[ui].title
 res=rout;}catch(e){res=undefined;prob(code,'class resources',e);}
 try{var DD=await PD;if(!DD||DD.allDQForCourseClass===undefined){throw noField('AllDQForCourseClass','allDQForCourseClass');}var dl=DD.allDQForCourseClass||[];var dout=[];
 for(var di=0;di<dl.length;di++){var DQ=dl[di];if(!DQ)continue;
-dout.push({forumId:DQ.forumId,title:DQ.title||'',description:DQ.description||null,startDate:DQ.startDate||null,dueDate:DQ.dueDate||null,totalPosts:DQ.totalPosts==null?null:DQ.totalPosts});}
+dout.push({forumId:DQ.forumId,contextId:DQ.contextId||null,title:DQ.title||'',description:DQ.description||null,startDate:DQ.startDate||null,dueDate:DQ.dueDate||null,totalPosts:DQ.totalPosts==null?null:DQ.totalPosts});}
 dqs=dout;}catch(e){dqs=undefined;prob(code,'discussions',e);}
 var af=null;
 try{var FN=await PN;

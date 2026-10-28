@@ -1,0 +1,107 @@
+/* Halo+ on Halo's pages (0.12.0): Halo's own look as variables, for everything Halo+ adds. Read from Halo's stylesheets
+   (build 2026-10-27): Open Sans, 1rem = 14px, GCU purple, Halo's link blue and grays. Halo has no dark theme of its own;
+   Better Halo's themes (light or dark) set their own variables, and Halo+ follows them, never Halo's --lms-primaryColor
+   (Better Halo turns that into the page background). Only --hp-* names are defined here. */
+:root {
+  --hp-font: "Open Sans", sans-serif;
+  --hp-purple: var(--lms-primaryColor, #522398);
+  --hp-link: var(--lms-hyperlinkColor, #1a65b0);
+  --hp-text: var(--lms-textPrimaryColor, #212121);
+  --hp-text-2: var(--lms-textSecondaryColor, #616161);
+  --hp-text-3: var(--lms-gray70, #707070);
+  --hp-placeholder: var(--lms-placeholder, #767676);
+  --hp-page: #fafafa;
+  --hp-surface: #fff;
+  --hp-surface-2: var(--lms-grayF5, #f5f5f5);
+  --hp-tint: var(--lms-grayF2, #f2f2f2);
+  --hp-border: var(--lms-grayE0, #e0e0e0);
+  --hp-input-border: rgba(0, 0, 0, 0.23);
+  --hp-input-border-hover: rgba(0, 0, 0, 0.87);
+  --hp-hover: rgba(0, 0, 0, 0.04);
+  --hp-select: rgba(26, 101, 176, 0.08);
+  --hp-badge-bg: var(--lms-notificationBackgroundColor, #ffc200);
+  --hp-badge-fg: #000;
+  --hp-on-accent: #fff;
+  --hp-success: #2e7d32;
+  --hp-warning: #ef6c00;
+  --hp-warning-bg: #fff4e5;
+  --hp-focus: var(--lms-hyperlinkColor, #1a65b0);
+  --hp-radius: 4px;
+  --hp-shadow-card: 0 3px 6px 0 rgba(0, 0, 0, 0.15);
+  --hp-shadow-menu: 0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14), 0 3px 14px 2px rgba(0, 0, 0, 0.12);
+  --hp-shadow-dialog: 0 11px 15px -7px rgba(0, 0, 0, 0.2), 0 24px 38px 3px rgba(0, 0, 0, 0.14), 0 9px 46px 8px rgba(0, 0, 0, 0.12);
+  --hp-backdrop: rgba(0, 0, 0, 0.5);
+}
+/* Better Halo's themes, light or dark: its own variables. */
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) {
+  --hp-font: var(--better-halo-font-family, "Open Sans", sans-serif);
+  --hp-purple: var(--better-halo-primary);
+  --hp-link: var(--better-halo-primary);
+  --hp-text: var(--better-halo-foreground);
+  --hp-text-2: var(--better-halo-muted-foreground);
+  --hp-text-3: var(--better-halo-muted-foreground);
+  --hp-placeholder: var(--better-halo-muted-foreground);
+  --hp-page: var(--better-halo-background);
+  --hp-surface: var(--better-halo-card, var(--better-halo-background));
+  --hp-surface-2: var(--better-halo-muted);
+  --hp-tint: var(--better-halo-muted);
+  --hp-border: var(--better-halo-border);
+  --hp-input-border: var(--better-halo-border);
+  --hp-input-border-hover: var(--better-halo-ring);
+  --hp-hover: color-mix(in srgb, var(--better-halo-foreground) 6%, transparent);
+  --hp-select: color-mix(in srgb, var(--better-halo-primary) 14%, transparent);
+  --hp-badge-bg: var(--better-halo-primary);
+  --hp-badge-fg: var(--better-halo-primary-foreground);
+  --hp-on-accent: var(--better-halo-primary-foreground);
+  --hp-success: var(--better-halo-success, #2e7d32);
+  --hp-warning: var(--better-halo-warning, #ef6c00);
+  --hp-warning-bg: var(--better-halo-alert-bg-warning, #fff4e5);
+  --hp-focus: var(--better-halo-ring);
+  --hp-radius: var(--better-halo-border-radius-tiny, 4px);
+  --hp-shadow-card: var(--better-halo-shadow-xs);
+  --hp-shadow-menu: var(--better-halo-shadow-md, var(--better-halo-shadow-xs));
+}
+/* Halo+'s light-DOM additions keep their own text colour where Better Halo forces every text to its foreground. */
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus] .hp-keep,
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus] .hp-keep * {
+  color: inherit !important;
+}
+/* The Halo+ mark (⊕) beside Halo's own text: inline, the size and gray of that text. Halo's stylesheet makes every svg a
+   block (its Tailwind reset), so the mark holds its own. */
+[data-haloplus] .hp-mark {
+  display: inline-flex;
+  vertical-align: -0.1em;
+  width: 0.85em;
+  height: 0.85em;
+  opacity: 0.7;
+  flex: none;
+  color: inherit;
+  cursor: default;
+}
+[data-haloplus] .hp-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* A fold Halo+ adds (Rubric, Last feedback): Halo's own chevron, label and spacing. */
+[data-haloplus] .hp-fold {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 4px;
+}
+[data-haloplus] .hp-fold:focus-visible {
+  outline: 1px solid var(--hp-focus);
+}
+[data-haloplus] .hp-fold svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  transition: transform 0.2s;
+}
+[data-haloplus] .hp-fold[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}

@@ -77,6 +77,8 @@ export interface HaloSnap {
   plan: 'sync' | 'free';
   show: boolean;
   showAt: string | null;
+  /** The on-Halo features turned off one by one in Halo+ (0.12.0), and when that list last changed. */
+  hf?: { off: string[]; at: string | null };
   tz: string;
   /** Now's do-now item. */
   top: string | null;
@@ -153,6 +155,7 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
     plan: input.canSync ? 'sync' : 'free',
     show: input.settings.haloOnHalo !== false,
     showAt: input.settings.stamps?.haloOnHalo ?? null,
+    hf: { off: input.settings.haloFeaturesOff ?? [], at: input.settings.stamps?.haloFeaturesOff ?? null },
     tz,
     top,
     hidden,

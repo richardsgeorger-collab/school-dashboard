@@ -7,6 +7,8 @@ const ctx: { globalThis?: unknown; HaloPlusModel?: Record<string, (...a: unknown
 ctx.globalThis = ctx;
 runInNewContext(readFileSync('extension/halo-model.js', 'utf8'), ctx);
 const M = ctx.HaloPlusModel as unknown as {
+  nextFor: (v: View, c: unknown, now: number) => { id: string; t: string; ht?: string } | null;
+  nextName: (i: unknown) => string | null;
   merge: (s: unknown, l: unknown, server?: unknown) => View;
   withGrades: (v: View, g: unknown) => View;
   gradeText: (c: unknown) => string | null;
@@ -339,3 +341,21 @@ describe('the class grade on the class line (0.11.1)', () => {
   });
 });
 
+describe('next item on the class line (0.12.0, feature 6)', () => {
+  const NOW = Date.parse('2026-10-27T15:00:00-07:00');
+  const snap = (items: unknown[]) => ({ v: 1, at: '2026-10-27T20:00:00Z', syncedAt: '2026-10-27T20:00:00Z', plan: 'sync', show: true, showAt: null, tz: 'America/Phoenix', top: null, hidden: 0, pw: null, classes: [{ id: 'c1', code: 'COM-100', cc: 'COM-100-T200P', slug: 'COM-100-T200P-20260908', name: 'Com', g: null }], items });
+  const item = (o: Record<string, unknown>) => ({ id: 'x', h: 'hx', c: 'c1', t: 'Thing', due: '2026-10-28T23:59:00-07:00', pts: 10, ty: 'homework', done: 0, x: 0, ...o });
+  it('the soonest graded thing still ahead, not done', () => {
+    const v = M.merge(snap([item({ id: 'a', t: 'Later', due: '2026-10-30T23:59:00-07:00' }), item({ id: 'b', t: 'Sooner', due: '2026-10-28T23:59:00-07:00' }), item({ id: 'd', t: 'Done', due: '2026-10-27T23:59:00-07:00', done: 1 })]), null);
+    expect(M.nextFor(v, v.classes[0], NOW)?.id).toBe('b');
+  });
+  it('never participation, never no-submission work, never past due, never ungraded', () => {
+    const v = M.merge(snap([item({ id: 'p', t: 'Participation W7', ty: 'participation', pa: 1 }), item({ id: 'n', ns: 1 }), item({ id: 'o', due: '2026-10-27T10:00:00-07:00' }), item({ id: 'z', pts: 0 })]), null);
+    expect(M.nextFor(v, v.classes[0], NOW)).toBeNull();
+  });
+  it('a short name, never a cut one', () => {
+    expect(M.nextName({ ht: 'Topic 7 DQ 2', t: 'Com DQ 2' })).toBe('Com DQ 2');
+    expect(M.nextName({ ht: 'Topic 3 Homework: Cell Division and Mitosis', t: '' })).toBe('Topic 3 Homework');
+    expect(M.nextName({ ht: 'A very long assignment title without any colon at all in it', t: '' })).toBeNull();
+  });
+});

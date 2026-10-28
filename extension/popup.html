@@ -48,11 +48,16 @@
       <span>Show Halo+ on Halo pages</span>
       <input id="onHalo" type="checkbox" role="switch" />
     </label>
+    <details id="feats" class="feats" hidden>
+      <summary>Choose what shows on Halo</summary>
+      <div id="featList" class="feat-list"></div>
+    </details>
 
     <footer class="foot">
       <a id="open" class="open" target="_blank">Open Halo+</a>
     </footer>
     <script src="halo-model.js"></script>
+    <script src="onhalo/features.js"></script>
     <script type="module" src="popup.js"></script>
   </body>
 </html>

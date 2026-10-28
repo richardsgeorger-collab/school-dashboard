@@ -1,6 +1,50 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.11.1 (2026-10-26): paste exactly this
+## The listing now: 0.12.0 (2026-10-27): paste exactly this
+
+0.12.0 (Loop 271): Halo+ on Halo's own pages, for Plus and Max (the trial included), each with its own switch in the
+popup under "Show Halo+ on Halo pages": search across classes (Student Home and Ctrl/⌘+K), "Next" on each class card,
+drafts kept on the computer, the word minimum in Halo's editor, the rubric under the instructions, how long you have
+beside due dates, all classes on Halo's calendar, topic progress, Halo's own submission confirmation and a wrong
+file type warning, participation this week, PDFs on the page, last feedback, counts on Better Halo's card buttons where
+its own are missing, clickable links in announcements, the calendar's view choice remembered, and the next page's code
+fetched ahead. Free is unchanged. **No new permission** (the same five, the same hosts). Drafts stay in the browser's own
+extension storage and are never sent anywhere. The description gains one bullet; the Privacy tab's single-purpose
+sentence gains "and shows that planner's help on Halo's own pages".
+
+| Where in the dashboard | What |
+|---|---|
+| **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.12.0.zip` |
+| **Store listing → Description** | the Description block below, all of it |
+| **Store listing → Screenshots** | unchanged (optional: add `docs/screens/on-halo/search/plain-2-home-results.png` cropped to 1280×800) |
+| **Privacy** | no new permission; nothing new leaves the computer. One line to update: **Single purpose** now reads "Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner, and shows that planner's help on Halo's own pages." (Halo+ has shown on Halo's pages since 0.8.0; this says so.) |
+| Then | **Submit for review** |
+
+**Description** (Store listing → Description):
+
+```
+Halo buries your due dates in five places: the assignment page, the gradebook, the syllabus, a discussion thread, and the announcements your professor posts on a Tuesday night that move a quiz or add "bring goggles to lab." Miss one and it costs you points.
+
+Halo+ reads all of it and gives every GCU class one plan: what's due next, what changed, and what to start today.
+
+What Halo+ does that a plain calendar can't:
+• Reads your Halo announcements for you. A due date that moved, a new requirement, "closed-toe shoes for Lab 4": caught and put on the right assignment.
+• "This week" on Halo's home page: everything due across your classes, in Halo's own look.
+• Your grade on every class card on Halo's home page, with a refresh that reads it straight from Halo.
+• On Halo's own pages, with Plus or Max: search every class with Ctrl+K, the rubric right under the instructions, how long you have beside each due date, all your classes on Halo's calendar, PDFs that open on the page, a copy of your discussion drafts on your computer, your words against the minimum, and Halo's own proof that your file went through.
+• Tells you what's due next, not just what's due. One card says what to start now, with how long it takes and what it's worth.
+• Your real Halo grades for every class, and your semester GPA worked out from them.
+• Works on your phone. Your laptop syncs Halo; open Halo+ on your phone and the whole week is there.
+• Syncs whenever you're on Halo. Plus and Max also sync on their own every 3 hours while Chrome is open.
+
+After Add to Chrome: make a free Halo+ account (one step), then open Halo. Your classes, due dates and grades come in on their own, and This week shows on Halo's home page. About two minutes.
+
+Built for Grand Canyon University students who use Halo: assignments, due dates, a calendar and a planner in one place. The extension reads only your own Halo, while you're logged in there. It never asks for, sees or stores your GCU password, and it sends your classes only to your own Halo+ account. The code is public: https://github.com/richardsgeorger-collab/school-dashboard. Free syncs Halo whenever you're on Halo and shows your due dates, grades and GPA; Plus reads every announcement for you and syncs on its own every 3 hours; Max adds the study tools.
+
+Not affiliated with GCU.
+```
+
+## The listing before: 0.11.1 (2026-10-26)
 
 0.11.1 (Loop 269): each class's grade on its Halo Student Home card ("Halo+ · B 86.0% ↻ · 1 this week"), Halo's own
 letter and percent, with a refresh that reads that one class's grade straight from Halo (no sync, no Halo tab), saved
@@ -246,7 +290,7 @@ platform.
 **Language:** English (United States)
 
 **Single purpose (for the review form):**
-Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner.
+Syncs the signed-in student's own GCU Halo classes, assignments, grades and announcements to their Halo+ planner, and shows that planner's help on Halo's own pages.
 
 ## 0.7.1 (2026-10-12): the popup never says "Syncing…" forever (built as 0.6.6; the store already had 0.7)
 

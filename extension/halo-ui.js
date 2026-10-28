@@ -45,7 +45,7 @@
   // ---- state ---------------------------------------------------------------------------------------------------------
   let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey', 'haloFeat', 'haloIndex'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -338,7 +338,10 @@
 .l b{font-weight:700}
 .l [data-tone=red]{color:#d93a3f}.l [data-tone=gold]{color:#a87400}
 @media (prefers-color-scheme: dark){.l [data-tone=red]{color:#ff7b7f}.l [data-tone=gold]{color:#f2b84b}}
-.l:hover{text-decoration:underline}`;
+.l:hover{text-decoration:underline}
+.l .nx{color:var(--hp-link,#1a65b0);text-decoration:none;font-weight:600}
+.l .nx:hover,.l .nx:focus-visible{text-decoration:underline}
+.l:hover .nx{text-decoration:none}.l .nx:hover{text-decoration:underline}`;
   const CODE_RE = /[A-Z]{2,5}-\d{2,4}[A-Z]?-[A-Z0-9]{2,}/i;
   function cardFor(el) {
     // Halo's ClassDetails card, else a list item that holds the card (Halo's class list), else nothing.
@@ -454,6 +457,17 @@
     const sr = h.attachShadow({ mode: 'open' });
     sr.innerHTML = `<style>${LINE_CSS}</style><div></div>`;
     const go = (e) => {
+      // "Next: …" (0.12.0): that item on Halo, like any Halo link (a new tab with Ctrl or ⌘).
+      const nx = e.composedPath && e.composedPath().find((n) => n && n.classList && n.classList.contains('nx'));
+      if (nx && (e.type === 'click' || e.key === 'Enter')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const On = globalThis.HaloPlusOn;
+        if (On) On.count('next-click', false);
+        if (e.metaKey || e.ctrlKey) window.open(new URL(nx.getAttribute('href'), location.origin).href, '_blank', 'noopener');
+        else location.assign(new URL(nx.getAttribute('href'), location.origin).href);
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       // The refresh beside the grade (0.11.1): that class's grade from Halo, now; not the class in Halo+.
@@ -471,8 +485,10 @@
   /** The grade, with its refresh (0.11.1): a spinner while Halo answers, and "as of 3:12 PM" when it could not. */
   const gradeHtml = (p, g) =>
     `<span data-tone="grade">${esc(p.text)}</span><button class="hp-r" type="button" aria-label="Refresh your grade from Halo" title="Refresh your grade from Halo"${g.spin ? ' data-spin' : ''}>${REFRESH_SVG}</button>${g.asof ? ` <span class="asof">as of ${esc(g.asof)}</span>` : ''}`;
+  const partHtml = (p, g) =>
+    p.tone === 'grade' ? gradeHtml(p, g) : p.tone === 'next' ? `<a class="nx" href="${esc(p.href)}" title="Open it on Halo">${esc(p.text)}</a>` : `<span data-tone="${p.tone}">${esc(p.text)}</span>`;
   const lineHtml = (code, parts, wrap, g = {}) =>
-    `<div class="l" role="link" tabindex="0" title="Open ${esc(code)} in Halo+"${wrap ? ' data-wrap' : ''}><b>Halo+</b> · ${parts.map((p) => (p.tone === 'grade' ? gradeHtml(p, g) : `<span data-tone="${p.tone}">${esc(p.text)}</span>`)).join(' · ')}</div>`;
+    `<div class="l" role="link" tabindex="0" title="Open ${esc(code)} in Halo+"${wrap ? ' data-wrap' : ''}><b>Halo+</b> · ${parts.map((p) => partHtml(p, g)).join(' · ')}</div>`;
   /**
    * The line in the room the card has (0.10.3, George: "1 with extra require…"): all of it when it fits, else without
    * its last parts, never cut mid-word with "…"; if even the first part does not fit, it wraps.
@@ -495,6 +511,16 @@
     const card = h.parentElement && (h.closest('[class*="CourseCard_cardContainer"]') || h.parentElement);
     const bhGrade = !!(card && card.querySelector('.better-halo-grade-indicator'));
     const all = M.classLine(view, cls, now).filter((p) => !(bhGrade && p.tone === 'grade'));
+    // Next item in one click (0.12.0, Plus and Max, its own switch): "Next: Topic 7 DQ 2" opens it on Halo, at
+    // Halo's own address for it (the index from the last sync); no address, no link.
+    const On = globalThis.HaloPlusOn;
+    if (On && On.enabled('next')) {
+      const nx = M.nextFor(view, cls, now);
+      const name = nx && M.nextName(nx);
+      const idx = On.st.haloIndex;
+      const row = nx && nx.h && idx && Array.isArray(idx.rows) ? idx.rows.find((r) => r.id === nx.h && r.href) : null;
+      if (name && row) all.splice(all.findIndex((p) => p.tone === 'plain'), 0, { tone: 'next', text: `Next: ${name}`, href: row.href });
+    }
     const g = gradeState[cls.slug] || {};
     const parts = JSON.stringify(all) + (g.spin ? '|spin' : '') + (g.asof ? `|${g.asof}` : '');
     h.dataset.gspin = g.spin ? '1' : '';
@@ -1169,6 +1195,8 @@ ul{list-style:none;margin:0;padding:0}
       void load().then(() => {
         // Only today's memory or the baseline changing (another Halo tab): just the pill.
         if (Object.keys(changes).every((k) => k === 'haloUi' || k === 'haloBase' || k === 'haloLocked')) renderPill();
+        // The on-Halo switches or the index (0.12.0): after the shared part has read them too.
+        else if (Object.keys(changes).every((k) => k === 'haloFeat' || k === 'haloIndex')) soon();
         else render();
       });
     }),

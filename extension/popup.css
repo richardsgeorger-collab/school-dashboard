@@ -348,3 +348,62 @@ body {
     transition: none;
   }
 }
+
+/* One switch per Halo+-on-Halo feature (0.12.0), folded under "Show Halo+ on Halo pages". */
+.feats {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.feats summary {
+  cursor: pointer;
+  color: var(--ink-3);
+  list-style-position: inside;
+}
+.feat-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 2px;
+}
+.feat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+}
+.feat input {
+  appearance: none;
+  position: relative;
+  width: 28px;
+  height: 16px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  flex: none;
+}
+.feat input::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  transition: transform 150ms ease, background 150ms ease;
+}
+.feat input:checked {
+  background: var(--accent);
+  border-color: transparent;
+}
+.feat input:checked::after {
+  transform: translateX(12px);
+  background: #fff;
+}
+.feat input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
