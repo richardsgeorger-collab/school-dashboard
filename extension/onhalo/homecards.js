@@ -26,7 +26,6 @@
     const m = a && /^\/courses\/([^/?#]+)/.exec(a.getAttribute('href') || '');
     return m ? decodeURIComponent(m[1]) : null;
   }
-  const chipOf = (card) => card.querySelector('[class*="CourseCard_headerItem"] [class*="Tag_tag"]');
   const textOf = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
   // The class colour as the week strip reads it (calendar.js cardColor: Halo's own colour on the card), its bold version;
   // when the card no longer carries it (Better Halo rebuilds the cards a few seconds after Halo), the colour the week

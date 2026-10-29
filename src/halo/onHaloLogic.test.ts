@@ -503,4 +503,11 @@ describe('the class card’s NEXT: up to three things, exactly as Halo has them 
   it('nothing at all without Halo’s answer for the class', () => {
     expect(C.cardNext({ rows }, 0, null, now, PHX)).toBeNull();
   });
+  it('only Halo’s own addresses: never another site or a script link, whatever the stored index holds', () => {
+    const bad = ['javascript:alert(1)', 'https://evil.example/x', '//evil.example/x', '/\\evil.example', 'data:text/html,x', ' /a'].map((href, i) => ({ c: 0, kind: 'assignment', id: `bad${i}`, title: `Bad ${i}`, href, cdue: at(0, 20), start: at(-3, 0) }));
+    const good = { c: 0, kind: 'assignment', id: 'good', title: 'Good', href: '/courses/x/assessments/1', cdue: at(0, 21), start: at(-3, 0) };
+    const all = [...bad, good];
+    const n = C.cardNext({ rows: all }, 0, new Map(all.map((r) => [r.id, { dueDate: null, status: 'ACTIVE' }])), now, PHX)!;
+    expect(n.map((x) => x.id)).toEqual(['good']);
+  });
 });

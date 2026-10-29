@@ -542,7 +542,8 @@
     const can = [];
     const cannot = [];
     for (const r of index.rows) {
-      if (r.c !== k || !NEXT_KINDS.includes(r.kind) || !r.id || !r.href) continue;
+      // Only Halo's own addresses ("/courses/…"), never another site or a script link, whatever the stored index holds.
+      if (r.c !== k || !NEXT_KINDS.includes(r.kind) || !r.id || !/^\/(?![/\\])/.test(String(r.href || ''))) continue;
       const h = live.get(r.id);
       if (!h) continue;
       const due = Date.parse(h.dueDate || r.cdue || '');
