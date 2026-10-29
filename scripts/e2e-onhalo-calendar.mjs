@@ -110,7 +110,8 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
   const b = await openBench({ label: `cal-${tag}`, bh: run.bh, bhDark: run.dark, pages: { '^/courses/[^/]+/?$': classPage } });
   Object.assign(b.bench.state.gateway, gradesGateway(b.fx));
   try {
-    await b.seed();
+    // Halo+'s class cards (0.12.5) ask Halo the same question; off here, so the calendar's own questions can be counted.
+    await b.seed({ haloFeat: { off: ['homecards'], at: new Date().toISOString() } });
     const fx = b.fx;
     const cls = fx.payload.classes[0];
     const url = `https://halo.gcu.edu/courses/${cls.slugId}`;
@@ -136,13 +137,13 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     const want = expected(fx, st.grades);
 
     // ======== Student Home: "Calendar · All classes" below the class cards ========
-    await b.store({ haloFeat: { off: ['calendar', 'views'], at: new Date().toISOString() }, haloIndex: index, lastAttemptAt: new Date().toISOString() });
+    await b.store({ haloFeat: { off: ['calendar', 'views', 'homecards'], at: new Date().toISOString() }, haloIndex: index, lastAttemptAt: new Date().toISOString() });
     let p = await b.page('https://halo.gcu.edu/');
     await sleep(2500);
     check((await p.locator('[data-haloplus="home-calendar"]').count()) === 0, `${tag}: Home, switched off: Halo's Student Home alone`);
     await p.close();
 
-    await b.store({ haloFeat: { off: [], at: new Date().toISOString() }, haloViews: null, haloCalFold: null, haloIndex: index });
+    await b.store({ haloFeat: { off: ['homecards'], at: new Date().toISOString() }, haloViews: null, haloCalFold: null, haloIndex: index });
     const g0 = b.bench.calls.gateway.length;
     p = await b.page('https://halo.gcu.edu/');
     await until(async () => (await p.locator('[data-haloplus="home-calendar"] .hp-chip').count()) > 0, 15000, 200);
@@ -353,13 +354,13 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.close();
 
     // ======== A class calendar: This class | All classes ========
-    await b.store({ haloFeat: { off: ['calendar', 'views'], at: new Date().toISOString() }, haloViews: null });
+    await b.store({ haloFeat: { off: ['calendar', 'views', 'homecards'], at: new Date().toISOString() }, haloViews: null });
     p = await b.page(url);
     await sleep(2500);
     check((await p.locator('[data-haloplus^="calendar"]').count()) === 0, `${tag}: class calendar, switched off: Halo's calendar alone`);
     await p.screenshot({ path: `${OUT}/${tag}-1-before.png` });
     await p.close();
-    await b.store({ haloFeat: { off: [], at: new Date().toISOString() }, haloViews: null });
+    await b.store({ haloFeat: { off: ['homecards'], at: new Date().toISOString() }, haloViews: null });
     p = await b.page(url);
     await until(async () => (await p.locator('[data-haloplus="calendar-switch"]').count()) === 1, 10000, 200);
     check(/This class/i.test(await p.locator('[data-haloplus="calendar-switch"] [aria-pressed="true"]').innerText()), `${tag}: "This class | All classes" beside Halo's Show buttons, This class first`);
@@ -414,7 +415,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     st.gateway.StudentAssessmentDetails = gradesGateway(fx).StudentAssessmentDetails;
 
     // Show nothing: Free; switched off; no index.
-    for (const [name, extra] of [['Free', { tier: 'free' }], ['switched off', { haloFeat: { off: ['calendar'], at: new Date().toISOString() } }], ['no index', { haloIndex: null }]]) {
+    for (const [name, extra] of [['Free', { tier: 'free' }], ['switched off', { haloFeat: { off: ['calendar', 'homecards'], at: new Date().toISOString() } }], ['no index', { haloIndex: null }]]) {
       await b.seed({ ...extra, haloViews: { calAll: true }, lastAttemptAt: new Date().toISOString() });
       p = await b.page(url);
       await sleep(2500);

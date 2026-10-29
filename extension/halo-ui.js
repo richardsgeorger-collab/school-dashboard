@@ -570,8 +570,17 @@
     if (!view || free()) return removeAll('[data-haloplus="class"]');
     const now = Date.now();
     const done = new Set();
-    // Halo's home page: before Better Halo's list when it is there, else before the card's rule, else at the end.
+    // Halo's home page: before Better Halo's list when it is there, else before the card's rule, else at the end. Not
+    // while Halo+'s class cards (0.12.5) are on: their grade and NEXT box say what the line said.
+    const On = globalThis.HaloPlusOn;
+    const cardsOn = !!(On && On.enabled('homecards'));
     for (const [card, cls] of homeCards()) {
+      if (cardsOn) {
+        done.add(cls.key);
+        const old = card.querySelector('[data-haloplus="class"]');
+        if (old) old.remove();
+        continue;
+      }
       if (done.has(cls.key)) continue;
       done.add(cls.key);
       let h = card.querySelector('[data-haloplus="class"]');

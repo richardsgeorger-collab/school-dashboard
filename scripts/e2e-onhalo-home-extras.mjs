@@ -83,7 +83,9 @@ const hard = setTimeout(() => (console.log('HARD TIMEOUT'), process.exit(3)), 15
 {
   const b = await openBench({ label: 'preload' });
   try {
-    await b.seed();
+    // A sync just tried: Halo+'s visit sync (0.11.0) would otherwise read the whole fake Halo here, and that is not
+    // fetch-ahead's load.
+    await b.seed({ lastAttemptAt: new Date().toISOString() });
     const halo = [];
     b.ctx.on('request', (r) => {
       const u = new URL(r.url());
@@ -101,7 +103,9 @@ const hard = setTimeout(() => (console.log('HARD TIMEOUT'), process.exit(3)), 15
     if (low) {
       console.log(`note: this computer is on a low battery (${Math.round(bat.level * 100)}%, not charging): preload must do nothing`);
       await sleep(14000);
-      check((await p.locator('link[data-haloplus="preload"]').count()) === 0 && api() === api0, `preload: on this computer's low battery: nothing fetched, nothing asked`);
+      const links0 = await p.locator('link[data-haloplus="preload"]').count();
+      const asked0 = b.bench.calls.gateway.filter((c) => c.op !== 'GradeOverview' && c.op !== 'StudentAssessmentDetails').map((c) => c.op).slice(-5);
+      check(links0 === 0 && api() === api0, `preload: on this computer's low battery: nothing fetched, nothing asked (${links0} fetched, ${api() - api0} asked${api() - api0 ? `: ${asked0.join(', ')}; rest ${b.bench.calls.rest.length}` : ''})`);
       // The rest of the path, run as the extension runs it but in a page whose battery says "charging", with the
       // shared parts stubbed: the same preload.js and logic.js files, Halo's real build manifest and files.
       const sim = await b.page('https://halo.gcu.edu/');

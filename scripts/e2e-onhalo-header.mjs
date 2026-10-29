@@ -59,8 +59,9 @@ async function redrawn(p, how, pre) {
   // The frames from Halo's redraw on (not the class page before it).
   const all = await p.evaluate(() => window.__hpFrames);
   const frames = all.filter((f) => f.r > all[0].r);
-  await sleep(4500);
-  const back = await p.evaluate(() => ({ past: !!document.querySelector('[data-haloplus="past-link"]'), week: !!document.querySelector('[data-haloplus="week"]'), strip: !!document.querySelector('[data-haloplus="week-strip"] .hp-sd'), cal: !!document.querySelector('[data-haloplus="home-calendar"]'), lines: document.querySelectorAll('[data-haloplus="class"]').length, redraws: window.__hpRedraws }));
+  // Better Halo rebuilds the cards a few seconds after Halo draws them (and Halo+ re-marks them once): let it finish.
+  await sleep(bhPath ? 8000 : 4500);
+  const back = await p.evaluate(() => ({ past: !!document.querySelector('[data-haloplus="past-link"]'), week: !!document.querySelector('[data-haloplus="week"]'), strip: !!document.querySelector('[data-haloplus="week-strip"] .hp-sd'), cal: !!document.querySelector('[data-haloplus="home-calendar"]'), lines: document.querySelectorAll('[data-haloplus="class"]').length + document.querySelectorAll('[data-haloplus="card-next"]').length, redraws: window.__hpRedraws }));
   // Nothing redone once in place: Halo+'s own changes to the page over two quiet seconds.
   const quiet = await p.evaluate(
     () =>
@@ -142,7 +143,7 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
           const gone = r.frames.filter((f) => !f.logo).length;
           check(r.frames.length > 15 && flash === 0 && gone <= 1, `${tag}: ${name}: Halo redraws Student Home, and no frame shows the old header (${flash} of ${r.frames.length}) or loses the bar logo (${gone})`);
           const v = await look(p);
-          check(v.compact && !v.header && !v.tabs && v.logo && v.logo.top && r.back.week && r.back.strip && r.back.cal && r.back.past && r.back.lines >= 6, `${tag}: ${name}: compact again, with This week, the week strip, the calendar, Past classes and the class lines (${JSON.stringify(r.back)})`);
+          check(v.compact && !v.header && !v.tabs && v.logo && v.logo.top && r.back.week && r.back.strip && r.back.cal && r.back.past && r.back.lines >= 6, `${tag}: ${name}: compact again, with This week, the week strip, the calendar, Past classes and the class lines (or the class cards' NEXT) (${JSON.stringify(r.back)})`);
           check(r.quiet === 0, `${tag}: ${name}: then Halo+ redoes nothing (${r.quiet} changes of its own in two quiet seconds)`);
         }
       }

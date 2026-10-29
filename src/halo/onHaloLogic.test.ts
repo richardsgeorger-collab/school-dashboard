@@ -460,3 +460,45 @@ describe('each class in its card’s colour, the bold version (feature 1, 0.12.2
     expect(C.boldColor('')).toBeNull();
   });
 });
+
+describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5)', () => {
+  type N = { id: string; when: string; why?: string; href: string };
+  const C = L as unknown as { cardNext: (index: unknown, k: number, live: Map<string, { dueDate: string | null; status: string | null }> | null, now: number, tz: string, o?: { doneIds?: Set<string> }) => N[] | null };
+  const PHX = 'America/Phoenix';
+  const now = Date.parse('2026-10-28T19:00:00Z'); // Wed Oct 28, 12:00 PM in Phoenix
+  const at = (d: number, h: number) => new Date(Date.parse('2026-10-28T07:00:00Z') + d * 864e5 + h * 36e5).toISOString(); // Phoenix midnight + d days + h
+  const rows = [
+    { c: 0, kind: 'assignment', id: 'late', title: 'Late one', href: '/a', cdue: at(-1, 23), start: at(-7, 0) },
+    { c: 0, kind: 'quiz', id: 'q', title: 'Quiz 2', href: '/q', cdue: at(2, 23.98), start: at(-3, 0) },
+    { c: 0, kind: 'assignment', id: 'hw', title: 'Homework 3.3', href: '/hw', cdue: at(0, 23.98), start: at(-3, 0) },
+    { c: 0, kind: 'discussion', id: 'dq', title: 'Topic 3 DQ 1', href: '/dq', cdue: at(1, 12), start: at(-2, 0) },
+    { c: 0, kind: 'assignment', id: 'later', title: 'Project 2', href: '/p2', cdue: at(9, 23.98), start: at(5, 0) },
+    { c: 0, kind: 'assignment', id: 'exam', title: 'Exam 1', href: '/ex', cdue: at(2, 9), start: at(-3, 0), ns: 1, inp: 1 },
+    { c: 0, kind: 'assignment', id: 'done', title: 'Done one', href: '/d', cdue: at(1, 23), start: at(-3, 0) },
+    { c: 0, kind: 'participation', id: 'part', title: 'Participation', href: '/pa', cdue: at(1, 23), start: at(-3, 0) },
+    { c: 0, kind: 'assignment', id: 'far', title: 'Far away', href: '/f', cdue: at(30, 23), start: at(20, 0) },
+    { c: 0, kind: 'lti', id: 'nohref', title: 'Outside tool', href: null, cdue: at(1, 10), start: at(-3, 0) },
+    { c: 0, kind: 'assignment', id: 'oldidx', title: 'In class, old index', href: '/o', cdue: at(1, 9), start: at(-3, 0), ns: 1 },
+  ];
+  const live = (o: Record<string, string> = {}) => new Map(rows.map((r) => [r.id, { dueDate: null, status: o[r.id] ?? (r.id === 'done' ? 'SUBMITTED' : 'ACTIVE') }]));
+  it('what can be done now first, soonest due first; at most three', () => {
+    const n = C.cardNext({ rows }, 0, live(), now, PHX)!;
+    expect(n.map((x) => [x.id, x.when])).toEqual([['hw', 'today 11:58 PM'], ['dq', 'tomorrow 12:00 PM'], ['q', 'Fri 11:58 PM']]);
+  });
+  it('then what cannot be acted on yet, with why: done in class, or not open yet', () => {
+    const n = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED' }), now, PHX)!;
+    expect(n.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
+  });
+  it('never done work (Halo’s status or a Halo+ check-off), participation, past due, far off, or without an address', () => {
+    const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q']) })!;
+    expect(n.map((x) => x.id)).toEqual(['exam', 'later']);
+    expect(n.some((x) => ['done', 'part', 'late', 'far', 'nohref'].includes(x.id))).toBe(false);
+  });
+  it('an item whose kind of submission the index cannot tell is left out, not guessed', () => {
+    const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q', 'exam', 'later']) })!;
+    expect(n).toEqual([]);
+  });
+  it('nothing at all without Halo’s answer for the class', () => {
+    expect(C.cardNext({ rows }, 0, null, now, PHX)).toBeNull();
+  });
+});

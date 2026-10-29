@@ -117,11 +117,12 @@ function topicOf(c) {
   const pick = week[0] || next[0];
   return pick ? pick.unitSequence : null;
 }
-export function homePage(build, fx, { bh = false, badges = null, header = 'halo' } = {}) {
+export function homePage(build, fx, { bh = false, badges = null, header = 'halo', extraCards = [] } = {}) {
   const C = (n) => build.cls(n);
-  const cards = fx.payload.classes
+  // Extra cards on request (0.12.5 tests): a finished class, with Halo's "Post-Class" stage chip.
+  const cards = [...fx.payload.classes, ...extraCards]
     .map((c) => {
-      const color = fx.index.classes.find((k) => k.slug === c.slugId)?.hex ?? '#522398';
+      const color = c.color ?? fx.index.classes.find((k) => k.slug === c.slugId)?.hex ?? '#522398';
       const bhButtons = bh
         ? `<div class="flex flex-col better-halo-icon-buttons-container" style="margin-top:auto"><div class="flex flex-col gap-1 mt-auto"><div class="first-button-row"><a class="MuiButtonBase-root MuiButton-root MuiButton-contained mt-1 MuiButton-containedSecondary better-halo-icon-button" data-section="calendar" aria-label="Calendar" href="/courses/${c.slugId}" title="Calendar"><span class="MuiButton-label normal-case flex gap-2"><span class="material-icons MuiIcon-root MuiIcon-fontSizeSmall">event</span> Calendar</span></a></div><div class="icon-buttons-row">${[
             ['announcements', 'announcements', 'Announcements', `/courses/${c.slugId}/announcements`],
@@ -135,7 +136,7 @@ export function homePage(build, fx, { bh = false, badges = null, header = 'halo'
             .join('')}</div></div></div>`
         : '';
       return `<div class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-md-6 MuiGrid-grid-lg-4"><div class="MuiPaper-root ${C('CourseCard_cardContainer')} MuiPaper-elevation1 MuiPaper-rounded" style="border-top:8px solid ${color}"><div class="p-5"${bh ? ' style="display:flex;flex-direction:column"' : ''}>
-<div class="flex justify-between mb-3"><div class="${C('CourseCard_headerItem')}">${topicOf(c) ? `<span class="${C('Tag_tag')} font-semibold" style="background-color: var(--lms-colorLightBlue);">Topic ${topicOf(c)}</span>` : ''}<span class="${C('CourseCard_courseCode')}">${esc(c.classCode)}</span></div></div>
+<div class="flex justify-between mb-3"><div class="${C('CourseCard_headerItem')}">${c.stage ? `<span class="${C('Tag_tag')} font-semibold" style="background-color: var(--lms-colorGrayED);">${esc(c.stage)}</span>` : topicOf(c) ? `<span class="${C('Tag_tag')} font-semibold" style="background-color: var(--lms-colorLightBlue);">Topic ${topicOf(c)}</span>` : ''}<span class="${C('CourseCard_courseCode')}">${esc(c.classCode)}</span></div></div>
 <h4 class="${C('CourseCard_courseTitle')}">${esc(c.name)}</h4>
 <div class="${C('CourseCard_metaContainer')}"><time class="text-secondary text-sm">Sep 8 - Dec 20, 2026</time></div>
 <div class="${C('CourseCard_metaItem')} text-secondary text-sm">Instructor</div>
@@ -781,7 +782,7 @@ export async function standIn(ctx, fx, opts = {}) {
     if (u.pathname.startsWith('/api/')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     const page = Object.entries(state.pages).find(([re]) => new RegExp(re).test(u.pathname));
     if (page) return route.fulfill({ status: 200, contentType: 'text/html', body: page[1](build, fx, u, state) });
-    if (u.pathname === '/' || u.pathname === '') return route.fulfill({ status: 200, contentType: 'text/html', body: homePage(build, fx, { bh: state.bh, badges: state.badges, header: state.homeHeader || 'halo' }) });
+    if (u.pathname === '/' || u.pathname === '') return route.fulfill({ status: 200, contentType: 'text/html', body: homePage(build, fx, { bh: state.bh, badges: state.badges, header: state.homeHeader || 'halo', extraCards: state.extraCards || [] }) });
     return route.fulfill({ status: 200, contentType: 'text/html', body: shell(build, '/courses/[slugId]', 'Halo', `<div class="py-4"><h1 class="${build.cls('PageTitle_headerText')}">Page</h1></div>`) });
   });
   // The editor library the discussion stand-in loads (TipTap, from a public module CDN): kept on disk after the first

@@ -1,6 +1,13 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.12.4 (2026-10-28): paste exactly this
+## The listing now: 0.12.5 (2026-10-28): paste exactly this
+
+0.12.5 (Loop 276): Halo's class cards on Student Home with the class grade at the top right, the details on one quiet
+line and a NEXT box (up to three things for the class, each opening on Halo); cards in a row one height; a finished
+class as one slim line with its final grade; its own switch. **No new permission.** Upload
+`webstore-upload/halo-plus-extension-0.12.5.zip`; the description and the Privacy tab as below, unchanged.
+
+## 0.12.4 (2026-10-28)
 
 0.12.4 (Loop 275): the Halo+ mark beside Halo's View Rubric / Hide Rubric; a small "Past classes (N)" link after the
 class cards on the compact Student Home (Halo's own Past Classes view, and back). **No new permission.** Upload

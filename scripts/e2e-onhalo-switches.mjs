@@ -7,6 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright-core';
 import { personaKit } from './lib/personas.mjs';
+import { gradesGateway } from './lib/haloPages.mjs';
 import { BROWSER, checker, openBench, sleep, until } from './lib/onHaloRun.mjs';
 
 const { check, passed } = checker(BROWSER);
@@ -23,6 +24,8 @@ const shown = (label) => (process.platform === 'darwin' ? label.replace('(Ctrl+K
 // ---- the popup ----
 {
   const b = await openBench({ label: 'switches' });
+  // Halo's answer for each class (the class cards' NEXT box shows only with it).
+  Object.assign(b.bench.state.gateway, gradesGateway(b.fx));
   try {
     await b.seed();
     const id = new URL(b.worker.url()).host;
@@ -46,7 +49,8 @@ const shown = (label) => (process.platform === 'darwin' ? label.replace('(Ctrl+K
     await p.close();
     const h = await b.page('https://halo.gcu.edu/');
     await sleep(3000);
-    const lines = await h.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].some((x) => x.shadowRoot.querySelector('.nx')));
+    // "Next" on the cards: in the Halo+ class line, or (0.12.5) in Halo+'s class cards' NEXT box.
+    const lines = await h.evaluate(() => [...document.querySelectorAll('[data-haloplus="class"]')].some((x) => x.shadowRoot.querySelector('.nx')) || document.querySelectorAll('[data-haloplus="card-next"]').length > 0);
     check((await h.locator('[data-haloplus="search-bar"]').count()) === 0 && lines, 'Halo: search is gone, "Next" on the class cards stays');
     await h.close();
     await b.store({ tier: 'free' });
@@ -92,9 +96,9 @@ const shown = (label) => (process.platform === 'darwin' ? label.replace('(Ctrl+K
     let { ctx, p } = await open(max, '0.12.0');
     await until(async () => (await p.locator('.on-halo-switches').count()) === 1, 10000, 300);
     const old = await p.locator('.on-halo-switches .field-check span').allInnerTexts();
-    check(old.length === FEATURES.length - 1 && !old.some((l) => /Compact Student Home header/.test(l)), `Halo+: with extension 0.12.0, no switch for what it does not have (${old.length})`);
+    check(old.length === FEATURES.length - 2 && !old.some((l) => /Compact Student Home header|Class cards/.test(l)), `Halo+: with extension 0.12.0, no switch for what it does not have (${old.length})`);
     await ctx.close();
-    ({ ctx, p } = await open(max, '0.12.2'));
+    ({ ctx, p } = await open(max, '0.12.5'));
     await until(async () => (await p.locator('.on-halo-switches').count()) === 1, 10000, 300);
     const labels = await p.locator('.on-halo-switches .field-check span').allInnerTexts();
     check(labels.length === FEATURES.length && labels.every((l, i) => l.trim() === shown(FEATURES[i][1])), `Halo+: You → Display: the same ${labels.length} switches under "Show Halo+ on Halo pages"`);

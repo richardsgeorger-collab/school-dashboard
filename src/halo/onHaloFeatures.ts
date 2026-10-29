@@ -22,6 +22,7 @@ export const ON_HALO_FEATURES = [
   ['views', 'Remember view choices'],
   ['preload', 'Open your next pages faster'],
   ['homeheader', 'Compact Student Home header'],
+  ['homecards', 'Class cards: grade and what’s next'],
 ] as const;
 
 export type OnHaloFeature = (typeof ON_HALO_FEATURES)[number][0];
@@ -33,7 +34,7 @@ export function featureLabel(label: string): string {
 }
 
 /** Features added after 0.12.0: their switch shows only with that extension version or later on this computer. */
-export const ON_HALO_FEATURE_SINCE: Partial<Record<OnHaloFeature, string>> = { homeheader: '0.12.2' };
+export const ON_HALO_FEATURE_SINCE: Partial<Record<OnHaloFeature, string>> = { homeheader: '0.12.2', homecards: '0.12.5' };
 
 /** The first extension with these features: the switches show only with it on this computer. */
 export const ON_HALO_SINCE = '0.12.0';

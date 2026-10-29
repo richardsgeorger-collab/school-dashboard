@@ -1,0 +1,199 @@
+// Feature (0.12.5, George picked option B, with changes): Halo's class cards on Student Home, more useful and still
+// clearly Halo's. Each card keeps Halo's shape, its own colour stripe (untouched), its Topic chip, its name and its Go to
+// class button; Halo+ adds the class grade at the top right beside the chip (as Halo's gradebook has it; none when
+// Better Halo already shows it), puts Halo's dates, instructor and class size on one quiet line (kept visible: a card
+// with them reads as Halo's, and there is no hover on a touchscreen; "28 students" still opens Halo's roster), and a
+// NEXT box in a light tint of the class colour with up to three things for that class (logic.js cardNext: what can be
+// done now first, then what cannot yet, greyed with why; each opens on Halo; nothing that is not certain). The Halo+
+// class line steps aside (the box says what it said). Cards in a row are one height, so the Go to class buttons line
+// up. A finished class (Halo's "Post-Class" chip) is one slim line after the others: its name and its final grade.
+// Halo redraws Student Home without reloading, so the hiding is keyed to a mark on the page's root and the cards are
+// redone before the browser paints, only when one is not done.
+(function () {
+  'use strict';
+  const O = globalThis.HaloPlusOn;
+  const L = globalThis.HaloPlusOnLogic;
+  const M = globalThis.HaloPlusModel;
+  if (!O || !L || !M) return;
+  const ROOT = document.documentElement;
+  let on = false;
+  let grades = null;
+  let asking = false;
+
+  const cardsNow = () => [...document.querySelectorAll('#Home--main [class*="CourseCard_cardContainer"]')].filter((c) => !c.closest('[data-haloplus]'));
+  function slugOf(card) {
+    const a = card.querySelector('a[href^="/courses/"]');
+    const m = a && /^\/courses\/([^/?#]+)/.exec(a.getAttribute('href') || '');
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  const chipOf = (card) => card.querySelector('[class*="CourseCard_headerItem"] [class*="Tag_tag"]');
+  const finished = (card) => /post-class/i.test((chipOf(card) || {}).textContent || '');
+  const textOf = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
+  const colorOf = (card) => card.style.borderTopColor || 'var(--lms-grayBD, #bdbdbd)';
+
+  /** The NEXT box's lines for one class: null while Halo's answer is not here (no box then, never a guess). */
+  function nextFor(slug) {
+    const idx = O.st.haloIndex;
+    if (!idx || !Array.isArray(idx.classes) || !grades) return null;
+    const k = idx.classes.findIndex((c) => (c.slug || '').toLowerCase() === slug.toLowerCase());
+    if (k < 0) return null;
+    const doneIds = new Set(((O.view && O.view.items) || []).filter((i) => i.h && i.done === 1).map((i) => i.h));
+    return L.cardNext(idx, k, grades[idx.classes[k].slug], Date.now(), O.zone(), { doneIds });
+  }
+  function nextHtml(list) {
+    if (!list.length) return `<small>Next${O.mark()}</small><div class="hp-n-none">Nothing due soon</div>`;
+    return `<small>Next${O.mark()}</small>${list
+      .map((i) => `<a class="hp-n-row${i.why ? ' hp-n-wait' : ''}" href="${O.esc(i.href)}" title="${O.esc(`${i.title} · Due ${i.full}${i.why ? ` · ${i.why}` : ''}`)}"><span class="hp-n-t">${O.esc(i.title)}</span><span class="hp-n-w">${O.esc(i.why || i.when)}</span></a>`)
+      .join('')}`;
+  }
+  function gradeOf(slug) {
+    const cls = O.view && O.view.classes ? O.view.classes.find((c) => (c.slug || '').toLowerCase() === slug.toLowerCase()) : null;
+    return cls ? M.gradeText(cls) : null;
+  }
+
+  /** One card as option B (or the slim line for a finished class). Quick when it is already done and unchanged. */
+  function card(c) {
+    const slug = slugOf(c);
+    if (!slug) return;
+    const body = c.firstElementChild;
+    const title = c.querySelector('[class*="CourseCard_courseTitle"]');
+    if (!body || !title) return;
+    const grade = gradeOf(slug);
+    const bhGrade = !!c.querySelector('.better-halo-grade-indicator');
+    if (finished(c)) {
+      c.setAttribute('data-hp-slim', '');
+      const item = c.closest('[class*="MuiGrid-item"]');
+      if (item) item.setAttribute('data-hp-slim', '');
+      const href = (c.querySelector('a[href^="/courses/"]') || {}).getAttribute ? c.querySelector('a[href^="/courses/"]').getAttribute('href') : null;
+      const html = `<a href="${O.esc(href || '#')}" class="hp-s-name">${O.esc(textOf(title))}</a><span class="hp-s-chip">${O.esc(textOf(chipOf(c)))}</span><span class="hp-s-sp"></span>${grade ? `<span class="hp-s-grade">Final grade <b>${O.esc(grade)}</b></span>` : ''}${O.mark()}`;
+      let s = body.querySelector(':scope > [data-haloplus="card-slim"]');
+      if (!s) {
+        s = document.createElement('div');
+        s.setAttribute('data-haloplus', 'card-slim');
+        body.prepend(s);
+      }
+      if (s.dataset.html !== html) {
+        s.innerHTML = html;
+        s.dataset.html = html;
+      }
+      return;
+    }
+    c.setAttribute('data-hp-card', '');
+    // The grade at the top right of Halo's header row, beside the Topic chip (none when Better Halo shows its own).
+    const head = (c.querySelector('[class*="CourseCard_headerItem"]') || {}).parentElement;
+    let g = c.querySelector('[data-haloplus="card-grade"]');
+    if (head && grade && !bhGrade) {
+      if (!g) {
+        g = document.createElement('span');
+        g.setAttribute('data-haloplus', 'card-grade');
+        head.appendChild(g);
+      }
+      const [letter, pct] = grade.includes(' ') ? grade.split(' ') : ['', grade];
+      const html = `${letter ? `<b>${O.esc(letter)}</b>` : ''}<span>${O.esc(pct)}</span>`;
+      if (g.dataset.html !== html) {
+        g.innerHTML = html;
+        g.dataset.html = html;
+        g.title = 'The class grade, as Halo’s gradebook has it (Added by Halo+)';
+      }
+    } else if (g) g.remove();
+    // Halo's dates, instructor and class size on one quiet line (Halo's own elements stay, hidden; the roster still
+    // opens from "28 students").
+    const parts = [...c.querySelectorAll('[class*="CourseCard_metaContainer"], [class*="CourseCard_metaItem"], [class*="CourseCard_studentsList"]')].filter((e) => !e.closest('[data-haloplus]') && !e.parentElement.closest('[class*="CourseCard_metaContainer"]'));
+    const roster = c.querySelector('[class*="CourseCard_studentsList"] button');
+    const dhtml = parts
+      .map((e) => (e.matches('[class*="CourseCard_studentsList"]') && roster ? `<button type="button" data-roster>${O.esc(textOf(e))}</button>` : `<span>${O.esc(textOf(e))}</span>`))
+      .filter((x) => !/<span><\/span>/.test(x))
+      .join('<i>·</i>');
+    let d = c.querySelector('[data-haloplus="card-details"]');
+    if (!d) {
+      d = document.createElement('div');
+      d.setAttribute('data-haloplus', 'card-details');
+      d.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-roster]')) return;
+        const b = c.querySelector('[class*="CourseCard_studentsList"] button');
+        if (b) b.click();
+      });
+    }
+    if (title.nextElementSibling !== d) title.after(d);
+    if (d.dataset.html !== dhtml) {
+      d.innerHTML = dhtml;
+      d.dataset.html = dhtml;
+    }
+    // NEXT: only with Halo's answer for the class.
+    const list = nextFor(slug);
+    let n = c.querySelector('[data-haloplus="card-next"]');
+    if (!list) {
+      if (n) n.remove();
+      return;
+    }
+    if (!n) {
+      n = document.createElement('div');
+      n.setAttribute('data-haloplus', 'card-next');
+    }
+    if (d.nextElementSibling !== n) d.after(n);
+    const col = colorOf(c);
+    if (n.dataset.col !== col) {
+      n.style.setProperty('--c', col);
+      n.dataset.col = col;
+    }
+    const html = nextHtml(list);
+    if (n.dataset.html !== html) {
+      n.innerHTML = html;
+      n.dataset.html = html;
+    }
+  }
+  function all() {
+    if (!on || O.route().kind !== 'home') return;
+    if (!ROOT.hasAttribute('data-hp-cards')) ROOT.setAttribute('data-hp-cards', '');
+    for (const c of cardsNow()) card(c);
+    void ask();
+  }
+  /** Halo's answer for every class (the calendar's question, shared and kept ten minutes), then the boxes. */
+  async function ask() {
+    if (asking || !O.cal) return;
+    const idx = O.st.haloIndex;
+    if (!idx || !Array.isArray(idx.classes) || !idx.classes.length) return;
+    asking = true;
+    try {
+      const g = await O.cal.refresh(idx);
+      if (g !== grades) {
+        grades = g;
+        for (const c of cardsNow()) card(c);
+      }
+    } finally {
+      asking = false;
+    }
+  }
+  function clear() {
+    ROOT.removeAttribute('data-hp-cards');
+    document.querySelectorAll('[data-haloplus="card-grade"], [data-haloplus="card-details"], [data-haloplus="card-next"], [data-haloplus="card-slim"]').forEach((n) => n.remove());
+    document.querySelectorAll('[data-hp-card], [data-hp-slim]').forEach((n) => {
+      n.removeAttribute('data-hp-card');
+      n.removeAttribute('data-hp-slim');
+    });
+  }
+  // Halo redraws Student Home without a reload: the cards are redone before the browser paints, only when one is new.
+  const watch = new MutationObserver(() => {
+    if (!on || O.route().kind !== 'home') return;
+    if (cardsNow().some((c) => !c.hasAttribute('data-hp-card') && !c.hasAttribute('data-hp-slim'))) all();
+  });
+  O.feature({
+    id: 'homecards',
+    // Running on every Halo page (it acts on Student Home only), so its mark on the page root stays while Halo moves
+    // between pages and Student Home comes back already in place.
+
+    start() {
+      on = true;
+      watch.observe(document.body, { childList: true, subtree: true });
+      all();
+    },
+    update() {
+      all();
+    },
+    stop() {
+      on = false;
+      watch.disconnect();
+      clear();
+    },
+  });
+})();

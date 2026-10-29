@@ -154,9 +154,8 @@
       .join('');
   }
   // ---- each class's real Halo colour (0.12.2) -----------------------------------------------------------------------------
-  // The stripe on top of each class's card on Student Home, as drawn (Halo's own colour, or Better Halo's, whatever the
-  // page shows), read there and kept on this computer for the class calendars; per look (plain, or a Better Halo theme),
-  // since a theme redraws the stripes. On Halo's white page the bold version of it (logic.js boldColor); under a dark
+  // The colour of each class's card on Student Home, read there and kept on this computer for the class calendars; per
+  // look (plain, or a Better Halo theme, which can redefine Halo's colour variables). On Halo's white page the bold version of it (logic.js boldColor); under a dark
   // theme as it is. Without a reading, Halo's own colour for the class (the same hash Halo uses).
   const themeKey = () => `${document.documentElement.getAttribute('data-better-halo-theme') || ''}|${document.documentElement.classList.contains('dark') ? 'dark' : 'light'}`;
   const darkTheme = () => !!document.documentElement.getAttribute('data-better-halo-theme') && document.documentElement.classList.contains('dark');
@@ -190,10 +189,13 @@
       const a = card.querySelector('a[href^="/courses/"]');
       const m = a && /^\/courses\/([^/?#]+)/.exec(a.getAttribute('href') || '');
       if (!m) continue;
-      const cs = getComputedStyle(card);
-      let col = parseFloat(cs.borderTopWidth) >= 2 ? cs.borderTopColor : null;
-      // A theme that draws no stripe (Better Halo's): the colour Halo gave the card (its own style on the card).
-      if (!col) col = ownColor(card.style.borderTopColor);
+      // The colour Halo gave the card (its own style on the card: never changed by a restyle, Halo+'s or a theme's,
+      // 0.12.5); the drawn stripe only when Halo wrote none.
+      let col = ownColor(card.style.borderTopColor);
+      if (!col) {
+        const cs = getComputedStyle(card);
+        col = parseFloat(cs.borderTopWidth) >= 2 && !/rgba\(0, 0, 0, 0\)/.test(cs.borderTopColor) ? cs.borderTopColor : null;
+      }
       if (col && /^(rgb|#)/.test(col)) found[decodeURIComponent(m[1])] = col;
     }
     if (!Object.keys(found).length) return;

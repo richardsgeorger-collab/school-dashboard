@@ -500,6 +500,65 @@
     return days;
   }
 
+  // ---- the class card's NEXT (0.12.5) -------------------------------------------------------------------------------------
+  const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  /** "today 11:59 PM", "tomorrow 12:00 PM", "Fri 11:59 PM" (within six days), else "Nov 9", in Halo's zone. */
+  function whenText(t, now, tz) {
+    const a = dayOf(t, tz);
+    const b = dayOf(now, tz);
+    if (!a || !b) return '';
+    const days = dayNum(a) - dayNum(b);
+    const time = haloTime(t, tz);
+    if (days === 0) return `today ${time}`;
+    if (days === 1) return `tomorrow ${time}`;
+    if (days > 1 && days < 7) return `${WD[new Date(`${a}T12:00:00Z`).getUTCDay()]} ${time}`;
+    return haloFormat(t, tz).replace(/, \d{4}, .*$/, '');
+  }
+  /** "Mon" within six days, "tomorrow", else "Nov 9": for "opens …" and "in class …". */
+  function dayWord(t, now, tz) {
+    const a = dayOf(t, tz);
+    const b = dayOf(now, tz);
+    if (!a || !b) return '';
+    const days = dayNum(a) - dayNum(b);
+    if (days === 0) return 'today';
+    if (days === 1) return 'tomorrow';
+    if (days > 1 && days < 7) return WD[new Date(`${a}T12:00:00Z`).getUTCDay()];
+    return haloFormat(t, tz).replace(/, \d{4}, .*$/, '');
+  }
+  const NEXT_KINDS = ['assignment', 'quiz', 'discussion', 'lti'];
+  /**
+   * The NEXT box on a class card (0.12.5, George): up to three things for that class, one line each, from Halo's own
+   * answer for the class (`live`, a Map of id → { dueDate, status }; without it, nothing: never a guess). First what the
+   * student can do now, soonest due first; then what they cannot act on yet, greyed, with why: not open yet ("opens
+   * Mon", from Halo's start date) or done in class, not in Halo ("in class Fri"; Halo's own in-person flag). Never done
+   * work (Halo's status, or a Halo+ check-off in `doneIds`), never participation, never anything past due or more than
+   * `days` days out, never anything without an address on Halo; an item whose kind of submission is not known (an index
+   * from before 0.12.5 that says only "not submitted in Halo") is left out. Returns null without Halo's answer, else a
+   * list (possibly empty: "Nothing due soon").
+   */
+  function cardNext(index, k, live, now, tz, { doneIds = new Set(), max = 3, days = 14 } = {}) {
+    if (!index || !Array.isArray(index.rows) || !live || !tz) return null;
+    const can = [];
+    const cannot = [];
+    for (const r of index.rows) {
+      if (r.c !== k || !NEXT_KINDS.includes(r.kind) || !r.id || !r.href) continue;
+      const h = live.get(r.id);
+      if (!h) continue;
+      const due = Date.parse(h.dueDate || r.cdue || '');
+      if (!Number.isFinite(due) || due < now || due > now + days * DAY) continue;
+      if (HALO_DONE.test(h.status || '') || r.done || doneIds.has(r.id)) continue;
+      const start = Date.parse(r.start || '');
+      const item = { id: r.id, title: r.title, href: r.href, t: due, when: whenText(due, now, tz), full: haloFormat(due, tz) };
+      if (r.inp === 1) cannot.push({ ...item, why: `in class ${dayWord(due, now, tz)}` });
+      else if (r.ns && r.inp === undefined) continue;
+      else if (Number.isFinite(start) && start > now) cannot.push({ ...item, why: `opens ${dayWord(start, now, tz)}` });
+      else can.push(item);
+    }
+    can.sort((a, b) => a.t - b.t || a.title.localeCompare(b.title));
+    cannot.sort((a, b) => a.t - b.t || a.title.localeCompare(b.title));
+    return [...can, ...cannot].slice(0, max);
+  }
+
   // ---- Halo's class colours -------------------------------------------------------------------------------------------
   // Halo colours each class (its Home card's top border, the My Classes menu, alerts) by a hash of its slug into 44
   // colours (_app 88863 and 6489 17817); the same colour here, from Halo's own variable when the page has it.
@@ -566,7 +625,7 @@
         const kind = KIND_OF[a.type] || 'assignment';
         const item = { id: a.id, type: a.type || 'ASSIGNMENT', unitId: a.unitId || null, forumId: forumOf[a.id] || null, group: !!a.isGroupEnabled };
         const href = kind === 'lti' ? null : hrefFor(c.slugId, item);
-        rows.push({ c: k, kind, id: a.id, title: String(a.title).slice(0, 160), topic: a.unit || '', unit: a.unitId || null, href, due: a.dueDate || null, cdue: a.classDueDate || null, start: a.startDate || null, type: a.type || 'ASSIGNMENT', pts: a.points || 0, forum: item.forumId, group: item.group, ns: !a.submittedAt && !/SUBMITTED/i.test(a.status || '') && (a.type === 'LTI' || a.inPerson === true) ? 1 : 0, done: !!a.submittedAt || typeof a.score === 'number' || /^(SUBMITTED|LATE|PUBLISHED)$/.test(a.status || '') });
+        rows.push({ c: k, kind, id: a.id, title: String(a.title).slice(0, 160), topic: a.unit || '', unit: a.unitId || null, href, due: a.dueDate || null, cdue: a.classDueDate || null, start: a.startDate || null, type: a.type || 'ASSIGNMENT', pts: a.points || 0, forum: item.forumId, group: item.group, ns: !a.submittedAt && !/SUBMITTED/i.test(a.status || '') && (a.type === 'LTI' || a.inPerson === true) ? 1 : 0, inp: a.inPerson === true ? 1 : 0, done: !!a.submittedAt || typeof a.score === 'number' || /^(SUBMITTED|LATE|PUBLISHED)$/.test(a.status || '') });
         for (const f of a.attachments || []) if (f && f.resourceId && f.title) rows.push({ c: k, kind: 'file', title: String(f.title).slice(0, 160), topic: a.unit || '', href: `/resource/${encodeURIComponent(f.resourceId)}` });
       }
       for (const [id, u] of units) rows.push({ c: k, kind: 'topic', id, title: u.t || `Topic ${u.n}`, href: `/courses/${S}/course-units/${encodeURIComponent(id)}`, n: u.n });
@@ -596,5 +655,5 @@
     return true;
   }
 
-  globalThis.HaloPlusOnLogic = { boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
+  globalThis.HaloPlusOnLogic = { cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
 })();

@@ -59,6 +59,11 @@ rubric in a box with Hide, and Halo's link reads "Hide Rubric".
 (N)" after the class cards (it clicks Halo's own hidden tab, and reads "Current classes" to come back). Card redesign
 options are prototypes only: `scripts/mock-cards-options.mjs`, `docs/screens/cards-options/`.
 
+0.12.5 (2026-10-28): `homecards.js` (option B for Halo's class cards: the grade, one quiet details line, the NEXT box
+from `logic.js cardNext`, equal heights, a slim line for a finished class; switch `homecards`; `halo-ui.js` draws no
+class line on Student Home cards while it is on); class colours come from Halo's own card style (never black after a
+restyle).
+
 ## Build
 
     npm run build:extension

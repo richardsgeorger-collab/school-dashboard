@@ -9,6 +9,9 @@ import { BROWSER, bhPath, checker, openBench, out, sleep, until } from './lib/on
 
 const OUT = out('docs/screens/on-halo/next');
 const { check, passed } = checker(BROWSER);
+// This test is about the Halo+ class line's "Next"; Halo+'s class cards (0.12.5) replace that line, so they are off here
+// (scripts/e2e-onhalo-cards.mjs tests their NEXT box).
+const CARDS_OFF = () => ({ off: ['homecards'], at: new Date().toISOString() });
 const hard = setTimeout(() => (console.log('HARD TIMEOUT'), process.exit(3)), 900000);
 const M = (() => {
   const c = { URL, Intl, Date };
@@ -39,7 +42,7 @@ for (const withBh of bhPath ? [false, true] : [false]) {
       want[c.slug] = nx && row && M.nextName(nx) ? { name: `Next: ${M.nextName(nx)}`, href: row.href } : null;
     }
     // Before: the line as it is on Free and in 0.11.
-    await b.seed({ tier: 'free' });
+    await b.seed({ tier: 'free', haloFeat: CARDS_OFF() });
     let p = await b.page('https://halo.gcu.edu/');
     await until(async () => (await lines(p)).length >= 6, 10000, 200);
     let ls = await lines(p);
@@ -47,7 +50,7 @@ for (const withBh of bhPath ? [false, true] : [false]) {
     await p.screenshot({ path: `${OUT}/${tag}-1-before-free.png` });
     await p.close();
 
-    await b.seed();
+    await b.seed({ haloFeat: CARDS_OFF() });
     p = await b.page('https://halo.gcu.edu/');
     await until(async () => (await lines(p)).some((l) => l.next), 10000, 200);
     await until(async () => (await p.locator('[data-haloplus="search-bar"]').count()) === 1, 5000, 200);
@@ -72,7 +75,7 @@ for (const withBh of bhPath ? [false, true] : [false]) {
     await p.close();
 
     // Switched off: no "Next". An item with no address Halo+ is sure of: none for that class.
-    await b.store({ haloFeat: { off: ['next'], at: new Date().toISOString() } });
+    await b.store({ haloFeat: { off: ['next', 'homecards'], at: new Date().toISOString() } });
     p = await b.page('https://halo.gcu.edu/');
     await until(async () => (await lines(p)).length >= 6, 10000, 200);
     await sleep(800);
@@ -83,7 +86,7 @@ for (const withBh of bhPath ? [false, true] : [false]) {
     const idx = JSON.parse(JSON.stringify(fx.index));
     const nx = M.nextFor(view, view.classes.find((c) => c.slug === slug), now);
     for (const r of idx.rows) if (r.id === nx.h) r.href = null;
-    await b.seed({ haloIndex: idx });
+    await b.seed({ haloIndex: idx, haloFeat: CARDS_OFF() });
     p = await b.page('https://halo.gcu.edu/');
     await until(async () => (await lines(p)).length >= 6, 10000, 200);
     await sleep(800);
