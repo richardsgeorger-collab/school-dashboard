@@ -221,6 +221,15 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.locator('[data-haloplus="home-calendar"] .hp-sec-head').click();
     await sleep(300);
     const pick = hk[4];
+    // The day's mark is brief: watched as it happens.
+    await p.evaluate((k) => {
+      window.__hpFlashed = false;
+      const mo = new MutationObserver(() => {
+        const c = document.querySelector(`[data-haloplus="home-calendar"] .hp-day[data-day="${k}"]`);
+        if (c && c.classList.contains('hp-flash')) window.__hpFlashed = true;
+      });
+      mo.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true });
+    }, pick);
     await p.locator(`[data-haloplus="week-strip"] [data-day="${pick}"]`).click();
     await sleep(1600);
     const opened = await p.evaluate((k) => {
@@ -228,7 +237,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
       const cell = sec.querySelector(`.hp-day[data-day="${k}"]`);
       const r = sec.getBoundingClientRect();
       const c = cell && cell.getBoundingClientRect();
-      return { open: !sec.querySelector('.hp-sec-body').hidden, cell: !!cell, flash: !!cell && cell.classList.contains('hp-flash'), top: Math.round(r.top), seen: !!c && c.top >= 0 && c.top < window.innerHeight - 40 };
+      return { open: !sec.querySelector('.hp-sec-body').hidden, cell: !!cell, flash: window.__hpFlashed === true, top: Math.round(r.top), seen: !!c && c.top >= 0 && c.top < window.innerHeight - 40 };
     }, pick);
     check(opened.open && opened.cell && opened.flash && opened.seen, `${tag}: a day in the strip opens the calendar on that day and scrolls to it (${JSON.stringify(opened)})`);
     await p.evaluate(() => (document.getElementById('CourseLayout--main').scrollTop = 0));
