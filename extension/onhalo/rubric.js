@@ -38,7 +38,7 @@
   function shortHtml(rubric) {
     const crit = [...(rubric.criteria || [])].sort(bySeq);
     const btn = 'class="hp-rb text-xs" type="button"';
-    return `<div class="flex items-center flex-wrap" style="gap:4px 14px"><h4 class="text-base font-semibold" data-testid="hp-rubric-head">Rubric · ${totalOf(crit)} pts</h4><span style="flex:1"></span><button ${btn} data-all aria-pressed="false">Show everything</button><button ${btn} data-print>Open in new tab</button><span class="text-secondary text-sm">${O.mark()}</span></div>${crit
+    return `<div class="flex items-center flex-wrap" style="gap:4px 14px"><h4 class="text-base font-semibold" data-testid="hp-rubric-head">Rubric · ${totalOf(crit)} pts</h4><span style="flex:1"></span><button ${btn} data-all aria-pressed="false">Show everything</button><button ${btn} data-print>Open in new tab</button><button ${btn} data-hide>Hide</button><span class="text-secondary text-sm">${O.mark()}</span></div>${crit
       .map((c) => {
         const top = levelsOf(c)[0];
         return `<div class="hp-crit border-t border-grayE0 pt-3 mt-3"><div class="flex items-baseline justify-between" style="gap:12px"><h5 class="font-semibold text-sm" data-testid="hp-crit-line">${esc(critName(c))} · ${round2(c.points)} pts</h5><button ${btn} data-levels aria-expanded="false">Show all levels</button></div>${top ? `<p class="hp-top text-sm pt-1"><span class="text-secondary">${esc(`${top.sequence}. ${top.name || ''}`)}:</span> ${esc(top.description || '')}</p>` : ''}<div class="hp-full" hidden>${fullCrit(c)}</div></div>`;
@@ -69,6 +69,7 @@
       }
       const pr = e.target.closest('[data-print]');
       if (pr) return printable(box);
+      if (e.target.closest('[data-hide]')) return closeBox(box);
       return undefined;
     });
   }
@@ -120,6 +121,16 @@
     return loads.get(id);
   }
   const within = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(null), ms))]);
+  /** Close an open rubric: Halo's link reads "View Rubric" again. */
+  function closeBox(box) {
+    const link = box.__hpLink;
+    box.remove();
+    if (link) {
+      link.setAttribute('aria-expanded', 'false');
+      link.removeAttribute('data-hp-open');
+      link.removeAttribute('aria-label');
+    }
+  }
   function panelFor(a) {
     const row = a.closest('.bg-grayF2') || a.closest('[class*="flex-wrap"]');
     const next = row && row.nextElementSibling;
@@ -140,17 +151,20 @@
     e.preventDefault();
     e.stopPropagation();
     if (panel) {
-      panel.remove();
-      a.setAttribute('aria-expanded', 'false');
+      panel.__hpLink = a;
+      closeBox(panel);
       return;
     }
     const href = a.href;
     const box = document.createElement('div');
     box.setAttribute('data-haloplus', 'rubric');
-    box.className = 'px-5 py-3';
+    box.className = 'hp-rbox';
+    box.__hpLink = a;
     box.innerHTML = '<p class="text-sm text-secondary">Loading the rubric from Halo…</p>';
     row.after(box);
     a.setAttribute('aria-expanded', 'true');
+    a.setAttribute('data-hp-open', '');
+    a.setAttribute('aria-label', 'Hide Rubric');
     const r = await within(load(id), WAIT_MS);
     if (!box.isConnected) return;
     if (r) {
@@ -167,8 +181,7 @@
       return;
     }
     // Halo did not send it: Halo's own rubric page, as before.
-    box.remove();
-    a.setAttribute('aria-expanded', 'false');
+    closeBox(box);
     const w = window.open(href, '_blank');
     if (!w) {
       const note = document.createElement('div');
@@ -191,7 +204,11 @@
       document.removeEventListener('pointerover', onOver, true);
       document.removeEventListener('focusin', onOver, true);
       document.querySelectorAll('[data-haloplus="rubric"]').forEach((n) => n.remove());
-      document.querySelectorAll('a[data-testid="print_rubric_link"][aria-expanded]').forEach((a) => a.removeAttribute('aria-expanded'));
+      document.querySelectorAll('a[data-testid="print_rubric_link"][aria-expanded]').forEach((a) => {
+        a.removeAttribute('aria-expanded');
+        a.removeAttribute('data-hp-open');
+        a.removeAttribute('aria-label');
+      });
     },
   });
   O.rubricHtml = listHtml;

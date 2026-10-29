@@ -1,6 +1,15 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.12.2 (2026-10-28): paste exactly this
+## The listing now: 0.12.3 (2026-10-28): paste exactly this
+
+0.12.3 (Loop 274): George's changes after testing 0.12.2. The compact Student Home (same switch) now hides Halo's title
+row and tabs and shows the school's sponsor logo in Halo's purple bar, so search, This week and the class cards start
+right under the bar; it stays compact when Halo redraws Student Home without reloading; a slim week strip under This
+week (a dot per thing due, in each class's colour) opens the calendar on a day; the rubric opens in a box of its own,
+with Hide, and Halo's link reads "Hide Rubric" while it is open. **No new permission.** Upload
+`webstore-upload/halo-plus-extension-0.12.3.zip`; the description and the Privacy tab as below, unchanged.
+
+## 0.12.2 (2026-10-28)
 
 0.12.2 (Loop 273): George's changes after testing 0.12.1. A compact Student Home header (the title and the school's
 sponsor logo on one row, Halo's two schedule lines folded into a "View your full schedule" link; its own switch); the

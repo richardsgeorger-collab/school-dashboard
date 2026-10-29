@@ -148,9 +148,33 @@ ${tabs}
 // Halo's Student Home tabs as its React code runs them (research A §1): one selected tab in state; choosing another
 // re-renders both buttons (class, aria-selected, tabindex) and mounts that tab's panel as a new <section> at the end of
 // #Home--main; choosing the tab already selected changes nothing.
+// Halo also redraws Student Home without reloading (0.12.3 tests): My Classes and the HALO logo in its purple bar mount
+// a fresh Student Home (new nodes, the same page), and moving to a class page and back does too (window.__hpGoClass).
 const HOME_TABS_JS = `
 (function () {
   const ON = '%ON%', OFF = '%OFF%';
+  const box = document.getElementById('Home--main').parentElement;
+  const fresh = box.innerHTML;
+  function redraw() {
+    box.innerHTML = fresh;
+    bind();
+  }
+  document.getElementById('guide_anchor_header_myClasses').addEventListener('click', () => {
+    if (location.pathname === '/') redraw();
+  });
+  document.getElementById('guide_anchor_header_logo').addEventListener('click', (e) => {
+    e.preventDefault();
+    history.pushState({}, '', '/');
+    redraw();
+  });
+  window.__hpGoClass = (slug) => {
+    history.pushState({}, '', '/courses/' + slug);
+    box.innerHTML = '<div class="py-4"><h1>Calendar</h1><p>(a class page)</p></div>';
+  };
+  window.__hpRedraws = 0;
+  bind();
+  function bind() {
+  window.__hpRedraws++;
   const main = document.getElementById('Home--main');
   const list = main.querySelector('[role="tablist"]');
   const tabs = [...list.querySelectorAll('[role="tab"]')];
@@ -171,6 +195,7 @@ const HOME_TABS_JS = `
     s.innerHTML = panels[sel];
     main.appendChild(s);
   });
+  }
 })();
 `;
 

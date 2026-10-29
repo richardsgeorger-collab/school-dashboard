@@ -133,6 +133,15 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
         total: on(box.querySelector('.hp-total')) ? box.querySelector('.hp-total').innerText.replace(/\s+/g, ' ').trim() : null,
       };
     });
+    // 0.12.3: a box of its own (a thin border, a light background), and Halo's link reads "Hide Rubric".
+    const boxLook = await card.evaluate((el) => {
+      const box = el.querySelector('[data-haloplus="rubric"]');
+      const cs = getComputedStyle(box);
+      const a = el.querySelector('a[data-testid="print_rubric_link"]');
+      return { border: cs.borderTopWidth, style: cs.borderTopStyle, bg: cs.backgroundColor, card: getComputedStyle(el).backgroundColor, label: getComputedStyle(a, '::after').content, aria: a.getAttribute('aria-label'), hide: [...box.querySelectorAll('button')].map((b) => b.textContent.trim()) };
+    });
+    check(boxLook.border === '1px' && boxLook.style === 'solid' && boxLook.bg !== boxLook.card, `${tag}: the rubric in a box of its own (a thin border, a light background)`);
+    check(boxLook.label === '"Hide Rubric"' && boxLook.aria === 'Hide Rubric' && boxLook.hide.join('|').startsWith('Show everything|Open in new tab|Hide'), `${tag}: Halo's link reads "Hide Rubric"; the header has Show everything, Open in new tab, Hide`);
     let v = await vis();
     check(v.head === `Rubric · ${total} pts`, `${tag}: the total at the top ("${v.head}")`);
     check(JSON.stringify(v.lines) === JSON.stringify(crit.map((c) => `${c.name} · ${r2(c.points)} pts`)), `${tag}: each criterion on one line with its points (${v.lines[0]} …)`);
@@ -176,10 +185,15 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.screenshot({ path: `${OUT}/${tag}-3-rubric-open.png` });
     await link.click();
     await sleep(300);
-    check((await card.locator('[data-haloplus="rubric"]').count()) === 0 && (await link.getAttribute('aria-expanded')) === 'false', `${tag}: View Rubric again closes it`);
+    check((await card.locator('[data-haloplus="rubric"]').count()) === 0 && (await link.getAttribute('aria-expanded')) === 'false' && (await link.evaluate((a) => getComputedStyle(a, '::after').content)) === 'none', `${tag}: "Hide Rubric" closes it, and the link reads View Rubric again`);
     await link.click();
     await until(async () => (await card.locator('[data-testid="hp-rubric-total"]').count()) === 1, 8000, 150);
     check(rubricCalls() === 1 && tabs === 0, `${tag}: and opens it again, asking Halo nothing more`);
+    await card.locator('[data-haloplus="rubric"] [data-hide]').click();
+    await sleep(300);
+    check((await card.locator('[data-haloplus="rubric"]').count()) === 0 && (await link.getAttribute('aria-expanded')) === 'false', `${tag}: its own Hide closes it too`);
+    await link.click();
+    await until(async () => (await card.locator('[data-testid="hp-rubric-total"]').count()) === 1, 8000, 150);
     await link.click();
     await link.click({ modifiers: [process.platform === 'darwin' ? 'Meta' : 'Control'] });
     await until(async () => tabs === 1, 5000, 100);

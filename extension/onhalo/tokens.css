@@ -472,52 +472,54 @@
   color: var(--hp-text-2);
   padding: 24px 0;
 }
-/* ---- A compact Student Home header (0.12.2): Halo's title and the sponsor logo on one row, the logo a little smaller,
-   Halo's two schedule lines hidden, "View your full schedule" beside the title in Halo's link style. ---------------- */
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] {
-  flex-wrap: nowrap;
-  gap: 16px;
+/* ---- A compact Student Home (0.12.3): from a mark on the page's root, which Halo never redraws, so a Student Home Halo
+   redraws without reloading is compact from its first frame. Halo's title row, its two schedule lines and its Current
+   Classes / Past Classes tabs are hidden; the sponsor logo shows in the purple bar instead (homeheader.js). --------- */
+html[data-hp-home-compact] #Home--main > header[class*='PageTitle_headerContainer'],
+html[data-hp-home-compact] #Home--main > header[class*='PageTitle_headerContainer'] + div:has(a[href*='classschedule']),
+html[data-hp-home-compact] #Home--main > [role='tablist'],
+html[data-hp-home-compact] #Home--main > .better-halo-tabs-wrapper > [role='tablist'] {
+  display: none !important;
 }
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :first-child {
-  flex: 1 1 auto;
-  min-width: 0;
-  flex-wrap: wrap;
-  row-gap: 2px;
+html[data-hp-home-compact] [class*='Home_container']:has(> #Home--main) {
+  margin-top: 1.25rem !important;
 }
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child {
-  flex: none;
+html[data-hp-home-compact] #Home--main > .better-halo-tabs-wrapper {
+  justify-content: flex-end !important;
+  margin-bottom: 12px;
 }
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child img {
-  max-height: 44px !important;
-  max-width: 260px !important;
-  margin-top: 0 !important;
+html[data-hp-home-compact] #Home--main > .better-halo-tabs-wrapper:not(:has(> :not([role='tablist']))) {
+  display: none !important;
 }
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child [data-better-halo-original-img-src] {
-  width: var(--hp-logo-w, auto) !important;
-  height: var(--hp-logo-h, 44px) !important;
-  margin-top: 0 !important;
+/* The sponsor logo in Halo's purple bar, on a small white plate (it reads on purple and on a dark theme). */
+[data-haloplus='sponsor'] {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  margin-right: 12px;
 }
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] > :last-child [data-better-halo-original-img-src] > * {
+[data-haloplus='sponsor'] a {
+  display: inline-flex;
+  border-radius: 6px;
+}
+[data-haloplus='sponsor'] [data-better-halo-original-img-src] > * {
   width: 100% !important;
   height: 100% !important;
 }
-#Home--main[data-hp-compact] > [data-hp-schedule] {
-  display: none !important;
+[data-haloplus='sponsor'] a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
-#Home--main [data-haloplus='schedule-link'] {
-  margin-left: 14px;
-  font-size: 0.875rem;
-  font-family: var(--hp-font);
-  color: var(--hp-link);
-  text-decoration: none;
-  white-space: nowrap;
-}
-#Home--main [data-haloplus='schedule-link']:hover {
-  text-decoration: underline;
-}
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] + [role='tablist'],
-#Home--main[data-hp-compact] > header[class*='PageTitle_headerContainer'] + .better-halo-tabs-wrapper {
-  margin-top: 12px;
+[data-haloplus='sponsor'] img {
+  display: block;
+  height: 40px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  padding: 3px 8px;
+  background: #fff;
+  border-radius: 6px;
 }
 /* The rubric's own small buttons (0.12.2): Halo's text-button look (uppercase 12px, its link blue). */
 [data-haloplus='rubric'] .hp-rb {
@@ -539,4 +541,106 @@
 }
 [data-haloplus='rubric'] [hidden] {
   display: none !important;
+}
+/* ---- The week strip under "This week" (0.12.3): seven day boxes, one line tall, a dot per thing due in its class's
+   colour (hollow once done), today in Halo's purple. ------------------------------------------------------------------ */
+[data-haloplus='week-strip'] {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) auto;
+  gap: 6px;
+  align-items: center;
+  margin: -6px 0 16px;
+  font-family: var(--hp-font);
+}
+[data-haloplus='week-strip'] .hp-sd {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  min-width: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--hp-border);
+  border-radius: 6px;
+  background: var(--hp-surface);
+  color: var(--hp-text-2);
+  font-size: 12.5px;
+}
+[data-haloplus='week-strip'] .hp-sd:hover {
+  border-color: var(--hp-input-border-hover);
+  color: var(--hp-text);
+}
+[data-haloplus='week-strip'] .hp-sd:focus-visible {
+  outline: 2px solid var(--hp-focus);
+  outline-offset: 1px;
+}
+[data-haloplus='week-strip'] .hp-sd-today {
+  border-color: var(--hp-purple);
+  box-shadow: inset 0 0 0 1px var(--hp-purple);
+  color: var(--hp-text);
+  font-weight: 600;
+}
+[data-haloplus='week-strip'] .hp-sd-d {
+  white-space: nowrap;
+}
+[data-haloplus='week-strip'] .hp-sd-w {
+  font-weight: 600;
+}
+[data-haloplus='week-strip'] .hp-sd-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+[data-haloplus='week-strip'] .hp-sd-dots i {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c, var(--hp-text-3));
+  border: 1.5px solid var(--c, var(--hp-text-3));
+  box-sizing: border-box;
+}
+[data-haloplus='week-strip'] .hp-sd-dots i.hp-dd {
+  background: transparent;
+  opacity: 0.7;
+}
+[data-haloplus='week-strip'] .hp-sd-dots b {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hp-text-2);
+}
+[data-haloplus='week-strip'] .hp-sd-mark {
+  font-size: 13px;
+  color: var(--hp-text-2);
+}
+/* A day the strip opened: marked for a moment. */
+.hp-cal .hp-day.hp-flash {
+  box-shadow: inset 0 0 0 2px var(--hp-purple);
+  transition: box-shadow 0.3s;
+}
+/* The rubric opened from Halo's View Rubric (0.12.3: it blended in): a calm box of its own, a thin border and a light
+   background in Halo's grays (Better Halo's under its themes); Halo's link reads "Hide Rubric" while it is open (drawn
+   over Halo's own words, which stay in the page). */
+[data-haloplus='rubric'].hp-rbox {
+  margin: 8px 20px 14px;
+  padding: 12px 16px 14px;
+  border: 1px solid var(--hp-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--hp-text) 3%, var(--hp-surface));
+}
+a[data-testid='print_rubric_link'][data-hp-open] {
+  font-size: 0 !important;
+}
+a[data-testid='print_rubric_link'][data-hp-open]::after {
+  content: 'Hide Rubric';
+  font-size: 0.875rem;
+}
+/* Compact: no tabs above the search field, so its pull-up under the tab line goes. */
+html[data-hp-home-compact] #Home--main > [data-haloplus='search-bar'] {
+  margin-top: 0 !important;
 }

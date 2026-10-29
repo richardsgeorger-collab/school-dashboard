@@ -946,7 +946,10 @@ ul{list-style:none;margin:0;padding:0}
     const cal = On && On.enabled('calendar') ? '<a class="cal" href="#hp-home-calendar" data-cal>Calendar</a>' : '';
     const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}"><div class="hrow">${head}${cal}</div><div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
     let h = old;
-    if (!h || h.nextElementSibling !== spot.grid) {
+    // Right above the cards, or above Halo+'s week strip that sits right above them (0.12.3).
+    const nx = h && h.nextElementSibling;
+    const placed = !!nx && (nx === spot.grid || (nx.getAttribute('data-haloplus') === 'week-strip' && nx.nextElementSibling === spot.grid));
+    if (!placed) {
       if (h) h.remove();
       h = document.createElement('div');
       h.setAttribute('data-haloplus', 'week');
@@ -955,6 +958,8 @@ ul{list-style:none;margin:0;padding:0}
       sr.innerHTML = `<style>${WEEK_CSS}</style><div class="root"></div>`;
       weekEvents(h, sr);
       spot.grid.parentNode.insertBefore(h, spot.grid);
+      // Halo+'s week strip (0.12.3) goes right under it: tell it the bar is (back) in place.
+      document.dispatchEvent(new CustomEvent('haloplus-week-placed'));
       // Placed cleanly: the full width of the cards, and above them. Otherwise nothing.
       const a = h.getBoundingClientRect();
       const b = spot.grid.getBoundingClientRect();

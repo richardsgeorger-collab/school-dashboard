@@ -194,6 +194,44 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     check(contrast >= 4.5, `${tag}: chip text easy to read on its tint (lowest contrast ${contrast.toFixed(1)}:1)`);
     const cm = got.find((c) => c.id === moved.id);
     check(!cm || cm.day === dayKey(st.grades[moved.id].dueDate), `${tag}: a date Halo moved since the last sync is on Halo's new day (${cm ? cm.day : 'not in view'})`);
+    // 0.12.3: the week strip right under "This week": a box a day, a dot per thing due in its class's colour.
+    const strip = await p.evaluate(() => {
+      const s = document.querySelector('[data-haloplus="week-strip"]');
+      if (!s) return null;
+      const w = document.querySelector('[data-haloplus="week"]');
+      const boxes = [...s.querySelectorAll('.hp-sd')];
+      return {
+        under: w.nextElementSibling === s,
+        height: Math.round(s.getBoundingClientRect().height),
+        days: boxes.map((b) => b.getAttribute('data-day')),
+        today: boxes.filter((b) => b.classList.contains('hp-sd-today')).map((b) => b.getAttribute('data-day')),
+        dots: Object.fromEntries(boxes.map((b) => [b.getAttribute('data-day'), [...b.querySelectorAll('.hp-sd-dots i')].map((i) => ({ c: i.style.getPropertyValue('--c'), done: i.classList.contains('hp-dd') }))])),
+        more: Object.fromEntries(boxes.map((b) => [b.getAttribute('data-day'), (b.querySelector('.hp-sd-dots b') || {}).textContent || ''])),
+      };
+    });
+    const dueOn = (k) => got.filter((c) => c.day === k && !c.part && !c.quiet);
+    const dotsOk = strip && strip.days.every((k) => {
+      const items = dueOn(k);
+      const dots = strip.dots[k];
+      return dots.length === Math.min(5, items.length) && dots.every((d, i) => d.c === items[i].col && d.done === items[i].done) && (items.length > 5 ? strip.more[k] === `+${items.length - 5}` : !strip.more[k]);
+    });
+    check(strip && strip.under && strip.height <= 40 && JSON.stringify(strip.days) === JSON.stringify(hk) && JSON.stringify(strip.today) === JSON.stringify([today]), `${tag}: a week strip right under This week, one line (${strip && strip.height}px), Monday to Sunday, today marked`);
+    check(dotsOk, `${tag}: each day's dots: one per thing due, in its class's colour, hollow once done`);
+    // A day opens the calendar on it.
+    await p.locator('[data-haloplus="home-calendar"] .hp-sec-head').click();
+    await sleep(300);
+    const pick = hk[4];
+    await p.locator(`[data-haloplus="week-strip"] [data-day="${pick}"]`).click();
+    await sleep(1600);
+    const opened = await p.evaluate((k) => {
+      const sec = document.querySelector('[data-haloplus="home-calendar"]');
+      const cell = sec.querySelector(`.hp-day[data-day="${k}"]`);
+      const r = sec.getBoundingClientRect();
+      const c = cell && cell.getBoundingClientRect();
+      return { open: !sec.querySelector('.hp-sec-body').hidden, cell: !!cell, flash: !!cell && cell.classList.contains('hp-flash'), top: Math.round(r.top), seen: !!c && c.top >= 0 && c.top < window.innerHeight - 40 };
+    }, pick);
+    check(opened.open && opened.cell && opened.flash && opened.seen, `${tag}: a day in the strip opens the calendar on that day and scrolls to it (${JSON.stringify(opened)})`);
+    await p.evaluate(() => (document.getElementById('CourseLayout--main').scrollTop = 0));
     // Two weeks, to see the busy day and the midnight item.
     await p.locator('[data-haloplus="home-calendar"] [data-hp-weeks="2"]').click();
     await sleep(500);
@@ -284,10 +322,11 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.locator('[data-haloplus="home-calendar"] .hp-sec-head').click();
     await sleep(500);
     // Halo's Past Classes: no calendar under them; Current Classes: back.
-    await p.locator('#Home--main [role="tablist"] [role="tab"]').nth(1).click();
+    // Halo's tabs (hidden by the compact Student Home, still Halo's): clicked as Halo would be.
+    await p.evaluate(() => document.querySelectorAll('#Home--main [role="tablist"] [role="tab"]')[1].click());
     await sleep(600);
     const pastHidden = await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); return !s || s.hidden; });
-    await p.locator('#Home--main [role="tablist"] [role="tab"]').first().click();
+    await p.evaluate(() => document.querySelectorAll('#Home--main [role="tablist"] [role="tab"]')[0].click());
     await sleep(800);
     const backShown = await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); return !!s && !s.hidden && [...document.querySelectorAll('#Home--main > section')].pop().nextElementSibling === s; });
     check(pastHidden && backShown, `${tag}: under Past Classes no calendar; back under Current Classes, after the cards`);

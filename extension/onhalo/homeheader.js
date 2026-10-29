@@ -1,106 +1,139 @@
-// Feature (0.12.2, George): a compact Student Home header, so the class cards sit higher. Halo's header is a flex row
-// that may wrap (the "Student home" title, and on the right the school's sponsor logo, Global Credit Union for GCU,
-// research 2026-10-27), followed by two lines of text: "Students will see their classes in Halo three days before ..."
-// and "Missing a class? View your full schedule.". Compact: the title and the logo on one row (the logo a little
-// smaller if it must be, never hidden or covered: it is GCU's sponsor placement), the two lines hidden, and "View your
-// full schedule" kept as a small link beside the title (Halo's own link, Halo's link style). Only when Halo's header is
-// exactly that shape; if Halo changes it, or the result is not one clean row, the header is left as Halo has it.
+// Feature: a compact Student Home (0.12.2, own switch "Compact Student Home header"). 0.12.3 (George, after testing
+// 0.12.2): search, This week and the class cards start right under Halo's purple bar. Halo's "Student home" title, its
+// two schedule lines and its Current Classes / Past Classes tabs are hidden, and the school's sponsor logo (Global
+// Credit Union for GCU: its sponsor placement, never hidden) moves into the purple bar, between MESSAGES and the bell,
+// on a small white plate so it reads on purple and on a dark theme. Halo's own logo stays in the page, hidden; Halo+
+// shows a copy (the same image, the same link). Halo redraws Student Home without reloading (My Classes, the HALO logo,
+// back from a class): the hiding is done by Halo+'s stylesheet from a mark on the page's root (which Halo never
+// redraws), so a redrawn Student Home is compact from its first frame, and the logo is put back in the bar in the same
+// moment Halo draws (a watcher on the page, before the browser paints). Only when the bar and the logo are where Halo
+// puts them and the copy shows whole and uncovered; otherwise Student Home is left exactly as Halo has it.
 (function () {
   'use strict';
   const O = globalThis.HaloPlusOn;
   if (!O) return;
+  const ROOT = document.documentElement;
+  let on = false;
+  let failedFor = null;
 
-  /** Halo's header parts, or null when the page is not the shape this was made for. */
-  function parts() {
+  const onHome = () => O.route().kind === 'home';
+  /** Halo's sponsor logo on Student Home: its header, image source, words and link; or null. */
+  function sponsor() {
     const main = document.getElementById('Home--main');
     const header = main && main.querySelector(':scope > header[class*="PageTitle_headerContainer"]');
     if (!header || header.children.length !== 2) return null;
     const [left, right] = header.children;
-    const title = left.querySelector(':scope > h1[class*="PageTitle_headerText"]');
-    // Halo's <img>, or Better Halo's copy of it (Better Halo swaps the logo for a recoloured <span> under its themes).
-    const logo = right.querySelector('img, [data-better-halo-original-img-src]');
-    if (!title || !logo || left.querySelector('img')) return null;
-    // The two lines: Halo's block between the header and the tabs, holding the class schedule link.
-    let info = header.nextElementSibling;
-    if (info && (info.tagName !== 'DIV' || info.getAttribute('role') === 'tablist' || !info.querySelector('a[href*="classschedule"]') || info.querySelector('[data-haloplus]'))) info = null;
-    return { main, header, left, right, title, logo, info };
+    if (!left.querySelector(':scope > h1[class*="PageTitle_headerText"]')) return null;
+    const el = right.querySelector('img, [data-better-halo-original-img-src]');
+    if (!el) return null;
+    const src = el.tagName === 'IMG' ? el.getAttribute('src') : el.getAttribute('data-better-halo-original-img-src');
+    const alt = el.tagName === 'IMG' ? el.getAttribute('alt') : el.getAttribute('data-better-halo-original-img-alt');
+    const a = el.closest('a');
+    if (!src || !/^(https?:|data:image\/|\/)/.test(src)) return null;
+    return { header, src, alt: alt || 'Sponsor logo', href: a ? a.getAttribute('href') : null };
   }
-  function undo() {
-    const main = document.getElementById('Home--main');
-    if (main) main.removeAttribute('data-hp-compact');
-    const header = main && main.querySelector(':scope > header');
-    if (header) {
-      header.style.removeProperty('--hp-logo-w');
-      header.style.removeProperty('--hp-logo-h');
+  /** The empty space in Halo's purple bar between MESSAGES and the bell. */
+  function barSpot() {
+    const bar = document.querySelector('#header_main_container header .MuiToolbar-root');
+    const spot = bar && [...bar.children].find((c) => c.classList.contains('flex-grow'));
+    return spot && bar.querySelector('#guide_anchor_header_alert') ? { bar, spot } : null;
+  }
+  function placeLogo(s) {
+    const b = barSpot();
+    if (!b) return null;
+    let h = b.spot.querySelector('[data-haloplus="sponsor"]');
+    if (!h) {
+      h = document.createElement('div');
+      h.setAttribute('data-haloplus', 'sponsor');
+      b.spot.appendChild(h);
     }
-    document.querySelectorAll('[data-hp-schedule]').forEach((n) => n.removeAttribute('data-hp-schedule'));
-    document.querySelectorAll('[data-haloplus="schedule-link"]').forEach((n) => n.remove());
+    const key = `${s.src}|${s.href}`;
+    if (h.dataset.key !== key) {
+      h.dataset.key = key;
+      const img = `<img src="${O.esc(s.src)}" alt="${O.esc(s.alt)}">`;
+      h.innerHTML = s.href ? `<a href="${O.esc(s.href)}" target="_blank" rel="noopener" title="${O.esc(s.alt)}">${img}</a>` : img;
+      h.querySelector('img').addEventListener('load', () => check(), { once: true });
+    }
+    return h;
   }
-  let failed = false;
+  const headerNow = () => {
+    const s = sponsor();
+    return s ? s.header : null;
+  };
+  function clear() {
+    ROOT.removeAttribute('data-hp-home-compact');
+    document.querySelectorAll('[data-haloplus="sponsor"]').forEach((n) => n.remove());
+  }
+  /** Shown whole, inside the bar, nothing on top of it; else Student Home goes back to Halo's own. */
+  function check() {
+    const h = document.querySelector('[data-haloplus="sponsor"]');
+    // Halo+'s copy, or Better Halo's themed version of it (Better Halo knows GCU's sponsor logo and swaps it, ours too):
+    // that one is drawn for Better Halo's own colours, so it goes without the white plate, at the same height.
+    const i = h && h.querySelector('img, [data-better-halo-original-img-src]');
+    if (!i || (i.tagName === 'IMG' && !i.complete)) return;
+    if (i.tagName !== 'IMG' && !i.dataset.hpSized) {
+      const w = parseFloat(i.style.width);
+      const ht = parseFloat(i.style.height);
+      if (w > 0 && ht > 0) {
+        i.dataset.hpSized = '1';
+        i.style.setProperty('height', '36px', 'important');
+        i.style.setProperty('width', `${Math.round((w * 36) / ht)}px`, 'important');
+        i.style.setProperty('margin', '0', 'important');
+      }
+      h.classList.add('hp-themed');
+    }
+    const b = barSpot();
+    const r = i.getBoundingClientRect();
+    const bar = b && b.bar.getBoundingClientRect();
+    const hit = r.width ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+    const ok = !!bar && (i.tagName !== 'IMG' || i.naturalWidth > 0) && r.width > 20 && r.height > 12 && r.top >= bar.top - 1 && r.bottom <= bar.bottom + 1 && r.right <= window.innerWidth && !!hit && h.contains(hit);
+    if (!ok) {
+      failedFor = headerNow();
+      clear();
+    }
+  }
+  /** Everything in place for the Student Home on screen now, or nothing; quick when it already is. */
   function apply() {
-    if (failed) return;
-    const p = parts();
-    if (!p) return undo();
-    const link = p.info && p.info.querySelector('a[href*="classschedule"]');
-    if (p.info) p.info.setAttribute('data-hp-schedule', '');
-    p.main.setAttribute('data-hp-compact', '');
-    let ours = p.left.querySelector('[data-haloplus="schedule-link"]');
-    if (link && !ours) {
-      ours = document.createElement('a');
-      ours.setAttribute('data-haloplus', 'schedule-link');
-      ours.href = link.href;
-      ours.target = '_blank';
-      ours.rel = 'noopener';
-      ours.textContent = 'View your full schedule';
-      ours.title = 'Your full class schedule, on GCU’s class schedule site (the link Halo shows under the title)';
-      p.left.appendChild(ours);
-    }
-    // One clean row, the logo whole and on top of nothing: otherwise Halo's own header, as it was.
-    const t = p.title.getBoundingClientRect();
-    const l = p.logo.getBoundingClientRect();
-    // Better Halo's copy has a fixed size: a little smaller here, in proportion.
-    if (p.logo.tagName !== 'IMG' && !p.logo.dataset.hpW) {
-      const w = parseFloat(p.logo.style.width);
-      const h = parseFloat(p.logo.style.height);
-      if (w > 0 && h > 0) {
-        p.logo.dataset.hpW = '1';
-        const k = Math.min(1, 44 / h, 260 / w);
-        p.header.style.setProperty('--hp-logo-w', `${Math.round(w * k)}px`);
-        p.header.style.setProperty('--hp-logo-h', `${Math.round(h * k)}px`);
-      }
-    }
-    const loaded = p.logo.tagName !== 'IMG' || (p.logo.complete && p.logo.naturalWidth > 0);
-    if (!loaded) {
-      if (!p.logo.dataset.hpWait) {
-        p.logo.dataset.hpWait = '1';
-        p.logo.addEventListener('load', () => apply(), { once: true });
-      }
+    if (!on) return;
+    if (!onHome()) {
+      document.querySelectorAll('[data-haloplus="sponsor"]').forEach((n) => n.remove());
       return;
     }
-    const oneRow = l.top < t.bottom && l.bottom > t.top;
-    const whole = l.width > 20 && l.height > 12 && l.right <= window.innerWidth + 1;
-    // Nothing on top of the logo (checked while it is on screen).
-    const inView = l.top >= 0 && l.bottom <= window.innerHeight;
-    const hit = inView ? document.elementFromPoint(l.left + l.width / 2, l.top + l.height / 2) : p.logo;
-    const covered = !(hit === p.logo || p.logo.contains(hit) || (hit && hit.closest && p.logo.closest('a') && hit.closest('a') === p.logo.closest('a')));
-    if (!oneRow || !whole || covered) {
-      failed = true;
-      undo();
+    const s = sponsor();
+    if (!s) {
+      // Halo's Student Home not drawn yet (between pages): the mark stays, so nothing flashes when it is. A Student Home
+      // of another shape (no title, no logo) is left as Halo has it.
+      if (document.querySelector('#Home--main > header')) clear();
+      return;
     }
+    if (failedFor === s.header) return;
+    if (!placeLogo(s)) return clear();
+    if (!ROOT.hasAttribute('data-hp-home-compact')) ROOT.setAttribute('data-hp-home-compact', '');
+    check();
   }
+  // Halo redraws Student Home without a reload: put things back before the browser paints, and only when something is
+  // missing (a change that leaves everything in place costs one look).
+  const watch = new MutationObserver(() => {
+    if (!on || !onHome()) return;
+    const h = document.querySelector('[data-haloplus="sponsor"]');
+    if (!h || !ROOT.hasAttribute('data-hp-home-compact')) apply();
+    else if (!h.classList.contains('hp-themed') && h.querySelector('[data-better-halo-original-img-src]')) check();
+  });
   O.feature({
     id: 'homeheader',
-    routes: ['home'],
     start() {
-      failed = false;
+      on = true;
+      watch.observe(document.body, { childList: true, subtree: true });
       apply();
     },
     update() {
       apply();
     },
     stop() {
-      undo();
-      failed = false;
+      on = false;
+      watch.disconnect();
+      clear();
+      failedFor = null;
     },
   });
 })();

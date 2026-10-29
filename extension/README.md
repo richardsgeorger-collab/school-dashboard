@@ -50,6 +50,11 @@ switch); `homecal.js` is now a "Calendar · All classes" section below the class
 `rubric.js` opens short (total, one line per criterion) with "Show all levels", "Show everything" and a printable
 "Open in new tab".
 
+0.12.3 (2026-10-28): `homeheader.js` hides Student Home's title row, schedule lines and tabs from a mark on the page
+root (`html[data-hp-home-compact]`, so Halo's redraws stay compact) and shows the sponsor logo in the purple bar;
+`homecal.js` adds the week strip under This week (`halo-ui.js` announces `haloplus-week-placed`); `rubric.js` puts the
+rubric in a box with Hide, and Halo's link reads "Hide Rubric".
+
 ## Build
 
     npm run build:extension
