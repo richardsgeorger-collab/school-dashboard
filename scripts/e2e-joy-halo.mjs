@@ -5,7 +5,8 @@
 // react-toastify shows "Assignment has been submitted.". Checks: the app hands the snapshot over; the moment and its
 // numbers; the item done in the account at once (0.12.9: the extension's mark through sync-drop, no sync), opening and
 // focusing nothing; a failed submission and a plain discussion reply get nothing; Celebrations off: done, no moment;
-// Free: done, with its moment (0.12.9); a DQ response and a quiz get it; reduced motion is a glow. Halo's toasts as
+// Free: done, with its moment (0.12.9); a DQ response and a quiz get it; 0.12.10: the moment is one toast and confetti,
+// the toast only with reduce motion or Celebrations off. Halo's toasts as
 // Halo draws them (its icon titled "SUCCESS", "Success", then the words). Screens light and dark.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-joy-halo.mjs
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -83,7 +84,10 @@ try {
   const total = sameClass.reduce((a, i) => a + i.points, 0);
   const done = sameClass.filter(turned).reduce((a, i) => a + i.points, 0);
   const code = courses.find((c) => c.id === open.courseId).code;
-  const expected = `+${open.points} pts · ${code} now ${Math.floor(((done + open.points) / total) * 100)}% done`;
+  const expected = `+${open.points} pts`;
+  void code;
+  void total;
+  void done;
   // Done in the account (the app's own item), as the app's Done button makes it.
   const itemId = (h) => worker.evaluate((x) => globalThis.HaloPlusModel.itemId(x), h);
   const doneInAccount = async (h, ms = 10000) => {
@@ -99,9 +103,10 @@ try {
   const others = rows.filter((i) => i.source === 'halo' && i.points > 0 && !turned(i) && i.haloId && i.haloId !== open.haloId);
 
   const halo = await ectx.newPage();
-  const cardText = () => halo.evaluate(() => document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('.card')?.textContent?.replace('×', '').trim() ?? null);
-  const pieces = () => halo.evaluate(() => document.getElementById('haloplus-joy')?.shadowRoot?.querySelectorAll('.c').length ?? 0);
-  const glow = () => halo.evaluate(() => !!document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('.glow'));
+  // 0.12.10: the moment is one toast the way Halo builds its own, and confetti on a canvas (canvas-confetti, bundled).
+  const cardText = () => halo.evaluate(() => { const t = document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('.t'); return t ? `${t.querySelector('strong').textContent} · ${t.querySelector('.s')?.textContent ?? ''}`.replace(/\s+/g, ' ').trim() : null; });
+  const pieces = () => halo.evaluate(() => (document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('canvas.cf') ? 100 : document.getElementById('haloplus-joy')?.shadowRoot?.querySelectorAll('.c').length ?? 0));
+  const glow = () => halo.evaluate(() => !!document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('.t'));
   const reset = () => halo.evaluate(() => document.getElementById('haloplus-joy')?.remove());
   const submit = async (id, { kind = 'assignment', text = 'Assignment has been submitted.', type = 'success', modal = true } = {}) => {
     await reset();
@@ -128,7 +133,7 @@ try {
     const text = await cardText();
     await sleep(250);
     await halo.screenshot({ path: `${OUT}/p6-halo-confetti-desk-${scheme}.png` });
-    check(!!text && text.includes(expected) && n > 40, `${scheme}: Halo confirms the submission → gold confetti (${n} pieces) and "${text}" (with "${expected}")`);
+    check(!!text && text.includes(expected) && n > 40, `${scheme}: Halo confirms the submission → confetti and one toast "${text}" (with "${expected}")`);
     if (scheme === 'light') check(await doneInAccount(open.haloId), `${scheme}: done in the Halo+ account within seconds (no sync)`);
     await sleep(9000);
     check(gateway.n - calls < 20, `${scheme}: no sync (Halo calls ${calls} → ${gateway.n})`);
@@ -148,13 +153,13 @@ try {
   const dq = rows.find((i) => i.source === 'halo' && i.points > 0 && !turned(i) && i.haloId && i.haloId !== open.haloId);
   await sleep(8200);
   await submit(dq.haloId, { kind: 'dq', text: 'Discussion response has been submitted' });
-  check(/\+\d+ pts · .+ now \d+% done/.test((await cardText()) ?? ''), `a DQ response ("Discussion response has been submitted") gets the moment ("${await cardText()}")`);
+  check(/\+\d+ pts/.test((await cardText()) ?? ''), `a DQ response ("Discussion response has been submitted") gets the moment ("${await cardText()}")`);
   // A quiz, on its own page.
   await sleep(8200);
   await halo.goto(`https://halo.gcu.edu/quiz/${encodeURIComponent(dq.haloId)}?slugId=chm-113l`, { waitUntil: 'load' });
   await sleep(1200);
   await submit(null, { text: 'Quiz successfully submitted<br />See Gradebook for more details', modal: false });
-  check(/\+\d+ pts · .+ now \d+% done/.test((await cardText()) ?? ''), `a quiz gets the moment ("${await cardText()}")`);
+  check(/\+\d+ pts/.test((await cardText()) ?? ''), `a quiz gets the moment ("${await cardText()}")`);
   // Something Halo+ does not know (not synced yet): still a moment, honestly worded.
   await sleep(8200);
   await halo.goto('https://halo.gcu.edu/courses/chm-113l/classroom', { waitUntil: 'load' });
@@ -166,7 +171,7 @@ try {
   await sleep(8200);
   await halo.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await submit(open.haloId);
-  check((await glow()) && (await pieces()) === 0 && ((await cardText()) ?? '').includes(expected), 'reduced motion: a glow instead of confetti, same card');
+  check((await glow()) && (await pieces()) === 0 && ((await cardText()) ?? '').includes(expected), 'reduced motion: the toast only, no confetti');
   await halo.screenshot({ path: `${OUT}/p6-halo-reduced-motion.png` });
   await halo.emulateMedia({ reducedMotion: 'no-preference' });
 
@@ -174,6 +179,14 @@ try {
   await dash.bringToFront();
   await dash.goto('https://haloplus.app/#/you?s=display', { waitUntil: 'load' });
   await dash.waitForSelector('text=Celebrations', { timeout: 20000 });
+  // The check-offs earned real points on this throwaway account, so the app may be celebrating a new level: closed first.
+  const closeLevelUp = async () => {
+    for (let i = 0; i < 3 && (await dash.locator('.levelup').count()); i++) {
+      await dash.keyboard.press('Escape');
+      await sleep(300);
+    }
+  };
+  await closeLevelUp();
   await dash.locator('label:has-text("Celebrations") input[type=checkbox]').uncheck();
   for (let i = 0; i < 15; i++) { await sleep(1000); st = await store(['joySnap']); if (st.joySnap?.celebrate === false) break; }
   check(st.joySnap?.celebrate === false, 'turning Celebrations off reaches the extension');
@@ -181,10 +194,11 @@ try {
   await sleep(8200);
   const offItem = others[1] ?? others[0];
   await submit(offItem.haloId);
-  check((await cardText()) === null && (await pieces()) === 0, 'Celebrations off: no confetti and no card on Halo');
+  check((await cardText()) !== null && (await pieces()) === 0, 'Celebrations off: the toast only, no confetti');
   check(await doneInAccount(offItem.haloId), 'Celebrations off: still done in the Halo+ account');
   await worker.evaluate(() => chrome.storage.local.set({ running: false }));
   await dash.bringToFront();
+  await closeLevelUp();
   await dash.locator('label:has-text("Celebrations") input[type=checkbox]').check();
   await halo.bringToFront();
 

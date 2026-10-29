@@ -131,8 +131,9 @@ describe('the Celebrations preview changes nothing', () => {
     // Halo+ on Halo (0.8.0) loads its rules before and its pieces after; the confetti is the same two files, in order.
     // 0.12.0's on-Halo features come after them (onhalo/*.js), halo-ui.js still after the shared on-Halo core.
     const js = JSON.parse(read('extension/manifest.json')).content_scripts[0].js as string[];
-    expect(js.slice(0, 3)).toEqual(['halo-model.js', 'celebrate.js', 'content-halo.js']);
+    // 0.12.10: the confetti library (in the extension, never fetched) first, for the moment on Halo.
+    expect(js.slice(0, 4)).toEqual(['vendor/canvas-confetti.js', 'halo-model.js', 'celebrate.js', 'content-halo.js']);
     expect(js.indexOf('halo-ui.js')).toBeGreaterThan(js.indexOf('onhalo/core.js'));
-    expect(js.slice(3).every((f) => f === 'halo-ui.js' || f.startsWith('onhalo/'))).toBe(true);
+    expect(js.slice(4).every((f) => f === 'halo-ui.js' || f.startsWith('onhalo/'))).toBe(true);
   });
 });

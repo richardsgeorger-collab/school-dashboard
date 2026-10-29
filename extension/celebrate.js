@@ -8,6 +8,16 @@
 // draws itself with a burst of gold sparks, "Topic 7 DQ 1 · done", the points counting up, and this week's bar filling
 // to its new mark ("4 of 9 done this week"; "Week done" on the last one). Without them it is the card it always was.
 // Reduced motion: no confetti, no movement, everything at its end state.
+//
+// 0.12.10 (George on real Halo: the white card and the pill stacked in the corner were "boxy and not like Halo"; "make
+// the celebration BIG"): on Halo, the moment is one toast built the way Halo builds its own (Halo's success toast:
+// its colours from Halo's own variables, its 5 px bar on the left, 4 px corners, shadow, font and size), under Halo's own
+// "Assignment has been submitted." in the same corner: "✓ Lab 4: Photosynthesis done", "+30 pts · 3 of 11 this week",
+// a thin bar inside; short, then it fades. With it, multi-coloured confetti bursting from both sides of the window
+// (canvas-confetti, in the extension: vendor/canvas-confetti.js, never fetched), gravity, spin, flutter and drift, about
+// four seconds and gone; a bigger one when the week is done. Never in the way of a click (the layer takes none). The
+// Celebrations switch off, or the computer's "reduce motion": the toast only. Without `opts.toast` (Admin's preview)
+// it is the card it always was.
 (function () {
   const MARK = '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><ellipse cx="16" cy="17" rx="11" ry="5.5" fill="none" stroke="currentColor" stroke-width="3"/></svg>';
   const CHECK = '<svg viewBox="0 0 36 36" aria-hidden="true"><circle class="ring" cx="18" cy="18" r="17"/><path class="tick" d="M10.5 18.5l5 5 10-11" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -186,9 +196,160 @@
     card.append(ck, words);
   }
 
+  // ---- the toast and the big confetti (0.12.10) ------------------------------------------------------------------------
+  const TOAST_CSS = `
+:host { all: initial; }
+.t { position: fixed; right: 20px; top: 20px; z-index: 2147483647; box-sizing: border-box; width: 320px; max-width: calc(100vw - 40px);
+  display: flex; align-items: flex-start; gap: 0; padding: .5rem 1rem; border-radius: 4px; border-left: 5px solid var(--lms-alertSuccessColor, #2e7d32);
+  background: var(--lms-alertSuccessBackgroundColor, #edf7ed); color: var(--lms-textPrimaryColor, #212121);
+  box-shadow: 0 20px 25px -5px #0000001a, 0 10px 10px -5px #0000000a;
+  font-family: var(--lms-fontFamily, 'Open Sans', 'Helvetica Neue', Arial, sans-serif); font-size: 14px; line-height: 1.33; pointer-events: auto;
+  animation: t-in 360ms cubic-bezier(.2,.9,.25,1) both; }
+.t.out { animation: t-out 420ms ease-in forwards; }
+@keyframes t-in { from { opacity: 0; transform: translateX(24px); } }
+@keyframes t-out { to { opacity: 0; transform: translateY(-6px); } }
+.ic { flex: none; width: 22px; height: 22px; margin: 9px .75rem 0 0; color: var(--lms-alertSuccessColor, #2e7d32); }
+.ic svg { width: 22px; height: 22px; display: block; overflow: visible; }
+.ic .tick { stroke-dasharray: 16; stroke-dashoffset: 16; animation: tick 360ms 220ms ease-out forwards; }
+.ic circle { transform-origin: 12px 12px; animation: pop 460ms cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes tick { to { stroke-dashoffset: 0; } }
+@keyframes pop { from { transform: scale(.4); } 60% { transform: scale(1.15); } to { transform: scale(1); } }
+.m { flex: 1; min-width: 0; margin: .5rem 0; }
+.m strong { display: block; font-weight: var(--lms-fontWeightBold, 700); overflow-wrap: anywhere; }
+.s { display: block; margin-top: 2px; }
+.s .p { font-weight: var(--lms-fontWeightBold, 700); font-variant-numeric: tabular-nums; }
+.bar { display: block; position: relative; height: 3px; margin-top: 8px; border-radius: 2px; overflow: hidden;
+  background: color-mix(in srgb, var(--lms-alertSuccessColor, #2e7d32) 18%, transparent); }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--lms-alertSuccessColor, #2e7d32); transition: width 900ms cubic-bezier(.2,.8,.2,1) 300ms; }
+.x { flex: none; margin: 4px -6px 0 8px; border: 0; background: none; color: inherit; opacity: .45; font: 16px/1 system-ui; cursor: pointer; padding: 2px 4px; }
+.x:hover, .x:focus-visible { opacity: .9; }
+.still .t, .still .t.out, .still .ic .tick, .still .ic circle { animation: none; }
+.still .ic .tick { stroke-dashoffset: 0; }
+.still .fill { transition: none; }
+.cf { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 2147483646; }
+`;
+  const ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path class="tick" d="M7 12.4l3.3 3.3L17.2 8.8" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const COLORS = ['#522398', '#8a5cd6', '#f2b84b', '#ffd96a', '#07bc0c', '#2fb8ff', '#ff5d8f', '#ff8a3d', '#ffffff'];
+
+  /** Below Halo's own toast when it is showing, in the same column; else where Halo's would be. */
+  function toastTop() {
+    const c = document.querySelector('.Toastify__toast-container');
+    const r = c && c.getBoundingClientRect();
+    return r && r.height > 8 && r.top < innerHeight / 2 ? Math.round(r.bottom + 6) : 20;
+  }
+
+  /** The confetti: from both sides, in waves; a bigger one for a finished week. Gone after about four seconds. */
+  function burst(root, big) {
+    const lib = globalThis.confetti;
+    if (!lib || typeof lib.create !== 'function') return void confetti(root.querySelector('.wrap'), big ? 140 : 90);
+    const canvas = document.createElement('canvas');
+    canvas.className = 'cf';
+    root.append(canvas);
+    const fire = lib.create(canvas, { resize: true, useWorker: false });
+    const side = (x, n, v) =>
+      fire({ particleCount: n, angle: x < 0.5 ? 58 : 122, spread: 58, startVelocity: v, origin: { x, y: 0.72 }, colors: COLORS, ticks: 210, gravity: 1.05, decay: 0.915, drift: x < 0.5 ? 0.35 : -0.35, scalar: 1.05, shapes: ['square', 'circle'] });
+    const waves = big ? [[0, 85, 74], [200, 70, 66], [420, 60, 58], [700, 50, 52]] : [[0, 70, 68], [200, 55, 60], [430, 40, 52]];
+    for (const [ms, n, v] of waves)
+      setTimeout(() => {
+        side(0, n, v);
+        side(1, n, v);
+      }, ms);
+    if (big)
+      setTimeout(() => fire({ particleCount: 120, spread: 170, startVelocity: 48, origin: { x: 0.5, y: 0.32 }, colors: COLORS, ticks: 220, gravity: 0.9, decay: 0.92, scalar: 1.25, shapes: ['star', 'circle'] }), 320);
+    setTimeout(() => {
+      try {
+        fire.reset();
+      } catch {
+        /* gone */
+      }
+      canvas.remove();
+    }, big ? 4700 : 4100);
+  }
+
+  /** The toast, Halo's own way; the confetti unless quiet (the Celebrations switch off) or still (reduce motion). */
+  function toast(text, o) {
+    const host = document.createElement('div');
+    host.id = 'haloplus-joy';
+    host.style.cssText = 'all: initial; position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647;';
+    const root = host.attachShadow({ mode: 'open' });
+    const style = document.createElement('style');
+    style.textContent = CSS + TOAST_CSS;
+    const still = typeof o.still === 'boolean' ? o.still : matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const wrap = document.createElement('div');
+    wrap.className = `wrap${still ? ' still' : ''}`;
+    root.append(style, wrap);
+    const w = o.week && o.week.total > 0 ? o.week : null;
+    const all = !!w && w.done >= w.total;
+    const t = document.createElement('div');
+    t.className = 't toast';
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    t.style.top = `${toastTop()}px`;
+    const ic = document.createElement('span');
+    ic.className = 'ic';
+    ic.innerHTML = ICON;
+    const m = document.createElement('span');
+    m.className = 'm';
+    const strong = document.createElement('strong');
+    strong.textContent = o.title ? `${o.title} done` : 'Turned in';
+    const sub = document.createElement('span');
+    sub.className = 's';
+    const pts = o.pts > 0 ? Number(o.pts) : (/^\+(\d+) pts/.exec(text || '') || [])[1] ? Number(/^\+(\d+) pts/.exec(text)[1]) : 0;
+    const p = document.createElement('span');
+    p.className = 'p';
+    if (pts) {
+      p.textContent = `+${still ? pts : 0} pts`;
+      sub.append(p);
+    }
+    const tail = all ? 'Week done' : w ? `${w.done} of ${w.total} this week` : pts ? '' : text || '';
+    if (tail) sub.append(document.createTextNode(`${pts ? ' · ' : ''}${tail}`));
+    m.append(strong, sub);
+    if (w) {
+      const bar = document.createElement('span');
+      bar.className = 'bar';
+      const fill = document.createElement('span');
+      fill.className = 'fill';
+      fill.style.width = `${(still ? Math.min(1, w.done / w.total) : Math.max(0, w.done - 1) / w.total) * 100}%`;
+      bar.append(fill);
+      m.append(bar);
+      if (!still) requestAnimationFrame(() => requestAnimationFrame(() => (fill.style.width = `${Math.min(1, w.done / w.total) * 100}%`)));
+    }
+    const x = document.createElement('button');
+    x.className = 'x';
+    x.type = 'button';
+    x.setAttribute('aria-label', 'Close');
+    x.textContent = '×';
+    t.append(ic, m, x);
+    wrap.append(t);
+    (document.body || document.documentElement).append(host);
+    if (pts && !still) {
+      const t0 = performance.now() + 200;
+      const step = (now) => {
+        const k = Math.max(0, Math.min(1, (now - t0) / 700));
+        p.textContent = `+${Math.round(pts * (1 - Math.pow(1 - k, 3)))} pts`;
+        if (k < 1 && p.isConnected) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+    if (!o.quiet && !still) burst(root, all);
+    let timer = 0;
+    const close = () => {
+      clearTimeout(timer);
+      t.classList.add('out');
+      setTimeout(() => t.remove(), still ? 0 : 430);
+      // The confetti finishes on its own; the host goes when both are done.
+      setTimeout(() => host.remove(), still ? 0 : all ? 4800 : 4200);
+    };
+    x.addEventListener('click', close);
+    timer = setTimeout(close, 4500);
+    t.addEventListener('mouseenter', () => clearTimeout(timer));
+    t.addEventListener('mouseleave', () => (timer = setTimeout(close, 1800)));
+  }
+
   function show(text, opts) {
     document.getElementById('haloplus-joy')?.remove();
     const o = opts || {};
+    if (o.toast) return toast(text, o);
     const host = document.createElement('div');
     host.id = 'haloplus-joy';
     const root = host.attachShadow({ mode: 'open' });

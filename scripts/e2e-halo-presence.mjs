@@ -346,11 +346,14 @@ try {
     await p.goto(`https://halo.gcu.edu/courses/${fx.courses[0].slug}/course-units/u3#assignment-submission/${sub.h}`, { waitUntil: 'load' });
     await sleep(1200);
     await p.evaluate(() => { history.replaceState(null, '', location.pathname); const t = document.createElement('div'); t.className = 'Toastify__toast'; t.textContent = 'Assignment has been submitted.'; document.body.appendChild(t); });
-    const confetti = await until(() => p.evaluate(() => !!document.querySelector('[id^="haloplus"], [class*="haloplus"], [data-haloplus-celebrate]') || document.querySelectorAll('canvas').length > 0), 4000);
-    const nice = await until(async () => { const s = await pillState(p); return s && s.peek ? s : null; }, 8000, 200);
-    check(!!nice && /^Nice\. Next up: /.test(nice.text), `after a submission: "${nice?.text}"`);
-    check(!!confetti, 'the confetti still runs');
-    await p.screenshot({ path: `${OUT}/${BROWSER}-5-nice-next-light.png`, clip: { x: 566, y: 660, width: 800, height: 200 } });
+    // 0.12.10: one toast the way Halo builds its own (no second "Nice. Next up" from the pill beside it), and confetti.
+    const toast = await until(() => p.evaluate(() => !!document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('.t')), 4000);
+    const confetti = await until(() => p.evaluate(() => !!document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('canvas.cf, .c')), 4000);
+    await sleep(3000);
+    const after = await pillState(p);
+    check(!!toast && !(after && after.peek && /^Nice\. Next up: /.test(after.text)), `after a submission: one toast, the pill quiet (${after ? after.text : 'no pill'})`);
+    check(!!confetti, 'the confetti runs');
+    await p.screenshot({ path: `${OUT}/${BROWSER}-5-after-submit-light.png`, clip: { x: 566, y: 0, width: 800, height: 200 } });
     await p.close();
   }
 

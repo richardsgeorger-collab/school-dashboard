@@ -1,5 +1,13 @@
 # Chrome Web Store listing kit
 
+## 0.12.10 (2026-10-29): upload this package instead of 0.12.9; everything else as below
+
+0.12.10 (Loop 280): the submit moment as one Halo-style toast with big confetti (canvas-confetti, bundled in the
+package, no remote code), and a calm loading state on Student Home ("as of" the last saved state when Halo does not
+answer). **No new permission.** Upload `webstore-upload/halo-plus-extension-0.12.10.zip`. If the review asks about
+third-party code: `vendor/canvas-confetti.js` is canvas-confetti 1.9.4 (ISC licence, `vendor/canvas-confetti.LICENSE.txt`),
+unmodified, from npm (integrity sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==).
+
 ## 0.12.9 (2026-10-28): upload this package instead of 0.12.8; everything else as below
 
 0.12.9 (Loop 279): a submission is checked off the moment Halo confirms it (Halo+ had been missing Halo's real toasts),

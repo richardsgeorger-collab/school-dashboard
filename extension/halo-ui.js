@@ -1219,18 +1219,8 @@ ul{list-style:none;margin:0;padding:0}
     boxes();
   });
 
-  // After a submission (content-halo.js has just celebrated it): "Nice. Next up: …", once the confetti has had its moment.
-  window.addEventListener(
-    'haloplus:submitted',
-    guard((e) => {
-      if (!view || !showing() || free()) return;
-      const id = e && e.detail ? e.detail.id : null;
-      setTimeout(
-        guard(() => peek(M.nextAfter(view, Date.now(), id), 'next')),
-        2800,
-      );
-    }),
-  );
+  // After a submission the moment is one toast (content-halo.js, 0.12.10, George: the card and the pill's "Nice. Next
+  // up" together were "boxy"); the pill says nothing of its own then.
 
   // ---- keeping up --------------------------------------------------------------------------------------------------
   let path = location.pathname;

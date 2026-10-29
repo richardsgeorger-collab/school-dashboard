@@ -87,6 +87,15 @@ the class lines; `core.js` and `halo-ui.js` look again a few times after a page 
 Halo script and style goes into open Halo tabs; a copy left by an update steps aside. `core.js diag()` keeps a log of
 what each Halo page waited for in `chrome.storage.local` `haloDiag` (the last ten pages, no student data).
 
+0.12.10 (2026-10-29): the submit moment is one toast built the way Halo builds its own (`celebrate.js` `toast()`:
+Halo's success colours from its own variables, its 5 px left bar, 4 px corners, shadow and font; under Halo's own toast,
+top right) with big canvas confetti from both sides (`vendor/canvas-confetti.js`, canvas-confetti 1.9.4, ISC, bundled,
+never fetched, `useWorker: false`; the layer takes no clicks); the Celebrations switch off or "reduce motion": the toast
+only. The pill no longer peeks "Nice. Next up" after a submission. Loading state: `homecards.js` and `homecal.js` draw the
+NEXT boxes and the week strip at once, shimmering, the Halo+ mark turning (`.hp-sk`, `.hp-spin`), the same height as
+what fills them; `calendar.js` falls back after three misses to the last saved answer or the last sync's index, shown
+"as of <time>" (`O.cal.asOf`).
+
 ## Build
 
     npm run build:extension

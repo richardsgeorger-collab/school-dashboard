@@ -42,7 +42,26 @@
     return (raw && O.cal.colorFor(raw)) || raw || 'var(--lms-grayBD, #bdbdbd)';
   };
 
-  /** The NEXT box's lines for one class: null while Halo's answer is not here (no box then, never a guess). */
+  /** "2:14 PM" today, "Oct 28, 2:14 PM" before, in Halo's zone. */
+  function asOfText(at) {
+    const tz = O.zone() || undefined;
+    const t = new Date(at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz });
+    const day = (x) => new Date(x).toLocaleDateString('en-CA', { timeZone: tz });
+    return day(at) === day(Date.now()) ? t : `${new Date(at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: tz })}, ${t}`;
+  }
+  /**
+   * While Halo+ waits for Halo's answer for a class (0.12.10, George: the boxes were "just missing, which looks broken"):
+   * the box is there at once, "Next" with the Halo+ mark turning and three soft shimmering lines where the items will be,
+   * as tall as they will be, so nothing moves when they come.
+   */
+  const WAIT_HTML = `<small>Next<span class="hp-spin">${O.mark()}</span></small>${[150, 112, 132].map((w) => `<span class="hp-n-row hp-n-sk" aria-hidden="true"><span class="hp-n-t"><span class="hp-sk" style="width:${w}px"></span>&#8203;</span><span class="hp-n-w">&#8203;</span></span>`).join('')}<span class="hp-vh">Getting what is next from Halo…</span>`;
+  function waitingFor(slug) {
+    const idx = O.st.haloIndex;
+    if (!idx || !Array.isArray(idx.classes)) return false;
+    const c = idx.classes.find((x) => (x.slug || '').toLowerCase() === slug.toLowerCase());
+    return !!c && (!grades || !grades[c.slug]);
+  }
+  /** The NEXT box's lines for one class: null while Halo's answer is not here (never a guess). */
   function nextFor(slug) {
     const idx = O.st.haloIndex;
     if (!idx || !Array.isArray(idx.classes) || !grades) return null;
@@ -57,8 +76,8 @@
    * Halo's link style with its time right after it in gray ("Topic 7 DQ 1 · today 11:59 PM"); what cannot be acted on
    * yet in plain gray with its reason ("Exam 1 · in class Fri"); the first a little stronger, so the eye lands on it.
    */
-  function nextHtml(list) {
-    const head = `<small>Next${O.mark()}</small>`;
+  function nextHtml(list, asOf) {
+    const head = `<small>Next${asOf ? `<span class="hp-n-asof">· as of ${O.esc(asOfText(asOf))}</span>` : ''}${O.mark()}</small>`;
     if (!list.length) return `${head}<div class="hp-n-none">Nothing due soon</div>`;
     return `${head}${list
       .map((i, k) => `<a class="hp-n-row${i.why ? ' hp-n-wait' : ''}${k === 0 ? ' hp-n-first' : ''}" href="${O.esc(i.href)}" title="${O.esc(`${i.title} · Due ${i.full}${i.why ? ` · ${i.why}` : ''}`)}"><span class="hp-n-t">${O.esc(i.title)}</span><span class="hp-n-w">&nbsp;· ${O.esc(i.why || i.when)}</span></a>`)
@@ -123,7 +142,7 @@
     if (!body || !title) return;
     const grade = gradeOf(slug);
     const bhGrade = !!c.querySelector('.better-halo-grade-indicator');
-    c.setAttribute('data-hp-card', '');
+    if (!c.hasAttribute('data-hp-card')) c.setAttribute('data-hp-card', '');
     // The grade at the top right of Halo's header row, beside the Topic chip (none when Better Halo shows its own).
     const head = (c.querySelector('[class*="CourseCard_headerItem"]') || {}).parentElement;
     let g = c.querySelector('[data-haloplus="card-grade"]');
@@ -164,10 +183,11 @@
       d.innerHTML = dhtml;
       d.dataset.html = dhtml;
     }
-    // NEXT: only with Halo's answer for the class.
+    // NEXT: Halo's answer for the class; while it comes, the box waiting in its place.
     const list = nextFor(slug);
+    const waiting = !list && waitingFor(slug);
     let n = c.querySelector('[data-haloplus="card-next"]');
-    if (!list) {
+    if (!list && !waiting) {
       if (n) n.remove();
       return;
     }
@@ -182,8 +202,24 @@
       n.dataset.col = col;
     }
     if (n.dataset.playing) return;
+    if (waiting) {
+      if (n.dataset.html !== WAIT_HTML) {
+        n.innerHTML = WAIT_HTML;
+        n.dataset.html = WAIT_HTML;
+        n.setAttribute('aria-busy', 'true');
+      }
+      return;
+    }
+    // The lines come in gently over the waiting ones (no jump: the box is already as tall).
+    if (n.getAttribute('aria-busy')) {
+      n.removeAttribute('aria-busy');
+      n.classList.remove('hp-n-in');
+      void n.offsetWidth;
+      n.classList.add('hp-n-in');
+    }
     const just = justFor(slug, lastK);
-    let html = nextHtml(list);
+    const idx = O.st.haloIndex;
+    let html = nextHtml(list, idx && lastK >= 0 ? O.cal.asOf(idx.classes[lastK].slug) : null);
     if (just.length) html = html.replace(/^(<small>[\s\S]*?<\/small>)/, `$1${justHtml(just)}`);
     if (n.dataset.html !== html) {
       n.innerHTML = html;

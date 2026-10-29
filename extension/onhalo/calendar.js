@@ -81,6 +81,29 @@
   let retries = 0;
   let retryTimer = 0;
   let waitUntil = 0; // no new question for the classes Halo did not answer before this (never a burst)
+  // A class Halo has not answered after three tries (about 16 s, 0.12.10): its last saved answer, whatever its age, or
+  // what the last sync read (Halo+'s index), shown "as of" that time, never an error; Halo's answer replaces it when it
+  // comes.
+  const misses = {};
+  const staleAt = {};
+  let old = null; // slug -> { at, rows }: every answer kept on this computer, whatever its age
+  async function oldCopies() {
+    if (old) return old;
+    try {
+      const { haloCalLive } = await chrome.storage.local.get('haloCalLive');
+      old = (haloCalLive && haloCalLive.v === 2 && haloCalLive.cls) || {};
+    } catch {
+      old = {};
+    }
+    return old;
+  }
+  /** What the last sync read for a class (its index rows): Halo's due dates and done-ness then. */
+  function fromIndex(idx, slug) {
+    const k = idx.classes.findIndex((c) => c.slug === slug);
+    if (k < 0 || !Array.isArray(idx.rows)) return null;
+    const rows = idx.rows.filter((r) => r.c === k && r.id).map((r) => ({ assessment: { id: r.id }, dueDate: r.cdue || r.due || null, status: r.done ? 'SUBMITTED' : 'ACTIVE' }));
+    return { at: Date.parse(idx.at) || Date.now(), rows };
+  }
   async function kept(idx) {
     try {
       const { haloCalLive } = await chrome.storage.local.get('haloCalLive');
@@ -106,7 +129,19 @@
     if (!Array.isArray(g)) throw new Error('no grades');
     return g.filter((x) => x && x.assessment && x.assessment.id).map((x) => ({ assessment: { id: x.assessment.id }, dueDate: x.dueDate || null, status: x.status || null }));
   }
-  const build = (idx) => Object.fromEntries(idx.classes.map((c) => [c.slug, got[c.slug] ? new Map(got[c.slug].rows.map((r) => [r.assessment.id, r])) : null]));
+  function build(idx) {
+    const out = {};
+    for (const c of idx.classes) {
+      let e = got[c.slug];
+      delete staleAt[c.slug];
+      if (!e && (misses[c.slug] || 0) >= 3) {
+        e = (old && old[c.slug]) || fromIndex(idx, c.slug);
+        if (e) staleAt[c.slug] = e.at;
+      }
+      out[c.slug] = e ? new Map(e.rows.map((r) => [r.assessment.id, r])) : null;
+    }
+    return out;
+  }
   /** Ask again soon for the classes Halo did not answer (the features look again then, and ask only for those). */
   function later() {
     if (retryTimer) return;
@@ -133,10 +168,13 @@
       for (const c of need) {
         try {
           got[c.slug] = { at: Date.now(), rows: await askClass(c.slug) };
+          delete misses[c.slug];
         } catch {
           failed += 1;
+          misses[c.slug] = (misses[c.slug] || 0) + 1;
         }
       }
+      if (failed && Object.values(misses).some((n) => n >= 3)) await oldCopies();
       if (need.length) {
         O.diag('halo-answers', { asked: need.length, failed, retry: failed ? retries + 1 : 0 });
         if (need.length > failed) {
@@ -146,7 +184,10 @@
       }
       if (failed) later();
       else retries = 0;
+      const was = Object.keys(staleAt).join(',');
       live = build(idx);
+      // A class now shown from its last saved answer is drawn again too.
+      if (Object.keys(staleAt).join(',') !== was) liveAt = Date.now();
       return live;
     })().finally(() => {
       loading = null;
@@ -166,6 +207,7 @@
       gotIndex = idx.at;
     }
     got[slug] = { at: Date.now(), rows };
+    delete misses[slug];
     liveAt = Date.now();
     await keep(idx);
     live = build(idx);
@@ -455,7 +497,7 @@
       if (document.querySelector('[data-haloplus="calendar-all"], [data-haloplus="home-calendar"]')) O.soon();
     }, 500);
   });
-  O.cal = { refresh, refreshClass, gridHtml, legendHtml, daysFor, bindGrid, loadStripes, readStripes, themeKey, cardColor, colorFor: (raw) => L.boldColor(raw, darkTheme()), get stripes() { return stripes; }, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
+  O.cal = { refresh, refreshClass, ready: () => !!live, asOf: (slug) => staleAt[slug] || null, gridHtml, legendHtml, daysFor, bindGrid, loadStripes, readStripes, themeKey, cardColor, colorFor: (raw) => L.boldColor(raw, darkTheme()), get stripes() { return stripes; }, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
   O.feature({
     id: 'calendar',
     routes: ['class'],

@@ -106,8 +106,19 @@
   // ---- the week strip (0.12.3) ------------------------------------------------------------------------------------------------
   const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const MAX_DOTS = 5;
+  /**
+   * The strip's days (`days` null: waiting for Halo, 0.12.10): the seven days at once, a soft shimmer where the dots will
+   * be and the Halo+ mark turning, the same size as when they come.
+   */
   function stripHtml(mon, days) {
     const today = O.cal.zoneDay(Date.now(), O.zone());
+    if (!days) {
+      const wait = WEEK.map((w, i) => {
+        const k = O.cal.keyOf(mon + i);
+        return `<button type="button" class="hp-sd${mon + i === today ? ' hp-sd-today' : ''}" data-day="${k}" aria-label="${w} ${Number(k.slice(8))}. Open the calendar on this day."><span class="hp-sd-d"><span class="hp-sd-w">${w}</span> ${Number(k.slice(8))}</span><span class="hp-sd-dots"><span class="hp-sk hp-sk-dots" aria-hidden="true"></span></span></button>`;
+      }).join('');
+      return `${wait}<span class="hp-sd-mark hp-spin">${O.mark()}</span>`;
+    }
     const boxes = WEEK.map((w, i) => {
       const d = mon + i;
       const k = O.cal.keyOf(d);
@@ -200,12 +211,26 @@
     const idx = O.st.haloIndex;
     if (strip) {
       const mon0 = thisMonday();
+      // Waiting for Halo: the days at once, their dots shimmering (0.12.10).
+      if (mon0 != null && !strip.dataset.real) {
+        const wait = stripHtml(mon0, null);
+        if (strip.dataset.html !== wait) {
+          strip.innerHTML = wait;
+          strip.dataset.html = wait;
+          strip.setAttribute('aria-busy', 'true');
+        }
+      }
       const g0 = await O.cal.refresh(idx);
       if (mon0 != null && Object.values(g0).some(Boolean) && strip.isConnected) {
         const html = stripHtml(mon0, O.cal.daysFor(idx, g0));
+        if (!strip.dataset.real) strip.dataset.real = '1';
         if (strip.dataset.html !== html) {
           strip.innerHTML = html;
           strip.dataset.html = html;
+          if (strip.getAttribute('aria-busy')) {
+            strip.removeAttribute('aria-busy');
+            strip.classList.add('hp-sd-in');
+          }
         }
       }
     }

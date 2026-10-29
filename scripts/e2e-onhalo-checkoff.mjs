@@ -1,14 +1,16 @@
 // The check-off on submit (extension 0.12.9, George: "Submitting should feel great immediately"), on Halo's page
 // stand-ins with the demo student (made up), never real Halo. Halo's own success toast, drawn as Halo draws it (its
 // icon titled "SUCCESS", "Success", then the words), is the only signal:
-// - an assignment turned in through Halo's own Submit Assignment flow: at once the moment on the page (the item, its
-//   points, this week's bar), this computer's mark, the account's mark (sync-drop, Halo+'s id for the item), the
+// - an assignment turned in through Halo's own Submit Assignment flow: at once the moment on the page (0.12.10: one
+//   toast the way Halo builds its own, top right under Halo's own, "<item> done", "+N pts · M of T this week", a thin
+//   bar; big multi-coloured confetti from both sides, gone after about four seconds, never in the way of a click, Halo
+//   as smooth as before while it plays, measured), this computer's mark, the account's mark (sync-drop, Halo+'s id for the item), the
 //   topic's "N of M done" ticking up; a few seconds later that one class read again from Halo (no sync); on Student
 //   Home the class card's NEXT box ticks it off once and drops it, the week strip's dot is hollow, the calendar's chip
 //   is checked, This week counts one fewer; the next Student Home does not tick it off again;
 // - a DQ response ("Discussion response has been submitted", its window's address) and a quiz finished ("Quiz
 //   successfully submitted") the same; an ordinary post or reply: no check-off, only its class read again; a failure
-//   toast: nothing; the Celebrations switch off: done, no moment; Free: the same check-off;
+//   toast: nothing; the Celebrations switch off, or the computer's "reduce motion": done, the toast only; Free: the same;
 // - Halo, read twice, still saying it is not turned in: the mark is taken back (Halo is right).
 // Pictures and frames for a GIF of the moment into docs/screens/on-halo/checkoff/.
 //   [BROWSER=chrome|edge] [BH_DIR=<Better Halo unpacked>] node scripts/e2e-onhalo-checkoff.mjs
@@ -39,9 +41,14 @@ const itemIdIn = (b, h) => {
   const it = (b.fx.snap.items || []).find((i) => i && i.h === h && i.id);
   return it ? it.id : b.worker.evaluate((x) => globalThis.HaloPlusModel.itemId(x), h);
 };
+/** The moment: Halo+'s toast (its words, where it is, how it looks) and whether confetti is on the page. */
 const card = (p) => p.evaluate(() => {
-  const c = document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('.card');
-  return c ? { text: c.textContent.replace('×', '').replace(/\s+/g, ' ').trim(), done: c.classList.contains('done'), pts: c.querySelector('.pts')?.textContent ?? null, week: c.querySelector('.wk .n')?.textContent ?? null } : null;
+  const r = document.getElementById('haloplus-joy')?.shadowRoot;
+  const t = r?.querySelector('.t');
+  if (!t) return null;
+  const cs = getComputedStyle(t);
+  const b = t.getBoundingClientRect();
+  return { title: t.querySelector('strong').textContent, sub: (t.querySelector('.s')?.textContent ?? '').replace(/\s+/g, ' ').trim(), bar: !!t.querySelector('.bar .fill'), confetti: !!r.querySelector('canvas.cf'), left: cs.borderLeftWidth, radius: cs.borderTopLeftRadius, font: cs.fontFamily.slice(0, 24), right: Math.round(innerWidth - b.right), top: Math.round(b.top), w: Math.round(b.width) };
 });
 
 for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: true }] : [])]) {
@@ -79,8 +86,9 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     const hpId = await itemIdIn(b, row.id);
 
     // ---- before: Student Home has it ----
+    const settled = (q) => until(async () => (await q.locator('[data-haloplus="card-next"]').count()) >= 6 && (await q.locator('[data-haloplus="card-next"][aria-busy]').count()) === 0, 20000, 200);
     let p = await b.page('https://halo.gcu.edu/', { width: 1366, height: 1000 });
-    await until(async () => (await p.locator('[data-haloplus="card-next"]').count()) >= 6, 20000, 200);
+    await settled(p);
     await sleep(1200);
     const homeLook = () =>
       p.evaluate(([slug, title, id]) => {
@@ -119,15 +127,28 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.locator('.hp-review .hp-submit').click();
     const t0 = Date.now();
     // Frames of the moment (for the GIF), as it happens.
-    for (let i = 0; i < 26; i++) {
+    let c1 = null;
+    let counted = false;
+    for (let i = 0; i < 48; i++) {
       const f = `${shotDir}/${String(i).padStart(2, '0')}.png`;
-      await p.screenshot({ path: f, clip: { x: 1366 - 420, y: 900 - 200, width: 420, height: 200 } });
+      await p.screenshot({ path: f });
       frames.push(f);
-      await sleep(60);
+      if (i === 3) c1 = await card(p);
+      if (!counted && Date.now() - t0 > 1400) {
+        // The points have counted up by now (they take under a second).
+        counted = true;
+        const c2 = await card(p);
+        if (c1 && c2) c1.sub = c2.sub;
+        await p.screenshot({ path: `${OUT}/${tag}-1-moment.png` });
+      }
     }
-    const c1 = await card(p);
-    check(c1 && c1.done && c1.text.startsWith(`${row.title} · done`) && c1.pts === `+${Number(a.points) || 50} pts` && /done this week|Week done/.test(c1.week || ''), `${tag}: the moment at once: ${JSON.stringify(c1)}`);
-    await p.screenshot({ path: `${OUT}/${tag}-1-moment.png` });
+    const pts = Number(a.points) || 50;
+    check(c1 && c1.title === `${row.title} done` && new RegExp(`^\\+${pts} pts · (\\d+ of \\d+ this week|Week done)$`).test(c1.sub) && c1.bar, `${tag}: the moment at once, one toast: "${c1 && c1.title}" / "${c1 && c1.sub}"`);
+    check(c1 && c1.left === '5px' && c1.radius === '4px' && c1.right >= 16 && c1.right <= 24 && c1.top < 260 && c1.w >= 300 && c1.w <= 330, `${tag}: built the way Halo builds its toasts: Halo's 5 px bar, 4 px corners, top right, 320 px (${JSON.stringify(c1 && { left: c1.left, radius: c1.radius, right: c1.right, top: c1.top, w: c1.w, font: c1.font })})`);
+    const wasConfetti = c1 && c1.confetti;
+    await until(async () => !(await p.evaluate(() => !!document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('canvas.cf'))), 6000, 100);
+    const gone = Date.now() - t0;
+    check(wasConfetti && gone < 6000, `${tag}: big confetti, then completely gone (${(gone / 1000).toFixed(1)} s after Halo's word)`);
     const marks = (await b.read('haloMarks')).haloMarks || {};
     check(marks[hpId] && marks[hpId].h === row.id && marks[hpId].src === 'halo', `${tag}: this computer's mark at once (Halo+'s id, Halo's id with it)`);
     await until(async () => drops.slice(d0).some((d) => d.body && d.body.mark && d.body.mark.id === hpId && d.body.mark.done === true), 4000, 100);
@@ -147,11 +168,13 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     check(syncOps.length === 0, `${tag}: and no sync (${syncOps.length} class-list reads)`);
     const pill = await pillText();
     check(!pill.includes(row.title), `${tag}: the pill no longer names it ("${pill.slice(0, 60)}")`);
-    await sleep(5000);
+    await sleep(2000);
+    check(!(await card(p)), `${tag}: and the toast has faded`);
     await p.close();
-    // A GIF of the moment (plain only: the light page; and dark under Better Halo).
+    // A GIF of the moment (the light page; and dark under Better Halo), at half size, at the pace it was taken.
     try {
-      execFileSync('python3', ['-c', `from PIL import Image\nimport glob\nfs=sorted(glob.glob('${shotDir}/*.png'))\nims=[Image.open(f).convert('P', palette=Image.ADAPTIVE, colors=255) for f in fs]\nims[0].save('${OUT}/${tag}-moment.gif', save_all=True, append_images=ims[1:]+[ims[-1]]*12, duration=90, loop=0, disposal=2)`]);
+      const ms = Math.max(40, Math.round(gone / frames.length));
+      execFileSync('python3', ['-c', `from PIL import Image\nimport glob\nfs=sorted(glob.glob('${shotDir}/*.png'))\nims=[Image.open(f).convert('RGB').resize((683, 450), Image.LANCZOS).convert('P', palette=Image.ADAPTIVE, colors=255) for f in fs]\nims[0].save('${OUT}/../${tag}-submit-moment.gif', save_all=True, append_images=ims[1:]+[ims[-1]]*10, duration=${ms}, loop=0, disposal=2)`]);
       rmSync(shotDir, { recursive: true, force: true });
     } catch (e) {
       console.log(`(no GIF: ${e.message.split('\n')[0]})`);
@@ -159,7 +182,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
 
     // ---- Student Home after: ticked off once, then gone; strip, calendar and This week with it ----
     p = await b.page('https://halo.gcu.edu/', { width: 1366, height: 1000 });
-    await until(async () => (await p.locator('[data-haloplus="card-next"]').count()) >= 6, 20000, 200);
+    await settled(p);
     await until(async () => (await homeLook()).just.length > 0, 5000, 80);
     const tick = await homeLook();
     check(tick.just.includes(row.title), `${tag}: Student Home: ${cls.code}'s NEXT ticks it off (${JSON.stringify(tick.just)})`);
@@ -175,7 +198,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.screenshot({ path: `${OUT}/${tag}-3-home-after.png` });
     await p.close();
     p = await b.page('https://halo.gcu.edu/', { width: 1366, height: 1000 });
-    await until(async () => (await p.locator('[data-haloplus="card-next"]').count()) >= 6, 20000, 200);
+    await settled(p);
     await sleep(2500);
     check((await homeLook()).just.length === 0, `${tag}: the next Student Home does not tick it off again`);
     await p.close();
@@ -185,7 +208,39 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     const dqCls = fx.index.classes[dq.c];
     p = await b.page(`https://halo.gcu.edu/courses/${dqCls.slug}/course-units/${dq.unit}#discussion-submission/${dq.id}/fid/F1`, { width: 1366, height: 900 });
     await sleep(1500);
+    // Halo as smooth as before while the confetti plays: frame times and long tasks, two seconds before and during.
+    await p.evaluate(() => {
+      window.__hpPerf = { f: [], long: [] };
+      let last = performance.now();
+      const tick = (t) => {
+        window.__hpPerf.f.push([t, t - last]);
+        last = t;
+        if (window.__hpPerf.f.length < 600) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      try {
+        new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__hpPerf.long.push([e.startTime, e.duration]))).observe({ entryTypes: ['longtask'] });
+      } catch {
+        /* no long-task timing */
+      }
+    });
+    await sleep(2000);
+    const tBurst = await p.evaluate(() => performance.now());
     await haloToast(p, 'Discussion response has been submitted');
+    await sleep(700);
+    // Clicks go to Halo, wherever the confetti is.
+    const hits = await p.evaluate(() => [[40, 640], [683, 450], [1320, 640], [683, 120]].map(([x, y]) => (document.elementFromPoint(x, y)?.closest('#haloplus-joy') ? 'Halo+' : 'Halo')));
+    check(hits.every((h) => h === 'Halo'), `${tag}: never in the way of a click: the points under the confetti are Halo's (${hits.join(', ')})`);
+    await sleep(3600);
+    const perf = await p.evaluate((t) => {
+      const q = (a) => a.slice().sort((x, y) => x - y)[Math.floor(a.length * 0.95)] || 0;
+      const before = window.__hpPerf.f.filter(([at]) => at < t).map(([, d]) => d).slice(5);
+      const during = window.__hpPerf.f.filter(([at]) => at >= t && at < t + 4000).map(([, d]) => d);
+      return { before: Math.round(q(before) * 10) / 10, during: Math.round(q(during) * 10) / 10, frames: during.length, slow: during.filter((d) => d > 50).length, long: window.__hpPerf.long.filter(([at]) => at >= t).map(([, d]) => Math.round(d)) };
+    }, tBurst);
+    console.log(`  frames while the confetti plays: ${JSON.stringify(perf)}`);
+    // (A headless browser may draw at 30 a second; what matters is that the confetti does not slow it.)
+    check(perf.frames >= Math.floor((4000 / Math.max(16.7, perf.before)) * 0.85) && perf.during <= Math.max(25, perf.before + 9) && perf.slow <= 2 && perf.long.every((d) => d < 100), `${tag}: Halo stays smooth while it plays: 95% of frames within ${perf.during} ms (${perf.before} ms before), ${perf.frames} frames in 4 s, ${perf.slow} slow, long tasks ${JSON.stringify(perf.long)}`);
     const dqId = await itemIdIn(b, dq.id);
     await until(async () => !!((await b.read('haloMarks')).haloMarks || {})[dqId], 3000, 100);
     check(!!((await b.read('haloMarks')).haloMarks || {})[dqId] && (await card(p)), `${tag}: a DQ response ("Discussion response has been submitted"): done, with its moment`);
@@ -215,23 +270,26 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.close();
 
     // ---- Celebrations off; Free ----
-    const two = others.filter((r) => r.kind === 'assignment' && r.unit).slice(0, 2);
+    const two = others.filter((r) => r.kind === 'assignment' && r.unit).slice(0, 3);
+    if (two.length < 3) two.push(...fx.index.rows.filter((r) => r.kind === 'assignment' && r.unit && r.c !== row.c).slice(0, 3 - two.length));
     for (const [name, extra, moment] of [
       ['the Celebrations switch off', { joySnap: { ...joySnap, celebrate: false } }, false],
       ['Free', { tier: 'free', joySnap }, true],
+      ['the computer set to reduce motion', { tier: 'max', joySnap }, false],
     ]) {
       const r = two.shift();
       if (!r) continue;
       await b.store(extra);
       p = await b.page(`https://halo.gcu.edu/courses/${cls.slug}/course-units/${r.unit}#assignment-submission/${r.id}`, { width: 1366, height: 900 });
+      if (/reduce motion/.test(name)) await p.emulateMedia({ reducedMotion: 'reduce' });
       await sleep(1500);
       st.grades[r.id] = { status: 'SUBMITTED' };
       await haloToast(p, 'Assignment has been submitted.');
       const id = await itemIdIn(b, r.id);
       await until(async () => !!((await b.read('haloMarks')).haloMarks || {})[id], 3000, 100);
       await sleep(400);
-      const shown = !!(await card(p));
-      check(!!((await b.read('haloMarks')).haloMarks || {})[id] && shown === moment, `${tag}: ${name}: done${moment ? ', with its moment' : ', no moment'}`);
+      const t = await card(p);
+      check(!!((await b.read('haloMarks')).haloMarks || {})[id] && !!t && t.confetti === moment, `${tag}: ${name}: done, the toast${moment ? ' and the confetti' : ' only, no confetti'}`);
       await p.close();
     }
     await b.store({ tier: 'max', joySnap });

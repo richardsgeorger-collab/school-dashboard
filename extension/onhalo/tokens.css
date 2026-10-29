@@ -923,3 +923,88 @@ html[data-hp-cards] #Home--main [data-hp-card] > div:first-of-type > hr {
     transform: none;
   }
 }
+
+/* ---- Waiting for Halo (0.12.10): where the NEXT boxes and the week strip will be, a soft shimmer and the Halo+ mark
+   turning, the same size as what comes, which then fades in over it. Never an error. ---------------------------------- */
+.hp-sk {
+  display: inline-block;
+  height: 0.72em;
+  border-radius: 4px;
+  vertical-align: middle;
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.06) 20%, rgb(0 0 0 / 0.12) 40%, rgb(0 0 0 / 0.06) 60%);
+  background-size: 300% 100%;
+  animation: hp-shimmer 1.6s ease-in-out infinite;
+}
+/* A waiting row is built like a real line (its title part and its time part, with an invisible character in the box's
+   own type), so it is exactly as tall. */
+[data-haloplus='card-next'] .hp-n-sk {
+  min-height: 1.5em;
+}
+[data-haloplus='card-next'] .hp-n-sk .hp-n-t {
+  max-width: 100%;
+}
+[data-haloplus='card-next'] .hp-n-sk .hp-sk {
+  background-color: color-mix(in srgb, var(--c, var(--hp-text-3)) 10%, transparent);
+}
+[data-haloplus='week-strip'] .hp-sk-dots {
+  width: 26px;
+  height: 7px;
+  border-radius: 4px;
+}
+/* The wrapper takes no room of its own, so the waiting "Next" line is exactly as tall as the real one. */
+.hp-spin {
+  display: contents;
+}
+.hp-spin .hp-mark svg,
+.hp-spin.hp-mark svg {
+  animation: hp-turn 1.4s linear infinite;
+  transform-origin: 50% 54%;
+}
+.hp-vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+[data-haloplus='card-next'].hp-n-in > *,
+[data-haloplus='week-strip'].hp-sd-in .hp-sd-dots {
+  animation: hp-fill-in 380ms ease-out both;
+}
+[data-haloplus='card-next'] .hp-n-asof {
+  margin-left: 4px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.85;
+}
+@keyframes hp-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@keyframes hp-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes hp-fill-in {
+  from {
+    opacity: 0;
+  }
+}
+:root[data-better-halo-theme]:not([data-better-halo-theme='']).dark .hp-sk {
+  background-image: linear-gradient(90deg, rgb(255 255 255 / 0.07) 20%, rgb(255 255 255 / 0.15) 40%, rgb(255 255 255 / 0.07) 60%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hp-sk,
+  .hp-spin .hp-mark svg,
+  [data-haloplus='card-next'].hp-n-in > *,
+  [data-haloplus='week-strip'].hp-sd-in .hp-sd-dots {
+    animation: none;
+  }
+}

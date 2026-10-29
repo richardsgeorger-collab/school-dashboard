@@ -150,9 +150,9 @@
     // class read again from Halo (onhalo/submitted.js).
     chrome.runtime.sendMessage({ kind: 'submitted', id: haloId, what: kind }).catch(() => undefined);
     window.dispatchEvent(new CustomEvent('haloplus:submitted', { detail: { id: haloId, kind, slug: slugHere() } }));
+    // The moment: Halo's kind of toast, and big confetti (0.12.10); the Celebrations switch off: the toast only.
     const snap = s.joySnap || null;
-    if (snap && snap.celebrate === false) return;
-    globalThis.haloPlusCelebrate(lineFor(snap, haloId), momentFor(snap, haloId));
+    globalThis.haloPlusCelebrate(lineFor(snap, haloId), { ...momentFor(snap, haloId), toast: true, quiet: !!(snap && snap.celebrate === false) });
   }
 
   /** "+50 pts · CHM-113L now 36% done": the class after this one, from the real Halo total. Mirrors src/joy/extSnapshot.ts. */
