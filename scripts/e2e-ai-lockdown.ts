@@ -6,6 +6,7 @@
 // the audio's own length. A few real model calls (about a cent in all).
 //   KEYS_ENV=<keys file> npx tsx scripts/e2e-ai-lockdown.ts
 import { readFileSync } from 'node:fs';
+// @ts-expect-error a plain .mjs helper with no type file
 import { personaKit } from './lib/personas.mjs';
 import { toWire } from '../src/ai/gateway';
 import { buildBriefPrompt, BRIEF_TOOL } from '../src/work/brief';
@@ -112,7 +113,7 @@ try {
 
   // Transcription: counted by the audio's own length, not what the browser says.
   const ready = await (await fetch(`${URL_}/transcribe`, { headers: { authorization: `Bearer ${T}`, apikey: env.VITE_SUPABASE_ANON_KEY } })).json().catch(() => ({ ready: false }));
-  const tx = (body: Uint8Array, seconds: string) => fetch(`${URL_}/transcribe`, { method: 'POST', headers: { authorization: `Bearer ${T}`, apikey: env.VITE_SUPABASE_ANON_KEY, 'content-type': 'audio/wav', 'x-seconds': seconds }, body });
+  const tx = (body: Uint8Array, seconds: string) => fetch(`${URL_}/transcribe`, { method: 'POST', headers: { authorization: `Bearer ${T}`, apikey: env.VITE_SUPABASE_ANON_KEY, 'content-type': 'audio/wav', 'x-seconds': seconds }, body: body as unknown as BodyInit });
   const junk = await tx(new TextEncoder().encode('not audio at all, just text pretending'), '1');
   check(junk.status === 415 || (!ready.ready && junk.status === 503), `transcription: something that is not Halo+'s audio is refused (${junk.status})`);
   if (ready.ready) {
@@ -123,7 +124,7 @@ try {
     const w = (o: number, s: string) => [...s].forEach((c, i) => (buf[o + i] = c.charCodeAt(0)));
     w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
     const ok = await tx(buf, '1');
-    const logged = ((await db.from('transcribe_log').select('seconds').eq('user_id', max.id)).data ?? []).map((x) => x.seconds);
+    const logged = ((await db.from('transcribe_log').select('seconds').eq('user_id', max.id)).data ?? []).map((x: { seconds: number }) => x.seconds);
     check(ok.status === 200 && logged.includes(3), `transcription: 3 seconds said to be 1 are counted as 3 (${ok.status}, logged ${JSON.stringify(logged)})`);
     await db.from('transcribe_log').delete().eq('user_id', max.id);
   } else console.log('  (transcription is not switched on: only the refusal checked)');
