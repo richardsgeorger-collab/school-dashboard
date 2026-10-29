@@ -8,7 +8,6 @@ import { dateOf, fmtDate } from '../domain/dates';
 import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
 import type { Course, Item } from '../domain/types';
 import { useStore } from '../storage/store';
-import { WhatIf } from './WhatIf';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { weakLine, weakTopicFor } from '../domain/weak';
 import { gradeFloor } from '../domain/floor';
@@ -48,7 +47,6 @@ function CourseCard({ course }: { course: Course }) {
   const floor = gradeFloor(course.id, data.items, course);
   const g = courseGrade(course.id, data.items, course);
   const [expanded, setExpanded] = useState(false);
-  const [whatIf, setWhatIf] = useState(false);
   const canProject = useCan('gradeProjection');
   const { tier } = useAccount();
   const items = data.items.filter((i) => i.courseId === course.id).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
@@ -121,12 +119,11 @@ function CourseCard({ course }: { course: Course }) {
           {expanded ? 'Hide scores' : 'Scores'}
         </button>
         {canProject && (
-          <button type="button" className="btn small" onClick={() => setWhatIf((w) => !w)} aria-expanded={whatIf}>
-            {whatIf ? 'Hide what-if' : 'What if'}
-          </button>
+          <a className="btn small" href={`#/class?c=${course.id}&tab=whatif`}>
+            What if…
+          </a>
         )}
       </div>
-      {whatIf && <WhatIf course={course} />}
       {expanded && (
         <ul className="score-list">
           {items.map((i) => (

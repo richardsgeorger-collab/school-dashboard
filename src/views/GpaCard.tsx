@@ -5,6 +5,24 @@ import { Modal } from '../components/Modal';
 import { creditsFor, cumulativeGpa, fmtGpa, letterForPercent, semesterGpa } from '../domain/gpa';
 import type { Course } from '../domain/types';
 import { useStore } from '../storage/store';
+import { classGrade } from '../domain/whatIfGrade';
+import { setScenario, useAllWhatIfs } from './whatif/store';
+
+/** The class what-ifs (the class page's), as each class's what-if percent, for the GPA (2026-10-29). */
+function useClassWhatIfPcts(): Record<string, number> {
+  const { data } = useStore();
+  const all = useAllWhatIfs();
+  return useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const c of data.courses) {
+      const s = all[c.id];
+      if (!s || !Object.keys(s).length) continue;
+      const g = classGrade({ course: c, items: data.items, grading: data.settings.grading?.[c.id] ?? null }, s);
+      if (g.pct !== null) out[c.id] = g.pct;
+    }
+    return out;
+  }, [all, data.courses, data.items, data.settings.grading]);
+}
 
 /**
  * The projected semester GPA (George, 2026-10-24): each class's current Halo grade on GCU's scale (domain/gpa.ts),
@@ -17,6 +35,8 @@ export function GpaChip() {
   const { data } = useStore();
   const [open, setOpen] = useState(false);
   const real = useMemo(() => semesterGpa(data.courses), [data.courses]);
+  const fromClasses = useClassWhatIfPcts();
+  const tried = useMemo(() => (Object.keys(fromClasses).length ? semesterGpa(data.courses, fromClasses) : null), [data.courses, fromClasses]);
   if (!data.courses.length || real.gpa === null) return null;
   return (
     <>
@@ -31,6 +51,7 @@ export function GpaChip() {
         title="Semester GPA: by class, credits, what-if"
       >
         GPA <b>{fmtGpa(real.gpa)}</b>
+        {tried && tried.gpa !== real.gpa && <span className="gpa-chip-whatif"> · what-if {fmtGpa(tried.gpa)}</span>}
       </button>
       {open && (
         <Modal title="Semester GPA" onClose={() => setOpen(false)}>
@@ -43,7 +64,10 @@ export function GpaChip() {
 
 function GpaPanel() {
   const { data, actions } = useStore();
-  const [whatIf, setWhatIf] = useState<Record<string, number>>({});
+  const [sliders, setWhatIf] = useState<Record<string, number>>({});
+  // A class's what-if from its class page counts here too; a slider here wins for that class.
+  const fromClasses = useClassWhatIfPcts();
+  const whatIf = useMemo(() => ({ ...fromClasses, ...sliders }), [fromClasses, sliders]);
   const [trying, setTrying] = useState<string | null>(null);
   const [soFarOpen, setSoFarOpen] = useState(false);
   const real = useMemo(() => semesterGpa(data.courses), [data.courses]);
@@ -55,6 +79,7 @@ function GpaPanel() {
   const cumulative = soFar ? cumulativeGpa(soFar, shown) : null;
   const reset = () => {
     setWhatIf({});
+    for (const id of Object.keys(fromClasses)) setScenario(id, {});
     setTrying(null);
   };
   const setCredits = (c: Course, n: number) => {
@@ -136,7 +161,15 @@ function GpaPanel() {
                         {tryPct.toFixed(1)}% · {letterForPercent(tryPct, c.gradeScale)}
                       </b>
                     </label>
-                    {r.whatIf && (
+                    {r.whatIf && fromClasses[r.courseId] !== undefined && sliders[r.courseId] === undefined && (
+                      <p className="hint">
+                        From your what-if on {c.code}’s page.{' '}
+                        <a className="hero-inline" href={`#/class?c=${c.id}&tab=whatif`}>
+                          Open it
+                        </a>
+                      </p>
+                    )}
+                    {r.whatIf && sliders[r.courseId] !== undefined && (
                       <button
                         type="button"
                         className="hero-inline"

@@ -605,6 +605,10 @@ export interface Settings {
   peekedPosts?: string[];
   /** The GPA and credits on the transcript so far, for the projected cumulative GPA on Classes (2026-10-24). */
   gpaSoFar?: { gpa: number; credits: number } | null;
+  /** A saved what-if per class (2026-10-29): scores in points by item id. Only what the student chose to keep. */
+  gradeWhatIfs?: Record<string, { scores: Record<string, number>; at: string }>;
+  /** How a class is graded when it weighs categories (from its syllabus, typed by the student; domain/whatIfGrade.ts). */
+  grading?: Record<string, import('./whatIfGrade').Grading>;
   /** The Chrome extension setup (2026-10-04): shown once; skipped puts a "Get the extension" line on Now for 7 days. */
   extSetup?: { shownAt?: string | null; skippedAt?: string | null; doneAt?: string | null };
   /** Now's gentle "get the extension" card during the trial (Loop 268): the days it showed (twice at most). */

@@ -9,6 +9,7 @@ import { CourseChip, useCourseColor } from '../components/CourseChip';
 import { ItemRow } from '../components/ItemRow';
 import { addDays, dateOf, diffDays, fmtClock, fmtDate, fmtMinutes, hhmmToMinutes } from '../domain/dates';
 import { basedOn, courseGrade, gradeLine, NOT_GRADED } from '../domain/grades';
+import { ClassWhatIf } from './whatif/ClassWhatIf';
 import { paceFor } from '../domain/pace';
 import type { Item } from '../domain/types';
 import { isParticipation } from '../domain/participation';
@@ -36,8 +37,13 @@ export function ClassPage() {
   const [materials, setMaterials] = useState<{ recordings: number; decks: number; syllabus: boolean } | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [paste, setPaste] = useState(false);
-  const [tab, setTab] = useState<'work' | 'rules' | 'notes'>('work');
+  const [tab, setTab] = useState<'work' | 'rules' | 'notes' | 'whatif'>(() => (params.get('tab') === 'whatif' ? 'whatif' : 'work'));
   const [resources, setResources] = useState<StoredResource[]>([]);
+  // "#/class?c=…&tab=whatif" (from Grades and the GPA sheet) opens the what-if, also when the page is already open.
+  const wantTab = params.get('tab');
+  useEffect(() => {
+    if (wantTab === 'whatif') setTab('whatif');
+  }, [wantTab]);
   // "#/class?c=…&i=…" opens one item's sheet: where Ask and Check send "Open the assignment", and every link from Halo
   // (the extension). Opened once per link, as soon as the item is there: on a fresh load the account's items arrive a
   // moment after the page (2026-10-24: a link from Halo opened the class page and never the item).
@@ -157,6 +163,9 @@ export function ClassPage() {
             <dd>
               {grade.pct === null && !grade.letter ? NOT_GRADED : gradeLine(grade, course.gradeScale)}
               {basedOn(grade) && <span className="grade-basis"> {basedOn(grade)}</span>}
+              <button type="button" className="hero-inline wi-open" onClick={() => setTab('whatif')}>
+                What if…
+              </button>
             </dd>
           </div>
           <div>
@@ -179,6 +188,7 @@ export function ClassPage() {
           { value: 'work', label: 'Work' },
           { value: 'rules', label: `Rules${rules.length ? ` · ${rules.length}` : ''}` },
           { value: 'notes', label: `Notes${notes.length ? ` · ${notes.length}` : ''}` },
+          { value: 'whatif', label: 'What-if' },
         ]}
         onChange={(v) => setTab(v)}
       />
@@ -295,6 +305,7 @@ export function ClassPage() {
       )}
       {tab === 'rules' && <ClassRules course={course} />}
       {tab === 'notes' && <ClassNotes course={course} />}
+      {tab === 'whatif' && <ClassWhatIf course={course} />}
 
       {open && <ItemDetail key={open.id} item={open} onClose={() => setOpen(null)} />}
       {paste && <PasteTranscript course={course} onClose={() => setPaste(false)} />}
