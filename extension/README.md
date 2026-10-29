@@ -73,6 +73,20 @@ check that the sponsor logo shows in the bar waits while a pop-up covers the who
 dialog); before, any change Halo made under an open search put Halo's full header back for the visit. Store pictures:
 `scripts/webstore-shots-onhalo.mjs`, `scripts/webstore-tile-onhalo.mjs`.
 
+0.12.9 (2026-10-28): the check-off on submit and Halo+ on the first load. `content-halo.js` reads Halo's success toasts
+anywhere in the toast (Halo's toast starts with its icon's title "SUCCESS" and "Success", so the old anchored match
+never fired on real Halo) and knows "Discussion response has been submitted"; an ordinary post is not a submission. The
+worker marks a confirmed submission done at once (`haloMarks`, keyed by Halo+'s id from `halo-model.js itemId`, with
+Halo's id in `h`) and sends it to the account straight away (sync-drop `mark`); no full sync. `onhalo/submitted.js`
+re-reads that one class from Halo (`calendar.js refreshClass`) and takes the mark back if Halo, read twice, says not
+turned in. `celebrate.js` shows the check-off (check, points counting up, this week's bar); `homecards.js` ticks it off
+once on Student Home; `topic.js` counts it up. First load: `calendar.js` keeps only Halo's real answers and asks again
+for the rest (1.5, 4, 10, 30 s), never remembering a miss for ten minutes; `counts.js`, `feedback.js`, `submit.js`
+retry a miss; `homeheader.js` retries its logo check (three misses before giving up); `halo-ui.js` retries This week and
+the class lines; `core.js` and `halo-ui.js` look again a few times after a page starts or moves; after an update every
+Halo script and style goes into open Halo tabs; a copy left by an update steps aside. `core.js diag()` keeps a log of
+what each Halo page waited for in `chrome.storage.local` `haloDiag` (the last ten pages, no student data).
+
 ## Build
 
     npm run build:extension

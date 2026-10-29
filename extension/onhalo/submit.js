@@ -24,17 +24,29 @@
     if (!z || !Number.isFinite(t)) return null;
     return Date.now() - t < 6 * 86_400_000 ? L.haloFormat(t, z, 'day') : L.haloFormat(t, z, 'short');
   }
+  const misses = new WeakMap();
+  /** Halo did not answer, or its zone was not on the page yet (0.12.9): asked again in a while, three times at most. */
+  function again(c) {
+    const n = (misses.get(c.card) || 0) + 1;
+    misses.set(c.card, n);
+    if (n <= 3)
+      setTimeout(() => {
+        done.delete(c.card);
+        O.soon();
+      }, 4000 * n);
+  }
   async function confirm(c) {
     done.add(c.card);
     let d;
     try {
       d = await O.ask('AssignmentSubmission', Q_SUB, { courseClassAssessmentId: c.id }, 30 * 60_000);
     } catch {
-      return;
+      return again(c);
     }
     const s = d && d.assignmentSubmission;
     const t = s && Date.parse(s.submissionDate || '');
     const files = ((s && s.resources) || []).filter((r) => r && r.isFinal && r.resource && r.resource.name).map((r) => r.resource.name);
+    if (!O.zone()) return again(c);
     const at = when(t);
     if (!at || !files.length || !c.card.isConnected) return;
     // Under Halo's own status chip, in its Status cell.

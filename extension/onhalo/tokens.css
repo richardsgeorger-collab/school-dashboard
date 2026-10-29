@@ -806,7 +806,7 @@ html[data-hp-cards] #Home--main [data-hp-card] > div:first-of-type > hr {
 }
 /* Better Halo gives every text its own colour; the NEXT box keeps its two kinds apart (can do now: its link colour;
    not yet: its muted colour). */
-:root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-next'] .hp-n-row:not(.hp-n-wait) .hp-n-t {
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-next'] .hp-n-row:not(.hp-n-wait):not(.hp-n-just) .hp-n-t {
   color: var(--hp-link) !important;
 }
 :root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-next'] .hp-n-wait .hp-n-t,
@@ -814,4 +814,112 @@ html[data-hp-cards] #Home--main [data-hp-card] > div:first-of-type > hr {
 :root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-next'] small,
 :root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-details'] {
   color: var(--hp-text-2) !important;
+}
+
+/* ---- Just turned in (0.12.9): on the class card's NEXT box, the row checked and struck through, then folded away;
+   the topic page's "N of M done" counting up. ------------------------------------------------------------------------ */
+[data-haloplus='card-next'] .hp-n-just {
+  align-items: center;
+  max-height: 2.6em;
+  color: var(--hp-text-2);
+}
+[data-haloplus='card-next'] .hp-n-just .hp-n-t {
+  position: relative;
+  color: var(--hp-text-2);
+  font-weight: 600;
+}
+[data-haloplus='card-next'] .hp-n-just .hp-n-t::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 54%;
+  height: 1.5px;
+  background: currentColor;
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: hp-strike 420ms 420ms ease-out forwards;
+}
+[data-haloplus='card-next'] .hp-n-just .hp-n-w {
+  color: #1f8a3b;
+  font-weight: 600;
+}
+[data-haloplus='card-next'] .hp-n-ck {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #1f8a3b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 8.3l2.5 2.5 5-5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 13px no-repeat;
+  animation: hp-ck 480ms cubic-bezier(0.2, 1.6, 0.4, 1) both, hp-ck-ring 900ms 200ms ease-out both;
+}
+[data-haloplus='card-next'] .hp-n-gone {
+  overflow: hidden;
+  animation: hp-fold 400ms ease-in forwards;
+}
+@keyframes hp-ck {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@keyframes hp-ck-ring {
+  from {
+    box-shadow: 0 0 0 0 rgb(242 184 75 / 0.75);
+  }
+  to {
+    box-shadow: 0 0 0 9px rgb(242 184 75 / 0);
+  }
+}
+@keyframes hp-strike {
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes hp-fold {
+  to {
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+  }
+}
+[data-haloplus='topic'].hp-tick > span:first-child {
+  animation: hp-tick 900ms ease-out;
+}
+@keyframes hp-tick {
+  0% {
+    color: inherit;
+  }
+  20% {
+    color: #b77f10;
+    transform: scale(1.12);
+  }
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}
+:root[data-better-halo-theme]:not([data-better-halo-theme='']).dark [data-haloplus='card-next'] .hp-n-just .hp-n-w {
+  color: #5fd08a;
+}
+:root[data-better-halo-theme]:not([data-better-halo-theme='']).dark [data-haloplus='card-next'] .hp-n-ck {
+  background-color: #3fb36a;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-haloplus='card-next'] .hp-n-ck,
+  [data-haloplus='card-next'] .hp-n-gone,
+  [data-haloplus='topic'].hp-tick > span:first-child {
+    animation: none;
+  }
+  [data-haloplus='card-next'] .hp-n-just .hp-n-t::after {
+    animation: none;
+    transform: none;
+  }
 }

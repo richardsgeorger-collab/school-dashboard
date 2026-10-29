@@ -233,7 +233,7 @@
     }
     if (!Object.values(grades).some(Boolean)) {
       grid.innerHTML = '';
-      say(st, 'Halo did not send your due dates just now. Fold and open this again in a moment.');
+      say(st, 'Halo did not send your due dates just now. Asking again in a moment…');
       return;
     }
     if (!st.hidden) st.hidden = true;

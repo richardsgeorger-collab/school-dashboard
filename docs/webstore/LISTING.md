@@ -1,5 +1,13 @@
 # Chrome Web Store listing kit
 
+## 0.12.9 (2026-10-28): upload this package instead of 0.12.8; everything else as below
+
+0.12.9 (Loop 279): a submission is checked off the moment Halo confirms it (Halo+ had been missing Halo's real toasts),
+everywhere at once and in the Halo+ app, with a moment on the page; Halo+ appears on the first load every time (one
+missed answer from Halo was kept for ten minutes). **No new permission.** Upload
+`webstore-upload/halo-plus-extension-0.12.9.zip`; the name, summary, description, screenshots, tile and Privacy tab
+are the ones in "The listing now" below, unchanged.
+
 ## The listing now: Halo+ ON HALO, 0.12.8 (or 0.12.7) (2026-10-28): paste exactly this
 
 The store page is now about Halo+ on Halo's own pages, for someone whose only introduction is the store page: a new

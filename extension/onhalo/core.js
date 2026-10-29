@@ -11,7 +11,8 @@
 // one shared watcher for Halo's page changes, no timers that tick on their own.
 (function () {
   'use strict';
-  if (globalThis.HaloPlusOn) return;
+  // One live copy: a copy left by an extension update (its extension gone) steps aside for the new one (0.12.9).
+  if (globalThis.HaloPlusOn && (!globalThis.HaloPlusOn.alive || globalThis.HaloPlusOn.alive())) return;
   const alive = () => {
     try {
       return !!chrome.runtime?.id;
@@ -26,9 +27,10 @@
   const FEATURES = globalThis.HaloPlusOnFeatures || [];
 
   // ---- state ----------------------------------------------------------------------------------------------------------
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloUiOn', 'haloFeat', 'haloIndex', 'tier'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloUiOn', 'haloFeat', 'haloIndex', 'tier', 'haloJustDone'];
   let st = {};
   let view = null;
+  let loaded = false;
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -36,7 +38,35 @@
       /* the extension was updated under this page */
     }
     view = M.merge(st.haloSnap, st.haloLive, M.doneFrom(st.haloDone, st.haloMarks));
+    if (!loaded) diag('data', { snap: !!st.haloSnap, index: !!st.haloIndex, tier: st.tier || null, view: !!view });
+    loaded = true;
   };
+
+  // ---- what Halo+ waited for (0.12.9) ------------------------------------------------------------------------------------
+  // George: Halo+ sometimes did not show until he reloaded. A quiet log on this computer of what each Halo page waited
+  // for and when (milliseconds since the page started), so it can be told apart if it happens again: the data being
+  // there, Halo's page parts appearing, which features started, Halo's answers (ok, or why not), a check that held
+  // something back. Never student data: no names, titles, classes, ids or addresses; the page's kind only. The last ten
+  // pages, in chrome.storage.local "haloDiag"; nothing is sent anywhere.
+  const RUN = Math.random().toString(36).slice(2, 8);
+  const diagBuf = [];
+  let diagTimer = 0;
+  function diag(ev, data = {}) {
+    diagBuf.push({ t: Math.round(performance.now()), ev, ...data });
+    if (diagBuf.length > 120) diagBuf.splice(0, diagBuf.length - 120);
+    if (!diagTimer) diagTimer = setTimeout(flushDiag, 2500);
+  }
+  async function flushDiag() {
+    diagTimer = 0;
+    try {
+      const { haloDiag } = await chrome.storage.local.get('haloDiag');
+      const runs = (haloDiag && Array.isArray(haloDiag.runs) ? haloDiag.runs : []).filter((r) => r.id !== RUN);
+      runs.push({ id: RUN, at: new Date(Date.now() - performance.now()).toISOString(), v: chrome.runtime.getManifest().version, page: route().kind, ev: diagBuf.slice() });
+      await chrome.storage.local.set({ haloDiag: { v: 1, runs: runs.slice(-10) } });
+    } catch {
+      /* the extension was updated under this page */
+    }
+  }
 
   /** "Show Halo+ on Halo pages": on unless turned off, in the popup or in Halo+ (whichever was changed last). */
   const showing = () => {
@@ -126,9 +156,22 @@
   const defs = new Map();
   const running = new Map();
   const ctx = () => ({ view, st, route: route(), tz: (view && view.tz) || Intl.DateTimeFormat().resolvedOptions().timeZone });
+  const seen = new Set();
+  /** Halo's page parts, logged the first time each is there. */
+  function landmarks() {
+    const has = {
+      'home-main': () => !!document.getElementById('Home--main'),
+      'class-cards': () => !!document.querySelector('[class*="CourseCard_cardContainer"]'),
+      'purple-bar': () => !!document.querySelector('#header_main_container header'),
+      'halo-data': () => !!document.getElementById('__NEXT_DATA__'),
+    };
+    for (const [k, f] of Object.entries(has)) if (!seen.has(k) && f()) (seen.add(k), diag('halo', { part: k }));
+  }
   function reconcile() {
     if (!alive()) return stopAll();
     const r = route();
+    landmarks();
+    const before = [...running.keys()].join(',');
     for (const def of defs.values()) {
       // A feature can share another's switch (`switch`): the calendar on Student Home and on a class page are one.
       const want = enabled(def.switch || def.id) && (!def.routes || def.routes.includes(r.kind));
@@ -141,10 +184,13 @@
           running.delete(def.id);
           def.stop();
         } else if (want && on && def.update) def.update(ctx());
-      } catch {
+      } catch (e) {
         /* one feature failing never takes another down, and never Halo */
+        diag('error', { f: def.id, e: String((e && e.name) || 'Error').slice(0, 40) });
       }
     }
+    const after = [...running.keys()].join(',');
+    if (after !== before) diag('features', { page: r.kind, on: after ? after.split(',') : [], data: !!view, shown: showing(), paid: paid() });
   }
   function stopAll() {
     for (const id of running.keys()) {
@@ -171,11 +217,21 @@
       reconcile();
     }, 250);
   }
+  // A few passes more after the page starts and after each move between Halo's pages (0.12.9): Halo's parts that come
+  // late or settle without adding anything (sizes, styles, a redraw in place) are seen within seconds, never only at
+  // the next reload. Then nothing until something happens again.
+  let settling = [];
+  function settle() {
+    for (const t of settling) clearTimeout(t);
+    settling = [600, 1500, 3000, 6000, 12000].map((ms) => setTimeout(soon, ms));
+  }
   let href = location.href;
   const onDom = (records) => {
     if (!alive()) return;
     if (location.href !== href) {
       href = location.href;
+      diag('moved', { page: route().kind });
+      settle();
       return soon();
     }
     for (const r of records) {
@@ -195,6 +251,9 @@
     /* the DOM watcher still sees the page change */
   }
   window.addEventListener('popstate', soon);
+  window.addEventListener('load', soon);
+  window.addEventListener('pageshow', soon);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && soon());
   // A stylesheet that finishes loading (Halo's page styles arrive with its pages): features that read Halo's class
   // names look again. Load events do not bubble; they are caught on the way down.
   document.addEventListener(
@@ -237,22 +296,45 @@
     const p = (queue = queue
       .catch(() => undefined)
       .then(async () => {
-        const s = await haloSession();
-        const r = await fetch(GATEWAY, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.a}`, ContextToken: `Bearer ${s.c}` },
-          body: JSON.stringify({ operationName, variables, query }),
-        });
-        if (r.status === 401) session = null;
-        const j = await r.json();
-        await new Promise((res) => setTimeout(res, 250));
-        if (!r.ok || !j || j.errors || !j.data) throw new Error('halo said no');
-        return j.data;
+        // A session not there yet (just after signing in) or ended (401): a fresh one, and once more (0.12.9).
+        for (let attempt = 0; ; attempt++) {
+          let s;
+          try {
+            s = await haloSession();
+          } catch (e) {
+            if (attempt) throw e;
+            diag('ask', { op: operationName, why: 'no-session' });
+            await new Promise((res) => setTimeout(res, 1500));
+            continue;
+          }
+          const r = await fetch(GATEWAY, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.a}`, ContextToken: `Bearer ${s.c}` },
+            body: JSON.stringify({ operationName, variables, query }),
+          });
+          if (r.status === 401) {
+            session = null;
+            diag('ask', { op: operationName, why: '401' });
+            if (!attempt) continue;
+          }
+          const j = await r.json().catch(() => null);
+          await new Promise((res) => setTimeout(res, 250));
+          if (!r.ok || !j || j.errors || !j.data) {
+            diag('ask', { op: operationName, why: r.ok ? 'halo-errors' : `http-${r.status}` });
+            throw new Error('halo said no');
+          }
+          return j.data;
+        }
       }));
     answers.set(key, { p, t: Date.now() });
     p.catch(() => answers.delete(key));
     return p;
   }
+  /** Forget a kept answer (or every one of that kind), so the next ask reads Halo again (a submission changed it). */
+  const forget = (operationName, variables) => {
+    if (variables !== undefined) return void answers.delete(`${operationName}:${JSON.stringify(variables)}`);
+    for (const k of [...answers.keys()]) if (k.startsWith(`${operationName}:`)) answers.delete(k);
+  };
 
   // ---- Halo's zone ----------------------------------------------------------------------------------------------------
   let zoneId = null;
@@ -339,6 +421,8 @@
     chrome.runtime.sendMessage({ kind: 'halo-ui', event }).catch(() => undefined);
   };
 
-  globalThis.HaloPlusOn = { FEATURES, feature, route, enabled, paid, showing, mark, MARK_SVG, MARK_CSS, host, esc, ours, ask, haloSession, count, soon, alive, zone, cssClass, cleanHtml, get view() { return view; }, get st() { return st; } };
+  globalThis.HaloPlusOn = { FEATURES, feature, route, enabled, paid, showing, mark, MARK_SVG, MARK_CSS, host, esc, ours, ask, forget, haloSession, count, soon, alive, diag, zone, cssClass, cleanHtml, get view() { return view; }, get st() { return st; } };
+  diag('start', { ready: document.readyState, visible: document.visibilityState === 'visible', page: route().kind });
+  settle();
   void load().then(soon);
 })();

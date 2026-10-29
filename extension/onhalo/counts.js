@@ -16,6 +16,7 @@
   let firstSeen = 0;
   let counts = null;
   let asking = null;
+  let tries = 0;
 
   const int = (v) => {
     const n = parseInt(v == null ? '0' : String(v), 10);
@@ -28,11 +29,12 @@
   async function fetchCounts(idx) {
     try {
       const { haloCounts } = await chrome.storage.local.get('haloCounts');
-      if (haloCounts && Date.now() - haloCounts.at < 5 * 60_000) return haloCounts.bySlug;
+      if (haloCounts && Date.now() - haloCounts.at < 5 * 60_000) return { bySlug: haloCounts.bySlug, failed: 0 };
     } catch {
       /* ask Halo */
     }
     const bySlug = {};
+    let failed = 0;
     for (const c of idx.classes) {
       if (!c.id) continue;
       try {
@@ -47,15 +49,19 @@
         if (!ft || dq == null || idq == null || ann == null || gb == null) continue;
         bySlug[c.slug] = { announcements: ann, gradebook: gb, discussion: dq + idq };
       } catch {
-        /* this class: nothing */
+        /* this class: nothing, and asked again soon */
+        failed += 1;
       }
     }
-    try {
-      await chrome.storage.local.set({ haloCounts: { at: Date.now(), bySlug } });
-    } catch {
-      /* kept for this page */
+    // Kept five minutes only when Halo answered for every class (0.12.9): a miss is never remembered as "nothing new".
+    if (!failed) {
+      try {
+        await chrome.storage.local.set({ haloCounts: { at: Date.now(), bySlug } });
+      } catch {
+        /* kept for this page */
+      }
     }
-    return bySlug;
+    return { bySlug, failed };
   }
   const label = (n) => (n > 99 ? '99+' : String(n));
   const CSS = 'position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--hp-badge-bg);color:var(--hp-badge-fg);font:600 11px/18px var(--hp-font);text-align:center;pointer-events:none;box-sizing:border-box';
@@ -71,7 +77,19 @@
     if (Date.now() - firstSeen < SETTLE_MS) return void setTimeout(() => O.soon(), SETTLE_MS - (Date.now() - firstSeen) + 50);
     const idx = O.st.haloIndex;
     if (!idx || !Array.isArray(idx.classes)) return clear();
-    if (!counts) counts = await (asking || (asking = fetchCounts(idx)));
+    if (!counts) {
+      const got = await (asking || (asking = fetchCounts(idx)));
+      asking = null;
+      counts = got.bySlug;
+      // Halo did not answer for some class: asked again in a while (three times at most on this page).
+      if (got.failed && tries < 3) {
+        tries += 1;
+        setTimeout(() => {
+          counts = null;
+          O.soon();
+        }, 8000 * tries);
+      }
+    }
     if (document.querySelector('.better-halo-notification-badge')) return clear();
     for (const b of buttons) {
       const sec = b.getAttribute('data-section');

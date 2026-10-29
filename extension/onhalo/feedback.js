@@ -45,12 +45,21 @@
     }
     return null;
   }
+  const misses = new WeakMap();
   async function add(c) {
     done.add(c.card);
     let fb = null;
     try {
       fb = await find(c);
     } catch {
+      // Halo did not answer this time (0.12.9): asked again in a while, three times at most, never left at that.
+      const n = (misses.get(c.card) || 0) + 1;
+      misses.set(c.card, n);
+      if (n <= 3)
+        setTimeout(() => {
+          done.delete(c.card);
+          O.soon();
+        }, 4000 * n);
       return;
     }
     if (!fb || !c.block || !c.card.isConnected) return;

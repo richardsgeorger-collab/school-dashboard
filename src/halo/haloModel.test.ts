@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
+import { haloItemId } from './normalize';
 
 // The extension's own rules for Halo+ on Halo (extension/halo-model.js, a plain script), run as the extension runs them.
 const ctx: { globalThis?: unknown; HaloPlusModel?: Record<string, (...a: unknown[]) => unknown> } = {};
@@ -26,6 +27,8 @@ const M = ctx.HaloPlusModel as unknown as {
   compactLive: (p: unknown) => unknown;
   link: (o: string, t: unknown, via: string) => string;
   doneFrom: (server: unknown, marks: unknown) => { v: 1; done: string[] } | null;
+  itemId: (haloId: string) => string;
+  weekProgress: (view: unknown, now: number) => { done: number; total: number };
   haloHref: (v: View, i: unknown) => string;
   week: (v: View, now: number) => { groups: { head: string; rows: WeekRow[] }[]; todayDone: boolean; count: number; near: { tone: string; text: string }; part: string | null };
 };
@@ -310,6 +313,8 @@ describe('this week', () => {
     expect(w.groups.map((g) => g.head)).toEqual(['Tomorrow']);
     expect(w.near).toEqual({ tone: 'plain', text: '1 tomorrow' });
     expect(M.doneFrom(null, null)).toBeNull();
+    // A submission's mark (0.12.9): keyed by Halo+'s id, Halo's own id counts too.
+    expect(M.doneFrom(null, { 'hp-1': { at: '2026-10-28T17:00:00Z', state: 'pending', h: 'halo-1' } })!.done).toEqual(['hp-1', 'halo-1']);
   });
   it('work only Halo has (not in Halo+ yet) opens on Halo but has no check box', () => {
     const halo = { v: 1, at: at(0), classes: [{ slug: 'CHM-113-WF700A-20260908', cc: 'CHM-113-WF700A', code: 'CHM-113', name: 'x', g: 90, a: [['h-new', 'Topic 8 Homework', at(30), 10, 'ASSIGNMENT', 0, 'u8', 0]] }] };
@@ -357,5 +362,26 @@ describe('next item on the class line (0.12.0, feature 6)', () => {
     expect(M.nextName({ ht: 'Topic 7 DQ 2', t: 'Com DQ 2' })).toBe('Com DQ 2');
     expect(M.nextName({ ht: 'Topic 3 Homework: Cell Division and Mitosis', t: '' })).toBe('Topic 3 Homework');
     expect(M.nextName({ ht: 'A very long assignment title without any colon at all in it', t: '' })).toBeNull();
+  });
+});
+
+describe('itemId (0.12.9)', () => {
+  it('is the app’s own id for a Halo assessment, so the account finds it', () => {
+    for (const h of ['a1b2c3', '5f0e7d2c-1111-4222-8333-444455556666', 'x']) expect(M.itemId(h)).toBe(haloItemId(h));
+  });
+});
+
+describe('weekProgress (0.12.9)', () => {
+  it('counts this week’s work, Monday to Sunday in the school’s zone, done of total', () => {
+    const now = Date.parse('2026-10-28T19:00:00Z'); // Wed Oct 28, noon in Phoenix
+    const items = [
+      { due: '2026-10-26T15:00:00Z', done: 1 }, // Mon
+      { due: '2026-10-29T06:59:00Z', done: 0 }, // Wed 11:59 PM Phoenix
+      { due: '2026-11-02T06:59:00Z', done: 0 }, // Sun 11:59 PM Phoenix
+      { due: '2026-11-02T08:00:00Z', done: 0 }, // next Mon 1 AM Phoenix
+      { due: '2026-10-26T06:00:00Z', done: 1 }, // Sun before, 11 PM Phoenix
+    ];
+    expect(M.weekProgress({ tz: 'America/Phoenix', items }, now)).toEqual({ done: 1, total: 3 });
+    expect(M.weekProgress(null, now)).toEqual({ done: 0, total: 0 });
   });
 });

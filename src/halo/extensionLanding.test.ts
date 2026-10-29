@@ -51,7 +51,10 @@ describe('auto-sync never goes quiet', () => {
     const run = bg.slice(bg.indexOf('async function readHalo('), bg.indexOf('async function setupState('));
     expect(run.indexOf('await within(ensureRelay(tab.id)')).toBeGreaterThan(-1);
     expect(run.indexOf('await within(ensureRelay(tab.id)')).toBeLessThan(run.indexOf("files: ['sync-inject.js']"));
-    expect(bg).toContain("files: ['halo-model.js', 'celebrate.js', 'content-halo.js', 'halo-ui.js']");
+    // 0.12.9: everything the manifest gives a Halo page (Halo+ on Halo's pages and its styles too), not the first four.
+    expect(bg).toContain('chrome.runtime.getManifest().content_scripts');
+    expect(bg).toMatch(/async function addToHaloTab\(tabId\) \{[\s\S]*?insertCSS[\s\S]*?executeScript\(\{ target: \{ tabId \}, files: HALO_SCRIPTS\.js \}\)/);
+    expect(bg).toContain('await addToHaloTab(tabId)');
     expect(halo).toContain("msg.kind === 'ping'");
     // Safe to add twice: one live copy per extension, an orphaned one steps aside.
     expect(halo).toMatch(/const prev = globalThis\.__haloPlusHalo;\s+if \(prev && prev\.alive\(\)\) return;/);

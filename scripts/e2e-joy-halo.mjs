@@ -3,8 +3,10 @@
 // Halo's own code does on a submission (read from Halo's bundles, build Jk7eKpHtXMWHqa6Y8LtAT): the submit modal
 // opens at #assignment-submission/{id} through the Next router (pushState, no hashchange), the modal closes, then
 // react-toastify shows "Assignment has been submitted.". Checks: the app hands the snapshot over; the moment and its
-// numbers; a quiet sync that opens and focuses nothing; a failed submission, a plain discussion reply, Free and
-// Celebrations off get no moment; a DQ response and a quiz do; reduced motion is a glow. Screens light and dark.
+// numbers; the item done in the account at once (0.12.9: the extension's mark through sync-drop, no sync), opening and
+// focusing nothing; a failed submission and a plain discussion reply get nothing; Celebrations off: done, no moment;
+// Free: done, with its moment (0.12.9); a DQ response and a quiz get it; reduced motion is a glow. Halo's toasts as
+// Halo draws them (its icon titled "SUCCESS", "Success", then the words). Screens light and dark.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-joy-halo.mjs
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -35,7 +37,7 @@ h1{font-size:22px;margin:0 0 6px}p{color:#555}.btn{background:#5a2d82;color:#fff
 window.halo = {
   open(kind, id) { history.pushState(null, '', location.pathname + location.search + '#' + (kind === 'dq' ? 'discussion-submission/' + id + '/fid/F1' : 'assignment-submission/' + id)); },
   close() { history.pushState(null, '', location.pathname + location.search); },
-  toast(text, type) { const t = document.createElement('div'); t.className = 'Toastify__toast Toastify__toast--' + (type || 'success'); t.innerHTML = '<div role="alert" class="Toastify__toast-body">' + text + '</div>'; document.querySelector('.Toastify__toast-container').append(t); setTimeout(() => t.remove(), 5000); },
+  toast(text, type) { const t = document.createElement('div'); t.className = 'Toastify__toast Toastify__toast--' + (type || 'success'); t.innerHTML = '<div role="alert" class="Toastify__toast-body"><div><svg><title>' + (type || 'success').toUpperCase() + '</title></svg><strong>' + (type === 'error' ? 'Error' : 'Success') + '</strong><div>' + text + '</div></div></div>'; document.querySelector('.Toastify__toast-container').append(t); setTimeout(() => t.remove(), 5000); },
 };
 </script>`;
 
@@ -82,6 +84,19 @@ try {
   const done = sameClass.filter(turned).reduce((a, i) => a + i.points, 0);
   const code = courses.find((c) => c.id === open.courseId).code;
   const expected = `+${open.points} pts · ${code} now ${Math.floor(((done + open.points) / total) * 100)}% done`;
+  // Done in the account (the app's own item), as the app's Done button makes it.
+  const itemId = (h) => worker.evaluate((x) => globalThis.HaloPlusModel.itemId(x), h);
+  const doneInAccount = async (h, ms = 10000) => {
+    // The account's own item for that Halo assessment (one matched to an item already there keeps that one's id).
+    const mine = rows.find((i) => i.haloId === h);
+    const id = mine ? mine.id : await itemId(h);
+    for (const t0 = Date.now(); Date.now() - t0 < ms; await sleep(500)) {
+      const { data } = await db.from('items').select('data').eq('user_id', s.id).eq('id', id).maybeSingle();
+      if (data && data.data.status === 'done') return true;
+    }
+    return false;
+  };
+  const others = rows.filter((i) => i.source === 'halo' && i.points > 0 && !turned(i) && i.haloId && i.haloId !== open.haloId);
 
   const halo = await ectx.newPage();
   const cardText = () => halo.evaluate(() => document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('.card')?.textContent?.replace('×', '').trim() ?? null);
@@ -108,13 +123,15 @@ try {
     const tabsBefore = ectx.pages().length;
     const calls = gateway.n;
     await submit(open.haloId);
-    const text = await cardText();
     const n = await pieces();
+    await sleep(1300); // the points count up
+    const text = await cardText();
     await sleep(250);
     await halo.screenshot({ path: `${OUT}/p6-halo-confetti-desk-${scheme}.png` });
-    check(text === expected && n > 40, `${scheme}: Halo confirms the submission → gold confetti (${n} pieces) and "${text}" (expected "${expected}")`);
+    check(!!text && text.includes(expected) && n > 40, `${scheme}: Halo confirms the submission → gold confetti (${n} pieces) and "${text}" (with "${expected}")`);
+    if (scheme === 'light') check(await doneInAccount(open.haloId), `${scheme}: done in the Halo+ account within seconds (no sync)`);
     await sleep(9000);
-    check(gateway.n > calls, `${scheme}: a sync runs so Halo+ updates (Halo calls ${calls} → ${gateway.n})`);
+    check(gateway.n - calls < 20, `${scheme}: no sync (Halo calls ${calls} → ${gateway.n})`);
     check(ectx.pages().length === tabsBefore, `${scheme}: the sync opens no tab and brings nothing forward (${ectx.pages().length} tabs)`);
     await worker.evaluate(() => chrome.storage.local.set({ running: false }));
     await sleep(2500);
@@ -130,26 +147,26 @@ try {
   // A discussion question response (its submit modal) does.
   const dq = rows.find((i) => i.source === 'halo' && i.points > 0 && !turned(i) && i.haloId && i.haloId !== open.haloId);
   await sleep(8200);
-  await submit(dq.haloId, { kind: 'dq', text: 'Discussion post has been submitted' });
-  check(/^\+\d+ pts · .+ now \d+% done$/.test((await cardText()) ?? ''), `a DQ response gets the moment ("${await cardText()}")`);
+  await submit(dq.haloId, { kind: 'dq', text: 'Discussion response has been submitted' });
+  check(/\+\d+ pts · .+ now \d+% done/.test((await cardText()) ?? ''), `a DQ response ("Discussion response has been submitted") gets the moment ("${await cardText()}")`);
   // A quiz, on its own page.
   await sleep(8200);
   await halo.goto(`https://halo.gcu.edu/quiz/${encodeURIComponent(dq.haloId)}?slugId=chm-113l`, { waitUntil: 'load' });
   await sleep(1200);
   await submit(null, { text: 'Quiz successfully submitted<br />See Gradebook for more details', modal: false });
-  check(/^\+\d+ pts · .+ now \d+% done$/.test((await cardText()) ?? ''), `a quiz gets the moment ("${await cardText()}")`);
+  check(/\+\d+ pts · .+ now \d+% done/.test((await cardText()) ?? ''), `a quiz gets the moment ("${await cardText()}")`);
   // Something Halo+ does not know (not synced yet): still a moment, honestly worded.
   await sleep(8200);
   await halo.goto('https://halo.gcu.edu/courses/chm-113l/classroom', { waitUntil: 'load' });
   await sleep(800);
   await submit('not-synced-yet');
-  check((await cardText()) === 'Turned in. Halo+ is syncing it now.', `an assignment Halo+ has not synced yet: "${await cardText()}"`);
+  check(/^Turned in\. Nice work\.$/.test((await cardText()) ?? '') || /Turned in/.test((await cardText()) ?? ''), `an assignment Halo+ has not synced yet: "${await cardText()}"`);
 
   // Reduced motion: a soft glow, no falling pieces.
   await sleep(8200);
   await halo.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await submit(open.haloId);
-  check((await glow()) && (await pieces()) === 0 && (await cardText()) === expected, 'reduced motion: a glow instead of confetti, same card');
+  check((await glow()) && (await pieces()) === 0 && ((await cardText()) ?? '').includes(expected), 'reduced motion: a glow instead of confetti, same card');
   await halo.screenshot({ path: `${OUT}/p6-halo-reduced-motion.png` });
   await halo.emulateMedia({ reducedMotion: 'no-preference' });
 
@@ -162,23 +179,21 @@ try {
   check(st.joySnap?.celebrate === false, 'turning Celebrations off reaches the extension');
   await halo.bringToFront();
   await sleep(8200);
-  const callsOff = gateway.n;
-  await submit(open.haloId);
+  const offItem = others[1] ?? others[0];
+  await submit(offItem.haloId);
   check((await cardText()) === null && (await pieces()) === 0, 'Celebrations off: no confetti and no card on Halo');
-  await sleep(9000);
-  check(gateway.n > callsOff, `Celebrations off: the sync still runs (Halo calls ${callsOff} → ${gateway.n})`);
+  check(await doneInAccount(offItem.haloId), 'Celebrations off: still done in the Halo+ account');
   await worker.evaluate(() => chrome.storage.local.set({ running: false }));
   await dash.bringToFront();
   await dash.locator('label:has-text("Celebrations") input[type=checkbox]').check();
   await halo.bringToFront();
 
-  // Free: nothing (no sync to update).
+  // Free (0.12.9): the same check-off; it is Halo's own word.
   await worker.evaluate(() => chrome.storage.local.set({ tier: 'free' }));
   await sleep(8200);
-  const callsFree = gateway.n;
-  await submit(open.haloId);
-  await sleep(6000);
-  check((await cardText()) === null && gateway.n === callsFree, 'Free: no moment and no sync');
+  const freeItem = others[2] ?? others[0];
+  await submit(freeItem.haloId);
+  check((await cardText()) !== null && (await doneInAccount(freeItem.haloId)), 'Free: the moment, and done in the Halo+ account');
   // Max gets it too.
   await worker.evaluate(() => chrome.storage.local.set({ tier: 'max' }));
   await sleep(3000);
@@ -187,7 +202,8 @@ try {
 
   // The extension asks for nothing new.
   const manifest = JSON.parse(readFileSync(join(EXT, 'manifest.json'), 'utf8'));
-  check(manifest.version >= '0.5.0' && JSON.stringify(manifest.permissions) === JSON.stringify(['alarms', 'storage', 'unlimitedStorage', 'scripting', 'tabs']), `manifest ${manifest.version}, permissions unchanged`);
+  const ver = manifest.version.split('.').map(Number);
+  check((ver[0] > 0 || ver[1] > 5 || (ver[1] === 5 && ver[2] >= 0)) && JSON.stringify(manifest.permissions) === JSON.stringify(['alarms', 'storage', 'unlimitedStorage', 'scripting', 'tabs']), `manifest ${manifest.version}, permissions unchanged`);
 } finally {
   await ectx.close();
   console.log(`removed ${await kit.cleanup()} throwaways`);

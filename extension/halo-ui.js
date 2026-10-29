@@ -28,9 +28,19 @@
   };
   const prev = globalThis.__haloPlusUi;
   if (prev && prev.alive()) return;
-  globalThis.__haloPlusUi = { alive };
+  // The view this page draws (with this computer's check-offs), for the moment after a submission (content-halo.js).
+  globalThis.__haloPlusUi = { alive, view: () => view };
   const M = globalThis.HaloPlusModel;
   if (!M) return;
+  /** Halo+ on Halo's pages, the live copy only (one left by an extension update answers nothing, 0.12.9). */
+  const liveOn = () => {
+    const On = globalThis.HaloPlusOn;
+    try {
+      return On && (!On.alive || On.alive()) ? On : null;
+    } catch {
+      return null;
+    }
+  };
   const ORIGIN = 'https://haloplus.app';
   const PEEK_MS = 6000;
   const guard = (fn) =>
@@ -355,7 +365,7 @@
   function homeCards() {
     const out = [];
     for (const card of document.querySelectorAll('[class*="CourseCard_cardContainer"]')) {
-      if (card.closest('[data-haloplus]') || card.dataset.haloplusNoLine) continue;
+      if (card.closest('[data-haloplus]') || Number(card.dataset.haloplusNoLine || 0) >= 3) continue;
       const a = card.querySelector('a[href*="/courses/"]');
       const m = a && (a.getAttribute('href') || '').match(/\/courses\/([^/?#]+)/);
       if (!m) continue;
@@ -462,7 +472,7 @@
       if (nx && (e.type === 'click' || e.key === 'Enter')) {
         e.preventDefault();
         e.stopPropagation();
-        const On = globalThis.HaloPlusOn;
+        const On = liveOn();
         if (On) On.count('next-click', false);
         if (e.metaKey || e.ctrlKey) window.open(new URL(nx.getAttribute('href'), location.origin).href, '_blank', 'noopener');
         else location.assign(new URL(nx.getAttribute('href'), location.origin).href);
@@ -513,7 +523,7 @@
     const all = M.classLine(view, cls, now).filter((p) => !(bhGrade && p.tone === 'grade'));
     // Next item in one click (0.12.0, Plus and Max, its own switch): "Next: Topic 7 DQ 2" opens it on Halo, at
     // Halo's own address for it (the index from the last sync); no address, no link.
-    const On = globalThis.HaloPlusOn;
+    const On = liveOn();
     if (On && On.enabled('next')) {
       const nx = M.nextFor(view, cls, now);
       const name = nx && M.nextName(nx);
@@ -562,7 +572,10 @@
       const clipped = getComputedStyle(card).overflow !== 'visible' && (r.top < c.top - 1 || r.bottom > c.bottom + 1);
       if (r.height < 8 || r.width < 40 || clipped) {
         h.remove();
-        card.dataset.haloplusNoLine = '1';
+        // Measured while Halo's card was still settling, perhaps (0.12.9): tried again a moment later, three times.
+        const n = Number(card.dataset.haloplusNoLine || 0) + 1;
+        card.dataset.haloplusNoLine = String(n);
+        if (n < 3) setTimeout(soon, 600 * n * n);
       }
     });
   }
@@ -572,7 +585,7 @@
     const done = new Set();
     // Halo's home page: before Better Halo's list when it is there, else before the card's rule, else at the end. Not
     // while Halo+'s class cards (0.12.5) are on: their grade and NEXT box say what the line said.
-    const On = globalThis.HaloPlusOn;
+    const On = liveOn();
     const cardsOn = !!(On && On.enabled('homecards'));
     for (const [card, cls] of homeCards()) {
       if (cardsOn) {
@@ -959,7 +972,7 @@ ul{list-style:none;margin:0;padding:0}
     const head = `<button class="hd" type="button" aria-expanded="${open}"><span>This week</span><span class="n">· ${n ? `${n} due` : 'nothing due'}</span>${near}${asof ? `<span class="asof">${esc(asof)}</span>` : ''}<span class="mk" aria-hidden="true"><i></i>Halo+</span>${CHEV}</button>`;
     const vars = `--bg:${look.bg};--ink:${look.ink};--muted:${look.muted};--line:${look.line};--hover:${look.hover};--border:${look.border};--radius:${look.radius};--shadow:${look.shadow};--font:${look.font};--gold:${look.gold};--gold-ink:${look.goldInk};--red:${look.red};--green:${look.green}`;
     // 0.12.2: a quiet "Calendar" link beside the header, to Halo+'s all-classes calendar below the cards (when it is on).
-    const On = globalThis.HaloPlusOn;
+    const On = liveOn();
     const cal = On && On.enabled('calendar') ? '<a class="cal" href="#hp-home-calendar" data-cal>Calendar</a>' : '';
     const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}"><div class="hrow">${head}${cal}</div><div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
     let h = old;
@@ -983,6 +996,8 @@ ul{list-style:none;margin:0;padding:0}
       if (a.width < Math.max(280, b.width * 0.9) || a.top > b.top) {
         h.remove();
         weekHtml = '';
+        // Halo's page still settling, perhaps (0.12.9): looked at again shortly, not only at Halo's next change.
+        if (weekMisses < 4) setTimeout(soon, [500, 1500, 4000, 10000][weekMisses++]);
         return false;
       }
       weekHtml = '';
@@ -1219,6 +1234,14 @@ ul{list-style:none;margin:0;padding:0}
 
   // ---- keeping up --------------------------------------------------------------------------------------------------
   let path = location.pathname;
+  let weekMisses = 0;
+  // A few looks more after the page starts and after each move between Halo's pages (0.12.9), so Halo's parts that
+  // come late or settle are seen within seconds, never only at the next reload. Then nothing until something happens.
+  let settling = [];
+  const settle = () => {
+    for (const t of settling) clearTimeout(t);
+    settling = [600, 1500, 3000, 6000, 12000].map((ms) => setTimeout(() => alive() && soon(), ms));
+  };
   let queued = 0;
   const soon = () => {
     if (queued) return;
@@ -1228,6 +1251,9 @@ ul{list-style:none;margin:0;padding:0}
     }, 400);
   };
   void load().then(render);
+  settle();
+  window.addEventListener('pageshow', () => alive() && soon());
+  document.addEventListener('visibilitychange', () => alive() && document.visibilityState === 'visible' && soon());
   chrome.storage.onChanged.addListener(
     guard((changes, area) => {
       if (area !== 'local' || !KEYS.some((k) => k in changes)) return;
@@ -1245,6 +1271,8 @@ ul{list-style:none;margin:0;padding:0}
       if (!alive()) return;
       if (location.pathname !== path) {
         path = location.pathname;
+        weekMisses = 0;
+        settle();
         render();
       }
     }),

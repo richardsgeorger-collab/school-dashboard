@@ -69,48 +69,108 @@
   }
 
   // ---- the data ------------------------------------------------------------------------------------------------------------
-  // The answers are kept ten minutes on this computer (chrome.storage), so moving between Halo's pages asks nothing new.
+  // Halo's answer for each class is kept ten minutes on this computer (chrome.storage), so moving between Halo's pages
+  // asks nothing new. Only real answers are kept (0.12.9): a class Halo did not answer this time is asked again a
+  // moment later (after 1.5, 4 and 10 seconds, then every half minute while the page is open) and is never remembered as "no
+  // answer". Before, one miss (Halo's session not ready just after signing in, a network blip) was kept for ten
+  // minutes, across reloads: no NEXT boxes, no week strip, no calendar until then (George: "until I reload a few times").
+  const KEEP_MS = 10 * 60_000;
+  const RETRY_MS = [1500, 4000, 10000, 30000];
+  let got = {}; // slug -> { at, rows: [{ assessment: { id }, dueDate, status }] }, Halo's answers only
+  let gotIndex = null;
+  let retries = 0;
+  let retryTimer = 0;
+  let waitUntil = 0; // no new question for the classes Halo did not answer before this (never a burst)
   async function kept(idx) {
     try {
       const { haloCalLive } = await chrome.storage.local.get('haloCalLive');
-      if (!haloCalLive || Date.now() - haloCalLive.at > 10 * 60_000 || haloCalLive.index !== idx.at) return null;
+      if (!haloCalLive || haloCalLive.v !== 2 || haloCalLive.index !== idx.at) return {};
       const out = {};
-      for (const [slug, rows] of Object.entries(haloCalLive.grades)) out[slug] = rows ? new Map(rows.map((r) => [r.assessment.id, r])) : null;
-      liveAt = haloCalLive.at;
+      for (const [slug, e] of Object.entries(haloCalLive.cls || {})) if (e && Array.isArray(e.rows) && Date.now() - e.at < KEEP_MS) out[slug] = e;
       return out;
     } catch {
-      return null;
+      return {};
     }
+  }
+  async function keep(idx) {
+    try {
+      await chrome.storage.local.set({ haloCalLive: { v: 2, index: idx.at, cls: got } });
+    } catch {
+      /* kept for this page only */
+    }
+  }
+  /** One class, asked of Halo: its work's due dates and statuses (throws when Halo does not answer). */
+  async function askClass(slug) {
+    const d = await O.ask('StudentAssessmentDetails', Q, { courseClassSlugId: slug, courseUnitId: null }, KEEP_MS);
+    const g = (d.assessmentGrades && d.assessmentGrades[0] && d.assessmentGrades[0].grades) || null;
+    if (!Array.isArray(g)) throw new Error('no grades');
+    return g.filter((x) => x && x.assessment && x.assessment.id).map((x) => ({ assessment: { id: x.assessment.id }, dueDate: x.dueDate || null, status: x.status || null }));
+  }
+  const build = (idx) => Object.fromEntries(idx.classes.map((c) => [c.slug, got[c.slug] ? new Map(got[c.slug].rows.map((r) => [r.assessment.id, r])) : null]));
+  /** Ask again soon for the classes Halo did not answer (the features look again then, and ask only for those). */
+  function later() {
+    if (retryTimer) return;
+    const ms = RETRY_MS[Math.min(retries, RETRY_MS.length - 1)];
+    retries += 1;
+    waitUntil = Date.now() + ms;
+    retryTimer = setTimeout(() => {
+      retryTimer = 0;
+      waitUntil = 0;
+      O.soon();
+    }, ms);
   }
   async function refresh(idx) {
     if (loading) return loading;
-    if (live && Date.now() - liveAt < 10 * 60_000) return live;
-    const k = await kept(idx);
-    if (k) return (live = k);
+    if (live && gotIndex === idx.at && (Date.now() < waitUntil || idx.classes.every((c) => got[c.slug] && Date.now() - got[c.slug].at < KEEP_MS))) return live;
     loading = (async () => {
-      const out = {};
-      for (const c of idx.classes) {
+      if (gotIndex !== idx.at) {
+        got = await kept(idx);
+        gotIndex = idx.at;
+        if (Object.keys(got).length) O.diag('halo-answers', { kept: Object.keys(got).length, of: idx.classes.length });
+      }
+      const need = idx.classes.filter((c) => !got[c.slug] || Date.now() - got[c.slug].at >= KEEP_MS);
+      let failed = 0;
+      for (const c of need) {
         try {
-          const d = await O.ask('StudentAssessmentDetails', Q, { courseClassSlugId: c.slug, courseUnitId: null }, 10 * 60_000);
-          const g = (d.assessmentGrades && d.assessmentGrades[0] && d.assessmentGrades[0].grades) || null;
-          if (!Array.isArray(g)) throw new Error('no grades');
-          out[c.slug] = new Map(g.filter((x) => x && x.assessment && x.assessment.id).map((x) => [x.assessment.id, x]));
+          got[c.slug] = { at: Date.now(), rows: await askClass(c.slug) };
         } catch {
-          out[c.slug] = null;
+          failed += 1;
         }
       }
-      live = out;
-      liveAt = Date.now();
-      loading = null;
-      try {
-        const grades = Object.fromEntries(Object.entries(out).map(([slug, m]) => [slug, m ? [...m.values()].map((r) => ({ assessment: { id: r.assessment.id }, dueDate: r.dueDate || null, status: r.status || null })) : null]));
-        await chrome.storage.local.set({ haloCalLive: { at: liveAt, index: idx.at, grades } });
-      } catch {
-        /* kept for this page only */
+      if (need.length) {
+        O.diag('halo-answers', { asked: need.length, failed, retry: failed ? retries + 1 : 0 });
+        if (need.length > failed) {
+          liveAt = Date.now();
+          await keep(idx);
+        }
       }
-      return out;
-    })();
+      if (failed) later();
+      else retries = 0;
+      live = build(idx);
+      return live;
+    })().finally(() => {
+      loading = null;
+    });
     return loading;
+  }
+  /**
+   * One class read again from Halo now (0.12.9: a submission Halo just confirmed), its answer kept and drawn; Halo's
+   * row for each of its assessments, or a throw when Halo does not answer.
+   */
+  async function refreshClass(idx, slug) {
+    if (loading) await loading.catch(() => undefined);
+    O.forget('StudentAssessmentDetails', { courseClassSlugId: slug, courseUnitId: null });
+    const rows = await askClass(slug);
+    if (gotIndex !== idx.at) {
+      got = await kept(idx);
+      gotIndex = idx.at;
+    }
+    got[slug] = { at: Date.now(), rows };
+    liveAt = Date.now();
+    await keep(idx);
+    live = build(idx);
+    O.soon();
+    return new Map(rows.map((r) => [r.assessment.id, r]));
   }
 
   // ---- drawing (0.12.1) ----------------------------------------------------------------------------------------------------
@@ -395,7 +455,7 @@
       if (document.querySelector('[data-haloplus="calendar-all"], [data-haloplus="home-calendar"]')) O.soon();
     }, 500);
   });
-  O.cal = { refresh, gridHtml, legendHtml, daysFor, bindGrid, loadStripes, readStripes, themeKey, cardColor, colorFor: (raw) => L.boldColor(raw, darkTheme()), get stripes() { return stripes; }, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
+  O.cal = { refresh, refreshClass, gridHtml, legendHtml, daysFor, bindGrid, loadStripes, readStripes, themeKey, cardColor, colorFor: (raw) => L.boldColor(raw, darkTheme()), get stripes() { return stripes; }, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
   O.feature({
     id: 'calendar',
     routes: ['class'],

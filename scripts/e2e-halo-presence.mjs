@@ -92,7 +92,8 @@ try {
   const { id: extId, worker } = await load(EXT);
   const store = (o) => worker.evaluate((x) => chrome.storage.local.set(x), o);
   const badge = () => worker.evaluate(async () => ({ text: await chrome.action.getBadgeText({}), color: await chrome.action.getBadgeBackgroundColor({}) }));
-  await store({ tier: 'max', lastSyncAt: new Date().toISOString(), syncKey: 'a'.repeat(48), haloSnap: shaped('tomorrow'), haloLive: null, haloUi: null, haloUiOn: null, haloBase: null });
+  // The class lines are what is checked here: Halo+'s class cards (0.12.5, which take their place) switched off.
+  await store({ tier: 'max', lastSyncAt: new Date().toISOString(), syncKey: 'a'.repeat(48), haloSnap: shaped('tomorrow'), haloLive: null, haloUi: null, haloUiOn: null, haloBase: null, haloFeat: { off: ['homecards'], at: new Date().toISOString() } });
   await sleep(1500);
   for (const pg of ctx.pages()) if (pg.url().startsWith('https://haloplus.app')) await pg.close().catch(() => undefined);
 
@@ -364,7 +365,7 @@ try {
     await pp.goto(`chrome-extension://${extId}/popup.html`, { waitUntil: 'load' });
     await until(() => pp.evaluate(() => /Last synced/.test(document.getElementById('status').innerText)), 6000);
     if (L) {
-      const empty = await pp.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.offsetParent !== null && e.getBoundingClientRect().height > 4 && !e.innerText.trim() && !['IMG', 'INPUT', 'I', 'SCRIPT'].includes(e.tagName) && !e.querySelector('img,input')).map((e) => e.id || e.className));
+      const empty = await pp.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.offsetParent !== null && e.getBoundingClientRect().height > 4 && !e.innerText.trim() && !['IMG', 'INPUT', 'I', 'SCRIPT'].includes(e.tagName) && !e.querySelector('img,input') && !(e.closest('details') && !e.closest('details').open && !e.closest('summary'))).map((e) => e.id || e.className));
       check(empty.length === 0, `nothing empty in the popup (${empty.join(', ') || 'none'})`);
       const t = await pp.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
       check(/Halo\+ Max/i.test(t) && /Today's done ✓ · Tomorrow .+ · \d+ pts/i.test(t) && !/· tomorrow ·/.test(t) && /Last synced/.test(t) && /Sync now/.test(t) && /Show Halo\+ on Halo pages/.test(t) && /Open Halo\+/.test(t), `the popup: "${t.slice(0, 200)}"`);

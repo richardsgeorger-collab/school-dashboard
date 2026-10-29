@@ -171,7 +171,9 @@ for (const withBh of runs) {
         return { probes, added };
       });
       // One look is the panel following a real change (Better Halo re-adding its theme's style); a loop would be many.
-      check(idle.probes <= 1 && idle.added < 20, `${tag} ${scheme}: quiet while nothing changes (${idle.probes} looks, ${idle.added} nodes added in 5 s)`);
+      // (0.12.9: Halo+ looks again a few times in the first seconds after a page starts, so one more look while a theme
+      // settles is fine; a back-and-forth would be many.)
+      check(idle.probes <= 2 && idle.added < 20, `${tag} ${scheme}: quiet while nothing changes (${idle.probes} looks, ${idle.added} nodes added in 5 s)`);
       const longest = Math.max(0, ...(await p.evaluate(() => window.__long || [])));
       check(longest < 120, `${tag} ${scheme}: Halo's page never waits on it (longest task ${Math.round(longest)} ms)`);
       // ---- folded at first, one useful line ----
@@ -275,7 +277,7 @@ for (const withBh of runs) {
       doneIds = [];
       await p.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
       const td = await until(async () => { const t = await flatOf(); return t && /Today: All done ✓/.test(t) ? t : null; }, 8000, 200);
-      check(!!td && /^This week · 4 due · 2 tomorrow Halo\+ Today: All done ✓ TOMORROW/.test(td), `today done: "Today: All done ✓" on one line, then Tomorrow ("${(td ?? '').slice(0, 70)}")`);
+      check(!!td && /^This week · 4 due · 2 tomorrow Halo\+ (Calendar )?Today: All done ✓ TOMORROW/.test(td), `today done: "Today: All done ✓" on one line, then Tomorrow ("${(td ?? '').slice(0, 70)}")`);
       await p.screenshot({ path: `${OUT}/${BROWSER}-today-done-light.png`, clip: { x: 0, y: 64, width: 1366, height: 420 } });
       // ---- Past classes: not there ----
       await p.goto('https://halo.gcu.edu/?past', { waitUntil: 'load' });

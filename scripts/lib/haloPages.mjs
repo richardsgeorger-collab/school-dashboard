@@ -117,7 +117,7 @@ function topicOf(c) {
   const pick = week[0] || next[0];
   return pick ? pick.unitSequence : null;
 }
-export function homePage(build, fx, { bh = false, badges = null, header = 'halo', extraCards = [] } = {}) {
+export function homePage(build, fx, { bh = false, badges = null, header = 'halo', extraCards = [], hydrateMs = 0, redrawsAt = [] } = {}) {
   const C = (n) => build.cls(n);
   // Extra cards on request (0.12.5 tests): a finished class, with Halo's "Post-Class" stage chip.
   const cards = [...fx.payload.classes, ...extraCards]
@@ -155,6 +155,24 @@ ${tabs}
 <section><div class="MuiGrid-root MuiGrid-container MuiGrid-spacing-xs-4">${cards}</div></section></div>
 <footer class="py-10"><hr class="MuiDivider-root"><div class="pt-2 text-center"><p class="text-xs">Grand Canyon University © 2026 All Rights Reserved</p></div></footer></div>
 <script>${HOME_TABS_JS.replace('%ON%', C('Tab_activeTab')).replace('%OFF%', C('Tab_tab'))}</script>`;
+  // A slow Halo (the first-load test, 0.12.9): Student Home's insides arrive `hydrateMs` after the page (as when Halo's
+  // app finishes loading on a slow computer or connection), then Halo redraws it at `redrawsAt` (ms after that).
+  if (hydrateMs > 0 || redrawsAt.length) {
+    const [open, rest] = [body.slice(0, body.indexOf('<div id="Home--main"')), body.slice(body.indexOf('<div id="Home--main"'))];
+    const inner = rest.slice(0, rest.lastIndexOf('<script>'));
+    const tabsJs = rest.slice(rest.lastIndexOf('<script>') + 8, rest.lastIndexOf('</script>'));
+    const late = `${open}</div><template id="hp-late">${inner.replace(/<\/div>\s*$/, '')}</template><script>
+(function () {
+  const box = document.querySelector('[class*="Home_container"]');
+  setTimeout(function () {
+    box.innerHTML = document.getElementById('hp-late').innerHTML;
+    ${tabsJs}
+    ${JSON.stringify(redrawsAt)}.forEach(function (ms) { setTimeout(function () { if (location.pathname === '/') document.getElementById('guide_anchor_header_myClasses').click(); }, ms); });
+  }, ${Number(hydrateMs) || 0});
+})();
+</script>`;
+    return shell(build, '/', 'Halo Classes', late);
+  }
   return shell(build, '/', 'Halo Classes', body);
 }
 
@@ -368,9 +386,10 @@ function mount(host, { parent = null, label = '', content = '' } = {}) {
   });
   return editor;
 }
+// Halo's toast as Halo draws it (2026-10-28, its code): its icon titled "SUCCESS", "Success", then the words, one block.
 function toast(text) {
   const box = document.getElementById('SUCCESS');
-  box.innerHTML = '<div class="Toastify__toast-container Toastify__toast-container--top-right"><div class="Toastify__toast Toastify__toast--success"><div role="alert" class="Toastify__toast-body toast-content"><div class="' + C.toast + '" role="alert" aria-live="assertive"><div class="' + C.toastMsg + '"><strong>Success</strong><div class="' + C.desc + '" data-testid="description">' + text + '</div></div></div></div></div></div>';
+  box.innerHTML = '<div class="Toastify__toast-container Toastify__toast-container--top-right"><div class="Toastify__toast Toastify__toast--success"><div role="alert" class="Toastify__toast-body toast-content"><div class="' + C.toast + '" role="alert" aria-live="assertive"><div class="' + C.toastMsg + '"><svg width="24" height="24" viewBox="0 0 24 24"><title>SUCCESS</title><circle cx="12" cy="12" r="10" fill="#07bc0c"/></svg><strong>Success</strong><div class="' + C.desc + '" data-testid="description">' + text + '</div></div></div></div></div></div>';
   setTimeout(() => (box.innerHTML = ''), 3000);
 }
 document.addEventListener('click', (e) => {
@@ -504,7 +523,7 @@ const TOPIC_JS = `
   function toast(text) {
     let box = document.getElementById('SUCCESS');
     if (!box) { box = document.createElement('div'); box.id = 'SUCCESS'; box.className = 'Toastify'; document.body.appendChild(box); }
-    box.innerHTML = '<div class="Toastify__toast Toastify__toast--success"><div role="alert" class="' + T.C.toast + '"><div class="' + T.C.toastMsg + '"><strong>Success</strong><div class="' + T.C.desc + '" data-testid="description">' + text + '</div></div></div></div>';
+    box.innerHTML = '<div class="Toastify__toast Toastify__toast--success"><div role="alert" class="' + T.C.toast + '"><div class="' + T.C.toastMsg + '"><svg width="24" height="24" viewBox="0 0 24 24"><title>SUCCESS</title><circle cx="12" cy="12" r="10" fill="#07bc0c"/></svg><strong>Success</strong><div class="' + T.C.desc + '" data-testid="description">' + text + '</div></div></div></div>';
     setTimeout(() => (box.innerHTML = ''), 3000);
   }
   const go = () => { const m = /#assignment-submission\\/([^/?#]+)/.exec(location.hash); if (m) view(decodeURIComponent(m[1])); };
@@ -777,6 +796,14 @@ export async function standIn(ctx, fx, opts = {}) {
       }
       return route.fulfill({ response: res, body: buf });
     }
+    // A slow Halo (the first-load test): the page late, the session not ready the first few times.
+    const slow = state.slow || null;
+    if (slow && slow.pageMs && !u.pathname.startsWith('/_next/') && !u.pathname.startsWith('/api/')) await new Promise((res) => setTimeout(res, slow.pageMs));
+    if (u.pathname === '/api/auth/session' && slow && slow.sessionMisses > 0) {
+      slow.sessionMisses -= 1;
+      calls.session += 1;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    }
     if (u.pathname === '/api/auth/session') {
       calls.session += 1;
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ authToken: 'test-auth', contextToken: 'test-context', userId: 'user-maya', expires: '2099-01-01T00:00:00Z' }) });
@@ -784,7 +811,7 @@ export async function standIn(ctx, fx, opts = {}) {
     if (u.pathname.startsWith('/api/')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
     const page = Object.entries(state.pages).find(([re]) => new RegExp(re).test(u.pathname));
     if (page) return route.fulfill({ status: 200, contentType: 'text/html', body: page[1](build, fx, u, state) });
-    if (u.pathname === '/' || u.pathname === '') return route.fulfill({ status: 200, contentType: 'text/html', body: homePage(build, fx, { bh: state.bh, badges: state.badges, header: state.homeHeader || 'halo', extraCards: state.extraCards || [] }) });
+    if (u.pathname === '/' || u.pathname === '') return route.fulfill({ status: 200, contentType: 'text/html', body: homePage(build, fx, { bh: state.bh, badges: state.badges, header: state.homeHeader || 'halo', extraCards: state.extraCards || [], hydrateMs: slow ? slow.hydrateMs || 0 : 0, redrawsAt: slow ? slow.redrawsAt || [] : [] }) });
     return route.fulfill({ status: 200, contentType: 'text/html', body: shell(build, '/courses/[slugId]', 'Halo', `<div class="py-4"><h1 class="${build.cls('PageTitle_headerText')}">Page</h1></div>`) });
   });
   // The editor library the discussion stand-in loads (TipTap, from a public module CDN): kept on disk after the first
@@ -829,6 +856,12 @@ export async function standIn(ctx, fx, opts = {}) {
     const b = r.postDataJSON?.() ?? {};
     calls.gateway.push({ op: b.operationName, vars: b.variables, at: Date.now(), auth: r.headers().authorization });
     const h = state.gateway[b.operationName];
+    // A slow Halo: its gateway slow, and failing its first few answers.
+    if (state.slow && state.slow.gatewayMs) await new Promise((res) => setTimeout(res, state.slow.gatewayMs));
+    if (state.slow && state.slow.gatewayFails > 0) {
+      state.slow.gatewayFails -= 1;
+      return route.fulfill({ status: 502, contentType: 'application/json', headers: cors, body: JSON.stringify({ errors: [{ message: 'bad gateway' }] }) });
+    }
     if (state.failGateway || !h) return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ errors: [{ message: 'not in the stand-in' }] }) });
     return route.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ data: await h(b.variables || {}, state) }) });
   });

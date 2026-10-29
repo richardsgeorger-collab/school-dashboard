@@ -56,14 +56,29 @@
   });
 
   // ---- a confirmed submission -----------------------------------------------------------------------------------------
+  // Halo's own success toasts (react-toastify; read again from Halo's code, build T6KDgoiIaE-TpnamHsnFp, 2026-10-28).
+  // A toast is one block: Halo's icon (its title "SUCCESS"), "Success", then the words, so the words are looked for
+  // anywhere in it (0.12.9: they were looked for only at its start, which Halo's real toast never matched, so a real
+  // submission was not seen at all and showed as done only after a later sync).
+  //   - "Assignment has been submitted." after Halo's POST …/{id}/submit succeeds; the drawer at
+  //     #assignment-submission/{courseClassAssessmentId} (Halo leaves the address as it is).
+  //   - "Quiz successfully submitted" (then "See Gradebook for more details") after userQuiz/submit; on
+  //     /quiz/{assessmentId}/start-quiz/{userQuizId}, or /quiz/{assessmentId} after a timed quiz ran out.
+  //   - "Discussion response has been submitted" after a DQ response (forum/post/send with isSubmitDqAction), its
+  //     window at #discussion-submission/{assessmentId}/fid/{forumId}.
+  //   - "Discussion post has been submitted": an ordinary post or reply (participation posts are ordinary posts). Not a
+  //     submission of any one assessment, so nothing is checked off on a guess; the class is read again from Halo
+  //     instead, and what Halo then says is done is done.
+  // Failures ("Failed to submit Assignment.", "There was an error submitting your quiz", "An error has occurred.") and
+  // edits ("Discussion response has been updated") are left alone.
   const DONE = [
-    { re: /^Assignment has been submitted\./, kind: 'assignment' },
-    { re: /^Quiz successfully submitted/, kind: 'quiz' },
-    { re: /^Discussion post has been submitted/, kind: 'discussion' },
+    { re: /Assignment has been submitted\./, kind: 'assignment' },
+    { re: /Quiz successfully submitted/, kind: 'quiz' },
+    { re: /Discussion response has been submitted/, kind: 'discussion' },
   ];
+  const POSTED = /Discussion post has been submitted/;
 
-  // Which assessment the page is on. Halo closes the submit modal (clearing the address) a moment before its toast, so
-  // the last one seen in the last few minutes is kept.
+  // Which assessment the page is on: the last one seen in the last few minutes is kept.
   let seen = { id: null, kind: null, at: 0 };
   function look() {
     const h = location.hash;
@@ -78,57 +93,100 @@
   setInterval(look, 700);
   window.addEventListener('hashchange', look);
 
-  let lastMoment = 0;
+  const slugHere = () => {
+    const m = /^\/courses\/([^/?#]+)/.exec(location.pathname);
+    try {
+      return m ? decodeURIComponent(m[1]) : null;
+    } catch {
+      return null;
+    }
+  };
+  const moments = new Map(); // assessment id -> when its moment was shown (one per submission)
+  let lastPosted = 0;
   function onToast(text) {
+    if (POSTED.test(text)) {
+      // An ordinary post: no check-off, only that class read again from Halo (once in a few seconds).
+      if (Date.now() - lastPosted < 4000) return;
+      lastPosted = Date.now();
+      window.dispatchEvent(new CustomEvent('haloplus:posted', { detail: { slug: slugHere() } }));
+      return;
+    }
     const hit = DONE.find((d) => d.re.test(text));
     if (!hit) return;
     look();
     const fresh = Date.now() - seen.at < 5 * 60_000 && seen.kind === hit.kind;
-    // A reply in a discussion shows the same toast as a DQ response; only the response (its modal) is a submission.
+    // A DQ response always has its window's address; without it, it is not one Halo+ can name.
     if (hit.kind === 'discussion' && !fresh) return;
-    // One moment per submission, whatever else Halo re-renders.
-    if (Date.now() - lastMoment < 8000) return;
-    lastMoment = Date.now();
     const id = fresh ? seen.id : null;
-    void celebrate(id);
+    // One moment per submission, whatever else Halo re-renders.
+    const key = id || `?${hit.kind}`;
+    if (moments.has(key) && Date.now() - moments.get(key) < 8000) return;
+    moments.set(key, Date.now());
+    void submitted(id, hit.kind);
   }
 
+  // Halo's toasts arrive as a whole block (its container, or the toast in an existing container): each new element's
+  // words, once.
   const observer = new MutationObserver((records) => {
     for (const r of records)
       for (const n of r.addedNodes) {
         if (n.nodeType !== 1) continue;
-        const t = (n.textContent || '').trim();
-        if (t && t.length < 400) onToast(t);
+        const t = (n.textContent || '').replace(/\s+/g, ' ').trim();
+        if (t && t.length < 600) onToast(t);
       }
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  async function celebrate(haloId) {
+  async function submitted(haloId, kind) {
     let s = {};
     try {
-      s = await chrome.storage.local.get(['joySnap', 'tier']);
+      s = await chrome.storage.local.get(['joySnap', 'tier', 'syncKey']);
     } catch {
       /* the extension was updated under this page */
     }
-    // Every plan with an account (0.11.0: Free syncs when it is on Halo, so it has a Halo+ to update too).
-    if (!s.tier) return;
-    chrome.runtime.sendMessage({ kind: 'submitted' }).catch(() => undefined);
-    // Halo+ on Halo (0.8.0): "Nice. Next: …" a moment after the confetti.
-    window.dispatchEvent(new CustomEvent('haloplus:submitted', { detail: { id: haloId } }));
+    // Every plan with an account (Free too: it is Halo's own word).
+    if (!s.tier && !s.syncKey) return;
+    // Done everywhere at once (the worker: this computer's mark and the account's), then this page's moment and the
+    // class read again from Halo (onhalo/submitted.js).
+    chrome.runtime.sendMessage({ kind: 'submitted', id: haloId, what: kind }).catch(() => undefined);
+    window.dispatchEvent(new CustomEvent('haloplus:submitted', { detail: { id: haloId, kind, slug: slugHere() } }));
     const snap = s.joySnap || null;
     if (snap && snap.celebrate === false) return;
-    globalThis.haloPlusCelebrate(lineFor(snap, haloId));
+    globalThis.haloPlusCelebrate(lineFor(snap, haloId), momentFor(snap, haloId));
   }
 
   /** "+50 pts · CHM-113L now 36% done": the class after this one, from the real Halo total. Mirrors src/joy/extSnapshot.ts. */
   function lineFor(snap, haloId) {
     const it = snap && haloId ? snap.items[haloId] : null;
-    if (!it) return 'Turned in. Halo+ is syncing it now.';
+    if (!it) return haloId ? 'Turned in. Nice work.' : 'Turned in. Halo+ is syncing it now.';
     const [points, key, done] = it;
     const c = snap.classes[key];
     if (!c) return `+${points} pts`;
     const pct = Math.min(100, Math.floor(((c[1] + (done ? 0 : points)) / c[2]) * 100));
     return `+${points} pts · ${c[0]} now ${pct}% done`;
+  }
+  /**
+   * The moment's details (0.12.9): the item's own name and points, and this week's progress with it counted, from what
+   * Halo+ already has on this computer (the item from Halo+'s data; This week from the same view the panel draws).
+   */
+  function momentFor(snap, haloId) {
+    const M = globalThis.HaloPlusModel;
+    const out = {};
+    const it = snap && haloId ? snap.items[haloId] : null;
+    if (it) out.pts = it[0];
+    try {
+      const v = globalThis.__haloPlusUi && globalThis.__haloPlusUi.view ? globalThis.__haloPlusUi.view() : null;
+      const item = v && haloId ? v.items.find((i) => i.h === haloId) : null;
+      if (item) {
+        out.title = M && M.nextName ? M.nextName(item) || item.t : item.t;
+        if (!out.pts && item.pts) out.pts = item.pts;
+      }
+      const w = v && M && M.weekProgress ? M.weekProgress(v, Date.now()) : null;
+      if (w && w.total > 0) out.week = { done: Math.min(w.total, w.done + (item && !item.done ? 1 : 0)), total: w.total };
+    } catch {
+      /* the plain moment */
+    }
+    return out;
   }
 
   // The confetti and the card are celebrate.js (loaded just before this file, see manifest.json).

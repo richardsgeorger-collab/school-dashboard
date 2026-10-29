@@ -19,6 +19,7 @@
   let on = false;
   let grades = null;
   let asking = false;
+  let lastK = -1;
 
   const cardsNow = () => [...document.querySelectorAll('#Home--main [class*="CourseCard_cardContainer"]')].filter((c) => !c.closest('[data-haloplus]'));
   function slugOf(card) {
@@ -47,6 +48,7 @@
     if (!idx || !Array.isArray(idx.classes) || !grades) return null;
     const k = idx.classes.findIndex((c) => (c.slug || '').toLowerCase() === slug.toLowerCase());
     if (k < 0) return null;
+    lastK = k;
     const doneIds = new Set(((O.view && O.view.items) || []).filter((i) => i.h && i.done === 1).map((i) => i.h));
     return L.cardNext(idx, k, grades[idx.classes[k].slug], Date.now(), O.zone(), { doneIds });
   }
@@ -62,6 +64,51 @@
       .map((i, k) => `<a class="hp-n-row${i.why ? ' hp-n-wait' : ''}${k === 0 ? ' hp-n-first' : ''}" href="${O.esc(i.href)}" title="${O.esc(`${i.title} · Due ${i.full}${i.why ? ` · ${i.why}` : ''}`)}"><span class="hp-n-t">${O.esc(i.title)}</span><span class="hp-n-w">&nbsp;· ${O.esc(i.why || i.when)}</span></a>`)
       .join('')}`;
   }
+  // ---- just turned in (0.12.9) ----------------------------------------------------------------------------------------------
+  // Work turned in on Halo in the last half hour (onhalo/submitted.js) that this computer has not shown ticked off yet:
+  // the class card's NEXT box shows it once at its top, checked and struck through, then folds it away (George: "more
+  // dopamine"). Once per submission, here or on any later Student Home.
+  const shownHere = new Set();
+  function justFor(slug, k) {
+    const j = O.st.haloJustDone;
+    const idx = O.st.haloIndex;
+    if (!j || !j.ids || !idx || !Array.isArray(idx.rows)) return [];
+    const out = [];
+    for (const [id, at] of Object.entries(j.ids)) {
+      if (Date.now() - at > 30 * 60_000 || (j.shown && j.shown[id]) || shownHere.has(id)) continue;
+      const r = idx.rows.find((x) => x.id === id && x.c === k);
+      if (r) out.push({ id, title: r.title });
+    }
+    return out.slice(0, 2);
+  }
+  async function shown(ids) {
+    for (const id of ids) shownHere.add(id);
+    try {
+      const { haloJustDone } = await chrome.storage.local.get('haloJustDone');
+      const j = haloJustDone && haloJustDone.ids ? haloJustDone : { v: 1, ids: {} };
+      await chrome.storage.local.set({ haloJustDone: { ...j, shown: { ...(j.shown || {}), ...Object.fromEntries(ids.map((id) => [id, 1])) } } });
+    } catch {
+      /* this page only */
+    }
+  }
+  const justHtml = (list) => list.map((i) => `<span class="hp-n-row hp-n-just" data-just="${O.esc(i.id)}" title="${O.esc(`${i.title} · turned in`)}"><span class="hp-n-ck" aria-hidden="true"></span><span class="hp-n-t">${O.esc(i.title)}</span><span class="hp-n-w">&nbsp;· done</span></span>`).join('');
+  /** The ticked rows: checked and struck at once, then folded away, and the box drawn as it is now. */
+  function playJust(c, n) {
+    const rows = [...n.querySelectorAll('.hp-n-just')];
+    if (!rows.length || n.dataset.playing) return;
+    n.dataset.playing = '1';
+    const ids = rows.map((r) => r.dataset.just);
+    void shown(ids);
+    setTimeout(() => {
+      for (const r of rows) r.classList.add('hp-n-gone');
+      setTimeout(() => {
+        delete n.dataset.playing;
+        n.dataset.html = '';
+        if (c.isConnected) card(c);
+      }, 420);
+    }, 2400);
+  }
+
   function gradeOf(slug) {
     const cls = O.view && O.view.classes ? O.view.classes.find((c) => (c.slug || '').toLowerCase() === slug.toLowerCase()) : null;
     return cls ? M.gradeText(cls) : null;
@@ -134,11 +181,15 @@
       n.style.setProperty('--c', col);
       n.dataset.col = col;
     }
-    const html = nextHtml(list);
+    if (n.dataset.playing) return;
+    const just = justFor(slug, lastK);
+    let html = nextHtml(list);
+    if (just.length) html = html.replace(/^(<small>[\s\S]*?<\/small>)/, `$1${justHtml(just)}`);
     if (n.dataset.html !== html) {
       n.innerHTML = html;
       n.dataset.html = html;
     }
+    if (just.length) playJust(c, n);
   }
   function all() {
     if (!on || O.route().kind !== 'home') return;

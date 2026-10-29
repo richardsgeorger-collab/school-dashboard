@@ -185,12 +185,24 @@ chrome.windows.onCreated.addListener(async (w) => {
   if (!state.running && AUTO.includes(tier)) void runSync({ auto: true });
 });
 
+/**
+ * Everything the manifest gives a Halo page, for a Halo tab opened before this version (0.12.9: it gave only the first
+ * four, so Halo+ on Halo's pages was missing in open tabs after an update until a reload). Styles too.
+ */
+const HALO_SCRIPTS = (() => {
+  const cs = (chrome.runtime.getManifest().content_scripts || []).find((c) => (c.matches || []).some((m) => m.startsWith(HALO))) || {};
+  return { js: cs.js || ['halo-model.js', 'celebrate.js', 'content-halo.js', 'halo-ui.js'], css: cs.css || [] };
+})();
+async function addToHaloTab(tabId) {
+  if (HALO_SCRIPTS.css.length) await chrome.scripting.insertCSS({ target: { tabId }, files: HALO_SCRIPTS.css }).catch(() => undefined);
+  await chrome.scripting.executeScript({ target: { tabId }, files: HALO_SCRIPTS.js });
+}
 async function addToOpenTabs() {
   const dash = await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }).catch(() => []);
   // Each with a time limit (0.7.6): a sleeping tab never answers, and the install must not wait on it.
   for (const t of dash) await within(chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['content-dash.js'] }), 5000, 'A Halo+ tab').catch(() => undefined);
   const halo = await chrome.tabs.query({ url: `${HALO}*` }).catch(() => []);
-  for (const t of halo) if (!t.discarded) await within(chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['halo-model.js', 'celebrate.js', 'content-halo.js', 'halo-ui.js'] }), 5000, 'A Halo tab').catch(() => undefined);
+  for (const t of halo) if (!t.discarded) await within(addToHaloTab(t.id), 5000, 'A Halo tab').catch(() => undefined);
 }
 chrome.runtime.onStartup.addListener(() => void ensureSchedule());
 
@@ -321,10 +333,17 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     void set({ joySnap: snap && snap.v === 1 ? snap : null });
     reply({ ok: true });
   } else if (msg.kind === 'submitted') {
-    // Halo just confirmed a submission in the student's tab: sync now so Halo+ shows it, quietly (it is Sync now for
-    // the plan rules, so it is taken on Plus too, but it focuses nothing and opens nothing: the student is on Halo).
-    // Halo saves the submission before it says so; a few seconds' wait lets the gateway catch up.
-    if (!state.running) setTimeout(() => !state.running && void runSync({ auto: false, quiet: true }), 4000);
+    // Halo just confirmed a submission in the student's tab (0.12.9, George: it did not show as done until a later
+    // sync). Done at once, everywhere: this computer's mark (This week, the pill, the badge, the popup, Halo+ on Halo's
+    // pages all count it) and the account's (sent now, not after an Undo: there is none, Halo said so). The page then
+    // reads that one class again from Halo; no full sync. A submission whose assessment is not known (Halo's address
+    // was not seen) still gets the quiet sync it always had.
+    if (typeof msg.id === 'string' && msg.id) void haloSubmitted(msg.id.slice(0, 200));
+    else if (!state.running) setTimeout(() => !state.running && void runSync({ auto: false, quiet: true }), 4000);
+    reply({ ok: true });
+  } else if (msg.kind === 'submit-undo') {
+    // Halo's own data, read again, says it is not turned in after all: Halo is right (the mark goes, here and there).
+    if (typeof msg.id === 'string' && msg.id) void hpIdFor(msg.id.slice(0, 200)).then(weekUndo);
     reply({ ok: true });
   } else if (msg.kind === 'halo-here') {
     // A Halo page opened. Auto-sync paused on a logged-out Halo picks up now instead of waiting up to three hours.
@@ -615,6 +634,23 @@ async function weekUndo(id) {
     await fetchDone(true);
   }
 }
+/**
+ * Halo+'s id for one of Halo's assessments: the account's own (from Halo+'s data on this computer: an item Halo+ matched
+ * to one already there, a syllabus's say, keeps that one's id), else the id the app gives a Halo assessment.
+ */
+async function hpIdFor(h) {
+  const { haloSnap } = await get(['haloSnap']);
+  const it = haloSnap && Array.isArray(haloSnap.items) ? haloSnap.items.find((i) => i && i.h === h && i.id) : null;
+  return it ? it.id : globalThis.HaloPlusModel.itemId(h);
+}
+/** A submission Halo confirmed: done here now and in the account now (keyed by Halo+'s id, with Halo's own). */
+async function haloSubmitted(h) {
+  const id = await hpIdFor(h);
+  const { haloMarks } = await get(['haloMarks']);
+  if (haloMarks && haloMarks[id] && haloMarks[id].src === 'halo') return;
+  await set({ haloMarks: { ...(haloMarks || {}), [id]: { at: new Date().toISOString(), state: 'pending', h, src: 'halo' } } });
+  await sendMarks();
+}
 let sendingMarks = false;
 /** One class's fresh grade to the account through the sync key (0.11.1): only that class's Halo grade changes. */
 async function sendGrade(m) {
@@ -635,15 +671,17 @@ async function sendMarks() {
     if (!syncKey || !haloMarks) return;
     let sent = false;
     for (const [id, m] of Object.entries(haloMarks)) {
-      if (m.state !== 'pending' || markTimers.has(id) || Date.now() - Date.parse(m.at) < MARK_WAIT_MS - 500) continue;
+      if (m.state !== 'pending' || markTimers.has(id) || (m.src !== 'halo' && Date.now() - Date.parse(m.at) < MARK_WAIT_MS - 500)) continue;
       const r = await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, mark: { id, done: true } }) }).catch(() => null);
       if (!r) continue;
       const j = await r.json().catch(() => null);
       const { haloMarks: now } = await get(['haloMarks']);
       const marks = { ...(now || {}) };
       if (!marks[id]) continue;
-      // Not in Halo+ (deleted there): this computer's mark goes too.
-      if (r.status === 404 || r.status === 401) delete marks[id];
+      // Not in Halo+ (deleted there): this computer's mark goes too. A submission Halo confirmed that Halo+ has not
+      // synced yet stays done on this computer (the next sync brings it in as done, from Halo).
+      if (r.status === 404 && marks[id].src === 'halo') marks[id] = { ...marks[id], state: 'local' };
+      else if (r.status === 404 || r.status === 401) delete marks[id];
       else if (j && j.ok) marks[id] = { ...marks[id], state: 'sent', prev: j.prev || null };
       else continue;
       await set({ haloMarks: marks });
@@ -961,7 +999,7 @@ async function kitFiles(msg, dashTabId) {
 async function ensureRelay(tabId) {
   const there = await chrome.tabs.sendMessage(tabId, { kind: 'ping' }).then((r) => !!(r && r.ok)).catch(() => false);
   if (there) return;
-  await chrome.scripting.executeScript({ target: { tabId }, files: ['halo-model.js', 'celebrate.js', 'content-halo.js', 'halo-ui.js'] }).catch(() => undefined);
+  await addToHaloTab(tabId).catch(() => undefined);
 }
 
 /** Auto-sync paused (logged out of Halo) or running again: kept, and told to every open Halo+ tab. */

@@ -314,7 +314,12 @@
    */
   function doneFrom(server, marks) {
     const done = server && Array.isArray(server.done) ? server.done.slice() : [];
-    for (const k of Object.keys((marks && typeof marks === 'object' && marks) || {})) if (!done.includes(k)) done.push(k);
+    // A mark is keyed by the item's id; one from a submission Halo confirmed (0.12.9) also carries Halo's own id (`h`),
+    // so work Halo+ has not synced yet counts as done too.
+    for (const [k, m] of Object.entries((marks && typeof marks === 'object' && marks) || {})) {
+      if (!done.includes(k)) done.push(k);
+      if (m && typeof m.h === 'string' && m.h && !done.includes(m.h)) done.push(m.h);
+    }
     return done.length || server ? { v: 1, done } : null;
   }
 
@@ -566,6 +571,43 @@
     return `${origin}/#/now?${q({ from: 'halo', via })}`;
   }
 
-  const api = { nextFor, nextName, withGrades, gradeText, doneFrom, haloHref, rowTime, week, quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
+  /**
+   * This week's graded work, Monday to Sunday in the school's zone: how much is done of how much (0.12.9, the moment
+   * after a submission: "4 of 9 done this week"). Participation is not in the view; work with no due date is not either.
+   */
+  function weekProgress(view, now) {
+    if (!view) return { done: 0, total: 0 };
+    const today = dayOf(nowMs(now), view.tz);
+    const wd = (new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7;
+    let done = 0;
+    let total = 0;
+    for (const i of view.items) {
+      const k = dayDiff(today, dayOf(i.due, view.tz)) + wd;
+      if (k < 0 || k > 6) continue;
+      total += 1;
+      if (i.done) done += 1;
+    }
+    return { done, total };
+  }
+
+  /**
+   * Halo+'s id for one of Halo's assessments, as the app makes it (src/halo/normalize.ts haloItemId: stableId of
+   * "halo|" + Halo's id, src/domain/ids.ts): the account finds the item by it (0.12.9, a submission's check-off).
+   */
+  function itemId(haloId) {
+    const key = `halo|${haloId}`;
+    const fnv = (seed) => {
+      let h = seed >>> 0;
+      for (let i = 0; i < key.length; i++) {
+        h ^= key.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+      }
+      return h;
+    };
+    const hex = [0x811c9dc5, 0x9747b28c, 0x5bd1e995, 0xc2b2ae35].map((s) => fnv(s).toString(16).padStart(8, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  }
+
+  const api = { itemId, weekProgress, nextFor, nextName, withGrades, gradeText, doneFrom, haloHref, rowTime, week, quietPast, boxLines, dayOf, whenAt, when, dueWord, dueIn, compactLive, merge, isPart, graded, standing, nextUp, row, rowLine, peek, pill, hoverList, partLine, classLine, classByCode, caught, badge, baseline, notable, nextAfter, stale, syncedDay, link, itemKey, SOON_MS, OVERDUE_MS };
   root.HaloPlusModel = api;
 })(globalThis);

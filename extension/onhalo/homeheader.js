@@ -15,6 +15,9 @@
   const ROOT = document.documentElement;
   let on = false;
   let failedFor = null;
+  let fails = 0;
+  let failsFor = null;
+  let scrollWait = false;
 
   const onHome = () => O.route().kind === 'home';
   /** Halo's sponsor logo on Student Home: its header, image source, words and link; or null. */
@@ -99,11 +102,34 @@
     // just covered; judged again after (0.12.8; it put Halo's header back for the visit whenever the page changed under
     // an open search).
     if (hit && !h.contains(hit) && overlay(hit)) return;
-    const ok = !!bar && (i.tagName !== 'IMG' || i.naturalWidth > 0) && r.width > 20 && r.height > 12 && r.top >= bar.top - 1 && r.bottom <= bar.bottom + 1 && r.right <= window.innerWidth && !!hit && h.contains(hit);
-    if (!ok) {
-      failedFor = headerNow();
-      clear();
+    // Scrolled past Halo's bar (a page opened part way down): the logo is out of view, as Halo's own would be, not
+    // hidden; judged when the bar is back in view (0.12.9).
+    if (bar && bar.bottom <= 0) {
+      if (!scrollWait) {
+        scrollWait = true;
+        window.addEventListener('scroll', () => ((scrollWait = false), check()), { once: true, passive: true });
+      }
+      return;
     }
+    const ok = !!bar && (i.tagName !== 'IMG' || i.naturalWidth > 0) && r.width > 20 && r.height > 12 && r.top >= bar.top - 1 && r.bottom <= bar.bottom + 1 && r.right <= window.innerWidth && !!hit && h.contains(hit);
+    if (ok) return void (fails = 0);
+    // Not shown whole: Halo's own header back at once (the sponsor is never hidden). A page still settling (sizes, fonts,
+    // a theme fading in) is tried again a moment later; three misses and Student Home stays as Halo has it (0.12.9:
+    // before, one miss at load left it so for the whole visit).
+    const why = !bar ? 'no-bar' : i.tagName === 'IMG' && !i.naturalWidth ? 'no-image' : r.width <= 20 || r.height <= 12 ? 'size' : !hit ? 'not-on-screen' : !h.contains(hit) ? 'covered' : 'place';
+    const head = headerNow();
+    if (head !== failsFor) {
+      failsFor = head;
+      fails = 0;
+    }
+    fails += 1;
+    O.diag('header-check', { why, n: fails });
+    clear();
+    if (fails >= 3) {
+      failedFor = head;
+      return;
+    }
+    setTimeout(() => on && onHome() && apply(), 700 * fails * fails);
   }
   // ---- Past classes (0.12.4) ----------------------------------------------------------------------------------------------
   // With Halo's tabs hidden, one small link after the class list in Halo's link style switches them: "Past classes (2)"
@@ -190,6 +216,7 @@
       watch.disconnect();
       clear();
       failedFor = null;
+      fails = 0;
     },
   });
 })();
