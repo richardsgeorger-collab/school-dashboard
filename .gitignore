@@ -18,3 +18,4 @@ webstore-upload/
 
 # Store option mocks with other extensions' tiles: for George only (the repo is public)
 docs/webstore/options-*/local-only/
+docs/webstore/tile-upgraded.png

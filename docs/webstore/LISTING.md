@@ -2,7 +2,9 @@
 
 ## 0.12.13 (2026-10-29): the new store presence, George's picks. Upload this; everything below is history
 
-George picked (Loop 285): tile F (gold with the search bar), screenshots in style B (gold, caption on top), the title
+Loop 286 (final polish): the tile is "GCU's Halo, upgraded." on the live tile's own design (subline D, shortened to fit:
+"What's next, your grades and one calendar, right on Halo."); the screenshots reordered; George's own description below.
+George picked (Loop 285): screenshots in style B (gold, caption on top), the title
 "Halo+ for GCU: Search, Calendar & Due Dates on Halo LMS" and the rewritten description. 0.12.13 is exactly the 0.12.12
 code (Free and Max on Halo); only the manifest's name, summary and version changed (zips compared file by file). **No
 new permission.** Nothing has been uploaded or submitted.
@@ -14,8 +16,9 @@ Upload, in the Chrome Web Store developer dashboard (Halo+ → each tab):
 | 1 | **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.12.13.zip` |
 | 2 | (comes with the package) | Name **Halo+ for GCU: Search, Calendar & Due Dates on Halo LMS** (55 of 75); summary **Search every GCU Halo class with Ctrl+K, see what's next and your grade on every class, and open rubrics in place. Free on Halo LMS.** (132 of 132) |
 | 3 | **Store listing → Description** | delete what is there, paste the Description block below, all of it |
-| 4 | **Store listing → Screenshots** | remove every screenshot there now, then add these five in this order: `webstore-upload/screenshots/1-search.png`, `2-whats-next.png`, `3-checked-off.png`, `4-rubric.png`, `5-calendar.png` (each 1280×800, 24-bit PNG) |
-| 5 | **Store listing → Small promo tile** | replace it with `webstore-upload/promo-tile-440x280.png` (440×280, 24-bit PNG) |
+| 4 | **Store listing → Screenshots** | remove every screenshot there now, then add these five in this order: `webstore-upload/screenshots/1-whats-next.png`, `2-calendar.png`, `3-checked-off.png`, `4-search.png`, `5-rubric.png` (each 1280×800, 24-bit PNG) |
+| 5 | **Store listing → Small promo tile** | replace it with `webstore-upload/promo-tile-440x280.png` (440×280, 24-bit PNG): "GCU's Halo, upgraded.", subline D (Loop 286) |
+| 5b | **Store listing → Official URL** | pick **haloplus.app** from the list (it lists only sites your Google account has verified in Search Console; see "Official URL" below if it is not there), then **Save draft** |
 | 6 | **Privacy** | unchanged (no new permission; nothing new leaves the computer) |
 | 7 | top right | **Save draft**, look at the preview, then **Submit for review** (George's step) |
 
@@ -28,29 +31,39 @@ Worth doing in the dashboard while there (found by the research, George's call):
 verified sites) so the search card shows the blue check; and check the Trader declaration (it puts a street address
 and phone number on the store page; the other GCU extensions are Non-trader).
 
+**Official URL (the blue verified check).** The store shows the check, and "Created by the owner of the listed
+website", only for a site the developer account's Google account has verified in Google Search Console:
+1. Open https://search.google.com/search-console signed in with the same Google account as the developer dashboard.
+2. Add property → **Domain** → `haloplus.app` → Continue. Google shows a TXT record (`google-site-verification=…`).
+3. At the company where haloplus.app's DNS is managed, add that TXT record to `haloplus.app` (host `@`), save, wait a
+   few minutes, then press **Verify** in Search Console. (Or choose **URL prefix** `https://haloplus.app/` and the
+   HTML file method: send me the file Google gives you and I'll put it in `public/` so it is served at the root.)
+4. Back in the developer dashboard: **Store listing → Official URL** → choose `haloplus.app` → **Save draft**. Also
+   set **Homepage URL** to `https://haloplus.app/` if it is not already.
+5. It appears with the next review.
+
 **Description** (Store listing → Description):
 
 ```
-Search every class at once, see what's next on every class card, and open the rubric right under the assignment, all on Halo's own pages.
-Built by a GCU student for GCU's Halo. Nothing new to learn: open Halo as always and it's there.
+Halo+ is a planner built by a GCU student, for GCU students. It pulls everything from Halo into one clean place: your classes, assignments, due dates, grades and announcements. And it makes Halo itself better, right on Halo's own pages.
 
-ON HALO
-• Search every class: Ctrl+K (⌘K on a Mac) on any Halo page
-• What's next and your grade on every class card
-• Every class on one calendar
-• The rubric opens right under the assignment
-• "Due in 5h" beside Halo's due dates
-• Checked off the moment Halo confirms your submission
-• This week at the top of Halo's home page
-• Each one has its own on/off switch
+WHAT CHANGES ON HALO
+• Find anything in a second. Hit Ctrl+K (⌘K on a Mac), type "topic 3 quiz," and you're there.
+• Every class tells you what's next. Your grade and your next due dates, right on each class card.
+• Your whole week, all your classes, one calendar. No more clicking through six classes.
+• Rubrics where you need them. They open right under the assignment, not in a popup.
+• Know exactly how long you have. "Due in 5h" next to every due date.
+• That submit feeling. Turn something in and watch it check off, with confetti.
+• Never lose a discussion post. If Halo reloads while you're typing, your draft comes back.
+• Your call. Every feature has its own on/off switch.
 
 PLANS
-Free: everything on Halo. Max ($0.99/mo): announcements read for you and auto-sync.
+Free: everything on Halo. Max ($0.99/mo): Halo+ reads your announcements for you, catches the due dates and requirements professors only mention there, and syncs on its own.
 
 PRIVACY
 Halo+ reads only your own Halo, in your browser, while you're signed in there. It never asks for or sees your GCU password. Your classes go only to your own Halo+ account; nothing is sold, no ads. Announcement text is checked by AI on our server to spot a changed due date; on Max it is read in full. Drafts you type on Halo stay on your computer.
 
-Also a planner on your phone at haloplus.app, if you want it.
+Also on your phone at haloplus.app.
 
 Not affiliated with GCU.
 ```
