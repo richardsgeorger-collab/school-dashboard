@@ -143,7 +143,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
       }
     }
     const pts = Number(a.points) || 50;
-    check(c1 && c1.title === `${row.title} done` && new RegExp(`^\\+${pts} pts · (\\d+ of \\d+ this week|Week done)$`).test(c1.sub) && c1.bar, `${tag}: the moment at once, one toast: "${c1 && c1.title}" / "${c1 && c1.sub}"`);
+    check(c1 && c1.title === `${row.title} done` && c1.sub === `+${pts} pts` && c1.bar, `${tag}: the moment at once, one toast: "${c1 && c1.title}" / "${c1 && c1.sub}"`);
     check(c1 && c1.left === '5px' && c1.radius === '4px' && c1.right >= 16 && c1.right <= 24 && c1.top < 260 && c1.w >= 300 && c1.w <= 330, `${tag}: built the way Halo builds its toasts: Halo's 5 px bar, 4 px corners, top right, 320 px (${JSON.stringify(c1 && { left: c1.left, radius: c1.radius, right: c1.right, top: c1.top, w: c1.w, font: c1.font })})`);
     const wasConfetti = c1 && c1.confetti;
     await until(async () => !(await p.evaluate(() => !!document.getElementById('haloplus-joy')?.shadowRoot?.querySelector('canvas.cf'))), 6000, 100);

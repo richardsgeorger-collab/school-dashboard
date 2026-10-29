@@ -1,6 +1,11 @@
 # Chrome Web Store listing kit
 
-## 0.12.10 (2026-10-29): upload this package instead of 0.12.9; everything else as below
+## 0.12.11 (2026-10-29): upload this package instead of 0.12.10; everything else as below
+
+0.12.11 (Loop 282): the submit toast shows the item, "+30 pts" and the week's bar, without the "3 of 10 this week"
+words. Otherwise 0.12.10. **No new permission.** Upload `webstore-upload/halo-plus-extension-0.12.11.zip`.
+
+## 0.12.10 (2026-10-29)
 
 0.12.10 (Loop 280): the submit moment as one Halo-style toast with big confetti (canvas-confetti, bundled in the
 package, no remote code), and a calm loading state on Student Home ("as of" the last saved state when Halo does not

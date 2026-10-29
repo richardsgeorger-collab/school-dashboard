@@ -12,8 +12,8 @@
 // 0.12.10 (George on real Halo: the white card and the pill stacked in the corner were "boxy and not like Halo"; "make
 // the celebration BIG"): on Halo, the moment is one toast built the way Halo builds its own (Halo's success toast:
 // its colours from Halo's own variables, its 5 px bar on the left, 4 px corners, shadow, font and size), under Halo's own
-// "Assignment has been submitted." in the same corner: "✓ Lab 4: Photosynthesis done", "+30 pts · 3 of 11 this week",
-// a thin bar inside; short, then it fades. With it, multi-coloured confetti bursting from both sides of the window
+// "Assignment has been submitted." in the same corner: "✓ Lab 4: Photosynthesis done", "+30 pts", a thin bar inside
+// filling to this week's new mark (0.12.11: no words for the week, the bar says it); short, then it fades. With it, multi-coloured confetti bursting from both sides of the window
 // (canvas-confetti, in the extension: vendor/canvas-confetti.js, never fetched), gravity, spin, flutter and drift, about
 // four seconds and gone; a bigger one when the week is done. Never in the way of a click (the layer takes none). The
 // Celebrations switch off, or the computer's "reduce motion": the toast only. Without `opts.toast` (Admin's preview)
@@ -301,8 +301,8 @@
       p.textContent = `+${still ? pts : 0} pts`;
       sub.append(p);
     }
-    const tail = all ? 'Week done' : w ? `${w.done} of ${w.total} this week` : pts ? '' : text || '';
-    if (tail) sub.append(document.createTextNode(`${pts ? ' · ' : ''}${tail}`));
+    // The title, the points and the bar (0.12.11, George: no "3 of 10 this week" words; the bar says it).
+    if (!pts && !w && text) sub.append(document.createTextNode(text));
     m.append(strong, sub);
     if (w) {
       const bar = document.createElement('span');

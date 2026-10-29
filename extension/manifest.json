@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Halo+ for GCU: Calendar, Search & Due Dates on Halo",
   "description": "Makes GCU's Halo better right on the page: search, one calendar for all classes, what's next on every class, rubrics and more.",
-  "version": "0.12.10",
+  "version": "0.12.11",
   "permissions": [
     "alarms",
     "storage",
