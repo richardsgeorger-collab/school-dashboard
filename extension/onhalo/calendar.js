@@ -176,11 +176,30 @@
   /** A colour as Halo writes it on the card ("#522398" or "var(--lms-colorClassCardPurple)"), as a colour. */
   function ownColor(v) {
     const t = String(v || '').trim();
-    if (/^(#[0-9a-f]{6}|rgb)/i.test(t)) return t;
+    if (/^(#[0-9a-f]{3,8}|rgb)/i.test(t)) return t;
     const m = /^var\((--[\w-]+)(?:,\s*([^)]+))?\)$/.exec(t);
     if (!m) return null;
+    // Halo's own value; a theme that redefines Halo's class colours (Better Halo's dark mode, in hsl) is not the class's.
     const got = getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
-    return got || (m[2] ? m[2].trim() : null);
+    if (/^(#[0-9a-f]{3,8}|rgb)/i.test(got)) return got;
+    return m[2] && /^(#[0-9a-f]{3,8}|rgb)/i.test(m[2].trim()) ? m[2].trim() : null;
+  }
+  /**
+   * The colour Halo gave a class card (0.12.6): Halo writes it as its class colour variable, in the card's `color`
+   * attribute and in its `border-top` shorthand, where the browser reports the border's own colour as empty (a variable
+   * inside a shorthand); so the attribute, then the shorthand as written, then the border's colour, and the drawn stripe
+   * only when Halo wrote none. Never changed by a restyle, Halo+'s or a theme's.
+   */
+  function cardColor(card) {
+    const attr = ownColor(card.getAttribute('color'));
+    if (attr) return attr;
+    const m = /border-top\s*:\s*[^;]*?((?:var\([^;]*\))|#[0-9a-f]{3,8}|rgba?\([^)]*\))\s*;?/i.exec(card.getAttribute('style') || '');
+    const written = m && ownColor(m[1]);
+    if (written) return written;
+    const own = ownColor(card.style.borderTopColor);
+    if (own) return own;
+    const cs = getComputedStyle(card);
+    return parseFloat(cs.borderTopWidth) >= 2 && !/rgba\(0, 0, 0, 0\)/.test(cs.borderTopColor) ? cs.borderTopColor : null;
   }
   /** Student Home: each card's stripe, by the class it opens. Kept when it changed. */
   async function readStripes() {
@@ -189,13 +208,7 @@
       const a = card.querySelector('a[href^="/courses/"]');
       const m = a && /^\/courses\/([^/?#]+)/.exec(a.getAttribute('href') || '');
       if (!m) continue;
-      // The colour Halo gave the card (its own style on the card: never changed by a restyle, Halo+'s or a theme's,
-      // 0.12.5); the drawn stripe only when Halo wrote none.
-      let col = ownColor(card.style.borderTopColor);
-      if (!col) {
-        const cs = getComputedStyle(card);
-        col = parseFloat(cs.borderTopWidth) >= 2 && !/rgba\(0, 0, 0, 0\)/.test(cs.borderTopColor) ? cs.borderTopColor : null;
-      }
+      const col = cardColor(card);
       if (col && /^(rgb|#)/.test(col)) found[decodeURIComponent(m[1])] = col;
     }
     if (!Object.keys(found).length) return;
@@ -382,7 +395,7 @@
       if (document.querySelector('[data-haloplus="calendar-all"], [data-haloplus="home-calendar"]')) O.soon();
     }, 500);
   });
-  O.cal = { refresh, gridHtml, legendHtml, daysFor, bindGrid, loadStripes, readStripes, themeKey, get stripes() { return stripes; }, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
+  O.cal = { refresh, gridHtml, legendHtml, daysFor, bindGrid, loadStripes, readStripes, themeKey, cardColor, colorFor: (raw) => L.boldColor(raw, darkTheme()), get stripes() { return stripes; }, dayNum, keyOf, zoneDay, saveView: (o) => remember(o) };
   O.feature({
     id: 'calendar',
     routes: ['class'],

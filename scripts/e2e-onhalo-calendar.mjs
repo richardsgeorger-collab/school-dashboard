@@ -167,15 +167,21 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     check(hk.length === 7 && hk[0] === monday && hk.includes(today), `${tag}: this week, from Monday, one week to start (${hk[0]}…${hk[6]})`);
     // Each class in the colour of its own card's stripe (the bold version on a light page), chips and legend alike.
     const stripes = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('[class*="CourseCard_cardContainer"]')].map((c) => {
-      const cs = getComputedStyle(c);
-      let col = parseFloat(cs.borderTopWidth) >= 2 ? cs.borderTopColor : null;
-      if (!col) col = c.style.borderTopColor.trim();
+      // Halo's own colour on the card (its color attribute, a class colour variable), as Halo writes it (0.12.6).
+      const v = /^var\((--[\w-]+)(?:,\s*([^)]+))?\)$/.exec((c.getAttribute('color') || '').trim());
+      // (Better Halo's dark mode redefines Halo's class colour variables in its own hsl colours: Halo's fallback then.)
+      const got = v ? getComputedStyle(document.documentElement).getPropertyValue(v[1]).trim() : '';
+      let col = v ? (/^(#|rgb)/.test(got) ? got : (v[2] || '').trim()) : null;
+      if (!col) {
+        const cs = getComputedStyle(c);
+        col = parseFloat(cs.borderTopWidth) >= 2 ? cs.borderTopColor : c.style.borderTopColor.trim();
+      }
       return [decodeURIComponent(/\/courses\/([^/?#]+)/.exec(c.querySelector('a[href^="/courses/"]').getAttribute('href'))[1]), col];
     })));
     const colorWant = Object.fromEntries(Object.entries(stripes).map(([slug, c]) => [slug, L.boldColor(c, run.dark)]));
     for (const w of want.values()) w.col = colorWant[w.slug];
     const legendCols = await p.evaluate(() => [...document.querySelectorAll('[data-haloplus="home-calendar"] .hp-dot')].map((d) => d.style.background));
-    check(Object.keys(stripes).length === fx.index.classes.length && fx.index.classes.every((c, i) => legendCols[i] === colorWant[c.slug]), `${tag}: the legend in each card's own colour${run.dark ? '' : ' (bold version)'} (${legendCols.join(' ')})`);
+    check(Object.keys(stripes).length === fx.index.classes.length && fx.index.classes.every((c, i) => legendCols[i] === colorWant[c.slug]), `${tag}: the legend in each card's own colour${run.dark ? '' : ' (bold version)'} (${legendCols.join(' ')}${fx.index.classes.every((c, i) => legendCols[i] === colorWant[c.slug]) ? '' : ` want ${fx.index.classes.map((c) => colorWant[c.slug]).join(' ')} from ${JSON.stringify(stripes)}`})`);
     let got = await chips(p, '[data-haloplus="home-calendar"]');
     chipChecks(tag, 'Home', got, want, hk);
     const contrast = await p.evaluate(() => {

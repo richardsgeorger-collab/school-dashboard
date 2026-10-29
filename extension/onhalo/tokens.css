@@ -668,12 +668,11 @@ html[data-hp-home-compact] #Home--main > [data-haloplus='search-bar'] {
   outline-offset: 2px;
 }
 /* ---- Class cards, option B (0.12.5): Halo's card with the grade top right, one quiet details line, a NEXT box in a
-   light tint of the class colour, cards in a row one height (Go to class lined up), finished classes one slim line. -- */
+   light tint of the class colour, cards in a row one height (Go to class lined up). ------------------------- */
 html[data-hp-cards] #Home--main [data-hp-card] [class*='CourseCard_metaContainer'],
 html[data-hp-cards] #Home--main [data-hp-card] [class*='CourseCard_metaItem'],
 html[data-hp-cards] #Home--main [data-hp-card] [class*='CourseCard_studentsList'],
-html[data-hp-cards] #Home--main [data-hp-card] [data-haloplus='class'],
-html[data-hp-cards] #Home--main [class*='CourseCard_cardContainer'][data-hp-slim] > div > :not([data-haloplus='card-slim']) {
+html[data-hp-cards] #Home--main [data-hp-card] [data-haloplus='class'] {
   display: none !important;
 }
 html[data-hp-cards] #Home--main [data-hp-card] [class*='CourseCard_headerItem'] {
@@ -723,13 +722,17 @@ html[data-hp-cards] #Home--main [data-haloplus='card-grade'] {
 }
 [data-haloplus='card-next'] {
   margin: 0 0 14px;
-  padding: 8px 12px 9px;
+  padding: 9px 12px 11px;
   border-radius: 6px;
   background: color-mix(in srgb, var(--c, var(--hp-text-3)) 12%, var(--hp-surface));
   font-family: var(--hp-font);
   font-size: 13.5px;
   line-height: 1.45;
   color: var(--hp-text);
+}
+/* On a dark theme a pale class colour (Halo's pastel yellow) at 12% reads as gray: a little more of it there. */
+:root[data-better-halo-theme]:not([data-better-halo-theme='']).dark [data-haloplus='card-next'] {
+  background: color-mix(in srgb, var(--c, var(--hp-text-3)) 20%, var(--hp-surface));
 }
 [data-haloplus='card-next'] small {
   display: flex;
@@ -745,9 +748,14 @@ html[data-hp-cards] #Home--main [data-haloplus='card-grade'] {
 [data-haloplus='card-next'] .hp-n-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  min-width: 0;
+  margin-top: 6px;
   text-decoration: none;
-  color: var(--hp-link);
+  color: var(--hp-text-2);
+  font-weight: 400;
+}
+[data-haloplus='card-next'] small + .hp-n-row {
+  margin-top: 4px;
 }
 [data-haloplus='card-next'] .hp-n-row:hover .hp-n-t {
   text-decoration: underline;
@@ -756,25 +764,27 @@ html[data-hp-cards] #Home--main [data-haloplus='card-grade'] {
   outline: 1px solid var(--hp-focus);
   border-radius: 2px;
 }
+/* The title in Halo's link style, its time right after it in gray; cut only if it must be (full title on hover). */
 [data-haloplus='card-next'] .hp-n-t {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 600;
+  color: var(--hp-link);
 }
 [data-haloplus='card-next'] .hp-n-w {
   flex: none;
   white-space: nowrap;
   color: var(--hp-text-2);
 }
+[data-haloplus='card-next'] .hp-n-first .hp-n-t {
+  font-weight: 600;
+}
+/* Not yet: plain gray, with its reason. */
 [data-haloplus='card-next'] .hp-n-wait .hp-n-t {
   color: var(--hp-text-2);
-  font-weight: 500;
-}
-[data-haloplus='card-next'] .hp-n-wait .hp-n-w {
-  font-style: italic;
+  font-weight: 400;
 }
 [data-haloplus='card-next'] .hp-n-none {
   color: var(--hp-text-2);
@@ -794,50 +804,9 @@ html[data-hp-cards] #Home--main [data-hp-card] > div:first-of-type {
 html[data-hp-cards] #Home--main [data-hp-card] > div:first-of-type > hr {
   margin-top: auto !important;
 }
-/* A finished class: one slim line, after the others, the width of the list. */
-html[data-hp-cards] #Home--main [class*='MuiGrid-item'][data-hp-slim] {
-  order: 99;
-  flex-basis: 100% !important;
-  max-width: 100% !important;
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-}
-html[data-hp-cards] #Home--main [class*='CourseCard_cardContainer'][data-hp-slim] > div {
-  padding: 10px 18px !important;
-}
-[data-haloplus='card-slim'] {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  font-family: var(--hp-font);
-  font-size: 14px;
-  color: var(--hp-text);
-}
-[data-haloplus='card-slim'] .hp-s-name {
-  font-weight: 600;
-  color: inherit;
-  text-decoration: none;
-}
-[data-haloplus='card-slim'] .hp-s-name:hover {
-  text-decoration: underline;
-}
-[data-haloplus='card-slim'] .hp-s-chip {
-  font-size: 12px;
-  color: var(--hp-text-2);
-}
-[data-haloplus='card-slim'] .hp-s-sp {
-  flex: 1;
-}
-[data-haloplus='card-slim'] .hp-s-grade {
-  font-size: 13px;
-  color: var(--hp-text-2);
-}
-[data-haloplus='card-slim'] .hp-s-grade b {
-  color: var(--hp-text);
-}
 /* Better Halo gives every text its own colour; the NEXT box keeps its two kinds apart (can do now: its link colour;
    not yet: its muted colour). */
-:root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-next'] .hp-n-row .hp-n-t {
+:root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-next'] .hp-n-row:not(.hp-n-wait) .hp-n-t {
   color: var(--hp-link) !important;
 }
 :root[data-better-halo-theme]:not([data-better-halo-theme='']) [data-haloplus='card-next'] .hp-n-wait .hp-n-t,

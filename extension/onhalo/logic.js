@@ -525,13 +525,14 @@
     if (days > 1 && days < 7) return WD[new Date(`${a}T12:00:00Z`).getUTCDay()];
     return haloFormat(t, tz).replace(/, \d{4}, .*$/, '');
   }
-  const NEXT_KINDS = ['assignment', 'quiz', 'discussion', 'lti'];
+  // Anything with a way to hand it in on Halo, participation posts too (0.12.6); participation is never urgent.
+  const NEXT_KINDS = ['assignment', 'quiz', 'discussion', 'lti', 'participation'];
   /**
    * The NEXT box on a class card (0.12.5, George): up to three things for that class, one line each, from Halo's own
    * answer for the class (`live`, a Map of id → { dueDate, status }; without it, nothing: never a guess). First what the
    * student can do now, soonest due first; then what they cannot act on yet, greyed, with why: not open yet ("opens
    * Mon", from Halo's start date) or done in class, not in Halo ("in class Fri"; Halo's own in-person flag). Never done
-   * work (Halo's status, or a Halo+ check-off in `doneIds`), never participation, never anything past due or more than
+   * work (Halo's status, or a Halo+ check-off in `doneIds`), never anything past due or more than
    * `days` days out, never anything without an address on Halo; an item whose kind of submission is not known (an index
    * from before 0.12.5 that says only "not submitted in Halo") is left out. Returns null without Halo's answer, else a
    * list (possibly empty: "Nothing due soon").

@@ -1,6 +1,13 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.12.5 (2026-10-28): paste exactly this
+## The listing now: 0.12.6 (2026-10-28): paste exactly this
+
+0.12.6 (Loop 277): a calmer NEXT box on Halo's class cards: each class's own colour (no longer plain gray), more room
+between items, the title in Halo's link style with its time right after it, what cannot be done yet in plain gray with
+why, participation posts included; a finished class is a card like the others in Halo's grid. **No new permission.**
+Upload `webstore-upload/halo-plus-extension-0.12.6.zip`; the description and the Privacy tab as below, unchanged.
+
+## 0.12.5 (2026-10-28)
 
 0.12.5 (Loop 276): Halo's class cards on Student Home with the class grade at the top right, the details on one quiet
 line and a NEXT box (up to three things for the class, each opening on Halo); cards in a row one height; a finished

@@ -461,7 +461,7 @@ describe('each class in its card’s colour, the bold version (feature 1, 0.12.2
   });
 });
 
-describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5)', () => {
+describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5; participation posts since 0.12.6)', () => {
   type N = { id: string; when: string; why?: string; href: string };
   const C = L as unknown as { cardNext: (index: unknown, k: number, live: Map<string, { dueDate: string | null; status: string | null }> | null, now: number, tz: string, o?: { doneIds?: Set<string> }) => N[] | null };
   const PHX = 'America/Phoenix';
@@ -483,19 +483,21 @@ describe('the class card’s NEXT: up to three things, exactly as Halo has them 
   const live = (o: Record<string, string> = {}) => new Map(rows.map((r) => [r.id, { dueDate: null, status: o[r.id] ?? (r.id === 'done' ? 'SUBMITTED' : 'ACTIVE') }]));
   it('what can be done now first, soonest due first; at most three', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX)!;
-    expect(n.map((x) => [x.id, x.when])).toEqual([['hw', 'today 11:58 PM'], ['dq', 'tomorrow 12:00 PM'], ['q', 'Fri 11:58 PM']]);
+    expect(n.map((x) => [x.id, x.when])).toEqual([['hw', 'today 11:58 PM'], ['dq', 'tomorrow 12:00 PM'], ['part', 'tomorrow 11:00 PM']]);
   });
   it('then what cannot be acted on yet, with why: done in class, or not open yet', () => {
     const n = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED' }), now, PHX)!;
-    expect(n.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
+    expect(n.map((x) => [x.id, x.why ?? ''])).toEqual([['part', ''], ['q', ''], ['exam', 'in class Fri']]);
+    const m = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED', part: 'SUBMITTED' }), now, PHX)!;
+    expect(m.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
   });
-  it('never done work (Halo’s status or a Halo+ check-off), participation, past due, far off, or without an address', () => {
+  it('participation posts show (never urgent); never done work (Halo’s status or a Halo+ check-off), past due, far off, or without an address', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q']) })!;
-    expect(n.map((x) => x.id)).toEqual(['exam', 'later']);
-    expect(n.some((x) => ['done', 'part', 'late', 'far', 'nohref'].includes(x.id))).toBe(false);
+    expect(n.map((x) => x.id)).toEqual(['part', 'exam', 'later']);
+    expect(n.some((x) => ['done', 'late', 'far', 'nohref'].includes(x.id))).toBe(false);
   });
   it('an item whose kind of submission the index cannot tell is left out, not guessed', () => {
-    const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q', 'exam', 'later']) })!;
+    const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q', 'exam', 'later', 'part']) })!;
     expect(n).toEqual([]);
   });
   it('nothing at all without Halo’s answer for the class', () => {

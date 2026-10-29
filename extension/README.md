@@ -64,6 +64,10 @@ from `logic.js cardNext`, equal heights, a slim line for a finished class; switc
 class line on Student Home cards while it is on); class colours come from Halo's own card style (never black after a
 restyle).
 
+0.12.6 (2026-10-28): the NEXT box reads the class colour as the week strip does (`calendar.js cardColor`: Halo's
+`color` attribute or its `border-top` shorthand, which `style.borderTopColor` reads empty for a `var()`), lists
+participation posts, and is calmer (`tokens.css` `.hp-n-*`); the slim line for a finished class is gone (a normal card).
+
 ## Build
 
     npm run build:extension

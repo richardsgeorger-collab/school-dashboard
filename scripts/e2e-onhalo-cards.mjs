@@ -4,7 +4,7 @@
 // light tint of the class colour with up to three things for the class, exactly as Halo has them (what can be done now,
 // soonest first; then greyed with why: "opens Mon", "in class Fri"; never done work or participation; each opening the
 // item on Halo; "Nothing due soon" when there is nothing); Halo's stripe and Go to class untouched; cards in a row one
-// height with the buttons lined up; the finished class one slim line with its final grade; every class colour dot (the
+// height with the buttons lined up; a finished class a card like the others in Halo's grid (0.12.6); every colour dot (the
 // week strip, the calendar legend) in the class's own colour, never black or gray; all of it back after Halo redraws.
 // Switched off: Halo's cards as they were. Full width and 1024px, plain and Better Halo dark.
 //   [BROWSER=chrome|edge] [BH_DIR=<Better Halo unpacked>] node scripts/e2e-onhalo-cards.mjs
@@ -41,7 +41,7 @@ function expected(fx, idx, st, now) {
     const can = [];
     const cannot = [];
     for (const r of idx.rows) {
-      if (r.c !== k || !['assignment', 'quiz', 'discussion', 'lti'].includes(r.kind) || !r.href) continue;
+      if (r.c !== k || !['assignment', 'quiz', 'discussion', 'lti', 'participation'].includes(r.kind) || !r.href) continue;
       const due = Date.parse(st.grades[r.id]?.dueDate ?? r.cdue);
       const status = st.grades[r.id]?.status ?? statusOf.get(r.id);
       if (!(due >= now && due <= now + 14 * DAY) || DONE.test(status || '') || r.done) continue;
@@ -78,12 +78,23 @@ const read = (p) =>
         details: det ? { text: det.textContent.replace(/\s+/g, ' ').trim(), size: parseFloat(getComputedStyle(det).fontSize) } : null,
         metaShown: !!meta && getComputedStyle(meta).display !== 'none',
         line: !!c.querySelector('[data-haloplus="class"]'),
-        next: next ? { rows: [...next.querySelectorAll('.hp-n-row')].map((a) => ({ t: a.querySelector('.hp-n-t').textContent, w: a.querySelector('.hp-n-w').textContent, href: a.getAttribute('href'), wait: a.classList.contains('hp-n-wait'), tip: a.title, cut: a.querySelector('.hp-n-t').scrollWidth > a.querySelector('.hp-n-t').clientWidth })), none: !!next.querySelector('.hp-n-none'), tint: getComputedStyle(next).backgroundColor } : null,
-        slim: c.hasAttribute('data-hp-slim') ? c.querySelector('[data-haloplus="card-slim"]').textContent.replace(/\s+/g, ' ').trim() : null,
+        next: next ? { rows: [...next.querySelectorAll('.hp-n-row')].map((a) => {
+          const t = a.querySelector('.hp-n-t');
+          const w = a.querySelector('.hp-n-w');
+          const ts = getComputedStyle(t);
+          return { t: t.textContent, w: w.textContent.replace(/^\u00a0·\s*/, ''), href: a.getAttribute('href'), wait: a.classList.contains('hp-n-wait'), tip: a.title, gap: Math.round(w.getBoundingClientRect().left - t.getBoundingClientRect().right), italic: ts.fontStyle === 'italic' || getComputedStyle(w).fontStyle === 'italic', weight: Number(ts.fontWeight), color: ts.color, top: Math.round(a.getBoundingClientRect().top) };
+        }), none: !!next.querySelector('.hp-n-none'), tint: getComputedStyle(next).backgroundColor, col: next.style.getPropertyValue('--c'), attr: c.getAttribute('color') } : null,
+        finished: /post-class/i.test((c.querySelector('[class*="Tag_tag"]') || {}).textContent || ''),
+        card: c.hasAttribute('data-hp-card'),
+        slim: c.hasAttribute('data-hp-slim') ? 'slim' : null,
       };
     }),
   );
-const rgb = (s) => (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+// "rgb(r, g, b)" (0-255) or Chrome's "color(srgb r g b)" (0-1), as 0-255.
+const rgb = (s) => {
+  const n = (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+  return /^color\(srgb/.test(String(s)) ? n.map((v) => Math.round(v * 255)) : n;
+};
 const colourful = (s) => {
   const [r, g, b] = rgb(s);
   return r + g + b > 60 && Math.max(r, g, b) - Math.min(r, g, b) > 24;
@@ -116,7 +127,7 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
       let p = await b.page('https://halo.gcu.edu/', { width, height: 1500 });
       await sleep(3500);
       const off = await read(p);
-      check(off.every((c) => !c.next && !c.grade && (c.slim === null) && c.metaShown) && off.filter((c) => c.line).length >= 6, `${tag} ${width}: switched off: Halo's cards as they were, with the Halo+ line`);
+      check(off.every((c) => !c.next && !c.grade && c.metaShown) && off.filter((c) => c.line).length >= 6, `${tag} ${width}: switched off: Halo's cards as they were, with the Halo+ line`);
       await p.mouse.move(3, 3);
       await p.screenshot({ path: `${OUT}/${tag}-${width}-1-before.png` });
       await p.close();
@@ -125,7 +136,7 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
       await until(async () => (await read(p)).filter((c) => c.next).length >= 6, 15000, 200);
       await sleep(800);
       const cs = await read(p);
-      const main = cs.filter((c) => c.slim === null);
+      const main = cs.filter((c) => !c.finished);
       // The grade, beside Halo's Topic chip.
       const gWrong = main.filter((c) => {
         const s = snap.classes.find((x) => x.slug === c.slug);
@@ -151,9 +162,29 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
       for (const c of main) (rows[c.top] ??= []).push(c);
       const uneven = Object.values(rows).filter((r) => r.length > 1 && (new Set(r.map((c) => c.h)).size > 1 || new Set(r.map((c) => c.go)).size > 1));
       check(Object.keys(rows).length >= 2 && uneven.length === 0, `${tag} ${width}: cards in a row one height, Go to class lined up (${Object.values(rows).map((r) => r.length).join('+')} a row)`);
-      // The finished class: one slim line after the others, full width, its final grade.
-      const slim = cs.find((c) => c.slim !== null);
-      check(slim && slim.h > 36 && slim.h < 80 && slim.top > Math.max(...main.map((c) => c.top)) && slim.w > main[0].w * 2 && /English Composition I/.test(slim.slim) && /Final grade A 93\.4%/.test(slim.slim), `${tag} ${width}: the finished class is one slim line after the others, with its final grade (${slim ? `${slim.h}px: "${slim.slim}"` : 'none'})`);
+      // The finished class: a card like the others, in its place in Halo's grid (0.12.6), its grade at the top right.
+      const fin = cs.find((c) => c.finished);
+      const rowTops = [...new Set(main.map((c) => c.top))];
+      check(fin && fin.card && fin.slim === null && Math.abs(fin.w - main[0].w) <= 1 && (rowTops.includes(fin.top) || fin.top > Math.max(...rowTops)) && fin.grade && fin.grade.letter === 'A' && fin.grade.pct === '93.4%', `${tag} ${width}: the finished class is a card like the others in Halo's grid, with its grade (${fin ? `${fin.w}px wide, ${fin.grade ? fin.grade.letter + ' ' + fin.grade.pct : 'no grade'}` : 'none'})`);
+      const perRow = width === 1366 ? 3 : 2;
+      const allTops = cs.map((c) => c.top);
+      const gaps = [...new Set(allTops)].sort((a, b) => a - b).slice(0, -1).filter((t) => allTops.filter((x) => x === t).length !== perRow);
+      check(gaps.length === 0, `${tag} ${width}: Halo's grid has no gaps (${[...new Set(allTops)].map((t) => allTops.filter((x) => x === t).length).join('+')} a row)`);
+      // The NEXT box: the class colour's tint (not gray), the time right after the title, no italics, the first a
+      // little stronger, what cannot be done yet in plain gray.
+      const gray = (c) => {
+        const [r, g, b] = rgb(c);
+        return Math.max(r, g, b) - Math.min(r, g, b) < 6;
+      };
+      const tintsGray = main.filter((c) => c.next && gray(c.next.tint));
+      check(tintsGray.length === 0, `${tag} ${width}: every NEXT box in a tint of its class colour, none plain gray${tintsGray.length ? ` (${tintsGray.map((c) => `${c.slug.slice(0, 7)} ${c.next.tint} --c=${c.next.col} color=${c.next.attr}`).join(', ')})` : ''}`);
+      const rowsAll = main.flatMap((c) => (c.next ? c.next.rows : []));
+      check(rowsAll.length > 6 && rowsAll.every((r) => r.gap >= 0 && r.gap <= 12 && !r.italic), `${tag} ${width}: each item reads "title · when": the time right after the title, no italics`);
+      const firsts = main.filter((c) => c.next && c.next.rows.length > 1);
+      check(firsts.length > 0 && firsts.every((c) => (c.next.rows[0].wait || c.next.rows[0].weight >= 600) && c.next.rows.slice(1).every((r) => r.weight < 600)) && firsts.every((c) => c.next.rows.slice(1).every((r, i) => r.top - c.next.rows[i].top >= 22)), `${tag} ${width}: the first item a little stronger, room between the items`);
+      const can = rowsAll.find((r) => !r.wait);
+      check(rowsAll.filter((r) => r.wait).every((r) => r.color !== can.color), `${tag} ${width}: what cannot be done yet in plain gray, not the link colour`);
+      check(rowsAll.some((r) => /participation/i.test(r.t)), `${tag} ${width}: participation posts show in NEXT`);
       // Every class colour dot in its class's own colour.
       const dots = await p.evaluate(() => ({ strip: [...document.querySelectorAll('[data-haloplus="week-strip"] .hp-sd-dots i')].map((i) => getComputedStyle(i).borderTopColor), legend: [...document.querySelectorAll('[data-haloplus="home-calendar"] .hp-legend .hp-dot')].map((d) => getComputedStyle(d).backgroundColor) }));
       const bad = [...dots.strip, ...dots.legend].filter((c) => !colourful(c));
