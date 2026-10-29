@@ -15,8 +15,8 @@ describe('the two student emails (George, 2026-10-09)', () => {
     expect(one.text).toContain("You've used 6 of your 7 free days of Max. A day counts when you open Halo+");
     expect(renderEmail('trial_ending', { why: 'last-day', used: 7 }, unsub)!.subject).toBe('Your last day of Halo+ Max');
     expect(m.text).toContain('nothing charges unless you choose a plan');
-    expect(m.text).toContain('$7.99');
-    expect(m.text).toContain('$4.99');
+    expect(m.text).toContain('$0.99');
+    expect(m.text).not.toMatch(/\$[2-9]\.99|Plus/);
     expect(m.text).toContain("Or stay on Free. That's fine too.");
     expect(m.text).toContain('See the plans: https://haloplus.app/#/you?s=plan');
     expect(m.text).toContain(`One click: ${unsub}`);

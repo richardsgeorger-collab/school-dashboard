@@ -48,4 +48,14 @@ describe('the snapshot Halo+ hands the extension for Halo pages', () => {
     expect(s.show).toBe(true);
     expect(haloSnap({ courses: d.courses, items: d.items, settings: { ...d.settings, haloOnHalo: false }, schedule, canSync: false, now: NOW })).toMatchObject({ plan: 'free', show: false });
   });
+  it('says Max, and a free week of Max that ended in the last 14 days, for the note on Halo (0.12.12)', () => {
+    const base = { courses: d.courses, items: d.items, settings: d.settings, schedule, canSync: true, now: NOW };
+    const ended = new Date(Date.parse(NOW) - 2 * 86_400_000).toISOString();
+    expect(haloSnap({ ...base, max: true, trialEndedAt: ended })).toMatchObject({ mx: 1 });
+    expect(haloSnap({ ...base, max: true, trialEndedAt: ended }).te).toBeUndefined();
+    expect(haloSnap({ ...base, trialEndedAt: ended }).te).toBe(ended);
+    expect(haloSnap({ ...base, trialEndedAt: new Date(Date.parse(NOW) - 20 * 86_400_000).toISOString() }).te).toBeUndefined();
+    expect(haloSnap({ ...base, trialEndedAt: new Date(Date.parse(NOW) + 86_400_000).toISOString() }).te).toBeUndefined();
+    expect(haloSnap(base).mx).toBeUndefined();
+  });
 });

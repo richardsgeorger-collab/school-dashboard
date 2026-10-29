@@ -53,9 +53,9 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null, haloLockedBox: null, haloMaxOn: null, haloTrialNote: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey', 'haloFeat', 'haloIndex'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey', 'haloFeat', 'haloIndex', 'haloLockedBox', 'haloMaxOn', 'haloTrialNote'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -521,7 +521,7 @@
     const card = h.parentElement && (h.closest('[class*="CourseCard_cardContainer"]') || h.parentElement);
     const bhGrade = !!(card && card.querySelector('.better-halo-grade-indicator'));
     const all = M.classLine(view, cls, now).filter((p) => !(bhGrade && p.tone === 'grade'));
-    // Next item in one click (0.12.0, Plus and Max, its own switch): "Next: Topic 7 DQ 2" opens it on Halo, at
+    // Next item in one click (0.12.0, every plan since 0.12.12, its own switch): "Next: Topic 7 DQ 2" opens it on Halo, at
     // Halo's own address for it (the index from the last sync); no address, no link.
     const On = liveOn();
     if (On && On.enabled('next')) {
@@ -651,7 +651,10 @@
 .more:hover{text-decoration:underline}
 .rest{margin:4px 0 1px 20px;padding:0;list-style:none}
 .rest li{margin:2px 0}
-.rest li::before{content:"· ";opacity:.5}`;
+.rest li::before{content:"· ";opacity:.5}
+.un{background:none;border:0;padding:0;color:var(--gold);font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+.un:hover{text-decoration:underline}
+.un:focus-visible{outline:2px solid #f2b84b;outline-offset:2px;border-radius:3px}`;
   /** Halo's own look where the line goes: the background behind it, its text color and font, light or dark. */
   function lookAt(el) {
     let bg = null;
@@ -720,22 +723,70 @@
       placeBox(c, (b) => row.insertAdjacentElement('afterend', b), `item:${M.itemKey(i)}`, title);
     }
   }
+  // Free's heads-up (0.12.12, George 2026-10-29): "An announcement changed this due date · Unlock with Max" on that
+  // assignment's own page, at most once per assignment (kept for the rest of that page view). "Unlock with Max" goes
+  // to Max's checkout and comes back to this page, which then says Max is on while Halo+ reads the announcement, and
+  // shows the details once it has.
+  const lockedHere = new Set();
+  const MAX_ON_MS = 15 * 60_000;
+  function maxOnFor(key) {
+    const m = st.haloMaxOn;
+    return !!(m && m.paid && m.key === key && Date.now() - Date.parse(m.at) < MAX_ON_MS);
+  }
+  function lockedAllowed(c) {
+    if (maxOnFor(c.key)) return true;
+    if (view.mx || st.tier === 'max') return false;
+    if (lockedHere.has(c.key)) return true;
+    if ((st.haloLockedBox || []).includes(c.key)) return false;
+    lockedHere.add(c.key);
+    save({ haloLockedBox: [...(st.haloLockedBox || []), c.key].slice(-300) });
+    count('locked-box');
+    return true;
+  }
+  function unlock(c) {
+    count('locked-unlock');
+    const back = location.href.split('#')[0];
+    save({ haloMaxOn: { key: c.key, at: new Date().toISOString(), paid: false } });
+    location.assign(`${ORIGIN}/#/checkout?from=halo&back=${encodeURIComponent(back)}`);
+  }
   function placeBox(c, put, key, anchor) {
-    if (document.querySelector(`[data-haloplus="box"][data-key="${CSS.escape(key)}"]`)) return;
+    if (c.locked && !lockedAllowed(c)) return;
+    const was = document.querySelector(`[data-haloplus="box"][data-key="${CSS.escape(key)}"]`);
+    // The heads-up turns into "Max is on" (and the details replace it when they come): redrawn when its state changes.
+    const state = c.locked ? (maxOnFor(c.key) ? 'on' : 'locked') : 'open';
+    if (was && was.dataset.state === state) return;
+    if (was) was.remove();
     const look = lookAt(anchor || document.body);
     const h = document.createElement('div');
     h.setAttribute('data-haloplus', 'box');
     h.dataset.key = key;
+    h.dataset.state = state;
     h.style.cssText = 'all: initial; display: block;';
     const sr = h.attachShadow({ mode: 'open' });
     const href = M.link(ORIGIN, c, 'box');
     const more = c.more.length;
-    sr.innerHTML = `<style>${BOX_CSS}</style><div class="b" role="note" data-dark="${look.dark ? 1 : 0}" style="--bg:${look.bg};--ink:${esc(look.ink)};--line:${look.line};--gold:${look.gold};--font:${esc(look.font)}"><a class="l" href="${esc(href)}" target="_blank" rel="noopener" title="Open in Halo+"><span class="mk" aria-hidden="true"></span><span class="h">Halo+</span><span class="s" aria-hidden="true">·</span><span class="t">${esc(c.line)}</span></a>${more ? `<button class="more" type="button" aria-expanded="false">+${more} more</button><ul class="rest" hidden>${c.more.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`;
-    sr.querySelector('a').addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openHaloPlus(c, 'box');
-    });
+    const vars = `--bg:${look.bg};--ink:${esc(look.ink)};--line:${look.line};--gold:${look.gold};--font:${esc(look.font)}`;
+    const head = '<span class="mk" aria-hidden="true"></span><span class="h">Halo+</span><span class="s" aria-hidden="true">·</span>';
+    if (state === 'locked')
+      sr.innerHTML = `<style>${BOX_CSS}</style><div class="b" role="note" data-locked="1" data-dark="${look.dark ? 1 : 0}" style="${vars}"><span class="l">${head}<span class="t">${esc(c.line)}</span></span><span class="s" aria-hidden="true">·</span><button class="un" type="button">Unlock with Max</button></div>`;
+    else if (state === 'on')
+      sr.innerHTML = `<style>${BOX_CSS}</style><div class="b" role="status" data-dark="${look.dark ? 1 : 0}" style="${vars}"><span class="l">${head}<span class="t">Max is on. Reading this announcement now…</span></span></div>`;
+    else
+      sr.innerHTML = `<style>${BOX_CSS}</style><div class="b" role="note" data-dark="${look.dark ? 1 : 0}" style="${vars}"><a class="l" href="${esc(href)}" target="_blank" rel="noopener" title="Open in Halo+">${head}<span class="t">${esc(c.line)}</span></a>${more ? `<button class="more" type="button" aria-expanded="false">+${more} more</button><ul class="rest" hidden>${c.more.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</div>`;
+    const un = sr.querySelector('.un');
+    if (un)
+      un.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        unlock(c);
+      });
+    const link = sr.querySelector('a');
+    if (link)
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openHaloPlus(c, 'box');
+      });
     const btn = sr.querySelector('.more');
     if (btn)
       btn.addEventListener('click', (e) => {
@@ -1152,14 +1203,9 @@ ul{list-style:none;margin:0;padding:0}
     const now = Date.now();
     // What changed since the last look, judged against a baseline in one shape; then the baseline moves on. On the
     // first run there is no baseline: it is only recorded.
-    const n = M.notable(view, st.haloBase, now, u.flagged, st.haloLocked);
+    const n = M.notable(view, st.haloBase, now, u.flagged);
     if (view.items.length) save({ haloBase: M.baseline(view) });
     if (n && n.kind === 'soon') u.flagged = [...(u.flagged || []), n.key].slice(-50);
-    // Free's "an announcement changed…" peek: once per assignment, ever (0.11.0), and counted for Admin.
-    if (n && n.kind === 'locked') {
-      save({ haloLocked: [...(st.haloLocked || []), n.key].slice(-200) });
-      count('locked-peek');
-    }
     if (!u.first) {
       u.first = true;
       save({ haloUi: u });
@@ -1192,6 +1238,61 @@ ul{list-style:none;margin:0;padding:0}
     w.appendChild(a);
   }
 
+  // ---- The free week's end, once (0.12.12, George 2026-10-29) ---------------------------------------------------------
+  // One calm note in Halo's own alert look, the first time the student is on Halo after their free week of Max ended:
+  // what stays (Halo+ on Halo is free) and the one choice, "Keep Max · $0.99/mo" (checkout, then back here) or "Not
+  // now". Shown once, ever, for that trial; never on a quiz; never for an account on Max.
+  const NOTE_CSS = `:host{all:initial}
+.n{position:fixed;right:18px;bottom:64px;z-index:2147483001;max-width:min(380px,calc(100vw - 36px));box-sizing:border-box;display:flex;gap:12px;padding:12px 16px;border-radius:4px;background:var(--bg);color:var(--ink);font:14px/1.43 var(--font);box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-font-smoothing:antialiased}
+.i{flex:none;width:22px;height:22px;color:var(--icon);margin-top:1px}
+.t{margin:0 0 2px;font-weight:600}
+.p{margin:0 0 10px}
+.a{display:flex;gap:8px;flex-wrap:wrap}
+button{font:600 13px/1 var(--font);border-radius:4px;padding:8px 12px;cursor:pointer;border:1px solid transparent}
+.k{background:var(--btn);color:#fff}
+.k:hover{filter:brightness(1.08)}
+.x{background:none;color:var(--ink);border-color:var(--line)}
+button:focus-visible{outline:2px solid var(--icon);outline-offset:2px}
+@media (max-width:480px){.n{right:12px;left:12px;max-width:none}}`;
+  let noteHere = null;
+  function trialNote() {
+    const te = view && view.te;
+    const el = document.querySelector('[data-haloplus="note"]');
+    const want = !!te && !view.mx && st.tier !== 'max' && route().kind !== 'quiz' && (noteHere === te || st.haloTrialNote !== te);
+    if (!want) return el && el.remove();
+    if (el) return;
+    noteHere = te;
+    save({ haloTrialNote: te });
+    count('trial-note');
+    // Light or dark from Halo's own content (a class card, else the page's main part): the body itself is often clear.
+    const look = lookAt(document.querySelector('[class*="CourseCard_cardContainer"]') || document.querySelector('#__next main') || document.querySelector('main') || document.body);
+    const h = document.createElement('div');
+    h.setAttribute('data-haloplus', 'note');
+    h.style.cssText = 'all: initial;';
+    const sr = h.attachShadow({ mode: 'open' });
+    // Halo's info alert (MUI): light blue with dark blue ink, or its dark version.
+    const vars = look.dark ? '--bg:#071318;--ink:#b8e7fb;--icon:#29b6f6;--btn:#0288d1;--line:rgba(184,231,251,.35)' : '--bg:#e5f6fd;--ink:#014361;--icon:#0288d1;--btn:#0288d1;--line:rgba(1,67,97,.3)';
+    sr.innerHTML = `<style>${NOTE_CSS}</style><div class="n" role="status" style="${vars};--font:${esc(look.font)}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg><div><p class="t">Your free week of Max is over</p><p class="p">Halo+ on Halo stays free. Max reads every announcement for you and syncs on its own.</p><div class="a"><button class="k" type="button">Keep Max · $0.99/mo</button><button class="x" type="button">Not now</button></div></div></div>`;
+    const done = () => {
+      noteHere = null;
+      h.remove();
+    };
+    sr.querySelector('.k').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      count('trial-note-keep');
+      done();
+      location.assign(`${ORIGIN}/#/checkout?from=halo&back=${encodeURIComponent(location.href.split('#')[0])}`);
+    });
+    sr.querySelector('.x').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      count('trial-note-later');
+      done();
+    });
+    document.documentElement.appendChild(h);
+  }
+
   const render = guard(function render() {
     const noAccount = !view && !st.syncKey && !(st.haloUiOn && st.haloUiOn.on === false);
     setupPill(noAccount);
@@ -1202,6 +1303,7 @@ ul{list-style:none;margin:0;padding:0}
       removeAll('[data-haloplus="class"]');
       removeAll('[data-haloplus="box"]');
       removeAll('[data-haloplus="week"]');
+      removeAll('[data-haloplus="note"]');
       return;
     }
     const r = route();
@@ -1217,6 +1319,7 @@ ul{list-style:none;margin:0;padding:0}
       else if (!peeking) clearLayer();
     }
     boxes();
+    trialNote();
   });
 
   // After a submission the moment is one toast (content-halo.js, 0.12.10, George: the card and the pill's "Nice. Next
@@ -1242,6 +1345,22 @@ ul{list-style:none;margin:0;padding:0}
   };
   void load().then(render);
   settle();
+  // Back from Max's checkout (0.12.12): Stripe returns to this Halo page with #haloplus-max=on. The mark comes off the
+  // address at once; the heads-up says Max is on, and Halo+ opens beside this page to read that announcement.
+  if (/haloplus-max=on/.test(location.hash)) {
+    try {
+      history.replaceState(history.state, '', location.pathname + location.search);
+    } catch {
+      /* Halo's own address handling */
+    }
+    void load().then(() => {
+      const m = st.haloMaxOn || {};
+      save({ haloMaxOn: { key: m.key || null, at: new Date().toISOString(), paid: true } });
+      count('max-on');
+      chrome.runtime.sendMessage({ kind: 'max-on' }).catch(() => undefined);
+      soon();
+    });
+  }
   window.addEventListener('pageshow', () => alive() && soon());
   document.addEventListener('visibilitychange', () => alive() && document.visibilityState === 'visible' && soon());
   chrome.storage.onChanged.addListener(

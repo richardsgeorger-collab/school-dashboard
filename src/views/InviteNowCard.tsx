@@ -26,7 +26,7 @@ export function InviteNowCard() {
       <button type="button" className="welcome-x" aria-label="Put this away for a week" onClick={() => actions.updateSettings({ inviteCardAt: new Date().toISOString() })}>
         ×
       </button>
-      <p className="trial-lead">Know someone in your classes? You both get Plus free for 30 days.</p>
+      <p className="trial-lead">Know someone in your classes? You both get Max free for 30 days.</p>
       <p className="hint">{INVITE_RULE}</p>
       <div className="settings-actions">
         <InviteButton label="Invite a friend" small />
@@ -64,7 +64,7 @@ export function InviteLine() {
         <span className="invite-line-icon">
           <IconGift size={16} />
         </span>
-        <span>{said ?? `Invite a friend, you both get ${REFERRAL.days} days of Plus free`}</span>
+        <span>{said ?? `Invite a friend, you both get ${REFERRAL.days} days of Max free`}</span>
       </button>
       <button type="button" className="invite-line-x" aria-label="Hide for two weeks" onClick={() => actions.updateSettings({ inviteLineAt: new Date().toISOString() })}>
         ×

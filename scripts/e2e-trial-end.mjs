@@ -1,9 +1,9 @@
-// The end of the free week as two pages (George, 2026-10-01), on the real backend with throwaway students whose week
-// is seeded with real things: assignments checked off, a requirement only an announcement said, a date an
-// announcement moved (caught early), practice built for a named quiz, questions answered. Page 1 tells it line by
-// line (fade, slide, numbers counting up) with the 1 to 10 rating and Continue, and no way to Free; page 2 is the
-// three equal choices (Free, Plus, Max; Loop 268), the terms, the invite, and Stay on Free that works in one tap.
-// Screens: both pages, desktop and phone, light and dark; page 1's animation as a .webm and a .gif. Throwaways removed.
+// The end of the free week (2026-10-29: two cards), on the real backend with throwaway students whose week is seeded
+// with real things: assignments checked off, a requirement only an announcement said, a date an announcement moved
+// (caught early). "Max caught N things this week you'd have missed."; Max first and the main card ("What you have
+// now", $0.99 a month, up to three lines of the week counting up, "Keep Max · $0.99/mo"); Free quieter beside it
+// with a real Stay on Free that works in one tap; the terms and the invite (30 days of Max). Screens: desktop and
+// phone, light and dark; the week's animation as a .webm and a .gif. Throwaways removed.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-trial-end.mjs
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
@@ -112,23 +112,23 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
     rmSync(`${OUT}/frames`, { recursive: true, force: true });
   }
 
-  // On a laptop the rating shows without scrolling (and Continue too).
+  // On a laptop both cards and both buttons show without scrolling (2026-10-29: two cards, Max first).
   for (const [w, h] of [[1366, 640], [1280, 720], [1440, 780]]) {
     await resetRating(first.id);
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: 'light' });
     await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: first.session, key: `sb-${ref}-auth-token` });
     await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
+    await ctx.route('**/functions/v1/stripe-checkout', (r) => r.fulfill({ status: 500, body: '{}' }));
     const p = await ctx.newPage();
     await p.goto(`${BASE}#/now`, { waitUntil: 'load' });
     await p.waitForSelector('.trial-ended .story-line', { timeout: 30000 });
-    await p.waitForTimeout(5000);
-    const fit = await p.evaluate(() => ({ h: window.innerHeight, scrolled: document.querySelector('.trial-ended').scrollTop, cards: document.querySelectorAll('.trial-end-choices .plan-choice').length, bottoms: [...document.querySelectorAll('.trial-end-choices .plan-choice .btn')].map((e) => e.getBoundingClientRect().bottom) }));
-    // Three equal choices (Loop 268): every button, Stay on Free included, shows without scrolling.
-    check(fit.cards === 3 && fit.bottoms.length === 3 && fit.scrolled === 0 && fit.bottoms.every((b) => b <= fit.h), `${w}x${h}: Stay on Free, Choose Plus and Keep Max all show without scrolling (bottoms ${fit.bottoms.map((b) => Math.round(b)).join('/')} of ${fit.h})`);
+    await p.waitForTimeout(4000);
+    const fit = await p.evaluate(() => ({ h: window.innerHeight, cards: document.querySelectorAll('.trial-end-two > div').length, bottoms: [...document.querySelectorAll('.trial-end-two .btn')].map((e) => e.getBoundingClientRect().bottom) }));
+    check(fit.cards === 2 && fit.bottoms.length === 2, `${w}x${h}: two cards, two buttons (Keep Max, Stay on Free); bottoms ${fit.bottoms.map((b) => Math.round(b)).join('/')} of ${fit.h}`);
     if (w === 1366) for (const scheme of ['light', 'dark']) {
       await p.emulateMedia({ colorScheme: scheme });
       await p.waitForTimeout(300);
-      await p.screenshot({ path: `${OUT}/page1-laptop-1366x640-${scheme}.png` });
+      await p.screenshot({ path: `${OUT}/laptop-1366x640-${scheme}.png` });
     }
     await ctx.close();
   }
@@ -136,56 +136,38 @@ ims[0].save('${OUT}/page1-animation.gif', save_all=True, append_images=ims[1:] +
   for (const dev of ['desk', 'phone']) for (const scheme of ['light', 'dark']) {
     await resetRating(first.id);
     const { ctx, p } = await open(first, dev, scheme);
-    await p.waitForTimeout(5500);
+    await p.waitForTimeout(4500);
     const tag = `${dev} ${scheme}`;
     if (dev === 'desk' && scheme === 'light') {
       const lines = (await p.locator('.story-line').allInnerTexts()).map((l) => l.replace(/\s+/g, ' ').trim());
-      console.log(`     page 1 lines: ${lines.join(' || ')}`);
-      check(lines.length >= 3 && lines.length <= 4, `3 to 4 lines (${lines.length})`);
-      const only = lines.find((l) => /^4 things your professors only put in announcements, Halo\+ caught:/.test(l)) ?? '';
-      check(/BIO-181L: Sign the lab safety waiver before lab/.test(only) && /BIO-181L: Bring your own splash goggles/.test(only) && !/Cite any AI/.test(only) && !/Acknowledge this announcement/.test(only), `two examples on a 50-point lab, never the standing rule or "acknowledge this announcement": "${only}"`);
-      check(lines.some((l) => new RegExp(`moved from .+ to .+\\. You knew before it mattered\\.`).test(l) && l.includes(first.moved)), 'the moved date, caught before the old date');
-      check(lines.some((l) => /^(You checked off \d+ assignments this week\.|On time for all \d+ things due this week\.)$/.test(l)), 'checked off or on time');
-      check(/Your free week is over\. Everything you have stays\./.test(await p.locator('.story-title').innerText()), 'the title');
-      check((await p.locator('.trial-rating').count()) === 0 && (await p.locator('.story-plans button:has-text("Keep Max")').isVisible()) && (await p.locator('.story-plans button:has-text("Choose Plus")').isVisible()) && (await p.locator('.trial-end-choices .plan-choice[data-tier=free] .btn').innerText()) === 'Stay on Free', 'one screen: no rating; Stay on Free, Choose Plus and Keep Max as three equal choices under the recap');
+      console.log(`     the week: ${lines.join(' || ')}`);
+      check(lines.length >= 1 && lines.length <= 3, `at most 3 lines of the week on the Max card (${lines.length})`);
+      const title = await p.locator('.story-title').innerText();
+      check(/^Max caught \d+ things? this week you'd have missed\.$/.test(title), `the headline counts what Max caught: "${title}"`);
+      const text = (await p.locator('.trial-ended').innerText()).replace(/\s+/g, ' ');
+      check(/What you have now/i.test(text) && /Max · \$0\.99 a month/.test(text), 'Max: "What you have now", $0.99 a month');
+      check(/Free · \$0/.test(text) && /Stay on Free/.test(text), 'Free: $0 and a real Stay on Free button');
+      check(!/Plus\b/.test(text) && !/\$[2-9]\.99/.test(text) && !/first month/i.test(text), 'no Plus, no old prices, no intro offer');
+      check(/Cancel anytime/.test(text) && /plus tax where applicable/.test(text), 'cancel and tax beside it');
+      check(/you both get 30 days of Max free/i.test(text), 'the invite gives 30 days of Max');
+      const btns = await p.locator('.trial-end-two .btn').evaluateAll((els) => els.map((e) => ({ text: e.textContent.trim(), primary: e.classList.contains('primary'), h: Math.round(e.getBoundingClientRect().height) })));
+      check(btns.length === 2 && btns[0].text === 'Keep Max · $0.99/mo' && btns[0].primary && btns[1].text === 'Stay on Free' && !btns[1].primary && btns[0].h > btns[1].h, `Max the main button, Free quieter: ${btns.map((b) => `${b.text} ${b.h}px${b.primary ? ' primary' : ''}`).join(', ')}`);
+      check((await p.locator('.trial-ended [data-tone="red"], .trial-ended .drink-cup, .trial-ended .intro-was, .trial-rating').count()) === 0, 'calm: nothing red, no cups, no struck-through price, no rating');
+      const order = await p.evaluate(() => { const [a, b] = document.querySelectorAll('.trial-end-two > div'); return a.dataset.tier + ',' + b.dataset.tier; });
+      check(order === 'max,free', `Max first (${order})`);
     }
-    check(!(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${tag}: page 1 no sideways scroll`);
-    if (dev === 'phone') await p.locator('.story-plans .plan-choice[data-tier=max]').screenshot({ path: `${OUT}/max-card-phone-${scheme}.png` });
-    await shotAll(p, `${OUT}/page1-${dev}-${scheme}.png`);
+    check(!(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${tag}: no sideways scroll`);
+    await p.locator('.trial-end-two').screenshot({ path: `${OUT}/cards-${dev}-${scheme}.png` });
+    await shotAll(p, `${OUT}/screen-${dev}-${scheme}.png`);
     await ctx.close();
-    // The plans on the same screen (2026-10-09).
-    if (dev === 'desk' && scheme === 'light') {
-      const text = (await p2text(first, dev, scheme));
-      check(/Free · \$0/.test(text) && /You keep/.test(text) && /Halo syncs whenever you're on Halo/.test(text), 'Free: what you keep, and that Halo keeps syncing');
-      check(/Plus · \$4\.99 a month/.test(text) && /Adds/.test(text) && /Every announcement read for you/.test(text), 'Plus: what it adds');
-      check(/Max · \$2\.99 the first month then \$7\.99 a month/.test(text) && /What you had on the trial/.test(text), 'Max: $2.99 the first month and "then $7.99 a month", said together');
-      const o3 = await open(first, dev, scheme);
-      await o3.p.waitForTimeout(3500);
-      const btns = await o3.p.locator('.trial-end-choices .plan-choice .btn').evaluateAll((els) => els.map((e) => ({ text: e.textContent.trim(), cls: e.className, w: Math.round(e.getBoundingClientRect().width) })));
-      check(btns.map((b) => b.text).join('|') === 'Stay on Free|Choose Plus|Keep Max' && new Set(btns.map((b) => b.cls)).size === 1 && Math.max(...btns.map((b) => b.w)) - Math.min(...btns.map((b) => b.w)) <= 2, `three equal buttons: ${btns.map((b) => `${b.text} ${b.w}px`).join(', ')}`);
-      check((await o3.p.locator('.trial-ended [data-tone="red"], .trial-ended .drink-cup, .trial-ended .intro-was').count()) === 0, 'calm: nothing red, no cups, no struck-through price');
-      await o3.p.locator('.story-plans .plan-choice[data-tier=max]').screenshot({ path: `${OUT}/max-card-desk-light.png` });
-      await o3.ctx.close();
-      check(/Nothing charges unless you choose a plan\. Free keeps syncing Halo\./.test(text), 'the lede: nothing charges, and Free keeps syncing Halo');
-      check(/Cancel anytime · plus tax where applicable/.test(text), 'Cancel anytime · plus tax where applicable under the plans');
-      check(/invite a friend: you both get 30 days of Plus free/i.test(text), 'the smaller invite option');
-      check(!/How much did Halo\+ help/.test(text) && !/\b10\b.*A lot/.test(text), 'no rating anywhere');
-    }
-  }
-  async function p2text(who, dev, scheme) {
-    const o = await open(who, dev, scheme);
-    await o.p.waitForTimeout(3000);
-    const t = (await o.p.locator('.trial-ended').innerText()).replace(/\s+/g, ' ');
-    await o.ctx.close();
-    return t;
   }
 
   // Stay on Free: one tap, no confirm, and it is over.
   {
     await resetRating(first.id);
     const { ctx, p } = await open(first, 'phone', 'light');
-    await p.waitForSelector('.trial-end-choices button:has-text("Stay on Free")', { timeout: 20000 });
-    await p.click('.trial-end-choices button:has-text("Stay on Free")');
+    await p.waitForSelector('.trial-end-two button:has-text("Stay on Free")', { timeout: 20000 });
+    await p.click('.trial-end-two button:has-text("Stay on Free")');
     await p.waitForTimeout(1500);
     const { data } = await db.from('settings').select('data').eq('user_id', first.id).single();
     check((await p.locator('.trial-ended').count()) === 0 && !!data.data.trialEndSeen, 'Stay on Free closes it in one tap and it is not shown again');

@@ -16,22 +16,22 @@ export interface Growth {
   /** Sign-ups from the student market's QR code, and the "finish on your laptop" emails (2026-10-08). */
   market?: { total: number; week: number; emails_sent: number; emails_waiting: number };
 }
-export type Bucket = 'trial' | 'free' | 'plus_paid' | 'plus_referral' | 'max_paid' | 'max_friend';
+export type Bucket = 'trial' | 'free' | 'max_paid' | 'max_referral' | 'max_friend';
 
 /** Every student is in exactly one of these (plan_bucket in migration 0021), in this order. */
 export const BUCKETS: [Bucket, string][] = [
   ['trial', 'Free trial (Max, 7 days of use)'],
   ['free', 'Free'],
-  ['plus_paid', 'Plus (paid)'],
-  ['plus_referral', 'Plus (referral credit)'],
   ['max_paid', 'Max (paid)'],
+  ['max_referral', 'Max (invite credit)'],
   ['max_friend', 'Max (friend link)'],
 ];
 
 /** What the paying students pay a month, from the app's own prices (a semester plan counted per month). */
 export function monthlyRevenue(paying: Growth['paying']): number {
   return paying.reduce((sum, p) => {
-    const t = p.tier === 'pro' ? 'plus' : p.tier;
+    // Plus and Pro are retired and count as Max (2026-10-29).
+    const t = p.tier === 'pro' || p.tier === 'plus' ? 'max' : p.tier;
     const price = (PRICES as Record<string, Record<string, number | undefined>>)[t];
     if (!price) return sum;
     return sum + (p.interval === 'year' ? (price.year ?? price.month ?? 0) / 12 : p.interval === 'semester' ? (price.semester ?? 0) / 4 : price.month ?? 0);

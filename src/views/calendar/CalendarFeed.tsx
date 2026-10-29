@@ -65,7 +65,7 @@ export function CalendarFeed({ onClose }: { onClose: () => void }) {
           <p>Every due date in Google Calendar, Apple Calendar or Outlook, kept up to date as Halo changes.</p>
           <p className="hint">The calendar link is part of {planOf('icsFeed')}.</p>
           <div className="settings-actions">
-            <a className="btn primary" href="#/you?s=plan&to=plus" onClick={onClose}>
+            <a className="btn primary" href="#/you?s=plan&to=max" onClick={onClose}>
               See {planOf('icsFeed')}
             </a>
           </div>

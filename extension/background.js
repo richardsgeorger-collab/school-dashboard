@@ -17,7 +17,7 @@ import './halo-model.js';
 // Halo+ on Halo's pages (0.12.0): the index of the student's classes the Halo pages search and link from.
 import './onhalo/logic.js';
 
-// Scheduled syncs run on Plus and Max; Sync now runs on any plan (the app and the server apply the same rule).
+// Scheduled syncs run on Max (Plus, retired, counts as Max); Sync now runs on any plan (the app and the server apply the same rule).
 const AUTO = ['plus', 'max'];
 /** A Halo visit syncs when the last try was at least this long ago (0.11.0): Free's sync, and fresher data on every plan. */
 const VISIT_MS = 30 * 60_000;
@@ -317,6 +317,11 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   } else if (msg.kind === 'grade') {
     // A class grade read straight from Halo's page (0.11.1): to the account, so the app and the GPA match. No sync.
     void sendGrade(msg);
+    reply({ ok: true });
+  } else if (msg.kind === 'max-on') {
+    // Back on Halo from Max's checkout (0.12.12): Halo+ opens beside that page, not focused, to take the new plan and
+    // read the announcement the heads-up was about; it closes again after a few minutes if the student never looks.
+    void maxOn();
     reply({ ok: true });
   } else if (msg.kind === 'halo-ui') {
     // What happened to Halo+ on a Halo page (shown, closed, clicked), counted for Admin (0.8.0).
@@ -721,7 +726,27 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'tier', 'setup'].some((k) => k in changes)) void updateBadge();
 });
 chrome.alarms.create('halo-badge', { periodInMinutes: 10 }).catch?.(() => undefined);
+async function maxOn() {
+  const t = await chrome.tabs.create({ url: `${DASH_ORIGIN}/#/now?from=halo&via=max`, active: false }).catch(() => null);
+  if (!t) return;
+  await set({ maxOnTab: t.id });
+  chrome.alarms.create('max-on-close', { delayInMinutes: 4 });
+}
+async function maxOnClose() {
+  const { maxOnTab } = await get(['maxOnTab']);
+  await set({ maxOnTab: null });
+  if (!maxOnTab) return;
+  const t = await chrome.tabs.get(maxOnTab).catch(() => null);
+  // Only the tab it opened, still on Halo+, never looked at.
+  if (t && !t.active && (t.url || '').startsWith(DASH_ORIGIN)) await chrome.tabs.remove(t.id).catch(() => undefined);
+}
+// Looked at once: the student's tab now, never closed for them.
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  void get(['maxOnTab']).then(({ maxOnTab }) => maxOnTab === tabId && set({ maxOnTab: null }));
+});
+
 chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name === 'max-on-close') void maxOnClose();
   if (a.name === 'halo-badge') {
     void updateBadge();
     void fetchDone();
@@ -729,7 +754,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 });
 
 /** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
-const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed', 'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done'];
+const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed', 'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done', 'locked-box', 'locked-unlock', 'max-on', 'trial-note', 'trial-note-keep', 'trial-note-later'];
 async function countHaloUi(event) {
   if (!HALO_UI.includes(event)) return;
   try {

@@ -10,19 +10,19 @@ describe('the gateway', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it('sets the one model and caps output per kind whatever was asked', () => {
-    const w = toWire({ kind: 'coach', system: [{ text: 'sys', cache: true }, { text: ' ' }], messages: [{ role: 'user', content: 'x' }], max_tokens: 999_999, think: true });
+    const w = toWire({ kind: 'study', system: [{ text: 'sys', cache: true }, { text: ' ' }], messages: [{ role: 'user', content: 'x' }], max_tokens: 999_999, think: true });
     expect(w.model).toBe(MODEL);
-    expect(w.max_tokens).toBe(outputCapFor(MODEL, MAX_TOKENS.coach));
+    expect(w.max_tokens).toBe(outputCapFor(MODEL, MAX_TOKENS.study));
     // Haiku 4.5 takes `enabled` with a budget under the cap (`adaptive` is what it rejected for days); Haiku 5.5 takes
     // only `adaptive` (model.ts forModel).
-    expect(w.thinking).toEqual(MODEL === HAIKU_5_5 ? { type: 'adaptive' } : { type: 'enabled', budget_tokens: MAX_TOKENS.coach / 2 });
-    expect(toWire({ kind: 'coach', system: [], messages: [], think: false }).thinking).toBeUndefined();
+    expect(w.thinking).toEqual(MODEL === HAIKU_5_5 ? { type: 'adaptive' } : { type: 'enabled', budget_tokens: MAX_TOKENS.study / 2 });
+    expect(toWire({ kind: 'brief', system: [], messages: [], think: false }).thinking).toBeUndefined();
     // A forced tool call cannot think: the flag is dropped, not sent to fail.
     expect(toWire({ kind: 'class_plan', system: [], messages: [], think: true, tools: [{ name: 't', input_schema: {} }], tool_choice: { type: 'tool', name: 't' } }).thinking).toBeUndefined();
-    expect(toWire({ kind: 'needs', system: [], messages: [], think: true }).thinking).toBeUndefined();
+    expect(toWire({ kind: 'changes', system: [], messages: [], think: true }).thinking).toBeUndefined();
     expect(w.system).toEqual([{ type: 'text', text: 'sys', cache_control: { type: 'ephemeral' } }]);
-    expect(toWire({ kind: 'needs', system: [], messages: [] }).max_tokens).toBe(outputCapFor(MODEL, MAX_TOKENS.needs));
-    expect(toWire({ kind: 'needs', system: [], messages: [], max_tokens: 100 }).max_tokens).toBe(outputCapFor(MODEL, 100));
+    expect(toWire({ kind: 'changes', system: [], messages: [] }).max_tokens).toBe(outputCapFor(MODEL, MAX_TOKENS.changes));
+    expect(toWire({ kind: 'changes', system: [], messages: [], max_tokens: 100 }).max_tokens).toBe(outputCapFor(MODEL, 100));
   });
 
   it('in dev, a browser key goes straight to Anthropic with the same wire shape', async () => {
@@ -31,7 +31,7 @@ describe('the gateway', () => {
       calls.push({ url: String(url), init: init! });
       return ok(reply);
     }) as unknown as typeof globalThis.fetch;
-    const r = await callGateway({ kind: 'coach', system: [{ text: 's' }], messages: [{ role: 'user', content: 'q' }] }, { apiKey: 'sk-test', fetch });
+    const r = await callGateway({ kind: 'brief', system: [{ text: 's' }], messages: [{ role: 'user', content: 'q' }] }, { apiKey: 'sk-test', fetch });
     expect(r.content).toEqual(reply.content);
     expect(calls[0].url).toContain('api.anthropic.com');
     const sent = JSON.parse(String(calls[0].init.body));
@@ -48,13 +48,13 @@ describe('the gateway', () => {
       calls.push({ url: String(url), init: init! });
       return ok({ response: reply, meter });
     }) as unknown as typeof globalThis.fetch;
-    const r = await callGateway({ kind: 'coach', system: [], messages: [{ role: 'user', content: 'q' }] }, { fetch, token: 'jwt' });
+    const r = await callGateway({ kind: 'brief', system: [], messages: [{ role: 'user', content: 'q' }] }, { fetch, token: 'jwt' });
     expect(calls[0].url).toBe('https://demo.supabase.co/functions/v1/ai');
     const headers = calls[0].init.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer jwt');
     expect(JSON.stringify(headers)).not.toContain('sk-');
     const sent = JSON.parse(String(calls[0].init.body));
-    expect(sent.kind).toBe('coach');
+    expect(sent.kind).toBe('brief');
     expect(sent.request.model).toBe(MODEL);
     expect(r.meter).toEqual(meter);
     expect(latestMeter()).toEqual(meter);
@@ -64,7 +64,7 @@ describe('the gateway', () => {
     vi.stubEnv('VITE_SUPABASE_URL', 'https://demo.supabase.co');
     vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon');
     const fetch = (async () => ok({ error: { code: 'daily', message: 'That is 10 messages for today. More tomorrow.' } }, 429)) as unknown as typeof globalThis.fetch;
-    const err = await callGateway({ kind: 'coach', system: [], messages: [] }, { fetch, token: 'jwt' }).catch((e: unknown) => e);
+    const err = await callGateway({ kind: 'brief', system: [], messages: [] }, { fetch, token: 'jwt' }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(GatewayError);
     expect((err as GatewayError).code).toBe('daily');
     expect((err as GatewayError).message).toBe('That is 10 messages for today. More tomorrow.');
@@ -77,7 +77,7 @@ describe('the gateway', () => {
   });
 
   it('with no backend configured and no key it says so instead of failing silently', async () => {
-    const err = await callGateway({ kind: 'coach', system: [], messages: [] }, {}).catch((e: unknown) => e);
+    const err = await callGateway({ kind: 'brief', system: [], messages: [] }, {}).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(GatewayError);
     expect((err as GatewayError).code).toBe('auth');
   });

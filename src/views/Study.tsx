@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { latestMeter, onMeter } from '../ai/gateway';
 import type { Meter } from '../ai/meter';
-import { askSuggestions } from '../ask/ask';
 import { useAccount } from '../auth/AccountContext';
 import { CourseChip } from '../components/CourseChip';
 import { can, rank, trialState } from '../config/flags';
@@ -17,17 +16,16 @@ import { UpgradeButton } from './PlanWall';
 import { TrialOffer } from './TrialOffer';
 
 /**
- * Study: the one home for the three AI tools. The quizzes and exams ahead, each with Practice; one box to ask
- * anything; Check my work. A student on Free sees the same screen with their own tests named and one way in.
+ * Study: the one home for the AI study tools (Max). The quizzes and exams ahead, each with Practice; Check my work. A
+ * student on Free sees the same screen with their own tests named and one way in. (Ask is gone, 2026-10-29.)
  */
 export function Study() {
   const { data, today, courseById } = useStore();
   const { tier, profile, auth, planKnown } = useAccount();
   const tz = data.settings.timezone;
-  const allowed = can('aiChat', tier) && can('flashcards', tier);
+  const allowed = can('aiWork', tier) && can('flashcards', tier);
   const tests = upcomingTests(data.items, today, tz);
   const next = nextCheckable(data.items, today, tz);
-  const [q, setQ] = useState('');
   const [m, setM] = useState<Meter | null>(latestMeter());
   useEffect(() => onMeter(setM), []);
   // What Practice has to build from, said before the student picks a test.
@@ -45,16 +43,10 @@ export function Study() {
     };
   }, []);
   const material = decks ? materialLine(data.courses, decks, recordings) : null;
-  const ask = (text: string) => {
-    const t = text.trim();
-    if (!t) return;
-    window.location.hash = `/ask?q=${encodeURIComponent(t)}`;
-  };
-  const suggestions = askSuggestions({ course: null, item: null }, data.items, today, tz);
   const cap = LIMITS.aiMessagesPerDay[tier];
   // A meter missing a field (an older server, a bad answer) drops the line; it never takes the whole screen down.
   const usd = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? n.toFixed(2) : null);
-  const meterLine = allowed && m && usd(m.monthCostUsd) && usd(m.ceilingUsd) ? `${m.messagesToday ?? 0} of ${cap} questions today · $${usd(m.monthCostUsd)} of $${usd(m.ceilingUsd)} this month` : null;
+  const meterLine = allowed && m && usd(m.monthCostUsd) && usd(m.ceilingUsd) ? `${m.messagesToday ?? 0} of ${cap} checks today · $${usd(m.monthCostUsd)} of $${usd(m.ceilingUsd)} this month` : null;
   const trial = auth.configured && trialState(profile) === 'available' && rank(TRIAL.tier) >= rank('max');
   const lockHref = '#/you?s=plan&to=max&for=flashcards';
   const first = tests[0];
@@ -64,14 +56,14 @@ export function Study() {
       <div className="lib-head">
         <div>
           <h1 className="page-title">Study</h1>
-          <p className="hint study-lead">Practice for what is coming, ask anything about your classes, or check your work before you turn it in. All of it from your own slides, lectures, syllabi and announcements.</p>
+          <p className="hint study-lead">Practice for what is coming, or check your work before you turn it in. All of it from your own slides, lectures, syllabi and announcements.</p>
         </div>
       </div>
 
       {!allowed && planKnown && (
         <section className="card study-lock" role="note" aria-label={`Included with ${TIER_NAMES.max}`}>
           <p className="study-lock-line">
-            <b>Practice, Ask and Check are part of Max.</b>{' '}
+            <b>Practice and Check my work are part of Max.</b>{' '}
             {first ? `Practice for ${first.label} would plan ${daysLeftWords(Math.max(1, Math.round((new Date(`${dateOf(first.dueAt, tz)}T12:00:00Z`).getTime() - new Date(`${today}T12:00:00Z`).getTime()) / 86_400_000)))}, write a worksheet with answers and quiz you from your ${courseById.get(first.courseId)?.code ?? ''} material.` : 'Practice plans a quiz or exam, writes a worksheet with answers and quizzes you from your own class material.'}
           </p>
           <div className="locked-actions">
@@ -125,34 +117,6 @@ export function Study() {
             )}
           </p>
         )}
-      </section>
-
-      <section className="card study-block" aria-label="Ask">
-        <div className="study-block-head">
-          <h2 className="section-title">Ask anything</h2>
-          <p className="hint">What to do next, what a professor wants, how a topic works. Short answers, with what to do next.</p>
-        </div>
-        <form
-          className="study-ask"
-          onSubmit={(e) => {
-            e.preventDefault();
-            // Empty box: the question shown in it (the placeholder looks filled in; Ask used to do nothing).
-            if (allowed) ask(q.trim() || suggestions[1] || suggestions[0]);
-            else window.location.hash = lockHref.slice(1);
-          }}
-        >
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={suggestions[1]} aria-label="Ask anything" enterKeyHint="send" />
-          <button type="submit" className="btn primary">
-            Ask
-          </button>
-        </form>
-        <div className="chat-suggest">
-          {suggestions.map((s) => (
-            <button key={s} type="button" className="btn small" onClick={() => (allowed ? ask(s) : (window.location.hash = lockHref.slice(1)))}>
-              {s}
-            </button>
-          ))}
-        </div>
       </section>
 
       <section className="card study-block" aria-label="Check">

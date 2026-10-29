@@ -8,7 +8,10 @@ const EVENTS = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-h
   // Halo+ on Halo's pages (0.12.0): search opened and used, "Next" clicked, a draft offered and restored, the word
   // minimum shown, a rubric opened, all classes on the calendar, a view choice picked again, a submission confirmed, a
   // wrong file type flagged, last feedback opened, participation shown, a file opened on the page, page code fetched ahead.
-  'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done'];
+  'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done',
+  // Max from Halo (0.12.12): the heads-up on an assignment's page shown and "Unlock with Max" pressed, back from
+  // checkout with Max on, the free week's end note shown and its two buttons.
+  'locked-box', 'locked-unlock', 'max-on', 'trial-note', 'trial-note-keep', 'trial-note-later'];
 
 export async function recordHaloUi(db: any, b: Record<string, unknown>): Promise<{ ok: boolean; why?: string }> {
   const event = typeof b.event === 'string' ? b.event : '';

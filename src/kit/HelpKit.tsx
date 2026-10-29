@@ -15,14 +15,14 @@ type Phase = 'idle' | 'building' | 'done' | 'partial' | 'links' | 'error';
 const fileName = (name: string): string => name.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 120) || 'file';
 
 /**
- * "Download help kit" in the assignment sheet's quiet row (George, 2026-10-08; Max, like the Study tab). Builds the
- * zip here in the browser from what the planner holds and what the extension fetches; nothing goes to a server.
+ * "Download help kit" in the assignment sheet's quiet row (George, 2026-10-08). Builds the zip here in the browser from
+ * what the planner holds and what the extension fetches; nothing goes to a server. Free since 2026-10-29 (it uses no
+ * AI); what the announcement reader found (Max) goes in only on Max.
  */
 export function HelpKitButton({ item, course }: { item: Item; course: Course }) {
   const { data } = useStore();
-  const canChat = useCan('aiChat');
-  const canCards = useCan('flashcards');
-  const allowed = canChat && canCards;
+  const allowed = useCan('helpKit');
+  const canRead = useCan('announcementAI');
   const [phase, setPhase] = useState<Phase>('idle');
   const [note, setNote] = useState<string | null>(null);
   if (!allowed) return null;
@@ -33,10 +33,10 @@ export function HelpKitButton({ item, course }: { item: Item; course: Course }) 
     setPhase('building');
     setNote('Gathering the assignment…');
     try {
-      const lines = todoLines(item, tz);
+      const lines = todoLines(canRead ? item : { ...item, requirements: [] }, tz);
       // The posts this assignment's parts, origin or moved date came from.
       const postIds = new Set<string>();
-      for (const r of item.requirements ?? []) if (r.source.kind === 'announcement' && r.source.id) postIds.add(r.source.id);
+      if (canRead) for (const r of item.requirements ?? []) if (r.source.kind === 'announcement' && r.source.id) postIds.add(r.source.id);
       if (item.origin?.kind === 'announcement' && item.origin.id) postIds.add(item.origin.id);
       if (item.dateChange?.source.kind === 'announcement' && item.dateChange.source.id) postIds.add(item.dateChange.source.id);
       const all = await announceStores.resources().catch(() => []);

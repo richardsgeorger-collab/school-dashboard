@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { describeError } from '../chat/client';
+import { describeError } from '../ai/gateway';
 import { loadApiKey } from '../chat/key';
 import { useAiAllowed } from '../config/useCan';
 import type { Brief, Course, Item, Step } from '../domain/types';
@@ -30,7 +30,7 @@ export async function rubricTextFor(item: Item, decks: Deck[]): Promise<string> 
 /** Reads the brief once (what it asks for, what earns points, the steps), when there is something to read it from. */
 export function useBrief(item: Item, course: Course): { reading: boolean; note: string | null } {
   const { actions } = useStore();
-  const hasKey = useAiAllowed('aiChat');
+  const hasKey = useAiAllowed('aiWork');
   const [reading, setReading] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const description = item.notes?.trim() ?? '';

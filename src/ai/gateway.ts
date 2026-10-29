@@ -201,3 +201,9 @@ async function direct(req: GatewayRequest, apiKey: string, fetchImpl: typeof glo
   }
   return { content: body.content ?? [], stop_reason: body.stop_reason ?? null, usage: (body.usage ?? { input_tokens: 0, output_tokens: 0 }) as Anthropic.Usage, model: body.model ?? MODEL };
 }
+
+/** One plain sentence for a failed AI call. Gateway refusals already come worded; upstream failures name the status. */
+export async function describeError(e: unknown): Promise<string> {
+  if (e instanceof GatewayError) return e.code === 'upstream' && e.status ? `${e.message} (Anthropic returned ${e.status}.)` : e.message;
+  return e instanceof Error ? e.message : String(e);
+}

@@ -48,7 +48,7 @@ export function renderEmail(kind: string, meta: Record<string, unknown>, unsubUr
     // on the 7th, or two days before the 30-day limit, whichever comes first. One email.
     const when = dateOf(typeof meta.ends_at === 'string' ? meta.ends_at : typeof meta.cap_at === 'string' ? meta.cap_at : null, tz);
     const after = 'After that Halo+ goes back to Free: announcements stop being read for you and the study tools lock. Halo keeps syncing, everything you have stays, and nothing charges unless you choose a plan.';
-    const keep = 'To keep it: Max is $7.99 a month (everything you had on the trial), Plus is $4.99 (every announcement read for you, auto-sync, reminders; no study tools). Cancel anytime.';
+    const keep = 'To keep it: Max is $0.99 a month, everything you had on the trial. Cancel anytime.';
     const why = meta.why === 'one-left' || meta.why === 'last-day' ? meta.why : 'cap';
     const subject = why === 'one-left' ? '1 day of Halo+ Max left' : why === 'last-day' ? 'Your last day of Halo+ Max' : `Your free Halo+ Max ends ${when}`;
     const lead =

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAccount } from '../auth/AccountContext';
-import { describeError } from '../chat/client';
+import { describeError } from '../ai/gateway';
 import { loadApiKey } from '../chat/key';
 import { isWorkFile, textFromFile } from '../check/extract';
 import { CourseChip } from '../components/CourseChip';
@@ -69,7 +69,7 @@ export function Check() {
         </section>
       )}
       {item && course && (
-        <Locked feature="aiChat" tier={tier} line="Check my work is part of Max: your draft against the rubric, your problem set against the class's method." quiet>
+        <Locked feature="aiWork" tier={tier} line="Check my work is part of Max: your draft against the rubric, your problem set against the class's method." quiet>
           <Checker key={item.id} item={item} course={course} />
         </Locked>
       )}
@@ -80,7 +80,7 @@ export function Check() {
 function Checker({ item: given, course }: { item: Item; course: Course }) {
   const { data, actions } = useStore();
   const item = data.items.find((i) => i.id === given.id) ?? given;
-  const allowed = useAiAllowed('aiChat');
+  const allowed = useAiAllowed('aiWork');
   const tz = data.settings.timezone;
   const [mode, setMode] = useState<Mode>(modeFor(item));
   const [text, setText] = useState('');
@@ -144,8 +144,6 @@ function Checker({ item: given, course }: { item: Item; course: Course }) {
     }
   };
 
-  const firstMiss = draft?.misses[0]?.criterion ?? method?.problems.find((p) => p.setup !== 'right')?.label ?? null;
-  const askHref = `#/ask?c=${course.id}&i=${item.id}&q=${encodeURIComponent(firstMiss ? `How do I fix this on ${item.label}: ${firstMiss}` : `Help me with ${item.label}`)}`;
   const result = draft || method;
 
   return (
@@ -229,10 +227,7 @@ function Checker({ item: given, course }: { item: Item; course: Course }) {
       )}
       {result && (
         <div className="settings-actions practice-next">
-          <a className="btn small primary" href={askHref}>
-            {firstMiss ? `Ask how to fix: ${firstMiss}` : 'Ask about this'}
-          </a>
-          <a className="btn small" href={`#/class?c=${course.id}&i=${item.id}`}>
+          <a className="btn small primary" href={`#/class?c=${course.id}&i=${item.id}`}>
             Open the assignment
           </a>
           <button type="button" className="btn small" onClick={() => setPrompt(true)}>

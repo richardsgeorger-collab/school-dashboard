@@ -128,7 +128,7 @@ const lectureJobs = async (): Promise<Job[]> => {
   );
 };
 
-// ---- Study: sources the student has, then kits, a quiz, a worksheet, the tutor ----
+// ---- Study: sources the student has, then kits, a quiz, a worksheet ----
 const SOURCES: QuizSource[] = [
   { id: 'S1', kind: 'slide', label: 'Stoichiometry.pptx, slide 3', href: '#', text: 'Mole ratios come from the coefficients of the balanced equation. Always convert grams to moles first: moles = mass / molar mass. Example: 2 H2 + O2 -> 2 H2O, so 2 mol H2 make 2 mol H2O.' },
   { id: 'S2', kind: 'slide', label: 'Stoichiometry.pptx, slide 5', href: '#', text: 'Limiting reagent: the reactant that runs out first. Compare the moles of product each reactant could make; the smaller amount wins. Percent yield = (actual yield / theoretical yield) x 100%.' },
@@ -136,13 +136,12 @@ const SOURCES: QuizSource[] = [
 ];
 const chm = COURSES[0];
 const exam = ITEMS.find((i) => i.id === 'i-exam1')!;
-const ITEM_DATES = ITEMS.map((i) => i.dueAt.slice(5, 10));
+
 
 const studyJobs = async (): Promise<Job[]> => {
   const { buildKit } = await import('../../src/study/kits');
   const { generateSet } = await import('../../src/quiz/generate');
   const { buildWorksheet } = await import('../../src/practice/worksheet');
-  const { askTutor } = await import('../../src/tutor/tutor');
   const ids = new Set(SOURCES.map((s) => s.id));
   return [
     job('study kit · formulas', 'study', (v) => buildKit({ ...v, course: chm, kind: 'formulas', topic: 'stoichiometry', sources: SOURCES, weak: ['limiting reagent'], flagged: ['limiting reagent'] }), [
@@ -164,37 +163,9 @@ const studyJobs = async (): Promise<Job[]> => {
       (w) => (w.problems.every((p) => p.prompt && p.answer && p.solution.length) ? null : 'a problem missing its answer or solution'),
       (w) => (w.problems.every((p) => p.choices.length === 0 || /^[A-D]$/.test(p.answer.trim())) ? null : 'a multiple choice answer that is not A to D'),
     ]),
-    job('tutor · explain limiting reagent', 'tutor', (v) => askTutor({ ...v, sources: SOURCES, situation: { course: chm, topic: 'limiting reagent', today: '2026-10-01', upcoming: [], examFlags: [], weak: [], links: [], item: null }, history: [], text: 'How do I find the limiting reagent? I keep getting it backwards.' }), [
-      (t) => (t.length > 80 ? null : `too short: "${t}"`),
-      (t) => (/\[S\d\]/.test(t) ? null : 'no citation of the slides'),
-    ]),
-    job('tutor · a due date it was not given', 'tutor', (v) => askTutor({ ...v, sources: SOURCES, situation: { course: chm, topic: 'limiting reagent', today: '2026-10-01', upcoming: [], examFlags: [], weak: [], links: [], item: null }, history: [], text: 'When is my next chemistry lab report due?' }), [(t) => noInvented('tutor', [])(t)]),
   ];
 };
 
-// ---- Ask a question (the coach with its tools) ----
-const askJobs = async (): Promise<Job[]> => {
-  const { askBlocks, sendAsk } = await import('../../src/ask/ask');
-  const full = ITEMS.map((i) => mkItem(i));
-  const blocks = askBlocks({
-    context: { items: full, courses: COURSES, settings: { ...DEFAULT_SETTINGS, timezone: TZ }, schedule: { byItem: {}, loadByDay: {}, capacityByDay: {} } as never, derived: {}, nudges: [], today: '2026-10-01', notes: [] } as never,
-    courses: COURSES,
-    syllabi: 'CHM-113: late work loses 10% a day. ENG-105: drafts submitted through LopesWrite.',
-    materials: '',
-    sources: SOURCES,
-    situation: { course: chm, topic: 'stoichiometry', today: '2026-10-01', upcoming: [], examFlags: [], weak: [], links: [], item: null },
-  });
-  const api = { items: full, addNote: () => undefined, updateItem: () => undefined };
-  const ask = (q: string) => (v: Via) => sendAsk({ ...v, history: [], userText: q, blocks, api });
-  return [
-    job('ask · what is due this week', 'coach', ask('What do I have due in chemistry before Exam 1, and when?'), [
-      (r) => (/quiz 2|stoichiometry/i.test(r.text) ? null : 'missed Quiz 2'),
-      (r) => (/oct(ober)?\.? 6|10\/6|tuesday/i.test(r.text) ? null : "missed Quiz 2's day (Oct 6)"),
-      (r) => noInvented('answer', ITEM_DATES)(r.text),
-    ]),
-    job('ask · a date it does not have', 'coach', ask('When is my CHM-113 final exam?'), [(r) => noInvented('answer', ITEM_DATES)(r.text), (r) => (r.text.length > 20 ? null : 'empty answer')]),
-  ];
-};
 
 // ---- Assignment help: the brief, the draft check, the method check ----
 const ra = ITEMS.find((i) => i.id === 'i-ra')!;
@@ -294,5 +265,5 @@ const planJobs = async (): Promise<Job[]> => {
 };
 
 export async function allJobs(): Promise<Job[]> {
-  return [...(await announcementJobs()), ...(await lectureJobs()), ...(await studyJobs()), ...(await askJobs()), ...(await helpJobs()), ...(await linkJobs()), ...(await planJobs())];
+  return [...(await announcementJobs()), ...(await lectureJobs()), ...(await studyJobs()), ...(await helpJobs()), ...(await linkJobs()), ...(await planJobs())];
 }

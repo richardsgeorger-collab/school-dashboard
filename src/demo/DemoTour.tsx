@@ -21,7 +21,6 @@ export const STEPS: Step[] = [
   { hash: '#/now', target: '[data-tour="done"]', title: 'Check it off', text: 'Tap Done on the card: confetti, the points, and how far the class is now.', ask: 'done' },
   { hash: '#/classes', target: '[data-tour="class-PSY-102"]', title: 'Every class, how far along', text: 'The grade straight from Halo, what is next, and the share of the class already done.' },
   { hash: '#/classes', target: '[data-tour="cook-MAT-250"]', title: 'The Cooked meter', text: 'Calculus is red: a quiz, two problem sets and a project inside seven days, about 6½ hours of work. Green under 3 hours, red from 6.' },
-  { hash: '#/ask?q=How%20many%20words%20does%20the%20Case%20Study%20Analysis%20need%3F', title: 'Ask anything', text: "It answers from this student's own announcements and assignments: Dr. Raman's post said 1,200 to 1,500 words, APA, three sources." },
 ];
 
 const read = (): number | null => {

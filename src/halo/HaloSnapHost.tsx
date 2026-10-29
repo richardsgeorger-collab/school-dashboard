@@ -3,6 +3,7 @@ import { bump } from '../analytics/usage';
 import { useSettled } from '../joy/JoyHost';
 import { useRoute } from '../router';
 import { useAccount } from '../auth/AccountContext';
+import { trialState } from '../config/flags';
 import { useStore } from '../storage/store';
 import { useNow } from '../ui/useNow';
 import { useSyncAccess } from '../views/PlanWall';
@@ -18,16 +19,20 @@ const VIAS = ['card', 'next', 'pill', 'class', 'box', 'popup'];
 export function HaloSnapHost() {
   const { data, schedule } = useStore();
   const settled = useSettled();
-  const { auth } = useAccount();
+  const { auth, profile, tier } = useAccount();
   // A signed-out page (the welcome tab after a Web Store install, Loop 268) has no account to describe: it writes
   // nothing, so the extension keeps showing "Set up Halo+" instead of an empty panel.
   const signedIn = !auth.configured || !!auth.session || !!auth.knownUserId;
   const access = useSyncAccess();
   const minute = useNow(15 * 60_000);
   const { params } = useRoute();
+  // Max, and when a free week of Max ended (an invited friend's or a friend link's Max is not a trial): for the
+  // extension's heads-up and its one note on Halo (0.12.12).
+  const max = tier === 'max';
+  const trialEndedAt = !max && profile?.trialStartedAt && profile.trialEndsAt && !profile.friendFrom && trialState(profile) === 'used' ? profile.trialEndsAt : null;
   const snap = useMemo(
-    () => haloSnap({ courses: data.courses, items: data.items, settings: data.settings, schedule, canSync: access.allowed, now: new Date(minute).toISOString() }),
-    [data.courses, data.items, data.settings, schedule, access.allowed, minute],
+    () => haloSnap({ courses: data.courses, items: data.items, settings: data.settings, schedule, canSync: access.allowed, max, trialEndedAt, now: new Date(minute).toISOString() }),
+    [data.courses, data.items, data.settings, schedule, access.allowed, max, trialEndedAt, minute],
   );
   // Written only when something other than the time it was written changed.
   const body = useMemo(() => JSON.stringify({ ...snap, at: undefined }), [snap]);

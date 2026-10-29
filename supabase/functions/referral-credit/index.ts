@@ -23,7 +23,7 @@ Deno.serve(guard(async (req) => {
     // No longer paying: the month is a queued Plus grant after whatever they have, like anyone else's.
     const { data: start } = await db.rpc('reward_start', { uid: ref.inviter });
     const starts = new Date(start as string);
-    await db.from('reward_grants').insert({ user_id: ref.inviter, tier: 'plus', starts_at: starts.toISOString(), ends_at: new Date(starts.getTime() + 30 * DAY * 1000).toISOString(), source: 'referral:inviter', referral: ref.id });
+    await db.from('reward_grants').insert({ user_id: ref.inviter, tier: 'max', starts_at: starts.toISOString(), ends_at: new Date(starts.getTime() + 30 * DAY * 1000).toISOString(), source: 'referral:inviter', referral: ref.id });
     await db.from('referrals').update({ inviter_reward: 'grant', inviter_applied_at: new Date().toISOString() }).eq('id', ref.id);
     return json(200, { ok: true, granted: true });
   }

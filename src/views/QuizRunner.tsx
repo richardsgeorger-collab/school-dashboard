@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadApiKey } from '../chat/key';
 import { useAiAllowed } from '../config/useCan';
-import { describeError } from '../chat/client';
+import { describeError } from '../ai/gateway';
 import type { Course } from '../domain/types';
 import { checkAnswer, type Verdict } from '../quiz/check';
 import { generateSet, SET_SIZE, type QuizQuestion, type QuizSet } from '../quiz/generate';
@@ -18,12 +18,10 @@ export interface QuizRunnerProps {
   weak: WeakTopic[];
   /** The line under the button: "8 slides, 1 lecture stretch". */
   onTopic?: (topic: string) => void;
-  /** Where "Ask about this" goes after a set. */
-  askHref?: (topic: string) => string;
 }
 
 /** Five questions, one at a time, checked, misses remembered so the next set comes back to them. */
-export function QuizRunner({ course, topic, sources, weak, askHref }: QuizRunnerProps) {
+export function QuizRunner({ course, topic, sources, weak }: QuizRunnerProps) {
   const { data, actions } = useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,11 +102,6 @@ export function QuizRunner({ course, topic, sources, weak, askHref }: QuizRunner
             <button type="button" className="btn primary" disabled={busy} onClick={() => void start()}>
               {busy ? 'Writing questions…' : 'Another set'}
             </button>
-            {askHref && (
-              <a className="btn" href={askHref(missedTopics[0] ?? topic)}>
-                {missedTopics[0] ? `Explain ${missedTopics[0]}` : 'Ask about this'}
-              </a>
-            )}
           </div>
         </section>
       )}

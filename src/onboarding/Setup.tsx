@@ -87,9 +87,9 @@ export function ConnectHaloCard() {
         </svg>
       </span>
       <h1 className="connect-halo-title">Connect Halo to see your classes, due dates, and grades.</h1>
-      <p className="connect-halo-text">{locked ? 'Halo sync is part of Plus. Once it is on, the Chrome extension brings everything in.' : 'About two minutes with the Chrome extension, and never your GCU password.'}</p>
+      <p className="connect-halo-text">{locked ? 'About two minutes with the Chrome extension, and never your GCU password.' : 'About two minutes with the Chrome extension, and never your GCU password.'}</p>
       <button type="button" className="btn primary connect-halo-btn" onClick={() => open()}>
-        {locked ? 'See Plus' : 'Connect Halo'}
+        {locked ? 'See Max' : 'Connect Halo'}
       </button>
       <a className="connect-halo-alt" href="#/you?s=classes">
         Or add your classes yourself
@@ -105,7 +105,7 @@ export function ConnectHaloLine({ what }: { what: string }) {
     <p className="connect-halo-line">
       <span>{what}</span>
       <button type="button" className="btn small primary" onClick={() => open()}>
-        {locked ? 'See Plus' : 'Connect Halo'}
+        {locked ? 'See Max' : 'Connect Halo'}
       </button>
     </p>
   );

@@ -3398,7 +3398,6 @@
   font: var(--t-small);
   color: var(--ink-3);
 }
-.growth-plans li[data-bucket='plus_paid'],
 .growth-plans li[data-bucket='max_paid'] {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
 }

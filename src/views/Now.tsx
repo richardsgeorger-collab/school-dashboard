@@ -7,7 +7,7 @@ import { afterDone, arrange, emptySkips, forDay, skip, unskip, type SkipState } 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCourseColor } from '../components/CourseChip';
 import { EmptyState } from '../components/EmptyState';
-import { IconCheck, IconNow } from '../components/Icons';
+import { IconCheck } from '../components/Icons';
 import { HeadsUp, type HeadsUpLine } from './HeadsUp';
 import { HaloDraw } from '../components/HaloDraw';
 import { useReadStatus } from '../halo/backgroundRead';
@@ -627,12 +627,6 @@ export function Now() {
         {/* The trust line, always: when what is on screen last matched Halo, or that it is out of date, with the one button. */}
         {data.courses.length > 0 && <SyncedLine stale={reminding ? null : stale} />}
         <HeadsUp lines={headsUp} />
-        {data.courses.length > 0 && (
-          <a className="coach-ask" href="#/ask">
-            <IconNow />
-            <span>Ask anything about your classes</span>
-          </a>
-        )}
         <ParticipationWeek />
         <InviteLine />
       </aside>

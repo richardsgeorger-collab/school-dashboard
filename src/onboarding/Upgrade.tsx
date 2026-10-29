@@ -159,7 +159,7 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
         <HaloDraw size={80} />
         <p className="eyebrow">Max is on</p>
         <h1 className="onboard-title">Welcome to Max.</h1>
-        <p className="onboard-text">Everything in Plus, and the Study tab: ask anything about your classes, practice for any quiz or exam with a plan, a worksheet and quiz me, and check your work before you turn it in. Two quick things.</p>
+        <p className="onboard-text">Every announcement read for you, auto-sync every 3 hours, reminders, and the Study tab: practice for any quiz or exam with a plan, a worksheet and quiz me, and check your work before you turn it in. Two quick things.</p>
         <div className="onboard-actions">
           <button type="button" className="btn primary" onClick={next}>
             Let's go
@@ -221,7 +221,7 @@ function MaxScreens({ i, next, done }: { i: number; next: () => void; done: (to?
         </>
       )}
       <p className="hint">
-        Optional. It's all on the Study tab whenever you want it, along with Ask for what to do tonight.
+        Optional. It's all on the Study tab whenever you want it.
       </p>
     </section>
   );

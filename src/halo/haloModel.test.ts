@@ -159,18 +159,26 @@ describe('the hover list', () => {
   });
 });
 
-describe('Free: an announcement changed something (Loop 268)', () => {
-  it('peeks once per assignment, the kind and never the details, after anything due soon or moved', () => {
+describe('Free: an announcement changed something (0.12.12: on the assignment page, never in the pill)', () => {
+  it('the heads-up on the page says the kind, never the details, and unlocks with Max', () => {
     const base = M.baseline(M.merge(snap([quiz]), null));
     const locked = M.merge(snap([{ ...quiz, lk: ['due_date'] }]), null);
-    const n = M.notable(locked, base, NOW, [], []);
-    expect(n).toMatchObject({ kind: 'locked', text: 'An announcement changed the due date: Quiz #2 · see it with Plus' });
-    // Once per assignment, ever.
-    expect(M.notable(locked, base, NOW, [], ['h-q2'])).toBeNull();
+    expect(M.notable(locked, base, NOW, [])).toBeNull();
+    const it = locked!.items[0];
+    expect(M.caught(locked, it, NOW)).toMatchObject({ locked: true, line: 'An announcement changed this due date', more: [] });
     const both = M.merge(snap([{ ...quiz, lk: ['due_date', 'extra_step'] }]), null);
-    expect(M.notable(both, base, NOW, [], [])?.text).toMatch(/^An announcement changed the due date and added a step/);
+    expect(M.caught(both, both!.items[0], NOW)?.line).toBe('An announcement changed this due date and added a step');
     const step = M.merge(snap([{ ...quiz, lk: ['extra_step'] }]), null);
-    expect(M.notable(step, base, NOW, [], [])?.text).toMatch(/^An announcement added a step: /);
+    expect(M.caught(step, step!.items[0], NOW)?.line).toBe('An announcement added a step to this');
+    // Once read (Max), the details take its place.
+    const read = M.merge(snap([{ ...quiz, lk: ['extra_step'], x: 1, xb: ['Bring goggles'] }]), null);
+    expect(M.caught(read, read!.items[0], NOW)).toMatchObject({ line: 'Bring goggles' });
+    expect((M.caught(read, read!.items[0], NOW) as { locked?: boolean } | null)?.locked).toBeUndefined();
+  });
+  it('carries Max and the end of a free week from the snapshot', () => {
+    const v = M.merge({ ...snap([quiz]), mx: 1, te: '2026-10-20T07:00:00Z' }, null);
+    expect(v).toMatchObject({ mx: true, te: '2026-10-20T07:00:00Z' });
+    expect(M.merge(snap([quiz]), null)).toMatchObject({ mx: false, te: null });
   });
 });
 

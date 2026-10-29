@@ -1,7 +1,8 @@
 // The admin preview of the end-of-trial screen (George, 2026-10-01), on the real backend: a throwaway admin with a
-// real week behind them opens it from Admin, sees their own numbers, presses everything (rating and comment, Keep Max,
-// Choose Plus, Invite, both variants, Close) and the account is exactly as before: no rating, no feedback, no
-// checkout, no trial change, nothing marked seen. A non-admin with the same address sees nothing. Throwaways removed.
+// real week behind them opens it from Admin, sees their own numbers on the two cards (2026-10-29: Max $0.99 a month and
+// Free), presses everything (Keep Max with the checkout mocked, Invite, Stay on Free, Close) and the account is exactly
+// as before: no checkout asked for, no feedback, no trial change, nothing marked seen. A non-admin with the same address
+// sees nothing. Throwaways removed.
 //   KEYS_ENV=... [BASE=http://localhost:4174/school-dashboard/] node scripts/e2e-trial-preview.mjs
 import { mkdirSync, readFileSync } from 'node:fs';
 import { chromium } from 'playwright-core';
@@ -32,13 +33,12 @@ async function shotAll(p, path) {
   await p.screenshot({ path, fullPage: true });
 }
 const state = async (id) => {
-  const [{ data: prof }, { data: set }, { count: ratings }, { count: feedback }] = await Promise.all([
+  const [{ data: prof }, { data: set }, { count: feedback }] = await Promise.all([
     db.from('profiles').select('tier, trial_started_at, trial_ends_at, reward_tier, reward_until').eq('user_id', id).single(),
     db.from('settings').select('data').eq('user_id', id).single(),
-    db.from('trial_ratings').select('user_id', { count: 'exact', head: true }).eq('user_id', id),
     db.from('feedback').select('id', { count: 'exact', head: true }).eq('user_id', id),
   ]);
-  return { prof, trialEndSeen: set?.data?.trialEndSeen ?? null, trialRating: set?.data?.trialRating ?? null, ratings, feedback };
+  return { prof, trialEndSeen: set?.data?.trialEndSeen ?? null, feedback };
 };
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -54,13 +54,21 @@ try {
   await db.from('usage_log').insert([...Array.from({ length: 3 }, () => ({ user_id: boss.id, day: ago(2).slice(0, 10), kind: 'tutor', model: 'claude-haiku-4-5', created_at: ago(2) })), { user_id: boss.id, day: ago(1).slice(0, 10), kind: 'quiz', model: 'claude-haiku-4-5', created_at: ago(1) }]);
   await db.from('read_ledger').insert([0, 1, 2].map((i) => ({ user_id: boss.id, post_id: `prev-${i}`, hash: 'h', read_at: ago(3), action_count: 1 })));
   const before = await state(boss.id);
-  let checkout = 0;
+  // Checkout asked for (the wake-up call, {"warm":true}, makes no checkout and is not one). Mocked: never Stripe.
+  const asked = [];
+  const mockCheckout = (r) => {
+    if (r.request().method() !== 'POST') return r.fulfill({ status: 204, body: '' });
+    let body = {};
+    try { body = JSON.parse(r.request().postData() || '{}'); } catch { /* ignore */ }
+    if (body.warm) return r.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    asked.push(body);
+    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: `${BASE}#/you?s=plan&checkout=mocked` }) });
+  };
   for (const dev of ['desk', 'phone']) for (const scheme of ['light', 'dark']) {
     const ctx = await browser.newContext({ ...DEVICES[dev], colorScheme: scheme });
     await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: boss.session, key: `sb-${ref}-auth-token` });
     await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
-    await ctx.route('**/functions/v1/stripe-checkout', (r) => { if (r.request().method() === 'POST') checkout += 1; return r.fulfill({ status: r.request().method() === 'POST' ? 500 : 204, body: '{}' }); });
-    await ctx.route('**/rest/v1/rpc/rate_trial', (r) => { checkout += 1000; return r.continue(); });
+    await ctx.route('**/functions/v1/stripe-checkout', mockCheckout);
     const p = await ctx.newPage();
     await p.goto(`${BASE}#/admin`, { waitUntil: 'load' });
     // The Admin page loads several cards from the server first; the ratings card (with this link) is one of them.
@@ -71,7 +79,8 @@ try {
     await p.waitForTimeout(4500);
     if (dev === 'desk' && scheme === 'light') {
       const lines = (await p.locator('.story-line').allInnerTexts()).map((l) => l.replace(/\s+/g, ' ').trim());
-      check(lines.some((l) => /^Answered 3 questions about your classes\.$/.test(l)) && lines.some((l) => /^Built 1 study plan or practice set/.test(l)) && lines.length <= 4, `the admin's own last 7 days: ${lines.join(' | ')}`);
+      // The server's count (one practice set) shows; the three AI answers do not: Ask is gone (2026-10-29), so no "Answered N questions".
+      check(lines.some((l) => /^Built 1 study plan or practice set/.test(l)) && !lines.some((l) => /^Answered/.test(l)) && lines.length >= 1 && lines.length <= 3, `the admin's own last 7 days on the Max card, at most 3 lines, nothing about questions answered: ${lines.join(' | ')}`);
       check(/Preview, admin only/.test(await p.locator('.trial-preview-bar').innerText()), 'it says plainly it is a preview');
     }
     await shotAll(p, `${OUT}/preview-page1-${dev}-${scheme}.png`);
@@ -82,29 +91,25 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: boss.session, key: `sb-${ref}-auth-token` });
     await ctx.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
-    await ctx.route('**/functions/v1/stripe-checkout', (r) => { if (r.request().method() === 'POST') checkout += 1; return r.fulfill({ status: r.request().method() === 'POST' ? 500 : 204, body: '{}' }); });
-    await ctx.route('**/rest/v1/rpc/rate_trial', (r) => { checkout += 1000; return r.continue(); });
+    await ctx.route('**/functions/v1/stripe-checkout', mockCheckout);
     await ctx.addInitScript(() => { navigator.share = async () => { window.__shared = true; }; });
     const p = await ctx.newPage();
     await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
     await p.waitForSelector('.trial-preview-bar', { timeout: 20000 });
-    await p.waitForSelector('.story-plans', { timeout: 15000 });
+    await p.waitForSelector('.trial-end-two', { timeout: 15000 });
     await p.waitForTimeout(2500);
-    check((await p.locator('.trial-rating').count()) === 0 && (await p.locator('.story-continue').count()) === 0, 'one screen: no rating, no Continue (2026-10-09)');
-    check(/\$2\.99 the first month/.test(await p.locator('.plan-choice[data-tier=max] .plan-price').innerText()) && /then \$7\.99 a month/.test(await p.locator('.plan-choice[data-tier=max] .plan-price').innerText()) && (await p.locator('.story-plans .drink-cup').count()) === 0, 'the intro offer in the preview: $2.99 the first month, then $7.99 a month, no cups (Loop 268)');
-    await p.click('button:has-text("Keep Max")');
-    await p.click('button:has-text("Choose Plus")');
+    const bar = await p.locator('.trial-preview-bar button').allInnerTexts();
+    check(bar.length === 1 && bar[0].trim() === 'Close preview' && (await p.locator('.story-continue').count()) === 0, `one screen, one version: the preview bar has only Close preview (${bar.join(' | ')})`);
+    const order = await p.evaluate(() => [...document.querySelectorAll('.trial-end-two > div')].map((d) => d.dataset.tier).join(','));
+    const maxCard = (await p.locator('.trial-end-max[data-tier=max]').innerText()).replace(/\s+/g, ' ');
+    const all = (await p.locator('.trial-ended').innerText()).replace(/\s+/g, ' ');
+    check(order === 'max,free' && /What you have now/i.test(maxCard) && /Max · \$0\.99 a month/.test(maxCard) && (await p.locator('.trial-end-max button').innerText()).trim() === 'Keep Max · $0.99/mo', `two cards, Max first: "What you have now", $0.99 a month, Keep Max · $0.99/mo (${order})`);
+    check(!/first month/i.test(all) && !/\bPlus\b/.test(all) && !/\$[1-9]\.99/.test(all), 'no intro offer, no Plus, no old prices in the preview');
+    await p.click('.trial-end-max button:has-text("Keep Max")');
     await p.click('.gcbc-invite-line button:has-text("Invite a friend")');
-    await p.waitForTimeout(800);
-    check(p.url().includes('#/admin') && !(await p.evaluate(() => window.__shared === true)), 'Keep Max, Choose Plus and Invite do nothing in the preview');
-    await p.click('.trial-preview-bar button:has-text("Plus from a friend")');
-    await p.waitForTimeout(2600);
-    check(/Free until .+, from your friend's invite\./.test(await p.locator('.plan-choices').innerText()) && (await p.locator('.trial-end-choices .plan-choice[data-tier=free] .btn').innerText()) === 'Continue with Plus free' && p.url().includes('preview=trial-end-gift'), 'the friend-invite version: Plus covered, "Continue with Plus free"');
-    await shotAll(p, `${OUT}/preview-gift-desk-light.png`);
-    await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
-    await p.reload({ waitUntil: 'load' });
-    await p.waitForSelector('.story-plans', { timeout: 20000 });
-    await p.click('.trial-end-choices .plan-choice[data-tier=free] .btn');
+    await p.waitForTimeout(1500);
+    check(p.url().includes('#/admin') && !p.url().includes('checkout=mocked') && !(await p.evaluate(() => window.__shared === true)) && (await p.locator('.trial-ended').count()) === 1, 'Keep Max and Invite do nothing in the preview (no checkout opened, nothing shared)');
+    await p.click('.trial-end-free button.trial-end-stay');
     await p.waitForTimeout(800);
     check((await p.locator('.trial-ended').count()) === 0, 'Stay on Free in the preview just closes it');
     await p.goto(`${BASE}#/admin?preview=trial-end`, { waitUntil: 'load' });
@@ -117,13 +122,13 @@ try {
   }
   await new Promise((r) => setTimeout(r, 2500));
   const after = await state(boss.id);
-  check(checkout === 0, `no checkout and no rating sent (${checkout})`);
+  check(asked.length === 0, `no checkout asked for (${asked.length}${asked.length ? `: ${JSON.stringify(asked)}` : ''})`);
   const changed = Object.keys({ ...before.prof, ...after.prof }).filter((k) => JSON.stringify(before.prof?.[k]) !== JSON.stringify(after.prof?.[k]));
   check(changed.length === 0, `the plan and trial dates are unchanged${changed.length ? ` (changed: ${changed.map((k) => `${k} ${JSON.stringify(before.prof?.[k])} → ${JSON.stringify(after.prof?.[k])}`).join(', ')})` : ''}`);
-  check(after.trialEndSeen === before.trialEndSeen && after.trialRating === before.trialRating, 'nothing marked seen or rated in settings');
-  check(after.ratings === 0 && after.feedback === before.feedback, 'no rating and no feedback saved');
+  check(after.trialEndSeen === before.trialEndSeen, 'nothing marked seen in settings');
+  check(after.feedback === before.feedback, 'no feedback saved');
   // Not an admin: the same address shows nothing.
-  const plus = await kit.persona('plus');
+  const plus = await kit.persona('max');
   {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     await ctx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: plus.session, key: `sb-${ref}-auth-token` });

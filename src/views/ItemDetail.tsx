@@ -23,7 +23,6 @@ import { recordingsDb, type Recording } from '../record/db';
 import { useStore } from '../storage/store';
 import { isTest } from '../study/upcoming';
 import { syllabiDb } from '../syllabus/db';
-import { starterAsk } from '../work/starter';
 import { stepsFor } from '../work/steps';
 import { Feedback, RubricList, rubricTotal } from './Feedback';
 import { Fold } from './Fold';
@@ -584,8 +583,8 @@ export function ItemDetail({ item: passed, isNew = false, onClose }: { item: Ite
                 Practice for this
               </a>
             ) : (
-              <a className="btn primary" href={`#/ask?c=${item.courseId}&i=${item.id}&q=${encodeURIComponent(starterAsk(item))}`} onClick={onClose}>
-                Get help
+              <a className="btn primary" href={`#/check?i=${item.id}`} onClick={onClose}>
+                Check my work
               </a>
             )}
             <span className="sheet-actions-quiet">
@@ -595,18 +594,9 @@ export function ItemDetail({ item: passed, isNew = false, onClose }: { item: Ite
                   <a className="btn small" href={`#/practice?i=${item.id}&k=plan`} onClick={onClose}>
                     Make a study plan
                   </a>
-                  <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}`} onClick={onClose}>
-                    Ask about it
-                  </a>
                 </>
               ) : (
                 <>
-                  <a className="btn small" href={`#/ask?c=${item.courseId}&i=${item.id}&m=question`} onClick={onClose}>
-                    Ask a question
-                  </a>
-                  <a className="btn small" href={`#/check?i=${item.id}`} onClick={onClose}>
-                    Check my work
-                  </a>
                   <button type="button" className="btn small" onClick={() => setPrompt(true)}>
                     Get a prompt
                   </button>

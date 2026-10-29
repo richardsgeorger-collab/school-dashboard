@@ -2,11 +2,9 @@ import { creditLine, plusCredit, type PlusCredit } from '../referral/credit';
 import { InviteBlock, InviteButton, useMyGrants } from '../referral/Invite';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { warmCheckout } from '../billing/client';
-import { INTRO_FIRST_MONTH } from '../config/tiers';
-import { DrinkCup } from './trialEnd/DrinkCup';
 import { useAccount } from '../auth/AccountContext';
 import { Modal } from '../components/Modal';
-import { IconAsk, IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
+import { IconColour, IconInbox, IconNow, IconStudy, IconSync } from '../components/Icons';
 import { friendGift, trialState } from '../config/flags';
 import { trialChipShort, trialChipText, trialEndSentence } from '../config/trialCalendar';
 import { trialUse } from '../config/trialUse';
@@ -32,23 +30,22 @@ function useTrial() {
  * three tags on the top bar from day one was noise (2026-10-02 clarity pass); the trial sheet always lists it.
  */
 export function PlanBadge({ plan }: { plan: 'max' | 'plus' }) {
+  void plan;
   const { state, real, cal } = useTrial();
   if (state !== 'active' || !real || !cal || cal.left > 2) return null;
   return (
-    <span className="plan-badge" title={plan === 'max' ? 'Part of Max: goes away when the trial ends unless you keep Max' : 'Part of Plus: goes away when the trial ends unless you choose Plus or Max'}>
-      {plan === 'max' ? 'Max' : 'Plus'}
+    <span className="plan-badge" title="Part of Max: goes away when the trial ends unless you keep Max">
+      Max
     </span>
   );
 }
 
-const INCLUDED: { icon: () => React.ReactElement; text: string; plan: 'plus' | 'max' }[] = [
-  { icon: IconSync, text: 'Pulls every class, assignment, and grade from Halo', plan: 'plus' },
-  { icon: IconSync, text: 'Syncs Halo on its own every 3 hours (the Chrome extension)', plan: 'plus' },
-  { icon: IconInbox, text: 'Reads your announcements so you never miss hidden work', plan: 'plus' },
-  { icon: IconNow, text: 'Tells you what to do next', plan: 'plus' },
-  { icon: IconStudy, text: 'Builds study plans and practice worksheets for your quizzes', plan: 'max' },
-  { icon: IconAsk, text: 'Answers questions about your own classes', plan: 'max' },
-  { icon: IconColour, text: 'Pick your own color', plan: 'max' },
+const INCLUDED: { icon: () => React.ReactElement; text: string }[] = [
+  { icon: IconInbox, text: 'Reads your announcements so you never miss hidden work' },
+  { icon: IconSync, text: 'Syncs Halo on its own every 3 hours (the Chrome extension)' },
+  { icon: IconNow, text: 'Reminders, the Sunday preview and your deadlines in your calendar' },
+  { icon: IconStudy, text: 'Builds study plans and practice worksheets for your quizzes' },
+  { icon: IconColour, text: 'Checks your work against the rubric' },
 ];
 
 /**
@@ -58,14 +55,14 @@ const INCLUDED: { icon: () => React.ReactElement; text: string; plan: 'plus' | '
 export const PreviewMode = createContext(false);
 const noop = () => undefined;
 
-export function PlanButton({ tier, label, primary = true, offer }: { tier: 'plus' | 'max'; label: string; primary?: boolean; offer?: 'intro' }) {
+export function PlanButton({ tier, label, primary = true }: { tier: 'max'; label: string; primary?: boolean }) {
   if (useContext(PreviewMode))
     return (
       <button type="button" className={primary ? 'btn small primary' : 'btn small'} onClick={noop} title="Preview: nothing is charged">
         {label}
       </button>
     );
-  return <UpgradeButton tier={tier} label={label} primary={primary} cancelNote={false} offer={offer} />;
+  return <UpgradeButton tier={tier} label={label} primary={primary} cancelNote={false} />;
 }
 
 export function Invite({ label }: { label: string }) {
@@ -89,71 +86,28 @@ export function Cup({ size }: { size: 'small' | 'large' }) {
   );
 }
 
-/**
- * The three ways on: Max, Plus, or Free. Monthly prices, cancel anytime and tax beside each. Max first, marked as what
- * the student has (or had) this week. The GCBC line (George, 2026-10-01): Plus costs about a small drink at the Grand
- * Canyon Beverage Company, Max about a large, except these help.
- */
-export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now', plusCovered, intro = false, cups = false }: { onFree?: () => void; freeLabel?: string; maxTag?: string; /** Plus is already paid for (a friend's invite): shown in place of the Plus button. */ plusCovered?: string; /** The intro offer on the Max card: Max $2.99 for the first month, then $7.99 (2026-10-09). */ intro?: boolean; /** The animated GCBC cups as each plan's visual. */ cups?: boolean }) {
-  // The checkout function and the session are woken as the choice appears, so the press itself is quick (2026-10-09).
+/** The two ways on (2026-10-29): Max, and Free. The price in the button, tax and cancel beside it. */
+export function PlanChoices({ onFree, freeLabel = 'Stay on Free', maxTag = 'What you have now' }: { onFree?: () => void; freeLabel?: string; maxTag?: string }) {
+  // The checkout function and the sign-in are woken as the choice appears, so the press itself is quick (2026-10-09).
   useEffect(() => {
     warmCheckout();
   }, []);
   return (
-    <div className="plan-choices" data-cups={cups || undefined}>
+    <div className="plan-choices">
       <div className="plan-choice" data-best="true" data-tier="max">
-        {cups && <DrinkCup size={intro ? 'xsmall' : 'large'} deal={intro} />}
         <span className="plan-choice-name">
           <span className="plan-choice-tag">{maxTag}</span>
-          {intro ? (
-            <span className="intro-hero">
-              <span className="intro-badge">First month</span>
-              <span className="intro-price-row">
-                <b className="intro-price">${INTRO_FIRST_MONTH.max.toFixed(2)}</b>
-                <s className="intro-was" aria-label={`instead of $${PRICES.max.month.toFixed(2)}`}>${PRICES.max.month.toFixed(2)}</s>
-                {cups && <span className="gcbc-line">Less than a small at GCBC.</span>}
-              </span>
-              <span className="intro-then">
-                Max · then ${PRICES.max.month.toFixed(2)}/mo · {CANCEL_LINE.toLowerCase()}
-              </span>
-            </span>
-          ) : (
-            <b className="plan-price">Max · ${PRICES.max.month.toFixed(2)} a month</b>
-          )}
-          {cups && !intro && <span className="gcbc-line">About a large at GCBC, minus the regret.</span>}
+          <b className="plan-price">Max · ${PRICES.max.month.toFixed(2)} a month</b>
           <small className="tax-note">{TAX_LINE}</small>
-          <span>Everything you had on the trial: auto-sync, announcements read for you, and the study tools.{intro ? '' : ` ${CANCEL_LINE}.`}</span>
-          <span className="plan-choice-more">Only $3 more than Plus for the study tools{intro ? ' (after the first month)' : ''}.</span>
-          {!cups && (
-            <span className="gcbc">
-              <Cup size="large" />
-              <span>About a large at GCBC, minus the regret.</span>
-            </span>
-          )}
+          <span>Every announcement read for you, auto-sync every 3 hours, reminders and the study tools. {CANCEL_LINE}.</span>
         </span>
-        <PlanButton tier="max" label="Keep Max" offer={intro ? 'intro' : undefined} />
-      </div>
-      <div className="plan-choice" data-tier="plus">
-        {cups && <DrinkCup size="small" />}
-        <span className="plan-choice-name">
-          <b className="plan-price">Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
-          {cups && <span className="gcbc-line">About a small at GCBC. Except this one actually helps.</span>}
-          <small className="tax-note">{TAX_LINE}</small>
-          <span>Every announcement read for you, auto-sync every 3 hours, reminders. No study tools. {CANCEL_LINE}.</span>
-          {!cups && (
-            <span className="gcbc">
-              <Cup size="small" />
-              <span>About a small at GCBC. Except this one actually helps.</span>
-            </span>
-          )}
-        </span>
-        {plusCovered ? <p className="gcbc-covered">{plusCovered}</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} />}
+        <PlanButton tier="max" label={`Keep Max · $${PRICES.max.month.toFixed(2)}/mo`} />
       </div>
       {onFree && (
         <div className="plan-choice">
           <span className="plan-choice-name">
             <b>Free</b>
-            <span>Halo syncs whenever you're on Halo: due dates, grades, your GPA.</span>
+            <span>Everything on Halo's pages, syncing whenever you're on Halo, your grades and GPA.</span>
           </span>
           <button type="button" className="btn small" onClick={onFree}>
             {freeLabel}
@@ -317,7 +271,7 @@ export function TrialReminder() {
           ? `${last ? 'Tomorrow' : 'After that'} ${creditFrom(plusAfter)} ${plusAfter.from === 'invited' ? 'gives' : 'give'} you Plus, free until ${fmtDate(dateOf(plusAfter.end, data.settings.timezone), 'long')}: sync and announcements keep going; Study locks unless you keep Max. Nothing charges.`
           : `${last ? 'Tomorrow you go back to Free' : 'After that you go back to Free'}: announcements aren't read for you and Study locks. Halo keeps syncing, and everything you have stays. Nothing charges.`}
       </p>
-      <InviteBlock headline="Not ready to pay? Invite a friend and you both get Plus free for 30 days." />
+      <InviteBlock headline="Not ready to pay? Invite a friend and you both get Max free for 30 days." />
       <PlanChoices />
     </section>
   );

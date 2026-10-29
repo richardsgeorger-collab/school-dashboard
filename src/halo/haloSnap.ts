@@ -88,6 +88,10 @@ export interface HaloSnap {
   pw: number | null;
   items: HaloSnapItem[];
   classes: HaloSnapClass[];
+  /** On Max (0.12.12): the extension's heads-up and trial note never show. */
+  mx?: 1;
+  /** When this account's free week of Max ended, within the last 14 days, on Free: the one note on Halo (0.12.12). */
+  te?: string;
 }
 
 const DAY = 86_400_000;
@@ -104,7 +108,7 @@ export function boxWorthy(reqs: { text: string; gradedOn: boolean; scope?: strin
 /** Halo's class code from its slug: "CHM-113-WF700A-20260908" → "CHM-113-WF700A". */
 export const classCodeOf = (slug: string | null | undefined): string => (slug ?? '').replace(/-\d{8}$/, '');
 
-export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Settings; schedule: Schedule; canSync: boolean; now?: string }): HaloSnap {
+export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Settings; schedule: Schedule; canSync: boolean; max?: boolean; trialEndedAt?: string | null; now?: string }): HaloSnap {
   const now = input.now ?? new Date().toISOString();
   const tz = input.settings.timezone;
   const t = Date.parse(now);
@@ -161,6 +165,8 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
     hidden,
     pw: week.length ? week.reduce((n, e) => n + e.left, 0) : null,
     items: items.sort((a, b) => a.due.localeCompare(b.due)),
+    ...(input.max ? { mx: 1 as const } : {}),
+    ...(!input.max && input.trialEndedAt && Date.parse(input.trialEndedAt) <= t && Date.parse(input.trialEndedAt) > t - 14 * DAY ? { te: input.trialEndedAt } : {}),
     classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.haloGrade?.letter ? { gl: c.haloGrade.letter } : {}), ...(c.haloGrade?.at ? { ga: c.haloGrade.at } : {}), ...(c.color ? { col: c.color } : {}) })),
   };
 }

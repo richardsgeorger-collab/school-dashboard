@@ -23,6 +23,8 @@ async function apply(db: ReturnType<typeof admin>, sub: Stripe.Subscription, now
   const facts = {
     status: sub.status,
     priceId: item?.price?.id ?? null,
+    // Max's price is known by its lookup key (2026-10-29), so a new price needs no code change.
+    priceLookupKey: item?.price?.lookup_key ?? null,
     currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000).toISOString() : sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
     cancelAtPeriodEnd: cancelScheduled(sub),
   };
@@ -54,11 +56,11 @@ Deno.serve(guard(async (req) => {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       if (typeof session.subscription === 'string') await apply(db, await stripe.subscriptions.retrieve(session.subscription), now);
-      // The intro offer (Max 2026-10-09, Plus 2026-10-27): used once its checkout completes, with the plan it was for;
-      // Admin counts these.
-      if (session.metadata?.offer === 'intro' && session.metadata?.user_id) {
-        const offerTier = session.metadata.offer_tier === 'plus' ? 'plus' : 'max';
-        await db.from('profiles').update({ intro_offer_at: now, intro_offer_tier: offerTier }).eq('user_id', session.metadata.user_id).is('intro_offer_at', null);
+      // Where the student paid from (2026-10-29): the Halo+ app, the extension's popup, or a Halo page; Admin counts
+      // paying students by it. The first payment's place is kept.
+      const via = session.metadata?.source;
+      if (session.metadata?.user_id && (via === 'app' || via === 'popup' || via === 'halo')) {
+        await db.from('profiles').update({ paid_via: via, paid_via_at: now }).eq('user_id', session.metadata.user_id).is('paid_via', null);
       }
       break;
     }

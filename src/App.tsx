@@ -45,6 +45,7 @@ import './styles/joy.css';
 import { Landing } from './landing/Landing';
 import { Login } from './landing/Login';
 import { Welcome } from './landing/Welcome';
+import { GoCheckout } from './billing/GoCheckout';
 import { useFront } from './landing/useShowLanding';
 import { accentToShow, applyAccent } from './config/accents';
 import { can, trialState } from './config/flags';
@@ -63,7 +64,6 @@ const Grades = lazyScreen(() => import('./views/Grades').then((m) => ({ default:
 const Library = lazyScreen(() => import('./views/Library').then((m) => ({ default: m.Library })));
 const You = lazyScreen(() => import('./views/You').then((m) => ({ default: m.You })));
 const Study = lazyScreen(() => import('./views/Study').then((m) => ({ default: m.Study })));
-const Ask = lazyScreen(() => import('./views/Ask').then((m) => ({ default: m.Ask })));
 const Practice = lazyScreen(() => import('./views/Practice').then((m) => ({ default: m.Practice })));
 const Check = lazyScreen(() => import('./views/Check').then((m) => ({ default: m.Check })));
 const Admin = lazyScreen(() => import('./views/Admin').then((m) => ({ default: m.Admin })));
@@ -339,7 +339,7 @@ function OnboardingHost() {
   const settled = !auth.loading && (!signedIn || sync.checked);
   const fresh = data.courses.length === 0 && data.items.length === 0 && !data.settings.lastPull;
   useEffect(() => {
-    if (front !== 'app' || route === 'login' || route === 'welcome' || !settled) return;
+    if (front !== 'app' || route === 'login' || route === 'welcome' || route === 'checkout' || !settled) return;
     const s = initialState(data.settings, data.courses);
     if (!s) return;
     // Sign up, then Connect Halo (2026-10-13): no welcome screen and no plan story in between.
@@ -358,7 +358,7 @@ function OnboardingHost() {
   const access = useSyncAccess();
   const createdAt = auth.session?.user.created_at ?? null;
   useEffect(() => {
-    if (front !== 'app' || route === 'login' || route === 'welcome' || !settled || !never || !auth.session || !access.allowed || !planKnown || profile?.isAdmin || isDemo()) return;
+    if (front !== 'app' || route === 'login' || route === 'welcome' || route === 'checkout' || !settled || !never || !auth.session || !access.allowed || !planKnown || profile?.isAdmin || isDemo()) return;
     const patch = connectReopen(ob, { touch: isTouchDevice(), createdAt });
     if (!patch) return;
     track('connect:reopen', 'enter');
@@ -367,9 +367,8 @@ function OnboardingHost() {
   }, [front, route, settled, never, auth.session, access.allowed, planKnown, profile?.isAdmin, ob?.doneAt, ob?.skippedAt, ob?.laptopAt]);
   // Admin only (2026-10-01): the end-of-trial screen on the admin's own account and real numbers, changing nothing.
   const preview = params.get('preview');
-  if (profile?.isAdmin && (preview === 'trial-end' || preview === 'trial-end-gift'))
-    return <TrialEnded preview={{ gift: preview === 'trial-end-gift', onGift: (g: boolean) => navigate(route, { preview: g ? 'trial-end-gift' : 'trial-end' }), onClose: () => navigate(route, {}) }} />;
-  if (front !== 'app' || route === 'login' || route === 'welcome') return null;
+  if (profile?.isAdmin && preview === 'trial-end') return <TrialEnded preview={{ onClose: () => navigate(route, {}) }} />;
+  if (front !== 'app' || route === 'login' || route === 'welcome' || route === 'checkout') return null;
   // An account still arriving on a device with nothing of its own: a quiet wait, never onboarding or an empty Now.
   if (signedIn && !settled && fresh) return <AccountLoading failed={sync.status === 'error'} onRetry={() => void actions.syncNow()} />;
   if (isOpen(ob)) return <Onboarding />;
@@ -545,8 +544,6 @@ function ScreenFor({ route }: { route: ReturnType<typeof useRoute>['route'] }) {
       return <Admin />;
     case 'study':
       return <StudyOrPractice />;
-    case 'ask':
-      return <Ask />;
     case 'practice':
       return <Practice />;
     case 'check':
@@ -584,6 +581,8 @@ function Shell({ captureOpen, paletteOpen, onSync, onCapture, onCloseCapture, on
   if (route === 'login') return <Login />;
   // After a Chrome Web Store install (Loop 268): sign up in one step, nothing else.
   if (route === 'welcome') return <Welcome />;
+  // Max's checkout from an extension button (2026-10-29): straight to Stripe, nothing else on screen.
+  if (route === 'checkout') return <GoCheckout />;
   return (
     <div className="app">
       <TopBar onSync={onSync} onCapture={onCapture} />

@@ -16,7 +16,7 @@ import { useStore } from '../storage/store';
 import { itemTone, toneLabel } from '../domain/status';
 import { skipLine } from '../domain/impact';
 import { bump } from '../analytics/usage';
-import { starterAsk, starterPrompt } from '../work/starter';
+import { starterPrompt } from '../work/starter';
 import { isTest } from '../study/upcoming';
 import { PromptPanel } from './PromptPanel';
 import { Requirements } from './Requirements';
@@ -196,14 +196,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
       // Clipboard blocked: the tutor button still carries it.
     }
   };
-  // Get help: Ask, scoped to this assignment, with its opening question already asked.
-  const openAsk = () => {
-    window.location.hash = `/ask?c=${item.courseId}&i=${item.id}&q=${encodeURIComponent(starterAsk(item))}`;
-  };
-  // Ask a question: the same chat scoped to this assignment, empty box focused, nothing sent for them.
-  const openQuestion = () => {
-    window.location.hash = `/ask?c=${item.courseId}&i=${item.id}&m=question`;
-  };
 
   // The pill follows the one colour rule: red late, amber due within a day and untouched, grey otherwise.
   const tone = itemTone(item, new Date().toISOString());
@@ -364,12 +356,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
           <div className="hero-more">
             {course && !isTest(item) && (
               <>
-                <button type="button" className="hero-link" onClick={openAsk}>
-                  Get help
-                </button>
-                <button type="button" className="hero-link" onClick={openQuestion}>
-                  Ask a question
-                </button>
               </>
             )}
             <button type="button" className="hero-link" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
@@ -405,12 +391,6 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
                 </a>
               ) : (
                 <>
-                  <button type="button" className="btn small" onClick={openAsk}>
-                    Get help
-                  </button>
-                  <button type="button" className="btn small" onClick={openQuestion}>
-                    Ask a question
-                  </button>
                 </>
               ))}
             </div>
@@ -513,8 +493,8 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
             <p className="hero-line">
               <b>You've been shaky on {shaky.topic}</b>
               {shaky.pct !== null ? ` (${shaky.pct}% so far)` : ''}. Start with the slides above, or{' '}
-              <a className="hero-inline" href={`#/ask?c=${item.courseId}&t=${encodeURIComponent(shaky.topic)}&i=${item.id}&q=${encodeURIComponent(`Explain ${shaky.topic} like I'm behind`)}`}>
-                ask about it
+              <a className="hero-inline" href={`#/practice?c=${item.courseId}&t=${encodeURIComponent(shaky.topic)}`}>
+                practice it
               </a>
               .
             </p>

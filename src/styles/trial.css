@@ -2662,3 +2662,78 @@
     margin: 0;
   }
 }
+
+/* The trial's end as two cards (2026-10-29): Max first and clearly the main one, Free quieter beside it. */
+.trial-end-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: var(--s-4);
+  align-items: start;
+  margin-top: var(--s-5);
+  text-align: left;
+}
+.trial-end-max,
+.trial-end-free {
+  border-radius: 16px;
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.trial-end-max {
+  background: linear-gradient(180deg, var(--accent-soft), var(--surface) 70%);
+  border: 2px solid var(--accent);
+  box-shadow: var(--shadow-2);
+}
+.trial-end-free {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+.trial-end-tag {
+  align-self: flex-start;
+  font: var(--t-micro);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.trial-end-price {
+  font: var(--t-title);
+  letter-spacing: var(--track-tight);
+  margin: 0;
+}
+.trial-end-price span {
+  font: var(--t-heading);
+  color: var(--ink-2);
+}
+.trial-end-week {
+  margin: 0;
+}
+.trial-end-max .btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: 17px;
+}
+.trial-end-how {
+  margin: 0;
+}
+.trial-end-free .plan-lines {
+  margin: 0;
+  padding-left: 1.1em;
+  font: var(--t-small);
+}
+.trial-end-stay {
+  width: 100%;
+  min-height: var(--tap);
+}
+@media (max-width: 720px) {
+  .trial-end-two {
+    grid-template-columns: 1fr;
+  }
+  .trial-end-max,
+  .trial-end-free {
+    padding: var(--s-4);
+  }
+}

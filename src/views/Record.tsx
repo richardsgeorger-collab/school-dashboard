@@ -6,7 +6,7 @@ import { MoveSelect } from '../components/MoveSelect';
 import { LIBRARY_EVENT, moveMaterial, renameMaterial } from '../library/ingest';
 import { loadApiKey } from '../chat/key';
 import { useAiAllowed } from '../config/useCan';
-import { describeError } from '../chat/client';
+import { describeError } from '../ai/gateway';
 import { dateOf, fmtDate, fmtTime } from '../domain/dates';
 import { newId } from '../domain/ids';
 import { importAudioFile, recordingsDb, recoverInterrupted, setPastedTranscript, type Recording, type Segment } from '../record/db';

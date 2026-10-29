@@ -7,7 +7,7 @@ import { REFERRAL } from '../config/tiers';
  * Invite a friend, everywhere it belongs (George, 2026-09-29). One offer, one rule line, one share button, one
  * progress line, so every place says the same thing.
  */
-export const INVITE_OFFER = `Invite a friend and you both get Plus free for ${REFERRAL.days} days.`;
+export const INVITE_OFFER = `Invite a friend and you both get Max free for ${REFERRAL.days} days.`;
 /** The rules, in one line. */
 export const INVITE_RULE = `Your ${REFERRAL.days} days start after any free trial or paid plan you have, so none is wasted. Theirs start after their 7 free days of Max.`;
 // What the friend reads first. They get the free trial of Max everyone gets, then the Plus days: never "just Plus".
@@ -89,7 +89,7 @@ export function progressLine(p: InviteProgress | null): string | null {
   const who = `${p.joined} friend${p.joined === 1 ? '' : 's'} joined.`;
   const paused = Math.min(p.paused ?? 0, p.joined);
   const plusDays = 30 * (p.joined - paused);
-  const parts = [plusDays > 0 ? `You've earned ${plusDays} days of Plus.` : '', paused > 0 ? `Your next charge moves ${30 * paused} days later.` : ''].filter(Boolean);
+  const parts = [plusDays > 0 ? `You've earned ${plusDays} days of Max.` : '', paused > 0 ? `Your next charge moves ${30 * paused} days later.` : ''].filter(Boolean);
   return `${who} ${parts.join(' ')}`;
 }
 

@@ -34,13 +34,13 @@ export function LockedChange({ item, onOpen }: { item: Item; onOpen?: () => void
     <p className="hint locked-change" data-kinds={kinds.join(' ')}>
       {lockedLine(kinds)} ·{' '}
       <a
-        href="#/you?s=plan&to=plus"
+        href="#/you?s=plan&to=max"
         onClick={() => {
           bump('locked:click');
           onOpen?.();
         }}
       >
-        See it with Plus
+        See it with Max
       </a>
     </p>
   );

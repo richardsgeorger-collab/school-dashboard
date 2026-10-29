@@ -325,7 +325,7 @@ function Plans({ current, highlight }: { current: Tier; highlight: Tier | null }
   return (
     <section className="card settings-card" id="you-plan" aria-label="Plans">
       <h2 className="section-title">Plans</h2>
-      <p className="hint">Free syncs Halo whenever you're on it: due dates, grades, your GPA. Plus reads every announcement for you and syncs on its own. Max adds every AI study tool. Change or cancel any time.</p>
+      <p className="hint">Free: everything on Halo's pages, syncing whenever you're on Halo, your grades and GPA. Max ($0.99 a month) reads every announcement for you, syncs on its own every 3 hours, sends reminders and adds the study tools. Change or cancel any time.</p>
       <TrialOffer lead={TRIAL.offer} />
       {/* One interval is offered (config/tiers.ts OFFERED_INTERVALS); a choice appears here only when there are two. */}
       {OFFERED_INTERVALS.length > 1 && (
@@ -610,7 +610,7 @@ export function You() {
             <input type="checkbox" checked={data.settings.haloOnHalo !== false} onChange={(e) => actions.updateSettings({ haloOnHalo: e.target.checked })} />
             <span>Show Halo+ on Halo pages: today's work on Halo's home page, a line under each class, and what announcements added on an assignment. Needs the Chrome extension.</span>
           </label>
-          {data.settings.haloOnHalo !== false && (tier === 'plus' || tier === 'max') && versionAtLeast(installedVersion(), ON_HALO_SINCE) && <OnHaloSwitches version={installedVersion()} off={data.settings.haloFeaturesOff ?? []} onChange={(off) => actions.updateSettings({ haloFeaturesOff: off })} />}
+          {data.settings.haloOnHalo !== false && versionAtLeast(installedVersion(), ON_HALO_SINCE) && <OnHaloSwitches version={installedVersion()} off={data.settings.haloFeaturesOff ?? []} onChange={(off) => actions.updateSettings({ haloFeaturesOff: off })} />}
           <label className="field">
             <span>Time zone</span>
             <input list="zones" value={data.settings.timezone} onChange={(e) => actions.updateSettings({ timezone: e.target.value })} />

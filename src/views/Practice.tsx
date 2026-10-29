@@ -172,7 +172,6 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
     : use.length === 0
       ? `Nothing on file for ${course.code} yet. Drop the slides, a recording or the syllabus into the class library and everything here builds from it.`
       : `From your own ${course.code} material: ${[counts.slides ? `${counts.slides} slide${counts.slides === 1 ? '' : 's'}` : null, counts.lectures ? `${counts.lectures} lecture stretch${counts.lectures === 1 ? '' : 'es'}` : null, counts.syllabus ? 'the syllabus' : null].filter(Boolean).join(', ')}${weakNames.length ? ` · weak first: ${weakNames.slice(0, 3).join(', ')}` : ''}${flagged.length ? ` · ${flagged.length} thing${flagged.length === 1 ? '' : 's'} the professor called exam material` : ''}.`;
-  const askHref = (t: string) => `#/ask?c=${course.id}${test ? `&i=${test.id}` : ''}${t ? `&t=${encodeURIComponent(t)}` : ''}&q=${encodeURIComponent(`Explain ${t || topic || 'this'} like I'm behind`)}`;
   const day = test ? dateOf(test.dueAt, tz) : null;
 
   return (
@@ -280,17 +279,14 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
                   <button type="button" className="btn" onClick={() => setTab('quiz')}>
                     Quiz me now
                   </button>
-                  <a className="btn" href={askHref(ownTopics[0] ?? '')}>
-                    Ask about it
-                  </a>
                 </div>
               </>
             )}
             {test && !plan && <p className="hint">That test has passed. Pick a coming one from Study.</p>}
           </section>
         )}
-        {tab === 'worksheet' && <WorksheetTab course={course} test={test} topic={topic} sources={use} weak={weakNames} pool={pool} allowed={allowed} day={day} onQuiz={() => setTab('quiz')} askHref={askHref} />}
-        {tab === 'quiz' && pool && <QuizRunner course={course} topic={effectiveTopic} sources={use} weak={weak} askHref={askHref} />}
+        {tab === 'worksheet' && <WorksheetTab course={course} test={test} topic={topic} sources={use} weak={weakNames} pool={pool} allowed={allowed} day={day} onQuiz={() => setTab('quiz')} />}
+        {tab === 'quiz' && pool && <QuizRunner course={course} topic={effectiveTopic} sources={use} weak={weak} />}
         {tab === 'quiz' && !pool && <p className="hint">Reading your {course.code} material…</p>}
         {(tab === 'cards' || tab === 'sheet') && <KitTab course={course} kind={tab === 'cards' ? 'cards' : wantsWorkedProblems(course) ? 'formulas' : 'onepager'} allowSheetKinds={tab === 'sheet' && wantsWorkedProblems(course)} topic={effectiveTopic} sources={use} weak={weakNames} flagged={flagged} pool={pool} allowed={allowed} onQuiz={() => setTab('quiz')} />}
       </Locked>
@@ -298,7 +294,7 @@ function ForCourse({ course, test, tab, topicParam, setTab, tier, today, tz }: {
   );
 }
 
-function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, onQuiz, askHref }: { course: Course; test: Item | null; topic: string; sources: ReturnType<typeof gatherSources>; weak: string[]; pool: SourcePool | null; allowed: boolean; day: string | null; onQuiz: () => void; askHref: (t: string) => string }) {
+function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, onQuiz }: { course: Course; test: Item | null; topic: string; sources: ReturnType<typeof gatherSources>; weak: string[]; pool: SourcePool | null; allowed: boolean; day: string | null; onQuiz: () => void }) {
   const { data: store, actions } = useStore();
   const [ws, setWs] = useState<Worksheet | null>(null);
   const [busy, setBusy] = useState(false);
@@ -412,9 +408,6 @@ function WorksheetTab({ course, test, topic, sources, weak, pool, allowed, day, 
           <button type="button" className="btn small" onClick={onQuiz}>
             Quiz me on these
           </button>
-          <a className="btn small" href={askHref(ws.problems[0]?.topic ?? topic)}>
-            Explain {ws.problems[0]?.topic ?? 'this'}
-          </a>
         </div>
       )}
     </>

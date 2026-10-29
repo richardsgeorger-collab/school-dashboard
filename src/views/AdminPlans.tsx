@@ -10,7 +10,8 @@ import { supabase } from '../auth/client';
 
 type Ending = { next: { day: string; n: number }[]; ended: Record<string, number> };
 type Retention = Record<'extension' | 'no_extension', { total: number; opening: number } | undefined>;
-type Locked = { saw: number; clicked: number; upgraded: number; upgraded_plus: number; upgraded_max: number };
+type Locked = { saw: number; clicked: number; upgraded: number };
+type PaidVia = { app: number; popup: number; halo: number; unknown: number };
 type Store = { days: number; installs: number; installs_linked?: number; site_installs: number; signed_up: number; first_sync: number; week_eligible: number; week_later: number };
 type Usage = { week: string; cells: Record<string, number> }[];
 
@@ -19,7 +20,6 @@ const FEATURES: [string, string][] = [
   ['classes', 'Classes'],
   ['calendar', 'Calendar'],
   ['study', 'Study'],
-  ['ask', 'Ask'],
   ['help_kit', 'Help kit'],
   ['changes_viewed', 'Announcement changes viewed'],
   ['extension_panel', 'This week on Halo'],
@@ -41,7 +41,7 @@ const GROUPS: [string, string][] = [
   ['paid', 'Paid'],
   ['free', 'Free'],
 ];
-const BUCKETS: Record<string, string> = { max_paid: 'Max', plus_paid: 'Plus', free: 'Free', max_friend: 'Max (friend link)', plus_referral: 'Plus (invite)', trial: 'Trial' };
+const BUCKETS: Record<string, string> = { max_paid: 'Max', free: 'Free', max_friend: 'Max (friend link)', max_referral: 'Max (invite)', trial: 'Trial' };
 const day = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : '–');
 
@@ -63,6 +63,7 @@ export function AdminPlans() {
   const locked = useRpc<Locked>('admin_locked_changes');
   const store = useRpc<Store>('admin_store_funnel', { p_days: 30 });
   const usage = useRpc<Usage>('admin_feature_usage', { p_weeks: 4 });
+  const via = useRpc<PaidVia>('admin_paid_via');
   const ext = retention.data?.extension;
   const noExt = retention.data?.no_extension;
   return (
@@ -102,7 +103,16 @@ export function AdminPlans() {
       {locked.err && <p className="hint">{locked.err}</p>}
       {locked.data && (
         <p className="admin-line">
-          Saw one: <b>{locked.data.saw}</b> · pressed "See it with Plus": <b>{locked.data.clicked}</b> · upgraded after: <b>{locked.data.upgraded}</b> (Plus {locked.data.upgraded_plus}, Max {locked.data.upgraded_max}, {pct(locked.data.upgraded, locked.data.saw)})
+          Saw one: <b>{locked.data.saw}</b> · pressed "See it with Max" or "Unlock with Max": <b>{locked.data.clicked}</b> · on Max after: <b>{locked.data.upgraded}</b> ({pct(locked.data.upgraded, locked.data.saw)})
+        </p>
+      )}
+
+      <h3 className="admin-sub">Paying for Max, by where they pressed it</h3>
+      {via.err && <p className="hint">{via.err}</p>}
+      {via.data && (
+        <p className="admin-line">
+          In Halo+: <b>{via.data.app}</b> · the extension's popup: <b>{via.data.popup}</b> · on a Halo page: <b>{via.data.halo}</b>
+          {via.data.unknown > 0 && <span className="hint"> · before this was recorded: {via.data.unknown}</span>}
         </p>
       )}
 

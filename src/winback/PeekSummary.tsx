@@ -34,8 +34,7 @@ export function PeekSummary({ payload, onClose }: { payload: HaloExport; onClose
         </ul>
         <p className="hint">Nothing was added to your planner: on Free, Halo+ only counts. Everything you have stays as it is.</p>
         <div className="peek-actions">
-          <UpgradeButton tier="plus" label={`Bring it all in with Plus $${PRICES.plus.month.toFixed(2)}`} source={source} />
-          <UpgradeButton tier="max" label={`Get Max $${PRICES.max.month.toFixed(2)}`} primary={false} source={source} cancelNote={false} />
+          <UpgradeButton tier="max" label={`Bring it all in with Max $${PRICES.max.month.toFixed(2)}/mo`} source={source} />
           <InviteButton label="Invite a friend for 30 days free" primary={false} />
         </div>
       </div>

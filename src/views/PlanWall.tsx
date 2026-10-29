@@ -1,9 +1,9 @@
 import { bump } from '../analytics/usage';
 import { syncPress } from '../ui/presses';
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useAccount } from '../auth/AccountContext';
 import { supabase } from '../auth/client';
-import { startCheckout } from '../billing/client';
+import { prepareCheckout, startCheckout } from '../billing/client';
 import { syncAccess, type SyncAccess } from '../config/flags';
 import { CANCEL_LINE, PLAN_LINES, PRICES, TAX_LINE, TIER_NAMES, TRIAL } from '../config/tiers';
 import { dateOf, fmtDate } from '../domain/dates';
@@ -12,7 +12,7 @@ import { useStore } from '../storage/store';
 import { TrialOffer, useReceipts } from './TrialOffer';
 
 /**
- * Halo sync is part of Plus (2026-09-28). A build with no accounts (a demo or the preview) has no plan to check and
+ * Halo sync on every plan (Free since 2026-10-25). A build with no accounts (a demo or the preview) has no plan to check and
  * keeps sync on; everything else asks `syncAccess` in config/flags.ts.
  */
 export function useSyncAccess(): SyncAccess {
@@ -47,9 +47,17 @@ export function useShortDate(): (iso: string | null) => string | null {
   return (iso) => (iso ? fmtDate(dateOf(iso, data.settings.timezone), 'short') : null);
 }
 
-/** One tap to Stripe for a plan, monthly. Coming back, the webhook has set the plan and sync, grades and colour return. */
-export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote = true, taxNote, source, next, offer }: { tier?: 'plus' | 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** "plus tax where applicable": on by default whenever the button shows a price. */ taxNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string; /** The intro offer (Max, first month $2.99); the server checks the account may have it. */ offer?: 'intro' }) {
-  const { planKnown } = useAccount();
+/**
+ * One tap to Stripe for Max (2026-10-29: Max is the one plan sold, $0.99 a month). The checkout is made ready as soon
+ * as the button is on screen, so the press only opens Stripe's page, where Apple Pay and Google Pay are at the top on a
+ * device that has them. Coming back, the webhook has set the plan.
+ */
+export function UpgradeButton({ tier = 'max', label, primary = true, cancelNote = true, taxNote, source, next }: { tier?: 'max'; label?: string; primary?: boolean; cancelNote?: boolean; /** "plus tax where applicable": on by default whenever the button shows a price. */ taxNote?: boolean; /** Which win-back message this came from, for the funnel. */ source?: string; /** Where to land after paying, e.g. '/practice?i=…'. */ next?: string }) {
+  const { planKnown, auth } = useAccount();
+  // Ready before the press: Stripe's page is made while the student reads.
+  useEffect(() => {
+    if (planKnown && auth.session) void prepareCheckout(next ?? '');
+  }, [planKnown, auth.session, next]);
   const opening = useCheckoutOpening();
   const mine = opening === tier;
   const [slow, setSlow] = useState(false);
@@ -63,7 +71,7 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
     if (source) bump(`winback:upgrade:${source}`);
     bump(`plan:click:${tier}`);
     const slowTimer = window.setTimeout(() => setSlow(true), 10_000);
-    const r = await startCheckout(tier, 'month', next, offer);
+    const r = await startCheckout(tier, 'month', next);
     window.clearTimeout(slowTimer);
     if (r.ok) {
       bump('checkout:open');
@@ -76,7 +84,7 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
     setSlow(false);
     setCheckoutOpening(null);
   };
-  const text = label ?? `Get ${TIER_NAMES[tier]}, $${PRICES[tier].month.toFixed(2)} a month`;
+  const text = label ?? `Keep ${TIER_NAMES[tier]} · $${PRICES[tier].month.toFixed(2)}/mo`;
   const tax = taxNote ?? text.includes('$');
   const note = [cancelNote ? CANCEL_LINE : '', tax ? TAX_LINE : ''].filter(Boolean).join(' · ');
   if (!planKnown) return null;
@@ -106,14 +114,14 @@ export function UpgradeButton({ tier = 'plus', label, primary = true, cancelNote
 }
 
 // One checkout at a time, across every plan button on the screen.
-let openingTier: 'plus' | 'max' | null = null;
+let openingTier: 'max' | null = null;
 if (typeof window !== 'undefined') window.addEventListener('pageshow', () => setCheckoutOpening(null));
 const openingListeners = new Set<() => void>();
-function setCheckoutOpening(t: 'plus' | 'max' | null): void {
+function setCheckoutOpening(t: 'max' | null): void {
   openingTier = t;
   for (const l of openingListeners) l();
 }
-function useCheckoutOpening(): 'plus' | 'max' | null {
+function useCheckoutOpening(): 'max' | null {
   return useSyncExternalStore(
     (cb) => {
       openingListeners.add(cb);
@@ -140,7 +148,7 @@ export function FrozenBanner() {
         <button type="button" className="btn small primary" onClick={() => syncPress.current?.()}>
           Sync: see what's changed
         </button>
-        <UpgradeButton label={`Plus, $${PRICES.plus.month.toFixed(2)} a month`} primary={false} cancelNote={false} />
+        <UpgradeButton label={`Max, $${PRICES.max.month.toFixed(2)} a month`} primary={false} cancelNote={false} />
         <a className="hero-inline" href="#/you?s=plan">
           See plans
         </a>
@@ -176,16 +184,16 @@ export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
   if (!planKnown) return null;
   return (
     <section className="card plan-wall" aria-label="Choose a plan">
-      <p className="eyebrow">{trialEnded ? `Your free trial ended ${short(profile!.trialEndsAt ?? null) ?? ''}` : 'Halo sync is part of Plus'}</p>
-      <p className="trial-lead">{context === 'sync' ? 'Syncing Halo is part of Plus. Everything you have stays.' : 'Everything you have stays. Plus turns Halo sync back on, with your grades and announcements.'}</p>
+      <p className="eyebrow">{trialEnded ? `Your free trial ended ${short(profile!.trialEndsAt ?? null) ?? ''}` : 'Max'}</p>
+      <p className="trial-lead">{context === 'sync' ? 'Everything you have stays, and Halo keeps syncing on Free. Max reads every announcement for you and syncs on its own.' : 'Everything you have stays. Max reads every announcement for you and syncs on its own every 3 hours.'}</p>
       {did && <p className="hint">{did}</p>}
       <ul className="plan-lines">
-        {PLAN_LINES.plus.map((l) => (
+        {PLAN_LINES.max.map((l) => (
           <li key={l}>{l}</li>
         ))}
       </ul>
       <p className="hint">
-        ${PRICES.plus.month.toFixed(2)} a month, {TAX_LINE}. {CANCEL_LINE}, in one click from You; a cancelled plan runs to the end of the month paid for.
+        ${PRICES.max.month.toFixed(2)} a month, {TAX_LINE}. {CANCEL_LINE}, in one click from You; a cancelled plan runs to the end of the month paid for.
       </p>
       {!trialEnded && <TrialOffer lead={TRIAL.offer} label="Start my free trial" />}
       <div className="settings-actions">
@@ -202,7 +210,6 @@ export function PlanWall({ context = 'now' }: { context?: 'now' | 'sync' }) {
 export function LegacyNotice() {
   const { profile, reloadProfile } = useAccount();
   const access = useSyncAccess();
-  const short = useShortDate();
   const [gone, setGone] = useState(false);
   if (gone || access.via !== 'legacy' || !access.legacyUntil || profile?.legacyNoticeSeenAt) return null;
   const seen = async () => {
@@ -214,7 +221,7 @@ export function LegacyNotice() {
   return (
     <div className="legacy-notice" role="status">
       <p>
-        <b>Halo sync is now part of Plus.</b> You were already syncing, so it stays on for you until {short(access.legacyUntil)}, the end of this term. After that, Plus keeps it going for ${PRICES.plus.month.toFixed(2)} a month, {TAX_LINE} ({CANCEL_LINE.toLowerCase()}); your syllabus classes and anything you add stay free.
+        <b>Halo sync is free.</b> It stays on for you on every plan; Max adds auto-sync every 3 hours and every announcement read for you, for ${PRICES.max.month.toFixed(2)} a month, {TAX_LINE} ({CANCEL_LINE.toLowerCase()}).
       </p>
       <button type="button" className="btn small" onClick={() => void seen()}>
         Got it

@@ -11,7 +11,7 @@ import { StreakChip } from '../joy/StreakChip';
 
 const LABEL: Record<Tab, string> = { now: 'Now', calendar: 'Calendar', study: 'Study', classes: 'Classes', inbox: 'Inbox', you: 'You' };
 /** During the trial: what each tab needs to stay (Study is Max; the Inbox's reading is Plus). */
-const BADGE: Partial<Record<Tab, 'max' | 'plus'>> = { study: 'max', inbox: 'plus' };
+const BADGE: Partial<Record<Tab, 'max' | 'plus'>> = { study: 'max', inbox: 'max' };
 const ICON: Record<Tab, () => ReactElement> = { now: IconNow, calendar: IconCalendar, study: IconStudy, classes: IconClasses, inbox: IconInbox, you: IconYou };
 
 function Links({ current }: { current: Tab }) {

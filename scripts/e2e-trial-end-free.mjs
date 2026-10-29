@@ -2,11 +2,14 @@
 // a student on the last day of the trial with a synced term (scripts/lib/personas.mjs), ended by Admin's "End a test
 // account's free week now" (admin_end_trial, from a throwaway admin), then Halo+ from the local build (LOCAL_SITE) and
 // this repo's extension in a fresh Chrome, Halo faked (the stand-in). Desktop, phone width, and the extension.
-// Checks: the trial-end screen is one calm screen (Free, Plus and Max as three equal choices, Stay on Free a button like
-// the others, the $2.99 first month said with "then $7.99 a month", nothing red or scary); Stay on Free goes to Now with
-// no "paused" banner and nothing gone; Classes; a Halo visit syncs Free and it applies; reloading Halo does not sync again
-// within 30 minutes; This week and the live pill on Halo; the popup says Free syncs on Halo; an announcement's change
-// shows as the kind only, "see it with Plus" (a real kinds-only AI call on Free's small budget).
+// Checks: the trial-end screen is one calm screen (2026-10-29: two cards, Max first and the main one at $0.99 a month
+// with "Keep Max · $0.99/mo", Free beside it with what it keeps and a real "Stay on Free"; no Plus, no first-month
+// offer, nothing red or scary); Stay on Free goes to Now with no "paused" banner and nothing gone; Classes; a Halo visit
+// syncs Free and it applies; reloading Halo does not sync again within 30 minutes; the free week's end said once on
+// Halo, calmly (Keep Max or Not now); This week and the live pill on Halo (Halo+ on Halo is free for every account: no
+// "Unlock with Max" box, no announcement peek in the pill); the popup says Free syncs on Halo and offers "Max: $0.99/mo"
+// straight to Max's checkout; an announcement's change shows as the kind only, "See it with Max" (a real kinds-only AI
+// call on Free's small budget).
 //   KEYS_ENV=... [LOCAL_SITE=dist-site] [EXT_DIR=extension] node scripts/e2e-trial-end-free.mjs
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
@@ -88,18 +91,22 @@ try {
   await p.waitForSelector('.trial-ended', { timeout: 40000 });
   await sleep(3000);
   const screen = await text(p, '.trial-ended');
-  const cards = await p.locator('.trial-end-choices .plan-choice').count();
-  const btnClasses = await p.locator('.trial-end-choices .plan-choice button, .trial-end-choices .plan-choice a.btn').evaluateAll((els) => els.map((e) => e.className));
-  check(/Your free week is over\. Everything you have stays\./.test(screen), 'the trial-end screen: "Your free week is over. Everything you have stays."');
-  check(cards === 3 && /Free · \$0[\s\S]*You keep/.test(screen) && /Plus · \$4\.99 a month[\s\S]*Adds/.test(screen), `three choices: Free (what you keep), Plus (what it adds), Max (${cards} cards)`);
-  check(btnClasses.length === 3 && new Set(btnClasses).size === 1 && /Stay on Free/.test(screen), `Stay on Free is a button like the other two (${btnClasses.join(' | ')})`);
-  const intro = /\$2\.99 the first month/.test(screen);
-  check(intro ? /\$2\.99 the first month[\s\S]{0,20}then \$7\.99 a month/.test(screen) : /Max · \$7\.99 a month/.test(screen), intro ? 'the $2.99 first month, with "then $7.99 a month" right under it' : 'Max at $7.99 a month (no intro offer for this account)');
+  const title = await text(p, '.story-title');
+  check(/^(Max caught \d+ things? this week you'd have missed\.|Your free week is over\. Everything you have stays\.)$/.test(title), `the trial-end screen's headline: "${title}"`);
+  const order = await p.evaluate(() => [...document.querySelectorAll('.trial-end-two > div')].map((d) => d.dataset.tier).join(','));
+  const maxCard = await text(p, '.trial-end-max');
+  const freeCard = await text(p, '.trial-end-free');
+  const lines = await p.locator('.trial-end-max .story-line').count();
+  check(order === 'max,free' && /What you have now/i.test(maxCard) && /Max · \$0\.99 a month/.test(maxCard) && lines >= 1 && lines <= 3, `two cards, Max first: "What you have now", $0.99 a month, ${lines} line(s) of the week (${order})`);
+  const btns = await p.locator('.trial-end-two button').evaluateAll((els) => els.map((e) => ({ text: e.textContent.trim(), primary: e.classList.contains('primary') })));
+  check(btns.length === 2 && btns[0].text === 'Keep Max · $0.99/mo' && btns[0].primary && btns[1].text === 'Stay on Free' && !btns[1].primary, `Keep Max the main button, Stay on Free a real one beside it (${btns.map((b) => `${b.text}${b.primary ? ' primary' : ''}`).join(' | ')})`);
+  check(/Free · \$0/.test(freeCard) && (await p.locator('.trial-end-free .plan-lines li').count()) >= 1, `Free: $0 and what it keeps ("${freeCard.slice(0, 90)}")`);
+  check(!/\bPlus\b/.test(screen) && !/first month/i.test(screen) && !/\$[1-9]\.99/.test(screen), 'no Plus, no first-month offer, no old prices');
   check(!SCARY.test(screen) && (await p.locator('.trial-ended [data-tone="red"]').count()) === 0, 'calm: nothing red, no scary words');
   await p.screenshot({ path: `${OUT}/desk-1-trial-end.png` });
 
   // ---- Stay on Free: the first open after ----
-  await p.click('.trial-end-choices button:has-text("Stay on Free")');
+  await p.click('.trial-end-free button.trial-end-stay');
   await sleep(2500);
   for (const sel of ['.joy-card button:has-text("Nice")', '.levelup', '.ext-setup-sheet button.btn:has-text("Skip for now")']) if (await p.locator(sel).count()) await p.locator(sel).first().click().catch(() => undefined);
   await sleep(800);
@@ -111,7 +118,7 @@ try {
   await p.goto('https://haloplus.app/#/classes', { waitUntil: 'load' });
   await sleep(2500);
   const cls = await text(p, 'main');
-  check(!/part of Plus|sync(ing)? is part/i.test(cls) && !SCARY.test(cls), 'Classes: no "sync is part of Plus", nothing scary');
+  check(!/part of (Plus|Max)|sync(ing)? is part/i.test(cls) && !SCARY.test(cls), 'Classes: no "sync is part of a plan", nothing scary');
   await p.screenshot({ path: `${OUT}/desk-3-classes.png` });
   await p.goto('https://haloplus.app/#/now', { waitUntil: 'load' });
   await sleep(1500);
@@ -124,6 +131,16 @@ try {
   const halo = await ctx.newPage();
   await halo.setViewportSize({ width: 1280, height: 860 });
   await halo.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
+  // The free week's end, said once on Halo (0.12.12): Halo's own info look, Keep Max or Not now.
+  const noteText = async () => ((await halo.locator('[data-haloplus="note"]').first().evaluate((e) => [...(e.shadowRoot?.querySelectorAll('.t, .p, button') ?? [])].map((x) => x.textContent).join(' ')).catch(() => '')) || '').replace(/\s+/g, ' ').trim();
+  const note = await until(noteText, 20000, 1000);
+  check(/Your free week of Max is over/.test(note) && /Halo\+ on Halo stays free/.test(note) && /Keep Max · \$0\.99\/mo/.test(note) && /Not now/.test(note) && !SCARY.test(note), `on Halo, the free week's end once, calmly: "${note}"`);
+  await halo.screenshot({ path: `${OUT}/ext-0-halo-trial-note.png` });
+  if (note) {
+    await halo.locator('[data-haloplus="note"] button.x').click();
+    await sleep(500);
+    check((await halo.locator('[data-haloplus="note"]').count()) === 0, 'Not now closes it');
+  }
   const landed = await until(async () => (await db.from('pending_syncs').select('id, created_at, payload->>visit').eq('user_id', who.id).gte('created_at', t0).limit(1)).data?.[0] ?? null, 90000, 2000);
   check(!!landed && landed.visit === 'true', `Free: a Halo visit synced on its own (${landed ? `${Math.round((Date.parse(landed.created_at) - Date.parse(t0)) / 1000)} s` : 'no'})`);
   const applied = await until(async () => {
@@ -142,6 +159,7 @@ try {
   }
   const n = (await db.from('pending_syncs').select('id', { count: 'exact', head: true }).eq('user_id', who.id).gte('created_at', t0)).count;
   check(n === 1, `no sync loop: four more Halo visits, still one sync (${n})`);
+  check((await halo.locator('[data-haloplus="note"]').count()) === 0, 'the free week\'s note is not shown again on the next visits');
   // This week and the pill, live.
   await halo.goto('https://halo.gcu.edu/', { waitUntil: 'load' });
   await sleep(4000);
@@ -150,14 +168,18 @@ try {
   const pill = await text(halo, '.pill');
   check(!!week && !/as of /i.test(week), `This week on Halo, live ("${week.slice(0, 80)}")`);
   check(!!pill && !/^Halo\+ · synced/.test(pill), `the pill is the live one ("${pill.slice(0, 60)}")`);
-  check(!/part of Plus|upgrade|see plans/i.test(await text(halo)), 'no upsell on the Halo page');
+  check(!/An announcement|See it with|Unlock|Max/i.test(pill), `the pill has no locked-announcement peek on Free ("${pill.slice(0, 60)}")`);
+  // Halo+ on Halo is free for every account (2026-10-29): no "Unlock with Max" box, no upsell on the page.
+  check(!/part of (Plus|Max)|upgrade|see plans/i.test(await text(halo)) && (await halo.locator('[data-locked="1"]').count()) === 0 && (await halo.locator('button:has-text("Unlock with Max")').count()) === 0, 'no upsell on the Halo page: no "Unlock with Max", nothing locked');
   await halo.screenshot({ path: `${OUT}/ext-1-halo-home.png` });
   const pop = await ctx.newPage();
   await pop.setViewportSize({ width: 360, height: 520 });
   await pop.goto(`chrome-extension://${id}/popup.html`);
   await sleep(1500);
   const popText = await text(pop);
-  check(/Syncs whenever you're on Halo/.test(popText) && !/part of Plus/.test(popText), `the popup on Free: "${popText.slice(0, 140)}"`);
+  const up = await pop.locator('#upgrade').evaluate((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href'), shown: !a.closest('[hidden]') }));
+  check(/Syncs whenever you're on Halo/.test(popText) && !/\bPlus\b/.test(popText), `the popup on Free: "${popText.slice(0, 140)}"`);
+  check(up.shown && up.text === 'Max: $0.99/mo' && up.href === 'https://haloplus.app/#/checkout?from=popup', `the popup's one line on Free: "${up.text}" → ${up.href}`);
   await pop.screenshot({ path: `${OUT}/ext-2-popup.png` });
   await pop.close();
 
@@ -173,7 +195,7 @@ try {
     await p.waitForSelector('.locked-change', { timeout: 30000 }).catch(() => undefined);
     await sleep(800);
     const line = await text(p, '.locked-change');
-    check(/^An announcement (changed the due date|added a step|changed the due date and added a step) · See it with Plus$/.test(line), `the assignment note: "${line}"`);
+    check(/^An announcement (changed the due date|added a step|changed the due date and added a step) · See it with Max$/.test(line), `the assignment note: "${line}"`);
     await p.screenshot({ path: `${OUT}/desk-5-locked-line.png` });
   }
   // ---- Phone width after ----

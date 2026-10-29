@@ -7,7 +7,8 @@ import { FEATURES, LIMITS, TIERS, TRIAL, type Feature, type Tier } from './tiers
  * the enforcement.
  */
 
-export const rank = (t: Tier): number => TIERS.indexOf(t);
+/** A plan's place in the order. Plus and Pro are retired and count as Max (2026-10-29), so nobody who paid loses anything. */
+export const rank = (t: Tier): number => TIERS.indexOf(t === 'plus' || t === 'pro' ? 'max' : t);
 
 /** The tier a profile is effectively on right now: a live trial counts as the trial tier. */
 export interface TierSource {

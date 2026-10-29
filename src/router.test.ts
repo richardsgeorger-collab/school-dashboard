@@ -20,10 +20,11 @@ describe('routes', () => {
     expect(parseHash('#/nonsense').route).toBe('now');
     // The AI screens before loop 110 land on the tool that replaced each, with their parameters.
     expect(parseHash('#/ai').route).toBe('study');
-    expect(parseHash('#/tutor?c=x&t=moles').route).toBe('ask');
+    expect(parseHash('#/tutor?c=x&t=moles').route).toBe('study');
+    expect(parseHash('#/ask?q=hi').route).toBe('study');
     expect(parseHash('#/tutor?c=x&t=moles').params.get('t')).toBe('moles');
     expect(parseHash('#/quiz?c=x').route).toBe('practice');
     expect(parseHash('#/study?c=x&k=cards').route).toBe('study');
-    for (const r of ['study', 'ask', 'practice', 'check'] as const) expect(TAB_OF[r]).toBe('study');
+    for (const r of ['study', 'practice', 'check'] as const) expect(TAB_OF[r]).toBe('study');
   });
 });

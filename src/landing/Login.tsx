@@ -3,6 +3,7 @@ import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
 import { IconHalo } from '../components/Icons';
 import { useRoute } from '../router';
+import { takeAfterLogin } from '../billing/GoCheckout';
 
 /**
  * Sign in on its own: for someone who has an account and a new device. No onboarding here; once the session lands
@@ -12,7 +13,11 @@ export function Login() {
   const { auth } = useAccount();
   const { navigate } = useRoute();
   useEffect(() => {
-    if (auth.session) navigate('now');
+    if (!auth.session) return;
+    // Back to Max's checkout when that is what sent the student here (an extension button, signed out on this browser).
+    const after = takeAfterLogin();
+    if (after) window.location.hash = after;
+    else navigate('now');
   }, [auth.session, navigate]);
   return (
     <div className="landing landing-login">

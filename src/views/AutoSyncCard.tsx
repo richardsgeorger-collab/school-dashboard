@@ -19,7 +19,7 @@ export function AutoSyncCard() {
       {ext.installed ? (
         <p className="autosync-on">
           <span className="autosync-dot" aria-hidden /> <b>{auto ? 'Auto-sync is on.' : 'The extension is on.'}</b> The Halo+ extension ({ext.installed}) {auto ? `syncs Halo every 3 hours while ${b} is open, even with Halo+ closed.` : "syncs Halo whenever you're on Halo, and puts This week on Halo's home page."}
-          {!auto && <span className="hint"> Plus also syncs in the background every 3 hours.</span>}
+          {!auto && <span className="hint"> Max also syncs in the background every 3 hours.</span>}
         </p>
       ) : (
         <>

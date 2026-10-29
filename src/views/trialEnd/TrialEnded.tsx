@@ -1,28 +1,22 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../auth/client';
 import { warmCheckout } from '../../billing/client';
 import { useAccount } from '../../auth/AccountContext';
-import { SegmentedControl } from '../../components/SegmentedControl';
 import { trialState } from '../../config/flags';
-import { CANCEL_LINE, INTRO_FIRST_MONTH, PLAN_LINES, PRICES, TAX_LINE } from '../../config/tiers';
+import { CANCEL_LINE, PLAN_LINES, PRICES } from '../../config/tiers';
 import { dateOf, fmtDate } from '../../domain/dates';
-import type { PlusCredit } from '../../referral/credit';
 import { INVITE_RULE } from '../../referral/Invite';
 import { useStore } from '../../storage/store';
-import { Invite, PlanButton, PreviewMode, usePlusAfter, useTrialNumbers } from '../TrialStatus';
+import { Invite, PlanButton, PreviewMode, useTrialNumbers } from '../TrialStatus';
 import { storyLines, type StoryLine } from './story';
 
 /**
- * The end of the free trial, as one calm screen (George, 2026-10-09; reworked 2026-10-25, Loop 268). A short recap of
- * real things from the student's week, then three equal choices side by side: Free (what they keep), Plus (what it
- * adds) and Max. An account that may take the first-month offer sees it on both paid plans, the regular price said in
- * the same line: Plus $0.99 then $4.99 (2026-10-27), Max $2.99 then $7.99. Stay on Free is a button like the other two,
- * never a small link: it is a real choice, and Free keeps syncing Halo. No countdown, no red. Seen once.
+ * The end of the free trial, as one calm screen (George, 2026-10-09; reworked 2026-10-25; two cards 2026-10-29). Max is
+ * the clear main choice: what it did for this student this week in real numbers (announcements caught, moved dates
+ * found, on time), then "Keep Max · $0.99/mo", which opens Stripe's checkout at once (made ready while they read, Apple
+ * Pay and Google Pay at the top of Stripe's page). Free is a real "Stay on Free" button beside it, quieter, with what
+ * they keep. Honest: the price in the button, tax and cancel beside it, no countdown, no fake urgency. Seen once.
  */
 export interface TrialEndPreview {
-  /** Show it as a student on Plus from a friend's invite, instead of one going back to Free. */
-  gift: boolean;
-  onGift: (gift: boolean) => void;
   onClose: () => void;
 }
 
@@ -32,74 +26,58 @@ const FIRST_MS = 250;
 
 /** What Halo+ does, for a week it had nothing to count. */
 const WOULD_DO: StoryLine[] = [
-  { key: 'would-deadlines', score: 0, before: 'Every deadline from Halo in one list, kept current.', after: '' },
-  { key: 'would-announcements', score: 0, before: 'Announcements read for you: hidden due dates, moved dates and extra steps, nothing missed.', after: '' },
-  { key: 'would-grades', score: 0, before: 'Grades the day they land, and your GPA.', after: '' },
+  { key: 'would-announcements', score: 0, before: 'Every announcement read for you: hidden due dates, moved dates and extra steps, nothing missed.', after: '' },
+  { key: 'would-sync', score: 0, before: "Auto-sync every 3 hours, so Halo+ is current even when you're not on Halo.", after: '' },
+  { key: 'would-remind', score: 0, before: 'Reminders, the Sunday preview and your deadlines in Google or Apple Calendar.', after: '' },
 ];
 
-/**
- * Free, Plus, Max as equals (Loop 268). The lines come from config/tiers.ts PLAN_LINES, the same words as every other
- * price card. Every button is the same size and weight: the student chooses, nothing is pushed.
- */
-function TrialEndChoices({ intro, onFree, freeLabel, plusCovered }: { intro: boolean; onFree: () => void; freeLabel: string; plusCovered?: string }) {
-  // The checkout function and the session are woken as the choices appear, so a press is quick (2026-10-09; lost in
-  // the Loop 268 rework, back 2026-10-27).
+/** What Max caught this week that a student would have missed: things only in announcements, and moved dates. */
+export function caughtCount(lines: StoryLine[] | null): number {
+  if (!lines) return 0;
+  const only = lines.find((l) => l.key === 'only' || l.key === 'found')?.n ?? 0;
+  const moved = lines.filter((l) => l.key === 'moved').length;
+  return only + moved;
+}
+
+/** Max first and clearly the main card; Free a real button, quieter (2026-10-29). */
+function TrialEndChoices({ lines, onFree }: { lines: StoryLine[] | null; onFree: () => void }) {
+  // The checkout function and the sign-in are woken as the choices appear (and the button makes the checkout ready).
   useEffect(() => {
     warmCheckout();
   }, []);
   return (
-    <div className="plan-choices trial-end-choices">
-      <div className="plan-choice" data-tier="free">
-        <span className="plan-choice-name">
-          <b className="plan-price">Free · $0</b>
-          <span className="plan-choice-lede">You keep</span>
-          <ul className="plan-lines">
-            {PLAN_LINES.free.map((l) => (
-              <li key={l}>{l}</li>
+    <div className="trial-end-two">
+      <div className="trial-end-max" data-tier="max">
+        <span className="trial-end-tag">What you have now</span>
+        <p className="trial-end-price">
+          Max <span>· ${PRICES.max.month.toFixed(2)} a month</span>
+        </p>
+        {lines === null ? (
+          <p className="hint" aria-busy="true">
+            Looking back at your week…
+          </p>
+        ) : (
+          <ol className="story-lines trial-end-week">
+            {lines.map((l, i) => (
+              <Line key={l.key} line={l} i={i} />
             ))}
-          </ul>
-        </span>
-        <button type="button" className="btn small" onClick={onFree}>
-          {freeLabel}
+          </ol>
+        )}
+        <PlanButton tier="max" label={`Keep Max · $${PRICES.max.month.toFixed(2)}/mo`} />
+        <p className="hint trial-end-how">Opens Stripe's checkout at once, Apple Pay and Google Pay at the top, your email filled in.</p>
+      </div>
+      <div className="trial-end-free" data-tier="free">
+        <p className="trial-end-price">
+          Free <span>· $0</span>
+        </p>
+        <ul className="plan-lines">
+          {PLAN_LINES.free.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+        <button type="button" className="btn trial-end-stay" onClick={onFree}>
+          Stay on Free
         </button>
-      </div>
-      <div className="plan-choice" data-tier="plus">
-        <span className="plan-choice-name">
-          {intro ? (
-            <b className="plan-price">
-              Plus · ${INTRO_FIRST_MONTH.plus.toFixed(2)} the first month
-              <span className="plan-then">then ${PRICES.plus.month.toFixed(2)} a month</span>
-            </b>
-          ) : (
-            <b className="plan-price">Plus · ${PRICES.plus.month.toFixed(2)} a month</b>
-          )}
-          <span className="plan-choice-lede">Adds</span>
-          <ul className="plan-lines">
-            {PLAN_LINES.plus.map((l) => (
-              <li key={l}>{l}</li>
-            ))}
-          </ul>
-        </span>
-        {plusCovered ? <p className="gcbc-covered">{plusCovered}</p> : <PlanButton tier="plus" label="Choose Plus" primary={false} offer={intro ? 'intro' : undefined} />}
-      </div>
-      <div className="plan-choice" data-tier="max">
-        <span className="plan-choice-name">
-          {intro ? (
-            <b className="plan-price">
-              Max · ${INTRO_FIRST_MONTH.max.toFixed(2)} the first month
-              <span className="plan-then">then ${PRICES.max.month.toFixed(2)} a month</span>
-            </b>
-          ) : (
-            <b className="plan-price">Max · ${PRICES.max.month.toFixed(2)} a month</b>
-          )}
-          <span className="plan-choice-lede">What you had on the trial</span>
-          <ul className="plan-lines">
-            <li>Everything in Plus</li>
-            <li>Ask: a study partner that knows your classes</li>
-            <li>Study plans, practice and the help kit</li>
-          </ul>
-        </span>
-        <PlanButton tier="max" label="Keep Max" primary={false} offer={intro ? 'intro' : undefined} />
       </div>
     </div>
   );
@@ -149,12 +127,12 @@ function Line({ line, i }: { line: StoryLine; i: number }) {
   );
 }
 
-/** Real numbers, or the "would do" lines when the week had none to show. */
+/** Real numbers (the three strongest), or the "would do" lines when the week had none to show. */
 export function recapLines(lines: StoryLine[] | null): { lines: StoryLine[]; real: boolean } | null {
   if (lines === null) return null;
   const real = lines.filter((l) => l.n === undefined || l.n > 0);
   const counted = real.some((l) => l.n !== undefined && l.n > 0);
-  return counted ? { lines: real.slice(0, 4), real: true } : { lines: WOULD_DO, real: false };
+  return counted ? { lines: real.slice(0, 3), real: true } : { lines: WOULD_DO, real: false };
 }
 
 export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
@@ -165,34 +143,23 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
   // The preview's week: the admin's own last 7 days, so the numbers are real.
   const [week] = useState(() => ({ since: new Date(Date.now() - 7 * 86_400_000).toISOString(), until: new Date().toISOString() }));
   const real = !!profile?.trialStartedAt && !!profile.trialEndsAt && !profile.friendFrom;
-  const livePlusAfter = usePlusAfter(profile?.trialEndsAt);
-  const plusAfter: PlusCredit | null = preview ? (preview.gift ? { start: week.until, end: new Date(Date.parse(week.until) + 30 * 86_400_000).toISOString(), days: 30, running: true, after: 'trial', from: 'invited' } : null) : livePlusAfter;
-  // Free after the week, or Plus from a friend's invite: either way the same screen, once.
-  const onPlusGift = preview ? preview.gift : tier === 'plus' && !!plusAfter;
-  const ended = !!preview || (real && trialState(profile) === 'used' && (tier === 'free' || onPlusGift) && !data.settings.trialEndSeen);
+  const ended = !!preview || (real && trialState(profile) === 'used' && tier === 'free' && !data.settings.trialEndSeen);
   const since = preview ? week.since : profile?.trialStartedAt;
   const until = preview ? week.until : profile?.trialEndsAt;
   const n = useTrialNumbers(since, until);
   const lines = useMemo(
-    () => (since && until && n ? storyLines({ items: data.items, courses: data.courses, since, until, now: new Date().toISOString(), tz, recap: { asked: n.answered, practice: n.practice, read: n.read } }) : null),
+    () => (since && until && n ? storyLines({ items: data.items, courses: data.courses, since, until, now: new Date().toISOString(), tz, recap: { asked: 0, practice: n.practice, read: n.read } }) : null),
     [since, until, n, data.items, data.courses, tz],
   );
   const recap = recapLines(lines);
-  // The intro offer: the server says whether this account may have it; the preview shows it as a student would see it.
-  const [intro, setIntro] = useState<boolean | null>(preview ? true : null);
-  useEffect(() => {
-    if (preview || !ended) return;
-    const c = supabase();
-    if (!c) return setIntro(false);
-    void c.rpc('intro_offer_state').then(({ data }) => setIntro(!!(data as { eligible?: boolean } | null)?.eligible), () => setIntro(false));
-  }, [preview, ended]);
   if (!ended || !since || !until) return null;
   const done = preview ? preview.onClose : () => actions.updateSettings({ trialEndSeen: new Date().toISOString() });
-  const after = recap ? FIRST_MS + recap.lines.length * STEP_MS + 150 : 0;
+  const caught = caughtCount(lines);
+  const title = caught > 0 ? `Max caught ${caught} ${caught === 1 ? 'thing' : 'things'} this week you'd have missed.` : 'Your free week is over. Everything you have stays.';
 
   return (
     <PreviewMode.Provider value={inPreview}>
-      <div className="onboard trial-ended" data-one="true" role="dialog" aria-modal="true" aria-label="Here's what Halo+ did for you">
+      <div className="onboard trial-ended" data-one="true" role="dialog" aria-modal="true" aria-label="Your free week is over">
         <div className="onboard-inner">
           {preview && (
             <div className="trial-preview-bar" role="status">
@@ -200,15 +167,6 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
                 <b>Preview, admin only.</b> Your own last 7 days, real numbers. Nothing here saves, charges, shares or ends anything.
               </p>
               <div className="trial-preview-actions">
-                <SegmentedControl
-                  label="Show it as"
-                  value={preview.gift ? 'gift' : 'free'}
-                  options={[
-                    { value: 'free', label: 'Back to Free' },
-                    { value: 'gift', label: "Plus from a friend's invite" },
-                  ]}
-                  onChange={(v) => preview.onGift(v === 'gift')}
-                />
                 <button type="button" className="btn small" onClick={preview.onClose}>
                   Close preview
                 </button>
@@ -218,33 +176,17 @@ export function TrialEnded({ preview }: { preview?: TrialEndPreview } = {}) {
 
           <section className="story story-one" key="one">
             <p className="eyebrow story-eyebrow">
-              {onPlusGift ? 'Your free trial of Max' : 'Your free trial'} · {fmtDate(dateOf(since < until ? since : until, tz))} to {fmtDate(dateOf(until, tz))}
+              Your free week · {fmtDate(dateOf(since < until ? since : until, tz))} to {fmtDate(dateOf(until, tz))}
             </p>
-            <h1 className="story-title">Your free week is over. Everything you have stays.</h1>
-            <p className="story-sub">{recap && !recap.real ? "Here's what Halo+ does:" : 'What Halo+ did for you this week:'}</p>
-            {recap === null ? (
-              <p className="hint" aria-busy="true">
-                Looking back at your week…
-              </p>
-            ) : (
-              <ol className="story-lines" data-real={recap.real}>
-                {recap.lines.map((l, i) => (
-                  <Line key={l.key} line={l} i={i} />
-                ))}
-              </ol>
-            )}
-
-            <div className="story-plans" style={{ animationDelay: `${after}ms` }}>
-              <p className="story-plans-lede">{onPlusGift && plusAfter ? `Your friend's invite already covers Plus until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}.` : 'Nothing charges unless you choose a plan. Free keeps syncing Halo.'}</p>
-              <TrialEndChoices intro={intro === true && !onPlusGift} onFree={done} freeLabel={onPlusGift ? 'Continue with Plus free' : 'Stay on Free'} plusCovered={onPlusGift && plusAfter ? `Free until ${fmtDate(dateOf(plusAfter.end, tz), 'long')}, from your friend's invite.` : undefined} />
-              <p className="gcbc-terms">
-                {CANCEL_LINE} · {TAX_LINE}
-              </p>
-              <p className="gcbc-invite-line">
-                <span>Or invite a friend: you both get 30 days of Plus free. {INVITE_RULE}</span>
-                <Invite label="Invite a friend" />
-              </p>
-            </div>
+            <h1 className="story-title">{title}</h1>
+            <TrialEndChoices lines={recap ? recap.lines : null} onFree={done} />
+            <p className="gcbc-terms">
+              {CANCEL_LINE} · nothing charges unless you choose Max
+            </p>
+            <p className="gcbc-invite-line">
+              <span>Or invite a friend: you both get 30 days of Max free. {INVITE_RULE}</span>
+              <Invite label="Invite a friend" />
+            </p>
           </section>
         </div>
       </div>

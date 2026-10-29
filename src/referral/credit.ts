@@ -22,11 +22,11 @@ export interface PlusCredit {
 const near = (a: string | null | undefined, b: string, ms = 36 * 3_600_000) => !!a && Math.abs(Date.parse(a) - Date.parse(b)) < ms;
 
 /**
- * The student's Plus credit from invites as one stretch (George, 2026-09-30): every 30-day block that follows the
+ * The student's Max credit from invites (Plus grants before 2026-10-29, Max ones since) as one stretch (George, 2026-09-30): every 30-day block that follows the
  * last one without a gap counts, so two friends read as 60 days, never as the first 30 alone.
  */
 export function plusCredit(grants: CreditGrant[], p: { trialEndsAt: string | null; rewardTier: string | null; rewardUntil: string | null }, now: string): PlusCredit | null {
-  const plus = grants.filter((g) => g.tier === 'plus' && Date.parse(g.ends) > Date.parse(now)).sort((a, b) => a.starts.localeCompare(b.starts));
+  const plus = grants.filter((g) => (g.tier === 'plus' || (g.tier === 'max' && g.source.startsWith('referral'))) && Date.parse(g.ends) > Date.parse(now)).sort((a, b) => a.starts.localeCompare(b.starts));
   if (plus.length === 0) return null;
   const chain = [plus[0]];
   for (const g of plus.slice(1)) {
@@ -48,9 +48,9 @@ const WHY = { trial: 'when your free trial ends', gift: 'when your free Max ends
 /** "Plus credit: 30 days, starts Oct 7 when your free trial ends." One line, the same on You and in the trial sheet. */
 export function creditLine(c: PlusCredit, tz: string): string {
   const day = (iso: string) => fmtDate(dateOf(iso, tz), 'short');
-  if (c.running) return `Plus credit: on now, ${c.days} day${c.days === 1 ? '' : 's'} left, until ${day(c.end)}.`;
+  if (c.running) return `Max credit: on now, ${c.days} day${c.days === 1 ? '' : 's'} left, until ${day(c.end)}.`;
   const why = c.after ? ` ${WHY[c.after]}` : '';
-  return `Plus credit: ${c.days} days, starts ${day(c.start)}${why}${c.days > 31 ? `, through ${day(c.end)}` : ''}.`;
+  return `Max credit: ${c.days} days, starts ${day(c.start)}${why}${c.days > 31 ? `, through ${day(c.end)}` : ''}.`;
 }
 
 /** Where it came from, for the line under it. */

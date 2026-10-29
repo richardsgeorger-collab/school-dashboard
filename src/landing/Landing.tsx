@@ -73,8 +73,8 @@ export function Landing() {
         <Tile title="Keeps itself current" text="Whenever you’re on Halo, or every 3 hours on its own. Never your password.">
           <SyncSpin />
         </Tile>
-        <Tile wide title="Ask anything about your classes" text="Answers from your own class material.">
-          <AskDemo />
+        <Tile wide title="Search every class from Halo" text="Ctrl+K or ⌘K on any Halo page.">
+          <SearchDemo />
         </Tile>
         <Tile wide title="Make it yours" text="Light or dark, your color.">
           <MakeYours />
@@ -273,11 +273,11 @@ function Grades() {
   );
 }
 
-const QUESTION = 'Can I use a calculator on Quiz 2?';
-const ANSWER = 'A scientific one only, no graphing calculators (Prof. Whitaker, Monday’s announcement).';
+const QUESTION = 'topic 3';
+const ANSWER = 'Topic 3 DQ 1: Memory · PSY-102 · due today\nTopic 3 Reflection · UNV-103 · due Fri\nTopic 3 Homework · BIO-181 · due Sat';
 
-/** A question typed out and answered, when the tile comes into view. The full text is in the page for everyone. */
-function AskDemo() {
+/** A search typed out on Halo and its results, when the tile comes into view (2026-10-29: this was Ask, now gone). */
+function SearchDemo() {
   const ref = useRef<HTMLDivElement>(null);
   const [typed, setTyped] = useState<{ q: number; a: number } | null>(null);
   useEffect(() => {
@@ -310,8 +310,8 @@ function AskDemo() {
   const a = typed ? ANSWER.slice(0, typed.a) : ANSWER;
   return (
     <div className="lp-ask" ref={ref} aria-hidden>
-      <p className="lp-q">{q || ' '}</p>
-      {(!typed || typed.q >= QUESTION.length) && <p className="lp-a">{a || '…'}</p>}
+      <p className="lp-q">⌘K {q || ' '}</p>
+      {(!typed || typed.q >= QUESTION.length) && <p className="lp-a" style={{ whiteSpace: 'pre-line' }}>{a || '…'}</p>}
     </div>
   );
 }

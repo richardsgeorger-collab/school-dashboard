@@ -2,8 +2,7 @@
 // with Halo+ that going back to plain Halo feels broken"). Every feature file in this folder registers here and runs
 // only when all of these hold:
 // - "Show Halo+ on Halo pages" is on (popup or Halo+, whichever changed last), and the feature's own switch is on;
-// - the plan is Plus or Max (the free trial is Max); Free keeps what it had (the This week panel, the pill, the class
-//   lines and grades), with no locked previews and no nagging;
+// - there is a Halo+ account on this computer (any plan: everything on Halo is Free since 0.12.12);
 // - the page is one the feature knows (route()).
 // The rules every feature follows: if Halo+ is not sure, it shows nothing; it looks like Halo (Halo's own font and
 // colours are inherited, never set); it adds the Halo+ mark (mark()) beside anything it adds; it never makes Halo do
@@ -75,8 +74,9 @@
     if (local && (!view.showAt || local.at > view.showAt)) return local.on !== false;
     return view.show !== false;
   };
-  /** Plus or Max (the trial is Max). Unknown (no account on this computer yet) is not. */
-  const paid = () => st.tier === 'plus' || st.tier === 'max';
+  /** Any account on this computer (Free too, 0.12.12). None yet (a store install before sign-up) is not. */
+  // Every plan with an account (0.12.12, George 2026-10-29: everything on Halo is Free); the name stays for its callers.
+  const paid = () => !!st.tier || !!view;
   /** A feature's own switch: on unless turned off, in the popup or in Halo+ (whichever list was changed last). */
   function switchOn(id) {
     const snap = (st.haloSnap && st.haloSnap.hf) || null;

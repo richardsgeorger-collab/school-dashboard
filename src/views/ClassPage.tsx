@@ -127,9 +127,6 @@ export function ClassPage() {
           <button type="button" className="btn small" onClick={() => setPaste(true)}>
             Add a lecture
           </button>
-          <a className="btn small" href={`#/ask?c=${course.id}`}>
-            Ask
-          </a>
           <a className="btn small primary" href={`#/practice?c=${course.id}`}>
             Practice
           </a>

@@ -2,24 +2,25 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { can, effectiveTier, tierFor, trialDaysLeft, syncAccess } from './flags';
-import { FEATURES, PRICES, REFERRAL, STRIPE_PRICE_IDS, TIERS, TRIAL, PAID, OFFERED_INTERVALS } from './tiers';
+import { FEATURES, MAX_PRICE_LOOKUP_KEY, PRICES, REFERRAL, TIERS, TRIAL, PAID, OFFERED_INTERVALS } from './tiers';
 
 describe('feature flags', () => {
   it('each tier has everything below it and nothing above it', () => {
     expect(can('nowBasic', 'free')).toBe(true);
     expect(can('syllabusDrop', 'free')).toBe(true);
-    // Free syncs Halo since 2026-10-25 (Loop 268); auto-sync and announcements are still Plus.
+    // Free syncs Halo; auto-sync and announcements are Max (2026-10-29).
     expect(can('haloManualSync', 'free')).toBe(true);
     expect(can('haloAutoSync', 'free')).toBe(false);
     expect(can('announcementAI', 'free')).toBe(false);
-    expect(can('haloManualSync', 'plus')).toBe(true);
-    expect(can('announcementAI', 'plus')).toBe(true);
-    expect(can('aiChat', 'plus')).toBe(false);
-    // A retired Pro row keeps Plus and nothing of Max.
-    expect(can('haloManualSync', 'pro')).toBe(true);
-    expect(can('aiChat', 'pro')).toBe(false);
+    expect(can('onHalo', 'free')).toBe(true);
+    // Retired Plus and Pro rows count as Max: nobody who paid loses anything.
+    for (const t of ['plus', 'pro'] as const) {
+      expect(can('announcementAI', t)).toBe(true);
+      expect(can('aiWork', t)).toBe(true);
+      expect(can('lectures', t)).toBe(true);
+    }
     expect(can('lectures', 'max')).toBe(true);
-    expect(tierFor('weeklyRecap')).toBe('plus');
+    expect(tierFor('weeklyRecap')).toBe('max');
   });
 
   it('a live trial is the trial tier; an expired one is the paid tier', () => {
@@ -32,8 +33,9 @@ describe('feature flags', () => {
     expect(trialDaysLeft({ tier: 'free', trialEndsAt: '2026-09-30T00:00:00.000Z' }, now)).toBe(7);
     expect(trialDaysLeft({ tier: 'free', trialEndsAt: '2026-10-20T00:00:00.000Z', trialSyncedAt: '2026-09-20T00:00:00.000Z', trialDaysUsed: 2, trialLastDay: null }, now)).toBe(5);
     expect(trialDaysLeft({ tier: 'free', trialEndsAt: null }, now)).toBeNull();
-    // A referral reward lifts a Free account to Plus for its month, never lowers a paid Pro.
+    // A referral reward lifts a Free account for its month (an old Plus one counts as Max), never lowers a paid Pro.
     expect(effectiveTier({ tier: 'free', rewardTier: 'plus', rewardUntil: '2026-10-20T00:00:00.000Z' }, now)).toBe('plus');
+    expect(can('announcementAI', effectiveTier({ tier: 'free', rewardTier: 'plus', rewardUntil: '2026-10-20T00:00:00.000Z' }, now))).toBe(true);
     expect(effectiveTier({ tier: 'pro', rewardTier: 'plus', rewardUntil: '2026-10-20T00:00:00.000Z' }, now)).toBe('pro');
     expect(effectiveTier({ tier: 'free', rewardTier: 'plus', rewardUntil: '2026-09-01T00:00:00.000Z' }, now)).toBe('free');
   });
@@ -51,28 +53,25 @@ describe('feature flags', () => {
     for (const t of PAID) {
       for (const i of OFFERED_INTERVALS) {
         expect(PRICES[t][i]).toBeGreaterThan(0);
-        expect(STRIPE_PRICE_IDS[t][i]).toMatch(/^price_/);
+        expect(MAX_PRICE_LOOKUP_KEY).toBeTruthy();
       }
     }
     for (const tier of Object.values(FEATURES)) expect(TIERS).toContain(tier);
     expect(Object.values(FEATURES)).not.toContain('pro');
   });
 
-  it('the plans are what George set on 2026-09-28 (auto-sync: Plus and Max on 2026-10-04; Free kept current on 2026-10-25)', () => {
-    expect(PRICES.plus.month).toBe(4.99);
-    expect(PRICES.max.month).toBe(7.99);
+  it('the plans are what George set on 2026-10-29: Free and Max ($0.99); the rule: what costs AI tokens is Max, plus auto-sync', () => {
+    expect(PAID).toEqual(['max']);
+    expect(PRICES.max.month).toBe(0.99);
     expect(TRIAL.days).toBe(7);
-    // Free: what Halo already shows, kept current. Plus: what only Halo+ does.
-    for (const f of ['syllabusDrop', 'manualItems', 'monthView', 'agendaView', 'nowBasic', 'haloManualSync', 'haloGrades', 'announcementPeek'] as const) expect(FEATURES[f]).toBe('free');
-    for (const f of ['haloAutoSync', 'announcementAI', 'reminders', 'weeklyRecap', 'icsFeed', 'gradeProjection'] as const) expect(FEATURES[f]).toBe('plus');
-    for (const f of ['aiChat', 'promptPanel', 'flashcards', 'examPlans', 'lectures', 'themes'] as const) expect(FEATURES[f]).toBe('max');
-    // Plus syncs by hand; only Max syncs on its own. A trial or a friend link is Max, so it auto-syncs.
+    expect(REFERRAL.rewardTier).toBe('max');
+    for (const f of ['syllabusDrop', 'manualItems', 'monthView', 'agendaView', 'nowBasic', 'haloManualSync', 'haloGrades', 'announcementPeek', 'gradeProjection', 'themes', 'helpKit', 'onHalo'] as const) expect(FEATURES[f]).toBe('free');
+    for (const f of ['haloAutoSync', 'announcementAI', 'reminders', 'weeklyRecap', 'icsFeed', 'flashcards', 'examPlans', 'aiWork', 'lectures', 'syllabusAI'] as const) expect(FEATURES[f]).toBe('max');
+    expect(Object.values(FEATURES).every((t) => t === 'free' || t === 'max')).toBe(true);
+    // A trial or a friend link is Max, so it auto-syncs.
     expect(can('haloAutoSync', effectiveTier({ tier: 'free', trialEndsAt: '2099-01-01T00:00:00.000Z' }))).toBe(true);
     expect(can('haloAutoSync', effectiveTier({ tier: 'free', rewardTier: 'max', rewardUntil: '2099-01-01T00:00:00.000Z', friendFrom: 'A' }))).toBe(true);
-    expect(FEATURES.haloAutoSync).toBe('plus');
-    expect(can('haloAutoSync', 'plus')).toBe(true);
     expect(can('haloAutoSync', 'free')).toBe(false);
-    expect(can('haloManualSync', 'plus')).toBe(true);
   });
 
   it('Halo sync: every signed-in plan since 2026-10-25 (Free when it syncs or is on Halo); the reason says which', () => {

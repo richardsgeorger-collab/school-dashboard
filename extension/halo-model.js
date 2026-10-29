@@ -203,6 +203,9 @@
       syncedAt,
       top: (s && s.top) || null,
       pw: s && typeof s.pw === 'number' ? s.pw : null,
+      // 0.12.12: Max (announcements read for you), and when a free week of Max ended (the one note on Halo).
+      mx: !!(s && s.mx),
+      te: (s && s.te) || null,
       classes,
       items: items.filter((i) => i.due && !Number.isNaN(ms(i.due)) && !/^participation$/i.test(i.ty || '')),
     };
@@ -477,6 +480,9 @@
     const parts = [];
     if (item.m) parts.push(`Due date moved to ${shortDate(item.due, view.tz)} (was ${shortDate(item.m, view.tz)})`);
     for (const l of boxLines(item)) parts.push(l.replace(/[.!]$/, ''));
+    // Free (0.12.12, George 2026-10-29): what kind of change an announcement made to this assignment, never the
+    // details, with "Unlock with Max"; after paying, the details take its place once Halo+ has read the announcement.
+    if (!parts.length && Array.isArray(item.lk) && item.lk.length) return { locked: true, line: headsUp(item.lk), more: [], key: itemKey(item), id: item.id, courseId: item.c && !String(item.c).startsWith('live:') ? item.c : null };
     if (!parts.length) return null;
     const first = [];
     let len = 0;
@@ -511,14 +517,14 @@
    * The one thing worth a re-peek since the baseline, or null: a graded item now due within 3 hours (not flagged yet),
    * a graded item whose due date moved, a new requirement on a 20+ point item. Nothing on first run (no baseline).
    */
-  /** Free (0.11.0): the kind of change an announcement made, never the details. Mirrors src/halo/peek.ts lockedLine. */
-  function lockedText(lk) {
-    const d = (lk || []).includes('due_date');
-    const x = (lk || []).includes('extra_step');
-    return `An announcement ${d && x ? 'changed the due date and added a step' : d ? 'changed the due date' : 'added a step'}`;
+  /** The heads-up on an assignment's page (0.12.12): "An announcement changed this due date". */
+  function headsUp(lk) {
+    const d = lk.includes('due_date');
+    const x = lk.includes('extra_step');
+    return d && x ? 'An announcement changed this due date and added a step' : d ? 'An announcement changed this due date' : 'An announcement added a step to this';
   }
 
-  function notable(view, base, now, flagged, lockedShown) {
+  function notable(view, base, now, flagged) {
     if (!view || !base || base.v !== 2 || !base.items) return null;
     const t = nowMs(now);
     const out = [];
@@ -531,8 +537,7 @@
       const was = base.items[k];
       if (!was) continue;
       if (graded(i) && Math.abs(Math.round(due / MIN) - was[0]) * MIN >= MOVE_MS) out.push({ rank: 1, kind: 'moved', i, text: `Moved: ${clip(title(i), 36)} is now due ${dueWord(i.due, now, view.tz)}` });
-      // Free: once per assignment, ever (lockedShown), calm, and after anything that is due soon or moved.
-      if (i.lk && i.lk.length && !(lockedShown || []).includes(k)) out.push({ rank: 3, kind: 'locked', i, text: `${lockedText(i.lk)}: ${clip(title(i), 30)} · see it with Plus` });
+      // Free's heads-up is on the assignment's own page now (0.12.12, caught), never in the pill.
       if ((i.pts || 0) >= BIG_PTS && boxLines(i).length > was[1]) {
         const what = boxLines(i)[was[1]] || boxLines(i)[0];
         out.push({ rank: 2, kind: 'req', i, text: what ? `New for ${clip(title(i), 28)}: ${clip(what, 44)}` : `New requirement on ${clip(title(i), 40)}` });

@@ -1,5 +1,15 @@
 # Chrome Web Store listing kit
 
+## 0.12.12 (2026-10-29): upload this package instead of 0.12.11; the description's plans line changed
+
+0.12.12 (Loop 283): Free and Max. Everything Halo+ adds on Halo's pages is Free now (the switches show for every
+account); Max is $0.99 a month. On Free, an assignment whose due date or work an announcement changed gets one line on
+its Halo page, "An announcement changed this due date · Unlock with Max" (once per assignment), which opens Max's
+checkout and comes back to that page with the details; the free week's end is one note on Halo, shown once ("Keep Max ·
+$0.99/mo" or "Not now"); the popup's Free line is "Max: $0.99/mo". In the description below, the plans paragraph is now
+"Free: everything on Halo. Max ($0.99/mo): announcements read for you and auto-sync." **No new permission.** Upload
+`webstore-upload/halo-plus-extension-0.12.12.zip`.
+
 ## 0.12.11 (2026-10-29): upload this package instead of 0.12.10; everything else as below
 
 0.12.11 (Loop 282): the submit toast shows the item, "+30 pts" and the week's bar, without the "3 of 10 this week"
@@ -75,7 +85,7 @@ Behind it, a planner of your own:
 
 After Add to Chrome: make a free Halo+ account (one step), then open Halo. Your classes, due dates and grades come in on their own. About two minutes.
 
-Free syncs Halo whenever you're on Halo and shows This week and your grade on Halo's home page, plus your due dates, grades and GPA in Halo+. Plus adds everything else on Halo's pages above (search, the calendar, what's next, the rubric and the rest), reads every announcement for you and syncs on its own every 3 hours. Max adds the study tools.
+Free: everything on Halo. Max ($0.99/mo): announcements read for you and auto-sync.
 
 Built for Grand Canyon University students who use Halo. The extension reads only your own Halo, while you're logged in there. It never asks for, sees or stores your GCU password, and it sends your classes only to your own Halo+ account. The code is public: https://github.com/richardsgeorger-collab/school-dashboard.
 

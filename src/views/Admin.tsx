@@ -5,7 +5,6 @@ import { EmptyState } from '../components/EmptyState';
 import { ResetEmailAdmin } from './ResetEmailAdmin';
 import { AdminEndTrial } from './AdminEndTrial';
 import { AdminHaloLinks } from './AdminHaloLinks';
-import { AdminIntro } from './AdminIntro';
 import { AdminRatings } from './AdminRatings';
 import { AdminExtension } from './AdminExtension';
 import { AdminFunnel } from './AdminFunnel';
@@ -76,7 +75,6 @@ export function Admin() {
         <AdminSignupFunnel />
         <AdminFunnel />
         <AdminRatings />
-        <AdminIntro />
         <AdminEndTrial />
         <AdminHaloLinks />
         <AdminExtension />

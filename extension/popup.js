@@ -6,9 +6,9 @@ import { DASH_ORIGIN, DROP_URL, PERIOD_MINUTES } from './config.js';
 
 const $ = (id) => document.getElementById(id);
 const PAID = ['plus', 'pro', 'max'];
-// Auto-sync is Plus and Max (2026-10-04; Max only from 2026-10-01). Free has no Halo sync: the popup says so.
+// Auto-sync is Max (2026-10-29; Plus, retired, counts as Max). Free syncs whenever the student is on Halo.
 const AUTO = ['plus', 'max'];
-const PLAN_NAMES = { free: 'Free', plus: 'Plus', pro: 'Pro', max: 'Max' };
+const PLAN_NAMES = { free: 'Free', plus: 'Max', pro: 'Max', max: 'Max' };
 $('open').href = `${DASH_ORIGIN}/#/now`;
 
 const time = (d) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -170,12 +170,12 @@ async function render() {
   const next = auto && nextAt && !/span/.test(last) ? `<span class="next">Syncs on its own, next around ${when(new Date(nextAt).toISOString())}</span>` : s.tier && !auto && !/span/.test(last) ? '<span class="next">Syncs whenever you\'re on Halo</span>' : '';
   $('status').innerHTML = s.running ? `${last.replace(/<span.*$/, '')}<span class="next">Syncing now</span>` : last + next;
   $('status').hidden = !$('status').innerHTML;
-  // Free: syncing in the background, every 3 hours, is part of Plus. Said here only, where the student opened the
-  // popup; never on a Halo page. Nothing to say on Plus or Max, or before the plan is known.
+  // Free (0.12.12, George 2026-10-29): one line, "Max: $0.99/mo", straight to Max's checkout. Nothing on Max, or
+  // before the plan is known.
   $('plus').hidden = auto || !s.tier;
-  $('plusText').textContent = 'Plus also syncs on its own every 3 hours, and reads every announcement for you.';
-  $('upgrade').textContent = 'See plans';
-  $('upgrade').href = `${DASH_ORIGIN}/#/you?s=plan&to=plus`;
+  $('plusText').textContent = '';
+  $('upgrade').textContent = 'Max: $0.99/mo';
+  $('upgrade').href = `${DASH_ORIGIN}/#/checkout?from=popup`;
 
   $('sync').disabled = !!s.running;
   $('sync').textContent = s.running ? 'Syncing…' : stuck ? 'Try again' : 'Sync now';
@@ -255,13 +255,13 @@ $('onHalo').addEventListener('change', () => {
   void feats();
 });
 
-// One switch per Halo+-on-Halo feature (0.12.0), under "Show Halo+ on Halo pages": Plus and Max (the trial is Max),
-// while that is on. Whichever list changed last wins, here or in Halo+. Free sees no switches for what it does not have.
+// One switch per Halo+-on-Halo feature (0.12.0), under "Show Halo+ on Halo pages", while that is on, for any account
+// (Free since 0.12.12). Whichever list changed last wins, here or in Halo+.
 async function feats() {
   const { tier, haloFeat, haloSnap } = await chrome.storage.local.get(['tier', 'haloFeat', 'haloSnap']);
   const box = $('feats');
   const list = globalThis.HaloPlusOnFeatures || [];
-  box.hidden = !$('onHalo').checked || !(tier === 'plus' || tier === 'max') || !list.length;
+  box.hidden = !$('onHalo').checked || !tier || !list.length;
   if (box.hidden) return;
   const snap = haloSnap && haloSnap.hf ? haloSnap.hf : null;
   const off = haloFeat && (!snap || !snap.at || haloFeat.at > snap.at) ? haloFeat.off || [] : (snap && snap.off) || [];

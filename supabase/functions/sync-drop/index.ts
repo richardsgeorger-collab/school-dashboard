@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
     // build since 0.2) are taken for Plus, Max, a trial or a friend link; not for Free. Sync now (auto false) as before.
     if (fromExtension && p.auto === true) {
       const { data: plan } = await db.rpc('plan_of', { uid: owner.user_id });
-      if (!can('haloAutoSync', ((plan as Tier) ?? 'free'))) return reply(origin, 403, { ok: false, plan: 'plus', why: 'Automatic syncs are part of Plus and Max.' });
+      if (!can('haloAutoSync', ((plan as Tier) ?? 'free'))) return reply(origin, 403, { ok: false, plan: 'max', why: 'Automatic syncs are part of Max.' });
     }
     // One Halo student, one Halo+ account (2026-10-11). Keyed on the Halo student (the sync script's hash of the Halo
     // session's identity), never on class ids: those are sections every classmate shares, and keying on them blocked

@@ -25,15 +25,13 @@ describe('the payoff', () => {
 });
 
 describe('the upgrade welcome', () => {
-  it('Max for a Max account (paid, trial or friend), Plus for Plus, once each; Plus to Max shows only Max', () => {
+  it('Max for a Max account (paid, trial or friend), once; a retired Plus account is Max now (2026-10-29)', () => {
     expect(upgradeDue('max', undefined)).toBe('max');
     expect(upgradeDue('max', { max: 'x' })).toBeNull();
-    expect(upgradeDue('plus', undefined)).toBe('plus');
-    expect(upgradeDue('plus', { plus: 'x' })).toBeNull();
-    // Someone who saw Plus and then upgrades: only the Max part.
-    expect(upgradeDue('max', { plus: 'x' })).toBe('max');
-    // Someone who saw Max never gets Plus after (Max included it).
+    expect(upgradeDue('plus', undefined)).toBe('max');
     expect(upgradeDue('plus', { max: 'x' })).toBeNull();
+    // Someone who saw the old Plus welcome: the Max one, once.
+    expect(upgradeDue('max', { plus: 'x' })).toBe('max');
     expect(upgradeDue('free', undefined)).toBeNull();
     // The old four-screen Max welcome, finished, counts as seen.
     expect(upgradeDue('max', undefined, { startedAt: 'x', step: 'done', doneAt: 'x' })).toBeNull();

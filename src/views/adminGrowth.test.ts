@@ -5,12 +5,12 @@ import { ago } from './AdminAccounts';
 describe('Admin growth numbers', () => {
   it('monthly revenue from what the paying students are on, at the app prices', () => {
     expect(monthlyRevenue([])).toBe(0);
-    expect(monthlyRevenue([{ tier: 'plus', interval: 'month' }, { tier: 'max', interval: 'month' }, { tier: 'max', interval: 'month' }])).toBeCloseTo(4.99 + 7.99 * 2, 2);
-    // The old name for Plus counts as Plus.
-    expect(monthlyRevenue([{ tier: 'pro', interval: 'month' }])).toBeCloseTo(4.99, 2);
+    // Plus and Pro are retired and count as Max (2026-10-29), at Max's price.
+    expect(monthlyRevenue([{ tier: 'plus', interval: 'month' }, { tier: 'max', interval: 'month' }, { tier: 'max', interval: 'month' }])).toBeCloseTo(0.99 * 3, 2);
+    expect(monthlyRevenue([{ tier: 'pro', interval: 'month' }])).toBeCloseTo(0.99, 2);
   });
-  it('six plans, each student in exactly one, in the order George asked for', () => {
-    expect(BUCKETS.map(([, l]) => l)).toEqual(['Free trial (Max, 7 days of use)', 'Free', 'Plus (paid)', 'Plus (referral credit)', 'Max (paid)', 'Max (friend link)']);
+  it('five groups, each student in exactly one: Free and Max only (2026-10-29)', () => {
+    expect(BUCKETS.map(([, l]) => l)).toEqual(['Free trial (Max, 7 days of use)', 'Free', 'Max (paid)', 'Max (invite credit)', 'Max (friend link)']);
   });
   it('says when in plain words', () => {
     const now = Date.parse('2026-09-30T20:00:00Z');

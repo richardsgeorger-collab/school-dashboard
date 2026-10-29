@@ -33,10 +33,10 @@ function usePreview(feature: Feature): string | null {
     return exams > 0 ? `You have ${exams} exam${exams === 1 ? '' : 's'} coming up that Max would plan studying for.` : null;
   }
   if ((feature === 'lectures' || feature === 'flashcards') && n !== null && n > 0) return `You have ${n} recording${n === 1 ? '' : 's'} Max would turn into notes and practice.`;
-  if (feature === 'aiChat') {
+  if (feature === 'aiWork') {
     // Work, not attendance rows: "181 open things" was every participation entry in the term.
     const open = data.items.filter((i) => i.status !== 'done' && i.type !== 'participation').length;
-    return open > 0 ? `${open} open things to ask about: what first, what can wait, what a professor really wants.` : null;
+    return open > 0 ? `${open} open assignment${open === 1 ? '' : 's'} Max would read for what they really ask, and check your work against.` : null;
   }
   return null;
 }
@@ -69,7 +69,7 @@ export function Locked({ feature, tier, children, compact = false, line, quiet =
           </span>
         ) : (
           <span className="locked-trial">
-            <UpgradeButton tier={need === 'max' ? 'max' : 'plus'} />
+            <UpgradeButton tier="max" />
             <a className="hero-inline" href={`#/you?s=plan&to=${need}&for=${feature}`}>
               See plans
             </a>
