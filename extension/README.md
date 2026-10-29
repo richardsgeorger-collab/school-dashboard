@@ -68,6 +68,11 @@ restyle).
 `color` attribute or its `border-top` shorthand, which `style.borderTopColor` reads empty for a `var()`), lists
 participation posts, and is calmer (`tokens.css` `.hp-n-*`); the slim line for a finished class is gone (a normal card).
 
+0.12.7 (2026-10-28): the 0.12.6 code with the store's new name and summary (Halo+ ON HALO). 0.12.8: `homeheader.js`'s
+check that the sponsor logo shows in the bar waits while a pop-up covers the whole page (the search's backdrop, a Halo
+dialog); before, any change Halo made under an open search put Halo's full header back for the visit. Store pictures:
+`scripts/webstore-shots-onhalo.mjs`, `scripts/webstore-tile-onhalo.mjs`.
+
 ## Build
 
     npm run build:extension

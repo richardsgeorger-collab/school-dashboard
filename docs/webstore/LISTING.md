@@ -1,6 +1,67 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.12.6 (2026-10-28): paste exactly this
+## The listing now: Halo+ ON HALO, 0.12.8 (or 0.12.7) (2026-10-28): paste exactly this
+
+The store page is now about Halo+ on Halo's own pages, for someone whose only introduction is the store page: a new
+name and summary (in the manifest, so they come with the package), five new screenshots on Halo's pages, a new promo
+tile and a new description. No prices anywhere on it. **No new permission**; the Privacy tab is unchanged.
+
+Two packages, the same name, summary and pictures:
+- **0.12.8 (recommended):** 0.12.7 plus one fix found while making the pictures: with the search open on Student Home,
+  any change Halo made to the page made Halo+ put Halo's full header back for the rest of the visit (the search's
+  backdrop covers the sponsor logo, and the check that keeps the sponsor logo visible read that as hidden). The check
+  now waits while a pop-up covers the whole page; a logo really covered still brings Halo's header back.
+- **0.12.7:** exactly the 0.12.6 code, only the manifest's name, summary and version changed (as asked).
+
+| Where in the dashboard | What |
+|---|---|
+| **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.12.8.zip` (or `halo-plus-extension-0.12.7.zip`) |
+| Name and summary | come from the package: **Halo+ for GCU: Calendar, Search & Due Dates on Halo** (51 of 75 characters); **Makes GCU's Halo better right on the page: search, one calendar for all classes, what's next on every class, rubrics and more.** (126 of 132) |
+| **Store listing → Description** | the Description block below, all of it |
+| **Store listing → Screenshots** | remove the five there now, then add in this order: `webstore-upload/screenshots/1-home.png`, `2-calendar.png`, `3-search.png`, `4-rubric.png`, `5-next.png` (1280×800, 24-bit PNG) |
+| **Store listing → Small promo tile** | `webstore-upload/promo-tile-440x280.png` (440×280, 24-bit PNG) |
+| **Privacy** | unchanged (no new permission, nothing new leaves the computer) |
+| Then | **Submit for review** |
+
+The screenshots (scripts/webstore-shots-onhalo.mjs) are the saved Halo page copies with the real extension and the demo
+student Maya Torres (made up), plain Halo with its purple bar, a caption on each: 1 "Halo’s home page, with your week
+at a glance" (search, This week, the week strip, the class cards with NEXT); 2 "Every class, one calendar" (a class's
+Calendar, All classes); 3 "Find anything in your classes: ⌘K or Ctrl+K" ("topic 3"); 4 "The rubric, right under the
+assignment"; 5 "Your grade and what’s next, on every class" (two cards at 125%). Left out of the pictures: the test
+page's placeholder sponsor logo (it says "stand-in"; covered with the bar's purple) and Halo+'s corner pill (it read
+"Due in 2h" in the evening, over the cards). The tile (scripts/webstore-tile-onhalo.mjs): a slice of the same Student
+Home (Halo's bar, Halo+'s search and This week) and "Halo, but better." with the Halo+ mark. The 2026-10-24 pictures
+and tile are in `webstore-upload/old-screenshots/`.
+
+**Description** (Store listing → Description):
+
+```
+Halo+ makes GCU's Halo better right on Halo's own pages. Nothing new to learn: open Halo as you always do, and it's there.
+
+On Halo, with Halo+:
+• Search every class at once. Press Ctrl+K (⌘K on a Mac) on any Halo page and type a topic, an assignment or a file.
+• Every class on one calendar. Halo's calendar shows one class at a time; Halo+ adds "All classes", each in its Halo colour.
+• What's next on every class card: your grade at the top, then the next things due, soonest first, and what you can't do yet with why ("Exam 1 · in class Fri").
+• This week on Halo's home page, with a strip of the days ahead.
+• The rubric right under the assignment, instead of a new tab.
+• How long you have beside each due date, topic progress, participation this week, PDFs that open on the page, your discussion drafts kept on your computer, your word count against the minimum, and Halo's own proof that your file went through.
+• Each one has its own switch, so you keep only what you want.
+
+Behind it, a planner of your own:
+• Reads your Halo announcements for you: a due date that moved or a new requirement, caught and put on the right assignment.
+• Your real Halo grades for every class, and your semester GPA.
+• Works on your phone: your laptop syncs Halo; open Halo+ on your phone and the whole week is there.
+
+After Add to Chrome: make a free Halo+ account (one step), then open Halo. Your classes, due dates and grades come in on their own. About two minutes.
+
+Free syncs Halo whenever you're on Halo and shows This week and your grade on Halo's home page, plus your due dates, grades and GPA in Halo+. Plus adds everything else on Halo's pages above (search, the calendar, what's next, the rubric and the rest), reads every announcement for you and syncs on its own every 3 hours. Max adds the study tools.
+
+Built for Grand Canyon University students who use Halo. The extension reads only your own Halo, while you're logged in there. It never asks for, sees or stores your GCU password, and it sends your classes only to your own Halo+ account. The code is public: https://github.com/richardsgeorger-collab/school-dashboard.
+
+Not affiliated with GCU.
+```
+
+## 0.12.6 (2026-10-28)
 
 0.12.6 (Loop 277): a calmer NEXT box on Halo's class cards: each class's own colour (no longer plain gray), more room
 between items, the title in Halo's link style with its time right after it, what cannot be done yet in plain gray with
@@ -423,6 +484,9 @@ the two in step, src/landing/privacy.test.ts checks the key lines)
 **Support:** richards.georger@gmail.com (the same address on the privacy and terms pages)
 
 ## Screenshots (1280×800, in this order)
+
+Now (2026-10-28, Halo+ ON HALO): `webstore-upload/screenshots/1-home.png`, `2-calendar.png`, `3-search.png`,
+`4-rubric.png`, `5-next.png` (see "The listing now" at the top). The set below is from 2026-09-30, for reference.
 
 1. `screenshot-1-now.png`: Now, the one thing to do next, with heads-ups from announcements.
 2. `screenshot-2-classes.png`: every class with its grade, next deadline and pace.

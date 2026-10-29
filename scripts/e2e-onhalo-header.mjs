@@ -114,6 +114,35 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
       await p.mouse.move(3, 3);
       await p.screenshot({ path: `${OUT}/${tag}-${width}-2-after.png` });
       if (width === 1366) {
+        // 0.12.8: search open over the page (it covers the logo for a moment) while Halo changes something: still compact;
+        // a thing of Halo's really over the logo: Student Home left as Halo has it (the sponsor is never hidden).
+        {
+          const q = await b.page('https://halo.gcu.edu/', { width, height: 900 });
+          await until(async () => (await look(q)).compact && (await look(q)).logo !== null, 8000, 200);
+          await sleep(1000);
+          const mod = (await q.evaluate(() => /Mac/.test(navigator.platform))) ? 'Meta' : 'Control';
+          await q.keyboard.press(`${mod}+k`);
+          await until(async () => (await q.locator('[data-haloplus="search-palette"]').count()) === 1, 5000, 100);
+          await q.keyboard.type('topic 3', { delay: 30 });
+          await q.evaluate(() => document.querySelector('#Home--main').append(document.createElement('div')));
+          await sleep(1500);
+          const open = await look(q);
+          await q.keyboard.press('Escape');
+          await q.evaluate(() => document.querySelector('#Home--main').append(document.createElement('div')));
+          await sleep(1500);
+          const closed = await look(q);
+          check(open.compact && !open.header && closed.compact && !closed.header && closed.logo && closed.logo.inBar, `${tag}: search open while Halo changes the page: still compact, the logo in the bar after (${open.compact}, ${closed.compact})`);
+          await q.evaluate(() => {
+            const r = document.querySelector('[data-haloplus="sponsor"]').getBoundingClientRect();
+            const d = document.createElement('div');
+            d.style.cssText = `position:fixed;left:${r.left - 4}px;top:${r.top - 4}px;width:${r.width + 8}px;height:${r.height + 8}px;background:#fff;z-index:5000`;
+            document.querySelector('#Home--main').append(d);
+          });
+          await sleep(1500);
+          const cov = await look(q);
+          check(!cov.compact && cov.header, `${tag}: something of Halo's over the logo: Student Home left as Halo has it (the sponsor never hidden)`);
+          await q.close();
+        }
         // 0.12.4: "Past classes" after the class cards opens Halo's own Past Classes, and comes back.
         const pastNow = () => p.evaluate(() => {
           const l = document.querySelector('[data-haloplus="past-link"]');

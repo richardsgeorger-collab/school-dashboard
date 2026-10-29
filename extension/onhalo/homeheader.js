@@ -32,6 +32,15 @@
     if (!src || !/^(https?:|data:image\/|\/)/.test(src)) return null;
     return { header, src, alt: alt || 'Sponsor logo', href: a ? a.getAttribute('href') : null };
   }
+  /** Whether an element is, or sits in, a layer fixed over (nearly) the whole window: a pop-up's backdrop. */
+  function overlay(el) {
+    for (let e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      if (getComputedStyle(e).position !== 'fixed') continue;
+      const q = e.getBoundingClientRect();
+      if (q.width >= window.innerWidth * 0.9 && q.height >= window.innerHeight * 0.9) return true;
+    }
+    return false;
+  }
   /** The empty space in Halo's purple bar between MESSAGES and the bell. */
   function barSpot() {
     const bar = document.querySelector('#header_main_container header .MuiToolbar-root');
@@ -86,6 +95,10 @@
     const r = i.getBoundingClientRect();
     const bar = b && b.bar.getBoundingClientRect();
     const hit = r.width ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+    // Over the whole page for a moment (Halo+'s search, a Halo dialog's backdrop): the logo is not hidden, the page is
+    // just covered; judged again after (0.12.8; it put Halo's header back for the visit whenever the page changed under
+    // an open search).
+    if (hit && !h.contains(hit) && overlay(hit)) return;
     const ok = !!bar && (i.tagName !== 'IMG' || i.naturalWidth > 0) && r.width > 20 && r.height > 12 && r.top >= bar.top - 1 && r.bottom <= bar.bottom + 1 && r.right <= window.innerWidth && !!hit && h.contains(hit);
     if (!ok) {
       failedFor = headerNow();
