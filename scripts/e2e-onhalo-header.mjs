@@ -178,8 +178,8 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
       }
       await p.close();
     }
-    // Left alone: Halo's header in another shape; no logo; Free.
-    for (const [name, shape, extra] of [['Halo’s header in another shape', 'odd', {}], ['no sponsor logo', 'none', {}], ['Free', 'halo', { tier: 'free' }]]) {
+    // Left alone: Halo's header in another shape; no logo; no Halo+ account on this computer yet (Free has it since 0.12.12).
+    for (const [name, shape, extra] of [['Halo’s header in another shape', 'odd', {}], ['no sponsor logo', 'none', {}], ['no account yet', 'halo', { tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null }]]) {
       b.bench.state.homeHeader = shape;
       await b.seed({ lastAttemptAt: new Date().toISOString(), ...extra });
       const p = await b.page('https://halo.gcu.edu/');

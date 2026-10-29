@@ -70,7 +70,8 @@ for (const withBh of bhPath ? [false, true] : [false]) {
     const snap = JSON.parse(JSON.stringify(fx.snap));
     snap.syncedAt = iso(-3);
     for (const c of snap.classes) Object.assign(c, { g: 80, gl: 'B-', ga: iso(-3) });
-    await store({ tier: 'free', lastSyncAt: iso(-3), syncKey: 'a'.repeat(48), haloSnap: snap, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloGrades: null });
+    // Halo+'s class cards (on every plan since 0.12.12) replace the class line this tests: they are off here.
+    await store({ tier: 'free', lastSyncAt: iso(-3), syncKey: 'a'.repeat(48), haloSnap: snap, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloGrades: null, haloFeat: { off: ['homecards'], at: new Date().toISOString() } });
     await sleep(1200);
     for (const pg of ctx.pages()) if (pg.url().startsWith('https://haloplus.app')) await pg.close().catch(() => undefined);
 

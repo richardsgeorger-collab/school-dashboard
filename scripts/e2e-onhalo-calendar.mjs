@@ -420,8 +420,8 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.close();
     st.gateway.StudentAssessmentDetails = gradesGateway(fx).StudentAssessmentDetails;
 
-    // Show nothing: Free; switched off; no index.
-    for (const [name, extra] of [['Free', { tier: 'free' }], ['switched off', { haloFeat: { off: ['calendar', 'homecards'], at: new Date().toISOString() } }], ['no index', { haloIndex: null }]]) {
+    // Show nothing: no Halo+ account on this computer yet (Free has it since 0.12.12); switched off; no index.
+    for (const [name, extra] of [['no account yet', { tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null }], ['switched off', { haloFeat: { off: ['calendar', 'homecards'], at: new Date().toISOString() } }], ['no index', { haloIndex: null }]]) {
       await b.seed({ ...extra, haloViews: { calAll: true }, lastAttemptAt: new Date().toISOString() });
       p = await b.page(url);
       await sleep(2500);

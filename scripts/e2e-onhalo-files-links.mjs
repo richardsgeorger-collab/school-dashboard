@@ -84,12 +84,12 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     if (tab) await tab.close();
     await p.close();
 
-    // Free: nothing.
-    await b.seed({ tier: 'free' });
+    // No Halo+ account on this computer yet: nothing (Free has it since 0.12.12).
+    await b.seed({ tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null });
     p = await b.page(url);
     await sleep(2500);
     const [tab2] = await Promise.all([p.context().waitForEvent('page', { timeout: 8000 }).catch(() => null), p.locator('a[href^="/resource/"]', { hasText: 'Study guide.pdf' }).first().click()]);
-    check((await p.locator('[data-haloplus-link]').count()) === 0 && !!tab2, `${tag}: Free: no links added, files open Halo's way`);
+    check((await p.locator('[data-haloplus-link]').count()) === 0 && !!tab2, `${tag}: no account yet: no links added, files open Halo's way`);
     if (tab2) await tab2.close();
     await p.close();
   } catch (e) {

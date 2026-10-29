@@ -108,10 +108,11 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     check((await p.locator('[data-haloplus="participation"]').count()) === 0, `${tag}: Halo does not answer: nothing`);
     st.failGateway = false;
     await p.close();
-    await b.store({ tier: 'free' });
+    // No Halo+ account on this computer yet: nothing (Free has it since 0.12.12).
+    await b.store({ tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null });
     p = await b.page(url);
     await sleep(3000);
-    check((await p.locator('[data-haloplus="participation"]').count()) === 0, `${tag}: Free: nothing`);
+    check((await p.locator('[data-haloplus="participation"]').count()) === 0, `${tag}: no account yet: nothing`);
     await p.close();
   } catch (e) {
     check(false, `${tag}: ${e.stack || e.message}`);

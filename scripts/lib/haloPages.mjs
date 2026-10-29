@@ -409,6 +409,12 @@ window.__haloEditors = true;
 const TYPE_TITLE = { ASSIGNMENT: 'Assignment', DISCUSSION_QUESTION: 'Discussion Question', PARTICIPATION: 'Participation', QUIZ: 'Quiz', LTI: 'External Assessment (LTI)' };
 const STATUS_BG = { PUBLISHED: '#2e7d32', SUBMITTED: '#3f51b6', LATE: '#ffbd16', OVERDUE: '#e91c0d', ACTIVE: '#e0e0e0', UPCOMING: '#e0e0e0', IN_PROGRESS: '#a4d4fc', REASSIGNED: '#7e57c3' };
 const cap = (st) => st.split('_').map((w) => w[0] + w.slice(1).toLowerCase()).join(' ');
+/** What each level says, per criterion, in the way GCU's rubrics word them (made up, 2026-10-29: realistic for the store pictures). */
+const LEVEL_TEXT = {
+  Content: ['Not submitted.', 'Several parts of the prompt are missing, and ideas are not supported.', 'Most parts of the prompt are addressed; support is thin in places.', 'Every part of the prompt is addressed with relevant support.', 'Every part of the prompt is addressed thoroughly, with specific, well-chosen support.'],
+  Organization: ['Not submitted.', 'No clear order; the reader has to work to follow it.', 'A basic order, with some abrupt shifts between ideas.', 'A clear order, with transitions between most ideas.', 'A logical order throughout; transitions make each step easy to follow.'],
+  Mechanics: ['Not submitted.', 'Frequent errors get in the way of meaning; APA format is missing.', 'Some errors, and APA format used inconsistently.', 'Few errors; APA format with minor slips.', 'Free of errors, with correct APA format throughout.'],
+};
 /** A made-up rubric for an assignment worth 40 points or more (the fake gateway's AssessmentRubric answer). */
 export function rubricFor(a) {
   if (!a || a.type !== 'ASSIGNMENT' || (a.points || 0) < 40) return null;
@@ -431,7 +437,7 @@ export function rubricFor(a) {
         sequence: k + 1,
         achievementLevels: [
           ['No Submission', 0], ['Insufficient', 0.6], ['Approaching', 0.75], ['Acceptable', 0.85], ['Target', 1],
-        ].map(([n, f], j) => ({ cellId: `cell-${a.id}-${k}-${j}`, name: n, description: `${n} for ${name.toLowerCase()}.`, points: Math.round(pts * f * 100) / 100, sequence: j + 1, value: null })),
+        ].map(([n, f], j) => ({ cellId: `cell-${a.id}-${k}-${j}`, name: n, description: LEVEL_TEXT[name][j], points: Math.round(pts * f * 100) / 100, sequence: j + 1, value: null })),
       };
     }),
   };

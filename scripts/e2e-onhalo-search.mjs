@@ -121,9 +121,9 @@ for (const run of runs) {
     await p.screenshot({ path: `${OUT}/${tag}-5-1024.png` });
     await p.close();
 
-    // Show nothing: Free, Show-on-Halo off, no index.
+    // Show nothing: no Halo+ account yet (Free has it since 0.12.12), Show-on-Halo off, no index.
     for (const [name, extra] of [
-      ['Free', { tier: 'free' }],
+      ['no account yet', { tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null }],
       ['"Show Halo+ on Halo pages" off', { haloUiOn: { on: false, at: new Date(Date.now() + 1000).toISOString() } }],
       ['no index yet', { haloIndex: null }],
     ]) {

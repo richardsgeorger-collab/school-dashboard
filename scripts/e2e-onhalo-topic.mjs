@@ -242,11 +242,11 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     await p.screenshot({ path: `${OUT}/${tag}-4-1024.png` });
     await p.close();
 
-    // Free: nothing.
-    await b.seed({ tier: 'free' });
+    // No Halo+ account on this computer yet: nothing (Free has it since 0.12.12).
+    await b.seed({ tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null });
     p = await b.page(url);
     await sleep(2500);
-    check((await p.locator('[data-haloplus="rubric"], [data-haloplus="duein"], [data-haloplus="topic"]').count()) === 0, `${tag}: Free: nothing added`);
+    check((await p.locator('[data-haloplus="rubric"], [data-haloplus="duein"], [data-haloplus="topic"]').count()) === 0, `${tag}: no account yet: nothing added`);
     await p.close();
   } catch (e) {
     check(false, `${tag}: ${e.stack || e.message}`);

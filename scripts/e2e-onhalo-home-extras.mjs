@@ -157,11 +157,11 @@ const hard = setTimeout(() => (console.log('HARD TIMEOUT'), process.exit(3)), 15
     await sleep(14000);
     check((await p.locator('link[data-haloplus="preload"]').count()) === 0, `preload: a slow connection: nothing fetched ahead`);
     await p.close();
-    // Free: nothing.
-    await b.seed({ tier: 'free', haloPreload: null });
+    // No Halo+ account on this computer yet: nothing (Free has it since 0.12.12).
+    await b.seed({ ...{ tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null }, haloPreload: null });
     p = await b.page('https://halo.gcu.edu/');
     await sleep(12000);
-    check((await p.locator('link[data-haloplus="preload"]').count()) === 0, `preload: Free: nothing`);
+    check((await p.locator('link[data-haloplus="preload"]').count()) === 0, `preload: no account yet: nothing`);
     await p.close();
   } catch (e) {
     if (!e.lowBattery) check(false, `preload: ${e.stack || e.message}`);

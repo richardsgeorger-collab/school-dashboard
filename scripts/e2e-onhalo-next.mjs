@@ -1,5 +1,5 @@
 // Feature 6 (extension 0.12.0): the Halo+ line on each Student Home class card links straight to the class's next
-// thing due ("Next: Topic 3 DQ 1"), at Halo's own address for it. Not on Free (the line stays as it was), not with its
+// thing due ("Next: Topic 3 DQ 1"), at Halo's own address for it. On every plan since 0.12.12 (Free too), not with its
 // switch off, and not for a class whose next item has no address Halo+ is sure of. On Halo's stand-in with the demo
 // student (Maya Torres, made up); Better Halo on and off.
 //   [BROWSER=chrome|edge] [BH_DIR=<Better Halo unpacked>] node scripts/e2e-onhalo-next.mjs
@@ -41,12 +41,12 @@ for (const withBh of bhPath ? [false, true] : [false]) {
       const row = nx && fx.index.rows.find((r) => r.id === nx.h && r.href);
       want[c.slug] = nx && row && M.nextName(nx) ? { name: `Next: ${M.nextName(nx)}`, href: row.href } : null;
     }
-    // Before: the line as it is on Free and in 0.11.
-    await b.seed({ tier: 'free', haloFeat: CARDS_OFF() });
+    // Before: the line as it was in 0.11 ("Next" switched off; Free has it since 0.12.12).
+    await b.seed({ tier: 'free', haloFeat: { off: ['next', 'homecards'], at: new Date().toISOString() } });
     let p = await b.page('https://halo.gcu.edu/');
     await until(async () => (await lines(p)).length >= 6, 10000, 200);
     let ls = await lines(p);
-    check(ls.length >= 6 && ls.every((l) => !l.next), `${tag}: Free: the class lines, no "Next"`);
+    check(ls.length >= 6 && ls.every((l) => !l.next), `${tag}: "Next" switched off: the class lines, no "Next"`);
     await p.screenshot({ path: `${OUT}/${tag}-1-before-free.png` });
     await p.close();
 

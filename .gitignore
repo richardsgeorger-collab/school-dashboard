@@ -15,3 +15,6 @@ dist-e2e2/
 tsconfig.tsbuildinfo
 webstore-upload/
 .scratch/
+
+# Store option mocks with other extensions' tiles: for George only (the repo is public)
+docs/webstore/options-*/local-only/

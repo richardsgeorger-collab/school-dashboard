@@ -135,9 +135,9 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     check((await p.locator('[data-haloplus="feedback"]').count()) === 0, `${tag}: nothing graded before it: no feedback fold`);
     await p.close();
 
-    // Free and switched off: nothing.
+    // No Halo+ account yet (Free has it since 0.12.12) and switched off: nothing.
     st.grades[dq2.id] = { status: 'PUBLISHED' };
-    for (const [name, extra] of [['Free', { tier: 'free' }], ['switched off', { haloFeat: { off: ['submit', 'feedback'], at: new Date().toISOString() } }]]) {
+    for (const [name, extra] of [['no account yet', { tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null }], ['switched off', { haloFeat: { off: ['submit', 'feedback'], at: new Date().toISOString() } }]]) {
       await b.seed(extra);
       p = await b.page(`https://halo.gcu.edu/courses/${com.slugId}/course-units/${unitDq}`);
       await sleep(2500);

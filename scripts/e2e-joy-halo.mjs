@@ -63,7 +63,7 @@ try {
   if (!worker) worker = await ectx.waitForEvent('serviceworker', { timeout: 15000 });
   const store = (keys) => worker.evaluate((k) => chrome.storage.local.get(k), keys);
 
-  // A Plus student, signed in to Halo+ on this computer.
+  // A student who had Plus (now Max), signed in to Halo+ on this computer.
   const s = await kit.persona('plus');
   await ectx.addInitScript(({ ses, key }) => { if (location.hostname === 'haloplus.app' && !localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: s.session, key: `sb-${ref}-auth-token` });
   const dash = await ectx.newPage();
@@ -72,7 +72,8 @@ try {
   let st = {};
   for (let i = 0; i < 20 && !(st.joySnap && st.tier); i++) { await sleep(1000); st = await store(['joySnap', 'tier']); }
   const nItems = Object.keys(st.joySnap?.items ?? {}).length;
-  check(st.tier === 'plus' && nItems > 10 && st.joySnap.celebrate === true, `the app hands the extension its snapshot (tier ${st.tier}, ${nItems} Halo assignments, celebrations on)`);
+  // A Plus account reads as Max since 2026-10-29 (Plus is retired; plan_of gives max).
+  check(st.tier === 'max' && nItems > 10 && st.joySnap.celebrate === true, `the app hands the extension its snapshot (tier ${st.tier}, ${nItems} Halo assignments, celebrations on)`);
   check(!/title|"name"/.test(JSON.stringify(st.joySnap)), 'the snapshot holds points and class codes only');
 
   // An open assignment, and what Halo+ should say after it: the class's points done plus this one, over its real total.

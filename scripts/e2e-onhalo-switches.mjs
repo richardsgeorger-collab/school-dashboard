@@ -55,7 +55,11 @@ const shown = (label) => (process.platform === 'darwin' ? label.replace('(Ctrl+K
     await h.close();
     await b.store({ tier: 'free' });
     p = await pop();
-    check(await p.locator('#feats').isHidden(), 'popup: Free: no switches for features it does not have');
+    check(await p.locator('#feats').isVisible(), 'popup: Free: the switches (everything on Halo is Free since 0.12.12)');
+    await p.close();
+    await b.store({ tier: null });
+    p = await pop();
+    check(await p.locator('#feats').isHidden(), 'popup: no account yet: no switches');
     await p.close();
     await b.store({ tier: 'max', haloUiOn: { on: false, at: new Date(Date.now() + 5000).toISOString() } });
     p = await pop();
@@ -113,7 +117,7 @@ const shown = (label) => (process.platform === 'darwin' ? label.replace('(Ctrl+K
     await ctx.close();
     const free = await kit.persona('ended');
     ({ ctx, p } = await open(free, '0.12.0'));
-    check((await p.locator('.on-halo-switches').count()) === 0, 'Halo+: Free: no switches');
+    check((await p.locator('.on-halo-switches').count()) === 1, 'Halo+: Free: the switches too (everything on Halo is Free since 0.12.12)');
     await ctx.close();
   } catch (e) {
     check(false, `app: ${e.stack || e.message}`);

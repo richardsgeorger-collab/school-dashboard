@@ -175,14 +175,15 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     w = await words(p, `.toggleReplyEditor[data-for="${forum.posts[1].id}"] [data-testid="post_text_editor"]`);
     check(w.ours === null && !(await draftKeys()).length, `${tag}: switched off: no count and nothing kept`);
     await p.close();
-    await b.seed({ tier: 'free' });
+    // No Halo+ account on this computer yet (Free has it since 0.12.12): nothing.
+    await b.seed({ tier: null, haloSnap: null, haloLive: null, syncKey: null, lastSyncAt: null });
     p = await b.page(url);
     await editorsReady(p);
     await p.locator('#guide_anchor_discussion_reply').click();
     await typeIn(p, '#compose', 'Listening is a skill that improves when we slow down and ask a question back before we answer anything at all. ');
     await sleep(1500);
-    check((await p.locator('[data-haloplus]').count()) <= 1, `${tag}: Free: nothing on the discussion page but Halo+'s pill`);
-    check(!(await draftKeys()).length, `${tag}: Free: nothing kept while typing`);
+    check((await p.locator('[data-haloplus]').count()) <= 1, `${tag}: no account yet: nothing on the discussion page but Halo+'s pill`);
+    check(!(await draftKeys()).length, `${tag}: no account yet: nothing kept while typing`);
     // The before picture: the same box with Halo's own count only.
     await p.screenshot({ path: `${OUT}/${tag}-0-before-words-post.png` });
     await p.close();
