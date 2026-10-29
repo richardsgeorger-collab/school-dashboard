@@ -34,7 +34,7 @@ export const PEEK_TOOL: ToolSpec = {
   },
 };
 
-const PEEK_SYSTEM = `You look at one class announcement and a list of the student's assignments. Name each assignment the announcement changes, and only how: due_date when it moves that assignment's due date or time; extra_step when it adds something the student must do or bring for that assignment that the assignment itself does not say. Nothing else counts: news, office hours, grades posted, encouragement, reminders of a date that is not changing. When the post names no assignment on the list, or only repeats what is already true, return no changes. Never write any detail of the change. Answer only through the announcement_kinds tool.`;
+export const PEEK_SYSTEM = `You look at one class announcement and a list of the student's assignments. Name each assignment the announcement changes, and only how: due_date when it moves that assignment's due date or time; extra_step when it adds something the student must do or bring for that assignment that the assignment itself does not say. Nothing else counts: news, office hours, grades posted, encouragement, reminders of a date that is not changing. When the post names no assignment on the list, or only repeats what is already true, return no changes. Never write any detail of the change. Answer only through the announcement_kinds tool.`;
 
 export function buildPeekPrompt(a: StoredAnnouncement, course: Course, items: Item[], tz: string): { system: { text: string; cache?: boolean }[]; user: string } {
   const list = items

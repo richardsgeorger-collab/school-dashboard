@@ -73,7 +73,7 @@ export const WORKSHEET_TOOL: ToolSpec = {
   },
 };
 
-const SYSTEM = `You write a practice worksheet for one college student from that student's own class material, given as numbered sources. It is a document they will print or open the night before a quiz or exam.
+export const WORKSHEET_SYSTEM = `You write a practice worksheet for one college student from that student's own class material, given as numbered sources. It is a document they will print or open the night before a quiz or exam.
 Rules:
 - Use only what the sources say. Never test something the sources do not contain; if the material is thin, write fewer problems rather than invent one.
 - About ten problems, numbered in the order given, grouped so problems on one topic sit together. Start with the topics named as the test's own and the ones the student has been missing, then the rest.
@@ -105,7 +105,7 @@ export function buildWorksheetPrompt(a: WorksheetArgs): { system: string; user: 
     'Sources:',
     sourcesBlock(a.sources),
   ].filter((l) => l !== '');
-  return { system: SYSTEM, user: lines.join('\n') };
+  return { system: WORKSHEET_SYSTEM, user: lines.join('\n') };
 }
 
 const KINDS: ProblemKind[] = ['multiple_choice', 'short', 'worked'];

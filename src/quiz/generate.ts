@@ -68,7 +68,7 @@ export const QUIZ_TOOL = {
   },
 } as const;
 
-const SYSTEM = `You write practice questions for one college student from that student's own class material. The material is given as numbered sources.
+export const QUIZ_SYSTEM = `You write practice questions for one college student from that student's own class material. The material is given as numbered sources.
 Rules:
 - Use only what the sources say. If the sources do not support a good question, write fewer questions rather than inventing one. Never test something the sources do not contain.
 - Every question cites the one source it comes from by its [S#] id.
@@ -103,7 +103,7 @@ export function buildQuizPrompt({ course, topic, sources, weakTopics, avoid }: Q
     'Sources:',
     sourcesBlock(sources),
   ].filter((l) => l !== '');
-  return { system: SYSTEM, user: lines.join('\n') };
+  return { system: QUIZ_SYSTEM, user: lines.join('\n') };
 }
 
 const KINDS: QuestionKind[] = ['multiple_choice', 'short', 'worked'];

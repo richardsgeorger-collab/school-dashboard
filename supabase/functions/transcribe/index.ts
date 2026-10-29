@@ -17,6 +17,33 @@ const DAILY_SECONDS = 5 * 3600;
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info, x-seconds', 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-max-age': '86400' };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
 
+/** Seconds of audio in a 16 kHz mono 16-bit PCM WAV (the app's pieces), or null for anything else. */
+function wavSeconds(b: Uint8Array): number | null {
+  if (b.length < 44) return null;
+  const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  const tag = (o: number) => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3]);
+  if (tag(0) !== 'RIFF' || tag(8) !== 'WAVE') return null;
+  let o = 12;
+  let fmtOk = false;
+  while (o + 8 <= b.length) {
+    const id = tag(o);
+    const size = v.getUint32(o + 4, true);
+    if (id === 'fmt ') {
+      const format = v.getUint16(o + 8, true);
+      const channels = v.getUint16(o + 10, true);
+      const rate = v.getUint32(o + 12, true);
+      const bits = v.getUint16(o + 22, true);
+      fmtOk = format === 1 && channels === 1 && rate === 16000 && bits === 16;
+    } else if (id === 'data') {
+      if (!fmtOk) return null;
+      const bytes = Math.min(size, b.length - o - 8);
+      return Math.max(1, Math.ceil(bytes / 32000));
+    }
+    o += 8 + size + (size % 2);
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method === 'GET') return json(200, { ready: !!GROQ_KEY });
@@ -32,14 +59,16 @@ Deno.serve(async (req) => {
   const { data: plan } = await db.rpc('plan_of', { uid });
   if (plan !== 'max') return json(403, { ok: false, why: 'Transcribing lecture files is part of Max.' });
 
-  const seconds = Math.max(1, Math.min(1800, Number(req.headers.get('x-seconds')) || 0));
+  const audio = await req.arrayBuffer();
+  if (audio.byteLength === 0 || audio.byteLength > MAX_BYTES) return json(413, { ok: false, why: 'That piece of audio was the wrong size.' });
+  // Its length measured here (2026-10-29: it was the x-seconds header the browser sent, which could say anything):
+  // the app sends 16 kHz mono 16-bit WAV, so its audio is its data bytes over 32,000 a second. Anything else is refused.
+  const seconds = wavSeconds(new Uint8Array(audio));
+  if (seconds === null) return json(415, { ok: false, why: 'That piece of audio was not in the form Halo+ sends.' });
   const since = new Date(Date.now() - 86_400_000).toISOString();
   const { data: used } = await db.from('transcribe_log').select('seconds').eq('user_id', uid).gte('created_at', since);
   const total = (used ?? []).reduce((s, r) => s + (r.seconds as number), 0);
   if (total + seconds > DAILY_SECONDS) return json(429, { ok: false, why: 'That is 5 hours of lectures in a day, the most for now. Try again tomorrow, or paste a transcript.' });
-
-  const audio = await req.arrayBuffer();
-  if (audio.byteLength === 0 || audio.byteLength > MAX_BYTES) return json(413, { ok: false, why: 'That piece of audio was the wrong size.' });
   const form = new FormData();
   form.append('file', new Blob([audio], { type: 'audio/wav' }), 'piece.wav');
   form.append('model', MODEL);

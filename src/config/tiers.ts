@@ -128,7 +128,8 @@ export const LIMITS = {
  * in AI than they pay.
  */
 // Free's is only for the kinds-only announcement check (about $0.0002 a post on Haiku 5.5, so about 500 posts a month).
-export const AI_CEILING_USD: Record<Tier, number> = { free: 0.1, plus: 0.75, pro: 0.75, max: 4.0 };
+// Free's only AI call is the locked heads-up's small check (2026-10-29, George: kept, with its cap and rate limit).
+export const AI_CEILING_USD: Record<Tier, number> = { free: 0.05, plus: 0.75, pro: 0.75, max: 4.0 };
 export const AI_WARN_AT = 0.8;
 
 /**

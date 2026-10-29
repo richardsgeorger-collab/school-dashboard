@@ -3,6 +3,14 @@
 //
 // Body: { kind, request } where request is a Messages API body without a model (the client's toWire()). An admin may
 // add { model, effort } to run one of the known models side by side (scripts/ai-compare.ts); students never choose.
+//
+// Locked down 2026-10-29 (George: "Fixed server-built jobs only, input caps, per-user rate limits, and stream mode
+// counted against the budget"): the request is checked against the job registry (_shared/aiJobs.ts, generated from
+// the app's code) and the call to the model is built here from the job's own instructions and tool (jobRules.ts
+// checkJob); nothing else of the browser's goes through (no streaming, no other tools, no conversation). Ask's kinds
+// are gone. Each call is admitted under a lock per student (ai_admit, migration 0047): the kind's calls this minute
+// and today, and the month's spend plus the most this call could cost, held in the usage log until the real cost
+// replaces it.
 // Reply: { response: { content, stop_reason, usage, model }, meter } or { error: { code, message } }.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { MAX_TOKENS } from '../_shared/tiers.ts';
@@ -10,6 +18,8 @@ import type { Tier } from '../_shared/tiers.ts';
 import { allowance, costOf, meter, type UsageRow } from '../_shared/meter.ts';
 import { EFFORTS, forModel, KNOWN_MODELS, MODEL } from '../_shared/model.ts';
 import { serverError } from '../_shared/errors.ts';
+import { checkJob, RATE } from '../_shared/jobRules.ts';
+import { JOBS } from '../_shared/aiJobs.ts';
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -47,14 +57,12 @@ Deno.serve(async (req) => {
     return json(400, { error: { code: 'upstream', message: 'Bad request body.' } });
   }
   const kind = String(body.kind ?? 'other') as keyof typeof MAX_TOKENS;
-  if (!(kind in MAX_TOKENS) || !body.request) return json(400, { error: { code: 'upstream', message: 'Unknown kind of call.' } });
-  // Free's one AI call (Loop 268, the kinds-only announcement check) is only ever that: the forced announcement_kinds
-  // tool, so a Free account cannot use its small budget as a general model (Loop 269 review).
-  if (kind === 'changes') {
-    const tools = (body.request.tools as { name?: string }[] | undefined) ?? [];
-    const choice = body.request.tool_choice as { type?: string; name?: string } | undefined;
-    if (tools.length !== 1 || tools[0]?.name !== 'announcement_kinds' || choice?.type !== 'tool' || choice?.name !== 'announcement_kinds') return json(400, { error: { code: 'upstream', message: 'Not an announcement check.' } });
-  }
+  // Ask (the study chat) is retired; its kinds answer so, plainly.
+  if (kind === ('coach' as string) || kind === ('tutor' as string)) return json(410, { error: { code: 'tier', message: 'Ask has been retired.' } });
+  if (!(kind in MAX_TOKENS) || !RATE[kind] || !body.request) return json(400, { error: { code: 'upstream', message: 'Unknown kind of call.' } });
+  // Only a Halo+ job, built here from the job's own instructions and tool; the browser brings only the student's data.
+  const job = checkJob(JOBS, kind, body.request, MAX_TOKENS[kind]);
+  if (!job.ok) return json(400, { error: { code: 'upstream', message: `Not a Halo+ job: ${job.why}` } });
 
   // The meter: tier from the profile, usage from the log, both server-side truth.
   // The plan comes from the one server function that decides it (paid, trial, friend link, referral, admin): this
@@ -83,37 +91,53 @@ Deno.serve(async (req) => {
     effort = body.effort ?? null;
   }
 
-  // The request as the client built it, with the model and the cap set here whatever it asked for, then made right
-  // for that model (model.ts forModel): an older client's Haiku 4.5 request still works on Haiku 5.5.
-  const capped = { ...body.request, max_tokens: Math.min(Number(body.request.max_tokens ?? MAX_TOKENS[kind]), MAX_TOKENS[kind]) };
-  if (effort) capped.output_config = { ...((body.request.output_config as Record<string, unknown>) ?? {}), effort };
-  else delete capped.output_config;
-  const wire = forModel(capped, model, kind);
+  // The call, built here (the job's own instructions and tool, the student's data), then made right for the model.
+  const built: Record<string, unknown> = { ...job.wire };
+  if (effort) built.output_config = { effort };
+  const wire = forModel(built, model, kind);
+  delete wire.stream;
+
+  // Admitted under a lock per student: this kind's calls in the last minute and today, and the month's spend plus the
+  // most this call could cost (its input at about 3 characters a token, its whole output cap), held until it is known.
+  const most = costOf({ input_tokens: Math.ceil(job.inputChars / 3), output_tokens: Number(wire.max_tokens ?? MAX_TOKENS[kind]) }, model);
+  const { data: gate, error: gateErr } = await admin.rpc('ai_admit', { p_user: userId, p_kind: kind, p_day: today, p_month_start: monthStart, p_per_minute: RATE[kind].perMinute, p_per_day: RATE[kind].perDay, p_ceiling: m.ceilingUsd, p_estimate: most });
+  if (gateErr || !gate) {
+    await serverError(admin, 'ai', new Error(`ai_admit: ${gateErr?.message ?? 'no answer'}`), 500, { kind });
+    return json(500, { error: { code: 'upstream', message: 'Halo+ could not check your AI allowance just now. Try again.' }, meter: m });
+  }
+  const g = gate as { ok: boolean; reason?: string; id?: number };
+  if (!g.ok) {
+    const words = g.reason === 'minute' ? 'That is a lot at once. Try again in a minute.' : g.reason === 'day' ? 'That is the most for today. Try again tomorrow.' : `You've reached this month's AI allowance.`;
+    return json(429, { error: { code: g.reason === 'ceiling' ? 'ceiling' : 'daily', message: words }, meter: m });
+  }
+
   const upstream = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify(wire),
-  });
-  const answer = await upstream.json().catch(() => ({}));
-  if (!upstream.ok) {
-    const message = answer?.error?.message ?? `Anthropic answered ${upstream.status}.`;
-    await serverError(admin, 'ai', new Error(`Anthropic ${upstream.status}: ${message}`), 502, { kind, upstream: upstream.status });
+  }).catch(() => null);
+  const answer = upstream ? await upstream.json().catch(() => ({})) : {};
+  if (!upstream || !upstream.ok) {
+    // Not answered: nothing was spent; the held row goes.
+    await admin.from('usage_log').delete().eq('id', g.id);
+    const message = answer?.error?.message ?? `Anthropic answered ${upstream?.status ?? 'nothing'}.`;
+    await serverError(admin, 'ai', new Error(`Anthropic ${upstream?.status ?? 0}: ${message}`), 502, { kind, upstream: upstream?.status ?? 0 });
     return json(502, { error: { code: 'upstream', message }, meter: m });
   }
 
-  // Log the cost before answering, so a crash after the call cannot make a call free.
+  // The real cost in place of the held one, before answering, so a crash after the call cannot make a call free.
   const u = answer.usage ?? {};
-  await admin.from('usage_log').insert({
-    user_id: userId,
-    day: today,
-    kind,
-    model,
-    input_tokens: u.input_tokens ?? 0,
-    output_tokens: u.output_tokens ?? 0,
-    cache_read_tokens: u.cache_read_input_tokens ?? 0,
-    cache_write_tokens: u.cache_creation_input_tokens ?? 0,
-    cost_usd: costOf(u, model),
-  });
+  await admin
+    .from('usage_log')
+    .update({
+      model,
+      input_tokens: u.input_tokens ?? 0,
+      output_tokens: u.output_tokens ?? 0,
+      cache_read_tokens: u.cache_read_input_tokens ?? 0,
+      cache_write_tokens: u.cache_creation_input_tokens ?? 0,
+      cost_usd: costOf(u, model),
+    })
+    .eq('id', g.id);
   const after = meter([...usage, { day: today, kind, costUsd: costOf(u, model), calls: 1 }], tier, today);
   return json(200, { response: { content: answer.content, stop_reason: answer.stop_reason, usage: u, model }, meter: after });
 });

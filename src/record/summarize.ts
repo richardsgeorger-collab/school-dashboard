@@ -68,7 +68,7 @@ export const NOTES_TOOL = {
   },
 } as const;
 
-const SYSTEM = `You turn a rough, machine-made transcript of a college lecture into notes for the student who recorded it. The transcript has recognition errors; read through them.
+export const NOTES_SYSTEM = `You turn a rough, machine-made transcript of a college lecture into notes for the student who recorded it. The transcript has recognition errors; read through them.
 Rules:
 - Summary: at most five bullets, plain words, what was taught.
 - Concepts: short phrases.
@@ -105,7 +105,7 @@ export function buildNotesPrompt({ course, lectureDate, items, transcript, tz, d
     .join('\n');
   const body = transcript.length > MAX_TRANSCRIPT_CHARS ? `${transcript.slice(0, MAX_TRANSCRIPT_CHARS)}\n[transcript truncated]` : transcript;
   return {
-    system: SYSTEM,
+    system: NOTES_SYSTEM,
     user: `Course: ${course.code} ${course.name}\nLecture date: ${lectureDate} (${weekday})\nClass meets: ${meets}\n\nPlanner items (id · label · title · due):\n${open || '(none)'}${deckOutline ? `\n\nSlide outline for the day (${deckOutline.title}):\n${deckOutline.lines.slice(0, 80).join('\n')}` : ''}\n\nTranscript:\n${body}`,
   };
 }

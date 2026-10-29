@@ -262,7 +262,7 @@ export async function readActions(args: { apiKey?: string; fetch?: typeof global
 }
 
 export const SHORTEN_SYSTEM = `Rewrite each numbered line as one plain to-do of at most ${LINE_WORDS} words, keeping its meaning and any date or number that matters. No file names, no quotation, no brackets. Answer only through the short_lines tool, one line per input line, in the same order.`;
-const SHORTEN_TOOL: ToolSpec = {
+export const SHORTEN_TOOL: ToolSpec = {
   name: 'short_lines',
   description: 'The same lines, each rewritten to at most ten words.',
   input_schema: { type: 'object', additionalProperties: false, required: ['lines'], properties: { lines: { type: 'array', items: { type: 'string' }, description: 'One rewritten line per input line, same order.' } } },
@@ -333,7 +333,7 @@ export const REWRITE_SYSTEM = `You rewrite checklist lines a student sees for re
 - "detail": two or three plain sentences with exactly what to do and anything that matters from the post (dates, counts, where the file is, by its name). Not a quotation.
 Keep each line's meaning; do not merge, split, add or drop lines. Answer only through the rewritten_lines tool, one entry per input line, in the same order.`;
 
-const REWRITE_TOOL: ToolSpec = {
+export const REWRITE_TOOL: ToolSpec = {
   name: 'rewritten_lines',
   description: 'Each input line rewritten as a short checklist line and a short explanation, same order.',
   input_schema: {

@@ -22,7 +22,7 @@ export const BRIEF_TOOL = {
   },
 } as const;
 
-const BRIEF_SYSTEM = `You read a college assignment's description and rubric for the student who has to do it, and say plainly what it asks for, what earns points, and the steps it implies. Short lines, no restating the whole page, no advice beyond the work itself. Never invent requirements the text does not carry. Answer only through the assignment_brief tool.`;
+export const BRIEF_SYSTEM = `You read a college assignment's description and rubric for the student who has to do it, and say plainly what it asks for, what earns points, and the steps it implies. Short lines, no restating the whole page, no advice beyond the work itself. Never invent requirements the text does not carry. Answer only through the assignment_brief tool.`;
 
 export interface BriefArgs {
   item: Item;
@@ -101,7 +101,7 @@ export const DRAFT_TOOL = {
   },
 } as const;
 
-const DRAFT_SYSTEM = `You hold a student's draft against the assignment's own rubric and description. For each criterion say whether the draft meets it and where, or what is missing. No grade, no score guess, no rewriting, no style notes beyond what the rubric asks. Plain words, one line each, then the single most useful next step. Answer only through the draft_check tool.`;
+export const DRAFT_SYSTEM = `You hold a student's draft against the assignment's own rubric and description. For each criterion say whether the draft meets it and where, or what is missing. No grade, no score guess, no rewriting, no style notes beyond what the rubric asks. Plain words, one line each, then the single most useful next step. Answer only through the draft_check tool.`;
 
 export function buildDraftPrompt(args: BriefArgs & { brief: Brief; draft: string }): { system: string; user: string } {
   const rubric = args.brief.rubric.length ? args.brief.rubric.map((r) => `- ${r.criterion}${r.points !== null ? ` (${r.points} pts)` : ''}: ${r.how}`).join('\n') : '(no rubric on file; use the description)';
@@ -166,7 +166,7 @@ export const METHOD_TOOL = {
   },
 } as const;
 
-const METHOD_SYSTEM = `You check a student's method on a problem set, never the answer. For each problem they show, first write down every ratio, conversion factor and given value they used, exactly as they wrote it, next to what the equation, the given or the class material says it should be; compare the numbers on top and on the bottom one by one. Only then judge: is the setup right — the equation or law chosen, the units, the given values, the ratio, the sign — and if not, what is off and which one step to look at again. A factor that does not match its source is "off", even when the rest of the chain is right. Use the class material given for the professor's method and notation, and cite it as [S#] when it settles something. Never state the final number, never work a problem through, never rewrite their work. Plain words, one line each, then the single most useful next step. Answer only through the method_check tool.`;
+export const METHOD_SYSTEM = `You check a student's method on a problem set, never the answer. For each problem they show, first write down every ratio, conversion factor and given value they used, exactly as they wrote it, next to what the equation, the given or the class material says it should be; compare the numbers on top and on the bottom one by one. Only then judge: is the setup right — the equation or law chosen, the units, the given values, the ratio, the sign — and if not, what is off and which one step to look at again. A factor that does not match its source is "off", even when the rest of the chain is right. Use the class material given for the professor's method and notation, and cite it as [S#] when it settles something. Never state the final number, never work a problem through, never rewrite their work. Plain words, one line each, then the single most useful next step. Answer only through the method_check tool.`;
 
 export function buildMethodPrompt(args: { item: Item; course: Course; description: string; material: string; work: string }): { system: string; user: string } {
   return { system: METHOD_SYSTEM, user: `Class: ${args.course.code}\nAssignment: ${args.item.title}\n\nWhat it asks for:\n${args.description.slice(0, 6000) || '(no description on file)'}\n\nClass material (cite as [S#]):\n${args.material.slice(0, 30_000) || '(none on file)'}\n\nThe student's work:\n${args.work.slice(0, 40_000)}` };
