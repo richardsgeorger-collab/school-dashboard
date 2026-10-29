@@ -133,6 +133,13 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
         total: on(box.querySelector('.hp-total')) ? box.querySelector('.hp-total').innerText.replace(/\s+/g, ' ').trim() : null,
       };
     });
+    // 0.12.4: the Halo+ mark right after Halo's own link.
+    const lm = await card.evaluate((el) => {
+      const a = el.querySelector('a[data-testid="print_rubric_link"]');
+      const m = a.nextElementSibling;
+      return m && m.getAttribute('data-haloplus') === 'rubric-mark' ? m.querySelector('.hp-mark').getAttribute('title') : null;
+    });
+    check(lm === 'Added by Halo+', `${tag}: the Halo+ mark right after Halo's View Rubric / Hide Rubric ("${lm}" on hover)`);
     // 0.12.3: a box of its own (a thin border, a light background), and Halo's link reads "Hide Rubric".
     const boxLook = await card.evaluate((el) => {
       const box = el.querySelector('[data-haloplus="rubric"]');

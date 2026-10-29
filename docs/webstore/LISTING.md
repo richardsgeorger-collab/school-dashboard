@@ -1,6 +1,12 @@
 # Chrome Web Store listing kit
 
-## The listing now: 0.12.3 (2026-10-28): paste exactly this
+## The listing now: 0.12.4 (2026-10-28): paste exactly this
+
+0.12.4 (Loop 275): the Halo+ mark beside Halo's View Rubric / Hide Rubric; a small "Past classes (N)" link after the
+class cards on the compact Student Home (Halo's own Past Classes view, and back). **No new permission.** Upload
+`webstore-upload/halo-plus-extension-0.12.4.zip`; the description and the Privacy tab as below, unchanged.
+
+## 0.12.3 (2026-10-28)
 
 0.12.3 (Loop 274): George's changes after testing 0.12.2. The compact Student Home (same switch) now hides Halo's title
 row and tabs and shows the school's sponsor logo in Halo's purple bar, so search, This week and the class cards start

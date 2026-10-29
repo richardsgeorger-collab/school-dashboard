@@ -644,3 +644,26 @@ a[data-testid='print_rubric_link'][data-hp-open]::after {
 html[data-hp-home-compact] #Home--main > [data-haloplus='search-bar'] {
   margin-top: 0 !important;
 }
+/* "Past classes (2)" after the class cards (0.12.4): Halo's link look, small, quiet. */
+[data-haloplus='past-link'] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-family: var(--hp-font);
+  font-size: 0.875rem;
+  color: var(--hp-text-2);
+}
+[data-haloplus='past-link'] button {
+  all: unset;
+  cursor: pointer;
+  color: var(--hp-link);
+  font-size: 0.875rem;
+}
+[data-haloplus='past-link'] button:hover {
+  text-decoration: underline;
+}
+[data-haloplus='past-link'] button:focus-visible {
+  outline: 1px solid var(--hp-focus);
+  outline-offset: 2px;
+}

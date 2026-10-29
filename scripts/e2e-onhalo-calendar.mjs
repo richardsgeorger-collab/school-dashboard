@@ -152,7 +152,9 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
       const list = [...document.querySelectorAll('#Home--main > section')].pop();
       const cards = [...document.querySelectorAll('[class*="CourseCard_cardContainer"]')];
       const lastCard = cards[cards.length - 1].getBoundingClientRect();
-      return { after: list.nextElementSibling === sec, below: sec.getBoundingClientRect().top >= lastCard.bottom, head: sec.querySelector('.hp-sec-title').textContent.replace(/\s+/g, ' ').trim(), open: sec.querySelector('.hp-sec-head').getAttribute('aria-expanded'), mark: !!sec.querySelector('.hp-sec-head .hp-mark') };
+      // Right after the class list, or after the compact Student Home's "Past classes" link there (0.12.4).
+      const nx = list.nextElementSibling;
+      return { after: nx === sec || (nx && nx.getAttribute('data-haloplus') === 'past-link' && nx.nextElementSibling === sec), below: sec.getBoundingClientRect().top >= lastCard.bottom, head: sec.querySelector('.hp-sec-title').textContent.replace(/\s+/g, ' ').trim(), open: sec.querySelector('.hp-sec-head').getAttribute('aria-expanded'), mark: !!sec.querySelector('.hp-sec-head .hp-mark') };
     });
     check(place.after && place.below && place.head === 'Calendar · All classes' && place.open === 'true' && place.mark, `${tag}: "Calendar · All classes" below the class cards, open (${JSON.stringify(place)})`);
     const asked = b.bench.calls.gateway.slice(g0).filter((c) => c.op === 'StudentAssessmentDetails');
@@ -337,7 +339,7 @@ for (const run of [{ bh: false, dark: false }, ...(bhPath ? [{ bh: true, dark: t
     const pastHidden = await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); return !s || s.hidden; });
     await p.evaluate(() => document.querySelectorAll('#Home--main [role="tablist"] [role="tab"]')[0].click());
     await sleep(800);
-    const backShown = await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); return !!s && !s.hidden && [...document.querySelectorAll('#Home--main > section')].pop().nextElementSibling === s; });
+    const backShown = await p.evaluate(() => { const s = document.querySelector('[data-haloplus="home-calendar"]'); const nx = [...document.querySelectorAll('#Home--main > section')].pop().nextElementSibling; return !!s && !s.hidden && (nx === s || (nx && nx.getAttribute('data-haloplus') === 'past-link' && nx.nextElementSibling === s)); });
     check(pastHidden && backShown, `${tag}: under Past Classes no calendar; back under Current Classes, after the cards`);
     await p.close();
     // Another time zone in the browser: the same days.

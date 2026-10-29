@@ -60,7 +60,7 @@ async function redrawn(p, how, pre) {
   const all = await p.evaluate(() => window.__hpFrames);
   const frames = all.filter((f) => f.r > all[0].r);
   await sleep(4500);
-  const back = await p.evaluate(() => ({ week: !!document.querySelector('[data-haloplus="week"]'), strip: !!document.querySelector('[data-haloplus="week-strip"] .hp-sd'), cal: !!document.querySelector('[data-haloplus="home-calendar"]'), lines: document.querySelectorAll('[data-haloplus="class"]').length, redraws: window.__hpRedraws }));
+  const back = await p.evaluate(() => ({ past: !!document.querySelector('[data-haloplus="past-link"]'), week: !!document.querySelector('[data-haloplus="week"]'), strip: !!document.querySelector('[data-haloplus="week-strip"] .hp-sd'), cal: !!document.querySelector('[data-haloplus="home-calendar"]'), lines: document.querySelectorAll('[data-haloplus="class"]').length, redraws: window.__hpRedraws }));
   // Nothing redone once in place: Halo+'s own changes to the page over two quiet seconds.
   const quiet = await p.evaluate(
     () =>
@@ -113,6 +113,22 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
       await p.mouse.move(3, 3);
       await p.screenshot({ path: `${OUT}/${tag}-${width}-2-after.png` });
       if (width === 1366) {
+        // 0.12.4: "Past classes" after the class cards opens Halo's own Past Classes, and comes back.
+        const pastNow = () => p.evaluate(() => {
+          const l = document.querySelector('[data-haloplus="past-link"]');
+          const sec = [...document.querySelectorAll('#Home--main > section')].pop();
+          return { text: l ? l.querySelector('button').textContent.trim() : null, after: !!l && sec.nextElementSibling === l, cards: !!sec.querySelector('[class*="CourseCard_cardContainer"]'), past: /no past classes/i.test(sec.textContent), cal: (() => { const c = document.querySelector('[data-haloplus="home-calendar"]'); return !!c && !c.hidden; })(), mark: !!(l && l.querySelector('.hp-mark')) };
+        });
+        let pl = await pastNow();
+        check(pl.text === 'Past classes (0)' && pl.after && pl.cards && pl.mark, `${tag}: "Past classes (0)" after the class cards, Halo's count (${JSON.stringify(pl)})`);
+        await p.locator('[data-haloplus="past-link"] button').click();
+        await sleep(800);
+        pl = await pastNow();
+        check(pl.past && !pl.cards && !pl.cal && pl.text === 'Current classes (6)', `${tag}: it opens Halo's own Past Classes, and reads "Current classes (6)" (${JSON.stringify(pl)})`);
+        await p.locator('[data-haloplus="past-link"] button').click();
+        await sleep(800);
+        pl = await pastNow();
+        check(pl.cards && pl.cal && pl.text === 'Past classes (0)', `${tag}: and back to the class cards and the calendar`);
         // Halo redraws Student Home without reloading.
         for (const [name, how, pre] of [
           ['My Classes', () => p.locator('#guide_anchor_header_myClasses').click()],
@@ -126,7 +142,7 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
           const gone = r.frames.filter((f) => !f.logo).length;
           check(r.frames.length > 15 && flash === 0 && gone <= 1, `${tag}: ${name}: Halo redraws Student Home, and no frame shows the old header (${flash} of ${r.frames.length}) or loses the bar logo (${gone})`);
           const v = await look(p);
-          check(v.compact && !v.header && !v.tabs && v.logo && v.logo.top && r.back.week && r.back.strip && r.back.cal && r.back.lines >= 6, `${tag}: ${name}: compact again, with This week, the week strip, the calendar and the class lines (${JSON.stringify(r.back)})`);
+          check(v.compact && !v.header && !v.tabs && v.logo && v.logo.top && r.back.week && r.back.strip && r.back.cal && r.back.past && r.back.lines >= 6, `${tag}: ${name}: compact again, with This week, the week strip, the calendar, Past classes and the class lines (${JSON.stringify(r.back)})`);
           check(r.quiet === 0, `${tag}: ${name}: then Halo+ redoes nothing (${r.quiet} changes of its own in two quiet seconds)`);
         }
       }

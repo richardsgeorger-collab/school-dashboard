@@ -55,6 +55,10 @@ root (`html[data-hp-home-compact]`, so Halo's redraws stay compact) and shows th
 `homecal.js` adds the week strip under This week (`halo-ui.js` announces `haloplus-week-placed`); `rubric.js` puts the
 rubric in a box with Hide, and Halo's link reads "Hide Rubric".
 
+0.12.4 (2026-10-28): `rubric.js` puts the Halo+ mark after Halo's View Rubric link; `homeheader.js` adds "Past classes
+(N)" after the class cards (it clicks Halo's own hidden tab, and reads "Current classes" to come back). Card redesign
+options are prototypes only: `scripts/mock-cards-options.mjs`, `docs/screens/cards-options/`.
+
 ## Build
 
     npm run build:extension

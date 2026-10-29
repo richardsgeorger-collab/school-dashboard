@@ -76,8 +76,11 @@
       });
       O.cal.bindGrid(h.querySelector('.hp-cal'));
     }
-    // Right after Halo's class list (Halo mounts a new list when its tabs change).
-    if (section.nextElementSibling !== h) section.after(h);
+    // Right after Halo's class list (Halo mounts a new list when its tabs change), after the "Past classes" link when
+    // the compact Student Home has one there.
+    const past = section.nextElementSibling && section.nextElementSibling.getAttribute('data-haloplus') === 'past-link' ? section.nextElementSibling : null;
+    const at = past || section;
+    if (at.nextElementSibling !== h) at.after(h);
     return h;
   }
   function setOpen(v, save) {

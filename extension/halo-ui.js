@@ -533,12 +533,20 @@
     h.dataset.w = width;
     fitLine(h);
   }
-  /** The left edge of the card's own text (where the class code starts), so the line lines up with it. */
+  /**
+   * The left edge of the card's own text, so the line lines up with it: the class name's (0.12.4: Halo's "Topic 3" chip
+   * sits before the class code on a real card, so the code's own edge is the chip's width in, and the line lost its
+   * "Next" to that indent), else where the class code starts.
+   */
   function textInset(card) {
-    const walk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (CODE_RE.test(n.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) });
-    const n = walk.nextNode();
-    if (!n || !n.parentElement) return 0;
-    const x = n.parentElement.getBoundingClientRect().left - card.getBoundingClientRect().left - (parseFloat(getComputedStyle(card).borderLeftWidth) || 0);
+    let el = card.querySelector('[class*="CourseCard_courseTitle"]');
+    if (!el) {
+      const walk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (CODE_RE.test(n.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) });
+      const n = walk.nextNode();
+      el = n && n.parentElement;
+    }
+    if (!el) return 0;
+    const x = el.getBoundingClientRect().left - card.getBoundingClientRect().left - (parseFloat(getComputedStyle(card).borderLeftWidth) || 0);
     return Math.max(0, Math.min(40, Math.round(x)));
   }
   /** A line that does not show inside its card (the card clips it, or it has no size): taken out, and not tried again. */

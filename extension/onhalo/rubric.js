@@ -191,6 +191,19 @@
       row.after(note);
     }
   }
+  // 0.12.4 (George): the Halo+ mark right after Halo's own View Rubric / Hide Rubric, so it is clear the rubric that
+  // opens there is Halo+'s.
+  function marks() {
+    for (const a of document.querySelectorAll('a[data-testid="print_rubric_link"]')) {
+      const n = a.nextElementSibling;
+      if (n && n.getAttribute('data-haloplus') === 'rubric-mark') continue;
+      const m = document.createElement('span');
+      m.setAttribute('data-haloplus', 'rubric-mark');
+      m.style.cssText = 'margin-left:5px;font-size:0.875rem;color:var(--hp-text-2)';
+      m.innerHTML = O.mark();
+      a.after(m);
+    }
+  }
   O.feature({
     id: 'rubric',
     routes: ['unit', 'syllabus'],
@@ -198,12 +211,16 @@
       document.addEventListener('click', onClick, true);
       document.addEventListener('pointerover', onOver, true);
       document.addEventListener('focusin', onOver, true);
+      marks();
+    },
+    update() {
+      marks();
     },
     stop() {
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerover', onOver, true);
       document.removeEventListener('focusin', onOver, true);
-      document.querySelectorAll('[data-haloplus="rubric"]').forEach((n) => n.remove());
+      document.querySelectorAll('[data-haloplus="rubric"], [data-haloplus="rubric-mark"]').forEach((n) => n.remove());
       document.querySelectorAll('a[data-testid="print_rubric_link"][aria-expanded]').forEach((a) => {
         a.removeAttribute('aria-expanded');
         a.removeAttribute('data-hp-open');

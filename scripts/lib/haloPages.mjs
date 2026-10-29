@@ -107,6 +107,16 @@ function shell(build, route, title, body, { sidebar = null } = {}) {
 // The sponsor logo's place on Student Home (Halo shows the school's sponsor there, Global Credit Union for GCU): a plain
 // labelled stand-in image, not GCU's or the sponsor's artwork.
 const SPONSOR = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="62" viewBox="0 0 300 62"><rect x="1" y="1" width="298" height="60" rx="6" fill="#fff" stroke="#c8ccd4"/><circle cx="32" cy="31" r="17" fill="#1d4f91"/><text x="58" y="30" font-family="Arial" font-size="17" font-weight="700" fill="#1d4f91">Global Credit Union</text><text x="58" y="47" font-family="Arial" font-size="11" fill="#8a8f98">sponsor logo (stand-in)</text></svg>')}`;
+/** Halo's stage chip on a class card ("Topic 3"): the topic with work due this week (Monday to Sunday), else the next. */
+function topicOf(c) {
+  const now = Date.now();
+  const d = new Date(now);
+  const mon = now - (((d.getUTCDay() + 6) % 7) * 864e5);
+  const week = (c.assessments || []).filter((a) => a.unitSequence != null && Date.parse(a.dueDate) >= mon - 864e5 && Date.parse(a.dueDate) < mon + 7 * 864e5);
+  const next = (c.assessments || []).filter((a) => a.unitSequence != null && Date.parse(a.dueDate) >= now).sort((x, y) => Date.parse(x.dueDate) - Date.parse(y.dueDate));
+  const pick = week[0] || next[0];
+  return pick ? pick.unitSequence : null;
+}
 export function homePage(build, fx, { bh = false, badges = null, header = 'halo' } = {}) {
   const C = (n) => build.cls(n);
   const cards = fx.payload.classes
@@ -125,7 +135,7 @@ export function homePage(build, fx, { bh = false, badges = null, header = 'halo'
             .join('')}</div></div></div>`
         : '';
       return `<div class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-md-6 MuiGrid-grid-lg-4"><div class="MuiPaper-root ${C('CourseCard_cardContainer')} MuiPaper-elevation1 MuiPaper-rounded" style="border-top:8px solid ${color}"><div class="p-5"${bh ? ' style="display:flex;flex-direction:column"' : ''}>
-<div class="flex justify-between mb-3"><div class="${C('CourseCard_headerItem')}"><span class="${C('CourseCard_courseCode')}">${esc(c.classCode)}</span></div></div>
+<div class="flex justify-between mb-3"><div class="${C('CourseCard_headerItem')}">${topicOf(c) ? `<span class="${C('Tag_tag')} font-semibold" style="background-color: var(--lms-colorLightBlue);">Topic ${topicOf(c)}</span>` : ''}<span class="${C('CourseCard_courseCode')}">${esc(c.classCode)}</span></div></div>
 <h4 class="${C('CourseCard_courseTitle')}">${esc(c.name)}</h4>
 <div class="${C('CourseCard_metaContainer')}"><time class="text-secondary text-sm">Sep 8 - Dec 20, 2026</time></div>
 <div class="${C('CourseCard_metaItem')} text-secondary text-sm">Instructor</div>

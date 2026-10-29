@@ -62,7 +62,7 @@
   };
   function clear() {
     ROOT.removeAttribute('data-hp-home-compact');
-    document.querySelectorAll('[data-haloplus="sponsor"]').forEach((n) => n.remove());
+    document.querySelectorAll('[data-haloplus="sponsor"], [data-haloplus="past-link"]').forEach((n) => n.remove());
   }
   /** Shown whole, inside the bar, nothing on top of it; else Student Home goes back to Halo's own. */
   function check() {
@@ -92,6 +92,47 @@
       clear();
     }
   }
+  // ---- Past classes (0.12.4) ----------------------------------------------------------------------------------------------
+  // With Halo's tabs hidden, one small link after the class list in Halo's link style switches them: "Past classes (2)"
+  // opens Halo's own Past Classes view (Halo's tab, clicked), and then reads "Current classes (6)" to come back. The
+  // counts are Halo's, from its tabs.
+  function tabs() {
+    const list = document.querySelector('#Home--main [role="tablist"]');
+    const t = list ? [...list.querySelectorAll('[role="tab"]')].filter((x) => !x.hasAttribute('data-haloplus')) : [];
+    return t.length >= 2 ? t : null;
+  }
+  function pastLink() {
+    const main = document.getElementById('Home--main');
+    const t = tabs();
+    const section = main && [...main.querySelectorAll(':scope > section')].pop();
+    let l = document.querySelector('[data-haloplus="past-link"]');
+    if (!t || !section || !ROOT.hasAttribute('data-hp-home-compact')) {
+      if (l) l.remove();
+      return;
+    }
+    const onPast = t[1].getAttribute('aria-selected') === 'true';
+    const target = onPast ? t[0] : t[1];
+    const text = (target.textContent || '').replace(/\s+/g, ' ').trim();
+    const label = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+    if (!l) {
+      l = document.createElement('div');
+      l.setAttribute('data-haloplus', 'past-link');
+      l.addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        const tt = tabs();
+        if (!tt) return;
+        const past = tt[1].getAttribute('aria-selected') === 'true';
+        (past ? tt[0] : tt[1]).click();
+      });
+    }
+    const html = `<button type="button">${O.esc(label)}</button>${O.mark()}`;
+    if (l.dataset.html !== html) {
+      l.innerHTML = html;
+      l.dataset.html = html;
+    }
+    if (section.nextElementSibling !== l) section.after(l);
+  }
   /** Everything in place for the Student Home on screen now, or nothing; quick when it already is. */
   function apply() {
     if (!on) return;
@@ -110,14 +151,16 @@
     if (!placeLogo(s)) return clear();
     if (!ROOT.hasAttribute('data-hp-home-compact')) ROOT.setAttribute('data-hp-home-compact', '');
     check();
+    pastLink();
   }
   // Halo redraws Student Home without a reload: put things back before the browser paints, and only when something is
   // missing (a change that leaves everything in place costs one look).
   const watch = new MutationObserver(() => {
     if (!on || !onHome()) return;
     const h = document.querySelector('[data-haloplus="sponsor"]');
-    if (!h || !ROOT.hasAttribute('data-hp-home-compact')) apply();
-    else if (!h.classList.contains('hp-themed') && h.querySelector('[data-better-halo-original-img-src]')) check();
+    if (!h || !ROOT.hasAttribute('data-hp-home-compact')) return apply();
+    if (!h.classList.contains('hp-themed') && h.querySelector('[data-better-halo-original-img-src]')) check();
+    pastLink();
   });
   O.feature({
     id: 'homeheader',
