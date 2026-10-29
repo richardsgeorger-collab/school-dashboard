@@ -1,5 +1,61 @@
 # Chrome Web Store listing kit
 
+## 0.12.13 (2026-10-29): the new store presence, George's picks. Upload this; everything below is history
+
+George picked (Loop 285): tile F (gold with the search bar), screenshots in style B (gold, caption on top), the title
+"Halo+ for GCU: Search, Calendar & Due Dates on Halo LMS" and the rewritten description. 0.12.13 is exactly the 0.12.12
+code (Free and Max on Halo); only the manifest's name, summary and version changed (zips compared file by file). **No
+new permission.** Nothing has been uploaded or submitted.
+
+Upload, in the Chrome Web Store developer dashboard (Halo+ → each tab):
+
+| Step | Where in the dashboard | What |
+|---|---|---|
+| 1 | **Package** → Upload new package | `webstore-upload/halo-plus-extension-0.12.13.zip` |
+| 2 | (comes with the package) | Name **Halo+ for GCU: Search, Calendar & Due Dates on Halo LMS** (55 of 75); summary **Search every GCU Halo class with Ctrl+K, see what's next and your grade on every class, and open rubrics in place. Free on Halo LMS.** (132 of 132) |
+| 3 | **Store listing → Description** | delete what is there, paste the Description block below, all of it |
+| 4 | **Store listing → Screenshots** | remove every screenshot there now, then add these five in this order: `webstore-upload/screenshots/1-search.png`, `2-whats-next.png`, `3-checked-off.png`, `4-rubric.png`, `5-calendar.png` (each 1280×800, 24-bit PNG) |
+| 5 | **Store listing → Small promo tile** | replace it with `webstore-upload/promo-tile-440x280.png` (440×280, 24-bit PNG) |
+| 6 | **Privacy** | unchanged (no new permission; nothing new leaves the computer) |
+| 7 | top right | **Save draft**, look at the preview, then **Submit for review** (George's step) |
+
+The pictures were made in Chrome only, on the saved Halo page copies with the real extension and the made-up student
+Maya Torres (scripts/webstore-options-capture.mjs, scripts/webstore-options-shots.mjs, scripts/webstore-options-tiles.mjs;
+the options and the research are in docs/webstore/options-2026-10-29/). The pictures and tile they replace are in
+`webstore-upload/old-screenshots/` (prefixed 2026-10-28-).
+
+Worth doing in the dashboard while there (found by the research, George's call): verify haloplus.app (Account →
+verified sites) so the search card shows the blue check; and check the Trader declaration (it puts a street address
+and phone number on the store page; the other GCU extensions are Non-trader).
+
+**Description** (Store listing → Description):
+
+```
+Search every class at once, see what's next on every class card, and open the rubric right under the assignment, all on Halo's own pages.
+Built by a GCU student for GCU's Halo. Nothing new to learn: open Halo as always and it's there.
+
+ON HALO
+• Search every class: Ctrl+K (⌘K on a Mac) on any Halo page
+• What's next and your grade on every class card
+• Every class on one calendar
+• The rubric opens right under the assignment
+• "Due in 5h" beside Halo's due dates
+• Checked off the moment Halo confirms your submission
+• This week at the top of Halo's home page
+• Each one has its own on/off switch
+
+PLANS
+Free: everything on Halo. Max ($0.99/mo): announcements read for you and auto-sync.
+
+PRIVACY
+Halo+ reads only your own Halo, in your browser, while you're signed in there. It never asks for or sees your GCU password. Your classes go only to your own Halo+ account; nothing is sold, no ads. Announcement text is checked by AI on our server to spot a changed due date; on Max it is read in full. Drafts you type on Halo stay on your computer.
+
+Also a planner on your phone at haloplus.app, if you want it.
+
+Not affiliated with GCU.
+```
+
+
 ## 0.12.12 (2026-10-29): upload this package instead of 0.12.11; the description's plans line changed
 
 0.12.12 (Loop 283): Free and Max. Everything Halo+ adds on Halo's pages is Free now (the switches show for every

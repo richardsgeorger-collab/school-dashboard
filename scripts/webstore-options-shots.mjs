@@ -57,7 +57,7 @@ const CSS = `${FONTS}*{box-sizing:border-box;margin:0}body{width:1280px;height:8
 .b .shot{margin-top:40px;border-radius:14px 14px 0 0}
 .b .brand{position:absolute;left:30px;top:26px;display:flex;align-items:center;gap:8px;font:800 20px/1 Jakarta;letter-spacing:-.03em;color:#14171c}`;
 
-const br = await chromium.launch({ headless: true });
+const br = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await (await br.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 })).newPage();
 for (const [style, make] of Object.entries(STYLES)) {
   mkdirSync(`${OUT}/${style}`, { recursive: true });

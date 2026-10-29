@@ -106,7 +106,7 @@ ${css}</style></head><body><div id="t">${inner}</div></body></html>`;
 const rgb = (p) => execFileSync('python3', ['-c', `from PIL import Image\nim=Image.open('${p}').convert('RGB')\nim.save('${p}')\nprint(im.size, im.mode)`]).toString().trim();
 const half = (src, out) => execFileSync('python3', ['-c', `from PIL import Image\nim=Image.open('${src}').convert('RGB')\nim.resize((220,140), Image.LANCZOS).save('${out}')`]);
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
 const p = await ctx.newPage();
 const shot = async (html, path, sel = '#t') => {

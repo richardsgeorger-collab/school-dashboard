@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Halo+ for GCU: Calendar, Search & Due Dates on Halo",
-  "description": "Makes GCU's Halo better right on the page: search, one calendar for all classes, what's next on every class, rubrics and more.",
-  "version": "0.12.12",
+  "name": "Halo+ for GCU: Search, Calendar & Due Dates on Halo LMS",
+  "description": "Search every GCU Halo class with Ctrl+K, see what's next and your grade on every class, and open rubrics in place. Free on Halo LMS.",
+  "version": "0.12.13",
   "permissions": [
     "alarms",
     "storage",

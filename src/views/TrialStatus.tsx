@@ -187,6 +187,10 @@ export interface TrialNumbers {
   caught: number;
   practice: number;
   answered: number;
+  /** Max (2026-10-29): Halo synced on its own while away, reminders and Sunday previews sent (server counts). */
+  autoSyncs: number;
+  reminders: number;
+  sundays: number;
 }
 
 /**
@@ -221,7 +225,7 @@ export function useTrialNumbers(since: string | null | undefined, until: string 
       } catch {
         /* storage unavailable */
       }
-      let server = { asked: 0, practice: 0, read: 0, found: 0 };
+      let server = { asked: 0, practice: 0, read: 0, found: 0, auto_syncs: 0, reminders: 0, sundays: 0 };
       const c = supabase();
       if (c && since) {
         const { data: r } = await c.rpc('my_trial_recap', { p_since: since, p_until: until ?? new Date().toISOString() }).then((x) => x, () => ({ data: null }));
@@ -237,6 +241,9 @@ export function useTrialNumbers(since: string | null | undefined, until: string 
           caught: data.items.filter((i) => inWeek(i.dateChange?.at)).length,
           practice: server.practice,
           answered: Math.max(answered, server.asked),
+          autoSyncs: Number(server.auto_syncs) || 0,
+          reminders: Number(server.reminders) || 0,
+          sundays: Number(server.sundays) || 0,
         });
     })();
     return () => {

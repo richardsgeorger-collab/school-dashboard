@@ -80,7 +80,8 @@ try {
     if (dev === 'desk' && scheme === 'light') {
       const lines = (await p.locator('.story-line').allInnerTexts()).map((l) => l.replace(/\s+/g, ' ').trim());
       // The server's count (one practice set) shows; the three AI answers do not: Ask is gone (2026-10-29), so no "Answered N questions".
-      check(lines.some((l) => /^Built 1 study plan or practice set/.test(l)) && !lines.some((l) => /^Answered/.test(l)) && lines.length >= 1 && lines.length <= 3, `the admin's own last 7 days on the Max card, at most 3 lines, nothing about questions answered: ${lines.join(' | ')}`);
+      // Only Max's own work, real counts, never a zero (2026-10-29: the Max lines; Ask is gone).
+      check(lines.some((l) => /^1 practice set built from your classes$/.test(l)) && !lines.some((l) => /^Answered|checked off|^0\b/.test(l)) && lines.length >= 1, `the admin's own last 7 days on the Max card: only Max lines, nothing about questions answered, no zeros: ${lines.join(' | ')}`);
       check(/Preview, admin only/.test(await p.locator('.trial-preview-bar').innerText()), 'it says plainly it is a preview');
     }
     await shotAll(p, `${OUT}/preview-page1-${dev}-${scheme}.png`);
@@ -103,7 +104,7 @@ try {
     const order = await p.evaluate(() => [...document.querySelectorAll('.trial-end-two > div')].map((d) => d.dataset.tier).join(','));
     const maxCard = (await p.locator('.trial-end-max[data-tier=max]').innerText()).replace(/\s+/g, ' ');
     const all = (await p.locator('.trial-ended').innerText()).replace(/\s+/g, ' ');
-    check(order === 'max,free' && /What you have now/i.test(maxCard) && /Max · \$0\.99 a month/.test(maxCard) && (await p.locator('.trial-end-max button').innerText()).trim() === 'Keep Max · $0.99/mo', `two cards, Max first: "What you have now", $0.99 a month, Keep Max · $0.99/mo (${order})`);
+    check(order === 'max,free' && /What you have now/i.test(maxCard) && /Max · \$0\.99 a month/.test(maxCard) && (await p.locator('.trial-end-max button.btn').innerText()).trim() === 'Keep Max · $0.99/mo', `two cards, Max first: "What you have now", $0.99 a month, Keep Max · $0.99/mo (${order})`);
     check(!/first month/i.test(all) && !/\bPlus\b/.test(all) && !/\$[1-9]\.99/.test(all), 'no intro offer, no Plus, no old prices in the preview');
     await p.click('.trial-end-max button:has-text("Keep Max")');
     await p.click('.gcbc-invite-line button:has-text("Invite a friend")');
