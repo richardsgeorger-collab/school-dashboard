@@ -5,6 +5,7 @@ import { Reel, REEL_LENGTH } from "./Reel";
 import { Reel2, reel2Length } from "./Reel2";
 import { Reel3, REEL3_LENGTH } from "./Reel3";
 import { Reel4, REEL4_LENGTH } from "./Reel4";
+import { Reel4b, REEL4B_LENGTH } from "./Reel4b";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -17,6 +18,8 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Reel3-Daylight-Calm-App" component={Reel3} durationInFrames={REEL3_LENGTH} fps={30} width={1080} height={1920} defaultProps={{ app: true }} />
       <Composition id="Reel4-Daylight" component={Reel4} durationInFrames={REEL4_LENGTH} fps={30} width={1080} height={1920} defaultProps={{ sound: true }} />
       <Composition id="Reel4-Daylight-Silent" component={Reel4} durationInFrames={REEL4_LENGTH} fps={30} width={1080} height={1920} defaultProps={{ sound: false }} />
+      <Composition id="Reel4b-Dark" component={Reel4b} durationInFrames={REEL4B_LENGTH} fps={30} width={1080} height={1920} defaultProps={{ sound: true }} />
+      <Composition id="Reel4b-Dark-Silent" component={Reel4b} durationInFrames={REEL4B_LENGTH} fps={30} width={1080} height={1920} defaultProps={{ sound: false }} />
       {SLIDES.map((S, i) => (
         <Still key={i} id={`Carousel-${i + 1}`} component={S} width={CAROUSEL.width} height={CAROUSEL.height} />
       ))}

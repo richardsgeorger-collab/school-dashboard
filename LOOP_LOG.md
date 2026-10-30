@@ -488,3 +488,10 @@ One line per change, newest last. Proposals that need George's approval are mark
   - **Slide 7** says Max is $0.99/mo and everything else is free.
   - **Checked** at phone size (390 px). Fixed on the way: 1B's cards were too small side by side and then overlapped, and 1C's ring covered the slide number.
   marketing/reel/src/Carousel2.tsx; Remotion tsc and eslint are clean.
+- Loop 297 (2026-10-30): reel v4b, George's six fixes to v4. marketing/instagram/halo-plus-reel-v4b.mp4 (sound), halo-plus-reel-v4b-silent.mp4 and halo-plus-reel-v4b-first-frame.png (marketing/reel/src/Reel4b.tsx; v4 is left as it was). Everything else (beats, cursor, captions, sound, pacing) is unchanged.
+  (1) **A dark room instead of the sky:** a near-black wall with blurred bokeh drifting in parallax, a dark desk lit by a pool of screen light, a vignette and a space-grey laptop. The screen's glow (a radial light that follows the camera, plus the lid's own glow) lights the scene. The captions, ⌘K keycaps and end card are on dark glass with light type and gold accents.
+  (2) **Face-on opening:** the wide camera is now face-on (rx 3 instead of 26). The hook is fully on screen on frame 0 above the readable screen, and the deck and keyboard are darkened to a hint.
+  (3) **No crossfades:** the five page crossfades are now instant page changes mid-glide (home → cards, cards → calendar, calendar → search, search → assignment, assignment → This week), so no two screens overlap.
+  (4) **End card:** it arrives whole only after the camera settles (the empty panel with the turning mark is gone) and holds to the last frame (705 frames, 23.5 s).
+  (5) **The black end:** v4's audio was 7 ms longer than its video, so the audio is now cut and padded to exactly 23.5 s (imageio-ffmpeg's full ffmpeg; Remotion's bundled one lacks the filters).
+  (6) **Checks:** 10 frames a second around every transition, and the whole video at 4 frames a second with a near-black scan (none found); the last frame is the end card. Loudness is −28.7 LUFS with peaks of −10.8 dBFS.

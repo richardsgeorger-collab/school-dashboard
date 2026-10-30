@@ -4,6 +4,25 @@ Made 2026-10-30. Everything shows the real Halo+ UI, captured in Chrome on the s
 demo student Maya Torres. No GCU logos or trademarks: the sponsor logo spot is left empty in every capture, and every
 end card says "Not affiliated with GCU".
 
+## v4b (2026-10-30): the dark room. The current pick
+
+**`halo-plus-reel-v4b.mp4`** (with sound), **`halo-plus-reel-v4b-silent.mp4`** and **`halo-plus-reel-v4b-first-frame.png`**.
+Both videos are 23.5 s, with audio and video exactly the same length.
+
+**The setting:** the same beats, cursor, captions, sound and pacing as v4, in a dark, cozy room. A dim wall with soft warm
+and cool bokeh, a dark desk, a space-grey laptop, and the screen's blue-white glow lighting the room. The captions and
+the end card sit on dark glass.
+
+**What changed from v4**
+- **Opening:** every wide shot is face-on. The first frame is the hook over the readable screen, with the keyboard only
+  a dark hint at the bottom.
+- **Page changes:** they happen at once, mid camera move, like a real navigation. Two screens never crossfade over each
+  other.
+- **End card:** it arrives whole, only after the camera has settled, and holds to the last frame.
+- **Audio:** cut to the video's exact length. A longer audio track can show black at the end in some players.
+
+Code: `marketing/reel/src/Reel4b.tsx` (compositions `Reel4b-Dark` and `Reel4b-Dark-Silent`).
+
 ## Carousel, redone (2026-10-30): `carousel-v2/`
 
 The look matches the daylight v3 reel: paper, a gold glow, Jakarta, gold accents.
