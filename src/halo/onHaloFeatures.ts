@@ -1,7 +1,7 @@
 /**
  * What Halo+ adds on Halo's own pages (extension 0.12.0, George 2026-10-27), each with its own switch under "Show
- * Halo+ on Halo pages", here in You and in the extension's popup, so a student can turn any one off. Plus and Max (the
- * trial is Max); Free keeps the This week panel, the pill, the class lines and grades, and sees none of these switches.
+ * Halo+ on Halo pages", here in You and in the extension's popup, so a student can turn any one off. Every plan since
+ * 0.12.12 (everything on Halo is Free).
  * The same ids and words as extension/onhalo/features.js (onHaloFeatures.test.ts checks).
  */
 export const ON_HALO_FEATURES = [
@@ -23,6 +23,7 @@ export const ON_HALO_FEATURES = [
   ['preload', 'Open your next pages faster'],
   ['homeheader', 'Compact Student Home header'],
   ['homecards', 'Class cards: grade and what’s next'],
+  ['whatif', 'What-if on the Gradebook'],
 ] as const;
 
 export type OnHaloFeature = (typeof ON_HALO_FEATURES)[number][0];
@@ -34,7 +35,7 @@ export function featureLabel(label: string): string {
 }
 
 /** Features added after 0.12.0: their switch shows only with that extension version or later on this computer. */
-export const ON_HALO_FEATURE_SINCE: Partial<Record<OnHaloFeature, string>> = { homeheader: '0.12.2', homecards: '0.12.5' };
+export const ON_HALO_FEATURE_SINCE: Partial<Record<OnHaloFeature, string>> = { homeheader: '0.12.2', homecards: '0.12.5', whatif: '0.12.14' };
 
 /** The first extension with these features: the switches show only with it on this computer. */
 export const ON_HALO_SINCE = '0.12.0';

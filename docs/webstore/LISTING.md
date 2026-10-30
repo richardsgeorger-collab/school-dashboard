@@ -1,5 +1,14 @@
 # Chrome Web Store listing kit
 
+## 0.12.14 (2026-10-29): upload this package instead of 0.12.13; everything else as below
+
+0.12.14 (Loop 288): what-if on Halo's Gradebook (its own switch, "What-if on the Gradebook"): a small What-if toggle with
+the Halo+ mark under Halo's score cards; on, a score box in every row, the what-if letter and percent beside Halo's own
+total (marked Estimate when Halo's rows don't add up to Halo's total), "What do I need?", and the next big item in plain
+words ("On Exam 1 (tomorrow), you need 81% for an A…"). Nothing in Halo changes and nothing is sent anywhere. Built on
+0.12.13 (the new name, summary and store pictures). **No new permission.** Upload
+`webstore-upload/halo-plus-extension-0.12.14.zip`; the description, screenshots and tile as in 0.12.13 below.
+
 ## 0.12.13 (2026-10-29): the new store presence, George's picks. Upload this; everything below is history
 
 Loop 286 (final polish): the tile is "GCU's Halo, upgraded." on the live tile's own design (subline D, shortened to fit:

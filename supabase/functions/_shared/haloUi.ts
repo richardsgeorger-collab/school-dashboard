@@ -11,7 +11,9 @@ const EVENTS = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-h
   'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done',
   // Max from Halo (0.12.12): the heads-up on an assignment's page shown and "Unlock with Max" pressed, back from
   // checkout with Max on, the free week's end note shown and its two buttons.
-  'locked-box', 'locked-unlock', 'max-on', 'trial-note', 'trial-note-keep', 'trial-note-later'];
+  'locked-box', 'locked-unlock', 'max-on', 'trial-note', 'trial-note-keep', 'trial-note-later',
+  // What-if on Halo's Gradebook (0.12.14): turned on or off, a letter in the next-exam line tapped.
+  'whatif-on', 'whatif-off', 'whatif-next'];
 
 export async function recordHaloUi(db: any, b: Record<string, unknown>): Promise<{ ok: boolean; why?: string }> {
   const event = typeof b.event === 'string' ? b.event : '';

@@ -67,6 +67,8 @@ export interface HaloSnapClass {
   ga?: string;
   /** The class's color in Halo+ (the dot beside its code). */
   col?: string;
+  /** The class's own letter scale from Halo, [letter, lowest percent], for the Gradebook what-if (0.12.14). */
+  gs?: [string, number][];
 }
 
 export interface HaloSnap {
@@ -167,6 +169,6 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
     items: items.sort((a, b) => a.due.localeCompare(b.due)),
     ...(input.max ? { mx: 1 as const } : {}),
     ...(!input.max && input.trialEndedAt && Date.parse(input.trialEndedAt) <= t && Date.parse(input.trialEndedAt) > t - 14 * DAY ? { te: input.trialEndedAt } : {}),
-    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.haloGrade?.letter ? { gl: c.haloGrade.letter } : {}), ...(c.haloGrade?.at ? { ga: c.haloGrade.at } : {}), ...(c.color ? { col: c.color } : {}) })),
+    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.haloGrade?.letter ? { gl: c.haloGrade.letter } : {}), ...(c.haloGrade?.at ? { ga: c.haloGrade.at } : {}), ...(c.color ? { col: c.color } : {}), ...(c.gradeScale?.some((e) => typeof e.minPercent === 'number') ? { gs: c.gradeScale.filter((e) => typeof e.minPercent === 'number').map((e) => [e.label.trim(), e.minPercent as number] as [string, number]) } : {}) })),
   };
 }

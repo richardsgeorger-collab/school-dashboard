@@ -151,7 +151,7 @@
     const classes = [];
     const bySlug = new Map();
     for (const c of (s && s.classes) || []) {
-      const k = { key: c.id, code: c.code, cc: c.cc || '', slug: c.slug || '', name: c.name || '', g: typeof c.g === 'number' ? c.g : null, gl: c.gl || null, ga: c.ga || snapAt(s), col: c.col || null };
+      const k = { key: c.id, code: c.code, cc: c.cc || '', slug: c.slug || '', name: c.name || '', g: typeof c.g === 'number' ? c.g : null, gl: c.gl || null, ga: c.ga || snapAt(s), col: c.col || null, gs: Array.isArray(c.gs) ? c.gs : null };
       classes.push(k);
       if (k.slug) bySlug.set(k.slug, k);
     }

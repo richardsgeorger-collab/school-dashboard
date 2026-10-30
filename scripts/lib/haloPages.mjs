@@ -882,3 +882,74 @@ export async function standIn(ctx, fx, opts = {}) {
   return { build, calls, state };
 }
 export { esc, snake, shell };
+
+/**
+ * Halo's student Gradebook (`/courses/<slug>/student/gradebook`), as its code draws it (docs/halo-gradebook.md, read from
+ * Halo's public bundle 2026-10-29): the title, the progress cards (profile, Overall Grade = Halo's letter, Points
+ * Earned = published points over published possible, Percentage rounded to 2 places), the class card, then one topic
+ * group per unit with its published points and its assessments: a table at 1366px and wider, cards below (Halo picks
+ * by window width and redraws on resize, like React, so anything added to it is wiped). Only PUBLISHED rows show a
+ * score ("45 / 50 (90%)"); every other row shows "-" with "No score" for screen readers, then "/ 50". state.grades
+ * overrides statuses and scores; state.finalGrade[slug] overrides Halo's total (to test a total the rows do not reach).
+ */
+export function gradebookPage(build, fx, u, state) {
+  const C = (n) => build.cls(n);
+  const slug = decodeURIComponent(u.pathname.split('/')[2]);
+  const cls = fx.payload.classes.find((c) => c.slugId === slug) ?? fx.payload.classes[0];
+  const rows = cls.assessments.map((a) => {
+    const g = state.grades?.[a.id] ?? {};
+    const status = g.status ?? a.status ?? 'UPCOMING';
+    const score = 'score' in g ? g.score : a.score;
+    return { id: a.id, title: a.title, type: a.type, points: a.points || 0, unitId: a.unitId, unit: a.unit, seq: a.unitSequence ?? 0, due: g.dueDate ?? a.dueDate, status, score: status === 'PUBLISHED' && typeof score === 'number' ? score : null };
+  });
+  const pub = rows.filter((r) => r.score !== null);
+  const own = state.finalGrade?.[cls.slugId];
+  const fp = own ? own.points : Math.round(pub.reduce((a, r) => a + r.score, 0) * 100) / 100;
+  const mp = own ? own.max : pub.reduce((a, r) => a + r.points, 0);
+  const pct = mp > 0 ? Math.round((fp / mp) * 100 * 100) / 100 : null;
+  const scale = [['A', 93], ['A-', 90], ['B+', 87], ['B', 83], ['B-', 80], ['C+', 77], ['C', 70], ['D', 60], ['F', 0]];
+  const letter = own?.letter ?? (pct === null ? null : scale.find((e) => pct >= e[1])[0]);
+  const units = [];
+  for (const r of rows) {
+    let un = units.find((x) => x.id === r.unitId);
+    if (!un) units.push((un = { id: r.unitId, title: r.unit || 'Topic', seq: r.seq, rows: [] }));
+    un.rows.push({ ...r, dueText: haloFull(r.due) });
+  }
+  units.sort((a, b) => a.seq - b.seq);
+  for (const un of units) un.rows.sort((a, b) => a.due.localeCompare(b.due) || a.title.localeCompare(b.title));
+  const names = ['StudentGradebook_gradebookPage', 'PageTitle_underlinedHeaderContainer', 'StudentGradebook_icontext', 'PageTitle_icon', 'PageTitle_headerText', 'StudentProgressCards_progressCards', 'ProfileCard_profileCard', 'ProfileCard_profileIcon', 'ProfileCard_profileName', 'ProfileCard_profileId', 'GradingScoreCard_scoreCard', 'GradingScoreCard_tooltip', 'GradingScoreCard_tooltipIcon', 'GradingScoreCard_scoreLabel', 'GradingScoreCard_score', 'Points_score', 'Points_pointsNumerator', 'Points_totalPoints', 'ClassModificationsHeader_courseUnitContainer', 'TopicGrouping_topics', 'TopicGrouping_topicHeader', 'TopicGrouping_topicToggle', 'TopicGrouping_topicHeaderContent', 'TopicGrouping_topicTitle', 'TopicGrouping_topicPoints', 'TopicGrouping_topicContent', 'TopicGrouping_expandedIcon', 'LMSTable_table', 'AssessmentTable_table', 'LMSTable_headerRow', 'LMSTable_row', 'LMSTable_striped', 'AssessmentTable_assessmentIcon', 'AssessmentTable_gradingFeedback', 'AssessmentTable_assessmentTitle', 'AssessmentTable_score', 'GradeStatusBadge_gradeStatusTag', 'AssessmentTable_gradeStatusBadge', 'AssessmentTable_assessmentStatusBtn', 'studentFeedbackCard_cardColor', 'studentFeedbackCard_bgcardColor', 'studentFeedbackCard_wordBreak', 'StudentAssessmentDetails_childItem', 'studentFeedbackCard_gradeStatusBadge', 'FormattedDateTimeDisplay_dateWithPrefix', 'FormattedDateTimeDisplay_timePart'];
+  const data = { slug: cls.slugId, code: cls.courseCode, letter, fp, mp, pct, maxAll: rows.reduce((a, r) => a + r.points, 0), units, C: Object.fromEntries(names.map((n) => [n, C(n)])) };
+  const body = `<div id="hp-gb-root" class="py-4 flex-1"></div><script type="application/json" id="hp-gb">${JSON.stringify(data).replace(/</g, '\\u003c')}</script><script>${GRADEBOOK_JS}</script>`;
+  return shell(build, '/courses/[slugId]/student/gradebook', `${cls.slugId.slice(0, 7)} Gradebook `, body, { sidebar: '<div style="height:100%"></div>' });
+}
+// Halo's gradebook render, as its code does it: the table at 1366px and wider, cards below, redrawn on resize.
+const GRADEBOOK_JS = `(() => {
+const D = JSON.parse(document.getElementById('hp-gb').textContent); const C = D.C; const root = document.getElementById('hp-gb-root');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const pc = (e, n) => { const i = (e / n) * 100; return isNaN(i) || i < 0 || i === Infinity ? '-' : Math.round(i * 100) / 100 + '%'; };
+const cap = (s) => s.split('_').map((w) => w[0] + w.slice(1).toLowerCase()).join(' ');
+const BG = { PUBLISHED: 'var(--lms-published,#2e7d32)', SUBMITTED: 'var(--lms-ungraded,#3f51b6)', OVERDUE: 'var(--lms-overdue,#e91c0d)', LATE: 'var(--lms-late,#ffbd16)', ACTIVE: 'var(--lms-upcoming,#e0e0e0)', UPCOMING: 'var(--lms-grayE0,#e0e0e0)' };
+const pts = (score, total, percent, cls) => '<div class="' + C.Points_score + ' ' + (cls || '') + '"><span data-testid="student_scored_points">' + (score === null ? '-' : esc(score)) + (score === null ? '<span class="sr-only">No score</span>' : '') + '</span>' + (total !== null && total !== undefined && total !== '' ? '<div class="' + C.Points_pointsNumerator + ' ' + (cls || '') + '">/ <span class="' + C.Points_totalPoints + '">' + esc(total) + '</span>' + (percent && score !== null ? '<span class="' + C.Points_totalPoints + ' ' + (cls || '') + '">(' + percent + ')</span>' : '') + '</div>' : '') + '</div>';
+const card = (label, score, total) => '<div class="' + C.GradingScoreCard_scoreCard + '"><div class="' + C.GradingScoreCard_tooltip + '" tabindex="0" role="presentation"><svg class="' + C.GradingScoreCard_tooltipIcon + '" viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="sr-only">tooltip</span></div><p class="' + C.GradingScoreCard_scoreLabel + '">' + label + '</p>' + pts(score, total, null, C.GradingScoreCard_score) + '</div>';
+const badge = (st, extra) => '<div tabindex="-1" aria-label="" data-testid="status" style="color:' + (['PUBLISHED', 'SUBMITTED', 'OVERDUE'].includes(st) ? '#fff' : '#212121') + ';background-color:' + (BG[st] || BG.UPCOMING) + '" class="' + C.GradeStatusBadge_gradeStatusTag + ' ' + extra + '">' + cap(st) + '</div>';
+const when = (r) => { const m = /^(\\w+ \\d+, \\d+),\\s*(.*)$/.exec(r.dueText) || [0, r.dueText, '']; return '<time datetime="' + r.due + '"><span class="' + C.FormattedDateTimeDisplay_dateWithPrefix + '"><span>' + m[1] + ',</span></span> <span class="' + C.FormattedDateTimeDisplay_timePart + '">' + m[2] + '</span></time>'; };
+const label = (r) => ({ PUBLISHED: 'View Feedback', SUBMITTED: 'View Submission', OVERDUE: r.type === 'QUIZ' ? 'Go to Quiz' : 'Submit Assignment', ACTIVE: r.type === 'QUIZ' ? 'Go to Quiz' : r.type === 'DISCUSSION_QUESTION' ? 'Submit DQ Response' : r.type === 'PARTICIPATION' ? 'Go to Discussion' : 'Submit Assignment' })[r.status] || null;
+const action = (r) => { const l = label(r); return l ? '<div class="flex items-center "><div><span><button class="MuiButtonBase-root MuiButton-root MuiButton-containedSecondary MuiButton-sizeSmall ' + C.AssessmentTable_assessmentStatusBtn + '" type="button" aria-label="' + esc(r.title) + l + '" data-testid="student_Assessment_Status_Button=' + r.id + '"><span class="MuiButton-label">' + l + '</span></button></span></div></div>' : '<span data-testid="student_Assessment_Status_Button=' + r.id + '"></span>'; };
+const score = (r, cls) => pts(r.score === null ? null : String(r.score), String(r.points), r.score === null ? null : pc(r.score, r.points), cls);
+function table(un) {
+  const cols = ['icon', 'assessment', 'dueDate', 'submissionDate', 'status', 'score', 'action'];
+  const head = ['<span class="sr-only">Assessment Type</span>', '<span class="guide_anchor_studentGradebook_assessmentColumn">Assessment</span>', 'Due Date', 'Submission Date', 'Status', 'Score', 'Action'];
+  return '<div class="MuiTableContainer-root MuiPaper-root MuiPaper-elevation1 MuiPaper-rounded ' + C.LMSTable_table + ' ' + C.AssessmentTable_table + ' guide_anchor_studentGradebook_assessmentTable"><table class="MuiTable-root" aria-label="Assessments for ' + esc(un.title) + '" data-testid="lms_table_container"><thead class="MuiTableHead-root"><tr class="MuiTableRow-root MuiTableRow-head ' + C.LMSTable_headerRow + '" data-testid="lms_table_header_row">' + head.map((h) => '<th class="MuiTableCell-root MuiTableCell-head" data-testid="lms_table_header_col_"><div><span class="MuiButtonBase-root MuiTableSortLabel-root" role="none">' + h + '</span></div></th>').join('') + '</tr></thead><tbody class="MuiTableBody-root" data-testid="lms_table_body_container">' + un.rows.map((r, i) => '<tr class="MuiTableRow-root ' + C.LMSTable_row + ' ' + C.LMSTable_striped + '" data-testid="lms_table_body_row_row_' + i + '">' + cols.map((c) => '<td class="MuiTableCell-root MuiTableCell-body" data-testid="lms_table_body_col_cell_' + i + '_' + c + '"><span>' + ({ icon: '<span class="' + C.AssessmentTable_assessmentIcon + '"></span>', assessment: '<div class="' + C.AssessmentTable_gradingFeedback + ' guide_anchor_studentGradebook_feedbackContainer"><h4 class="' + C.AssessmentTable_assessmentTitle + '">' + esc(r.title) + '</h4></div>', dueDate: when(r), submissionDate: '-', status: badge(r.status, C.AssessmentTable_gradeStatusBadge), score: score(r, C.AssessmentTable_score), action: action(r) })[c] + '</span></td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+}
+function cards(un) {
+  const pair = (l, v) => '<div class="flex"><div class="font-display-regular text-gray5E text-sm ' + C.StudentAssessmentDetails_childItem + '">' + l + '</div><div class="' + C.StudentAssessmentDetails_childItem + '">' + v + '</div></div>';
+  return un.rows.map((r, i) => '<div class="py-1"><div class="' + (i % 2 ? C.studentFeedbackCard_cardColor + ' border rounded' : ' border rounded ' + C.studentFeedbackCard_bgcardColor) + '">' + pair('Assessment', '<div class="flex"><div><span class="ml-3 text-hyperlink ' + C.studentFeedbackCard_wordBreak + '">' + esc(r.title) + '</span></div></div>') + pair('Due Date', when(r)) + pair('Submitted Date', '-') + pair('Status', '<div class="text-sm font-display-regular text-main">' + badge(r.status, C.studentFeedbackCard_gradeStatusBadge) + '</div>') + pair('Score', '<div class="flex">' + score(r, '') + '</div>') + pair('Action', action(r)) + '</div></div>').join('');
+}
+function render() {
+  const wide = window.innerWidth >= 1366;
+  root.innerHTML = '<div class="' + C.StudentGradebook_gradebookPage + ' false"><header class="' + C.PageTitle_underlinedHeaderContainer + ' ' + C.StudentGradebook_icontext + '"><div class="flex items-center"><span class="' + C.PageTitle_icon + '"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z" fill="currentColor"/></svg></span><h1 class="' + C.PageTitle_headerText + ' focus:outline-none">Gradebook</h1></div></header><main class="undefined"><section class="' + C.StudentProgressCards_progressCards + '" id="guide_anchor_studentGradebook_progress"><div class="' + C.ProfileCard_profileCard + '"><span class="' + C.ProfileCard_profileIcon + '">MT</span><div data-testid="student_info" class="w-2/3 break-words"><p data-testid="student_name" class="' + C.ProfileCard_profileName + '">Maya Torres</p><p data-testid="student_id" class="' + C.ProfileCard_profileId + '">ID: 20981234</p></div></div>' + card('Overall Grade', D.letter === null ? null : D.letter, null) + card('Points Earned', String(D.fp), String(D.mp)) + card('Percentage', D.pct === null ? null : D.pct + '%', null) + '</section><section><section class="mb-2"><div class="flex items-end justify-between section-header-wrapper"><div class="flex items-center p-2"><h4 data-testid="header"></h4></div></div></section><section class="mb-2"><div class="' + C.ClassModificationsHeader_courseUnitContainer + '"><h5 data-testid="header">' + esc(D.code) + '</h5><span class="text-sm text-secondary md:text-lg">Max Points:</span><span class="pl-1 text-sm text-main md:text-lg">' + D.maxAll + '</span></div></section>' + D.units.map((un) => { const pub = un.rows.filter((r) => r.score !== null); const sc = pub.reduce((a, r) => a + r.score, 0); const tt = pub.reduce((a, r) => a + r.points, 0); return '<div class="' + C.TopicGrouping_topics + '"><div class="' + C.TopicGrouping_topicHeader + '"><button class="MuiButtonBase-root MuiIconButton-root ' + C.TopicGrouping_topicToggle + ' guide_anchor_studentGradebook_expandTopic" aria-label="collapse all ' + esc(un.title) + ' assessment" aria-expanded="true" type="button"><svg class="' + C.TopicGrouping_expandedIcon + '" viewBox="0 0 24 24" width="20" height="20"><path d="M7 10l5 5 5-5z" fill="currentColor"/></svg></button><div class="' + C.TopicGrouping_topicHeaderContent + '"><div><h3 class="' + C.TopicGrouping_topicTitle + '">' + esc(un.title) + '</h3></div><div class="' + C.TopicGrouping_topicPoints + ' guide_anchor_studentGradebook_topicPoints"><p>Points:</p>' + pts(String(Math.round(sc * 100) / 100), tt ? String(tt) : null, null, 'flex') + '</div></div></div><div class="' + C.TopicGrouping_topicContent + ' guide_anchor_studentGradebook_topicExpanded">' + (wide ? table(un) : cards(un)) + '</div></div>'; }).join('') + '</section></main></div>';
+}
+render();
+let w = window.innerWidth >= 1366;
+window.addEventListener('resize', () => { const n = window.innerWidth >= 1366; if (n !== w) { w = n; render(); } });
+})();`;

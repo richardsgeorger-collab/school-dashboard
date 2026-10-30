@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Halo+ for GCU: Search, Calendar & Due Dates on Halo LMS",
   "description": "Search every GCU Halo class with Ctrl+K, see what's next and your grade on every class, and open rubrics in place. Free on Halo LMS.",
-  "version": "0.12.13",
+  "version": "0.12.14",
   "permissions": [
     "alarms",
     "storage",
@@ -58,6 +58,7 @@
         "onhalo/rubric.js",
         "onhalo/duein.js",
         "onhalo/topic.js",
+        "onhalo/gradebook.js",
         "onhalo/calendar.js",
         "onhalo/submitted.js",
         "onhalo/homecal.js",

@@ -657,5 +657,86 @@
     return true;
   }
 
-  globalThis.HaloPlusOnLogic = { cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
+  // ---- what-if on Halo's Gradebook (0.12.14, George 2026-10-29) ---------------------------------------------------
+  // The same math as the app (src/domain/whatIfGrade.ts), points only, because Halo's gradebook is points only: earned
+  // over possible on PUBLISHED work. It starts from Halo's own "Points Earned" (never a re-sum of the rows): a what-if
+  // on a graded row moves earned points by the difference from its score; one on a row with no grade adds its score
+  // and its points. With no what-ifs it is Halo's own grade. It is called exact only when Halo's rows add up to
+  // Halo's total and the letter scale gives Halo's own letter; otherwise "Estimate".
+  const GCU_LETTERS = [['A', 93], ['A-', 90], ['B+', 87], ['B', 83], ['B-', 80], ['C+', 77], ['C', 70], ['D', 60], ['F', 0]];
+  const scaleOf = (gs) => (Array.isArray(gs) && gs.length ? [...gs].filter((e) => e && typeof e[1] === 'number').sort((a, b) => b[1] - a[1]) : GCU_LETTERS);
+  /** The letter for a percent: the highest whose cutoff it reaches, never rounded up (92.99 is not 93). */
+  function wiLetter(pct, gs) {
+    if (pct === null || !Number.isFinite(pct)) return null;
+    const sc = scaleOf(gs);
+    const hit = sc.find((e) => pct >= e[1]);
+    return (hit || sc[sc.length - 1])[0];
+  }
+  /** rows: [{ id, points, score (number|null), published }]; halo: { earned, max, letter }; s: { id: points }. */
+  function wiGrade(halo, rows, s = {}) {
+    let earned = halo.earned;
+    let max = halo.max;
+    for (const r of rows) {
+      const v = s[r.id];
+      if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+      if (r.published && typeof r.score === 'number') earned += v - r.score;
+      else {
+        earned += v;
+        max += Math.max(0, r.points);
+      }
+    }
+    return { earned, max, pct: max > 0 ? (earned / max) * 100 : null };
+  }
+  /** Exact when the published rows add up to Halo's own total (to a hundredth). */
+  function wiExact(halo, rows) {
+    const pub = rows.filter((r) => r.published && typeof r.score === 'number');
+    const e = pub.reduce((a, r) => a + r.score, 0);
+    const m = pub.reduce((a, r) => a + r.points, 0);
+    return Math.abs(e - halo.earned) < 0.01 && Math.abs(m - halo.max) < 0.01;
+  }
+  /** The items that move the grade: 4% or more of the class's points, or an exam, quiz, lab, paper or project worth 2%. */
+  function wiBig(rows, halo, kindOf = () => '') {
+    const open = rows.filter((r) => !r.published && r.points > 0);
+    const total = halo.max + open.reduce((a, r) => a + r.points, 0) || 1;
+    return open.filter((r) => r.points / total >= 0.04 || (/^(exam|quiz|lab|paper|project)$/.test(kindOf(r)) && r.points / total >= 0.02));
+  }
+  /** For one item: the score (percent) each letter takes, everything else as it is. Up to the next tenth. */
+  function wiLadder(halo, rows, s, item, gs) {
+    const at = (pct) => wiGrade(halo, rows, { ...s, [item.id]: (item.points * pct) / 100 }).pct || 0;
+    const up1 = (x) => Math.ceil(x * 10 - 1e-6) / 10;
+    return scaleOf(gs)
+      .filter((e) => e[1] > 0)
+      .map(([label, min]) => {
+        if (at(0) >= min) return { label, state: 'locked', pct: null };
+        if (at(100) < min) return { label, state: 'impossible', pct: null };
+        let lo = 0;
+        let hi = 100;
+        for (let k = 0; k < 40; k++) {
+          const mid = (lo + hi) / 2;
+          if (at(mid) >= min) hi = mid;
+          else lo = mid;
+        }
+        return { label, state: 'needs', pct: up1(hi) };
+      });
+  }
+  /** "What do I need?": the same average on every row without a grade (and without a what-if) for a letter's cutoff. */
+  function wiNeed(halo, rows, s, target, gs) {
+    const cut = scaleOf(gs).find((e) => e[0] === target);
+    if (!cut) return null;
+    const open = rows.filter((r) => !r.published && r.points > 0 && typeof s[r.id] !== 'number');
+    if (!open.length) return { state: 'nothing-left' };
+    const at = (pct) => wiGrade(halo, rows, { ...s, ...Object.fromEntries(open.map((r) => [r.id, (r.points * pct) / 100])) }).pct || 0;
+    if (at(0) >= cut[1]) return { state: 'locked' };
+    if (at(100) < cut[1]) return { state: 'impossible', best: at(100) };
+    let lo = 0;
+    let hi = 100;
+    for (let k = 0; k < 40; k++) {
+      const mid = (lo + hi) / 2;
+      if (at(mid) >= cut[1]) hi = mid;
+      else lo = mid;
+    }
+    return { state: 'needs', avg: Math.ceil(hi - 1e-6) };
+  }
+
+  globalThis.HaloPlusOnLogic = { wiLetter, wiGrade, wiExact, wiBig, wiLadder, wiNeed, cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
 })();
