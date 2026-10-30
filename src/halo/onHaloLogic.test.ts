@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
+import { isParticipation } from '../domain/participation';
 
 // The rules behind Halo+ on Halo's pages (extension/onhalo/logic.js, a plain script), run as the extension runs them.
 // Every rule is tested on the cases where it must show nothing, as much as on the ones where it shows something.
@@ -461,7 +462,7 @@ describe('each class in its card’s colour, the bold version (feature 1, 0.12.2
   });
 });
 
-describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5; participation posts since 0.12.6)', () => {
+describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5; participation posts since 0.12.6, only in leftover spots since 0.12.15)', () => {
   type N = { id: string; when: string; why?: string; href: string };
   const C = L as unknown as { cardNext: (index: unknown, k: number, live: Map<string, { dueDate: string | null; status: string | null }> | null, now: number, tz: string, o?: { doneIds?: Set<string> }) => N[] | null };
   const PHX = 'America/Phoenix';
@@ -483,18 +484,40 @@ describe('the class card’s NEXT: up to three things, exactly as Halo has them 
   const live = (o: Record<string, string> = {}) => new Map(rows.map((r) => [r.id, { dueDate: null, status: o[r.id] ?? (r.id === 'done' ? 'SUBMITTED' : 'ACTIVE') }]));
   it('what can be done now first, soonest due first; at most three', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX)!;
-    expect(n.map((x) => [x.id, x.when])).toEqual([['hw', 'today 11:58 PM'], ['dq', 'tomorrow 12:00 PM'], ['part', 'tomorrow 11:00 PM']]);
+    expect(n.map((x) => [x.id, x.when])).toEqual([['hw', 'today 11:58 PM'], ['dq', 'tomorrow 12:00 PM'], ['q', 'Fri 11:58 PM']]);
   });
   it('then what cannot be acted on yet, with why: done in class, or not open yet', () => {
     const n = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED' }), now, PHX)!;
-    expect(n.map((x) => [x.id, x.why ?? ''])).toEqual([['part', ''], ['q', ''], ['exam', 'in class Fri']]);
+    expect(n.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
     const m = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED', part: 'SUBMITTED' }), now, PHX)!;
     expect(m.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
   });
-  it('participation posts show (never urgent); never done work (Halo’s status or a Halo+ check-off), past due, far off, or without an address', () => {
+  it('participation posts fill a leftover spot; never done work (Halo’s status or a Halo+ check-off), past due, far off, or without an address', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q']) })!;
-    expect(n.map((x) => x.id)).toEqual(['part', 'exam', 'later']);
+    expect(n.map((x) => x.id)).toEqual(['exam', 'later', 'part']);
     expect(n.some((x) => ['done', 'late', 'far', 'nohref'].includes(x.id))).toBe(false);
+  });
+  it('participation only fills spots nothing else needs: three or more other things means no participation at all', () => {
+    const P = (id: string, d: number, extra = {}) => ({ c: 0, kind: 'participation', id, title: `Participation ${id}`, href: `/${id}`, cdue: at(d, 20), start: at(-3, 0), ...extra });
+    const A = (id: string, d: number, extra = {}) => ({ c: 0, kind: 'assignment', id, title: `Assignment ${id}`, href: `/${id}`, cdue: at(d, 22), start: at(-3, 0), ...extra });
+    // Participation due sooner than everything else still waits behind it, and a can't-do-yet exam outranks it too.
+    const full = [P('p1', 0), P('p2', 0), A('a1', 1), A('a2', 2), { ...A('ex', 2), title: 'Exam 1', ns: 1, inp: 1, cdue: at(2, 9) }];
+    const all = (r: typeof full) => new Map(r.map((x) => [x.id, { dueDate: null, status: 'ACTIVE' }]));
+    expect(C.cardNext({ rows: full }, 0, all(full), now, PHX)!.map((x) => [x.id, x.why ?? ''])).toEqual([['a1', ''], ['a2', ''], ['ex', 'in class Fri']]);
+    // Called participation by its title alone (the app's shared rule), it is held back the same way.
+    const titled = [A('a1', 1), A('a2', 2), A('a3', 3), { ...A('dq', 0), kind: 'discussion', title: 'Week 3 Participation' }];
+    expect(C.cardNext({ rows: titled }, 0, all(titled), now, PHX)!.map((x) => x.id)).toEqual(['a1', 'a2', 'a3']);
+    // One other thing: it comes first, then up to two participation posts, soonest first.
+    const one = [P('p3', 3), P('p1', 0), P('p2', 1), A('a1', 2)];
+    expect(C.cardNext({ rows: one }, 0, all(one), now, PHX)!.map((x) => x.id)).toEqual(['a1', 'p1', 'p2']);
+    // Nothing else: participation fills the box.
+    const none = [P('p1', 0), P('p2', 1)];
+    expect(C.cardNext({ rows: none }, 0, all(none), now, PHX)!.map((x) => x.id)).toEqual(['p1', 'p2']);
+  });
+  it('the participation test is the app’s own rule', () => {
+    const I = L as unknown as { isParticipation: (r: { kind?: string; title?: string }) => boolean };
+    for (const [kind, title] of [['participation', 'Anything'], ['discussion', 'Topic 2 Participation'], ['assignment', 'participation check'], ['discussion', 'Topic 2 DQ 1'], ['assignment', 'Homework 1']] as const)
+      expect(I.isParticipation({ kind, title })).toBe(isParticipation({ type: kind, title } as Parameters<typeof isParticipation>[0]));
   });
   it('an item whose kind of submission the index cannot tell is left out, not guessed', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q', 'exam', 'later', 'part']) })!;

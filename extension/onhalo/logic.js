@@ -534,9 +534,14 @@
    * Mon", from Halo's start date) or done in class, not in Halo ("in class Fri"; Halo's own in-person flag). Never done
    * work (Halo's status, or a Halo+ check-off in `doneIds`), never anything past due or more than
    * `days` days out, never anything without an address on Halo; an item whose kind of submission is not known (an index
-   * from before 0.12.5 that says only "not submitted in Halo") is left out. Returns null without Halo's answer, else a
-   * list (possibly empty: "Nothing due soon").
+   * from before 0.12.5 that says only "not submitted in Halo") is left out. Participation comes last (0.12.15): it only
+   * fills spots nothing else needs. Returns null without Halo's answer, else a list (possibly empty: "Nothing due soon").
    */
+  /**
+   * Participation, by the app's own rule (src/domain/participation.ts isParticipation; a test keeps them the same): Halo
+   * calls it participation, or its title says so ("Topic 3 Participation").
+   */
+  const isParticipation = (r) => r.kind === 'participation' || /participation/i.test(String(r.title || ''));
   function cardNext(index, k, live, now, tz, { doneIds = new Set(), max = 3, days = 14 } = {}) {
     if (!index || !Array.isArray(index.rows) || !live || !tz) return null;
     const can = [];
@@ -550,15 +555,20 @@
       if (!Number.isFinite(due) || due < now || due > now + days * DAY) continue;
       if (HALO_DONE.test(h.status || '') || r.done || doneIds.has(r.id)) continue;
       const start = Date.parse(r.start || '');
-      const item = { id: r.id, title: r.title, href: r.href, t: due, when: whenText(due, now, tz), full: haloFormat(due, tz) };
+      const item = { id: r.id, title: r.title, href: r.href, t: due, when: whenText(due, now, tz), full: haloFormat(due, tz), part: isParticipation(r) };
       if (r.inp === 1) cannot.push({ ...item, why: `in class ${dayWord(due, now, tz)}` });
       else if (r.ns && r.inp === undefined) continue;
       else if (Number.isFinite(start) && start > now) cannot.push({ ...item, why: `opens ${dayWord(start, now, tz)}` });
       else can.push(item);
     }
-    can.sort((a, b) => a.t - b.t || a.title.localeCompare(b.title));
-    cannot.sort((a, b) => a.t - b.t || a.title.localeCompare(b.title));
-    return [...can, ...cannot].slice(0, max);
+    const order = (a, b) => a.t - b.t || a.title.localeCompare(b.title);
+    can.sort(order);
+    cannot.sort(order);
+    // Participation only fills what is left (George, 2026-10-30): everything else first, what can be done now and then
+    // what cannot yet ("Exam 1 · in class Fri"); participation posts only in the spots still free, up to `max`.
+    const other = [...can, ...cannot].filter((i) => !i.part);
+    const part = [...can, ...cannot].filter((i) => i.part);
+    return [...other, ...part].slice(0, max).map(({ part: _p, ...i }) => i);
   }
 
   // ---- Halo's class colours -------------------------------------------------------------------------------------------
@@ -738,5 +748,5 @@
     return { state: 'needs', avg: Math.ceil(hi - 1e-6) };
   }
 
-  globalThis.HaloPlusOnLogic = { wiLetter, wiGrade, wiExact, wiBig, wiLadder, wiNeed, cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
+  globalThis.HaloPlusOnLogic = { isParticipation, wiLetter, wiGrade, wiExact, wiBig, wiLadder, wiNeed, cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
 })();

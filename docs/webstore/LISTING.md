@@ -1,5 +1,11 @@
 # Chrome Web Store listing kit
 
+## 0.12.15 (2026-10-30): upload this package instead of 0.12.14; everything else as below
+
+0.12.15 (Loop 291): the NEXT box on Halo's class cards shows participation only in spots nothing else fills (everything
+else first, up to three; a class with three or more other things shows none). **No new permission.** Upload
+`webstore-upload/halo-plus-extension-0.12.15.zip`; the description, screenshots and tile as in 0.12.13 below.
+
 ## 0.12.14 (2026-10-29): upload this package instead of 0.12.13; everything else as below
 
 0.12.14 (Loop 288): what-if on Halo's Gradebook (its own switch, "What-if on the Gradebook"): a small What-if toggle with
