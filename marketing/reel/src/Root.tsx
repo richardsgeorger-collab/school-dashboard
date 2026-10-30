@@ -1,5 +1,6 @@
 import { Composition, Still } from "remotion";
 import { CAROUSEL, Profile, SLIDES } from "./Carousel";
+import { SLIDE, SLIDES2 } from "./Carousel2";
 import { Reel, REEL_LENGTH } from "./Reel";
 import { Reel2, reel2Length } from "./Reel2";
 import { Reel3, REEL3_LENGTH } from "./Reel3";
@@ -18,6 +19,9 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="Reel4-Daylight-Silent" component={Reel4} durationInFrames={REEL4_LENGTH} fps={30} width={1080} height={1920} defaultProps={{ sound: false }} />
       {SLIDES.map((S, i) => (
         <Still key={i} id={`Carousel-${i + 1}`} component={S} width={CAROUSEL.width} height={CAROUSEL.height} />
+      ))}
+      {SLIDES2.map(({ id, C }) => (
+        <Still key={id} id={id} component={C} width={SLIDE.width} height={SLIDE.height} />
       ))}
       <Still id="Profile" component={Profile} width={1080} height={1080} />
     </>

@@ -4,6 +4,37 @@ Made 2026-10-30. Everything shows the real Halo+ UI, captured in Chrome on the s
 demo student Maya Torres. No GCU logos or trademarks: the sponsor logo spot is left empty in every capture, and every
 end card says "Not affiliated with GCU".
 
+## Carousel, redone (2026-10-30): `carousel-v2/`
+
+The look matches the daylight v3 reel: paper, a gold glow, Jakarta, gold accents.
+
+**Every slide**
+- One big headline and one short line.
+- One whole piece of real UI, captured by its exact box and shown big with a slight tilt and a soft shadow, filling most
+  of the slide.
+- The mark and the slide number small in the corner.
+- `all-slides.png` shows them side by side.
+
+**Pick a hook** (`slide-1A`, `slide-1B` or `slide-1C`)
+- **1A, collage:** the hook on paper glass, with a class card, three calendar days, the search box and the confetti toast
+  floating around it.
+- **1B, before/after:** the same class card from plain Halo ("Show Halo+ on Halo pages" off) and with Halo+ (grade and
+  NEXT).
+- **1C, just type:** huge type and the gold ring. *My pick:* it reads in a thumb-scroll, and 2 to 7 show the UI anyway.
+
+**Slides 2 to 8**
+- **2:** the class card.
+- **3:** three calendar days.
+- **4:** the search box with seven results.
+- **5:** the rubric box.
+- **6:** the done toast with confetti.
+- **7:** an assignment card with Max's "Due date moved…" line. It says Max is $0.99/mo and everything else is free.
+- **8:** the end card, with the app line.
+
+**How it's made:** `marketing/reel/src/Carousel2.tsx` (stills `Slide-1A` … `Slide-8`). The pieces come from
+`public/ui3` and `public/ui5` (`scripts/marketing-capture-v5.mjs`: the plain card and the Halo+ card, the rubric, the
+Max card, captured in 560 px windows so they're readable big).
+
 ## Round 4 (2026-10-30): v4, the 3D laptop in the sky. The current pick
 
 **`halo-plus-reel-v4.mp4`** (with sound) and **`halo-plus-reel-v4-silent.mp4`** (no audio track). Both are 22.5 s,

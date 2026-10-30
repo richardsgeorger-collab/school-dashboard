@@ -475,3 +475,16 @@ One line per change, newest last. Proposals that need George's approval are mark
     - near confetti kept to the sides
     - the end card moved onto glass, since white words on the pale sky were unreadable
   The README lists what was copied from the reference and what differs, plus the cut points. Remotion tsc and eslint are clean.
+- Loop 296 (2026-10-30): the Instagram carousel, redone (George: "the real UI is way too small with lots of empty space"). marketing/instagram/carousel-v2/ holds slide-1A, 1B, 1C (three hooks to pick from), slide-2 to slide-8 (1080×1350 PNG) and all-slides.png side by side.
+  - **Look:** the daylight v3 reel's: paper, a gold glow, a dot grid, Jakarta, gold-deep accents. Each slide has one big headline, one short line, the mark and number small in a corner, and one whole piece of real UI shown big (86 to 88% of the width; the search box 80% so it fits) with a slight 3D tilt and a soft shadow.
+  - **Pieces:** the class card, calendar days, search and toast come from ui3. New scripts/marketing-capture-v5.mjs (Chrome, test Halo pages, Maya Torres) adds:
+    - the same class card with "Show Halo+ on Halo pages" off (plain Halo) and on;
+    - the rubric box, in a 560 px window;
+    - an assignment card with Max's "Due date moved…" line, in a 560 px window.
+  - **Hooks:**
+    - 1A, collage: the hook on paper glass among a card, calendar days, the search box and the confetti toast.
+    - 1B, before/after: plain and Halo+ cards on a diagonal, both whole.
+    - 1C, just type: huge type and the gold ring.
+  - **Slide 7** says Max is $0.99/mo and everything else is free.
+  - **Checked** at phone size (390 px). Fixed on the way: 1B's cards were too small side by side and then overlapped, and 1C's ring covered the slide number.
+  marketing/reel/src/Carousel2.tsx; Remotion tsc and eslint are clean.
