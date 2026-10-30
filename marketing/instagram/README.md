@@ -4,6 +4,71 @@ Made 2026-10-30. Everything shows the real Halo+ UI, captured in Chrome on the s
 demo student Maya Torres. No GCU logos or trademarks: the sponsor logo spot is left empty in every capture, and every
 end card says "Not affiliated with GCU".
 
+## Round 4 (2026-10-30): v4, the 3D laptop in the sky. The current pick
+
+**`halo-plus-reel-v4.mp4`** (with sound) and **`halo-plus-reel-v4-silent.mp4`** (no audio track). Both are 22.5 s,
+1080×1920, 30 fps.
+
+**The scene**
+- A 3D laptop floats in a daylight sky among clouds on parallax layers, the far ones soft (depth of field).
+- The camera glides and pushes in to each feature. It lands on the whole element: the class card, three calendar days,
+  the search box, Submit and the toast, then This week.
+
+**The screen**
+- It shows the real UI: whole 1280×800 pages captured at 3× in Chrome on the test Halo pages, with the made-up Maya
+  Torres and no GCU logos.
+- What happens on it:
+  - the NEXT lines fill in one by one;
+  - the chips settle into their days;
+  - "topic 3 quiz" is typed, with ⌘K shown as glass keycaps;
+  - a cursor presses Review & Submit, and the toast counts up to +30 pts while confetti drifts through the sky;
+  - the cursor ticks a This week box.
+- The cursor glides with slow-in, slow-out easing and a slight arc, with a gold ring on each click.
+
+**Words**
+- One caption per beat on frosted glass, always in the same place.
+- Bold sans with a serif italic accent (Instrument Serif, OFL): "What's *next*, on every class."
+- The end card sits on glass: the mark, "GCU's Halo, *upgraded.*", Free on Chrome, "Plus your own Halo+ app on your
+  phone.", Link in bio.
+
+**Sound**
+- Every effect was made from scratch by `scripts/marketing-sfx.py` (royalty-free by construction): a mouse click, six
+  keyboard taps, a check tick, soft whooshes on camera moves, a pop, and a light two-note chime when +30 lands.
+- The mix is −28 LUFS with peaks of −10.8 dBFS, low enough for a trending song on top.
+
+**From the reference reel (marketing/reference/), copied**
+- the daylight sky with puffy cumulus clouds
+- a laptop floating in the clouds
+- the camera gliding and pushing in to the screen
+- real UI on the screen
+- floating frosted-glass labels
+- bold sans with a serif italic accent, words resolving out of a blur
+- a cursor that picks things
+- soft background depth of field
+- unhurried pacing
+
+**What's different**
+- **Clean render:** it's a 1080×1920 render, not a phone filming a laptop screen with a caption bar on top.
+- **Shorter:** 22.5 s, not 61 s.
+- **Sound:** no voiceover or music, only quiet effects, so the song is yours to add.
+- **Look:** gold Halo+ accents and the daylight palette, with captions always in the same safe-zone spot.
+- **Left out:** the dark "planet horizon" interlude, the pixel mascot and the cylinder of cards. They don't fit the calm
+  feel.
+- **Only Halo+'s real UI:** no made-up screens.
+- **Ours:** confetti on the submit moment, and an end card on glass.
+
+**How it's made**
+- Captures: `scripts/marketing-capture-v4.mjs` writes to `marketing/reel/public/ui4/`.
+- The reel: `marketing/reel/src/Reel4.tsx`, compositions `Reel4-Daylight` and `Reel4-Daylight-Silent`.
+- The laptop is CSS 3D rather than three.js: the screen stays the real, crisp page, and the camera can put any point of
+  it dead centre at any angle.
+- Render:
+  - `npx remotion render Reel4-Daylight ../instagram/halo-plus-reel-v4.mp4 --codec=h264 --crf=16`
+  - `npx remotion render Reel4-Daylight-Silent ../instagram/halo-plus-reel-v4-silent.mp4 --codec=h264 --crf=16 --muted`
+
+**Cut points:** 2.8 s (into the card), 6.8 s (calendar), 10.8 s (search), 13.8 s (turn it in), 16.0 s (+30 and the chime),
+17.0 s (This week), 18.3 s (the tick), 20.0 s (the end card).
+
 ## The app line (Loop 294)
 
 - **`halo-plus-reel-daylight-v3-app.mp4`** is v3 calm with one calm line on the end card: "Plus your own Halo+ app on your

@@ -452,3 +452,26 @@ One line per change, newest last. Proposals that need George's approval are mark
       - The header "Try it now" hidden on the phone screen.
     - **Kept as it is:** the landing FAQ "Does it work on my phone? Yes. Add it to your Home Screen…" stays (desktop unchanged), though it oversells phone-only. Suggested: "Set it up once on your laptop, then…".
   vitest 1304 passed, tsc and lint clean. Edge e2e not run (paused by George). Not checkable here: the real Instagram app on a real iPhone, the Web Store's own dialogs, and inbox placement at GCU.
+- Loop 295 (2026-10-30): Instagram reel v4, "truly professional", at the reference reel's level (marketing/reference/reference-reel.mp4, studied frame by frame). marketing/instagram/halo-plus-reel-v4.mp4 (with sound) and halo-plus-reel-v4-silent.mp4 (no audio track), both 22.5 s.
+  (1) **Captures:** scripts/marketing-capture-v4.mjs records whole 1280×800 screens at 3× (Chrome, the test Halo pages, Maya Torres, sponsor hidden, no text selection) to public/ui4 with every box:
+    - Home scrolled to the cards (card, NEXT rows, tint)
+    - the calendar on All classes (Fri to Sun of both weeks, chips)
+    - search at each letter (lists end after a whole row)
+    - the assignment page before Review & Submit, then the toast frame by frame (confetti off)
+    - This week before and after a hand tick
+  The test page's unstyled review dialog is cut: the press goes straight to the submitted page.
+  (2) **The reel,** marketing/reel/src/Reel4.tsx:
+    - **Laptop:** CSS 3D, with the lid as the reference plane, so translateZ, rotate and translate put any screen point dead centre at any angle. A keyboard deck and trackpad, glass glare that follows the turn, a soft shadow.
+    - **Sky:** a sun glow and three cloud layers in parallax tied to the camera, blurred by depth; near clouds pass in front.
+    - **Camera:** keyframes glide in log-zoom.
+    - **On the screen:** a cursor with arcs and click rings; NEXT lines filling; chips settling; ⌘K glass keycaps; typing; Review & Submit, then the toast at 0.7× to +30; a This week tick with a box pop.
+    - **Words:** frosted-glass captions with an Instrument Serif italic accent (OFL font in public/fonts). The end card is on glass.
+  (3) **Sound:** scripts/marketing-sfx.py synthesizes every effect with numpy, royalty-free: a click, 6 keys, a tick, 2 whooshes, a chime and a pop. Cues are mixed to −28 LUFS with peaks of −10.8 dBFS; `sound: false` and --muted give the silent cut.
+  (4) **Checked** on the final MP4 at 5 frames a second with the safe-zone lines: no element cut awkwardly at rest, the caption and end card inside 250 to 1520. Fixed along the way:
+    - word spaces at the type's size
+    - a higher camera so the keyboard shows
+    - a tighter search zoom
+    - ⌘K after the camera lands
+    - near confetti kept to the sides
+    - the end card moved onto glass, since white words on the pale sky were unreadable
+  The README lists what was copied from the reference and what differs, plus the cut points. Remotion tsc and eslint are clean.
