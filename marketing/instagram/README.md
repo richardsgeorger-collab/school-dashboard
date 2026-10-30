@@ -4,6 +4,61 @@ Made 2026-10-30. Everything shows the real Halo+ UI, captured in Chrome on the s
 demo student Maya Torres. No GCU logos or trademarks: the sponsor logo spot is left empty in every capture, and every
 end card says "Not affiliated with GCU".
 
+## Round 3 (2026-10-30): calm and satisfying, Daylight. The current pick
+
+v2 was too punchy and too fast. **`halo-plus-reel-daylight-v3-calm.mp4`** (20.6 s, 1080×1920, 30 fps, H.264, no music)
+keeps the hook, the beats, the close-ups and the end card, and is made to watch on a loop:
+
+- **Pace:** each beat about 4 s, long enough to watch the moment happen. The beats change with a soft dip through the
+  paper (the old one is gone before the new one comes in).
+- **Motion:** slow-in slow-out easing, a slow push-in and drift on the UI, and a slower drifting dot grid and gold
+  glow behind it (light parallax). No slams, whips, flashes or motion blur. The captions fade and rise in gently.
+- **The satisfying moments:**
+  - The NEXT lines fill in one by one.
+  - The calendar chips settle into their days.
+  - "topic 3 quiz" is typed at about six letters a second, the box gliding to each new height with its footer staying
+    on the bottom edge.
+  - The done toast slides in and counts up to +30 pts (Halo+'s real toast, played at 0.6× speed).
+  - The This week box ticks.
+  - Soft confetti drifts down behind everything.
+- **Framing:**
+  - Every piece is one whole element captured by its exact box, never cut through: a whole class card, three whole
+    calendar days (Fri to Sun, both weeks), the whole search box, the whole toast, and a whole This week group.
+  - The search list ends after its last whole row.
+  - Every piece is at the same scale (1.85 frame px per Halo px) and centered in the same place.
+  - All text and UI stay inside Instagram's safe zone: nothing in the top 250 px or the bottom 400 px.
+- **Text:** one short line a beat, always in the same place (y ≈ 372).
+
+### Cut points (v3)
+
+| Time | |
+|---|---|
+| 0.07 s | hook fades in |
+| **2.70 s** | **CUT** (soft crossfade) → What's next |
+| 3.40 s | NEXT line 1 fills in |
+| 3.87 s | NEXT line 2 |
+| 4.33 s | NEXT line 3 |
+| **6.30 s** | **CUT** → calendar |
+| 6.93 s | first chip settles |
+| 8.73 s | last chip settles |
+| **9.90 s** | **CUT** → search |
+| 10.47 s | typing starts |
+| 12.47 s | "topic 3 quiz", two results |
+| **13.50 s** | **CUT** → turn it in |
+| 13.87 s | the toast slides in |
+| 15.23 s | +30 pts |
+| 15.40 s | the box ticks, confetti starts |
+| **17.30 s** | **CUT** → end card |
+| 18.00 s | "GCU's Halo, upgraded." |
+| 20.60 s | end |
+
+How it's made:
+- `scripts/marketing-capture-v3.mjs` (Chrome only) writes the pieces and their boxes to `marketing/reel/public/ui3/`
+  (`pieces.json`). The search box and This week are captured in a 520 px wide window, so they come out about as wide
+  as a class card.
+- The reel is `marketing/reel/src/Reel3.tsx` (composition `Reel3-Daylight-Calm`; `reel3Cuts()` gives the table above).
+- Render: `npx remotion render Reel3-Daylight-Calm ../instagram/halo-plus-reel-daylight-v3-calm.mp4 --codec=h264 --crf=16`.
+
 ## Round 2 (2026-10-30): the Daylight reel, faster
 
 George picked Daylight. Same hook, beats and end card, re-cut to hit harder:
