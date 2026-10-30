@@ -21,4 +21,18 @@ describe('the sign-up source', () => {
     captureSource('#/start?ref=x&src=MARKET');
     expect(pendingSource()).toBe('market');
   });
+  it('Instagram: ?src=ig (or ?ref=ig) in the query, kept over the welcome tab\'s src=store (Loop 294)', () => {
+    captureSource('', '?src=ig');
+    expect(pendingSource()).toBe('ig');
+    captureSource('#/welcome?src=store', '');
+    expect(pendingSource()).toBe('ig');
+    store.clear();
+    captureSource('', '?ref=ig');
+    expect(pendingSource()).toBe('ig');
+    store.clear();
+    captureSource('#/welcome?src=store', '');
+    expect(pendingSource()).toBe('store');
+    captureSource('', '?ref=igloo');
+    expect(pendingSource()).toBe('store');
+  });
 });

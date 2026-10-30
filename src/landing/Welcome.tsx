@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { bump } from '../analytics/usage';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
-import { forgetSource } from '../auth/source';
+import { forgetSource, pendingSource } from '../auth/source';
+import { funnel } from '../analytics/funnel';
 import { IconHalo } from '../components/Icons';
 import { track } from '../onboarding/track';
 
@@ -17,6 +18,9 @@ export function Welcome() {
   const signedIn = !!auth.session;
   useEffect(() => {
     track('welcome', 'enter');
+    // The welcome tab opens right after the Web Store install: for someone who came by the Instagram path (the laptop
+    // page left the source on this site), that is the "installed" step of Admin's Instagram funnel (Loop 294).
+    if (pendingSource() === 'ig') funnel('welcome', { via: 'direct' });
     // Already signed in on arrival: an account from the site that then installed from the store keeps its own source.
     if (auth.session) forgetSource();
     // eslint-disable-next-line react-hooks/exhaustive-deps

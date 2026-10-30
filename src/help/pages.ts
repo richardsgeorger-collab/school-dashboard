@@ -1,5 +1,6 @@
 import { CANCEL_LINE, PLAN_LINES, PRICES, TAX_LINE, TIER_NAMES, TRIAL } from '../config/tiers';
 import { UPDATES } from '../landing/updates';
+import { EXTENSION_URL } from '../config/extension';
 
 /**
  * Help pages at real addresses (haloplus.app/help/<slug>/), for GCU students searching for help with Halo and for the
@@ -520,6 +521,118 @@ export function renderMarketPage(base = '/'): string {
 <script>location.replace(${JSON.stringify(to)});</script>
 </head>
 <body><p>Opening Halo+… <a href="${to}">Tap here if nothing happens.</a></p></body>
+</html>
+`;
+}
+
+/**
+ * haloplus.app/laptop/ (Loop 294, George 2026-10-30): where the phone screen's share sheet and its one email land, on
+ * the laptop. Three tiny steps: Add to Chrome (straight to the Web Store in Chrome and Edge), open Halo, done. Safari or
+ * Firefox: kindly, it needs Chrome or Edge, with the download. Opened on a phone again: "this one's for your laptop".
+ * Counted for Admin's Instagram funnel (the laptop page opened, the store button) when it came from Instagram, and the
+ * source is left on this site so the welcome tab after the install and the sign-up count as Instagram too.
+ */
+export function renderLaptopPage(base = '/', supabaseUrl = ''): string {
+  const report = supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/report` : '';
+  const store = EXTENSION_URL;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Halo+ on your laptop</title>
+<meta name="description" content="Add Halo+ to Chrome in about 2 minutes: add it, open Halo, done." />
+<link rel="icon" href="${base}favicon.ico" sizes="16x16 32x32 48x48" />
+<link rel="icon" href="${base}favicon.svg" type="image/svg+xml" />
+<style>
+:root{--bg:#f6f7f9;--ink:#14171c;--ink2:#4b5261;--ink3:#69717f;--line:rgb(16 20 28/.09);--gold:#f2b84b;--gold-ink:#946800;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0d10;--ink:#f2f4f7;--ink2:#b9c0cb;--ink3:#8a93a1;--line:rgb(255 255 255/.1);--gold-ink:#f2b84b}.card{background:#14171c!important}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:40px 20px 32px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:20px;color:inherit;text-decoration:none}
+.brand svg{width:34px;height:34px}
+.card{margin-top:24px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:28px 24px;box-shadow:0 2px 4px rgb(16 20 28/.05),0 22px 44px -18px rgb(16 20 28/.22)}
+h1{margin:0 0 6px;font-size:30px;line-height:1.12;letter-spacing:-.025em}
+.lede{margin:0 0 22px;color:var(--ink2)}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:18px}
+li{display:grid;grid-template-columns:36px 1fr;gap:12px;align-items:start}
+.n{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgb(242 184 75/.22);color:var(--gold-ink);font-weight:800}
+li > div > b{display:block;font-size:18px}
+li p{margin:2px 0 0;color:var(--ink2);font-size:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 24px;margin-top:10px;border-radius:14px;background:var(--gold);color:#14171c;font-weight:800;font-size:17px;text-decoration:none;border:0;cursor:pointer}
+.btn:hover{filter:brightness(1.04)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);font-weight:700}
+.note{margin:10px 0 0;padding:12px 14px;border-radius:12px;background:rgb(242 184 75/.16);color:var(--ink);font-size:16px}
+.small{margin:22px 0 0;font-size:14px;color:var(--ink3)}
+.small a{color:var(--ink3)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="brand" href="${base}"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M52.6 26.5A21.3 21.3 0 1 1 37.5 11.4" fill="none" stroke="#f2b84b" stroke-width="6" stroke-linecap="round"/><path d="M47.1 9.3v15.2M39.5 16.9h15.2" stroke="currentColor" stroke-width="6.5" stroke-linecap="round"/></svg>Halo+</a>
+<main class="card">
+<div id="phone" hidden>
+<h1>This one’s for your laptop.</h1>
+<p class="lede">Halo+ lives in Chrome on a laptop. Open this same link there (in Chrome or Edge) and you’re 2 minutes away.</p>
+<button class="btn" type="button" id="copy-phone">Copy this link</button>
+</div>
+<div id="laptop">
+<h1>You’re 2 minutes away.</h1>
+<p class="lede">Three tiny steps and Halo+ is on Halo.</p>
+<ol>
+<li><span class="n">1</span><div><b id="add-title">Add Halo+ to Chrome</b>
+<div id="ok"><a class="btn" id="store" href="${store}"><span>Add to <span id="browser-name">Chrome</span>, it’s free</span></a></div>
+<div id="other" hidden><p class="note">Halo+ needs <b>Chrome</b> or <b>Edge</b> (you’re in <span id="this-browser">this browser</span>). Both are free; Edge is already on most Windows laptops.</p>
+<a class="btn" href="https://www.google.com/chrome/" rel="noopener">Download Chrome</a> <button class="btn ghost" type="button" id="copy-laptop">Copy this page’s link</button>
+<p style="margin:8px 0 0;font-size:15px;color:var(--ink3)">Then open this page in Chrome or Edge.</p></div>
+</div></li>
+<li><span class="n">2</span><div><b>Open Halo</b><p>A tab opens to make your free Halo+ account (one step, not your GCU login). Then open Halo like always.</p></div></li>
+<li><span class="n">3</span><div><b>Done</b><p>Your classes, due dates and grades come in on their own, and This week shows right on Halo.</p></div></li>
+</ol>
+</div>
+<p class="small">Free. Halo+ never asks for your GCU password. Not affiliated with Grand Canyon University. <a href="${base}privacy.html">Privacy</a></p>
+</main>
+</div>
+<script>
+(function () {
+  var ua = navigator.userAgent, q = new URLSearchParams(location.search);
+  var phone = /iPhone|iPod|iPad|Android|Mobile/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var edge = /Edg\\//.test(ua), chromeLike = /Chrome\\//.test(ua) && !/SamsungBrowser/.test(ua);
+  var name = /Firefox\\//.test(ua) ? 'Firefox' : /Safari\\//.test(ua) && !/Chrome\\//.test(ua) ? 'Safari' : 'this browser';
+  var $ = function (id) { return document.getElementById(id); };
+  if (phone) { $('phone').hidden = false; $('laptop').hidden = true; }
+  else if (!chromeLike) { $('ok').hidden = true; $('other').hidden = false; $('this-browser').textContent = name; }
+  else if (edge) { $('browser-name').textContent = 'Edge'; $('add-title').textContent = 'Add Halo+ to Edge'; }
+  var copy = function (btn) { btn.addEventListener('click', function () {
+    var done = function () { btn.textContent = 'Copied!'; };
+    try { navigator.clipboard.writeText(location.href).then(done, function () { prompt('Copy this link:', location.href); }); } catch (e) { prompt('Copy this link:', location.href); }
+  }); };
+  copy($('copy-phone')); copy($('copy-laptop'));
+  // The Instagram funnel: this page opened, and the store button. The source stays on this site for the welcome tab.
+  var ig = q.get('src') === 'ig', via = q.get('via'), report = ${JSON.stringify(report)};
+  if (!ig || !report) return;
+  var vid = '';
+  try {
+    localStorage.setItem('school-dashboard:src', 'ig');
+    vid = localStorage.getItem('school-dashboard:vid') || '';
+    if (!/^[A-Za-z0-9_-]{8,40}$/.test(vid)) {
+      var b = crypto.getRandomValues(new Uint8Array(12)), s = '';
+      for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+      vid = btoa(s).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
+      localStorage.setItem('school-dashboard:vid', vid);
+    }
+  } catch (e) { return; }
+  var send = function (step) {
+    try { fetch(report, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'funnel', vid: vid, step: step, src: 'ig', via: ['share', 'copy', 'email'].indexOf(via) >= 0 ? via : 'direct', device: phone ? 'phone' : 'laptop', browser: edge ? 'Edge' : chromeLike ? 'Chrome' : name }), keepalive: true }); } catch (e) {}
+  };
+  send('laptop');
+  $('store').addEventListener('click', function () { send('laptop-store'); });
+})();
+</script>
+</body>
 </html>
 `;
 }

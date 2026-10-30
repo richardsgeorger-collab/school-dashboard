@@ -4,6 +4,13 @@ Made 2026-10-30. Everything shows the real Halo+ UI, captured in Chrome on the s
 demo student Maya Torres. No GCU logos or trademarks: the sponsor logo spot is left empty in every capture, and every
 end card says "Not affiliated with GCU".
 
+## The app line (Loop 294)
+
+- **`halo-plus-reel-daylight-v3-app.mp4`** is v3 calm with one calm line on the end card: "Plus your own Halo+ app on your
+  phone." (composition `Reel3-Daylight-Calm-App`).
+- **`carousel-8.png`** now has "+ your own Halo+ app on your phone" under "Free on Chrome".
+- The site's phone screen plays v3 calm at 540×960, 574 KB (`public/reel/halo-plus-calm.mp4`).
+
 ## Round 3 (2026-10-30): calm and satisfying, Daylight. The current pick
 
 v2 was too punchy and too fast. **`halo-plus-reel-daylight-v3-calm.mp4`** (20.6 s, 1080×1920, 30 fps, H.264, no music)
@@ -151,7 +158,7 @@ Each beat also has one plain line at the bottom, so it makes sense with the soun
 2. *(125)* GCU's Halo, upgraded. ✨ ⌘K search · one calendar · confetti when you submit. Free Chrome extension ↓ Not affiliated with GCU.
 3. *(106)* Made by a GCU student for GCU students. Halo, but faster to use. Free on Chrome ↓ Not affiliated with GCU.
 
-Link in bio: the Chrome Web Store page (or haloplus.app, which links to it).
+Link in bio: **`https://haloplus.app/?src=ig`** (Loop 294). Phones get the phone screen (send the laptop link by text, AirDrop or one email); every step is counted in Admin's Instagram funnel. Saved DM replies and the timed walkthrough: `docs/instagram-path.md`.
 
 ## Captions
 

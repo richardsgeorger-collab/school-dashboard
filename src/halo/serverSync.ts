@@ -12,6 +12,21 @@ import type { HaloExport } from './types';
 /** Where the app leaves the account's sync key for the Chrome extension on this computer. */
 export const SYNC_KEY_SLOT = 'school-dashboard:sync-key';
 
+/**
+ * Tells the extension on this computer at once that the key (or the plan's snapshot) changed (Loop 294). Its script on
+ * this page reads the slots every 2 s for a minute after the page loads, then every 30 s, and on a storage event; a
+ * storage event never fires in the tab that wrote, so the page sends one itself (a DOM event, which the extension's
+ * script hears). Without it, someone who signs up in the welcome tab more than a minute after the install and clicks
+ * "Open Halo" at once could leave before the key reached the extension, and the first sync waited for the next visit.
+ */
+export function tellExtension(slot: string = SYNC_KEY_SLOT): void {
+  try {
+    window.dispatchEvent(new StorageEvent('storage', { key: slot }));
+  } catch {
+    /* no window or no StorageEvent */
+  }
+}
+
 export const dropUrl = (): string => (ENV.SUPABASE_URL ? `${ENV.SUPABASE_URL.replace(/\/$/, '')}/functions/v1/sync-drop` : '');
 
 export interface SyncKey {

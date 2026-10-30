@@ -8,7 +8,8 @@ export const TIER_SLOT = 'school-dashboard:tier';
 /** An invite link is #/now?ref=CODE. Remember the code until the student has an account to claim it with. */
 export function captureRef(hash: string = window.location.hash): void {
   const m = /[?&]ref=([a-z0-9]+)/i.exec(hash);
-  if (!m) return;
+  // "ref=ig" is the Instagram bio link's tag (Loop 294), a source, not an invite code (source.ts).
+  if (!m || m[1].toLowerCase() === 'ig') return;
   try {
     localStorage.setItem(SLOT, m[1].toLowerCase());
   } catch {

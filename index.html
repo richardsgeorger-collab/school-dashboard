@@ -83,6 +83,9 @@
           if (/^sb-[a-z0-9]+-auth-token$/.test(k) || (k === 'school-dashboard:v1' && /"courses":\[\{/.test(ls.getItem(k) || ''))) back = true;
         }
         if ((h && h !== '#' && h !== '#/') || back) document.documentElement.className += ' booting-app';
+        // A signed-out phone or tablet (the extension cannot go there) gets the phone screen first (Loop 294).
+        var ua = navigator.userAgent;
+        if (!back && (/iPhone|iPod|iPad|Android|Mobile/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1))) document.documentElement.className += ' hp-phone';
       } catch (e) {}
     </script>
     <style>

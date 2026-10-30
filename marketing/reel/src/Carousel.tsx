@@ -128,7 +128,8 @@ export const SLIDES: React.FC[] = [
           <Title lines={["GCU’s Halo,", "upgraded."]} gold={["upgraded."]} size={116} />
         </div>
         <div style={{ marginTop: 50, fontFamily: DISPLAY, fontWeight: 800, fontSize: 52, background: GOLD, color: "#14171C", padding: "20px 44px", borderRadius: 999 }}>Free on Chrome</div>
-        <div style={{ marginTop: 36, fontFamily: BODY, fontWeight: 700, fontSize: 48, color: "#F2F4F7" }}>Link in bio ↗</div>
+        <div style={{ marginTop: 26, fontFamily: BODY, fontWeight: 600, fontSize: 38, color: MUTED }}>+ your own Halo+ app on your phone</div>
+        <div style={{ marginTop: 32, fontFamily: BODY, fontWeight: 700, fontSize: 48, color: "#F2F4F7" }}>Link in bio ↗</div>
       </AbsoluteFill>
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 70 }}>
         <div style={{ fontFamily: BODY, fontSize: 28, color: MUTED }}>@haloplus · Not affiliated with GCU</div>

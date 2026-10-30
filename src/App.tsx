@@ -22,7 +22,7 @@ import type { HaloExport } from './halo/types';
 import { useHaloHandoff } from './halo/useHaloHandoff';
 import { HaloMovePrompt, type MoveAsk } from './halo/HaloMove';
 import { supabase } from './auth/client';
-import { loadSyncKey, SYNC_KEY_SLOT, takePending } from './halo/serverSync';
+import { loadSyncKey, SYNC_KEY_SLOT, takePending, tellExtension } from './halo/serverSync';
 import { JOY_SNAP_SLOT } from './joy/extSnapshot';
 import { HaloImport } from './views/HaloImport';
 import { QuickCapture } from './views/QuickCapture';
@@ -200,6 +200,7 @@ function HaloHandoff() {
         } catch {
           /* storage unavailable */
         }
+        tellExtension();
         accountReady(false);
       }
       return;
@@ -210,6 +211,7 @@ function HaloHandoff() {
       } catch {
         /* storage unavailable */
       }
+      if (k) tellExtension();
       accountReady(!!k);
     });
   }, [userId, account.loading]);

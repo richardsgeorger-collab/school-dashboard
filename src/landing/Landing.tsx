@@ -4,6 +4,7 @@ import { IconCheck, IconHalo, IconMoon, IconPlus, IconSun, IconYou } from '../co
 import { ACCENTS, applyAccent, type AccentId } from '../config/accents';
 import { EXTENSION_URL } from '../config/extension';
 import { LiveNow } from './LiveNow';
+import { PhoneHello } from './PhoneHello';
 
 /**
  * The front door (George, 2026-10-23: "too many words and not enough showing"). A six-word promise and the app itself,
@@ -37,6 +38,8 @@ export function Landing() {
           </a>
         </nav>
       </header>
+
+      <PhoneHello />
 
       <section className="lp-hero" aria-label="What Halo+ is">
         <div className="lp-copy">

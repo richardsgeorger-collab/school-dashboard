@@ -413,3 +413,42 @@ One line per change, newest last. Proposals that need George's approval are mark
   - **On screen:** the NEXT lines fill in one by one over the real card; the chips settle into their days; typing at about 6 letters a second, the box gliding to each height around its middle with the footer kept on the bottom edge (an early render showed two footers and old rows under new ones; fixed); the real toast slides in and counts to +30 at 0.6× speed while the This week box ticks; soft confetti drifts behind everything.
   - **Framing:** one scale (1.85) for every piece, centered in the same place, one caption line in the same place, everything inside Instagram's safe zone (y 250 to 1520).
   - **Checks:** every other frame checked on contact sheets with the safe-zone lines drawn (618 frames); no element cut through, nothing outside the safe zone. Cut points are in marketing/instagram/README.md. Remotion tsc and eslint are clean.
+- Loop 294 (2026-10-30): the Instagram path, friendly, short and measured (George). Bio link `haloplus.app/?src=ig`; the full write-up with screenshots, timings and the saved DM replies is docs/instagram-path.md.
+  (1) **Phone screen** (src/landing/PhoneHello.tsx):
+    - **Who sees it:** a signed-out phone or tablet visitor, marked by index.html's first script (html.hp-phone) so it is there on first paint. Signed-in users and desktop see exactly what they did: the desktop page is pixel-identical to the live site, 0 changed pixels.
+    - **What it says:** "Hey! Looks like you're on your phone 👋" and "Halo+ lives in Chrome on your laptop…".
+    - **Share button:** "Text or AirDrop it to my laptop" ("Send it to my laptop" on Android) opens the share sheet with the laptop page. It becomes "Copy link" where sharing isn't supported, falls back to execCommand copy, then to a link to copy by hand.
+    - **Email:** "Email me the link" with "Just this one email. No sign-up, no list."
+    - **Rest of the screen:** the app as a "Your whole week, in your pocket." line, the Sign in link, then the calm reel (540×960, 574 KB), then the landing.
+    - **Confirmation:** "Sent! Open it on your laptop and you're 2 minutes away."
+    - The section's classes are lp-onphone: `.lp-phone` was already a phone mock-up on the landing, and the clash laid the demo card over the screen. The walkthrough caught it.
+  (2) **Phone-only assessment:** it works poorly today. Sign-up is fine, but Halo data on a phone alone means the ~8-step bookmark (Loop 245: 5 of 7 phone sign-ups stuck, 2 synced only after moving to a Mac), the server hand-off is off, and it can't work in Instagram's browser. So the app is a line, not a third option. What would fix it is in the doc: the server hand-off on for everyone, an iOS Shortcut, "Open in Safari" for Instagram, and a real-iPhone check.
+  (3) **Marketing:** marketing/instagram/halo-plus-reel-daylight-v3-app.mp4 (end card "Plus your own Halo+ app on your phone."; Reel3 `app` prop) and carousel-8.png ("+ your own Halo+ app on your phone").
+  (4) **Laptop page:** haloplus.app/laptop/ (src/help/pages.ts renderLaptopPage, emitted like /plans/).
+    - "You're 2 minutes away." with three steps: Add to Chrome (straight to the Web Store; "Add to Edge" in Edge), Open Halo, Done.
+    - Safari or Firefox: "Halo+ needs Chrome or Edge (you're in Safari)", with Download Chrome and Copy this page's link.
+    - Opened on a phone: "This one's for your laptop."
+    - It leaves the ig source on haloplus.app, so the welcome tab and the sign-up count as Instagram.
+  (5) **Email:** new Edge Function laptop-link, deployed with --no-verify-jwt, with the logic in _shared/laptopLink.ts and unit-tested in supabase/tests/laptopLink.test.ts.
+    - It sends one Resend email with the laptop page.
+    - It keeps only an HMAC of the address (table laptop_links), so the same address never gets a second email ("Already sent!").
+    - Limits: 8 a day per IP (hashed), 400 a day in all.
+    - No list and no follow-ups.
+  (6) **Funnel:**
+    - **Migration 0050_instagram_path:** funnel_events (one row per browser and step), laptop_links, set_signup_source taking 'ig', and admin_ig_funnel.
+    - **Writers:** report's new kind 'funnel' (_shared/funnel.ts) and src/analytics/funnel.ts.
+    - **Source handling:** source.ts keeps ig over the welcome tab's src=store, and reads ?src=ig or ?ref=ig from the query. ref=ig is never taken as an invite code.
+    - **Admin:** an "Instagram funnel" card (AdminIgFunnel) showing visit → phone option (share, copy, email, app) → laptop page → installed (the welcome tab) → signed up → first sync → a week later.
+    - **Deployed:** 0050, laptop-link and report.
+  (7) **Walkthrough,** scripts/e2e-ig-path.mjs, PASS:
+    - **Setup:** WebKit at iPhone size for Safari, and Instagram's user agent with no share sheet; then a fresh Chrome profile with the extension and a throwaway sign-up through the real form.
+    - **Email:** one real email to Resend's test inbox (delivered+…@resend.dev).
+    - **Cleanup:** every funnel row and ledger row removed after; 0 left.
+    - **Phone:** about 4 s and 4 taps. **Laptop:** about 40 s and 10 clicks to This week on Halo. **Slow 4G:** screen at 0.2 s, buttons at 3.3 s, reel at 3.8 s.
+    - **Fixed along the way:**
+      - The key race: the app now fires a storage event when it writes the sync key (serverSync.ts tellExtension). Before, signing up more than a minute after the install and clicking "Open Halo" at once could leave the extension without the key, and the first sync was lost until the next visit. It works with the store extension, no new version. The key now arrives in 0.1 s and the sync lands 14 s after Open Halo.
+      - "Add to Chrome , it's free" spacing.
+      - The Safari note breaking onto five lines.
+      - The header "Try it now" hidden on the phone screen.
+    - **Kept as it is:** the landing FAQ "Does it work on my phone? Yes. Add it to your Home Screen…" stays (desktop unchanged), though it oversells phone-only. Suggested: "Set it up once on your laptop, then…".
+  vitest 1304 passed, tsc and lint clean. Edge e2e not run (paused by George). Not checkable here: the real Instagram app on a real iPhone, the Web Store's own dialogs, and inbox placement at GCU.

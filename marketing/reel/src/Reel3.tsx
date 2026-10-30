@@ -265,7 +265,8 @@ const Submit: React.FC = () => {
   );
 };
 
-const End: React.FC = () => {
+/** The end card; `app` adds one calm line about the Halo+ app on the phone (round 3, v3-app). */
+const End: React.FC<{ app?: boolean }> = ({ app }) => {
   const f = useCurrentFrame();
   const k = (a: number) => ease(f, a + 8, a + 30, 0, 1, SETTLE);
   return (
@@ -278,13 +279,14 @@ const End: React.FC = () => {
         <div style={{ opacity: k(28), translate: `0 ${(1 - k(28)) * 22}px`, color: GOLD_DEEP }}>upgraded.</div>
       </div>
       <div style={{ marginTop: 54, opacity: k(42), translate: `0 ${(1 - k(42)) * 18}px`, fontFamily: DISPLAY, fontWeight: 800, fontSize: 52, background: GOLD, color: INK_2, padding: "20px 46px", borderRadius: 999, boxShadow: "0 16px 36px -16px rgba(154,106,0,0.55)" }}>Free on Chrome</div>
-      <div style={{ marginTop: 34, opacity: k(52), fontFamily: DISPLAY, fontWeight: 700, fontSize: 50, color: INK_2 }}>Link in bio ↗</div>
-      <div style={{ marginTop: 70, opacity: k(60), fontFamily: DISPLAY, fontWeight: 600, fontSize: 30, color: T.sub }}>@haloplus · Not affiliated with GCU</div>
+      {app && <div style={{ marginTop: 30, opacity: k(48), translate: `0 ${(1 - k(48)) * 14}px`, fontFamily: DISPLAY, fontWeight: 600, fontSize: 40, letterSpacing: "-0.02em", color: T.sub }}>Plus your own Halo+ app on your phone.</div>}
+      <div style={{ marginTop: app ? 30 : 34, opacity: k(app ? 56 : 52), fontFamily: DISPLAY, fontWeight: 700, fontSize: 50, color: INK_2 }}>Link in bio ↗</div>
+      <div style={{ marginTop: app ? 56 : 70, opacity: k(app ? 64 : 60), fontFamily: DISPLAY, fontWeight: 600, fontSize: 30, color: T.sub }}>@haloplus · Not affiliated with GCU</div>
     </AbsoluteFill>
   );
 };
 
-export const Reel3: React.FC = () => (
+export const Reel3: React.FC<{ app?: boolean }> = ({ app }) => (
   <AbsoluteFill style={{ background: T.bg }}>
     <Ground />
     <Sequence name="Hook" from={startOf("hook")} durationInFrames={REEL3.hook}>
@@ -303,7 +305,7 @@ export const Reel3: React.FC = () => (
       <Submit />
     </Sequence>
     <Sequence name="End card" from={startOf("end")} durationInFrames={REEL3.end}>
-      <End />
+      <End app={app} />
     </Sequence>
   </AbsoluteFill>
 );

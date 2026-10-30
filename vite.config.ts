@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 import { execSync } from 'node:child_process';
 import { syncScriptSource } from './src/halo/bookmarklet';
 import { HANDOFF_PATH, SYNC_SCRIPT } from './src/halo/handoff';
-import { HELP_PAGES, renderHelpIndex, renderHelpPage, renderLlmsTxt, renderMarketPage, renderPlansPage, renderSitemap, renderUpdatesPage } from './src/help/pages';
+import { HELP_PAGES, renderHelpIndex, renderHelpPage, renderLaptopPage, renderLlmsTxt, renderMarketPage, renderPlansPage, renderSitemap, renderUpdatesPage } from './src/help/pages';
 
 /**
  * The site serves the current Halo sync script beside the app (halo-sync.js). The Sync Halo bookmark is only a
@@ -60,7 +60,7 @@ export function checkPublicEnv(env: Record<string, string>): string[] {
  * The pages search engines and AI assistants read (2026-09-30): the help pages at real addresses (/help/<slug>/), the
  * sitemap and llms.txt, all from src/help/pages.ts. Emitted on build; served in dev.
  */
-function helpSite(base: string): Plugin {
+function helpSite(base: string, supabaseUrl = ''): Plugin {
   const files = (): Record<string, string> => ({
     'help/index.html': renderHelpIndex(base),
     ...Object.fromEntries(HELP_PAGES.map((p) => [`help/${p.slug}/index.html`, renderHelpPage(p, base)])),
@@ -69,6 +69,7 @@ function helpSite(base: string): Plugin {
     'market/index.html': renderMarketPage(base),
     'updates/index.html': renderUpdatesPage(base),
     'plans/index.html': renderPlansPage(base),
+    'laptop/index.html': renderLaptopPage(base, supabaseUrl),
   });
   return {
     name: 'help-site',
@@ -163,7 +164,7 @@ export default defineConfig(({ mode }) => {
     // address under /school-dashboard/, which keeps serving the sync script old bookmarks load and moves students over.
     base: SITE_BASE,
     define: { __APP_VERSION__: JSON.stringify(version) },
-    plugins: [react(), haloSyncScript(SITE_BASE, env.VITE_SUPABASE_URL ?? ''), helpSite(SITE_BASE), versionFile(version), ...(mode === 'test' ? [] : [prerenderLanding()])],
+    plugins: [react(), haloSyncScript(SITE_BASE, env.VITE_SUPABASE_URL ?? ''), helpSite(SITE_BASE, env.VITE_SUPABASE_URL ?? ''), versionFile(version), ...(mode === 'test' ? [] : [prerenderLanding()])],
     build: { target: 'es2022' },
     test: {
       environment: 'node',
