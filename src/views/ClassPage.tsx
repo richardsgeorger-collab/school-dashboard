@@ -129,7 +129,10 @@ export function ClassPage() {
           <SyncedLine courseId={course.id} />
           <CookMeter course={course} size="page" />
         </div>
-        <span className="settings-actions">
+        <span className="settings-actions class-head">
+          <button type="button" className="btn small wis-open" onClick={() => setTab('whatif')} aria-pressed={tab === 'whatif'}>
+            What if?
+          </button>
           <button type="button" className="btn small" onClick={() => setPaste(true)}>
             Add a lecture
           </button>

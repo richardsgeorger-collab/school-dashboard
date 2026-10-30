@@ -23,8 +23,9 @@ const check = (ok, line) => { checks.push(!!ok); console.log(`${ok ? 'ok  ' : 'F
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const text = async (p, sel) => (await p.locator(sel).first().innerText().catch(() => '')).replace(/\s+/g, ' ').trim();
 const r1 = (n) => (Math.round(n * 10) / 10).toFixed(1);
-const head = (p) => p.evaluate(() => ({ letter: document.querySelector('.wi-letter')?.textContent?.trim(), pct: document.querySelector('.wi-pct')?.textContent?.trim(), moved: document.querySelector('.wi-moved')?.textContent?.trim() ?? null, tag: !!document.querySelector('.wi-head .gpa-tag'), up: !!document.querySelector('.wi-letter[data-up]'), meta: document.querySelector('.wi-meta')?.textContent?.replace(/\s+/g, ' ').trim() }));
-const toCome = (p) => p.locator('.wi-section').filter({ has: p.locator('h3:has-text("Still to come")') }).locator('.wi-row');
+const head = (p) => p.evaluate(() => ({ letter: document.querySelector('.wis-letter')?.textContent?.trim(), pct: document.querySelector('.wis-pct')?.textContent?.trim(), moved: document.querySelector('.wis-moved')?.textContent?.trim() ?? null, tag: !!document.querySelector('.wis-top .gpa-tag'), up: !!document.querySelector('.wis-letter[data-up]'), meta: document.querySelector('.wis-top')?.textContent?.replace(/\s+/g, ' ').trim() }));
+const more = async (p) => { if ((await p.locator('details.wis-more[open]').count()) === 0) await p.locator('details.wis-more > summary').click(); };
+const toCome = (p) => p.locator('.wis-big .wis-row');
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
@@ -46,73 +47,75 @@ try {
   // 1. With no what-ifs: exactly Halo's grade, every class.
   for (const c of courses) {
     await p.goto(`${BASE}#/class?c=${c.id}&tab=whatif`, { waitUntil: 'load' });
-    await p.waitForSelector('.wi-head', { timeout: 15000 });
+    await p.waitForSelector('.wis-top', { timeout: 15000 });
     await sleep(300);
     const h = await head(p);
-    check(h.letter === c.haloGrade.letter && h.pct === `${r1(c.haloGrade.percent)}%` && !h.tag && /Matches Halo’s gradebook/.test(h.meta), `${c.code}: with no what-ifs, Halo's own ${c.haloGrade.letter} ${r1(c.haloGrade.percent)}% (shows ${h.letter} ${h.pct}, "${h.meta}")`);
+    check(h.letter === c.haloGrade.letter && h.pct === `${r1(c.haloGrade.percent)}%` && !h.tag && !/Estimate/.test(h.meta), `${c.code}: with no what-ifs, Halo's own ${c.haloGrade.letter} ${r1(c.haloGrade.percent)}% (shows ${h.letter} ${h.pct})`);
   }
 
   // 2. Typing moves it live. MAT-250 (Calculus, B+ 89.4%).
   const mat = courses.find((c) => c.code === 'MAT-250');
   await p.goto(`${BASE}#/class?c=${mat.id}&tab=whatif`, { waitUntil: 'load' });
-  await p.waitForSelector('.wi-head', { timeout: 15000 });
+  await p.waitForSelector('.wis-top', { timeout: 15000 });
   await p.screenshot({ path: `${OUT}/desk-1-start-light.png`, fullPage: true });
   const first = toCome(p).first();
-  const firstName = (await first.locator('.wi-title').innerText()).replace('What-if', '').trim();
+  const firstName = (await first.locator('.wis-name').innerText()).trim();
   await first.locator('input[type=number]').fill('60');
   await sleep(250);
   let h = await head(p);
   check(h.tag && h.moved && /^▼/.test(h.moved) && /from B\+ 89\.4%/.test(h.moved), `typing 60% on ${firstName}: the grade moves live, What-if, "${h.letter} ${h.pct} ${h.moved}"`);
-  const marked = await p.evaluate(() => [...document.querySelectorAll('.wi-row[data-whatif]')].map((r) => r.querySelector('.wi-title')?.textContent));
-  check(marked.length === 1 && marked[0].startsWith(firstName) && /What-if$/.test(marked[0]), `the row is marked What-if (${JSON.stringify(marked)})`);
+  const marked = await p.evaluate(() => [...document.querySelectorAll('.wis-row[data-whatif]')].map((r) => r.querySelector('.wis-name')?.textContent));
+  check(marked.length === 1 && marked[0] === firstName, `the row is marked as a what-if (${JSON.stringify(marked)})`);
 
   // 3. A higher letter pops: everything to come at 100%.
-  await p.locator('.wi-presets button:has-text("All at 100%")').click();
+  await more(p);
+  await p.locator('.wis-opt button:has-text("100%")').click();
   await sleep(120);
   h = await head(p);
   check(h.up && ['A', 'A-'].includes(h.letter), `all at 100%: the letter rises to ${h.letter} and pops`);
   await p.screenshot({ path: `${OUT}/desk-2-whatif-light.png`, fullPage: true });
 
   // 4. Reset: back to Halo's grade, nothing marked.
-  await p.locator('.wi-actions button:has-text("Reset")').click();
+  await p.locator('.wis-top button:has-text("Reset")').click();
   await sleep(200);
   h = await head(p);
   check(h.letter === 'B+' && h.pct === '89.4%' && !h.tag, `Reset: back to ${h.letter} ${h.pct}, no What-if`);
 
   // 5. A retake on a graded item.
-  await p.locator('.wi-done summary').click();
-  const retake = p.locator('.wi-done .wi-row').first();
-  await retake.locator('input[type=number]').fill('100');
+  await more(p);
+  await p.locator('.wis-retakes > summary').click();
+  const retake = p.locator('.wis-retakes .wis-row').first();
+  await retake.locator('input[type=range]').fill('100');
   await sleep(200);
   h = await head(p);
   check(h.tag && /^▲/.test(h.moved ?? ''), `a retake at 100% on a graded item raises it: ${h.letter} ${h.pct} ${h.moved}`);
-  await p.locator('.wi-actions button:has-text("Reset")').click();
+  await p.locator('.wis-top button:has-text("Reset")').click();
 
   // 6. What do I need?
-  await p.locator('.wi-targets button', { hasText: /^A$/ }).click();
+  await p.locator('.wis-need select').selectOption('A');
   await sleep(200);
-  const needA = await text(p, '.wi-need-out');
+  const needA = await p.evaluate(() => { const c = document.querySelector('.wis-need').cloneNode(true); c.querySelector('select')?.replaceWith('A'); return c.textContent.replace(/\s+/g, ' ').trim(); });
   console.log(`     need A: ${needA}`);
-  check(/^Average \d+(\.\d)?% on what’s left to finish with an A \(93% or more\)\./.test(needA) || /isn’t reachable this term/.test(needA), `"What do I need?" for an A: "${needA.slice(0, 120)}"`);
-  if (/^Average/.test(needA)) {
-    check((await p.locator('.wi-spread').count()) === 1, `spread across the big items: "${await text(p, '.wi-spread')}"`);
-    await p.locator('.wi-need button:has-text("Try it")').click();
+  check(/^For an A, you need about \d+% on what’s left\./.test(needA) || /isn’t reachable this term/.test(needA), `"What do I need?" for an A: "${needA}"`);
+  if (/^For an A/.test(needA)) {
+    await p.locator('.wis-need button:has-text("Try it")').click();
     await sleep(250);
     h = await head(p);
     check(h.letter === 'A' && h.tag, `Try it: the what-if lands on ${h.letter} ${h.pct}`);
-    await p.locator('.wi-need').screenshot({ path: `${OUT}/desk-3-need.png` });
-    await p.locator('.wi-actions button:has-text("Reset")').click();
+    await p.locator('.wis-top button:has-text("Reset")').click();
   }
 
   // 7. Keep for next time: survives a reload; GPA chip and sheet.
   await toCome(p).first().locator('input[type=number]').fill('100');
   await sleep(150);
+  await more(p);
   await p.locator('.wi-keep input').check();
   await sleep(600);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('.wi-head', { timeout: 15000 });
+  await p.waitForSelector('.wis-top', { timeout: 15000 });
   await sleep(800);
   h = await head(p);
+  await more(p);
   check(h.tag && (await p.locator('.wi-keep input').isChecked()), `Keep for next time: still there after a reload (${h.letter} ${h.pct})`);
   await p.goto(`${BASE}#/classes`, { waitUntil: 'load' });
   await sleep(1500);
@@ -125,11 +128,13 @@ try {
   await p.locator('.gpa').screenshot({ path: `${OUT}/desk-4-gpa.png` });
   await p.keyboard.press('Escape');
   await p.goto(`${BASE}#/class?c=${mat.id}&tab=whatif`, { waitUntil: 'load' });
-  await p.waitForSelector('.wi-head', { timeout: 15000 });
+  await p.waitForSelector('.wis-top', { timeout: 15000 });
+  await more(p);
   await p.locator('.wi-keep input').uncheck();
-  await p.locator('.wi-actions button:has-text("Reset")').click();
+  await p.locator('.wis-top button:has-text("Reset")').click();
 
   // 8. Weights that do not reproduce Halo's grade: an estimate, with why.
+  await more(p);
   await p.locator('.wi-weights summary').click();
   await p.locator('.wi-cats input[aria-label$="weight"]').first().fill('70');
   await p.locator('.wi-weights button:has-text("Use these weights")').click();
@@ -138,14 +143,14 @@ try {
   check(/Estimate/.test(h.meta) && /Your weights give .*Halo shows 89\.4%/.test(h.meta) && h.pct === '89.4%', `weights that do not match Halo: "${h.meta.slice(0, 120)}", still ${h.pct}`);
   await p.locator('.wi-weights button:has-text("Back to points")').click();
   await sleep(300);
-  check(/Matches Halo’s gradebook/.test((await head(p)).meta), 'Back to points: exact again');
+  check(!/Estimate/.test((await head(p)).meta), 'Back to points: exact again');
 
   // 9. Dark, and the phone.
   await p.emulateMedia({ colorScheme: 'dark' });
   await toCome(p).first().locator('input[type=number]').fill('85');
   await sleep(200);
   await p.screenshot({ path: `${OUT}/desk-5-whatif-dark.png`, fullPage: true });
-  await p.locator('.wi-actions button:has-text("Reset")').click();
+  await p.locator('.wis-top button:has-text("Reset")').click();
   for (const scheme of ['light', 'dark']) {
     const ph = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, colorScheme: scheme });
     const state = await ctx.storageState();
@@ -153,10 +158,10 @@ try {
     await ph.route('**/functions/v1/report', (r) => r.fulfill({ status: 200, body: '{}' }));
     const q = await ph.newPage();
     await q.goto(`${BASE}#/class?c=${mat.id}&tab=whatif`, { waitUntil: 'load' });
-    await q.waitForSelector('.wi-head', { timeout: 20000 });
+    await q.waitForSelector('.wis-top', { timeout: 20000 });
     await toCome(q).first().locator('input[type=number]').fill('92');
     await sleep(250);
-    const sizes = await q.evaluate(() => [...document.querySelectorAll('.wi-score input, .wi-slider, .wi-targets .btn, .wi-presets .btn, .wi-actions .btn')].filter((e) => e.getClientRects().length).map((e) => [e.className || e.type, Math.round(e.getBoundingClientRect().height)]));
+    const sizes = await q.evaluate(() => [...document.querySelectorAll('.wis input[type=range], .wis-letter-btn, .wis-top .btn, .wis-val input')].filter((e) => e.getClientRects().length).map((e) => [e.className || e.type, Math.round(e.getBoundingClientRect().height)]));
     console.log('     small', JSON.stringify(sizes.filter((x) => x[1] < 36)));
     if (scheme === 'light') {
       check(Math.min(...sizes.map((x) => x[1])) >= 36, `phone: touch targets at least 36 px tall (smallest ${Math.min(...sizes.map((x) => x[1]))})`);
@@ -165,7 +170,7 @@ try {
     await q.screenshot({ path: `${OUT}/phone-whatif-${scheme}.png`, fullPage: true });
     await q.evaluate(() => window.scrollTo(0, 900));
     await sleep(200);
-    const stuck = await q.evaluate(() => document.querySelector('.wi-head').getBoundingClientRect().top);
+    const stuck = await q.evaluate(() => document.querySelector('.wis-top').getBoundingClientRect().top);
     if (scheme === 'light') check(stuck >= 0 && stuck < 140, `phone: the grade stays in view while scrolling (top ${Math.round(stuck)} px)`);
     await q.screenshot({ path: `${OUT}/phone-scrolled-${scheme}.png` });
     await ph.close();

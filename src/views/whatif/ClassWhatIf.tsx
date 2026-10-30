@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { bump } from '../../analytics/usage';
-import { dateOf, fmtDate } from '../../domain/dates';
+import { addDays, dateOf, fmtDate } from '../../domain/dates';
 import type { Course, Item } from '../../domain/types';
 import {
-  bigRemaining,
-  categoryOf,
   classGrade,
   cutoffs,
   graded,
   ladderFor,
   needFor,
   remainingOf,
+  smallAverage,
+  splitByWeight,
   suggestCategories,
   swingOf,
   type Category,
@@ -22,18 +22,24 @@ import { useStore } from '../../storage/store';
 import { useClassWhatIf } from './store';
 
 /**
- * What-if for one class (George, 2026-10-29: "he wants to use it himself before every exam"; Free). The live grade at
- * the top (letter, percent, how far it moved, marked What-if), the next exam's ladder (the score each letter takes),
- * "What do I need?" for a letter on the class's own scale, then every item still to come and every graded one, each
- * with a score box (percent or points) and a slider. Nothing here touches real scores; one tap resets; a class's
- * what-if is kept only when the student asks. The math is domain/whatIfGrade.ts, exact against Halo's own grade.
+ * What-if for one class, simple (George, 2026-10-29: "a first-time student gets it in 5 seconds"; it had listed 23
+ * cards of equal size, and Exam 1 got lost among participation posts). Top to bottom:
+ * 1. the grade, big, "What-if" when changed, one Reset;
+ * 2. the next big item in plain words: "On Exam 1 (tomorrow), you need 81% for an A, 61% for an A-…", a letter to tap;
+ * 3. only the items that move the grade, one slider each, biggest first;
+ * 4. everything small in one "Everything else (N items)" slider, at their average so far, each one behind a tap;
+ * 5. "What do I need?" in one line, with a letter picker;
+ * 6. More options, closed: % or points, presets, keep it for next time, retakes on graded work, weights.
+ * The math is domain/whatIfGrade.ts (exact against Halo's own grade); nothing here touches real scores.
  */
 type Unit = 'pct' | 'pts';
 const r1 = (n: number) => (Math.round(n * 10) / 10).toFixed(1);
+const r0 = (n: number) => String(Math.round(n));
 const reduced = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const an = (l: string) => (/^[AEFHILMNORSX]/i.test(l) ? 'an' : 'a');
 
 export function ClassWhatIf({ course }: { course: Course }) {
-  const { data, actions } = useStore();
+  const { data, actions, today } = useStore();
   const tz = data.settings.timezone;
   const w = useClassWhatIf(course.id);
   const grading = data.settings.grading?.[course.id] ?? null;
@@ -45,8 +51,13 @@ export function ClassWhatIf({ course }: { course: Course }) {
   const scale = useMemo(() => cutoffs(course.gradeScale), [course.gradeScale]);
   const any = Object.keys(w.scenario).length > 0;
   const moved = real.pct !== null && now.pct !== null ? now.pct - real.pct : 0;
+  const open = useMemo(() => remainingOf(data.items, course.id), [data.items, course.id]);
+  const { big, small } = useMemo(() => splitByWeight(input, open), [input, open]);
+  const done = items.filter((i) => graded(i)).sort((a, b) => b.dueAt.localeCompare(a.dueAt));
+  const next = useMemo(() => [...big].sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0] ?? null, [big]);
+  const smallAvg = useMemo(() => smallAverage(input), [input]);
 
-  // The moment a what-if crosses into a higher letter: the letter pops (and a small tap on a phone).
+  // A higher letter pops (and a small tap on a phone).
   const rank = (l: string | null) => (l ? scale.findIndex((c) => c.label.toUpperCase() === l.toUpperCase()) : 99);
   const last = useRef(now.letter);
   const [up, setUp] = useState(0);
@@ -59,9 +70,6 @@ export function ClassWhatIf({ course }: { course: Course }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now.letter]);
 
-  const open = remainingOf(data.items, course.id);
-  const done = items.filter((i) => graded(i)).sort((a, b) => b.dueAt.localeCompare(a.dueAt));
-  const next = useMemo(() => bigRemaining(data.items, course.id, {}, 6).sort((a, b) => a.dueAt.localeCompare(b.dueAt))[0] ?? null, [data.items, course.id]);
   const setUnitKept = (u: Unit) => {
     setUnit(u);
     try {
@@ -70,7 +78,6 @@ export function ClassWhatIf({ course }: { course: Course }) {
       /* storage unavailable */
     }
   };
-  const groups = groupItems(open, grading);
   const saveGrading = (g: Grading | null) => {
     const all = { ...(data.settings.grading ?? {}) };
     if (g) all[course.id] = g;
@@ -78,272 +85,245 @@ export function ClassWhatIf({ course }: { course: Course }) {
     actions.updateSettings({ grading: all });
     bump(g ? 'whatif:weights' : 'whatif:points');
   };
+  // "Everything else": one value for all the small items; their what-ifs move together.
+  const smallSet = small.filter((i) => typeof w.scenario[i.id] === 'number');
+  const smallPct = smallSet.length ? (smallSet.reduce((a, i) => a + w.scenario[i.id], 0) / Math.max(1, smallSet.reduce((a, i) => a + i.points, 0))) * 100 : (smallAvg ?? 90);
+  const setSmall = (pct: number) => w.setMany({ ...w.scenario, ...Object.fromEntries(small.map((i) => [i.id, (i.points * pct) / 100])) });
+  const dayWord = (iso: string) => {
+    const d = dateOf(iso, tz);
+    if (d === today) return 'today';
+    if (d === addDays(today, 1)) return 'tomorrow';
+    return fmtDate(d, 'long').split(',')[0] + (d > addDays(today, 6) ? `, ${fmtDate(d, 'short')}` : '');
+  };
 
   return (
-    <div className="wi">
-      <section className="wi-head card" data-whatif={any || undefined} aria-live="polite">
-        <div className="wi-now">
-          <span className="wi-letter" key={up} data-up={up > 0 || undefined}>
-            {now.letter ?? '–'}
-          </span>
-          <span className="wi-pct">{now.pct === null ? 'No grade yet' : `${r1(now.pct)}%`}</span>
-          {any && real.pct !== null && now.pct !== null && (
-            <span className="wi-moved" data-dir={moved > 0.05 ? 'up' : moved < -0.05 ? 'down' : 'same'}>
-              {moved > 0.05 ? '▲' : moved < -0.05 ? '▼' : '='} {r1(Math.abs(moved))} from {real.letter} {r1(real.pct)}%
-            </span>
-          )}
-        </div>
-        <div className="wi-meta">
-          {any ? <span className="gpa-tag">What-if</span> : <span className="wi-real">Your grade now</span>}
-          {now.basis === 'exact' && <span className="hint">Matches Halo’s gradebook{course.haloGrade?.at ? `, as of ${fmtDate(dateOf(course.haloGrade.at, tz), 'short')}` : ''}</span>}
-          {now.basis === 'yours' && <span className="hint">From your scores (no Halo grade yet)</span>}
-          {now.basis === 'estimate' && (
-            <span className="wi-estimate">
-              <b>Estimate</b> <span className="hint">{now.why}</span>
-            </span>
-          )}
-        </div>
-        <div className="wi-actions">
-          <div className="wi-unit" role="group" aria-label="Type scores as">
-            <button type="button" className="btn small" data-on={unit === 'pct' || undefined} aria-pressed={unit === 'pct'} onClick={() => setUnitKept('pct')}>
-              %
-            </button>
-            <button type="button" className="btn small" data-on={unit === 'pts' || undefined} aria-pressed={unit === 'pts'} onClick={() => setUnitKept('pts')}>
-              pts
-            </button>
-          </div>
-          {any && (
-            <button type="button" className="btn small" onClick={() => { w.reset(); bump('whatif:reset'); }}>
+    <div className="wis">
+      <section className="wis-top card" data-whatif={any || undefined} aria-live="polite">
+        <span className="wis-letter" key={up} data-up={up > 0 || undefined}>
+          {now.letter ?? '–'}
+        </span>
+        <span className="wis-pct">{now.pct === null ? 'No grade yet' : `${r1(now.pct)}%`}</span>
+        {any && (
+          <>
+            <span className="gpa-tag">What-if</span>
+            {real.pct !== null && now.pct !== null && (
+              <span className="wis-moved" data-dir={moved > 0.05 ? 'up' : moved < -0.05 ? 'down' : 'same'}>
+                {moved > 0.05 ? '▲' : moved < -0.05 ? '▼' : '='} {r1(Math.abs(moved))} from {real.letter} {r1(real.pct)}%
+              </span>
+            )}
+            <button type="button" className="btn small wis-reset" onClick={() => { w.reset(); bump('whatif:reset'); }}>
               Reset
             </button>
-          )}
-          {(any || w.kept) && (
-            <label className="wi-keep">
-              <input type="checkbox" checked={w.kept} onChange={(e) => { w.keep(e.target.checked); bump(`whatif:keep-${e.target.checked}`); }} /> Keep for next time
-            </label>
-          )}
-        </div>
+          </>
+        )}
+        {now.basis === 'estimate' && (
+          <p className="wis-basis">
+            <b>Estimate</b> {now.why}
+          </p>
+        )}
       </section>
 
-      {next && <Ladder input={input} scenario={w.scenario} item={next} tz={tz} onTry={(pct) => w.set(next.id, (next.points * pct) / 100)} />}
+      {next && <NextLine input={input} scenario={w.scenario} item={next} when={dayWord(next.dueAt)} onTry={(pct) => { w.set(next.id, (next.points * pct) / 100); bump('whatif:next-letter'); }} />}
 
-      {/* "What do I need?" solves on everything still to come; only retakes on graded work are kept from the what-if. */}
-      <Need input={input} scenario={Object.fromEntries(Object.entries(w.scenario).filter(([id]) => done.some((i) => i.id === id)))} scale={scale} onTry={(s) => { w.setMany({ ...w.scenario, ...s }); bump('whatif:try-need'); }} />
-
-      <section className="wi-section">
-        <h3 className="section-title">
-          Still to come <span className="count">{open.length}</span>
-        </h3>
-        {open.length === 0 && <p className="hint">Nothing left that Halo+ knows of. Try a retake below.</p>}
-        <div className="wi-presets">
-          {open.length > 1 &&
-            [100, 90, 80, 70].map((p) => (
-              <button key={p} type="button" className="btn small" onClick={() => w.setMany({ ...w.scenario, ...Object.fromEntries(open.map((i) => [i.id, (i.points * p) / 100])) })}>
-                All at {p}%
-              </button>
-            ))}
-        </div>
-        {groups.map((g) => (
-          <div key={g.key} className="wi-group">
-            {g.label && (
-              <h4 className="wi-group-h">
-                {g.label}
-                {g.weight !== null && <span className="hint"> · {g.weight}% of the grade{g.drop ? ` · lowest ${g.drop} dropped` : ''}</span>}
-              </h4>
-            )}
-            <ul className="wi-list">
-              {g.items.map((i) => (
-                <Row key={i.id} item={i} unit={unit} tz={tz} value={w.scenario[i.id]} swing={swingOf(input, w.scenario, i)} onSet={(v) => w.set(i.id, v)} />
-              ))}
-            </ul>
-          </div>
-        ))}
-        <p className="hint">Counts the {open.length} item{open.length === 1 ? '' : 's'} Halo+ knows about; anything Halo adds later changes this.</p>
-      </section>
-
-      {done.length > 0 && (
-        <details className="wi-section wi-done">
-          <summary className="section-title">
-            Graded: what if a retake or a regrade… <span className="count">{done.length}</span>
-          </summary>
-          <ul className="wi-list">
-            {done.map((i) => (
-              <Row key={i.id} item={i} unit={unit} tz={tz} value={w.scenario[i.id]} real={i.score} swing={swingOf(input, w.scenario, i)} onSet={(v) => w.set(i.id, v)} />
+      {big.length > 0 && (
+        <section className="wis-big" aria-label="What moves your grade">
+          <h3 className="wis-h">What moves your grade</h3>
+          <ul className="wis-list">
+            {big.map((i) => (
+              <SliderRow key={i.id} item={i} unit={unit} value={w.scenario[i.id]} start={smallAvg ?? 90} sub={`${dayWord(i.dueAt)} · ${i.points} pts · each 10% = ${r1(swingOf(input, w.scenario, i))} of your grade`} onSet={(v) => w.set(i.id, v)} />
             ))}
           </ul>
-        </details>
+        </section>
       )}
 
-      <Weights course={course} items={items} grading={grading} estimate={real.basis === 'estimate'} onSave={saveGrading} />
-      <p className="hint wi-foot">What-ifs never change your real scores or Halo. They update your projected GPA on Classes while they’re on.</p>
+      {small.length > 0 && (
+        <section className="wis-rest" data-whatif={smallSet.length > 0 || undefined}>
+          <div className="wis-row">
+            <div className="wis-row-top">
+              <span className="wis-name">Everything else ({small.length} item{small.length === 1 ? '' : 's'})</span>
+              <span className="wis-val">{r0(smallPct)}%</span>
+            </div>
+            <span className="hint wis-sub">{kindsOf(small)} · {small.reduce((a, i) => a + i.points, 0)} pts in all{smallSet.length ? '' : ', at your average so far'}</span>
+            <input type="range" min={0} max={100} step={1} value={Math.round(smallPct)} aria-label={`What-if for everything else, ${small.length} items`} onChange={(e) => setSmall(Number(e.target.value))} />
+          </div>
+          <details className="wis-each-wrap">
+            <summary className="wis-expand">Set each one</summary>
+            <ul className="wis-list wis-each">
+              {small.map((i) => (
+                <SliderRow key={i.id} item={i} unit={unit} value={w.scenario[i.id]} start={smallAvg ?? 90} sub={`${dayWord(i.dueAt)} · ${i.points} pts`} onSet={(v) => w.set(i.id, v)} />
+              ))}
+            </ul>
+          </details>
+        </section>
+      )}
+
+      {open.length > 0 && <NeedLine input={input} scenario={Object.fromEntries(Object.entries(w.scenario).filter(([id]) => done.some((i) => i.id === id)))} scale={scale} current={real.letter} onTry={(s) => w.setMany({ ...w.scenario, ...s })} />}
+      {open.length === 0 && <p className="hint">Nothing left to score that Halo+ knows about. You can still try a retake under More options.</p>}
+
+      <details className="wis-more">
+        <summary>More options</summary>
+        <div className="wis-more-body">
+          <div className="wis-opt">
+            <span className="hint">Type scores as</span>
+            <div className="wi-unit" role="group" aria-label="Type scores as">
+              <button type="button" className="btn small" data-on={unit === 'pct' || undefined} aria-pressed={unit === 'pct'} onClick={() => setUnitKept('pct')}>
+                %
+              </button>
+              <button type="button" className="btn small" data-on={unit === 'pts' || undefined} aria-pressed={unit === 'pts'} onClick={() => setUnitKept('pts')}>
+                pts
+              </button>
+            </div>
+          </div>
+          {open.length > 1 && (
+            <div className="wis-opt">
+              <span className="hint">Everything left at</span>
+              {[100, 90, 80, 70].map((p) => (
+                <button key={p} type="button" className="btn small" onClick={() => w.setMany({ ...w.scenario, ...Object.fromEntries(open.map((i) => [i.id, (i.points * p) / 100])) })}>
+                  {p}%
+                </button>
+              ))}
+            </div>
+          )}
+          <label className="wis-opt wi-keep">
+            <input type="checkbox" checked={w.kept} onChange={(e) => { w.keep(e.target.checked); bump(`whatif:keep-${e.target.checked}`); }} /> Keep this what-if for next time
+          </label>
+          {done.length > 0 && (
+            <details className="wis-retakes">
+              <summary>Change a graded score (a retake or regrade)</summary>
+              <ul className="wis-list">
+                {done.map((i) => (
+                  <SliderRow key={i.id} item={i} unit={unit} value={w.scenario[i.id]} start={((i.score as number) / Math.max(1, i.points)) * 100} sub={`${dayWord(i.dueAt)} · got ${i.score} of ${i.points}`} onSet={(v) => w.set(i.id, v)} />
+                ))}
+              </ul>
+            </details>
+          )}
+          <Weights course={course} items={items} grading={grading} estimate={real.basis === 'estimate'} onSave={saveGrading} />
+          <p className="hint">What-ifs never change your real scores or Halo. While one is on, your projected GPA on Classes shows it too.</p>
+        </div>
+      </details>
     </div>
   );
 }
 
-/** Items to come, grouped by category when the class uses categories, else one list. */
-function groupItems(open: Item[], grading: Grading | null): { key: string; label: string | null; weight: number | null; drop: number; items: Item[] }[] {
-  if (grading?.mode !== 'weighted' || !grading.categories.length) return [{ key: 'all', label: null, weight: null, drop: 0, items: open }];
-  return grading.categories
-    .map((c) => ({ key: c.id, label: c.name, weight: c.weight, drop: c.drop, items: open.filter((i) => categoryOf(i, grading) === c.id) }))
-    .filter((g) => g.items.length);
+/** "Participation, homework and activities": the kinds in the bundle, in plain words. */
+function kindsOf(items: Item[]): string {
+  const name: Record<string, string> = { participation: 'participation', discussion: 'discussions', homework: 'homework', other: 'activities', quiz: 'quizzes', lab: 'labs', paper: 'papers', project: 'projects', exam: 'exams' };
+  const kinds = [...new Set(items.map((i) => name[i.type] ?? 'other'))];
+  const s = kinds.length <= 1 ? kinds.join('') : `${kinds.slice(0, -1).join(', ')} and ${kinds[kinds.length - 1]}`;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** One item: title, due date, points; a score box in % or points; a slider; what each 10% on it is worth. */
-function Row({ item, unit, tz, value, real, swing, onSet }: { item: Item; unit: Unit; tz: string; value: number | undefined; real?: number | null; swing: number; onSet: (pts: number | null) => void }) {
+/** One item: its name, when and what it's worth, one slider and its value (typed in More options' unit). */
+function SliderRow({ item, unit, value, start, sub, onSet }: { item: Item; unit: Unit; value: number | undefined; start: number; sub: string; onSet: (pts: number | null) => void }) {
+  const has = typeof value === 'number';
   const extra = item.points <= 0;
   const u: Unit = extra ? 'pts' : unit;
-  const has = typeof value === 'number';
-  const shownPts = has ? value : (real ?? null);
-  const toUnit = (pts: number) => (u === 'pct' ? (pts / item.points) * 100 : pts);
-  const fromUnit = (n: number) => (u === 'pct' ? (n * item.points) / 100 : n);
-  const [text, setText] = useState(shownPts === null ? '' : String(Math.round(toUnit(shownPts) * 10) / 10));
-  const focused = useRef(false);
-  useEffect(() => {
-    if (focused.current) return;
-    setText(shownPts === null ? '' : String(Math.round(toUnit(shownPts) * 10) / 10));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shownPts, u]);
-  const sliderMax = u === 'pct' ? 100 : Math.max(item.points, 1);
+  const max = u === 'pct' ? 100 : Math.max(1, item.points);
+  const shown = has ? (u === 'pct' ? (value / item.points) * 100 : value) : u === 'pct' ? start : (item.points * start) / 100;
   const label = item.label || item.title;
   return (
-    <li className="wi-row" data-whatif={has || undefined}>
-      <div className="wi-row-top">
-        <span className="wi-title">
-          {label}
-          {has && <span className="gpa-tag">What-if</span>}
-        </span>
-        <span className="hint wi-sub">
-          {fmtDate(dateOf(item.dueAt, tz), 'short')} · {extra ? 'extra credit' : `${item.points} pts`}
-          {typeof real === 'number' && ` · got ${r1((real / Math.max(item.points, 1)) * 100)}%`}
-          {swing >= 0.1 && ` · each 10% = ${r1(swing)} of your grade`}
-        </span>
-      </div>
-      <div className="wi-row-ctl">
-        <label className="wi-score">
+    <li className="wis-row" data-whatif={has || undefined}>
+      <div className="wis-row-top">
+        <span className="wis-name">{label}</span>
+        <label className="wis-val">
           <input
             type="number"
             inputMode="decimal"
             min={0}
-            step={u === 'pct' ? 1 : 0.5}
-            value={text}
-            placeholder={u === 'pct' ? '%' : 'pts'}
+            value={Math.round(shown * 10) / 10}
             aria-label={`What-if score for ${label}, in ${u === 'pct' ? 'percent' : 'points'}`}
-            onFocus={() => (focused.current = true)}
-            onBlur={() => (focused.current = false)}
             onChange={(e) => {
-              setText(e.target.value);
               const n = Number(e.target.value);
               if (e.target.value.trim() === '') onSet(null);
-              else if (Number.isFinite(n) && n >= 0) onSet(fromUnit(n));
+              else if (Number.isFinite(n) && n >= 0) onSet(u === 'pct' ? (n * item.points) / 100 : n);
             }}
           />
-          <span>{u === 'pct' ? '%' : `/ ${item.points}`}</span>
+          {u === 'pct' ? '%' : `/${item.points}`}
         </label>
-        <input
-          className="wi-slider"
-          type="range"
-          min={0}
-          max={sliderMax}
-          step={u === 'pct' ? 1 : 0.5}
-          value={shownPts === null ? 0 : Math.min(sliderMax, toUnit(shownPts))}
-          aria-label={`What-if slider for ${label}`}
-          onChange={(e) => onSet(fromUnit(Number(e.target.value)))}
-        />
         {has && (
-          <button type="button" className="wi-clear" aria-label={`Clear the what-if for ${label}`} onClick={() => onSet(null)}>
+          <button type="button" className="wi-clear" aria-label={`Back to no what-if for ${label}`} onClick={() => onSet(null)}>
             ×
           </button>
         )}
       </div>
+      <span className="hint wis-sub">{sub}</span>
+      <input type="range" min={0} max={max} step={u === 'pct' ? 1 : 0.5} value={Math.min(max, shown)} aria-label={`What-if slider for ${label}`} onChange={(e) => onSet(u === 'pct' ? (Number(e.target.value) * item.points) / 100 : Number(e.target.value))} />
     </li>
   );
 }
 
-/** The next big item's ladder: the score each letter takes, your grade right after it, everything else as it is. */
-function Ladder({ input, scenario, item, tz, onTry }: { input: ClassInput; scenario: Scenario; item: Item; tz: string; onTry: (pct: number) => void }) {
-  const rows = ladderFor(input, scenario, item).filter((r) => r.state !== 'impossible' || r.label.startsWith('A'));
-  const shown = rows.filter((r, i) => r.state === 'needs' || (r.state === 'locked' && rows[i - 1]?.state !== 'locked') || (r.state === 'impossible' && i === rows.findIndex((x) => x.state === 'impossible'))).slice(0, 5);
-  if (!shown.length) return null;
+/** "On Exam 1 (tomorrow), you need 81% for an A, 61% for an A-, 41% for a B+." Each letter tries it. */
+function NextLine({ input, scenario, item, when, onTry }: { input: ClassInput; scenario: Scenario; item: Item; when: string; onTry: (pct: number) => void }) {
+  const rows = ladderFor(input, scenario, item);
+  const needs = rows.filter((r) => r.state === 'needs').slice(0, 3);
+  const safe = rows.find((r) => r.state === 'locked');
+  const name = item.label || item.title;
+  if (!needs.length && !safe) return null;
   return (
-    <section className="wi-section card wi-ladder">
-      <h3 className="section-title">Before {item.label || item.title}</h3>
-      <p className="hint">
-        {fmtDate(dateOf(item.dueAt, tz), 'long')} · {item.points} pts · your grade right after it, with everything else as it is:
-      </p>
-      <ul className="wi-ladder-row">
-        {shown.map((r) => (
-          <li key={r.label}>
-            {r.state === 'needs' ? (
-              <button type="button" className="wi-rung" onClick={() => onTry(r.pct as number)} title={`Try ${r.pct}% on it`}>
-                <b>{r.label}</b>
-                <span>{r.pct}%</span>
+    <p className="wis-next">
+      On <b>{name}</b> ({when}),{' '}
+      {needs.length > 0 ? (
+        <>
+          you need{' '}
+          {needs.map((r, i) => (
+            <span key={r.label}>
+              {i > 0 && ', '}
+              {r.pct}% for {an(r.label)}{' '}
+              <button type="button" className="wis-letter-btn" onClick={() => onTry(r.pct as number)} title={`Try ${r.pct}% on ${name}`}>
+                {r.label}
               </button>
-            ) : (
-              <span className="wi-rung" data-state={r.state}>
-                <b>{r.label}</b>
-                <span>{r.state === 'locked' ? 'safe' : 'out of reach'}</span>
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
+            </span>
+          ))}
+          .
+        </>
+      ) : (
+        <>{safe!.label} is safe even with a 0.</>
+      )}
+    </p>
   );
 }
 
-/** "What do I need?": a letter on the class's own scale, the average it takes on what's left, spread across the big items. */
-function Need({ input, scenario, scale, onTry }: { input: ClassInput; scenario: Scenario; scale: { label: string; min: number }[]; onTry: (s: Scenario) => void }) {
+/** "For an A, you need about 82% on what's left." with a letter picker. */
+function NeedLine({ input, scenario, scale, current, onTry }: { input: ClassInput; scenario: Scenario; scale: { label: string; min: number }[]; current: string | null; onTry: (s: Scenario) => void }) {
   const letters = scale.filter((c) => c.min > 0);
-  const current = classGrade(input, scenario).letter;
   const [target, setTarget] = useState<string>(() => {
     const i = letters.findIndex((c) => c.label.toUpperCase() === (current ?? '').toUpperCase());
-    return letters[Math.max(0, i)]?.label ?? 'A';
+    return letters[Math.max(0, i - 1)]?.label ?? letters[0]?.label ?? 'A';
   });
   const need = needFor(input, scenario, target);
-  const big = bigRemaining(input.items, input.course.id, scenario);
   const open = remainingOf(input.items, input.course.id).filter((i) => typeof scenario[i.id] !== 'number');
+  const picker = (
+    <select className="wis-pick" value={target} aria-label="Letter to aim for" onChange={(e) => setTarget(e.target.value)}>
+      {letters.map((c) => (
+        <option key={c.label} value={c.label}>
+          {c.label}
+        </option>
+      ))}
+    </select>
+  );
+  if (!need) return null;
   return (
-    <section className="wi-section card wi-need">
-      <h3 className="section-title">What do I need?</h3>
-      <div className="wi-targets" role="radiogroup" aria-label="Final grade to aim for">
-        {letters.map((c) => (
-          <button key={c.label} type="button" role="radio" aria-checked={target === c.label} className="btn small" data-on={target === c.label || undefined} onClick={() => setTarget(c.label)}>
-            {c.label}
+    <p className="wis-need">
+      {need.state === 'needs' && (
+        <>
+          For {an(target)} {picker}, you need about <b>{Math.ceil(need.avg as number)}%</b> on what’s left.{' '}
+          <button type="button" className="hero-inline" onClick={() => onTry(Object.fromEntries(open.map((i) => [i.id, (i.points * (need.avg as number)) / 100])))}>
+            Try it
           </button>
-        ))}
-      </div>
-      {need && (
-        <div className="wi-need-out" data-state={need.state}>
-          {need.state === 'needs' && (
-            <>
-              <p>
-                Average <b>{need.avg}%</b> on what’s left to finish with {/^[AEIOU]/i.test(need.target) ? 'an' : 'a'} <b>{need.target}</b> ({need.cutoff}% or more).
-              </p>
-              {big.length > 0 && (
-                <p className="wi-spread">
-                  {big.map((i) => `${i.label || i.title}: ${need.avg}%`).join(' · ')}
-                  {open.length > big.length && ` · the other ${open.length - big.length} at ${need.avg}% too`}
-                </p>
-              )}
-              <button type="button" className="btn small" onClick={() => onTry(Object.fromEntries(open.map((i) => [i.id, (i.points * (need.avg as number)) / 100])))}>
-                Try it
-              </button>
-            </>
-          )}
-          {need.state === 'locked' && (
-            <p>
-              <b>{need.target} is locked in.</b> Even zeros on everything left keep you at {need.worst ? `${r1(need.worst.pct)}%` : 'it'}.
-            </p>
-          )}
-          {need.state === 'impossible' && (
-            <p>
-              {/^[AEIOU]/i.test(need.target) ? 'An' : 'A'} {need.target} isn’t reachable this term with what’s left. Your best possible is <b>{need.best ? `${need.best.letter} (${r1(need.best.pct)}%)` : '–'}</b>, with 100% on everything left. That’s still worth going for.
-            </p>
-          )}
-          {need.state === 'nothing-left' && <p>Nothing left to score in this class that Halo+ knows about. Your grade is {current ?? 'set'}.</p>}
-        </div>
+        </>
       )}
-    </section>
+      {need.state === 'locked' && (
+        <>
+          {picker} is locked in: even zeros on what’s left keep you there.
+        </>
+      )}
+      {need.state === 'impossible' && (
+        <>
+          {picker} isn’t reachable this term with what’s left. Your best is {need.best ? `${need.best.letter} (${r1(need.best.pct)}%)` : '–'}.
+        </>
+      )}
+      {need.state === 'nothing-left' && <>Nothing left to score.</>}
+    </p>
   );
 }
 

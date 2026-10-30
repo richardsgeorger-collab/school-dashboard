@@ -101,6 +101,10 @@ function ClassCard({ course }: { course: Course }) {
         </button>
       )}
       <CookMeter course={course} />
+      {/* What-if, one tap from every class (2026-10-29: "hard to find"). */}
+      <a className="btn small wis-open" href={`#/class?c=${course.id}&tab=whatif`} aria-label={`What if? Try scores in ${course.code}`}>
+        What if?
+      </a>
       {openItem && <ItemDetail item={openItem} onClose={() => setOpenItem(null)} />}
     </li>
   );

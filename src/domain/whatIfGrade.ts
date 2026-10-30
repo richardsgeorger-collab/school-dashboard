@@ -271,3 +271,31 @@ export function ladderFor(input: ClassInput, s: Scenario, item: Item): { label: 
       return { label: c.label, pct: up1(hi), state: 'needs' as const };
     });
 }
+
+/** Kinds of work that move a grade when they are worth anything (George, 2026-10-29: "exams, quizzes, labs, big assignments"). */
+const BIG_KINDS = new Set<ItemType>(['exam', 'quiz', 'lab', 'paper', 'project']);
+
+/**
+ * What a first-time student needs to see (2026-10-29): the items that really move the grade, and everything small in
+ * one bundle. Big: 4% or more of the class's points, or an exam, quiz, lab, paper or project worth 2% or more. Small:
+ * the rest (participation posts, short homework, activities). The class's points are Halo's possible so far plus
+ * everything still to come.
+ */
+export function splitByWeight(input: ClassInput, items: Item[]): { big: Item[]; small: Item[] } {
+  const h = input.course.haloGrade;
+  const mine = input.items.filter((i) => i.courseId === input.course.id);
+  const gradedPossible = h && finite(h.maxPoints) && h.maxPoints > 0 ? h.maxPoints : mine.filter((i) => graded(i)).reduce((a, i) => a + Math.max(0, i.points), 0);
+  const total = gradedPossible + remainingOf(input.items, input.course.id).reduce((a, i) => a + i.points, 0) || 1;
+  const isBig = (i: Item) => i.points / total >= 0.04 || (BIG_KINDS.has(i.type) && i.points / total >= 0.02);
+  const big = items.filter(isBig).sort((a, b) => b.points - a.points || a.dueAt.localeCompare(b.dueAt));
+  return { big, small: items.filter((i) => !isBig(i)) };
+}
+
+/** The student's average so far on the small kind of work (graded small items), else the class grade: where "Everything else" starts. */
+export function smallAverage(input: ClassInput): number | null {
+  const mine = input.items.filter((i) => i.courseId === input.course.id && graded(i) && i.points > 0);
+  const { small } = splitByWeight(input, mine);
+  const pts = small.reduce((a, i) => a + i.points, 0);
+  if (pts > 0) return (small.reduce((a, i) => a + (i.score as number), 0) / pts) * 100;
+  return classGrade(input).pct;
+}
