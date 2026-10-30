@@ -100,9 +100,9 @@ const shown = (label) => (process.platform === 'darwin' ? label.replace('(Ctrl+K
     let { ctx, p } = await open(max, '0.12.0');
     await until(async () => (await p.locator('.on-halo-switches').count()) === 1, 10000, 300);
     const old = await p.locator('.on-halo-switches .field-check span').allInnerTexts();
-    check(old.length === FEATURES.length - 2 && !old.some((l) => /Compact Student Home header|Class cards/.test(l)), `Halo+: with extension 0.12.0, no switch for what it does not have (${old.length})`);
+    check(old.length === FEATURES.length - 3 && !old.some((l) => /Compact Student Home header|Class cards|What-if on the Gradebook/.test(l)), `Halo+: with extension 0.12.0, no switch for what it does not have (${old.length})`);
     await ctx.close();
-    ({ ctx, p } = await open(max, '0.12.5'));
+    ({ ctx, p } = await open(max, '0.12.14'));
     await until(async () => (await p.locator('.on-halo-switches').count()) === 1, 10000, 300);
     const labels = await p.locator('.on-halo-switches .field-check span').allInnerTexts();
     check(labels.length === FEATURES.length && labels.every((l, i) => l.trim() === shown(FEATURES[i][1])), `Halo+: You → Display: the same ${labels.length} switches under "Show Halo+ on Halo pages"`);
