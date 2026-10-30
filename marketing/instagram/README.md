@@ -4,7 +4,65 @@ Made 2026-10-30. Everything shows the real Halo+ UI, captured in Chrome on the s
 demo student Maya Torres. No GCU logos or trademarks: the sponsor logo spot is left empty in every capture, and every
 end card says "Not affiliated with GCU".
 
-## Files
+## Round 2 (2026-10-30): the Daylight reel, faster
+
+George picked Daylight. Same hook, beats and end card, re-cut to hit harder:
+
+| File | Length | |
+|---|---|---|
+| `halo-plus-reel-daylight-v2.mp4` | **13.0 s** | **My pick.** Each beat about 2 s, room to read every close-up. |
+| `halo-plus-reel-daylight-v2-faster.mp4` | 10.7 s | Even faster, each beat about 1.7 s. Under the 12 s floor on purpose, so the difference is clear. |
+| `halo-plus-reel-daylight.mp4` | 21.8 s | Round 1, kept for comparison. |
+
+All 1080×1920, 30 fps, H.264, no music.
+
+What changed:
+- **Close-ups, not whole desktop screens.** The UI was captured again at 3× so the crops stay sharp on a phone. You get
+  the whole Student Home for a split second, then a punch in to one class card and closer to its NEXT lines; one day
+  on the calendar (Sat, Oct 31: three classes); the search bar with results appearing as "topic 3 quiz" is typed; and
+  Halo+'s toast counting up to +30 pts.
+- **Words that slam in:** 1 to 2 words a line, each word dropping from 2.4× to size with a snap and a little turn.
+  The gold word lands on a gold block. Each beat has a setup line up top at the start and the payoff line at the
+  bottom on the punch in.
+- **Cuts:** pop (hook → cards), whip left, gold diagonal wipe, whip up, and a white flash into the end card. All have
+  motion blur, and the camera's punch-ins blur with their speed.
+- **Always moving:** the paper's dot grid drifts, the gold glow moves, and the camera keeps creeping in after each punch.
+- **The climax:** the toast hits +30 pts, the window pops, a gold ring goes out, confetti bursts from around the toast
+  and both bottom corners, the screen shakes, and "It checks off." slams in. Then a white flash to a 2 s end card.
+
+### Cut points for lining up a trending sound
+
+Put the sound's drops on the **CUT** lines; the other lines are smaller hits (punch-ins and word slams) for the beats
+in between.
+
+| 13.0 s cut | | 10.7 s cut | |
+|---|---|---|---|
+| 0.03 s | hook: first word slams in | 0.03 s | hook: first word |
+| 0.63 s | hook: last word (needs.) | 0.53 s | hook: last word |
+| **1.47 s** | **CUT** (pop) → What's next | **1.23 s** | **CUT** (pop) |
+| 1.80 s | punch in to one class card | 1.51 s | punch in to the card |
+| 2.47 s | punch in to its NEXT box, "on every class." | 2.05 s | punch in to NEXT |
+| **3.60 s** | **CUT** (whip left) → calendar | **2.97 s** | **CUT** (whip left) |
+| 3.93 s | punch in to one day, "One calendar." | 3.24 s | punch in to one day |
+| 5.53 s | "⌘K." slams (under the wipe) | 4.52 s | "⌘K." |
+| **5.60 s** | **CUT** (wipe) → search | **4.57 s** | **CUT** (wipe) |
+| 5.73 s | punch in to the search bar, typing | 4.68 s | punch in, typing |
+| 6.73 s | results in, "Find anything." | 5.50 s | results, "Find anything." |
+| **7.87 s** | **CUT** (whip up) → submit | **6.43 s** | **CUT** (whip up) |
+| 8.07 s | punch in to the toast | 6.61 s | punch in to the toast |
+| **8.67 s** | **CLIMAX**: +30, confetti burst, "It checks off." | **7.12 s** | **CLIMAX** |
+| **10.93 s** | **CUT** (white flash) → end card | **9.03 s** | **CUT** (white flash) |
+| 11.13 s | "upgraded." | 9.21 s | "upgraded." |
+| 11.40 s | Free on Chrome | 9.42 s | Free on Chrome |
+| 13.00 s | end | 10.73 s | end |
+
+The code is `marketing/reel/src/Reel2.tsx` (`reel2Cuts(pace)` gives the same table). Render it:
+`npx remotion render Reel2-Daylight ../instagram/halo-plus-reel-daylight-v2.mp4 --codec=h264 --crf=18` (and
+`Reel2-Daylight-Faster`).
+
+## Round 1
+
+### Files
 
 | File | What | Size |
 |---|---|---|

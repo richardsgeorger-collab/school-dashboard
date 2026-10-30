@@ -1,4 +1,4 @@
-// The real Halo+ UI for the Instagram reel and carousel (George, 2026-10-30), captured at 2× in Chrome (never Edge) on the
+// The real Halo+ UI for the Instagram reel and carousel (George, 2026-10-30), captured at 3× in Chrome (2× before Loop 292) (never Edge) on the
 // saved Halo page copies with the real extension and the made-up demo student Maya Torres. No GCU logos or trademarks:
 // the sponsor's logo spot (its tagline names GCU) is left empty, and nothing else carries GCU's marks. Stills and short
 // frame sequences (search being typed, the submit moment with its confetti) go to marketing/reel/public/ui/.
@@ -18,7 +18,7 @@ const DAY = 864e5;
 const sessions = new WeakMap();
 const sharp = async (b, p, width = W, height = H) => {
   const cdp = await b.ctx.newCDPSession(p);
-  await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile: false });
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 3, mobile: false });
   sessions.set(p, cdp);
   await sleep(800);
 };

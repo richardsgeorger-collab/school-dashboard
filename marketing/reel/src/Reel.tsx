@@ -176,7 +176,7 @@ export const Reel: React.FC<ReelProps> = ({ theme }) => {
       </Sequence>
       <Sequence name="Confetti" from={from(S.confetti)} durationInFrames={S.confetti}>
         <Beat theme={theme} len={S.confetti} lines={["Turn it in.", "It checks off."]} gold={["checks", "off."]} note="The moment Halo confirms it: done, points, a little confetti." tilt={{ from: [20, 14], to: [4, 3] }}>
-          {(f, z) => <Shot src={`confetti/${String(Math.max(0, Math.min(44, Math.floor((f - 22) / 2)))).padStart(2, "0")}.png`} natural={PAGE} crop={{ x: 500, y: 0, w: 780, h: 600 }} width={980} shadow={ring} push={{ to: 2.1, t: z(30), focus: { x: 1100, y: 70 } }} />}
+          {(f, z) => <Shot src={`confetti/${String(Math.max(0, Math.min(29, Math.floor((f - 22) / 3)))).padStart(2, "0")}.png`} natural={PAGE} crop={{ x: 500, y: 0, w: 780, h: 600 }} width={980} shadow={ring} push={{ to: 2.1, t: z(30), focus: { x: 1100, y: 70 } }} />}
         </Beat>
       </Sequence>
       <Sequence name="End card" from={from(S.end)} durationInFrames={S.end}>
