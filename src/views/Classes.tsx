@@ -51,6 +51,13 @@ function ClassDone({ courseId }: { courseId: string }) {
   );
 }
 
+/** The class's what-if, from its card's grade: inside the card's link, so the card itself does not open too. */
+function openWhatIf(e: React.SyntheticEvent, courseId: string) {
+  e.preventDefault();
+  e.stopPropagation();
+  window.location.hash = `/class?c=${courseId}&tab=whatif`;
+}
+
 function ClassCard({ course }: { course: Course }) {
   const { data, today, schedule } = useStore();
   const tz = data.settings.timezone;
@@ -75,10 +82,21 @@ function ClassCard({ course }: { course: Course }) {
         <div className="class-card-head">
           <CourseChip course={course} />
           {g.pct !== null ? (
-            <span className="class-card-grade" title={basis ? `${line}, ${basis}` : line}>
+            // The grade opens the class's what-if (George, 2026-10-30: the boxed button crowded the card); the rest of the
+            // card opens the class. One tap target, the ring, the percent and a quiet "What if?" under it.
+            <span
+              className="class-card-grade class-card-grade-whatif"
+              role="link"
+              tabIndex={0}
+              title={`${basis ? `${line}, ${basis}` : line}. What if? Try scores in ${course.code}`}
+              aria-label={`${line}. What if? Try scores in ${course.code}`}
+              onClick={(e) => openWhatIf(e, course.id)}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openWhatIf(e, course.id)}
+            >
               <Ring value={g.pct} max={100} size={40} text={g.letter ?? `${Math.round(g.pct)}`} label={basis ? `${line}, ${basis}` : line} />
               {/* The ring already says the letter; under it, just the number (2026-10-02 clarity pass). */}
               <span className="class-card-basis">{basis ?? (g.letter ? `${g.pct.toFixed(1)}%` : line)}</span>
+              <span className="class-card-whatif">What if?</span>
             </span>
           ) : (
             <span className="class-card-grade class-card-nograde">{NOT_GRADED}</span>
@@ -101,10 +119,6 @@ function ClassCard({ course }: { course: Course }) {
         </button>
       )}
       <CookMeter course={course} />
-      {/* What-if, one tap from every class (2026-10-29: "hard to find"). */}
-      <a className="btn small wis-open" href={`#/class?c=${course.id}&tab=whatif`} aria-label={`What if? Try scores in ${course.code}`}>
-        What if?
-      </a>
       {openItem && <ItemDetail item={openItem} onClose={() => setOpenItem(null)} />}
     </li>
   );

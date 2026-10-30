@@ -63,10 +63,11 @@ try {
     await p.goto(`${BASE}#/classes`, { waitUntil: 'load' });
     await sleep(1500);
     const cardsN = await p.locator('.class-card, [data-course-card]').count();
-    const btns = await p.locator('a.wis-open, button.wis-open').count();
-    check(btns >= 7 && btns >= cardsN, `a "What if?" button on every class card in Classes (${btns} buttons, ${cardsN} cards)`);
+    // 2026-10-30: the grade on each card opens the what-if, with a quiet "What if?" under the percent.
+    const btns = await p.locator('.class-card-whatif').count();
+    check(btns >= 7 && btns >= cardsN, `a "What if?" under the grade on every class card in Classes (${btns}, ${cardsN} cards)`);
     await p.screenshot({ path: `${OUT}/after-classes.png` });
-    await p.locator(`a.wis-open[href*="${chm.id}"]`).first().click();
+    await p.locator('[data-tour="class-CHM-113"] .class-card-grade').click();
     await p.waitForSelector('.wis', { timeout: 15000 });
     check(/tab=whatif/.test(p.url()), 'it opens the class’s what-if');
     await p.goto(`${BASE}#/class?c=${chm.id}`, { waitUntil: 'load' });

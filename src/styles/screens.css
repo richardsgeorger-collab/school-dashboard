@@ -4576,10 +4576,31 @@ button.wi-rung:hover { border-color: var(--accent); }
 .wi-title .gpa-tag { white-space: nowrap; flex: none; }
 
 /* What-if, simple (2026-10-29): the grade, the next exam in words, what moves it, everything else in one slider. */
-.class-card-wrap > .wis-open {
-  position: absolute;
-  left: 14px;
-  bottom: 10px;
+/* The grade opens the what-if (2026-10-30): one quiet tap target, the link gray like the card's text, gold on hover. */
+.class-card-grade-whatif {
+  min-width: 48px;
+  min-height: 48px;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.class-card-grade-whatif:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.class-card-whatif {
+  font: var(--t-small);
+  font-weight: 500;
+  color: var(--ink-3);
+  white-space: nowrap;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+.class-card-grade-whatif:hover .class-card-whatif,
+.class-card-grade-whatif:focus-visible .class-card-whatif { color: var(--accent-text); text-decoration-style: solid; }
+.class-card-grade-whatif:hover .ring { filter: drop-shadow(0 0 0 var(--accent)); }
+@media (hover: none) {
+  /* On a phone there is no hover: the link is a touch stronger so it reads as tappable. */
+  .class-card-whatif { color: var(--ink-2); font-weight: 600; }
 }
 .wis {
   display: grid;
