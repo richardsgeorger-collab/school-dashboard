@@ -78,7 +78,7 @@ const hard = setTimeout(() => {
 }, 900000);
 const SIZES = [
   { name: 'iphone-se', w: 375, h: 667, igH: 520, d: devices['iPhone SE'] },
-  { name: 'iphone-15-pro-max', w: 430, h: 932, igH: 740, d: devices['iPhone 15 Pro Max'] ?? devices['iPhone 14 Pro Max'] },
+  { name: 'iphone-15', w: 393, h: 852, igH: 664, d: devices['iPhone 15'] ?? devices['iPhone 14'] },
 ];
 let user = null;
 
@@ -107,8 +107,19 @@ try {
       check(main.main <= main.h, `${tag}: the main button on screen without scrolling (bottom ${main.main} of ${main.h} px; the email button ${main.email})`);
       if (where === 'instagram') {
         const href = await p.locator('.lp-onphone-main').getAttribute('href');
-        check(/^x-safari-https:\/\/haloplus\.app\/\?src=ig&go=google$/.test(href ?? '') && /Continue with Google in Safari/.test(t), `${tag}: Google opens in Safari (${href})`);
+        check(/^x-safari-https:\/\/haloplus\.app\/\?src=ig&go=google$/.test(href ?? '') && (await text(p, '.lp-onphone-main')) === 'Continue with Google' && (await text(p, '.lp-onphone-opens')) === 'Opens Safari' && !/doesn’t work inside Instagram/.test(t), `${tag}: "Continue with Google", a small "Opens Safari", the handoff (${href})`);
       } else check(/Continue with Google/.test(await text(p, '.lp-onphone-main')), `${tag}: Continue with Google is the main button`);
+      // Polish (Loop 300): Google one line, the same height, width and corners as the email button; one Halo+ mark.
+      const look = await p.evaluate(() => {
+        const g = document.querySelector('.lp-onphone-main');
+        const e = document.querySelector('.lp-onphone-email-btn');
+        const gr = g.getBoundingClientRect();
+        const er = e.getBoundingClientRect();
+        const lines = Math.round(g.querySelector('span').getBoundingClientRect().height / parseFloat(getComputedStyle(g).fontSize));
+        const marks = [...document.querySelectorAll('.lp-onphone-mark, .lp-head .brand-mark')].filter((m) => m.getBoundingClientRect().width > 0 && getComputedStyle(m).visibility !== 'hidden').length;
+        return { gh: Math.round(gr.height), eh: Math.round(er.height), gw: Math.round(gr.width), ew: Math.round(er.width), gr: getComputedStyle(g).borderTopLeftRadius, er: getComputedStyle(e).borderTopLeftRadius, lines, marks };
+      });
+      check(look.lines === 1 && look.gh === look.eh && look.gw === look.ew && look.gr === look.er && look.marks === 1, `${tag}: Google on one line, the same size and corners as the email button, one Halo+ mark (${JSON.stringify(look)})`);
       const count = /Join (\d+)\+ GCU students/.exec(t);
       if (s.name === 'iphone-se' && where === 'safari') {
         const live = await (await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/rpc/public_student_count`, { method: 'POST', headers: { apikey: env.VITE_SUPABASE_ANON_KEY, 'content-type': 'application/json' }, body: '{}' })).json();

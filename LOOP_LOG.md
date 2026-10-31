@@ -548,3 +548,10 @@ One line per change, newest last. Proposals that need George's approval are mark
     - Every test row was removed. Funnel rows from a browser that keeps visiting the live site (likely George or real visitors) were left alone.
     - vitest 1307 passed, tsc and lint clean.
   (6) **Apple:** still built and off (APPLE_SIGNIN), waiting on George's Apple Developer setup.
+- Loop 300 (2026-10-30): the phone sign-up screen, polished (George's screenshot in Instagram's browser). Screenshots are docs/screens/phone-signup/iphone-se-{safari,instagram}.png and iphone-15-{safari,instagram}.png.
+  (1) **The Google button:** always "Continue with Google", one line, centred, with the colour G on the left. It follows Google's rules: white, a 1px #747775 edge, #1F1F1F text, Roboto 500 16px.
+    - It is 52 px tall with 12 px corners, the same as the email box and the email button.
+    - In Instagram's browser it keeps the Safari handoff (the x-safari link with go=google), drops "in Safari" from the label, and swaps the explanation line for a small grey "Opens Safari" under it.
+  (2) **One Halo+ mark:** the page header's. The card's big mark is gone.
+  (3) **A cleaner card:** one rhythm (28/24 padding; 10 px under the hook, 22 under the line, 20/14 around "or sign up with email", 10 between the email box and its button), all three controls the same width and corners, the trust line at 13px, Sign in at 14px.
+  **Tests:** scripts/e2e-phone-signup.mjs now runs at iPhone SE and 15 (Safari and Instagram) and also checks that Google is on one line with the same height, width and corners as the email button, and that one mark shows: **PASS** (52/52 px, 285/285 wide on SE, 303/303 on 15, 12px corners, 1 mark). tsc and lint clean.

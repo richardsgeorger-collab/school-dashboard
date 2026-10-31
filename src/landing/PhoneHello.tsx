@@ -3,7 +3,6 @@ import { funnel } from '../analytics/funnel';
 import { authMessage } from '../auth/useAuth';
 import { supabase } from '../auth/client';
 import { pendingSource, sourceIn } from '../auth/source';
-import { IconHalo } from '../components/Icons';
 import { APPLE_SIGNIN, inAppBrowser, openInBrowserUrl } from '../config/signin';
 import { isIOSDevice } from '../ui/device';
 
@@ -152,9 +151,6 @@ export function PhoneHello() {
   return (
     <section className="lp-onphone" aria-label="Make your free Halo+ account">
       <div className="lp-onphone-card">
-        <span className="lp-onphone-mark" aria-hidden>
-          <IconHalo />
-        </span>
         <h2 className="lp-onphone-title">
           The Halo <span className="lp-onphone-gold">upgrade</span> every GCU student needs.
         </h2>
@@ -164,9 +160,9 @@ export function PhoneHello() {
             {/* Google refuses to sign in inside Instagram's browser: the same page in Safari, then one tap. */}
             <a className="lp-onphone-google lp-onphone-main" ref={mainRef as React.Ref<HTMLAnchorElement>} href={safariHref || undefined} onClick={() => fromIg && funnel('safari')}>
               <GoogleG />
-              <span>Continue with Google in {ios ? 'Safari' : 'your browser'}</span>
+              <span>Continue with Google</span>
             </a>
-            <p className="lp-onphone-hint">Google sign-in doesn’t work inside Instagram, so this opens {ios ? 'Safari' : 'your browser'}.</p>
+            <p className="lp-onphone-opens">Opens {ios ? 'Safari' : 'your browser'}</p>
           </>
         ) : (
           <button type="button" ref={mainRef as React.Ref<HTMLButtonElement>} className="lp-onphone-google lp-onphone-main" onClick={() => void startWith('google')} disabled={!!oauth}>

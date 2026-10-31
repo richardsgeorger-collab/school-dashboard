@@ -1592,3 +1592,63 @@ html.hp-phone .lp-onphone-title {
 html.hp-phone .lp-onphone-why {
   margin-top: var(--s-3);
 }
+
+/* Loop 300 polish: one mark (the page header's), one rhythm, buttons alike, Google's button by its rules. */
+html.hp-phone .lp-onphone-card {
+  padding: 28px 24px 22px;
+}
+html.hp-phone .lp-onphone-title {
+  margin: 0 0 10px;
+}
+html.hp-phone .lp-onphone-lede {
+  margin: 0 0 22px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+/* Google: white, a 1px #747775 edge, #1F1F1F text, the colour G left of the words, one line, centred. */
+html.hp-phone .lp-onphone-google {
+  min-height: 52px;
+  height: 52px;
+  border-radius: 12px;
+  gap: 12px;
+  padding: 0 16px;
+  font: 500 16px/1 Roboto, var(--font-body);
+  color: #1f1f1f;
+  white-space: nowrap;
+}
+html.hp-phone .lp-onphone-google svg {
+  flex: none;
+}
+html.hp-phone .lp-onphone-opens {
+  margin: 6px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+html.hp-phone .lp-onphone-or {
+  margin: 20px 0 14px;
+  font-size: 13px;
+}
+html.hp-phone .lp-onphone-mail {
+  gap: 10px;
+}
+html.hp-phone .lp-onphone-mail .input,
+html.hp-phone .lp-onphone-email-btn {
+  min-height: 52px;
+  height: 52px;
+  border-radius: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+html.hp-phone .lp-onphone-email-btn {
+  font: 600 16px/1 var(--font-body);
+}
+html.hp-phone .lp-onphone-why {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+html.hp-phone .lp-onphone-signin {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
