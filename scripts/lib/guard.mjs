@@ -10,7 +10,8 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 export const REAL_FLAG = '--real-accounts';
-export const isThrowaway = (email) => /\.invalid$/i.test(String(email ?? ''));
+// Throwaways: example.invalid addresses, and Resend's test inbox (delivered+…@resend.dev, a sink no person reads).
+export const isThrowaway = (email) => /\.invalid$|^delivered\+[a-z0-9._-]+@resend\.dev$/i.test(String(email ?? ''));
 const realAllowed = () => process.argv.includes(REAL_FLAG);
 const BACKUPS = process.env.SCRIPT_BACKUP_DIR ?? join(homedir(), 'haloplus-script-backups');
 

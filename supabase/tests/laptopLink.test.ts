@@ -18,6 +18,14 @@ describe('the one laptop email (Loop 294)', () => {
     expect(m.html).toContain('href="https://haloplus.app/laptop/?src=ig&amp;via=email"');
     expect(m.html.toLowerCase()).not.toContain('unsubscribe');
   });
+  it('signed up on the phone with Google: the link says so, the email says Continue with Google (Loop 298)', () => {
+    expect(laptopUrl('email', 'ig', 'abcDEF12_-', 'google')).toBe('https://haloplus.app/laptop/?src=ig&via=email&t=abcDEF12_-&acct=google');
+    const m = laptopEmail('https://haloplus.app/laptop/?acct=google', 'google');
+    expect(m.text).toContain('You’re signed up for Halo+');
+    expect(m.text).toContain('Continue with Google');
+    expect(laptopEmail('https://x', 'apple').text).toContain('Continue with Apple');
+    expect(m.text).not.toContain('didn’t keep your address');
+  });
   it('the same address always hashes the same, under the secret; never the address itself', async () => {
     const a = await keyedHash('s3cret', 'email:maya@my.gcu.edu');
     expect(a).toMatch(/^[0-9a-f]{64}$/);
@@ -39,6 +47,7 @@ describe('the Instagram funnel steps a browser may report', () => {
     expect(funnelRow({ vid: 'abcdEFGH12', step: 'visit', src: 'tiktok' })).toBeNull();
     expect(funnelRow({ vid: 'short', step: 'visit', src: 'ig' })).toBeNull();
     expect(funnelRow({ vid: 'abcdEFGH12', step: 'paid', src: 'ig' })).toBeNull();
+    for (const step of ['fold', 'email-focus', 'google', 'apple', 'safari']) expect(funnelRow({ vid: 'abcdEFGH12', step, src: 'ig' })?.step).toBe(step);
     expect(funnelRow({ vid: 'abcdEFGH12', step: 'visit', src: 'ig', via: 'pigeon', device: 'fridge' })).toMatchObject({ via: null, device: null });
   });
   it('the email step only comes from laptop-link, when the email really went', () => {

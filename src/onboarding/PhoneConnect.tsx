@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { laptopLinkUrl, visitorId } from '../analytics/funnel';
+import { pendingSource } from '../auth/source';
 import { useAccount } from '../auth/AccountContext';
 import { queueMarketEmail } from '../auth/source';
 import type { OnboardingState } from '../domain/types';
@@ -23,7 +25,30 @@ export function PhoneConnect({ variant, onLaptop, onHere }: { variant: 'step' | 
   const ob = data.settings.onboarding as OnboardingState | undefined;
   const email = auth.session?.user.email ?? null;
   const [sending, setSending] = useState(false);
-  const [mail, setMail] = useState<'sent' | 'failed' | null>(ob?.emailedAt ? 'sent' : null);
+  // Sent once: remembered on this phone too, so the answer stays when onboarding draws this step again (Loop 298).
+  const [mail, setMail] = useState<'sent' | 'failed' | null>(() => {
+    try {
+      if (localStorage.getItem('school-dashboard:laptop-emailed')) return 'sent';
+    } catch {
+      /* storage off */
+    }
+    return ob?.emailedAt ? 'sent' : null;
+  });
+  const sentOnce = () => {
+    setMail('sent');
+    try {
+      localStorage.setItem('school-dashboard:laptop-emailed', new Date().toISOString());
+    } catch {
+      /* storage off */
+    }
+    // The step and the card can both be on the page: both say sent.
+    window.dispatchEvent(new Event('haloplus:laptop-emailed'));
+  };
+  useEffect(() => {
+    const on = () => setMail('sent');
+    window.addEventListener('haloplus:laptop-emailed', on);
+    return () => window.removeEventListener('haloplus:laptop-emailed', on);
+  }, []);
   const [syllabus, setSyllabus] = useState(false);
   const here = isIPad() ? 'this iPad' : 'this phone';
   const send = async () => {
@@ -33,10 +58,39 @@ export function PhoneConnect({ variant, onLaptop, onHere }: { variant: 'step' | 
     setSending(false);
     // Once per account: an email already on its way (asked for before) is still "sent".
     if (ok || ob?.emailedAt) {
-      setMail('sent');
+      sentOnce();
       if (ob && !ob.emailedAt) actions.updateSettings({ onboarding: { ...ob, emailedAt: new Date().toISOString() } });
     } else setMail('failed');
   };
+  // Started on the phone with Google or Apple (the phone screen, Loop 298): the laptop link goes to the account's own
+  // address at once, no typing, once.
+  useEffect(() => {
+    let started: string | null = null;
+    try {
+      started = localStorage.getItem('school-dashboard:phone-start');
+    } catch {
+      /* storage off */
+    }
+    const token = auth.session?.access_token;
+    if (!started || !token || mail === 'sent') return;
+    try {
+      localStorage.removeItem('school-dashboard:phone-start');
+    } catch {
+      /* storage off */
+    }
+    const ig = pendingSource() === 'ig';
+    setSending(true);
+    void fetch(laptopLinkUrl(), { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ src: ig ? 'ig' : undefined, vid: ig ? visitorId() : undefined }) })
+      .then((r) => r.json() as Promise<{ ok: boolean }>)
+      .then((r) => {
+        if (r.ok) sentOnce();
+        else setMail('failed');
+        if (r.ok && ob && !ob.emailedAt) actions.updateSettings({ onboarding: { ...ob, emailedAt: new Date().toISOString() } });
+      })
+      .catch(() => setMail('failed'))
+      .finally(() => setSending(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.session?.access_token]);
   const Title = variant === 'step' ? 'h1' : 'h2';
   return (
     <section className={variant === 'step' ? 'onboard-step phone-connect' : 'card phone-connect phone-connect-card'} aria-label="Finish on your laptop">

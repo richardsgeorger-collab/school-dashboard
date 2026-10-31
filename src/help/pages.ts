@@ -589,7 +589,7 @@ li p{margin:2px 0 0;color:var(--ink2);font-size:16px}
 <a class="btn" href="https://www.google.com/chrome/" rel="noopener">Download Chrome</a> <button class="btn ghost" type="button" id="copy-laptop">Copy this page’s link</button>
 <p style="margin:8px 0 0;font-size:15px;color:var(--ink3)">Then open this page in Chrome or Edge.</p></div>
 </div></li>
-<li><span class="n">2</span><div><b>Open Halo</b><p>A tab opens to make your free Halo+ account (one step, not your GCU login). Then open Halo like always.</p></div></li>
+<li><span class="n">2</span><div><b>Open Halo</b><p id="step2">A tab opens to make your free Halo+ account (one step, not your GCU login). Then open Halo like always.</p></div></li>
 <li><span class="n">3</span><div><b>Done</b><p>Your classes, due dates and grades come in on their own, and This week shows right on Halo.</p></div></li>
 </ol>
 </div>
@@ -611,6 +611,12 @@ li p{margin:2px 0 0;color:var(--ink2);font-size:16px}
     try { navigator.clipboard.writeText(location.href).then(done, function () { prompt('Copy this link:', location.href); }); } catch (e) { prompt('Copy this link:', location.href); }
   }); };
   copy($('copy-phone')); copy($('copy-laptop'));
+  // Signed up on the phone with Google or Apple: the welcome tab after the install offers that one tap (Loop 298).
+  var acct = q.get('acct');
+  if (acct === 'google' || acct === 'apple') {
+    try { localStorage.setItem('school-dashboard:acct-hint', acct); } catch (e) {}
+    $('step2').textContent = 'A tab opens: Continue with ' + (acct === 'apple' ? 'Apple' : 'Google') + ', the same account as on your phone (one tap). Then open Halo like always.';
+  }
   // The Instagram funnel: this page opened, and the store button. The source stays on this site for the welcome tab.
   var ig = q.get('src') === 'ig', via = q.get('via'), report = ${JSON.stringify(report)};
   if (!ig || !report) return;

@@ -3,7 +3,7 @@
 // - the same address is never sent twice (only a keyed hash of it is kept, never the address);
 // - at most PER_IP_DAY a day from one IP (kept as a keyed hash too), and ALL_DAY a day from everyone;
 // - nothing is ever sent again, no list, no follow-up. Not a sign-up.
-import { admin } from '../_shared/admin.ts';
+import { admin, userFromRequest } from '../_shared/admin.ts';
 import { ALL_DAY, PER_IP_DAY, callerIp, cleanEmail, cleanVid, keyedHash, laptopEmail, laptopUrl } from '../_shared/laptopLink.ts';
 
 const cors = {
@@ -25,7 +25,15 @@ Deno.serve(async (req) => {
   } catch {
     return reply(400, { ok: false, why: 'shape' });
   }
-  const email = cleanEmail(body.email);
+  // Signed in (an account just made on the phone with Google or Apple): the account's own address, no typing.
+  const me = (req.headers.get('authorization') ?? '').startsWith('Bearer ') ? await userFromRequest(req) : null;
+  let acct: 'google' | 'apple' | null = null;
+  if (me) {
+    const { data } = await admin().auth.admin.getUserById(me.id);
+    const p = data?.user?.app_metadata?.provider;
+    acct = p === 'google' || p === 'apple' ? p : null;
+  }
+  const email = cleanEmail(me ? me.email : body.email);
   if (!email) return reply(200, { ok: false, why: 'email' });
   const vid = cleanVid(body.vid);
   const src = body.src === 'ig' ? 'ig' : null;
@@ -50,7 +58,7 @@ Deno.serve(async (req) => {
   // Claim the address first, so two quick taps cannot send two emails.
   const { error: claim } = await db.from('laptop_links').insert({ email_hash: emailHash, ip_hash: ipHash, vid });
   if (claim) return reply(200, { ok: true, already: true });
-  const m = laptopEmail(laptopUrl('email', src, vid));
+  const m = laptopEmail(laptopUrl('email', src, vid, acct), acct);
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',

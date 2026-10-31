@@ -99,7 +99,7 @@ try {
     check(/Hey! Looks like you’re on your phone/.test(title) && (await p.locator('.lp-hero').isVisible()), `iPhone Safari: the phone screen first ("${title}"), the landing below`);
     await p.waitForFunction(() => !!document.querySelector('.lp-onphone-reel video'), null, { timeout: 15000 });
     await sleep(1500);
-    const btn = p.locator('.lp-onphone-big').first();
+    const btn = p.locator('.lp-onphone-second');
     check((await btn.innerText()) === 'Text or AirDrop it to my laptop', `the first button: "${await btn.innerText()}"`);
     await p.screenshot({ path: `${OUT}/phone-safari-1-screen.png` });
     await p.screenshot({ path: `${OUT}/phone-safari-1-screen-full.png`, fullPage: true });
@@ -142,12 +142,12 @@ try {
     await p.goto('https://haloplus.app/?src=ig', { waitUntil: 'commit' });
     await p.locator('.lp-onphone-title').waitFor({ state: 'visible', timeout: 15000 });
     step('Phone (Instagram)', 'tap the bio link in Instagram: the phone screen', Date.now() - t0, 1);
-    await p.waitForFunction(() => document.querySelector('.lp-onphone-big')?.textContent === 'Copy link', null, { timeout: 10000 });
-    check(true, 'Instagram (no share sheet): the first button is "Copy link"');
+    await p.waitForFunction(() => document.querySelector('.lp-onphone-second')?.textContent === 'Copy the link instead', null, { timeout: 10000 });
+    check(true, 'Instagram (no share sheet): the share button is "Copy the link instead"');
     await sleep(1500);
     await p.screenshot({ path: `${OUT}/phone-instagram-1-screen.png` });
     const t1 = Date.now();
-    await p.locator('.lp-onphone-big').first().click();
+    await p.locator('.lp-onphone-second').click();
     const copied = await p.locator('.lp-onphone-done').waitFor({ timeout: 5000 }).then(() => true, () => false);
     const manual = await p.locator('.lp-onphone-manual input').count();
     check(copied || manual > 0, `Copy link: ${copied ? `"${await p.locator('.lp-onphone-done').innerText()}"` : 'the link to copy by hand'}`);
@@ -238,7 +238,7 @@ try {
     await p.goto('http://localhost:4174/school-dashboard/?src=ig', { waitUntil: 'commit' });
     await p.locator('.lp-onphone-title').waitFor({ state: 'visible', timeout: 30000 });
     const first = Date.now() - t0;
-    await p.waitForFunction(() => document.querySelector('.lp-onphone-big')?.textContent && document.querySelector('.lp-onphone-reel video'), null, { timeout: 60000 });
+    await p.waitForFunction(() => document.querySelector('.lp-onphone-mail button')?.textContent && document.querySelector('.lp-onphone-reel video'), null, { timeout: 60000 });
     const ready = Date.now() - t0;
     await p.waitForFunction(() => (document.querySelector('.lp-onphone-reel video')?.readyState ?? 0) >= 2, null, { timeout: 60000 }).catch(() => undefined);
     const playing = Date.now() - t0;
@@ -379,7 +379,7 @@ try {
   await ap.goto('https://haloplus.app/#/admin', { waitUntil: 'load' });
   for (const pg of ctx.pages()) await remember(pg);
   const card = ap.locator('.admin-ig-funnel');
-  await card.locator('table').waitFor({ timeout: 30000 });
+  await card.locator('.ig-drop').waitFor({ timeout: 30000 });
   await card.scrollIntoViewIfNeeded();
   await sleep(800);
   await card.screenshot({ path: `${OUT}/admin-ig-funnel.png` });

@@ -4685,3 +4685,45 @@ button.wi-rung:hover { border-color: var(--accent); }
   .wis-pct { font-size: 26px; }
   .wis-next, .wis-need { font-size: 16px; }
 }
+
+/* Admin's Instagram funnel as a drop-off chart (Loop 298): one bar per step, its share of the visits. */
+.ig-drop {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-3);
+}
+.ig-drop-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-size: 14px;
+}
+.ig-drop-label {
+  font-weight: 600;
+}
+.ig-drop-n {
+  color: var(--ink-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ig-drop-lost {
+  color: var(--danger);
+}
+.ig-drop-track {
+  margin-top: 6px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.ig-drop-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.ig-drop-detail {
+  margin-top: 4px;
+  font-size: 12.5px;
+}

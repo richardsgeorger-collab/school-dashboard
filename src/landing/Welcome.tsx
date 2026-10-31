@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { bump } from '../analytics/usage';
 import { useAccount } from '../auth/AccountContext';
 import { SignIn } from '../auth/SignIn';
@@ -16,6 +16,14 @@ import { track } from '../onboarding/track';
 export function Welcome() {
   const { auth } = useAccount();
   const signedIn = !!auth.session;
+  // Signed up on the phone with Google (the laptop page remembers it, Loop 298): one tap here.
+  const [hint] = useState(() => {
+    try {
+      return localStorage.getItem('school-dashboard:acct-hint');
+    } catch {
+      return null;
+    }
+  });
   useEffect(() => {
     track('welcome', 'enter');
     // The welcome tab opens right after the Web Store install: for someone who came by the Instagram path (the laptop
@@ -59,6 +67,15 @@ export function Welcome() {
           <p className="eyebrow">The extension is installed</p>
           <h1 className="landing-title">One step left.</h1>
           <p className="landing-lede">Make your free Halo+ account (not your GCU login). The next time you're on Halo, your classes, due dates and grades come in on their own.</p>
+          {hint === 'google' && (
+            <div className="welcome-one-tap">
+              <p className="hint">You made your account on your phone with Google. Same account here:</p>
+              <button type="button" className="lp-onphone-google" onClick={() => void auth.signInWithGoogle()}>
+                <span>Continue with Google</span>
+              </button>
+              <p className="hint">Or use email below.</p>
+            </div>
+          )}
           <SignIn auth={auth} title="Make your free account" mode="signup" />
           <p className="hint">Not affiliated with Grand Canyon University. Halo+ never asks for your GCU password.</p>
         </section>

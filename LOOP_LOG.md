@@ -495,3 +495,25 @@ One line per change, newest last. Proposals that need George's approval are mark
   (4) **End card:** it arrives whole only after the camera settles (the empty panel with the turning mark is gone) and holds to the last frame (705 frames, 23.5 s).
   (5) **The black end:** v4's audio was 7 ms longer than its video, so the audio is now cut and padded to exactly 23.5 s (imageio-ffmpeg's full ffmpeg; Remotion's bundled one lacks the filters).
   (6) **Checks:** 10 frames a second around every transition, and the whole video at 4 frames a second with a near-black scan (none found); the last frame is the end card. Loudness is −28.7 LUFS with peaks of −10.8 dBFS.
+- Loop 298 (2026-10-30): the phone screen, round 2, so more Instagram visitors take the next step (George). docs/screens/phone-screen/ has iPhone SE, 13 mini and 15 in Safari and in Instagram's browser, the after-sign-up phone, the laptop one-tap and Admin's chart.
+  (1) **One-tap email:**
+    - "Email me the link" is the one big main button, and the box is now first.
+    - The box has type email, name email, autocomplete email, inputmode email, autocapitalize none, autocorrect off, spellcheck off and a "Your email" label, so iPhone and Android suggest the student's address above the keyboard.
+    - "Text or AirDrop it to my laptop" ("Copy the link instead" without a share sheet) is a smaller second button.
+  (2) **Start on the phone:** "or start on your phone" leads to Continue with Google, built to Google's button rules (white, #747775 edge, the colour G).
+    - **After sign-in:** it comes back to haloplus.app, onboarding's phone step (PhoneConnect) sends the laptop link to the account's own address at once through laptop-link's new signed-in mode (JWT, no typing, once, kept across PhoneConnect's two copies), and the account's source is ig.
+    - **The email:** "You're signed up… add Halo+, then Continue with Google". It links the laptop page with acct=google; the laptop page says "Continue with Google, the same account as on your phone (one tap)" and remembers it, so the welcome tab after the install shows a one-tap Continue with Google above the email form.
+    - **Instagram's browser:** Google refuses to sign in inside it (its embedded-browser rule), so the button there is a link, "Open in Safari to continue with Google" (x-safari-https on iPhone, an intent link on Android). Safari opens with go=google and goes straight on to Google, plus a "tap ••• → Open in external browser" hint.
+    - **Apple:** Continue with Apple is built to Apple's rules (black, the white logo, same size) but switched off (src/config/signin.ts APPLE_SIGNIN). Apple is not set up as a provider in Supabase: it needs George's Apple Developer account (a Services ID for haloplus.app, Supabase's callback, a key). Apple's web sign-in works inside in-app browsers once it is on.
+    - **On-the-laptop sign-in:** being already signed in on the laptop without a tap is not possible across devices short of an emailed login link (those expire in an hour), so it is one tap.
+  (3) **The reason under the button:** "Takes 10 seconds. Free, made by a GCU student. Just this one email." Not "hundreds of GCU students": the live count is 53 real accounts, 21 synced, about 22 active in the last 7 days (read-only SQL), so that line would not be true yet.
+  (4) **Funnel:**
+    - Migration 0051 adds steps fold (the main button on screen without scrolling), email-focus, google, apple and safari. admin_ig_funnel adds them plus signed_up_phone (Google or Apple accounts with source ig). laptop-link and report are redeployed.
+    - Admin's Instagram funnel is now a drop-off chart: page loaded → main button visible → email box tapped → email sent → share tapped → Google/Apple tapped → account made on the phone → laptop page opened → extension installed → signed up → first sync → a week later. Each step shows its bar, count, share of visits, and on the main path how many stop there; share and Google are shown as side roads.
+  (5) **Above the fold:** the main button is on screen without scrolling at every size checked. In Instagram's browser (its bars taking room) it ends at 421 of 520 px on an iPhone SE, 421 of 630 on a 13 mini and 397 of 664 on a 15; the reel stays below.
+  (6) **Tests:**
+    - New scripts/e2e-phone-screen.mjs: WebKit at three iPhone sizes, Safari and Instagram; Google redirect via Supabase back to haloplus.app; the Instagram Safari link; arrival with go=google; a throwaway Google-style account at delivered+…@resend.dev, which the guard now accepts as a throwaway (Resend's sink); the auto email; the laptop page and welcome one-tap; Admin. **PASS**.
+    - scripts/e2e-ig-path.mjs, updated for the new layout: **PASS** (one earlier timeout was a slow test-email send; it passed on rerun).
+    - Bug found and fixed: after the auto email, PhoneConnect's second copy still offered "Email me the link".
+    - Every test row was removed. Eight Instagram-tagged visit rows from earlier on 2026-10-30, not from these tests and possibly real, were left alone.
+    - vitest 1307 passed, tsc and lint clean.

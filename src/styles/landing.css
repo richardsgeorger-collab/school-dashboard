@@ -1378,7 +1378,7 @@ html.hp-phone .lp-onphone {
   text-wrap: balance;
 }
 .lp-onphone-lede {
-  margin: 0 0 var(--s-4);
+  margin: 0 0 var(--s-3);
   font-size: 17px;
   line-height: 1.45;
   color: var(--ink-2);
@@ -1418,7 +1418,7 @@ html.hp-phone .lp-onphone {
 .lp-onphone-mail {
   display: grid;
   gap: var(--s-2);
-  margin-top: var(--s-5);
+  margin-top: 0;
 }
 .lp-onphone-label {
   font-weight: 700;
@@ -1480,4 +1480,79 @@ html.hp-phone .lp-onphone {
 /* On a phone the landing's own header buttons repeat the screen's; the hero follows as always. */
 html.hp-phone .lp-head .lp-nav .btn.primary {
   display: none;
+}
+
+/* Loop 298: email first and big; the reason under it; share second; then start on the phone with Google or Apple. */
+.lp-onphone-why {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink-2);
+  text-align: center;
+}
+.lp-onphone-why b {
+  color: var(--ink);
+}
+.lp-onphone-second {
+  margin-top: var(--s-4);
+  min-height: 46px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 12px;
+}
+.lp-onphone-or {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: var(--s-5) 0 var(--s-3);
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+.lp-onphone-or::before,
+.lp-onphone-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+/* Google's sign-in button: white, a grey #747775 edge, dark #1F1F1F text, the colour G on the left. */
+.lp-onphone-google,
+.lp-onphone-apple {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font: 600 16px/1.2 Roboto, var(--font-body);
+  cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+.lp-onphone-google {
+  background: #ffffff;
+  color: #1f1f1f;
+  border: 1px solid #747775;
+}
+/* Apple's: black, the white Apple logo, "Continue with Apple", the same size as Google's. */
+.lp-onphone-apple {
+  margin-top: var(--s-2);
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  font-family: -apple-system, BlinkMacSystemFont, var(--font-body);
+}
+.lp-onphone-google:disabled,
+.lp-onphone-apple:disabled {
+  opacity: 0.7;
+}
+.lp-onphone-hint {
+  margin: var(--s-2) 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-3);
+  text-align: center;
 }
