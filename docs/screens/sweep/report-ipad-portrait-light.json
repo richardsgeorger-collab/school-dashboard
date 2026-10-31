@@ -56,7 +56,7 @@
  {
   "device": "ipad-portrait",
   "scheme": "light",
-  "scene": "onboard-i-step-Next-tsd",
+  "scene": "onboard-i-step-Next-muw",
   "issues": []
  },
  {
@@ -96,12 +96,12 @@
   "issues": [
    {
     "kind": "covered",
-    "what": "button.row \"Eng Math Excel Microchip ESG-162 · was due Sep 21 · ~2h · 20\"",
+    "what": "button.item-main \"Chem Lab Stoichiometry CHM-113L due tomorrow, Oct 5 1.7h 30 \"",
     "by": "p \"Now. The one thing to do next, with what it is worth and how\""
    },
    {
     "kind": "covered",
-    "what": "button.row \"Chem HW 4 CHM-113 · was due Sep 26 · ~1.5h · 20 pts\"",
+    "what": "button.item-main \"UNV Quiz 1 UNV-106 due tomorrow, Oct 5 40m 10 pts\"",
     "by": "button.btn.small \"Skip\""
    }
   ]

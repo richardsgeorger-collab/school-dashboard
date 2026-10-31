@@ -1,0 +1,26 @@
+[
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "now",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "classes",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "now",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "classes",
+  "issues": []
+ }
+]

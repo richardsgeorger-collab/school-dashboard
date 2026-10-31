@@ -1,0 +1,26 @@
+[
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "calendar",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "calendar-month",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "calendar",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "calendar-month",
+  "issues": []
+ }
+]

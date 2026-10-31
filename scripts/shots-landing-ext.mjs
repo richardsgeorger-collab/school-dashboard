@@ -36,7 +36,7 @@ for (const [name, ua] of [
   await prep(ctx);
   const p = await ctx.newPage();
   await p.goto('https://haloplus.app/', { waitUntil: 'load' });
-  await p.waitForFunction(() => /Join \d+\+ GCU students already using it/.test(document.querySelector('.lp-trust')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => undefined);
+  await p.waitForFunction(() => /Join (\d+\+|hundreds of) GCU students already using it/.test(document.querySelector('.lp-trust')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => undefined);
   await sleep(800);
   const r = await p.evaluate(() => {
     const top = (sel) => document.querySelector(sel)?.getBoundingClientRect().top + scrollY;
@@ -57,7 +57,7 @@ for (const [name, ua] of [
     check(r.hook === 'The Halo upgrade every GCU student needs.' && r.reelInHero && sorted, `desktop: hook and the reel first, then features, bonus app, close, FAQ (${r.order.map(Math.round).join(' < ')})`);
     check(r.feats.join(' | ') === 'What’s next, on every class. | Every class, one calendar. | ⌘K. Find anything. | Rubrics, right under the assignment. | Confetti when you submit. | Never miss a hidden due date.', `the features in order: ${r.feats.join(' | ')}`);
     check(r.cta === 'Add to Chrome, it’s free' && /^https:\/\/chromewebstore\.google\.com\/detail\//.test(r.href ?? ''), `Add to Chrome goes to the Web Store (${r.href})`);
-    check(r.trust.length === 2 && r.trust.every((t) => /^Takes 10 seconds\. Free\. Join (\d+\+ )?GCU students already using it\.$/.test(t)), `a trust line by both main buttons: "${r.trust[0]}"`);
+    check(r.trust.length === 2 && r.trust.every((t) => /^Takes 10 seconds\. Free\. Join (\d+\+ |hundreds of )?GCU students already using it\.$/.test(t)), `a trust line by both main buttons: "${r.trust[0]}"`);
     check(r.phone === 'none', 'desktop: no phone screen');
     await p.screenshot({ path: `${OUT}/desktop-top.png` });
     // Scroll through, as a visitor does, so every picture loads (they load lazily), and check each one drew.
@@ -99,7 +99,7 @@ for (const [name, d, igH] of [
     const p = await ctx.newPage();
     await p.goto('http://localhost:4174/school-dashboard/?src=ig', { waitUntil: 'load' });
     await p.locator('.lp-onphone-title').waitFor({ timeout: 15000 });
-    await p.waitForFunction(() => /Join \d+\+ GCU students already using it/.test(document.querySelector('.lp-onphone-why')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => undefined);
+    await p.waitForFunction(() => /Join (\d+\+|hundreds of) GCU students already using it/.test(document.querySelector('.lp-onphone-why')?.textContent ?? ''), null, { timeout: 10000 }).catch(() => undefined);
     await sleep(900);
     const r = await p.evaluate(() => ({
       why: document.querySelector('.lp-onphone-why')?.textContent,
@@ -107,7 +107,7 @@ for (const [name, d, igH] of [
       featuresShown: getComputedStyle(document.querySelector('.lp-features')).display !== 'none',
       first: (document.querySelector('.lp-onphone-main')?.textContent ?? '').trim(),
     }));
-    check(/^Takes 10 seconds\. Free\. Join (\d+\+ )?GCU students already using it\.$/.test(r.why ?? '') && r.heroHidden && r.featuresShown && r.first === (where === 'instagram' ? 'Sign up with email' : 'Continue with Google'), `${name} ${where}: the sign-up screen as before (main "${r.first}"), its trust line "${r.why}", then the features`);
+    check(/^Takes 10 seconds\. Free\. Join (\d+\+ |hundreds of )?GCU students already using it\.$/.test(r.why ?? '') && r.heroHidden && r.featuresShown && r.first === (where === 'instagram' ? 'Sign up with email' : 'Continue with Google'), `${name} ${where}: the sign-up screen as before (main "${r.first}"), its trust line "${r.why}", then the features`);
     await p.screenshot({ path: `${OUT}/${name}-${where}.png` });
     if (name === 'iphone-15') {
       for (let y = 0; y < 9000; y += 500) {

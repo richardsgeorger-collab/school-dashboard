@@ -1,0 +1,14 @@
+[
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "calendar-month",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "calendar-month",
+  "issues": []
+ }
+]

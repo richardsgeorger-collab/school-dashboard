@@ -93,7 +93,7 @@ try {
       const p = await ctx.newPage();
       await p.goto('https://haloplus.app/?src=ig', { waitUntil: 'load' });
       await p.locator('.lp-onphone-title').waitFor({ timeout: 15000 });
-      await p.waitForFunction(() => /Join \d+\+ GCU students already using it/.test(document.querySelector('.lp-onphone-why')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => undefined);
+      await p.waitForFunction(() => /Join (\d+\+|hundreds of) GCU students already using it/.test(document.querySelector('.lp-onphone-why')?.textContent ?? ''), null, { timeout: 8000 }).catch(() => undefined);
       await sleep(900);
       const t = await text(p, '.lp-onphone-card');
       const main = await p.evaluate(() => {
@@ -102,7 +102,7 @@ try {
         return { main: Math.round(m.bottom), email: Math.round(e.bottom), h: innerHeight };
       });
       const tag = `${s.name} ${where}`;
-      check(/The Halo upgrade every GCU student needs\./.test(t) && (where === 'instagram' ? /\bor\b/.test(t) : /or sign up with email/.test(t)) && /Takes 10 seconds\. Free\. Join (\d+\+ )?GCU students already using it\./.test(t) && /Already have an account\? Sign in/.test(t), `${tag}: hook, Google, email, the true line, Sign in`);
+      check(/The Halo upgrade every GCU student needs\./.test(t) && (where === 'instagram' ? /\bor\b/.test(t) : /or sign up with email/.test(t)) && /Takes 10 seconds\. Free\. Join (\d+\+ |hundreds of )?GCU students already using it\./.test(t) && /Already have an account\? Sign in/.test(t), `${tag}: hook, Google, email, the true line, Sign in`);
       check(!/on your phone|Email me the link|AirDrop/i.test(t), `${tag}: no "on your phone", no emailing links on this first screen`);
       check(main.main <= main.h, `${tag}: the main button on screen without scrolling (bottom ${main.main} of ${main.h} px; the email button ${main.email})`);
       if (where === 'instagram') {
@@ -129,11 +129,7 @@ try {
         return { gh: Math.round(gr.height), eh: Math.round(er.height), gw: Math.round(gr.width), ew: Math.round(er.width), gr: getComputedStyle(g).borderTopLeftRadius, er: getComputedStyle(e).borderTopLeftRadius, lines, marks };
       });
       check(look.lines === 1 && look.gh === look.eh && look.gw === look.ew && look.gr === look.er && look.marks === 1, `${tag}: Google on one line, the same size and corners as the email button, one Halo+ mark (${JSON.stringify(look)})`);
-      const count = /Join (\d+)\+ GCU students already using it/.exec(t);
-      if (s.name === 'iphone-se' && where === 'safari') {
-        const live = await (await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/rpc/public_student_count`, { method: 'POST', headers: { apikey: env.VITE_SUPABASE_ANON_KEY, 'content-type': 'application/json' }, body: '{}' })).json();
-        check(count && Number(count[1]) === live && live % 10 === 0, `the student count is live and rounded down: "Join ${count?.[1]}+ GCU students" (server: ${live})`);
-      }
+      if (s.name === 'iphone-se' && where === 'safari') check(/Join hundreds of GCU students already using it/.test(t), `the count: the Web Store's 212 installs, "hundreds": "${/Join [^.]+\./.exec(t)?.[0]}"`);
       if (where === 'instagram' && s.name === 'iphone-15') {
         // Tapping Google: the page asks for Safari; a test browser cannot leave, so it stays: the hint shows.
         await p.locator('.lp-onphone-google').tap();

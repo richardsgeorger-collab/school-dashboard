@@ -1,0 +1,345 @@
+[
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-welcome",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-story-0",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-story-1",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-story-2",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-gift",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-p-copy",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-p-save",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-p-edit",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-p-open",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-p-wait",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-p-wait-fixes",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-payoff",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-notify-ask",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-home-screen",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-tour",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "onboard-upgrade",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "button.topbar-gear.topbar-sync \"Add\"",
+    "by": "button.btn.small.primary \"Next\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.trial-chip \"Max · 7 days\"",
+    "by": "button.btn.small.primary \"Next\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.topbar-gear.topbar-sync \"Sync PLUS\"",
+    "by": "button.btn.small.primary \"Next\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.topbar-gear.topbar-icon \"\"",
+    "by": "button.btn.small.primary \"Next\""
+   }
+  ]
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-welcome",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-story-0",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-story-1",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-story-2",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-gift",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-i-safari",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-i-bar",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-i-copy",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-i-copied",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-i-step-Next-b3s",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-i-wait",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-i-wait-fixes",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-payoff",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-notify-ask",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-home-screen",
+  "issues": []
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-tour",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "button.row \"Eng Math Excel Microchip ESG-162 · was due Sep 22 · ~2h · 20\"",
+    "by": "p \"Now. The one thing to do next, with what it is worth and how\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.row \"Chem HW 4 CHM-113 · was due Sep 27 · ~1.5h · 20 pts\"",
+    "by": "button.btn.small \"Skip\""
+   }
+  ]
+ },
+ {
+  "device": "ipad-portrait",
+  "scheme": "light",
+  "scene": "onboard-upgrade",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-welcome",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-story-0",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-story-1",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-story-2",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-gift",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-safari",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-bar",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-copy",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-copied",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-step-Next-u2p",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-wait",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-i-wait-fixes",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-payoff",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-notify-ask",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-home-screen",
+  "issues": []
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-tour",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "button.row \"Eng Math Excel Microchip ESG-162 · was due Sep 22 · ~2h · 20\"",
+    "by": "p \"Now. The one thing to do next, with what it is worth and how\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.row \"Chem HW 4 CHM-113 · was due Sep 27 · ~1.5h · 20 pts\"",
+    "by": "button.btn.small \"Skip\""
+   }
+  ]
+ },
+ {
+  "device": "ipad-landscape",
+  "scheme": "dark",
+  "scene": "onboard-upgrade",
+  "issues": []
+ }
+]

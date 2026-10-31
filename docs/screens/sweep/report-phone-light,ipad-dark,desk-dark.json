@@ -1,0 +1,964 @@
+[
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "now",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "now-details",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "now-notnow",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "item-sheet",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "calendar",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "calendar-month",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "classes",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "class",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "class-editor",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "inbox",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "inbox-post",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-profile",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-plan",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-progress",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-grades",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-workload",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-halo",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-study",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-display",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-classes",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-notifications",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-invite",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-feedback",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "you-advanced",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "study",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "ask",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "practice",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "check",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "grades",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "dt \"EARNED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"190 / 200\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"GRADED SO FAR\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"73%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"STILL OPEN\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"75 of 275 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"PROJECTED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"95%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"176.34 / 215\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"67%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"105 of 320 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"82%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127.5 / 150\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"57%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"115 of 265 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"85%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127 / 130\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"87%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"20 of 150 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"97.7%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"88 / 95\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"70%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"40 of 135 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"92.6%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"264.19 / 300\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"90%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"35 of 335 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"88.1%\"",
+    "cls": ""
+   }
+  ]
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "library",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "input.visually-hidden \"\"",
+    "by": "b \"Drop a recording, slides, or a syllabus here\""
+   }
+  ]
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "load",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "span.muted \"/ 25h\"",
+    "cls": "muted"
+   }
+  ]
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "looks",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "sync-sheet",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "add-sheet",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "palette",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "trial-sheet",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "account-menu",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-welcome",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-story-0",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-story-1",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-story-2",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-gift",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-bar",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-drag",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-open",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-wait",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-wait-fixes",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-payoff",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-notify-ask",
+  "issues": []
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-tour",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "button.row \"Eng Math Excel Microchip ESG-162 · was due Sep 22 · ~2h · 20\"",
+    "by": "p \"Now. The one thing to do next, with what it is worth and how\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.row \"Chem HW 4 CHM-113 · was due Sep 27 · ~1.5h · 20 pts\"",
+    "by": "div.tour-tip \"Now. The one thing to do next, with what it is worth and how\""
+   }
+  ]
+ },
+ {
+  "device": "desk",
+  "scheme": "dark",
+  "scene": "onboard-upgrade",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "now",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "now-details",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "now-notnow",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "item-sheet",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "calendar",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "calendar-month",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "classes",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "class",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "class-editor",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "inbox",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "inbox-post",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-profile",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-plan",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-progress",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-grades",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-workload",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-halo",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-study",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-display",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-classes",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-notifications",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-invite",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-feedback",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "you-advanced",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "study",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "ask",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "practice",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "check",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "grades",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "dt \"EARNED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"190 / 200\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"GRADED SO FAR\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"73%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"STILL OPEN\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"75 of 275 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dt \"PROJECTED\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"95%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"176.34 / 215\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"67%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"105 of 320 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"82%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127.5 / 150\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"57%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"115 of 265 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"85%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"127 / 130\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"87%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"20 of 150 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"97.7%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"88 / 95\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"70%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"40 of 135 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"92.6%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"264.19 / 300\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"90%\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"35 of 335 pts\"",
+    "cls": ""
+   },
+   {
+    "kind": "mono",
+    "what": "dd \"88.1%\"",
+    "cls": ""
+   }
+  ]
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "library",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "input.visually-hidden \"\"",
+    "by": "span.hint \"It asks which class once, then remembers files that start th\""
+   }
+  ]
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "load",
+  "issues": [
+   {
+    "kind": "mono",
+    "what": "span.muted \"/ 25h\"",
+    "cls": "muted"
+   }
+  ]
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "looks",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "sync-sheet",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "add-sheet",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "palette",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "trial-sheet",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "account-menu",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-welcome",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-story-0",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-story-1",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-story-2",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-gift",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-p-copy",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-p-save",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-p-edit",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-p-open",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-p-wait",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-p-wait-fixes",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-payoff",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-notify-ask",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-home-screen",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-tour",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "light",
+  "scene": "onboard-upgrade",
+  "issues": [
+   {
+    "kind": "covered",
+    "what": "button.topbar-gear.topbar-sync \"Add\"",
+    "by": "button.btn.small.primary \"Next\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.trial-chip \"Max · 7 days\"",
+    "by": "button.btn.small.primary \"Next\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.topbar-gear.topbar-sync \"Sync PLUS\"",
+    "by": "button.btn.small.primary \"Next\""
+   },
+   {
+    "kind": "covered",
+    "what": "button.topbar-gear.topbar-icon \"\"",
+    "by": "button.btn.small.primary \"Next\""
+   }
+  ]
+ }
+]

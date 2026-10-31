@@ -1,0 +1,14 @@
+[
+ {
+  "device": "desk",
+  "scheme": "light",
+  "scene": "you-plan",
+  "issues": []
+ },
+ {
+  "device": "phone",
+  "scheme": "dark",
+  "scene": "you-plan",
+  "issues": []
+ }
+]

@@ -34,7 +34,17 @@ export function useStudentCount(): number | null {
   return n;
 }
 
-export const trustText = (n: number | null): string => `Free. Join ${n ? `${n}+ ` : ''}GCU students already using it.`;
+/**
+ * Users on the Chrome Web Store (its dashboard, read by George 2026-10-30: 212 installs). The Web Store counts installs we
+ * cannot query, so this is set by hand; raise it when the dashboard does. The line shows the larger of this and the live
+ * count of accounts, and says "hundreds" only from 200, so it is never more than true.
+ */
+export const STORE_USERS = 212;
+const said = (n: number): string => (n >= 200 ? 'hundreds of' : `${n}+`);
+export const trustText = (n: number | null): string => {
+  const best = Math.max(n ?? 0, STORE_USERS);
+  return `Free. Join ${best >= 20 ? `${said(best)} ` : ''}GCU students already using it.`;
+};
 
 export function Trust({ className = 'lp-trust' }: { className?: string }) {
   const n = useStudentCount();
