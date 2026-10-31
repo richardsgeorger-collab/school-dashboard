@@ -137,8 +137,8 @@ try {
       if (where === 'instagram' && s.name === 'iphone-15') {
         // Tapping Google: the page asks for Safari; a test browser cannot leave, so it stays: the hint shows.
         await p.locator('.lp-onphone-google').tap();
-        const hint = await p.locator('.lp-onphone-stuck').waitFor({ timeout: 5000 }).then(() => true, () => false);
-        check(hint && /Tap ••• at the top right, then Open in browser\./.test(await text(p, '.lp-onphone-stuck')) && (await p.locator('.lp-onphone-stuck svg').count()) === 1, `${tag}: when Safari does not open, the hint with its picture: "${hint ? await text(p, '.lp-onphone-stuck') : 'none'}"`);
+        const hint = await p.locator('.lp-onphone-stuck').waitFor({ timeout: 8000 }).then(() => true, () => false);
+        check(hint && /Tap ••• at the top right, then Open in browser\./.test(await text(p, '.lp-onphone-stuck')) && (await p.locator('.lp-onphone-stuck .tp').count()) === 1, `${tag}: when Safari does not open, the hint with its picture: "${hint ? await text(p, '.lp-onphone-stuck') : 'none'}"`);
         await p.locator('.lp-onphone-stuck').scrollIntoViewIfNeeded();
         await p.screenshot({ path: `${OUT}/${s.name}-instagram-safari-hint.png` });
         await p.evaluate(() => window.scrollTo(0, 0));

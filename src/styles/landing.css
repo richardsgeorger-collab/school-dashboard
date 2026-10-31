@@ -1674,4 +1674,7 @@ html.hp-phone .lp-onphone-email-btn.primary {
 }
 .lp-onphone-stuck-pic {
   flex: none;
+  width: 150px;
+  margin: 0;
+  font-size: 11px;
 }

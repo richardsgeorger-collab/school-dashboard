@@ -43,6 +43,8 @@ async function studentCount(): Promise<number | null> {
 
 /** Signed up from this screen (Loop 301): the app shows one simple "You're in!" screen instead of setup. */
 const PHONE_SIGNUP = 'school-dashboard:phone-signup';
+/** When the page last asked for Safari (Loop 301): back here soon after means it did not open. */
+const TRIED = 'school-dashboard:safari-tried';
 const remember = (how: string) => {
   try {
     localStorage.setItem(START, how);
@@ -101,6 +103,14 @@ export function PhoneHello() {
       setSafariHref(openInBrowserUrl(here.toString(), isIOSDevice()));
     }
     void studentCount().then(setCount);
+    // Back here just after asking for Safari: it did not open.
+    try {
+      const t = Number(sessionStorage.getItem(TRIED));
+      sessionStorage.removeItem(TRIED);
+      if (app && t && Date.now() - t < 15_000) setStuck(true);
+    } catch {
+      /* storage off */
+    }
     if (ig) funnel('visit');
     // Is the main button on screen without scrolling (George: "find where people stop")?
     const r = mainRef.current?.getBoundingClientRect();
@@ -145,6 +155,8 @@ export function PhoneHello() {
     window.addEventListener('pagehide', gone, { once: true });
     window.addEventListener('blur', gone, { once: true });
     try {
+      // If the browser reloads this page instead of leaving (a failed jump), the next load shows the hint.
+      sessionStorage.setItem(TRIED, String(Date.now()));
       window.location.href = safariHref;
     } catch {
       /* blocked */
@@ -306,17 +318,18 @@ const AppleLogo = () => (
   </svg>
 );
 
-/** The way out by hand, drawn small: Instagram's ••• at the top right, then Open in browser. */
+/** The way out by hand, drawn like setup's other pictures (Instagram's ••• circled, then Open in browser). */
 const OpenInBrowserPicture = () => (
-  <svg className="lp-onphone-stuck-pic" width="132" height="64" viewBox="0 0 132 64" aria-hidden="true">
-    <rect x="1" y="1" width="130" height="62" rx="10" fill="#fff" stroke="#d4d8de" />
-    <rect x="1" y="1" width="130" height="18" rx="10" fill="#f1f3f5" />
-    <circle cx="106" cy="10" r="2" fill="#14171c" />
-    <circle cx="112" cy="10" r="2" fill="#14171c" />
-    <circle cx="118" cy="10" r="2" fill="#14171c" />
-    <circle cx="112" cy="10" r="8" fill="none" stroke="#dfa321" strokeWidth="2" />
-    <rect x="58" y="26" width="68" height="30" rx="6" fill="#fff" stroke="#d4d8de" />
-    <rect x="62" y="33" width="60" height="16" rx="4" fill="#fbf1d3" />
-    <text x="92" y="44.5" textAnchor="middle" fontSize="8.5" fontFamily="-apple-system, sans-serif" fontWeight="600" fill="#14171c">Open in browser</text>
-  </svg>
+  <figure className="tp lp-onphone-stuck-pic" role="img" aria-label="Instagram's three dots at the top right, then Open in browser">
+    <div className="tp-bar">
+      <span className="tp-url">haloplus.app</span>
+      <span className="tp-btn" data-hot="true" aria-hidden>
+        •••
+      </span>
+    </div>
+    <ul className="tp-sheet">
+      <li>Copy link</li>
+      <li data-hot="true">Open in browser</li>
+    </ul>
+  </figure>
 );
