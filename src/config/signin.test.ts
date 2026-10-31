@@ -10,6 +10,6 @@ describe('in-app browsers and the way out to the real one (Loop 298)', () => {
   });
   it('Safari on iPhone, the default browser on Android', () => {
     expect(openInBrowserUrl('https://haloplus.app/?src=ig&go=google', true)).toBe('x-safari-https://haloplus.app/?src=ig&go=google');
-    expect(openInBrowserUrl('https://haloplus.app/?src=ig&go=google', false)).toBe('intent://haloplus.app/?src=ig&go=google#Intent;scheme=https;end');
+    expect(openInBrowserUrl('https://haloplus.app/?src=ig&go=google', false)).toBe('intent://haloplus.app/?src=ig&go=google#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https%3A%2F%2Fhaloplus.app%2F%3Fsrc%3Dig%26go%3Dgoogle;end');
   });
 });

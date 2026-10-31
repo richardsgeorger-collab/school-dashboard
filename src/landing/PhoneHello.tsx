@@ -41,9 +41,12 @@ async function studentCount(): Promise<number | null> {
   }
 }
 
+/** Signed up from this screen (Loop 301): the app shows one simple "You're in!" screen instead of setup. */
+const PHONE_SIGNUP = 'school-dashboard:phone-signup';
 const remember = (how: string) => {
   try {
     localStorage.setItem(START, how);
+    localStorage.setItem(PHONE_SIGNUP, how);
   } catch {
     /* storage off: the laptop email can still be asked for in the app */
   }
@@ -73,6 +76,7 @@ export function PhoneHello() {
   const [step, setStep] = useState<'email' | 'password'>('email');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<React.ReactNode>(null);
+  const [stuck, setStuck] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
 
@@ -123,6 +127,35 @@ export function PhoneHello() {
       setError(`We couldn’t open ${provider === 'apple' ? 'Apple' : 'Google'} just now. Sign up with email instead?`);
     }
   };
+  /**
+   * Instagram's browser: Google, in Safari (Loop 301, George: tapping the link did nothing on his iPhone). The page is
+   * sent to Safari by script (x-safari-https, iOS 17+) or to Chrome on Android (intent). If the page is still in front a
+   * moment later, it did not go (older iOS, or blocked): the hint and its picture show the way by hand.
+   */
+  const toSafari = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    if (fromIg) funnel('safari');
+    remember('google');
+    if (!safariHref) return setStuck(true);
+    let left = false;
+    const gone = () => {
+      left = true;
+    };
+    document.addEventListener('visibilitychange', gone, { once: true });
+    window.addEventListener('pagehide', gone, { once: true });
+    window.addEventListener('blur', gone, { once: true });
+    try {
+      window.location.href = safariHref;
+    } catch {
+      /* blocked */
+    }
+    window.setTimeout(() => {
+      document.removeEventListener('visibilitychange', gone);
+      window.removeEventListener('pagehide', gone);
+      window.removeEventListener('blur', gone);
+      if (!left && document.visibilityState === 'visible') setStuck(true);
+    }, 1600);
+  };
   /** Email: the address, then a password (the phone offers a strong one), then in. */
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
@@ -140,6 +173,7 @@ export function PhoneHello() {
     if (!r.ok) {
       try {
         localStorage.removeItem(START);
+        localStorage.removeItem(PHONE_SIGNUP);
       } catch {
         /* storage off */
       }
@@ -157,28 +191,7 @@ export function PhoneHello() {
         <p className="lp-onphone-lede">What’s due next on every class, all your classes on one calendar, and search, right on Halo.</p>
         {inApp ? (
           <>
-            {/* Google refuses to sign in inside Instagram's browser: the same page in Safari, then one tap. */}
-            <a className="lp-onphone-google lp-onphone-main" ref={mainRef as React.Ref<HTMLAnchorElement>} href={safariHref || undefined} onClick={() => fromIg && funnel('safari')}>
-              <GoogleG />
-              <span>Continue with Google</span>
-            </a>
-            <p className="lp-onphone-opens">Opens {ios ? 'Safari' : 'your browser'}</p>
-          </>
-        ) : (
-          <button type="button" ref={mainRef as React.Ref<HTMLButtonElement>} className="lp-onphone-google lp-onphone-main" onClick={() => void startWith('google')} disabled={!!oauth}>
-            <GoogleG />
-            <span>{oauth === 'google' ? 'Opening Google…' : 'Continue with Google'}</span>
-          </button>
-        )}
-        {APPLE_SIGNIN && (
-          <button type="button" className="lp-onphone-apple" onClick={() => void startWith('apple')} disabled={!!oauth}>
-            <AppleLogo />
-            <span>{oauth === 'apple' ? 'Opening Apple…' : 'Continue with Apple'}</span>
-          </button>
-        )}
-        <div className="lp-onphone-or" role="separator">
-          <span>or sign up with email</span>
-        </div>
+            {/* Inside Instagram's browser email works right there, so it comes first; Google second, in Safari. */}
         <form className="lp-onphone-mail" onSubmit={(e) => void submit(e)} autoComplete="on">
           <label className="visually-hidden" htmlFor="lp-onphone-email">
             Your email
@@ -192,7 +205,7 @@ export function PhoneHello() {
               <input id="lp-onphone-password" ref={pwRef} name="new-password" className="input" type="password" autoComplete="new-password" enterKeyHint="go" placeholder="Make a password (8+ characters)" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
             </>
           )}
-          <button type="submit" className="btn block lp-onphone-big lp-onphone-email-btn" disabled={busy}>
+          <button type="submit" ref={inApp ? (mainRef as React.Ref<HTMLButtonElement>) : undefined} className={`btn block lp-onphone-big lp-onphone-email-btn${inApp ? ' primary lp-onphone-main' : ''}`} disabled={busy}>
             {busy ? 'Making your account…' : step === 'email' ? 'Sign up with email' : 'Create my account'}
           </button>
           {step === 'password' && (
@@ -201,6 +214,64 @@ export function PhoneHello() {
             </button>
           )}
         </form>
+            <div className="lp-onphone-or" role="separator">
+              <span>or</span>
+            </div>
+            {/* Google refuses to sign in inside Instagram's browser: the same page in Safari, then one tap. */}
+            <a className="lp-onphone-google" href={safariHref || undefined} onClick={toSafari}>
+              <GoogleG />
+              <span>Continue with Google</span>
+            </a>
+            {stuck ? (
+              <div className="lp-onphone-stuck" role="status">
+                <OpenInBrowserPicture />
+                <p>
+                  Tap <b>•••</b> at the top right, then <b>Open in browser</b>.
+                </p>
+              </div>
+            ) : (
+              <p className="lp-onphone-opens">Opens {ios ? 'Safari' : 'your browser'}</p>
+            )}
+          </>
+        ) : (
+          <>
+            <button type="button" ref={mainRef as React.Ref<HTMLButtonElement>} className="lp-onphone-google lp-onphone-main" onClick={() => void startWith('google')} disabled={!!oauth}>
+              <GoogleG />
+              <span>{oauth === 'google' ? 'Opening Google…' : 'Continue with Google'}</span>
+            </button>
+            {APPLE_SIGNIN && (
+              <button type="button" className="lp-onphone-apple" onClick={() => void startWith('apple')} disabled={!!oauth}>
+                <AppleLogo />
+                <span>{oauth === 'apple' ? 'Opening Apple…' : 'Continue with Apple'}</span>
+              </button>
+            )}
+            <div className="lp-onphone-or" role="separator">
+              <span>or sign up with email</span>
+            </div>
+        <form className="lp-onphone-mail" onSubmit={(e) => void submit(e)} autoComplete="on">
+          <label className="visually-hidden" htmlFor="lp-onphone-email">
+            Your email
+          </label>
+          <input id="lp-onphone-email" name="email" className="input" type="email" inputMode="email" autoComplete="email" enterKeyHint={step === 'email' ? 'next' : 'done'} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Your email" required value={email} readOnly={step === 'password'} onChange={(e) => setEmail(e.target.value)} onFocus={() => fromIg && funnel('email-focus')} />
+          {step === 'password' && (
+            <>
+              <label className="visually-hidden" htmlFor="lp-onphone-password">
+                Make a password
+              </label>
+              <input id="lp-onphone-password" ref={pwRef} name="new-password" className="input" type="password" autoComplete="new-password" enterKeyHint="go" placeholder="Make a password (8+ characters)" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+            </>
+          )}
+          <button type="submit" ref={inApp ? (mainRef as React.Ref<HTMLButtonElement>) : undefined} className={`btn block lp-onphone-big lp-onphone-email-btn${inApp ? ' primary lp-onphone-main' : ''}`} disabled={busy}>
+            {busy ? 'Making your account…' : step === 'email' ? 'Sign up with email' : 'Create my account'}
+          </button>
+          {step === 'password' && (
+            <button type="button" className="lp-onphone-link" onClick={() => setStep('email')}>
+              Change email
+            </button>
+          )}
+        </form>
+          </>
+        )}
         {error ? (
           <p className="lp-onphone-error" role="alert">
             {error}
@@ -232,5 +303,20 @@ const GoogleG = () => (
 const AppleLogo = () => (
   <svg width="18" height="20" viewBox="0 0 17 20" aria-hidden="true">
     <path fill="#fff" d="M14.04 10.62c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.19-1.72-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.14.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.33-3.55zM11.84 4.16c.61-.74 1.02-1.76.91-2.79-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.7-.93 2.7.98.08 1.98-.5 2.59-1.23z" />
+  </svg>
+);
+
+/** The way out by hand, drawn small: Instagram's ••• at the top right, then Open in browser. */
+const OpenInBrowserPicture = () => (
+  <svg className="lp-onphone-stuck-pic" width="132" height="64" viewBox="0 0 132 64" aria-hidden="true">
+    <rect x="1" y="1" width="130" height="62" rx="10" fill="#fff" stroke="#d4d8de" />
+    <rect x="1" y="1" width="130" height="18" rx="10" fill="#f1f3f5" />
+    <circle cx="106" cy="10" r="2" fill="#14171c" />
+    <circle cx="112" cy="10" r="2" fill="#14171c" />
+    <circle cx="118" cy="10" r="2" fill="#14171c" />
+    <circle cx="112" cy="10" r="8" fill="none" stroke="#dfa321" strokeWidth="2" />
+    <rect x="58" y="26" width="68" height="30" rx="6" fill="#fff" stroke="#d4d8de" />
+    <rect x="62" y="33" width="60" height="16" rx="4" fill="#fbf1d3" />
+    <text x="92" y="44.5" textAnchor="middle" fontSize="8.5" fontFamily="-apple-system, sans-serif" fontWeight="600" fill="#14171c">Open in browser</text>
   </svg>
 );

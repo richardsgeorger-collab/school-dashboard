@@ -21,11 +21,11 @@ import { track } from './track';
  * keeps saying one step is left, until a sync lands. Five of five iPhone sign-ups in Oct 2026 got stuck in the phone's
  * own bookmark steps, so those stay one quiet tap away for anyone without a laptop.
  */
-const SENT_KEY = 'school-dashboard:laptop-emailed';
+export const SENT_KEY = 'school-dashboard:laptop-emailed';
 let inFlight: Promise<boolean> | null = null;
 
 /** The laptop link to the account's own address, once per device (the server never sends one address twice). */
-function emailLaptopLink(token: string): Promise<boolean> {
+export function emailLaptopLink(token: string): Promise<boolean> {
   if (inFlight) return inFlight;
   const ig = pendingSource() === 'ig' || cameFromIg();
   inFlight = fetch(laptopLinkUrl(), { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ src: ig ? 'ig' : undefined, vid: ig ? visitorId() : undefined }) })

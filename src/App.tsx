@@ -2,6 +2,7 @@ import { ExtensionSetup } from './onboarding/ExtensionSetup';
 import { isDemo } from './demo/demo';
 import { bump } from './analytics/usage';
 import { isStandalone } from './notify/push';
+import { PhoneWelcome, phoneSignup } from './onboarding/PhoneWelcome';
 import { DemoHost } from './demo/DemoHost';
 import { type ExtSetupKind, extSetupDue } from './onboarding/extSetup';
 import { useNeverSynced } from './onboarding/Setup';
@@ -379,6 +380,8 @@ function OnboardingHost() {
   if (front !== 'app' || route === 'login' || route === 'welcome' || route === 'checkout') return null;
   // An account still arriving on a device with nothing of its own: a quiet wait, never onboarding or an empty Now.
   if (signedIn && !settled && fresh) return <AccountLoading failed={sync.status === 'error'} onRetry={() => void actions.syncNow()} />;
+  // Signed up from the phone screen (Loop 301): one simple screen until the classes arrive, never the usual setup.
+  if (signedIn && settled && fresh && phoneSignup() && !isDemo()) return <PhoneWelcome />;
   if (isOpen(ob)) return <Onboarding />;
   // First the tour of Now, Calendar and Inbox; then, once, the welcome for whatever was just unlocked.
   if ((route === 'now' || route === 'home') && tourPending(ob)) return <NowTour />;

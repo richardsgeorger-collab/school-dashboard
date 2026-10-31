@@ -11,9 +11,11 @@ export const inAppBrowser = (ua: string = typeof navigator === 'undefined' ? '' 
 
 /**
  * The same page in the phone's real browser, to continue with Google there: Safari on an iPhone (the x-safari-https
- * link, iOS 17 and later), the default browser on Android (an intent link).
+ * link, iOS 17 and later), Chrome on Android (an intent link, falling back to the default browser).
  */
 export function openInBrowserUrl(href: string, ios: boolean): string {
   const u = new URL(href);
-  return ios ? `x-safari-${u.protocol.replace(':', '')}://${u.host}${u.pathname}${u.search}${u.hash}` : `intent://${u.host}${u.pathname}${u.search}${u.hash}#Intent;scheme=${u.protocol.replace(':', '')};end`;
+  const scheme = u.protocol.replace(':', '');
+  // Android: Chrome by name, and if Chrome is not there, the same page in whatever opens links.
+  return ios ? `x-safari-${scheme}://${u.host}${u.pathname}${u.search}${u.hash}` : `intent://${u.host}${u.pathname}${u.search}${u.hash}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(href)};end`;
 }

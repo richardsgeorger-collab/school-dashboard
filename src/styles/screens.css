@@ -4790,3 +4790,66 @@ button.wi-rung:hover { border-color: var(--accent); }
 .phone-in-done {
   margin-top: var(--s-5);
 }
+
+/* Signed up from the phone screen (Loop 301): one calm screen until the classes arrive. */
+.phone-welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  background: radial-gradient(70% 45% at 50% 0%, rgb(223 163 33 / 0.14), transparent 70%), var(--bg);
+  overflow-y: auto;
+}
+.phone-welcome-inner {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+.phone-welcome-party {
+  margin: 0 0 8px;
+  font-size: 56px;
+  line-height: 1;
+}
+.phone-welcome-title {
+  margin: 0 0 10px;
+  font: 800 40px/1.05 'Plus Jakarta Sans', var(--font-body);
+  letter-spacing: -0.035em;
+}
+.phone-welcome-lede {
+  margin: 0 0 10px;
+  font-size: 19px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--ink);
+}
+.phone-welcome-mail {
+  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.phone-welcome-share {
+  min-height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.phone-welcome-preview {
+  all: unset;
+  display: inline-block;
+  margin-top: 18px;
+  padding: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-text);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.phone-welcome-preview:focus-visible {
+  outline: 2px solid var(--accent);
+  border-radius: 6px;
+}

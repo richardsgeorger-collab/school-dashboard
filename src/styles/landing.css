@@ -1652,3 +1652,26 @@ html.hp-phone .lp-onphone-signin {
   margin: 8px 0 0;
   font-size: 14px;
 }
+
+/* Loop 301: inside Instagram's browser, email first (the gold button) and Google second; the way out by hand. */
+html.hp-phone .lp-onphone-email-btn.primary {
+  border-color: transparent;
+}
+.lp-onphone-stuck {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.lp-onphone-stuck p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.lp-onphone-stuck-pic {
+  flex: none;
+}

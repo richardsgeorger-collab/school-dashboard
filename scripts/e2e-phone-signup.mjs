@@ -102,16 +102,25 @@ try {
         return { main: Math.round(m.bottom), email: Math.round(e.bottom), h: innerHeight };
       });
       const tag = `${s.name} ${where}`;
-      check(/The Halo upgrade every GCU student needs\./.test(t) && /or sign up with email/.test(t) && /Takes 10 seconds\. Free\. Made by a GCU student\./.test(t) && /Already have an account\? Sign in/.test(t), `${tag}: hook, Google, email, the true line, Sign in`);
+      check(/The Halo upgrade every GCU student needs\./.test(t) && (where === 'instagram' ? /\bor\b/.test(t) : /or sign up with email/.test(t)) && /Takes 10 seconds\. Free\. Made by a GCU student\./.test(t) && /Already have an account\? Sign in/.test(t), `${tag}: hook, Google, email, the true line, Sign in`);
       check(!/on your phone|Email me the link|AirDrop/i.test(t), `${tag}: no "on your phone", no emailing links on this first screen`);
       check(main.main <= main.h, `${tag}: the main button on screen without scrolling (bottom ${main.main} of ${main.h} px; the email button ${main.email})`);
       if (where === 'instagram') {
-        const href = await p.locator('.lp-onphone-main').getAttribute('href');
-        check(/^x-safari-https:\/\/haloplus\.app\/\?src=ig&go=google$/.test(href ?? '') && (await text(p, '.lp-onphone-main')) === 'Continue with Google' && (await text(p, '.lp-onphone-opens')) === 'Opens Safari' && !/doesn’t work inside Instagram/.test(t), `${tag}: "Continue with Google", a small "Opens Safari", the handoff (${href})`);
-      } else check(/Continue with Google/.test(await text(p, '.lp-onphone-main')), `${tag}: Continue with Google is the main button`);
+        // Inside Instagram (Loop 301): email first and gold, Google second, to Safari.
+        const order = await p.evaluate(() => {
+          const e = document.querySelector('.lp-onphone-email-btn').getBoundingClientRect().top;
+          const g = document.querySelector('.lp-onphone-google').getBoundingClientRect().top;
+          return { emailFirst: e < g, emailMain: document.querySelector('.lp-onphone-email-btn').classList.contains('primary') };
+        });
+        const href = await p.locator('.lp-onphone-google').getAttribute('href');
+        check(order.emailFirst && order.emailMain && /^x-safari-https:\/\/haloplus\.app\/\?src=ig&go=google$/.test(href ?? '') && (await text(p, '.lp-onphone-google')) === 'Continue with Google' && (await text(p, '.lp-onphone-opens')) === 'Opens Safari', `${tag}: email first and main, then "Continue with Google" to Safari (${href})`);
+      } else {
+        const order = await p.evaluate(() => document.querySelector('.lp-onphone-google').getBoundingClientRect().top < document.querySelector('.lp-onphone-email-btn').getBoundingClientRect().top);
+        check(order && /Continue with Google/.test(await text(p, '.lp-onphone-main')), `${tag}: Continue with Google first and main`);
+      }
       // Polish (Loop 300): Google one line, the same height, width and corners as the email button; one Halo+ mark.
       const look = await p.evaluate(() => {
-        const g = document.querySelector('.lp-onphone-main');
+        const g = document.querySelector('.lp-onphone-google');
         const e = document.querySelector('.lp-onphone-email-btn');
         const gr = g.getBoundingClientRect();
         const er = e.getBoundingClientRect();
@@ -124,6 +133,18 @@ try {
       if (s.name === 'iphone-se' && where === 'safari') {
         const live = await (await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/rpc/public_student_count`, { method: 'POST', headers: { apikey: env.VITE_SUPABASE_ANON_KEY, 'content-type': 'application/json' }, body: '{}' })).json();
         check(count && Number(count[1]) === live && live % 10 === 0, `the student count is live and rounded down: "Join ${count?.[1]}+ GCU students" (server: ${live})`);
+      }
+      if (where === 'instagram' && s.name === 'iphone-15') {
+        // Tapping Google: the page asks for Safari; a test browser cannot leave, so it stays: the hint shows.
+        await p.locator('.lp-onphone-google').tap();
+        const hint = await p.locator('.lp-onphone-stuck').waitFor({ timeout: 5000 }).then(() => true, () => false);
+        check(hint && /Tap ••• at the top right, then Open in browser\./.test(await text(p, '.lp-onphone-stuck')) && (await p.locator('.lp-onphone-stuck svg').count()) === 1, `${tag}: when Safari does not open, the hint with its picture: "${hint ? await text(p, '.lp-onphone-stuck') : 'none'}"`);
+        await p.locator('.lp-onphone-stuck').scrollIntoViewIfNeeded();
+        await p.screenshot({ path: `${OUT}/${s.name}-instagram-safari-hint.png` });
+        await p.evaluate(() => window.scrollTo(0, 0));
+        await p.reload({ waitUntil: 'load' });
+        await p.locator('.lp-onphone-title').waitFor();
+        await sleep(900);
       }
       await remember(p);
       await p.screenshot({ path: `${OUT}/${s.name}-${where}.png` });
@@ -151,15 +172,18 @@ try {
   const sent = new Promise((res) => ctx.on('request', (r) => r.url().endsWith('/functions/v1/laptop-link') && r.method() === 'POST' && res(r.headers().authorization ?? '')));
   const t0 = Date.now();
   await p.locator('.lp-onphone-email-btn').tap();
-  await p.locator('.phone-in').waitFor({ timeout: 30000 });
+  await p.locator('.phone-welcome').waitFor({ timeout: 30000 });
   console.log(`STEP sign-up with email → "You're in!" in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
   user = await p.evaluate((key) => JSON.parse(localStorage.getItem(key) || 'null')?.user?.id ?? null, `sb-${ref}-auth-token`);
   const auth = await Promise.race([sent, sleep(20000).then(() => '')]);
   check(/^Bearer ey/.test(auth), 'the laptop link is emailed automatically, from the account (no typing)');
-  const ok = await p.waitForFunction(() => /We emailed you the link/.test(document.querySelector('.phone-in .phone-connect-mail')?.textContent ?? ''), null, { timeout: 20000 }).then(() => true, () => false);
-  const inT = await text(p, '.phone-in');
-  check(ok && /You’re in!/.test(inT) && /One step left, on your laptop\./.test(inT), `"You're in! 🎉": "${inT.slice(0, 220)}"`);
-  check(/Text or AirDrop it to my laptop|Copy the link instead/.test(inT) && /Explore the preview/.test(inT) && /Add Halo\+ to your Home Screen/.test(inT), 'the share backup, Explore the preview, Add to Home Screen');
+  const ok = await p.waitForFunction(() => /We sent the link/.test(document.querySelector('.phone-welcome-mail')?.textContent ?? ''), null, { timeout: 20000 }).then(() => true, () => false);
+  const inT = await text(p, '.phone-welcome');
+  check(ok && /You’re in!/.test(inT) && /Check your email to get Halo\+ on your laptop\./.test(inT), `"You're in! 🎉": "${inT.slice(0, 220)}"`);
+  check(/Text or AirDrop it to my laptop|Copy the link instead/.test(inT) && /Explore a preview/.test(inT), 'the share backup and a small "Explore a preview"');
+  await sleep(1500);
+  const extra = await p.evaluate(() => ({ onboard: !!document.querySelector('.onboard'), tiles: !!document.querySelector('.phone-in-tile'), plans: /Free|Max|\$0\.99/.test(document.querySelector('.phone-welcome').innerText) }));
+  check(!extra.onboard && !extra.tiles && !extra.plans, `nothing else: no setup steps, no plan screens (${JSON.stringify(extra)})`);
   const prof = (await db.from('profiles').select('signup_source').eq('user_id', user).single()).data;
   check(prof?.signup_source === 'ig', `the account's source is Instagram (${prof?.signup_source})`);
   const row = (await db.from('laptop_links').select('vid, status').eq('vid', await p.evaluate(() => localStorage.getItem('school-dashboard:vid'))).maybeSingle()).data;
@@ -168,14 +192,8 @@ try {
   await sleep(500);
   await p.screenshot({ path: `${OUT}/youre-in.png` });
   await p.screenshot({ path: `${OUT}/youre-in-full.png`, fullPage: true });
-  // Add to Home Screen: the steps.
-  await p.locator('.phone-in-tile', { hasText: 'Home Screen' }).tap();
-  await p.locator('.phone-in-home .phone-steps').waitFor({ timeout: 5000 });
-  check(/Share/.test(await text(p, '.phone-in-home')) && /Add to Home Screen/.test(await text(p, '.phone-in-home')), `the Home Screen steps: "${(await text(p, '.phone-in-home')).slice(0, 160)}"`);
-  await p.locator('.phone-in-home').scrollIntoViewIfNeeded();
-  await p.screenshot({ path: `${OUT}/youre-in-home-screen.png` });
   // Explore the preview, and back.
-  await p.locator('.phone-in-tile', { hasText: 'preview' }).tap();
+  await p.locator('.phone-welcome-preview').tap();
   await p.locator('.demo-chip-preview').waitFor({ timeout: 20000 });
   await sleep(1500);
   const chip = await text(p, '.demo-chip-preview');
@@ -194,14 +212,11 @@ try {
   await p.locator('.demo-chip-preview .demo-chip-btn').tap();
   await p.waitForFunction(() => !document.querySelector('.demo-chip-preview') && !localStorage.getItem('school-dashboard:demo'), null, { timeout: 20000 });
   await sleep(1500);
-  check(!/Maya Torres/.test(await text(p)), 'Back to my account: the preview is gone, their own (empty, waiting) account again');
+  check(!/Maya Torres/.test(await text(p)) && (await p.locator('.phone-welcome').count()) === 1, 'Back to my account: the preview is gone, and "You\'re in!" again');
   await p.screenshot({ path: `${OUT}/back-to-account.png` });
   // Their laptop syncs while the phone is in the preview: the preview ends by itself and their own class is there.
   await p.goto('https://haloplus.app/#/now', { waitUntil: 'load' });
-  await p.locator('.phone-in, .phone-connect').first().waitFor({ timeout: 15000 }).catch(() => undefined);
-  const tile = p.locator('.phone-in-tile', { hasText: 'preview' });
-  if (await tile.count()) await tile.tap();
-  else await p.locator('.phone-connect-card button', { hasText: 'Explore the preview' }).tap();
+  await p.locator('.phone-welcome-preview').tap();
   await p.locator('.demo-chip-preview').waitFor({ timeout: 20000 });
   const cid = crypto.randomUUID();
   const iso = new Date().toISOString();
@@ -210,12 +225,28 @@ try {
   const left = await p.waitForFunction(() => !document.querySelector('.demo-chip-preview') && !localStorage.getItem('school-dashboard:demo'), null, { timeout: 90000 }).then(() => true, () => false);
   await p.goto('https://haloplus.app/#/classes', { waitUntil: 'load' });
   const mine = await p.waitForFunction(() => /ZZZ-299/.test(document.body.innerText), null, { timeout: 30000 }).then(() => true, () => false);
-  check(left && mine, `their laptop synced: the preview ended by itself in ${((Date.now() - t1) / 1000).toFixed(0)} s and their own class is on the phone`);
+  check(left && mine && (await p.locator('.onboard, .phone-welcome').count()) === 0, `their laptop synced: the preview ended by itself in ${((Date.now() - t1) / 1000).toFixed(0)} s and their own class is on the phone (no setup screens)`);
   await p.screenshot({ path: `${OUT}/after-laptop-sync.png` });
   await ctx.close();
   // Back to "never synced" for the reminder below (a synced account gets no reminder, rightly).
   await db.from('courses').delete().eq('user_id', user);
-  check(['email-signup', 'preview', 'home-steps'].every((st) => seen.some((b) => b.step === st)), `counted: ${[...new Set(seen.map((b) => b.step))].join(', ')}`);
+  // The same account on a laptop: the usual onboarding (Connect Halo), not the phone's screen.
+  {
+    const lb = await chromium.launch();
+    const lctx = await lb.newContext({ viewport: { width: 1280, height: 860 } });
+    await lctx.route('https://haloplus.app/**', site);
+    await lctx.route('**/functions/v1/report', (r2) => r2.fulfill({ status: 200, body: '{}' }));
+    const { session } = await kit.signIn(email);
+    await lctx.addInitScript(({ key, ses }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { key: `sb-${ref}-auth-token`, ses: session });
+    const lp = await lctx.newPage();
+    await lp.goto('https://haloplus.app/#/now', { waitUntil: 'load' });
+    const onb = await lp.waitForFunction(() => /Connect Halo/.test(document.querySelector('.onboard')?.innerText ?? ''), null, { timeout: 40000 }).then(() => true, () => false);
+    await sleep(800);
+    check(onb && (await lp.locator('.phone-welcome').count()) === 0, `on a laptop the same account gets the usual setup ("${onb ? (await text(lp, '.onboard')).slice(0, 90) : 'none'}")`);
+    await lp.screenshot({ path: `${OUT}/laptop-usual-onboarding.png` });
+    await lb.close();
+  }
+  check(['email-signup', 'preview', 'safari'].every((st) => seen.some((b) => b.step === st)), `counted: ${[...new Set(seen.map((b) => b.step))].join(', ')}`);
 
   // ——— 3. The one reminder, a day later (rolled back: nothing stays) ———
   const r = rolledBack(`update auth.users set created_at = now() - interval '25 hours' where id = '${user}'; perform public.email_queue_tick(); select jsonb_build_object('n', count(*), 'src', max(meta ->> 'src'), 'acct', max(meta ->> 'acct')) into m from public.email_outbox where user_id = '${user}' and kind = 'finish_setup';`);
@@ -230,7 +261,7 @@ try {
     const admin = await kit.persona('admin');
     const { c } = await kit.signIn(admin.email);
     const { data: f, error } = await c.rpc('admin_ig_funnel', { p_days: 1 });
-    check(!error && f.email_signup >= 1 && f.preview >= 1 && f.home_steps >= 1 && f.signed_up_email >= 1, `admin_ig_funnel: sign-up started by email ${f?.email_signup}, accounts by email ${f?.signed_up_email}, preview ${f?.preview}, Home Screen steps ${f?.home_steps}${error ? ` (${error.message})` : ''}`);
+    check(!error && f.email_signup >= 1 && f.preview >= 1 && f.safari >= 1 && f.signed_up_email >= 1, `admin_ig_funnel: sign-up started by email ${f?.email_signup}, accounts by email ${f?.signed_up_email}, preview ${f?.preview}, Home Screen steps ${f?.home_steps}${error ? ` (${error.message})` : ''}`);
     const actx = await cr.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
     await actx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: admin.session, key: `sb-${ref}-auth-token` });
     await actx.route('https://haloplus.app/**', site);
