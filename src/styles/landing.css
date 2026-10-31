@@ -1678,3 +1678,180 @@ html.hp-phone .lp-onphone-email-btn.primary {
   margin: 0;
   font-size: 11px;
 }
+
+/* Loop 302: led by the extension. The hook, Add to Chrome, the trust line; the features with the real thing; the reel;
+   the app as a bonus. */
+.lp-title-hook {
+  max-width: 13ch;
+  font-size: clamp(40px, 6.2vw, 68px);
+}
+.lp-gold {
+  color: var(--accent-text);
+}
+.lp-trust {
+  margin: var(--s-3) 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.lp-trust b {
+  color: var(--ink);
+}
+.lp-shot {
+  margin: 0;
+  position: relative;
+  perspective: 1600px;
+}
+.lp-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgb(16 20 28 / 0.06), 0 30px 60px -28px rgb(16 20 28 / 0.35), 0 0 0 1px rgb(16 20 28 / 0.06);
+  transform: rotateX(4deg) rotateY(-6deg);
+  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lp-feature[data-flip] .lp-shot img {
+  transform: rotateX(4deg) rotateY(6deg);
+}
+.lp-shot:hover img {
+  transform: none;
+}
+.lp-shot-hero {
+  max-width: 520px;
+  margin-left: auto;
+}
+.lp-shot-hero .lp-shot-float {
+  position: absolute;
+  right: -18px;
+  bottom: -26px;
+  width: 62%;
+  border-radius: 6px;
+  transform: rotateX(4deg) rotateY(-6deg) translateZ(40px);
+}
+.lp-features {
+  display: grid;
+  gap: clamp(48px, 8vw, 96px);
+  padding: var(--s-6) 0 var(--s-7);
+}
+.lp-feature {
+  display: grid;
+  gap: var(--s-5);
+  align-items: center;
+}
+.lp-feature-title {
+  margin: 0 0 var(--s-3);
+  font-family: 'Plus Jakarta Sans', var(--font-sans, Inter), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.lp-feature-copy p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 34ch;
+}
+.lp-feature-copy b {
+  color: var(--ink);
+}
+.lp-feature .lp-shot {
+  max-width: 560px;
+  width: 100%;
+  justify-self: center;
+}
+/* The confetti row: the toast with a little still confetti around it. */
+.lp-shot[data-confetti] {
+  padding: 44px 24px;
+}
+.lp-shot[data-confetti]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #522398 0 4px, transparent 5px), radial-gradient(circle, #f2b84b 0 5px, transparent 6px), radial-gradient(circle, #07bc0c 0 3px, transparent 4px), radial-gradient(circle, #2fb8ff 0 4px, transparent 5px), radial-gradient(circle, #ff5d8f 0 3px, transparent 4px);
+  background-size: 120px 90px, 150px 110px, 90px 130px, 170px 70px, 110px 150px;
+  background-position: 10px 8px, 60px 40px, 30px 70px, 90px 20px, 140px 90px;
+  opacity: 0.7;
+}
+.lp-shot[data-confetti] img {
+  position: relative;
+  border-radius: 6px;
+}
+@media (min-width: 900px) {
+  .lp-feature {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: var(--s-7);
+  }
+  .lp-feature[data-flip] .lp-feature-copy {
+    order: 2;
+  }
+}
+.lp-reel {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-4);
+  padding: var(--s-6) 0;
+  text-align: center;
+}
+.lp-reel-frame {
+  width: min(100%, 340px);
+  aspect-ratio: 9 / 16;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #f6f7f9;
+  box-shadow: var(--shadow-3);
+}
+.lp-reel-frame video,
+.lp-reel-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lp-bonus {
+  display: grid;
+  gap: var(--s-6);
+  align-items: center;
+  padding: var(--s-7) 0;
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 900px) {
+  .lp-bonus {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+.lp-eyebrow {
+  margin: 0 0 var(--s-2);
+  font: 700 13px/1 var(--font-body);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+.lp-close .lp-trust {
+  text-align: center;
+}
+/* On a signed-out phone the sign-up card is the top (PhoneHello): no second hook, no Add to Chrome, no second reel. */
+html.hp-phone .lp-hero-ext,
+html.hp-phone .lp-reel,
+html.hp-phone .lp-close {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-shot img {
+    transition: none;
+  }
+}
+
+/* The reel beside the hook (desktop). */
+.lp-reel-hero {
+  width: min(100%, 330px);
+  justify-self: center;
+}
+@media (min-width: 900px) {
+  .lp-hero-ext {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+}

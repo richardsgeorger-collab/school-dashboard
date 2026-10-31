@@ -5,6 +5,7 @@ import { supabase } from '../auth/client';
 import { pendingSource, sourceIn } from '../auth/source';
 import { APPLE_SIGNIN, inAppBrowser, openInBrowserUrl } from '../config/signin';
 import { isIOSDevice } from '../ui/device';
+import { Trust } from './Trust';
 
 /**
  * The phone screen (Loop 299, George 2026-10-30: "a simple sign-up, not 'looks like you're on your phone'"). A
@@ -26,18 +27,6 @@ export function phoneVisitor(): boolean {
     return true;
   } catch {
     return false;
-  }
-}
-
-/** The honest count for the trust line: real students only, rounded down by the server; null until it is worth saying. */
-async function studentCount(): Promise<number | null> {
-  try {
-    const c = supabase();
-    if (!c) return null;
-    const { data, error } = await c.rpc('public_student_count');
-    return !error && typeof data === 'number' && data >= 20 ? data : null;
-  } catch {
-    return null;
   }
 }
 
@@ -70,7 +59,6 @@ export function PhoneHello() {
   const [fromIg, setFromIg] = useState(false);
   const [ios, setIos] = useState(true);
   const [inApp, setInApp] = useState(false);
-  const [count, setCount] = useState<number | null>(null);
   const [safariHref, setSafariHref] = useState('');
   const [oauth, setOauth] = useState<'google' | 'apple' | null>(null);
   const [email, setEmail] = useState('');
@@ -102,7 +90,6 @@ export function PhoneHello() {
       here.hash = '';
       setSafariHref(openInBrowserUrl(here.toString(), isIOSDevice()));
     }
-    void studentCount().then(setCount);
     // Back here just after asking for Safari: it did not open.
     try {
       const t = Number(sessionStorage.getItem(TRIED));
@@ -289,9 +276,7 @@ export function PhoneHello() {
             {error}
           </p>
         ) : null}
-        <p className="lp-onphone-why">
-          <b>Takes 10 seconds.</b> Free. Made by a GCU student.{count ? ` Join ${count}+ GCU students.` : ''}
-        </p>
+        <Trust className="lp-onphone-why" />
         <p className="lp-onphone-signin">
           Already have an account? <a href="#/login">Sign in</a>
         </p>

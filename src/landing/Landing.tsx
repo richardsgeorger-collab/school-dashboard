@@ -1,22 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { pixel } from '../analytics/pixel';
-import { IconCheck, IconHalo, IconMoon, IconPlus, IconSun, IconYou } from '../components/Icons';
-import { ACCENTS, applyAccent, type AccentId } from '../config/accents';
-import { EXTENSION_URL } from '../config/extension';
+import { IconHalo } from '../components/Icons';
+import { EXTENSION_URL, extensionBrowser } from '../config/extension';
+import { PRICES } from '../config/tiers';
 import { LiveNow } from './LiveNow';
 import { PhoneHello } from './PhoneHello';
+import { Trust } from './Trust';
 
 /**
- * The front door (George, 2026-10-23: "too many words and not enough showing"). A six-word promise and the app itself,
- * live: check one off and the gold burst plays. Then tiles that show each thing working, three steps, one line to
- * start. No prices or trial talk before someone has loved it: the Plans page is one link in the footer. The demo
- * student is Maya Torres (made up). Pre-rendered into index.html at build, so nothing here may touch window while
- * rendering; motion respects reduced motion (landing.css).
+ * The front door, led by the extension (Loop 302, George 2026-10-30, for visitors who want the extension): the hook and
+ * Add to Chrome; then the extension on Halo, one feature at a time with the real thing (captures of the test Halo pages,
+ * the made-up Maya Torres): what's next on every class card, one calendar, ⌘K search, rubrics, the confetti, and Max's
+ * hidden due dates said honestly with its price (George asked for it here; the plans stay one footer link); the calm
+ * reel beside the hook; then the app as a bonus (the live Now: check one off and the gold burst plays); FAQ. The trust line, with the
+ * live rounded-down student count, sits by every main button. A signed-out phone gets the sign-up screen first
+ * (PhoneHello). Pre-rendered into index.html at build, so nothing here may touch window while rendering; motion respects
+ * reduced motion (landing.css).
  */
 const CONTACT = 'mailto:richards.georger@gmail.com?subject=Halo%2B';
 
 export function Landing() {
-  const signUp = () => pixel('Lead');
+  const add = useAddButton();
   return (
     <div className="landing lp">
       <header className="lp-head">
@@ -33,86 +37,57 @@ export function Landing() {
           <a className="btn" href="#/login">
             Log in
           </a>
-          <a className="btn primary" href="#/start" onClick={signUp}>
-            Try it now
+          <a className="btn primary" href={add.href} onClick={add.onClick}>
+            {add.short}
           </a>
         </nav>
       </header>
 
       <PhoneHello />
 
-      <section className="lp-hero" aria-label="What Halo+ is">
+      <section className="lp-hero lp-hero-ext" aria-label="What Halo+ is">
         <div className="lp-copy">
-          <h1 className="lp-title">Never miss a GCU deadline.</h1>
-          <p className="lp-sub">Halo+ reads your Halo classes and every announcement, then shows you the one thing to do next.</p>
+          <h1 className="lp-title lp-title-hook">
+            The Halo <span className="lp-gold">upgrade</span> every GCU student needs.
+          </h1>
+          <p className="lp-sub">Halo+ adds what Halo is missing, right on Halo’s own pages: what’s next on every class, one calendar, search, and more.</p>
           <div className="lp-cta">
-            <a className="btn primary lp-big" href="#/start" onClick={signUp}>
-              Try it now
+            <a className="btn primary lp-big" href={add.href} onClick={add.onClick}>
+              {add.label}
             </a>
             <a className="btn lp-big" href="#/login">
               Log in
             </a>
           </div>
+          <Trust />
+        </div>
+        <LazyReel hero />
+      </section>
+
+      <section className="lp-features" aria-label="On Halo">
+        <Feature title="What’s next, on every class." gold="next," text="Your grade and the next things due, right on Halo’s own class cards. Done work drops off by itself." img="class-card" w={464} h={337} alt="A class card: the grade, and NEXT with three assignments and when they’re due" />
+        <Feature flip title="Every class, one calendar." gold="one" text="All your classes on Halo’s calendar, each in its own color, so a busy week is obvious at a glance." img="calendar" w={479} h={319} alt="Halo’s calendar showing six days with assignments from every class" />
+        <Feature title="⌘K. Find anything." gold="⌘K." text="Every class, assignment and file, from any Halo page. Ctrl+K on Windows." img="search" w={488} h={488} alt="Halo+ search with results for “topic 3”" />
+        <Feature flip title="Rubrics, right under the assignment." gold="Rubrics," text="No new tab, no hunting. Every criterion and level, one tap away." img="rubric" w={488} h={320} alt="A rubric shown under its assignment on Halo" />
+        <Feature title="Confetti when you submit." gold="Confetti" text="The moment Halo confirms it: checked off, your points, a little celebration." img="toast" w={320} h={78} alt="“Lab 4: Photosynthesis done, +30 pts”" confetti />
+        <Feature flip title="Never miss a hidden due date." gold="hidden" text={<>Teachers move dates and add steps in announcements. <b>Halo+ Max</b> reads every one and puts the change on the assignment. Max is <b>${PRICES.max.month.toFixed(2)} a month</b>; everything above is free.</>} img="max-line" w={528} h={394} alt="An assignment on Halo with the Halo+ line “Due date moved to Mon, Nov 2 (was Sat, Oct 31)”" />
+      </section>
+
+      <section className="lp-bonus" aria-label="Plus your own Halo+ app">
+        <div className="lp-copy">
+          <p className="lp-eyebrow">Bonus</p>
+          <h2 className="lp-h2">Plus your own Halo+ app.</h2>
+          <p className="lp-sub">Now, Calendar and Classes, on your phone too. Your whole week in your pocket, kept current from Halo. Add it to your Home Screen and it works like an app. Try it right here:</p>
         </div>
         <LiveNow />
       </section>
 
-      <section className="lp-bento" aria-label="What it does">
-        <Tile wide title="Catches what’s hidden in announcements" text="Announcement-only rules land on the assignment.">
-          <Caught />
-        </Tile>
-        <Tile title="Knows what’s next" text="Ranked by due date, real time and points.">
-          <NextCard />
-        </Tile>
-        <Tile title="Your real grades" text="Every class, and how cooked your week is.">
-          <Grades />
-        </Tile>
-        <Tile wide title="Right inside Halo" text="This week, on Halo’s own home page.">
-          <InHalo />
-        </Tile>
-        <Tile title="On your phone" text="Add it to your Home Screen.">
-          <Phone />
-        </Tile>
-        <Tile title="Keeps itself current" text="Whenever you’re on Halo, or every 3 hours on its own. Never your password.">
-          <SyncSpin />
-        </Tile>
-        <Tile wide title="Search every class from Halo" text="Ctrl+K or ⌘K on any Halo page.">
-          <SearchDemo />
-        </Tile>
-        <Tile wide title="Make it yours" text="Light or dark, your color.">
-          <MakeYours />
-        </Tile>
-      </section>
-
-      <section className="lp-steps" aria-label="Set up">
-        <h2 className="lp-h2">Set up in 2 minutes</h2>
-        <ol>
-          <li>
-            <span className="lp-step-icon" aria-hidden>
-              <IconYou />
-            </span>
-            Sign up
-          </li>
-          <li>
-            <span className="lp-step-icon" aria-hidden>
-              <IconPlus />
-            </span>
-            Add to Chrome
-          </li>
-          <li>
-            <span className="lp-step-icon" aria-hidden>
-              <IconCheck />
-            </span>
-            Done
-          </li>
-        </ol>
-      </section>
-
       <section className="lp-close" aria-label="Start">
         <h2 className="lp-h2">Your next deadline is already in Halo.</h2>
-        <a className="btn primary lp-big" href="#/start" onClick={signUp}>
-          Try it now
+        <a className="btn primary lp-big" href={add.href} onClick={add.onClick}>
+          {add.label}
         </a>
+        <Trust />
       </section>
 
       <section className="landing-section landing-faq" aria-label="Questions">
@@ -156,231 +131,59 @@ export function Landing() {
   );
 }
 
-function Tile({ title, text, wide = false, children }: { title: string; text: string; wide?: boolean; children: React.ReactNode }) {
+/**
+ * The main button (Loop 302: lead with the extension): straight to the Web Store, in the same tab, so the install's
+ * welcome tab makes the account. Edge says Edge; a browser the extension cannot go in (Safari, Firefox) gets the laptop
+ * page, which says so kindly. Pre-rendered as Chrome (no window then).
+ */
+function useAddButton(): { href: string; label: string; short: string; onClick: () => void } {
+  const [b, setB] = useState<'Chrome' | 'Edge' | 'Brave' | 'other'>('Chrome');
+  useEffect(() => {
+    setB(extensionBrowser(navigator.userAgent, { brave: !!(navigator as Navigator & { brave?: unknown }).brave, touchMac: navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent) }) ?? 'other');
+  }, []);
+  const onClick = () => pixel('Lead');
+  if (b === 'other') return { href: './laptop/', label: 'Get Halo+ for Chrome', short: 'Get Halo+', onClick };
+  const name = b === 'Edge' ? 'Edge' : 'Chrome';
+  if (!EXTENSION_URL) return { href: '#/start', label: 'Try it now', short: 'Try it now', onClick };
+  return { href: EXTENSION_URL, label: `Add to ${name}, it’s free`, short: `Add to ${name}`, onClick };
+}
+
+/** One extension feature: the words, and the real thing (a capture of it on Halo, whole). */
+function Feature({ title, gold, text, img, w, h, alt, flip = false, confetti = false }: { title: string; gold: string; text: React.ReactNode; img: string; w: number; h: number; alt: string; flip?: boolean; confetti?: boolean }) {
   return (
-    <article className="lp-tile" data-wide={wide || undefined}>
-      <div className="lp-visual">{children}</div>
-      <h3>{title}</h3>
-      <p>{text}</p>
+    <article className="lp-feature" data-flip={flip || undefined}>
+      <div className="lp-feature-copy">
+        <h3 className="lp-feature-title">
+          {title.split(' ').map((word, i) => (
+            <span key={i} className={word === gold ? 'lp-gold' : undefined}>
+              {i ? ' ' : ''}
+              {word}
+            </span>
+          ))}
+        </h3>
+        <p>{text}</p>
+      </div>
+      <figure className="lp-shot" data-confetti={confetti || undefined}>
+        <img src={`./shots/${img}.jpg`} width={w} height={h} alt={alt} loading="lazy" decoding="async" />
+      </figure>
     </article>
   );
 }
 
-/** An announcement's line flies onto its assignment as a requirement. */
-function Caught() {
-  return (
-    <div className="lp-caught" aria-hidden>
-      <div className="lp-ann">
-        <span className="lp-ann-from">BIO-181L · Dr. Morales</span>
-        <p>
-          Lab 4 is Thursday. <mark>Bring goggles</mark> or no entry.
-        </p>
-      </div>
-      <span className="lp-fly">Bring goggles</span>
-      <div className="lp-assign">
-        <span className="lp-assign-title">Lab 4: Photosynthesis</span>
-        <span className="lp-assign-meta">BIO-181L · Thu · 30 pts</span>
-        <span className="lp-req">
-          <IconCheck /> Goggles, or no entry
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function NextCard() {
-  return (
-    <div className="lp-next" aria-hidden>
-      <span className="lp-next-eyebrow">Do now</span>
-      <span className="lp-next-title">Quiz 2: Derivatives</span>
-      <span className="lp-next-meta">MAT-250 · Thu · 40 pts · ~2h</span>
-      <span className="btn primary lp-next-btn">Start</span>
-    </div>
-  );
-}
-
-/** A Halo-like page (no GCU marks) with the Halo+ pill peeking out, as the extension does. */
-/** Halo's Student Home (no GCU marks) with "This week" open above the class cards, in Halo's own card look. */
-function InHalo() {
-  const rows: [string, string, string, string, boolean][] = [
-    ['Topic 3 Homework', 'BIO-181', '#2e8b57', '11:59 PM', false],
-    ['Lab 4: Photosynthesis', 'BIO-181L', '#3b7dd8', '11:59 PM', true],
-    ['Quiz 2: Derivatives', 'MAT-250', '#7a5ad0', 'Thu', false],
-  ];
-  return (
-    <div className="lp-halo" aria-hidden>
-      <div className="lp-halo-bar" />
-      <div className="lp-week">
-        <p className="lp-week-head">
-          <b>This week</b> · 6 due · 3 tomorrow
-        </p>
-        <p className="lp-week-clear">
-          <b>Today:</b> All done <span>✓</span>
-        </p>
-        {rows.map(([title, code, color, when, extra]) => (
-          <p key={title} className="lp-week-row">
-            <i className="lp-week-box" />
-            <i className="lp-week-dot" style={{ background: color }} />
-            <b>{title}</b>
-            <span className="lp-week-code">{code}</span>
-            {extra && <i className="lp-week-x" />}
-            <span className="lp-week-when">{when}</span>
-          </p>
-        ))}
-      </div>
-      <div className="lp-halo-cards">
-        {[
-          ['MAT-250-TR1030A', '2 this week'],
-          ['BIO-181L-R100P', '1 extra step'],
-        ].map(([code, line], k) => (
-          <div key={code} className="lp-halo-card">
-            <b>{code}</b>
-            <em>
-              Halo+ · {k === 1 ? '1 this week · ' : ''}
-              <span data-tone={k === 1 ? 'gold' : undefined}>{line}</span>
-            </em>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Grades() {
-  const rows: [string, number, string][] = [
-    ['BIO-181', 93, 'A'],
-    ['MAT-250', 84, 'B'],
-    ['PSY-102', 90, 'A-'],
-  ];
-  return (
-    <div className="lp-grades" aria-hidden>
-      {rows.map(([code, pct, letter]) => (
-        <div key={code} className="lp-grade">
-          <svg viewBox="0 0 36 36" width="34" height="34">
-            <circle cx="18" cy="18" r="15" className="lp-grade-track" />
-            <circle cx="18" cy="18" r="15" className="lp-grade-fill" strokeDasharray={`${(pct / 100) * 94.2} 94.2`} />
-          </svg>
-          <span className="lp-grade-code">{code}</span>
-          <span className="lp-grade-letter">
-            {letter}
-          </span>
-        </div>
-      ))}
-      <div className="lp-cook">
-        <span className="lp-cook-label">Cooked meter · MAT-250</span>
-        <span className="lp-cook-track">
-          <span className="lp-cook-fill" />
-        </span>
-      </div>
-    </div>
-  );
-}
-
-const QUESTION = 'topic 3';
-const ANSWER = 'Topic 3 DQ 1: Memory · PSY-102 · due today\nTopic 3 Reflection · UNV-103 · due Fri\nTopic 3 Homework · BIO-181 · due Sat';
-
-/** A search typed out on Halo and its results, when the tile comes into view (2026-10-29: this was Ask, now gone). */
-function SearchDemo() {
+/** The calm reel, in the hero: its poster at once, the video once the page has loaded (it is the heaviest thing here). */
+function LazyReel({ hero = false }: { hero?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [typed, setTyped] = useState<{ q: number; a: number } | null>(null);
+  const [near, setNear] = useState(false);
   useEffect(() => {
     const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    let timer = 0;
-    const io = new IntersectionObserver(
-      (es) => {
-        if (!es.some((e) => e.isIntersecting)) return;
-        io.disconnect();
-        let q = 0;
-        let a = 0;
-        setTyped({ q: 0, a: 0 });
-        timer = window.setInterval(() => {
-          if (q < QUESTION.length) q += 1;
-          else if (a < ANSWER.length) a += 3;
-          else return window.clearInterval(timer);
-          setTyped({ q, a: Math.min(a, ANSWER.length) });
-        }, 28);
-      },
-      { threshold: 0.5 },
-    );
+    if (!el || typeof IntersectionObserver === 'undefined') return setNear(true);
+    const io = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && (setNear(true), io.disconnect()), { rootMargin: '200px' });
     io.observe(el);
-    return () => {
-      io.disconnect();
-      window.clearInterval(timer);
-    };
+    return () => io.disconnect();
   }, []);
-  const q = typed ? QUESTION.slice(0, typed.q) : QUESTION;
-  const a = typed ? ANSWER.slice(0, typed.a) : ANSWER;
   return (
-    <div className="lp-ask" ref={ref} aria-hidden>
-      <p className="lp-q">⌘K {q || ' '}</p>
-      {(!typed || typed.q >= QUESTION.length) && <p className="lp-a" style={{ whiteSpace: 'pre-line' }}>{a || '…'}</p>}
-    </div>
-  );
-}
-
-function Phone() {
-  return (
-    <div className="lp-phone" aria-hidden>
-      <div className="lp-phone-screen">
-        <b>2 things need you.</b>
-        {[
-          ['#3B7DD8', 'Lab 4 Prelab Quiz', 'tonight'],
-          ['#7A5AD0', 'Quiz 2: Derivatives', 'Thu'],
-          ['#D9534F', 'Topic 3 DQ 1', 'Wed'],
-        ].map(([c, t, m]) => (
-          <span key={t} className="lp-phone-row" style={{ '--course': c } as React.CSSProperties}>
-            <i />
-            <span>
-              {t}
-              <small>{m}</small>
-            </span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SyncSpin() {
-  return (
-    <div className="lp-sync" aria-hidden>
-      <span className="lp-sync-ring">
-        <IconHalo />
-      </span>
-      <span className="lp-sync-line">
-        <b>Synced 9:12 AM</b>
-        <small>next around 12:12 PM</small>
-      </span>
-    </div>
-  );
-}
-
-/** Light or dark and the accent, live on this page (the app's own presets). */
-function MakeYours() {
-  const [dark, setDark] = useState<boolean | null>(null);
-  const [accent, setAccent] = useState<AccentId>('gold');
-  const flip = () => {
-    const root = document.documentElement;
-    const next = !(dark ?? root.dataset.theme === 'dark');
-    root.dataset.theme = next ? 'dark' : 'light';
-    setDark(next);
-  };
-  const pick = (id: AccentId) => {
-    applyAccent(document.documentElement, id);
-    setAccent(id);
-  };
-  return (
-    <div className="lp-yours">
-      <button type="button" className="lp-mode" onClick={flip} aria-label="Switch light and dark">
-        <span aria-hidden>{dark ? <IconSun /> : <IconMoon />}</span>
-        {dark ? 'Light' : 'Dark'}
-      </button>
-      <div className="lp-swatches" role="radiogroup" aria-label="Color">
-        {ACCENTS.map((a) => (
-          <button key={a.id} type="button" role="radio" aria-checked={accent === a.id} aria-label={a.name} className="lp-swatch" style={{ '--sw': a.light } as React.CSSProperties} onClick={() => pick(a.id)} />
-        ))}
-      </div>
+    <div className={`lp-reel-frame${hero ? ' lp-reel-hero' : ''}`} ref={ref}>
+      {near ? <video src={hero ? './reel/halo-plus-calm.mp4#t=2.7' : './reel/halo-plus-calm.mp4'} poster="./reel/halo-plus-calm.jpg" muted autoPlay loop playsInline preload="metadata" aria-label="Halo+ on Halo: what’s next on every class, one calendar, search, and checking things off" /> : <img src="./reel/halo-plus-calm.jpg" width={540} height={960} alt="" aria-hidden />}
     </div>
   );
 }

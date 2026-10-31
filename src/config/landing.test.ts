@@ -10,10 +10,14 @@ describe('landing page', () => {
   const src = readFileSync(join(__dirname, '..', 'landing', 'Landing.tsx'), 'utf8');
   // 2026-10-23 (George): people see "free for 7 days" and think "money, no thanks". The home page never talks price or
   // trial; the Plans page, one link in the footer, says it all, from the config.
-  it('says nothing about prices or the trial; the Plans page does, from the config', () => {
+  // 2026-10-30 (George, Loop 302): one exception, asked for: the Max feature says Max's price honestly, from the config,
+  // once. Still no trial talk anywhere on the home page.
+  it('says nothing about the trial, and one price only: Max on its own feature, from the config', () => {
     const page = src + readFileSync(join(__dirname, '..', 'landing', 'LiveNow.tsx'), 'utf8');
-    expect(page).not.toMatch(/\$\d|free trial|No card|days free|Try it free|a month/i);
+    expect(page).not.toMatch(/\$\d|free trial|No card|days free|Try it free/i);
     expect(page).not.toMatch(/TRIAL\.|PRICES\[/);
+    expect(page.match(/PRICES\.max\.month/g)?.length).toBe(1);
+    expect(page.match(/a month/g)?.length).toBe(1);
     expect(src).toContain('Try it now');
     expect(src).toContain('href="./plans/"');
     const pages = readFileSync(join(__dirname, '..', 'help', 'pages.ts'), 'utf8');

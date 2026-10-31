@@ -15,7 +15,7 @@ const text = async (path) => (await fetch(new URL(path, BASE))).text();
 // 1. The raw HTML, as a crawler that runs no JavaScript gets it.
 const raw = await text('');
 // 2026-10-23: the short home page links the help index (which links every help page), Updates and Plans.
-for (const s of ['Never miss a GCU deadline', 'What it does', 'Set up in 2 minutes', 'Does it need my GCU password?', 'not affiliated with Grand Canyon University', 'href="./help/"', 'href="./updates/"', 'href="./plans/"']) check(raw.includes(s), `raw HTML has "${s}"`);
+for (const s of ['The Halo', 'every GCU student needs', 'right on Halo’s own class cards', 'Plus your own Halo+ app', 'Does it need my GCU password?', 'not affiliated with Grand Canyon University', 'href="./help/"', 'href="./updates/"', 'href="./plans/"']) check(raw.includes(s), `raw HTML has "${s}"`);
 const helpIndex = await text('help/');
 const helpLinks = [...helpIndex.matchAll(/href="[^"]*\/help\/([a-z0-9-]+)\/"/g)].map((m) => m[1]);
 check(helpLinks.length >= 6, `the help index it links lists ${helpLinks.length} help pages`);
@@ -37,7 +37,7 @@ try {
   const nojs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 860 } });
   const p0 = await nojs.newPage();
   await p0.goto(BASE);
-  check(await p0.getByRole('heading', { name: /Never miss a GCU deadline/ }).isVisible(), 'with JavaScript off, the landing page is there');
+  check(await p0.getByRole('heading', { name: /The Halo upgrade every GCU student needs/ }).isVisible(), 'with JavaScript off, the landing page is there');
   await p0.screenshot({ path: `${OUT}/landing-no-js.png` });
   await nojs.close();
 
