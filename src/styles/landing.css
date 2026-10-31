@@ -1556,3 +1556,39 @@ html.hp-phone .lp-head .lp-nav .btn.primary {
   color: var(--ink-3);
   text-align: center;
 }
+
+/* Loop 299: the phone screen as a sign-up. The hook big, Google first, email second, the true line, Sign in. */
+html.hp-phone .lp-onphone-title {
+  font-size: 30px;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+.lp-onphone-gold {
+  color: var(--accent-text);
+}
+.lp-onphone-main {
+  min-height: 54px;
+  font-size: 17px;
+}
+.lp-onphone-mail .input + .input {
+  margin-top: 0;
+}
+.lp-onphone-email-btn {
+  min-height: 50px;
+  font-size: 16px;
+}
+.lp-onphone-link {
+  all: unset;
+  justify-self: center;
+  color: var(--accent-text);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+}
+.lp-onphone-signin {
+  text-align: center;
+}
+html.hp-phone .lp-onphone-why {
+  margin-top: var(--s-3);
+}

@@ -1,25 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { funnel, laptopLink, laptopLinkUrl, visitorId } from '../analytics/funnel';
-import { pendingSource, sourceIn } from '../auth/source';
+import { funnel } from '../analytics/funnel';
+import { authMessage } from '../auth/useAuth';
 import { supabase } from '../auth/client';
+import { pendingSource, sourceIn } from '../auth/source';
 import { IconHalo } from '../components/Icons';
 import { APPLE_SIGNIN, inAppBrowser, openInBrowserUrl } from '../config/signin';
-import { isIOSDevice, isIPad } from '../ui/device';
+import { isIOSDevice } from '../ui/device';
 
 /**
- * The phone screen (Loop 294, George 2026-10-30): most Instagram visitors open haloplus.app on a phone, where the
- * Chrome extension cannot go. A signed-out phone (or tablet) visitor is greeted at the top of the landing page with the
- * easiest way to get Halo+ onto their laptop: the share sheet (Text or AirDrop; "Copy link" where sharing is not
- * supported, as in some in-app browsers), or one email with the laptop page. Then the calm reel, then the landing as
- * always. Desktop visitors and anyone signed in never see it.
- *
- * Pre-rendered with the landing (nothing touches window while rendering): index.html's first script marks a phone
- * (html.hp-phone) before first paint, so the screen is there at once on cell data; this component only wires it up.
- * Phone-only Halo sync is not good enough to offer as a start (Loop 245: 5 of 7 phone sign-ups got stuck), so the app
- * is a line under the two buttons, not a third.
+ * The phone screen (Loop 299, George 2026-10-30: "a simple sign-up, not 'looks like you're on your phone'"). A
+ * signed-out phone or tablet visitor (html.hp-phone, set by index.html's first script before first paint) is asked one
+ * thing: make your account. The hook and one line, Continue with Google first (inside Instagram's browser, where Google
+ * refuses to sign in, the same page opens in Safari and carries on), then "or sign up with email" (one field; the
+ * password appears after it), a short true line (and the real student count, live and rounded down), and Sign in.
+ * Then the calm reel and the landing as always. After a sign-up the app's phone step takes over ("You're in!",
+ * onboarding/PhoneConnect.tsx): the laptop link is emailed at once. Desktop visitors and anyone signed in never see this.
  */
-type Done = 'shared' | 'copied' | 'emailed' | 'already' | null;
 const BACK = /^sb-[a-z0-9]+-auth-token$/;
+const START = 'school-dashboard:phone-start';
 
 /** Signed in, or on a laptop: no phone screen (the same test as index.html's first script, plus a session). */
 export function phoneVisitor(): boolean {
@@ -32,216 +30,146 @@ export function phoneVisitor(): boolean {
   }
 }
 
-async function copyText(text: string): Promise<boolean> {
+/** The honest count for the trust line: real students only, rounded down by the server; null until it is worth saying. */
+async function studentCount(): Promise<number | null> {
   try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
+    const c = supabase();
+    if (!c) return null;
+    const { data, error } = await c.rpc('public_student_count');
+    return !error && typeof data === 'number' && data >= 20 ? data : null;
   } catch {
-    /* fall through to the old way */
+    return null;
   }
+}
+
+const remember = (how: string) => {
   try {
-    const t = document.createElement('textarea');
-    t.value = text;
-    t.setAttribute('readonly', '');
-    t.style.position = 'fixed';
-    t.style.opacity = '0';
-    document.body.appendChild(t);
-    t.select();
-    t.setSelectionRange(0, text.length);
-    const ok = document.execCommand('copy');
-    t.remove();
-    return ok;
+    localStorage.setItem(START, how);
   } catch {
-    return false;
+    /* storage off: the laptop email can still be asked for in the app */
   }
+};
+
+/** The app's own sign-up (useAuth's), without its context: this screen is also pre-rendered on its own. */
+async function signUp(email: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const c = supabase();
+  if (!c) return { ok: false, error: 'Sign-up isn’t working right now. Try again in a minute.' };
+  const { data, error } = await c.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` } });
+  if (error) return { ok: false, error: authMessage(error.message) };
+  if (!data.session && (data.user?.identities?.length ?? 0) === 0) return { ok: false, error: authMessage('already registered') };
+  if (!data.session) return { ok: false, error: 'Your account was made, but it needs confirming. Sign in, or contact George.' };
+  return { ok: true };
 }
 
 export function PhoneHello() {
   const [on, setOn] = useState(false);
-  const [canShare, setCanShare] = useState(true);
   const [fromIg, setFromIg] = useState(false);
-  const [here, setHere] = useState<'phone' | 'iPad'>('phone');
   const [ios, setIos] = useState(true);
-  const [done, setDone] = useState<Done>(null);
-  const [manual, setManual] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [sending, setSending] = useState(false);
-  const [mailError, setMailError] = useState<string | null>(null);
-  const doneRef = useRef<HTMLParagraphElement>(null);
-  const mainRef = useRef<HTMLButtonElement>(null);
   const [inApp, setInApp] = useState(false);
+  const [count, setCount] = useState<number | null>(null);
+  const [safariHref, setSafariHref] = useState('');
   const [oauth, setOauth] = useState<'google' | 'apple' | null>(null);
-  const [oauthError, setOauthError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [step, setStep] = useState<'email' | 'password'>('email');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<React.ReactNode>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const pwRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const phone = phoneVisitor();
-    if (!phone) {
+    const ig = (sourceIn(window.location.hash, window.location.search) ?? pendingSource()) === 'ig';
+    if (!phoneVisitor()) {
       document.documentElement.classList.remove('hp-phone');
+      // Desktop visitors from Instagram count as visits too (they need no phone screen).
+      if (sourceIn(window.location.hash, window.location.search) === 'ig') funnel('visit');
       return;
     }
     setOn(true);
-    setHere(isIPad() ? 'iPad' : 'phone');
     setIos(isIOSDevice());
-    setCanShare(typeof navigator.share === 'function');
-    const ig = (sourceIn(window.location.hash, window.location.search) ?? pendingSource()) === 'ig';
     setFromIg(ig);
-    setInApp(inAppBrowser());
+    const app = inAppBrowser();
+    setInApp(app);
+    if (app) {
+      const here = new URL(window.location.href);
+      here.searchParams.set('go', 'google');
+      if (ig) here.searchParams.set('src', 'ig');
+      here.hash = '';
+      setSafariHref(openInBrowserUrl(here.toString(), isIOSDevice()));
+    }
+    void studentCount().then(setCount);
     if (ig) funnel('visit');
     // Is the main button on screen without scrolling (George: "find where people stop")?
     const r = mainRef.current?.getBoundingClientRect();
     if (ig && r && window.scrollY === 0 && r.bottom <= window.innerHeight) funnel('fold');
     // Arrived from "Open in Safari" in Instagram's browser: carry on with Google straight away.
-    if (/[?&]go=google(&|$)/.test(window.location.search) && !inAppBrowser()) void startWith('google', ig);
+    if (/[?&]go=google(&|$)/.test(window.location.search) && !app) void startWith('google', ig);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Desktop visitors from Instagram count as visits too (they need no phone screen).
   useEffect(() => {
-    if (phoneVisitor()) return;
-    if (sourceIn(window.location.hash, window.location.search) === 'ig') funnel('visit');
-  }, []);
-  useEffect(() => {
-    if (done) doneRef.current?.focus();
-  }, [done]);
+    if (step === 'password') pwRef.current?.focus();
+  }, [step]);
 
-  const copy = async (url: string) => {
-    if (await copyText(url)) {
-      setDone('copied');
-      if (fromIg) funnel('copy', { via: 'copy' });
-    } else setManual(url);
-  };
-  const share = async () => {
-    const url = laptopLink(canShare ? 'share' : 'copy', fromIg);
-    if (!canShare) return copy(url);
-    try {
-      await navigator.share({ title: 'Halo+ for my laptop', text: 'Open this on your laptop to add Halo+ to Chrome:', url });
-      setDone('shared');
-      if (fromIg) funnel('share', { via: 'share' });
-    } catch (e) {
-      // Closing the share sheet is not a failure; a browser that will not share (some in-app browsers) copies instead.
-      if ((e as Error)?.name === 'AbortError') return;
-      setCanShare(false);
-      await copy(laptopLink('copy', fromIg));
-    }
-  };
-  /**
-   * Start on the phone with Google or Apple: the account is made, the laptop link is emailed to its address at once
-   * (PhoneConnect, after the sign-in comes back), and the laptop's welcome tab offers the same one tap.
-   */
+  /** Google or Apple: the account is made there, and the app's phone step emails the laptop link when it comes back. */
   const startWith = async (provider: 'google' | 'apple', ig = fromIg) => {
-    setOauthError(null);
+    setError(null);
     if (ig) funnel(provider);
     const c = supabase();
-    if (!c) return setOauthError('Sign-in isn’t working right now. Email yourself the link instead.');
+    if (!c) return setError('Sign-up isn’t working right now. Try again in a minute.');
     setOauth(provider);
-    try {
-      localStorage.setItem('school-dashboard:phone-start', provider);
-    } catch {
-      /* storage off: the laptop email can still be asked for in the app */
-    }
-    const { error } = await c.auth.signInWithOAuth({ provider, options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` } });
-    if (error) {
+    remember(provider);
+    const { error: e } = await c.auth.signInWithOAuth({ provider, options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` } });
+    if (e) {
       setOauth(null);
-      setOauthError(`We couldn’t open ${provider === 'apple' ? 'Apple' : 'Google'} just now. Email yourself the link instead.`);
+      setError(`We couldn’t open ${provider === 'apple' ? 'Apple' : 'Google'} just now. Sign up with email instead?`);
     }
   };
-  const [safariHref, setSafariHref] = useState('');
-  useEffect(() => {
-    if (!inApp) return;
-    const here = new URL(window.location.href);
-    here.searchParams.set('go', 'google');
-    if (fromIg) here.searchParams.set('src', 'ig');
-    here.hash = '';
-    setSafariHref(openInBrowserUrl(here.toString(), ios));
-  }, [inApp, fromIg, ios]);
-  const mail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMailError(null);
-    const url = laptopLinkUrl();
-    if (!url) return setMailError('Email isn’t working right now. Use the button above instead.');
-    setSending(true);
-    try {
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, vid: fromIg ? visitorId() : undefined, src: fromIg ? 'ig' : undefined }) });
-      const r = (await res.json()) as { ok: boolean; already?: boolean; why?: string };
-      if (r.ok) setDone(r.already ? 'already' : 'emailed');
-      else if (r.why === 'email') setMailError('That email doesn’t look right. Check it and try again?');
-      else if (r.why === 'limit' || r.why === 'busy') setMailError('Too many emails from here today. Use the button above instead.');
-      else setMailError('We couldn’t send it just now. Use the button above instead.');
-    } catch {
-      setMailError('We couldn’t send it just now. Use the button above instead.');
-    } finally {
-      setSending(false);
+  /** Email: the address, then a password (the phone offers a strong one), then in. */
+  const submit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    setError(null);
+    if (step === 'email') {
+      if (fromIg) funnel('email-signup');
+      setStep('password');
+      return;
     }
+    if (password.length < 8) return setError('Use at least 8 characters for your password.');
+    setBusy(true);
+    remember('email');
+    const r = await signUp(email.trim(), password);
+    setBusy(false);
+    if (!r.ok) {
+      try {
+        localStorage.removeItem(START);
+      } catch {
+        /* storage off */
+      }
+      setError(/already/i.test(r.error) ? <>You already have an account with that email. <a href="#/login">Sign in</a></> : r.error);
+    }
+    // Signed in: the app takes over (the "You're in!" step).
   };
 
   return (
-    <section className="lp-onphone" aria-label="Get Halo+ on your laptop">
+    <section className="lp-onphone" aria-label="Make your free Halo+ account">
       <div className="lp-onphone-card">
         <span className="lp-onphone-mark" aria-hidden>
           <IconHalo />
         </span>
-        <h2 className="lp-onphone-title">Hey! Looks like you’re on your {here} 👋</h2>
-        <p className="lp-onphone-lede">Halo+ lives in Chrome on your laptop. Here’s the easiest way to get it there:</p>
-        {done ? (
-          <p className="lp-onphone-done" role="status" tabIndex={-1} ref={doneRef}>
-            {done === 'copied' ? (
-              <>
-                <b>Copied!</b> Paste it in a text or note to yourself, then open it on your laptop. You’re 2 minutes away.
-              </>
-            ) : done === 'already' ? (
-              <>
-                <b>Already sent!</b> Check that inbox (and spam) on your laptop. You’re 2 minutes away.
-              </>
-            ) : (
-              <>
-                <b>Sent!</b> Open it on your laptop and you’re 2 minutes away.
-              </>
-            )}
-          </p>
-        ) : null}
-        {/* One tap: the phone offers the student's own address above the keyboard (type email, autocomplete email). */}
-        <form className="lp-onphone-mail" onSubmit={(e) => void mail(e)} autoComplete="on">
-          <label className="visually-hidden" htmlFor="lp-onphone-email">
-            Your email
-          </label>
-          <input id="lp-onphone-email" name="email" className="input" type="email" inputMode="email" autoComplete="email" enterKeyHint="send" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Your email" required value={email} onChange={(e) => setEmail(e.target.value)} onFocus={() => fromIg && funnel('email-focus')} />
-          <button type="submit" ref={mainRef} className="btn primary block lp-onphone-big" disabled={sending}>
-            {sending ? 'Sending…' : 'Email me the link'}
-          </button>
-          {mailError ? (
-            <p className="lp-onphone-error" role="alert">
-              {mailError}
-            </p>
-          ) : (
-            <p className="lp-onphone-why">
-              <b>Takes 10 seconds.</b> Free, made by a GCU student. Just this one email.
-            </p>
-          )}
-        </form>
-        <button type="button" className="btn block lp-onphone-second" onClick={() => void share()}>
-          {!canShare ? 'Copy the link instead' : ios ? 'Text or AirDrop it to my laptop' : 'Send it to my laptop'}
-        </button>
-        {manual && (
-          <label className="lp-onphone-manual">
-            Copy this link:
-            <input readOnly value={manual} onFocus={(e) => e.currentTarget.select()} />
-          </label>
-        )}
-        <div className="lp-onphone-or" role="separator">
-          <span>or start on your {here}</span>
-        </div>
+        <h2 className="lp-onphone-title">
+          The Halo <span className="lp-onphone-gold">upgrade</span> every GCU student needs.
+        </h2>
+        <p className="lp-onphone-lede">What’s due next on every class, all your classes on one calendar, and search, right on Halo.</p>
         {inApp ? (
           <>
             {/* Google refuses to sign in inside Instagram's browser: the same page in Safari, then one tap. */}
-            <a className="lp-onphone-google" href={safariHref || undefined} onClick={() => fromIg && funnel('safari')}>
+            <a className="lp-onphone-google lp-onphone-main" ref={mainRef as React.Ref<HTMLAnchorElement>} href={safariHref || undefined} onClick={() => fromIg && funnel('safari')}>
               <GoogleG />
-              <span>Open in {ios ? 'Safari' : 'your browser'} to continue with Google</span>
+              <span>Continue with Google in {ios ? 'Safari' : 'your browser'}</span>
             </a>
-            <p className="lp-onphone-hint">Google sign-in doesn’t work inside Instagram. Or tap ••• at the top, then Open in {ios ? 'external browser' : 'browser'}.</p>
+            <p className="lp-onphone-hint">Google sign-in doesn’t work inside Instagram, so this opens {ios ? 'Safari' : 'your browser'}.</p>
           </>
         ) : (
-          <button type="button" className="lp-onphone-google" onClick={() => void startWith('google')} disabled={!!oauth}>
+          <button type="button" ref={mainRef as React.Ref<HTMLButtonElement>} className="lp-onphone-google lp-onphone-main" onClick={() => void startWith('google')} disabled={!!oauth}>
             <GoogleG />
             <span>{oauth === 'google' ? 'Opening Google…' : 'Continue with Google'}</span>
           </button>
@@ -252,19 +180,41 @@ export function PhoneHello() {
             <span>{oauth === 'apple' ? 'Opening Apple…' : 'Continue with Apple'}</span>
           </button>
         )}
-        {oauthError && (
+        <div className="lp-onphone-or" role="separator">
+          <span>or sign up with email</span>
+        </div>
+        <form className="lp-onphone-mail" onSubmit={(e) => void submit(e)} autoComplete="on">
+          <label className="visually-hidden" htmlFor="lp-onphone-email">
+            Your email
+          </label>
+          <input id="lp-onphone-email" name="email" className="input" type="email" inputMode="email" autoComplete="email" enterKeyHint={step === 'email' ? 'next' : 'done'} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Your email" required value={email} readOnly={step === 'password'} onChange={(e) => setEmail(e.target.value)} onFocus={() => fromIg && funnel('email-focus')} />
+          {step === 'password' && (
+            <>
+              <label className="visually-hidden" htmlFor="lp-onphone-password">
+                Make a password
+              </label>
+              <input id="lp-onphone-password" ref={pwRef} name="new-password" className="input" type="password" autoComplete="new-password" enterKeyHint="go" placeholder="Make a password (8+ characters)" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+            </>
+          )}
+          <button type="submit" className="btn block lp-onphone-big lp-onphone-email-btn" disabled={busy}>
+            {busy ? 'Making your account…' : step === 'email' ? 'Sign up with email' : 'Create my account'}
+          </button>
+          {step === 'password' && (
+            <button type="button" className="lp-onphone-link" onClick={() => setStep('email')}>
+              Change email
+            </button>
+          )}
+        </form>
+        {error ? (
           <p className="lp-onphone-error" role="alert">
-            {oauthError}
+            {error}
           </p>
-        )}
-        <p className="lp-onphone-app">
-          <b>Your whole week, in your pocket.</b> Once it’s on your laptop, add the Halo+ app to your Home Screen and your classes, due dates and grades are on your {here} too.{' '}
-          <a href="#/start" onClick={() => fromIg && funnel('app')}>
-            Make your account with email
-          </a>
+        ) : null}
+        <p className="lp-onphone-why">
+          <b>Takes 10 seconds.</b> Free. Made by a GCU student.{count ? ` Join ${count}+ GCU students.` : ''}
         </p>
         <p className="lp-onphone-signin">
-          Already have it on your laptop? <a href="#/login">Sign in</a>
+          Already have an account? <a href="#/login">Sign in</a>
         </p>
       </div>
       <div className="lp-onphone-reel">{on && <video src={`${import.meta.env.BASE_URL}reel/halo-plus-calm.mp4`} poster={`${import.meta.env.BASE_URL}reel/halo-plus-calm.jpg`} muted autoPlay loop playsInline preload="metadata" aria-label="Halo+ on Halo: what’s next on every class, one calendar, search, and checking things off" />}</div>

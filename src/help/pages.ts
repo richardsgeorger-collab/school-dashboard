@@ -616,6 +616,8 @@ li p{margin:2px 0 0;color:var(--ink2);font-size:16px}
   if (acct === 'google' || acct === 'apple') {
     try { localStorage.setItem('school-dashboard:acct-hint', acct); } catch (e) {}
     $('step2').textContent = 'A tab opens: Continue with ' + (acct === 'apple' ? 'Apple' : 'Google') + ', the same account as on your phone (one tap). Then open Halo like always.';
+  } else if (acct === 'email') {
+    $('step2').textContent = 'A tab opens: sign in with your email, the same account as on your phone. Then open Halo like always.';
   }
   // The Instagram funnel: this page opened, and the store button. The source stays on this site for the welcome tab.
   var ig = q.get('src') === 'ig', via = q.get('via'), report = ${JSON.stringify(report)};
@@ -632,7 +634,7 @@ li p{margin:2px 0 0;color:var(--ink2);font-size:16px}
     }
   } catch (e) { return; }
   var send = function (step) {
-    try { fetch(report, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'funnel', vid: vid, step: step, src: 'ig', via: ['share', 'copy', 'email'].indexOf(via) >= 0 ? via : 'direct', device: phone ? 'phone' : 'laptop', browser: edge ? 'Edge' : chromeLike ? 'Chrome' : name }), keepalive: true }); } catch (e) {}
+    try { fetch(report, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'funnel', vid: vid, step: step, src: 'ig', via: ['share', 'copy', 'email', 'reminder'].indexOf(via) >= 0 ? via : 'direct', device: phone ? 'phone' : 'laptop', browser: edge ? 'Edge' : chromeLike ? 'Chrome' : name }), keepalive: true }); } catch (e) {}
   };
   send('laptop');
   $('store').addEventListener('click', function () { send('laptop-store'); });

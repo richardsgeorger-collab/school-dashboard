@@ -7,7 +7,7 @@ import { deviceAndBrowser } from '../ui/device';
  * to the report function (no sign-in) as kind "funnel", once per browser and step, with a random id that lives only in
  * this browser. Only for visitors who came from Instagram; nothing else is sent. Admin: admin_ig_funnel.
  */
-export type FunnelStep = 'visit' | 'fold' | 'email-focus' | 'share' | 'copy' | 'google' | 'apple' | 'safari' | 'app' | 'welcome';
+export type FunnelStep = 'visit' | 'fold' | 'email-focus' | 'email-signup' | 'share' | 'copy' | 'google' | 'apple' | 'safari' | 'app' | 'preview' | 'home-steps' | 'home-screen' | 'welcome';
 const VID = 'school-dashboard:vid';
 const SENT = 'school-dashboard:funnel';
 

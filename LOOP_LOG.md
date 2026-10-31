@@ -517,3 +517,34 @@ One line per change, newest last. Proposals that need George's approval are mark
     - Bug found and fixed: after the auto email, PhoneConnect's second copy still offered "Email me the link".
     - Every test row was removed. Eight Instagram-tagged visit rows from earlier on 2026-10-30, not from these tests and possibly real, were left alone.
     - vitest 1307 passed, tsc and lint clean.
+- Loop 299 (2026-10-30): the phone screen redone as a simple sign-up (George). Screenshots are in docs/screens/phone-signup/: iPhone SE and 15 Pro Max in Safari and Instagram's browser, "You're in!", the Home Screen steps, the preview on Now, Calendar and Classes, after the laptop sync, and Admin.
+  (1) **The first screen** (src/landing/PhoneHello.tsx, signed-out phones and tablets only; desktop and signed-in unchanged): the mark, "The Halo upgrade every GCU student needs.", one line, then:
+    - **Continue with Google** as the main button. In Instagram's browser it is "Continue with Google in Safari", the x-safari link, and Safari carries on with go=google.
+    - **"or sign up with email":** one email field (autofill: type, name, autocomplete and inputmode email), "Sign up with email", then a password field (autocomplete new-password, so the phone suggests one) and "Create my account". It uses the app's own sign-up, without its context, because the landing is pre-rendered. "Already registered" gets a Sign in link.
+    - **The true line:** "Takes 10 seconds. Free. Made by a GCU student. Join 40+ GCU students." The count comes from new public_student_count() (real students only, rounded down; shown from 20; the live answer is 40), never "hundreds" until it is true.
+    - **"Already have an account? Sign in"**, then the reel and the landing.
+    - **Gone:** "you're on your phone" and any talk of emailing links.
+    - **Above the fold:** the main button ends at 406 of 520 px on an iPhone SE inside Instagram, and 374 of 740 on a 15 Pro Max.
+  (2) **After sign-up** (onboarding's phone step, src/onboarding/PhoneConnect.tsx), "You're in! 🎉 One step left, on your laptop":
+    - **The email:** the laptop link goes at once from the account (laptop-link signed in; once per device, never twice per address) and the screen says "We emailed you the link (to …)". "Text or AirDrop it to my laptop" (copy fallback, src/landing/shareLaptop.ts) is the backup.
+    - **"While you wait":**
+      - Explore the preview: the existing demo student as a Preview (demo.ts PREVIEW_FLAG; enterPreview/leaveDemo). A bar above the tab bar says "Preview · Maya Torres, a made-up student. Yours fills in from Halo." with "Back to my account". The preview ends by itself after 6 hours, or the moment the account has classes (checked every minute and on return to the app). The test saw it end in 61 s after a laptop sync, with their own class on the phone.
+      - Add Halo+ to your Home Screen: ComeBack's steps, now HomeSteps, plus a note that the Home Screen app signs in once (iOS keeps its storage apart).
+    - **The Now card** says "One step left, on your laptop." with share and preview. It never emails by itself.
+  (3) **The one reminder** is the existing 'finish_setup' email: once ever, ≥24 h after a sign-up that never synced, the one-a-week limit, an unsubscribe link.
+    - Migration 0052 gives it meta (src, acct), and it now links /laptop/?src=ig&via=reminder&acct=… with "Continue with Google" or "sign in with your email" and "This is the one reminder we said we'd send".
+    - The first email (laptopEmail, signed in) says "If it isn't set up by tomorrow, we'll send you one reminder. That's all."
+    - The laptop page knows acct=email, and the via 'reminder' is counted.
+    - **Tested** with the real email_queue_tick() inside a DO block that always raises, so everything rolls back for every account: the day-old throwaway gets exactly one finish_setup (src ig, acct email); with one already sent, nothing more; nothing stayed in the outbox.
+  (4) **Funnel:**
+    - Migrations 0052 and 0053 add steps email-signup, preview, home-steps and home-screen; the via 'reminder'; accounts by Google, Apple or email; and accounts that opened Halo+ from the Home Screen (usage key home-screen:open, per account, from App.tsx).
+    - Admin's chart: page loaded → main button visible → sign-up started (by method) → account created (by method) → preview → Home Screen → laptop page (email, reminder, share) → installed → first sync → a week later, plus an "old screen" row for comparing.
+    - Deployed: 0052, 0053, laptop-link, report and email-send.
+  (5) **Tests:**
+    - New scripts/e2e-phone-signup.mjs **PASS**: WebKit, Safari and Instagram at SE and 15 Pro Max; email sign-up at Resend's sink; "You're in!" in 1.4 s; the email; the source ig; the Home Screen steps; the preview and back; the laptop sync ending the preview; the reminder rolled back; Admin.
+    - scripts/e2e-ig-path.mjs is trimmed to the laptop half (the phone half lives in the new test): **PASS**.
+    - scripts/e2e-phone-screen.mjs (Loop 298's screen) is retired.
+    - Fixed along the way: the preview bar was covered by the demo's own top notes on a phone, so it sits above the tab bar now.
+    - Every test row was removed. Funnel rows from a browser that keeps visiting the live site (likely George or real visitors) were left alone.
+    - vitest 1307 passed, tsc and lint clean.
+  (6) **Apple:** still built and off (APPLE_SIGNIN), waiting on George's Apple Developer setup.

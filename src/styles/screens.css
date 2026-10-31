@@ -4727,3 +4727,66 @@ button.wi-rung:hover { border-color: var(--accent); }
   margin-top: 4px;
   font-size: 12.5px;
 }
+
+/* "You're in! 🎉" (Loop 299): the phone's step after a sign-up. */
+.phone-in {
+  text-align: left;
+}
+.phone-in-party {
+  margin: 0;
+  font-size: 44px;
+  line-height: 1;
+}
+.phone-in-lede b {
+  color: var(--ink);
+}
+.phone-connect-sent {
+  padding: var(--s-3) var(--s-4);
+  border-radius: 14px;
+  background: var(--ok-soft);
+  color: var(--ink);
+}
+.phone-in-share {
+  margin-top: var(--s-3);
+}
+.phone-in-sub {
+  margin: var(--s-5) 0 var(--s-2);
+  font: 700 13px/1.2 var(--font-body);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.phone-in-tiles {
+  display: grid;
+  gap: var(--s-2);
+}
+.phone-in-tile {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  gap: 4px;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  font: var(--t-body);
+}
+.phone-in-tile b {
+  font-weight: 700;
+  color: var(--ink);
+}
+.phone-in-tile span {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.phone-in-tile:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.phone-in-home {
+  margin-top: var(--s-3);
+}
+.phone-in-done {
+  margin-top: var(--s-5);
+}

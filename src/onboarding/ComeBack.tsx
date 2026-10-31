@@ -117,11 +117,11 @@ function HomePicture({ browser }: { browser: HomeBrowser }) {
   );
 }
 
-export function HomeScreenAsk({ onNext }: { onNext: () => void }) {
+/** The Add to Home Screen steps for this browser, with its picture (also on the "You're in!" step, Loop 299). */
+export function HomeSteps() {
   const b = homeBrowser();
   return (
-    <section className="onboard-step comeback" aria-label="Add Halo+ to your Home Screen">
-      <h1 className="onboard-title">Add Halo+ to your Home Screen</h1>
+    <>
       <ol className="phone-steps">
         {b === 'android' ? (
           <>
@@ -144,6 +144,15 @@ export function HomeScreenAsk({ onNext }: { onNext: () => void }) {
         )}
       </ol>
       <HomePicture browser={b} />
+    </>
+  );
+}
+
+export function HomeScreenAsk({ onNext }: { onNext: () => void }) {
+  return (
+    <section className="onboard-step comeback" aria-label="Add Halo+ to your Home Screen">
+      <h1 className="onboard-title">Add Halo+ to your Home Screen</h1>
+      <HomeSteps />
       <p className="hint">{needsHomeScreenFirst() ? 'Then open Halo+ from your Home Screen and turn on the morning note in You, Notifications.' : 'It opens like an app, full screen, one tap from your Home Screen.'}</p>
       <button type="button" className="btn primary block onboard-big" onClick={onNext}>
         Done

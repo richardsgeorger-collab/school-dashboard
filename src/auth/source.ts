@@ -6,6 +6,15 @@ import { supabase } from './client';
  * profile (profiles.signup_source) so Admin can count the market's sign-ups. Only sources we know are kept.
  */
 export const SLOT = 'school-dashboard:src';
+/** Came by the Instagram path on this device, ever (never forgotten, unlike SLOT): for the funnel's later steps. */
+const FROM_IG = 'school-dashboard:from-ig';
+export function cameFromIg(): boolean {
+  try {
+    return localStorage.getItem(FROM_IG) === '1' || localStorage.getItem(SLOT) === 'ig';
+  } catch {
+    return false;
+  }
+}
 export const SOURCES = ['market', 'store', 'ig'] as const;
 export type Source = (typeof SOURCES)[number];
 
@@ -27,6 +36,7 @@ export function captureSource(hash: string = window.location.hash, search: strin
   const v = sourceIn(hash, search);
   if (!v) return;
   try {
+    if (v === 'ig') localStorage.setItem(FROM_IG, '1');
     if (v === 'store' && localStorage.getItem(SLOT) === 'ig') return;
     localStorage.setItem(SLOT, v);
   } catch {

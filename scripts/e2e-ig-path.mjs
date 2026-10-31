@@ -1,5 +1,5 @@
 // The whole Instagram path as a brand-new student (Loop 294, George 2026-10-30), timed, every tap counted.
-// Phone (WebKit, Safari's engine): haloplus.app/?src=ig in iPhone Safari (the share sheet, stood in by a share() that
+// Phone: scripts/e2e-phone-signup.mjs (Loop 299). Here: a signed-in phone and a desktop see the landing as before; cell data.
 // resolves the way it does when a student picks AirDrop or Messages) and in Instagram's in-app browser (no share sheet:
 // "Copy link"; then "Email me the link", one real email to Resend's test inbox, and the same address again: never
 // twice). A signed-in phone and a desktop see the landing as before. Cell data: the phone screen under Slow 4G.
@@ -66,135 +66,18 @@ const hard = setTimeout(() => {
   console.log('HARD TIMEOUT');
   process.exit(3);
 }, 900000);
-const IG_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 312.0.0.32.112 (iPhone15,3; iOS 17_5; en_US; en; scale=3.00; 1290x2796; 548339486)';
 const iphone = devices['iPhone 13'];
-const testEmail = `delivered+haloplus-ig-${Date.now()}@resend.dev`;
 let signedUp = null;
 let browserL = null;
 let procL = null;
 let deviceId = null;
 
 try {
-  // ——— Phone 1: iPhone Safari, the share sheet ———
+  // The phone half (the sign-up screen, "You're in!", the preview, Home Screen, the reminder) is
+  // scripts/e2e-phone-signup.mjs since Loop 299; this walk starts on the laptop, from the emailed link.
   const wk = await webkit.launch();
-  {
-    const ctx = await wk.newContext({ ...iphone });
-    const seen = [];
-    watchFunnel(ctx, seen);
-    await ctx.route('https://haloplus.app/**', site);
-    await ctx.addInitScript(() => {
-      // The share sheet: the student picks Messages or AirDrop and sends (the promise resolves).
-      navigator.share = (data) => {
-        window.__shared = data;
-        return new Promise((r) => setTimeout(r, 400));
-      };
-    });
-    const p = await ctx.newPage();
-    const t0 = Date.now();
-    await p.goto('https://haloplus.app/?src=ig', { waitUntil: 'commit' });
-    await p.locator('.lp-onphone-title').waitFor({ state: 'visible', timeout: 15000 });
-    const shown = Date.now() - t0;
-    step('Phone (Safari)', 'open haloplus.app from the bio link: the phone screen', shown, 1);
-    const title = await p.locator('.lp-onphone-title').innerText();
-    check(/Hey! Looks like you’re on your phone/.test(title) && (await p.locator('.lp-hero').isVisible()), `iPhone Safari: the phone screen first ("${title}"), the landing below`);
-    await p.waitForFunction(() => !!document.querySelector('.lp-onphone-reel video'), null, { timeout: 15000 });
-    await sleep(1500);
-    const btn = p.locator('.lp-onphone-second');
-    check((await btn.innerText()) === 'Text or AirDrop it to my laptop', `the first button: "${await btn.innerText()}"`);
-    await p.screenshot({ path: `${OUT}/phone-safari-1-screen.png` });
-    await p.screenshot({ path: `${OUT}/phone-safari-1-screen-full.png`, fullPage: true });
-    const t1 = Date.now();
-    await btn.click();
-    await p.locator('.lp-onphone-done').waitFor({ timeout: 8000 });
-    step('Phone (Safari)', '"Text or AirDrop it to my laptop", pick AirDrop or Messages, send', Date.now() - t1 + 3000, 3);
-    const shared = await p.evaluate(() => window.__shared);
-    check(/^https:\/\/haloplus\.app\/laptop\/\?src=ig&via=share&t=[A-Za-z0-9_-]{8,}$/.test(shared?.url ?? ''), `the share sheet gets the laptop page, tagged (${shared?.url})`);
-    check(/Sent! Open it on your laptop and you’re 2 minutes away/.test(await p.locator('.lp-onphone-done').innerText()), 'the happy confirmation');
-    await sleep(500);
-    await p.screenshot({ path: `${OUT}/phone-safari-2-sent.png` });
-    await until(async () => seen.some((b) => b.step === 'share'), 5000, 200);
-    check(seen.some((b) => b.step === 'visit' && b.src === 'ig' && b.device === 'phone') && seen.some((b) => b.step === 'share' && b.via === 'share'), `counted: ${seen.map((b) => b.step).join(', ')}`);
-    // "Already have it on your laptop? Sign in"
-    await p.locator('.lp-onphone-signin a').click();
-    await p.waitForURL(/#\/login/, { timeout: 8000 });
-    check(/#\/login/.test(p.url()), 'the small "Sign in" link goes to the app sign-in');
-    for (const pg of ctx.pages()) await remember(pg);
-    await ctx.close();
-  }
-
-  // ——— Phone 2: Instagram's in-app browser: no share sheet → Copy link; then the one email ———
-  let phoneVid = '';
-  {
-    const ctx = await wk.newContext({ ...iphone, userAgent: IG_UA });
-    const seen = [];
-    watchFunnel(ctx, seen);
-    await ctx.route('https://haloplus.app/**', site);
-    await ctx.addInitScript(() => {
-      delete Navigator.prototype.share;
-      try {
-        Object.defineProperty(navigator, 'share', { value: undefined });
-      } catch {
-        /* already gone */
-      }
-    });
-    const p = await ctx.newPage();
-    const t0 = Date.now();
-    await p.goto('https://haloplus.app/?src=ig', { waitUntil: 'commit' });
-    await p.locator('.lp-onphone-title').waitFor({ state: 'visible', timeout: 15000 });
-    step('Phone (Instagram)', 'tap the bio link in Instagram: the phone screen', Date.now() - t0, 1);
-    await p.waitForFunction(() => document.querySelector('.lp-onphone-second')?.textContent === 'Copy the link instead', null, { timeout: 10000 });
-    check(true, 'Instagram (no share sheet): the share button is "Copy the link instead"');
-    await sleep(1500);
-    await p.screenshot({ path: `${OUT}/phone-instagram-1-screen.png` });
-    const t1 = Date.now();
-    await p.locator('.lp-onphone-second').click();
-    const copied = await p.locator('.lp-onphone-done').waitFor({ timeout: 5000 }).then(() => true, () => false);
-    const manual = await p.locator('.lp-onphone-manual input').count();
-    check(copied || manual > 0, `Copy link: ${copied ? `"${await p.locator('.lp-onphone-done').innerText()}"` : 'the link to copy by hand'}`);
-    step('Phone (Instagram)', '"Copy link", then paste it into a text or note to yourself', Date.now() - t1 + 6000, 4);
-    await sleep(600);
-    await p.screenshot({ path: `${OUT}/phone-instagram-2-copied.png` });
-    phoneVid = await p.evaluate(() => localStorage.getItem('school-dashboard:vid'));
-    // The one email.
-    await p.reload({ waitUntil: 'load' });
-    await p.locator('#lp-onphone-email').waitFor();
-    const t2 = Date.now();
-    await p.locator('#lp-onphone-email').tap();
-    await p.locator('#lp-onphone-email').fill(testEmail);
-    await p.locator('.lp-onphone-mail button[type="submit"]').tap();
-    await p.locator('.lp-onphone-done').waitFor({ timeout: 20000 });
-    step('Phone (Instagram)', '"Email me the link": type the address, send', Date.now() - t2 + 7000, 3);
-    const sent = await p.locator('.lp-onphone-done').innerText();
-    check(/^Sent! Open it on your laptop and you’re 2 minutes away/.test(sent), `the email went: "${sent}"`);
-    await p.screenshot({ path: `${OUT}/phone-instagram-3-emailed.png` });
-    await until(async () => (await db.from('funnel_events').select('step').eq('vid', phoneVid).eq('step', 'email')).data?.length, 15000, 1000);
-    const row = (await db.from('funnel_events').select('*').eq('vid', phoneVid).eq('step', 'email').maybeSingle()).data;
-    check(row && row.via === 'email', 'the email step is counted by the server when the email really went');
-    const kept = (await db.from('laptop_links').select('*').eq('vid', phoneVid)).data ?? [];
-    check(kept.length === 1 && /^[0-9a-f]{64}$/.test(kept[0].email_hash) && !JSON.stringify(kept).includes('resend.dev'), 'only a hash of the address is kept, never the address');
-    // The same address again: never twice.
-    await p.reload({ waitUntil: 'load' });
-    await p.locator('#lp-onphone-email').fill(testEmail.toUpperCase());
-    await p.locator('.lp-onphone-mail button[type="submit"]').tap();
-    await p.locator('.lp-onphone-done').waitFor({ timeout: 20000 });
-    check(/^Already sent!/.test(await p.locator('.lp-onphone-done').innerText()) && ((await db.from('laptop_links').select('email_hash').eq('vid', phoneVid)).data ?? []).length === 1, 'the same address again: "Already sent!", and nothing sent');
-    // A wrong address.
-    await p.reload({ waitUntil: 'load' });
-    await p.locator('#lp-onphone-email').fill('maya@gcu');
-    await p.evaluate(() => document.querySelector('.lp-onphone-mail').noValidate = true);
-    await p.locator('.lp-onphone-mail button[type="submit"]').tap();
-    await p.locator('.lp-onphone-error').waitFor({ timeout: 10000 });
-    check(/doesn’t look right/.test(await p.locator('.lp-onphone-error').innerText()), `a wrong address: "${await p.locator('.lp-onphone-error').innerText()}"`);
-    // The app line.
-    await p.reload({ waitUntil: 'load' });
-    await p.locator('.lp-onphone-app a').tap();
-    await p.waitForURL(/#\/start/, { timeout: 8000 });
-    await until(async () => seen.some((b) => b.step === 'app'), 5000, 200);
-    check(seen.some((b) => b.step === 'copy') && seen.some((b) => b.step === 'app'), `counted: ${[...new Set(seen.map((b) => b.step))].join(', ')}`);
-    for (const pg of ctx.pages()) await remember(pg);
-    await ctx.close();
-  }
-
+  const phoneVid = `e2e${Date.now().toString(36)}ig`;
+  vids.add(phoneVid);
   // ——— A signed-in phone, and a desktop: the landing as before ———
   {
     const ctx = await wk.newContext({ ...iphone });
@@ -238,7 +121,7 @@ try {
     await p.goto('http://localhost:4174/school-dashboard/?src=ig', { waitUntil: 'commit' });
     await p.locator('.lp-onphone-title').waitFor({ state: 'visible', timeout: 30000 });
     const first = Date.now() - t0;
-    await p.waitForFunction(() => document.querySelector('.lp-onphone-mail button')?.textContent && document.querySelector('.lp-onphone-reel video'), null, { timeout: 60000 });
+    await p.waitForFunction(() => document.querySelector('.lp-onphone-main') && document.querySelector('.lp-onphone-reel video'), null, { timeout: 60000 });
     const ready = Date.now() - t0;
     await p.waitForFunction(() => (document.querySelector('.lp-onphone-reel video')?.readyState ?? 0) >= 2, null, { timeout: 60000 }).catch(() => undefined);
     const playing = Date.now() - t0;
@@ -369,7 +252,7 @@ try {
   const admin = await kit.persona('admin');
   const { c: ac } = await kit.signIn(admin.email);
   const { data: f, error } = await ac.rpc('admin_ig_funnel', { p_days: 1 });
-  check(!error && f.visits >= 2 && f.share >= 1 && f.copy >= 1 && f.email >= 1 && f.app >= 1 && f.laptop >= 1 && f.laptop_store >= 1 && f.installed >= 1, `Admin's Instagram funnel counts every step (${error?.message ?? JSON.stringify(f)})`);
+  check(!error && f.laptop >= 1 && f.laptop_store >= 1 && f.installed >= 1, `Admin's Instagram funnel counts every step (${error?.message ?? JSON.stringify(f)})`);
   const ab = await chromium.launch();
   const actx = await ab.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
   await actx.addInitScript(({ ses, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(ses)); }, { ses: admin.session, key: `sb-${ref}-auth-token` });

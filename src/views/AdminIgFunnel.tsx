@@ -13,6 +13,14 @@ export interface IgFunnel {
   apple?: number;
   safari?: number;
   signed_up_phone?: number;
+  email_signup?: number;
+  preview?: number;
+  home_steps?: number;
+  home_screen_accounts?: number;
+  signed_up_google?: number;
+  signed_up_apple?: number;
+  signed_up_email?: number;
+  laptop_reminder?: number;
   share: number;
   copy: number;
   email: number;
@@ -30,25 +38,25 @@ export interface IgFunnel {
 }
 
 /**
- * The phone screen's steps, in order (Loop 298, George: "find where people stop"): each with its count and its share of
+ * The phone screen's steps, in order (Loop 298; the sign-up screen since Loop 299, George: "so we can compare to the old screen"): each with its count and its share of
  * the visits, and how many fewer than the step before. Share and Google/Apple are side roads off the email, so the
  * drop is shown only on the main path (page → button → email box → email → laptop → installed → sync).
  */
 export function igSteps(f: IgFunnel): { label: string; n: number; detail?: string; from?: number }[] {
   const visits = f.visits;
+  const started = (f.google ?? 0) + (f.apple ?? 0) + (f.email_signup ?? 0);
   return [
     { label: 'Page loaded', n: visits, detail: `${f.visits_phone} on a phone or tablet` },
     { label: 'Main button visible without scrolling', n: f.fold ?? 0, from: visits },
-    { label: 'Email box tapped', n: f.email_focus ?? 0, from: f.fold ?? visits },
-    { label: 'Email sent', n: f.email, from: f.email_focus ?? 0 },
-    { label: 'Share tapped', n: f.share + f.copy, detail: `another way to the laptop: share sheet ${f.share} · copy link ${f.copy}` },
-    { label: 'Google / Apple tapped', n: (f.google ?? 0) + (f.apple ?? 0), detail: `starting on the phone: Google ${f.google ?? 0} · Apple ${f.apple ?? 0} · Open in Safari ${f.safari ?? 0}` },
-    { label: 'Account made on the phone', n: f.signed_up_phone ?? 0, from: (f.google ?? 0) + (f.apple ?? 0) },
-    { label: 'Laptop page opened', n: f.laptop, detail: `from a share or copy ${f.laptop_share} · from an email ${f.laptop_email} · pressed Add to Chrome ${f.laptop_store}`, from: f.email + f.share + f.copy + (f.signed_up_phone ?? 0) },
+    { label: 'Sign-up started', n: started, detail: `Google ${f.google ?? 0} (Open in Safari ${f.safari ?? 0}) · Apple ${f.apple ?? 0} · email ${f.email_signup ?? 0}`, from: f.fold ?? visits },
+    { label: 'Account created', n: f.signed_up, detail: `Google ${f.signed_up_google ?? 0} · Apple ${f.signed_up_apple ?? 0} · email ${f.signed_up_email ?? 0}`, from: started },
+    { label: 'Preview opened', n: f.preview ?? 0, detail: 'while waiting for the laptop' },
+    { label: 'Home Screen', n: f.home_screen_accounts ?? 0, detail: `steps opened ${f.home_steps ?? 0} · accounts that opened Halo+ from the Home Screen ${f.home_screen_accounts ?? 0}` },
+    { label: 'Laptop page opened', n: f.laptop, detail: `from the email ${f.laptop_email} · from the reminder ${f.laptop_reminder ?? 0} · from a share or copy ${f.laptop_share} · pressed Add to Chrome ${f.laptop_store}`, from: f.signed_up },
     { label: 'Extension installed', n: f.installed, detail: 'the welcome tab after the install', from: f.laptop },
-    { label: 'Signed up (all ways)', n: f.signed_up },
-    { label: 'First sync', n: f.first_sync, from: f.signed_up },
+    { label: 'First sync', n: f.first_sync, from: f.installed > f.signed_up ? f.installed : f.signed_up },
     { label: 'Still using a week later', n: f.week_later, detail: `of ${f.week_eligible} old enough`, from: f.week_eligible },
+    { label: 'Old screen: link emailed or shared', n: f.email + f.share + f.copy, detail: `email ${f.email} · share ${f.share} · copy ${f.copy} (the "on your phone" screen until Loop 299; for comparing)` },
   ];
 }
 

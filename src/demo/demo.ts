@@ -17,6 +17,14 @@ export const DEMO_PENDING_KEY = 'school-dashboard:pending:demo';
 export const DEMO_SNAPSHOT_KEY = 'school-dashboard:now-snapshot:demo';
 export const DEMO_DB_NAME = 'school-dashboard-announcements-demo';
 export const DEMO_STUDENT = 'Maya Torres';
+/**
+ * The same demo opened by a new student on their phone as a Preview (Loop 299): what their Now, Calendar and Classes will
+ * look like once Halo syncs. Its own label and way back (to their own account, not Admin), and it ends by itself.
+ */
+export const PREVIEW_FLAG = 'school-dashboard:preview';
+export function isPreview(): boolean {
+  return isDemo() && get(PREVIEW_FLAG) !== null;
+}
 
 const get = (k: string): string | null => {
   try {

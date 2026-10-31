@@ -27,11 +27,11 @@ Deno.serve(async (req) => {
   }
   // Signed in (an account just made on the phone with Google or Apple): the account's own address, no typing.
   const me = (req.headers.get('authorization') ?? '').startsWith('Bearer ') ? await userFromRequest(req) : null;
-  let acct: 'google' | 'apple' | null = null;
+  let acct: 'google' | 'apple' | 'email' | null = null;
   if (me) {
     const { data } = await admin().auth.admin.getUserById(me.id);
     const p = data?.user?.app_metadata?.provider;
-    acct = p === 'google' || p === 'apple' ? p : null;
+    acct = p === 'google' || p === 'apple' ? p : 'email';
   }
   const email = cleanEmail(me ? me.email : body.email);
   if (!email) return reply(200, { ok: false, why: 'email' });

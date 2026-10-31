@@ -61,14 +61,21 @@ export function renderEmail(kind: string, meta: Record<string, unknown>, unsubUr
   }
   if (kind === 'finish_setup') {
     // Once ever, a day or more after a sign-up that never synced (George, 2026-10-13). Counts toward the week's one.
+    // The one reminder the phone sign-up's first email promised (Loop 299): to the laptop page, the way they sign in.
+    const acct = meta.acct === 'google' || meta.acct === 'apple' ? meta.acct : 'email';
+    const q = new URLSearchParams();
+    if (meta.src === 'ig') q.set('src', 'ig');
+    q.set('via', 'reminder');
+    if (meta.acct === 'google' || meta.acct === 'apple' || meta.acct === 'email') q.set('acct', acct);
+    const how = acct === 'apple' ? 'Continue with Apple' : acct === 'google' ? 'Continue with Google' : 'sign in with your email';
     return wrap(
       'Your Halo+ classes are 2 minutes away',
       [
-        "You made a Halo+ account, but your classes haven't come in from Halo yet. That part happens on a laptop, and it takes about 2 minutes.",
-        'On your laptop, open haloplus.app in Chrome, Edge or Brave and press Add to Chrome. Halo+ opens Halo and brings in your classes, due dates and announcements by itself, then keeps them current.',
-        "Your 7 free days of Max start when your classes first sync, and only days you open Halo+ count, so none of it is used up yet.",
+        "You made a Halo+ account, but your classes haven't come in from Halo yet. That part happens once on a laptop, and it takes about 2 minutes.",
+        `On your laptop, in Chrome or Edge: open the link below, add Halo+, ${how}, and open Halo. Halo+ brings in your classes, due dates and announcements by itself, then keeps them current, on your phone too.`,
+        "Your 7 free days of Max start when your classes first sync, and only days you open Halo+ count, so none of it is used up yet. This is the one reminder we said we'd send.",
       ],
-      { label: 'Finish setup on my laptop', url: `${SITE}/#/now` },
+      { label: 'Finish on my laptop', url: `${SITE}/laptop/?${q.toString()}` },
       unsubUrl,
     );
   }

@@ -63,9 +63,15 @@ describe('the two student emails (George, 2026-10-09)', () => {
     expect(maySend('finish_setup', { lastNonAccountSentAt: null, lastOpenedAt: '2026-10-13T10:00:00Z', now }).ok).toBe(true);
     const m = renderEmail('finish_setup', {}, unsubForSetup)!;
     expect(m.subject).toBe('Your Halo+ classes are 2 minutes away');
-    expect(m.text).toContain('Add to Chrome');
+    expect(m.text).toContain('add Halo+');
     expect(m.text).toContain('none of it is used up yet');
-    expect(m.text).toContain('https://haloplus.app/#/now');
+    expect(m.text).toContain('This is the one reminder');
+    expect(m.text).toContain('https://haloplus.app/laptop/?via=reminder');
     expect(m.text).toContain(unsubForSetup);
+    // From the phone screen (Loop 299): Instagram counted, and the way they sign in on the laptop.
+    const g = renderEmail('finish_setup', { src: 'ig', acct: 'google' }, unsubForSetup)!;
+    expect(g.text).toContain('https://haloplus.app/laptop/?src=ig&via=reminder&acct=google');
+    expect(g.text).toContain('Continue with Google');
+    expect(renderEmail('finish_setup', { src: 'ig', acct: 'email' }, unsubForSetup)!.text).toContain('sign in with your email');
   });
 });

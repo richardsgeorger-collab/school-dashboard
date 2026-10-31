@@ -1,5 +1,7 @@
 import { ExtensionSetup } from './onboarding/ExtensionSetup';
 import { isDemo } from './demo/demo';
+import { bump } from './analytics/usage';
+import { isStandalone } from './notify/push';
 import { DemoHost } from './demo/DemoHost';
 import { type ExtSetupKind, extSetupDue } from './onboarding/extSetup';
 import { useNeverSynced } from './onboarding/Setup';
@@ -186,6 +188,10 @@ function HaloHandoff() {
   // extension drops each sync into this account. It can drop off a sync and nothing else. Gone when signed out.
   const userId = account.session?.user.id ?? null;
   signedIn.current = !!userId;
+  // Opened from the Home Screen (Loop 299): counted per account for Admin's Instagram funnel ("home screen added").
+  useEffect(() => {
+    if (userId && isStandalone() && !isDemo()) bump('home-screen:open');
+  }, [userId]);
   // A sync handed over for one account is not shown past its sign-out: the next sign-in on this computer may be someone
   // else's (George, 2026-10-09).
   useEffect(() => {

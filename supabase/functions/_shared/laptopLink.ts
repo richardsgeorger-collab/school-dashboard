@@ -8,10 +8,10 @@ export const PER_IP_DAY = 8;
 /** Everyone, per day: a ceiling on the one-off emails, whatever happens. */
 export const ALL_DAY = 400;
 
-export const FUNNEL_STEPS = ['visit', 'fold', 'email-focus', 'email', 'share', 'copy', 'google', 'apple', 'safari', 'app', 'laptop', 'laptop-store', 'welcome'] as const;
+export const FUNNEL_STEPS = ['visit', 'fold', 'email-focus', 'email', 'email-signup', 'share', 'copy', 'google', 'apple', 'safari', 'app', 'preview', 'home-steps', 'home-screen', 'laptop', 'laptop-store', 'welcome'] as const;
 export type FunnelStep = (typeof FUNNEL_STEPS)[number];
 const VID = /^[A-Za-z0-9_-]{8,40}$/;
-const VIA = ['share', 'copy', 'email', 'direct'];
+const VIA = ['share', 'copy', 'email', 'reminder', 'direct'];
 const DEVICES = ['phone', 'tablet', 'laptop'];
 
 /** A tidy address, or null: one address, no spaces, a dot in the domain, at most 254 characters. */
@@ -25,7 +25,8 @@ export function cleanEmail(raw: unknown): string | null {
 export const cleanVid = (v: unknown): string | null => (typeof v === 'string' && VID.test(v) ? v : null);
 
 /** The laptop page, tagged so the funnel knows where it came from. */
-export function laptopUrl(via: 'share' | 'copy' | 'email', src: 'ig' | null, vid: string | null, acct: 'google' | 'apple' | null = null): string {
+export type Acct = 'google' | 'apple' | 'email';
+export function laptopUrl(via: 'share' | 'copy' | 'email' | 'reminder', src: 'ig' | null, vid: string | null, acct: Acct | null = null): string {
   const q = new URLSearchParams();
   if (src) q.set('src', src);
   q.set('via', via);
@@ -38,13 +39,13 @@ export function laptopUrl(via: 'share' | 'copy' | 'email', src: 'ig' | null, vid
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** The one email. No unsubscribe line: there is nothing to unsubscribe from (it is the only one, and the address is not kept). */
-export function laptopEmail(url: string, acct: 'google' | 'apple' | null = null): { subject: string; text: string; html: string } {
+export function laptopEmail(url: string, acct: Acct | null = null): { subject: string; text: string; html: string } {
   const subject = 'Open this on your laptop';
-  const name = acct === 'apple' ? 'Apple' : 'Google';
+  const how = acct === 'apple' ? 'Continue with Apple' : acct === 'google' ? 'Continue with Google' : 'sign in with your email';
   const lines = acct
-    ? ['You’re signed up for Halo+. Open this on your laptop:', `In Chrome or Edge it takes about 2 minutes: add Halo+, then Continue with ${name} (one tap, the same account as on your phone), and open Halo. That’s it.`]
+    ? ['You’re in! Halo+ has one step left, on your laptop. Open this there:', `In Chrome or Edge it takes about 2 minutes: add Halo+, ${how} (the same account as on your phone), and open Halo. That’s it.`]
     : ['Here’s your Halo+ link. Open this on your laptop:', 'In Chrome or Edge it takes about 2 minutes: add Halo+, make your free account, open Halo. That’s it.'];
-  const foot = acct ? 'You made your Halo+ account on your phone, so we sent this one email. That’s all: no follow-ups.' : 'You asked for this one email on haloplus.app. Just this one: we won’t email you again, and we didn’t keep your address.';
+  const foot = acct ? 'If it isn’t set up by tomorrow, we’ll send you one reminder. That’s all: no other emails about this.' : 'You asked for this one email on haloplus.app. Just this one: we won’t email you again, and we didn’t keep your address.';
   const text = `${lines[0]}\n\n${url}\n\n${lines[1]}\n\n${foot}`;
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f7f9;font:16px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1b1d22"><div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px"><p style="margin:0 0 16px;font-weight:800;font-size:20px">Halo+</p><p style="margin:0 0 14px">${esc(lines[0])}</p><p style="margin:20px 0 20px"><a href="${esc(url)}" style="display:inline-block;background:#f2b84b;color:#141414;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:10px">Open Halo+ on my laptop</a></p><p style="margin:0 0 14px">${esc(lines[1])}</p><p style="margin:24px 0 0;font-size:13px;color:#6b7280">${esc(foot)}</p></div></body></html>`;
   return { subject, text, html };

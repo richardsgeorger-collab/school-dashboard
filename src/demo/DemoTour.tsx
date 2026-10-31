@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRoute } from '../router';
 import { useStore } from '../storage/store';
 import { leaveDemo, TOUR_KEY } from './DemoHost';
-import { DEMO_STUDENT } from './demo';
+import { DEMO_STUDENT, isPreview } from './demo';
 
 interface Step {
   /** Where the moment is. */
@@ -77,6 +77,18 @@ export function DemoTour() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, dqDone]);
   void navigate;
+  if (isPreview())
+    return (
+      <div className="demo-chip demo-chip-preview" role="status">
+        <span className="demo-chip-dot" aria-hidden />
+        <span>
+          <b>Preview</b> · {DEMO_STUDENT}, a made-up student. Yours fills in from Halo.
+        </span>
+        <button type="button" className="demo-chip-btn" onClick={leaveDemo}>
+          Back to my account
+        </button>
+      </div>
+    );
   return (
     <>
       <div className="demo-chip" role="status">
