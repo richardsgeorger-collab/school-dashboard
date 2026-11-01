@@ -1,5 +1,18 @@
 # Chrome Web Store listing kit
 
+## 0.12.16 (2026-11-01): upload this package instead of 0.12.15; everything else as below
+
+0.12.16 (Loop 304): the extension counts itself, anonymously: one "still installed" note a day (a random id for the
+browser, the version, the plan or "no account", signed in or not), an "installed" note, and on removal Chrome opens
+haloplus.app/bye (counts it, one optional "what didn't work?"). Test browsers mark themselves. **No new permission**
+(setUninstallURL and management.getSelf need none). Upload `webstore-upload/halo-plus-extension-0.12.16.zip`.
+
+**Privacy tab: no change needed.** It stays "Website content" only, with the three certifications. Google's categories
+are personal data (identity, health, financial, authentication, personal communications, location, web history, user
+activity such as clicks and keystrokes, website content). A random browser id, a version, a plan and a signed-in flag
+are none of these, the same as the error reports the extension already sends. The privacy policy (haloplus.app/privacy.html)
+now describes the daily count and the removal page; its URL on the tab is unchanged.
+
 ## 0.12.15 (2026-10-30): upload this package instead of 0.12.14; everything else as below
 
 0.12.15 (Loop 291): the NEXT box on Halo's class cards shows participation only in spots nothing else fills (everything

@@ -68,6 +68,11 @@
   } catch {
     /* storage unavailable */
   }
+  // This browser's random id (0.12.16), so Admin, opened here, can leave the owner's own browsers out of the user count.
+  chrome.storage.local
+    .get('deviceId')
+    .then(({ deviceId }) => deviceId && localStorage.setItem('school-dashboard:ext-device', deviceId))
+    .catch(() => undefined);
   const early = setInterval(report, 2000);
   setTimeout(() => clearInterval(early), 60_000);
   // The snapshot changes as work is checked off; a slow look keeps the extension current without a storage event.

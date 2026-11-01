@@ -29,6 +29,8 @@ export function Welcome() {
     // The welcome tab opens right after the Web Store install: for someone who came by the Instagram path (the laptop
     // page left the source on this site), that is the "installed" step of Admin's Instagram funnel (Loop 294).
     if (pendingSource() === 'ig') funnel('welcome', { via: 'direct' });
+    // Every welcome tab, for Admin's install→account funnel (Loop 304): opened, then sign-up started.
+    else if (!auth.session) funnel('welcome', { src: 'store' });
     // Already signed in on arrival: an account from the site that then installed from the store keeps its own source.
     if (auth.session) forgetSource();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -63,7 +65,7 @@ export function Welcome() {
           <p className="hint">Nothing else to set up. Your first sync starts on its own the next time you're on Halo.</p>
         </section>
       ) : (
-        <section className="login-box" aria-label="Make your free account">
+        <section className="login-box" aria-label="Make your free account" onSubmitCapture={() => funnel('signup-start', { src: pendingSource() === 'ig' ? 'ig' : 'store' })}>
           <p className="eyebrow">The extension is installed</p>
           <h1 className="landing-title">One step left.</h1>
           <p className="landing-lede">Make your free Halo+ account (not your GCU login). The next time you're on Halo, your classes, due dates and grades come in on their own.</p>

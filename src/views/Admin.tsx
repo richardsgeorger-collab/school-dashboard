@@ -10,6 +10,7 @@ import { AdminExtension } from './AdminExtension';
 import { AdminFunnel } from './AdminFunnel';
 import { AdminSignupFunnel } from './AdminSignupFunnel';
 import { AdminIgFunnel } from './AdminIgFunnel';
+import { AdminExtUsers } from './AdminExtUsers';
 import { AdminSyncHealth } from './AdminSyncHealth';
 import { AdminTrials } from './AdminTrials';
 import { AdminPlans } from './AdminPlans';
@@ -73,6 +74,7 @@ export function Admin() {
         <AdminSyncHealth />
         <AdminPlans />
         <AdminTrials />
+        <AdminExtUsers />
         <AdminIgFunnel />
         <AdminSignupFunnel />
         <AdminFunnel />

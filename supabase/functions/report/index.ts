@@ -7,6 +7,7 @@ import { recordSyncRun } from '../_shared/syncRun.ts';
 import { recordHaloUi } from '../_shared/haloUi.ts';
 import { recordExtInstall } from '../_shared/extInstall.ts';
 import { recordFunnel } from '../_shared/funnel.ts';
+import { recordExtPing, recordExtUninstall } from '../_shared/extUsers.ts';
 
 const PER_DEVICE = 30;
 const cors = {
@@ -35,6 +36,9 @@ Deno.serve(async (req) => {
   if ((body as { kind?: string }).kind === 'halo-ui') return reply(200, await recordHaloUi(db, body as unknown as Record<string, unknown>));
   // The extension installed, and then linked to the account that signed in (Loop 268): Admin's Web Store funnel.
   if ((body as { kind?: string }).kind === 'ext-install' || (body as { kind?: string }).kind === 'ext-linked') return reply(200, await recordExtInstall(db, body as unknown as Record<string, unknown>));
+  // The extension counting itself (Loop 304): a daily anonymous ping, and an uninstall from haloplus.app/bye.
+  if ((body as { kind?: string }).kind === 'ext-ping') return reply(200, await recordExtPing(db, body as unknown as Record<string, unknown>));
+  if ((body as { kind?: string }).kind === 'ext-uninstall') return reply(200, await recordExtUninstall(db, body as unknown as Record<string, unknown>));
   // The Instagram path's signed-out steps (Loop 294): Admin's Instagram funnel.
   if ((body as { kind?: string }).kind === 'funnel') return reply(200, await recordFunnel(db, body as unknown as Record<string, unknown>));
   const entries = (Array.isArray(body.entries) ? body.entries : [body]).slice(0, 5);

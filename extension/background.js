@@ -71,6 +71,49 @@ function browserName() {
  * How one sync run went (0.7.6), for Admin's sync success rate: when it started, how it ended and why, whether reloading
  * Halo rescued it. Filed under the account of this browser's sync key. Nothing about the student's classes.
  */
+/**
+ * A test run, never a student (0.12.16): headless, Chrome for Testing, driven by automation, or this extension loaded from
+ * its source folder (not installed from the store). Its counts are kept apart from real users.
+ */
+const testBrowserP = (async () => {
+  if (/Headless/.test(navigator.userAgent) || navigator.webdriver) return true;
+  const brands = (navigator.userAgentData && navigator.userAgentData.brands) || [];
+  if (brands.some((b) => /Chrome for Testing/i.test(b.brand))) return true;
+  try {
+    return (await chrome.management.getSelf()).installType === 'development';
+  } catch {
+    return false;
+  }
+})();
+
+/**
+ * One anonymous "still here" a day (0.12.16, George: "an accurate extension user count"): this browser's random id, the
+ * version, the plan (or "none" without an account) and whether an account is signed in. Nothing about the student, no
+ * Halo data. Checked whenever the worker wakes; sent at most once a calendar day.
+ */
+async function pingDaily() {
+  try {
+    const day = new Date().toLocaleDateString('en-CA');
+    const { pingDay, tier, syncKey } = await chrome.storage.local.get(['pingDay', 'tier', 'syncKey']);
+    if (pingDay === day) return;
+    await chrome.storage.local.set({ pingDay: day });
+    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-ping', device_id: await deviceIdP, ext_version: VERSION, plan: syncKey ? tier || 'free' : 'none', signed_in: !!syncKey, test: await testBrowserP }) });
+  } catch {
+    /* a count, never in the way: tried again next time */
+  }
+}
+/** Removing the extension opens haloplus.app/bye (0.12.16): counted as an uninstall, with one optional "what didn't work?". */
+async function setUninstallPage() {
+  try {
+    await chrome.runtime.setUninstallURL(`${DASH_ORIGIN}/bye/?d=${encodeURIComponent(await deviceIdP)}&v=${encodeURIComponent(VERSION)}`);
+  } catch {
+    /* never in the way */
+  }
+}
+void setUninstallPage();
+void pingDaily();
+chrome.runtime.onStartup.addListener(() => void pingDaily());
+
 /** The welcome tab after a Web Store install (0.11.0): sign up in one step. `src=store` marks the account's source. */
 const WELCOME_URL = `${DASH_ORIGIN}/#/welcome?src=store`;
 
@@ -78,7 +121,7 @@ const WELCOME_URL = `${DASH_ORIGIN}/#/welcome?src=store`;
 async function reportInstall(source) {
   try {
     // A headless browser is a test run, never a student: the server leaves it out of the count.
-    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-install', source, device_id: await deviceIdP, ext_version: VERSION, browser: browserName(), headless: /Headless/.test(navigator.userAgent) }) });
+    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-install', source, device_id: await deviceIdP, ext_version: VERSION, browser: browserName(), headless: /Headless/.test(navigator.userAgent), test: await testBrowserP }) });
   } catch {
     /* a count, never in the way */
   }
@@ -750,6 +793,7 @@ chrome.alarms.onAlarm.addListener((a) => {
   if (a.name === 'halo-badge') {
     void updateBadge();
     void fetchDone();
+    void pingDaily();
   }
 });
 

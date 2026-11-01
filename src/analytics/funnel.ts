@@ -7,9 +7,10 @@ import { deviceAndBrowser } from '../ui/device';
  * to the report function (no sign-in) as kind "funnel", once per browser and step, with a random id that lives only in
  * this browser. Only for visitors who came from Instagram; nothing else is sent. Admin: admin_ig_funnel.
  */
-export type FunnelStep = 'visit' | 'fold' | 'email-focus' | 'email-signup' | 'share' | 'copy' | 'google' | 'apple' | 'safari' | 'app' | 'preview' | 'home-steps' | 'home-screen' | 'welcome';
+export type FunnelStep = 'visit' | 'fold' | 'email-focus' | 'email-signup' | 'share' | 'copy' | 'google' | 'apple' | 'safari' | 'app' | 'preview' | 'home-steps' | 'home-screen' | 'welcome' | 'signup-start';
 const VID = 'school-dashboard:vid';
 const SENT = 'school-dashboard:funnel';
+/** Each source's steps are sent once per browser, separately. */
 
 /** This browser's random id (16 url-safe characters), made once. */
 export function visitorId(): string {
@@ -26,17 +27,19 @@ export function visitorId(): string {
 }
 
 /** Sends one step, once per browser. Never throws, never blocks. */
-export function funnel(step: FunnelStep, o: { via?: string } = {}): void {
+export function funnel(step: FunnelStep, o: { via?: string; src?: 'ig' | 'store' } = {}): void {
   try {
     const url = reportUrl();
     const vid = visitorId();
     if (!url || !vid) return;
+    const src = o.src ?? 'ig';
+    const tag = src === 'ig' ? step : `${src}:${step}`;
     const sent = new Set((localStorage.getItem(SENT) ?? '').split(',').filter(Boolean));
-    if (sent.has(step)) return;
-    sent.add(step);
+    if (sent.has(tag)) return;
+    sent.add(tag);
     localStorage.setItem(SENT, [...sent].join(','));
     const { device, browser } = deviceAndBrowser();
-    void fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'funnel', vid, step, src: 'ig', via: o.via, device, browser }), keepalive: true }).catch(() => undefined);
+    void fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'funnel', vid, step, src, via: o.via, device, browser }), keepalive: true }).catch(() => undefined);
   } catch {
     /* storage or network off: not counted */
   }

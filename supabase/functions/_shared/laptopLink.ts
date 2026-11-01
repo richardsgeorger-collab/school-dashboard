@@ -8,7 +8,7 @@ export const PER_IP_DAY = 8;
 /** Everyone, per day: a ceiling on the one-off emails, whatever happens. */
 export const ALL_DAY = 400;
 
-export const FUNNEL_STEPS = ['visit', 'fold', 'email-focus', 'email', 'email-signup', 'share', 'copy', 'google', 'apple', 'safari', 'app', 'preview', 'home-steps', 'home-screen', 'laptop', 'laptop-store', 'welcome'] as const;
+export const FUNNEL_STEPS = ['visit', 'fold', 'email-focus', 'email', 'email-signup', 'share', 'copy', 'google', 'apple', 'safari', 'app', 'preview', 'home-steps', 'home-screen', 'laptop', 'laptop-store', 'welcome', 'signup-start'] as const;
 export type FunnelStep = (typeof FUNNEL_STEPS)[number];
 const VID = /^[A-Za-z0-9_-]{8,40}$/;
 const VIA = ['share', 'copy', 'email', 'reminder', 'direct'];
@@ -65,16 +65,18 @@ export const callerIp = (h: { get(name: string): string | null }): string => (h.
  * A funnel step a browser reports (no sign-in), as a row, or null when anything is off: a known step, the Instagram
  * source, a browser id, and the optional how (via), device and browser name.
  */
-export function funnelRow(b: Record<string, unknown>): { vid: string; step: FunnelStep; src: 'ig'; via: string | null; device: string | null; browser: string | null } | null {
+export function funnelRow(b: Record<string, unknown>): { vid: string; step: FunnelStep; src: 'ig' | 'store'; via: string | null; device: string | null; browser: string | null } | null {
   const vid = cleanVid(b.vid);
   const step = typeof b.step === 'string' && (FUNNEL_STEPS as readonly string[]).includes(b.step) ? (b.step as FunnelStep) : null;
-  if (!vid || !step || b.src !== 'ig') return null;
+  if (!vid || !step || (b.src !== 'ig' && b.src !== 'store')) return null;
+  // The Web Store's welcome tab (Loop 304) counts only its own steps.
+  if (b.src === 'store' && step !== 'welcome' && step !== 'signup-start') return null;
   // The email step is written by laptop-link itself, when the email really went.
   if (step === 'email') return null;
   return {
     vid,
     step,
-    src: 'ig',
+    src: b.src as 'ig' | 'store',
     via: typeof b.via === 'string' && VIA.includes(b.via) ? b.via : null,
     device: typeof b.device === 'string' && DEVICES.includes(b.device) ? b.device : null,
     browser: typeof b.browser === 'string' ? b.browser.replace(/[^A-Za-z ]/g, '').trim().slice(0, 20) || null : null,

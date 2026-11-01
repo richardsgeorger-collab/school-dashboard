@@ -645,6 +645,72 @@ li p{margin:2px 0 0;color:var(--ink2);font-size:16px}
 `;
 }
 
+/**
+ * haloplus.app/bye/ (Loop 304): the page Chrome opens when the extension is removed. It is counted as an uninstall (the
+ * browser's random id from the address, nothing else), and asks once, kindly, "what didn't work?", one optional tap,
+ * no email, no form.
+ */
+export function renderByePage(base = '/', supabaseUrl = ''): string {
+  const report = supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/report` : '';
+  const reasons: [string, string][] = [
+    ['didnt-work', 'It didn’t work for me'],
+    ['not-needed', 'I didn’t need it'],
+    ['too-much', 'Too much on my Halo pages'],
+    ['privacy', 'Privacy worries'],
+    ['other', 'Something else'],
+  ];
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Halo+ was removed</title>
+<link rel="icon" href="${base}favicon.svg" type="image/svg+xml" />
+<style>
+:root{--bg:#f6f7f9;--ink:#14171c;--ink2:#4b5261;--line:rgb(16 20 28/.12);--gold:#f2b84b;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0d10;--ink:#f2f4f7;--ink2:#b9c0cb;--line:rgb(255 255 255/.14)}}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+.wrap{max-width:520px;margin:0 auto;padding:56px 20px}
+h1{margin:0 0 8px;font-size:30px;line-height:1.15;letter-spacing:-.02em}
+p{margin:0 0 20px;color:var(--ink2)}
+.r{display:grid;gap:10px}
+button{all:unset;box-sizing:border-box;padding:14px 16px;border:1px solid var(--line);border-radius:12px;cursor:pointer;font-weight:600}
+button:hover,button:focus-visible{border-color:var(--gold)}
+.thanks{display:none;font-weight:600;color:var(--ink)}
+.small{margin-top:28px;font-size:14px}
+.small a{color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Halo+ is removed.</h1>
+<p>Sorry it didn’t stick. If you have a second, what didn’t work? One tap, nothing else, no email.</p>
+<div class="r" id="r">
+${reasons.map(([k, t]) => `<button type="button" data-r="${k}">${t}</button>`).join('\n')}
+</div>
+<p class="thanks" id="thanks">Thank you. That helps.</p>
+<p class="small">Changed your mind? <a href="${EXTENSION_URL ?? base}">Add Halo+ again</a>. Your Halo+ account, if you made one, is still there: <a href="${base}#/you">delete it here</a> any time.</p>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), d = q.get('d') || '', report = ${JSON.stringify(report)};
+  if (!report || !/^[A-Za-z0-9_-]{8,80}$/.test(d)) return;
+  var send = function (reason) { try { fetch(report, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-uninstall', device_id: d, reason: reason || undefined }), keepalive: true }); } catch (e) {} };
+  send();
+  document.getElementById('r').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    send(b.getAttribute('data-r'));
+    document.getElementById('r').style.display = 'none';
+    document.getElementById('thanks').style.display = 'block';
+  });
+})();
+</script>
+</body>
+</html>
+`;
+}
+
 export function renderLlmsTxt(): string {
   return `# Halo+
 

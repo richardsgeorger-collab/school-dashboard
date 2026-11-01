@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 import { execSync } from 'node:child_process';
 import { syncScriptSource } from './src/halo/bookmarklet';
 import { HANDOFF_PATH, SYNC_SCRIPT } from './src/halo/handoff';
-import { HELP_PAGES, renderHelpIndex, renderHelpPage, renderLaptopPage, renderLlmsTxt, renderMarketPage, renderPlansPage, renderSitemap, renderUpdatesPage } from './src/help/pages';
+import { HELP_PAGES, renderHelpIndex, renderHelpPage, renderLaptopPage, renderByePage, renderLlmsTxt, renderMarketPage, renderPlansPage, renderSitemap, renderUpdatesPage } from './src/help/pages';
 
 /**
  * The site serves the current Halo sync script beside the app (halo-sync.js). The Sync Halo bookmark is only a
@@ -70,6 +70,7 @@ function helpSite(base: string, supabaseUrl = ''): Plugin {
     'updates/index.html': renderUpdatesPage(base),
     'plans/index.html': renderPlansPage(base),
     'laptop/index.html': renderLaptopPage(base, supabaseUrl),
+    'bye/index.html': renderByePage(base, supabaseUrl),
   });
   return {
     name: 'help-site',

@@ -4853,3 +4853,45 @@ button.wi-rung:hover { border-color: var(--accent); }
   outline: 2px solid var(--accent);
   border-radius: 6px;
 }
+
+/* Admin: Extension users (Loop 304). */
+.ext-users-nums {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-3);
+  margin: var(--s-3) 0;
+}
+.ext-users-nums div {
+  display: grid;
+  gap: 2px;
+}
+.ext-users-nums b {
+  font: 800 28px/1 var(--font-display);
+}
+.ext-users-nums span {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.ext-users-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 90px;
+  margin: var(--s-3) 0 var(--s-2);
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--line);
+}
+.ext-users-chart span {
+  flex: 1;
+  min-height: 1px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent-soft);
+}
+.ext-users-chart i {
+  display: block;
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent);
+}
