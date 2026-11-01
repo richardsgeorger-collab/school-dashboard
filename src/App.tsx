@@ -2,6 +2,7 @@ import { ExtensionSetup } from './onboarding/ExtensionSetup';
 import { isDemo } from './demo/demo';
 import { bump } from './analytics/usage';
 import { isStandalone } from './notify/push';
+import { prefsPatch, type ExtPrefs } from './halo/extPrefs';
 import { PhoneWelcome, phoneSignup } from './onboarding/PhoneWelcome';
 import { DemoHost } from './demo/DemoHost';
 import { type ExtSetupKind, extSetupDue } from './onboarding/extSetup';
@@ -100,7 +101,7 @@ function HaloHandoff() {
   const { params } = useRoute();
   const expecting = params.get('halo') === '1';
   const access = useSyncAccess();
-  const { data } = useStore();
+  const { data, actions } = useStore();
   // The very first sync (nothing from Halo yet) applies itself: an empty planner has nothing to review. Decided once,
   // when the sync arrives: saving it stamps the last pull, which must not flip it back to a review halfway through.
   const firstNow = !data.courses.some((c) => c.haloClassId) && !data.settings.lastPull;
@@ -189,6 +190,18 @@ function HaloHandoff() {
   // extension drops each sync into this account. It can drop off a sync and nothing else. Gone when signed out.
   const userId = account.session?.user.id ?? null;
   signedIn.current = !!userId;
+  // Signed up after using Halo+ with no account (Loop 305): the extension's switches from this computer, once.
+  useEffect(() => {
+    if (!userId) return;
+    const on = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || (e.data as { kind?: string } | null)?.kind !== 'halo-ext-prefs') return;
+      const patch = prefsPatch(e.data as ExtPrefs, data.settings);
+      if (Object.keys(patch).length) actions.updateSettings(patch);
+    };
+    window.addEventListener('message', on);
+    return () => window.removeEventListener('message', on);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, data.settings.stamps]);
   // Opened from the Home Screen (Loop 299): counted per account for Admin's Instagram funnel ("home screen added").
   useEffect(() => {
     if (userId && isStandalone() && !isDemo()) bump('home-screen:open');

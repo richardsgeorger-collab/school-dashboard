@@ -186,7 +186,9 @@
           continue;
         }
         if (!due) continue;
-        const add = { id: null, h: id, c: k.key, t, ht: t, due, hd: due, pts, ty: type, hy: type, done, x: 0, u: unit, ...(ns ? { ns: 1 } : {}) };
+        // With no account data on this computer at all (no-account mode, 0.12.17), the id the account will give it, so
+        // a check-off made now is the same item after sign-up.
+        const add = { id: s ? null : itemId(id), h: id, c: k.key, t, ht: t, due, hd: due, pts, ty: type, hy: type, done, x: 0, u: unit, ...(ns ? { ns: 1 } : {}) };
         items.push(add);
         byHalo.set(id, add);
       }

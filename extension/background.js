@@ -120,11 +120,20 @@ const WELCOME_URL = `${DASH_ORIGIN}/#/welcome?src=store`;
 /** "Installed" (with no account yet), and later the account it linked to: Admin's Web Store funnel (0.11.0). */
 async function reportInstall(source) {
   try {
-    // A headless browser is a test run, never a student: the server leaves it out of the count.
-    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-install', source, device_id: await deviceIdP, ext_version: VERSION, browser: browserName(), headless: /Headless/.test(navigator.userAgent), test: await testBrowserP }) });
+    // A headless browser is a test run, never a student: the server leaves it out of the count. The answer says which
+    // group a Web Store install is in (0.12.17): no-account mode (Halo+ on Halo works at once, the account is for the
+    // app, the phone and Max) or the current way. Kept for good; installs from before never get one.
+    const r = await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-install', source, device_id: await deviceIdP, ext_version: VERSION, browser: browserName(), headless: /Headless/.test(navigator.userAgent), test: await testBrowserP }) });
+    const j = r.ok ? await r.json().catch(() => ({})) : {};
+    if (j && j.group === 'no-account') await set({ noAcct: { since: new Date().toISOString() } });
   } catch {
     /* a count, never in the way */
   }
+}
+/** No-account mode (0.12.17): on for this browser, and no account signed in yet. */
+async function noAcctNow() {
+  const { noAcct, syncKey } = await get(['noAcct', 'syncKey']);
+  return !!noAcct && !syncKey;
 }
 async function reportLinked(key) {
   const { linkedSent } = await get('linkedSent');
@@ -213,7 +222,8 @@ chrome.runtime.onInstalled.addListener(async (d) => {
   // the first sync happens on its own the next time they are on Halo.
   if (d.reason === 'install') {
     await sleep(800);
-    if (source === 'store') await chrome.tabs.create({ url: WELCOME_URL, active: true }).catch(() => undefined);
+    const { noAcct } = await get(['noAcct']);
+    if (source === 'store') await chrome.tabs.create({ url: noAcct ? `${WELCOME_URL}&mode=open` : WELCOME_URL, active: true }).catch(() => undefined);
     else await focusDash();
   }
 });
@@ -276,6 +286,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       if (next && next !== before) void fetchDone(true);
       if (next) void reportLinked(next);
       if (next) await sendWaiting();
+      if (next) void movePreAccount();
     })();
     reply({ ok: true });
   } else if (msg.kind === 'synced-elsewhere') {
@@ -421,8 +432,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       }
       // On Halo, on any plan (0.11.0, Free syncs whenever it is on Halo): a quiet read of the tab the student is on,
       // when nothing has tried in the last 30 minutes. Only with an account to land in; never a reload, never a badge.
-      const { syncKey } = await get('syncKey');
-      if (!syncKey || state.running || (setup && setup.phase && setup.phase !== 'done')) return;
+      const { syncKey, noAcct } = await get(['syncKey', 'noAcct']);
+      // No-account mode (0.12.17): the day's use is counted, and Halo is read for Halo+ on Halo, kept on this computer.
+      if (noAcct && !syncKey) void countUseDay();
+      if ((!syncKey && !noAcct) || state.running || (setup && setup.phase && setup.phase !== 'done')) return;
       if (lastAttemptAt && Date.now() - new Date(lastAttemptAt).getTime() < VISIT_MS) return;
       await sleep(3000);
       if (!state.running) await runSync({ auto: false, quiet: true, visit: true });
@@ -656,7 +669,9 @@ const markTimers = new Map();
 async function weekMark(id) {
   if (typeof id !== 'string' || !id) return;
   const { haloMarks } = await get(['haloMarks']);
-  await set({ haloMarks: { ...(haloMarks || {}), [id]: { at: new Date().toISOString(), state: 'pending' } } });
+  // Made with no account (0.12.17): kept here, and sent to the account the day there is one.
+  const pre = await noAcctNow();
+  await set({ haloMarks: { ...(haloMarks || {}), [id]: { at: new Date().toISOString(), state: 'pending', ...(pre ? { pre: true } : {}) } } });
   clearTimeout(markTimers.get(id));
   markTimers.set(
     id,
@@ -696,7 +711,8 @@ async function haloSubmitted(h) {
   const id = await hpIdFor(h);
   const { haloMarks } = await get(['haloMarks']);
   if (haloMarks && haloMarks[id] && haloMarks[id].src === 'halo') return;
-  await set({ haloMarks: { ...(haloMarks || {}), [id]: { at: new Date().toISOString(), state: 'pending', h, src: 'halo' } } });
+  const pre = await noAcctNow();
+  await set({ haloMarks: { ...(haloMarks || {}), [id]: { at: new Date().toISOString(), state: 'pending', h, src: 'halo', ...(pre ? { pre: true } : {}) } } });
   await sendMarks();
 }
 let sendingMarks = false;
@@ -728,7 +744,10 @@ async function sendMarks() {
       if (!marks[id]) continue;
       // Not in Halo+ (deleted there): this computer's mark goes too. A submission Halo confirmed that Halo+ has not
       // synced yet stays done on this computer (the next sync brings it in as done, from Halo).
-      if (r.status === 404 && marks[id].src === 'halo') marks[id] = { ...marks[id], state: 'local' };
+      // Made before the account (0.12.17): its item may not be in the account yet (the kept read lands first): tried
+      // again for a while, then kept here like any other mark the account does not have.
+      if (r.status === 404 && marks[id].pre && (marks[id].tries || 0) < 30) marks[id] = { ...marks[id], tries: (marks[id].tries || 0) + 1 };
+      else if (r.status === 404 && (marks[id].src === 'halo' || marks[id].pre)) marks[id] = { ...marks[id], state: 'local' };
       else if (r.status === 404 || r.status === 401) delete marks[id];
       else if (j && j.ok) marks[id] = { ...marks[id], state: 'sent', prev: j.prev || null };
       else continue;
@@ -798,7 +817,7 @@ chrome.alarms.onAlarm.addListener((a) => {
 });
 
 /** One Halo+-on-Halo moment, counted for Admin through the report function (the account comes from the sync key). */
-const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed', 'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done', 'locked-box', 'locked-unlock', 'max-on', 'trial-note', 'trial-note-keep', 'trial-note-later', 'whatif-on', 'whatif-off', 'whatif-next'];
+const HALO_UI = ['card-shown', 'card-closed', 'card-click', 'pill-click', 'pill-hover', 'class-click', 'box-click', 'box-shown', 'badge-click', 'next-shown', 'sync-click', 'week-shown', 'week-open', 'week-close', 'week-row', 'week-plus', 'week-check', 'week-undo', 'week-more', 'locked-peek', 'grade-refresh', 'grade-refresh-failed', 'search-open', 'search-go', 'next-click', 'draft-offer', 'draft-restore', 'words-shown', 'rubric-open', 'calendar-all', 'views-applied', 'submit-shown', 'wrongtype-shown', 'feedback-open', 'participation-shown', 'file-open', 'preload-done', 'locked-box', 'locked-unlock', 'max-on', 'trial-note', 'trial-note-keep', 'trial-note-later', 'whatif-on', 'whatif-off', 'whatif-next', 'phone-line'];
 async function countHaloUi(event) {
   if (!HALO_UI.includes(event)) return;
   try {
@@ -1194,6 +1213,31 @@ async function pingTabs() {
   return tabs;
 }
 
+/**
+ * Signed up after using Halo+ with no account (0.12.17): what was saved on this computer moves into the account. The
+ * kept read of Halo went first (sendWaiting); its check-offs follow once the account has the items (the app applies the
+ * read within seconds when it is open), tried every 45 seconds for half an hour. The settings go through the Halo+ tab
+ * (content-dash.js tells the app this browser's switches).
+ */
+async function movePreAccount() {
+  const { noAcct } = await get(['noAcct']);
+  if (!noAcct) return;
+  for (let i = 0; i < 40; i++) {
+    await sendMarks();
+    const { haloMarks } = await get(['haloMarks']);
+    if (!Object.values(haloMarks || {}).some((m) => m && m.pre && m.state === 'pending')) break;
+    await sleep(45_000);
+  }
+}
+/** Days with Halo+ in use, in no-account mode (the last 10), for the one quiet line after the third. */
+async function countUseDay() {
+  const day = new Date().toLocaleDateString('en-CA');
+  const { haloUseDays } = await get(['haloUseDays']);
+  const days = Array.isArray(haloUseDays) ? haloUseDays : [];
+  if (days.includes(day)) return;
+  await set({ haloUseDays: [...days, day].slice(-10) });
+}
+
 /** An export kept here goes to the account the moment there is a key to send it with. */
 async function sendWaiting() {
   const { waiting } = await get('waiting');
@@ -1230,6 +1274,11 @@ async function finish(payload, auto, quiet = false, first = false) {
       await focusDash();
       await setupState('done');
     }
+    return r;
+  }
+  // Kept on this computer on purpose (no-account mode): a fine read, not a problem to report.
+  if (r.quietKept) {
+    await set({ lastReadAt: readAt, lastError: null, lastErrorKind: null });
     return r;
   }
   const at = clock(readAt);
@@ -1303,6 +1352,11 @@ async function land(payload, auto, quiet = false) {
       }
     }
     return { landed: false, kind: 'foreign', why: saved.why, offer: !!saved.offer };
+  }
+  // No-account mode: kept on this computer for Halo+ on Halo, and for the account the day there is one.
+  if (saved.kind === 'no-key' && (await noAcctNow())) {
+    await set({ waiting: payload, waitingKey: null });
+    return { landed: false, kind: 'no-key', quietKept: true };
   }
   let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;
   if (tab && front) {

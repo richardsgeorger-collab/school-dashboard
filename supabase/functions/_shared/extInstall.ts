@@ -4,7 +4,7 @@
 // deno-lint-ignore-file no-explicit-any
 const DEVICE = /^[A-Za-z0-9_-]{8,80}$/;
 
-export async function recordExtInstall(db: any, b: Record<string, unknown>): Promise<{ ok: boolean; why?: string; linked?: boolean }> {
+export async function recordExtInstall(db: any, b: Record<string, unknown>): Promise<{ ok: boolean; why?: string; linked?: boolean; group?: string | null }> {
   const device = typeof b.device_id === 'string' && DEVICE.test(b.device_id) ? b.device_id : '';
   if (!device) return { ok: false, why: 'device' };
   if (b.kind === 'ext-install') {
@@ -17,10 +17,18 @@ export async function recordExtInstall(db: any, b: Record<string, unknown>): Pro
     const { count } = await db.from('ext_installs').select('device_id', { count: 'exact', head: true }).is('user_id', null).gte('installed_at', since);
     if ((count ?? 0) >= 30) return { ok: true, why: 'busy' };
     const source = b.source === 'store' ? 'store' : 'site';
-    const { error } = await db.from('ext_installs').upsert({ device_id: device, source, test, ext_version: typeof b.ext_version === 'string' ? b.ext_version.slice(0, 20) : null, browser: typeof b.browser === 'string' ? b.browser.slice(0, 20) : null }, { onConflict: 'device_id', ignoreDuplicates: true });
+    // The group (Loop 305): with Admin's switch on, a new Web Store install may go into no-account mode (test browsers
+    // follow their own switch, so a test never changes what a real student gets). Installs from Halo+'s own setup, and
+    // every install from before, keep the current way.
+    const key = test ? 'no_account_test_installs' : 'no_account_new_installs';
+    const on = source === 'store' && (await db.from('app_settings').select('value').eq('key', key).maybeSingle()).data?.value === 'on';
+    // Switch on: half of new installs, at random, so the two groups are compared over the same weeks (a test browser
+    // under its own switch is always in no-account mode). Switch off: every new install the current way.
+    const grp = source === 'store' ? (on && (test || Math.random() < 0.5) ? 'no-account' : 'current') : null;
+    const { error } = await db.from('ext_installs').upsert({ device_id: device, source, test, grp, ext_version: typeof b.ext_version === 'string' ? b.ext_version.slice(0, 20) : null, browser: typeof b.browser === 'string' ? b.browser.slice(0, 20) : null }, { onConflict: 'device_id', ignoreDuplicates: true });
     // The day's ping may have made the row first (Loop 304): the install still says where it came from.
-    if (!error) await db.from('ext_installs').update({ source }).eq('device_id', device).eq('source', 'unknown');
-    return { ok: !error, why: error?.message };
+    if (!error) await db.from('ext_installs').update({ source, grp }).eq('device_id', device).eq('source', 'unknown');
+    return { ok: !error, why: error?.message, group: grp };
   }
   const key = typeof b.key === 'string' ? b.key.slice(0, 128) : '';
   if (!key) return { ok: false, why: 'key' };

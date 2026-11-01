@@ -48,6 +48,18 @@
     if (key !== lastKey && (key || lastKey !== undefined)) {
       lastKey = key;
       chrome.runtime.sendMessage({ kind: 'key', key: key || null });
+      // Signed up after using Halo+ with no account (0.12.17): this browser's Halo+-on-Halo settings go to the account
+      // (the app keeps them unless the account's own are newer).
+      if (key)
+        chrome.storage.local.get(['noAcct', 'haloFeat', 'haloUiOn', 'prefsMoved']).then(({ noAcct, haloFeat, haloUiOn, prefsMoved }) => {
+          if (!noAcct || prefsMoved === key || (!haloFeat && !haloUiOn)) return;
+          let n = 0;
+          const t = setInterval(() => {
+            window.postMessage({ kind: 'halo-ext-prefs', feat: haloFeat || null, uiOn: haloUiOn || null }, location.origin);
+            if (++n >= 6) clearInterval(t);
+          }, 1500);
+          chrome.storage.local.set({ prefsMoved: key }).catch(() => undefined);
+        });
     }
     // Halo+ on Halo (0.8.0): what the card, the pill and the class lines on Halo's own pages show.
     const halo = read('school-dashboard:halo-snap');

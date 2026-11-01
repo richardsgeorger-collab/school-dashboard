@@ -48,6 +48,30 @@ function renderSetup(s) {
   // No account on this computer yet (0.11.0: a Chrome Web Store install that has not signed up): one step, not a Sync
   // now that would read Halo with nowhere to put it.
   const noAccount = !s.syncKey && !s.tier && !s.lastSyncAt && !s.running;
+  // No-account mode (0.12.17): nothing to set up; Halo+ is on, on Halo. The account is offered second, quietly.
+  if (s.noAcct && !s.syncKey) {
+    $('setup').hidden = false;
+    $('normal').hidden = true;
+    $('setupBar').hidden = true;
+    $('setupAlt').hidden = true;
+    $('setupTitle').textContent = 'Halo+ is on';
+    $('setupText').textContent = s.lastReadAt ? 'It’s on your Halo pages now: what’s next on every class, one calendar, search and more.' : 'Open Halo and it’s there: what’s next on every class, one calendar, search and more.';
+    [$('setupGo').textContent, $('setupGo').dataset.act, $('setupGo').hidden] = ['Open Halo', 'login', false];
+    let more = document.getElementById('setupMore');
+    if (!more) {
+      more = document.createElement('button');
+      more.id = 'setupMore';
+      more.type = 'button';
+      more.className = 'link';
+      more.textContent = 'Free account: get Halo+ on your phone too';
+      more.addEventListener('click', async () => {
+        await chrome.tabs.create({ url: `${DASH_ORIGIN}/#/welcome?src=store&mode=open&signup=1`, active: true });
+        window.close();
+      });
+      $('setupGo').after(more);
+    }
+    return;
+  }
   const live = noAccount || (!!st && Date.now() - Date.parse(st.at || 0) < 15 * 60_000 && ['syncing', 'done', 'login', 'failed'].includes(st.phase));
   $('setup').hidden = !live;
   $('normal').hidden = live;
@@ -150,7 +174,7 @@ function renderNext(s) {
 }
 
 async function render() {
-  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey', 'setup', 'haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'serverStatus']);
+  const s = await chrome.storage.local.get(['tier', 'lastSyncAt', 'lastError', 'lastErrorKind', 'lastErrorAt', 'running', 'progress', 'progressAt', 'runningSince', 'lastCounts', 'syncKey', 'setup', 'haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'serverStatus', 'noAcct', 'lastReadAt']);
   renderSetup(s);
   // "Syncing" is believed only while Halo keeps talking: two minutes of nothing is a sync that stopped (0.6.6).
   const stuck = !!s.running && Date.now() - Date.parse(s.progressAt || s.runningSince || 0) > STUCK_MS;

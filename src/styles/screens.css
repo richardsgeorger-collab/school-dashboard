@@ -4895,3 +4895,8 @@ button.wi-rung:hover { border-color: var(--accent); }
   border-radius: 3px 3px 0 0;
   background: var(--accent);
 }
+.ext-groups td {
+  vertical-align: top;
+  font-size: 13.5px;
+  line-height: 1.55;
+}

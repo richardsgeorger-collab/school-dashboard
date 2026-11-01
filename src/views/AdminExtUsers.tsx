@@ -34,6 +34,89 @@ const list = (o: Record<string, number>, label = (k: string) => k) =>
  * this month, signed in or not, by version and plan, and a 30-day chart. Test browsers, browsers linked to test or admin
  * accounts, and the browsers this page is opened in (the owner's) are left out. Read from admin_ext_users.
  */
+interface Group {
+  installs: number;
+  since: string | null;
+  active_7: number;
+  week_eligible: number;
+  week_later: number;
+  accounts: number;
+  first_sync: number;
+  uninstalled: number;
+}
+const pct = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : '–');
+
+/**
+ * No-account mode (Loop 305): the switch for new Web Store installs, and the two groups side by side so George can
+ * see after two weeks which brings more weekly users and more accounts.
+ */
+function NoAccountMode() {
+  const [on, setOn] = useState<boolean | null>(null);
+  const [g, setG] = useState<Record<string, Group> | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const load = async () => {
+    const c = supabase();
+    if (!c) return;
+    const [s, r] = await Promise.all([c.rpc('admin_setting', { p_key: 'no_account_new_installs' }), c.rpc('admin_ext_groups')]);
+    if (s.error || r.error) return setErr((s.error ?? r.error)!.message);
+    setOn(s.data === 'on');
+    setG((r.data ?? {}) as Record<string, Group>);
+  };
+  useEffect(() => {
+    void load();
+  }, []);
+  const flip = async (next: boolean) => {
+    const { error } = (await supabase()?.rpc('admin_set_setting', { p_key: 'no_account_new_installs', p_value: next ? 'on' : '' })) ?? { error: null };
+    if (error) setErr(error.message);
+    else void load();
+  };
+  const col = (name: string, x: Group | undefined) => (
+    <td>
+      {x ? (
+        <>
+          <b>{x.installs}</b> installs
+          <br />
+          {x.active_7} active this week ({pct(x.active_7, x.installs)})
+          <br />
+          {x.week_later} still using a week later (of {x.week_eligible}, {pct(x.week_later, x.week_eligible)})
+          <br />
+          {x.accounts} accounts ({pct(x.accounts, x.installs)}) · {x.first_sync} first sync
+          <br />
+          {x.uninstalled} uninstalled
+        </>
+      ) : (
+        <span className="hint">No {name} installs yet.</span>
+      )}
+    </td>
+  );
+  return (
+    <>
+      <h3 className="admin-sub">No-account mode (new Web Store installs)</h3>
+      <label className="admin-line">
+        <input type="checkbox" checked={!!on} disabled={on === null} onChange={(e) => void flip(e.target.checked)} /> On: half of new Web Store installs, at random, get no-account mode (Halo+ on Halo works at once; the account is for the app, the phone and Max); the other half the current way, so the two are compared over the same weeks. Existing users never change.
+      </label>
+      {err && <p className="hint">{err}</p>}
+      {g && (
+        <table className="funnel-table ext-groups">
+          <thead>
+            <tr>
+              <th scope="col">No-account mode</th>
+              <th scope="col">Current way</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {col('no-account mode', g['no-account'])}
+              {col('current-way', g.current)}
+            </tr>
+          </tbody>
+        </table>
+      )}
+      <p className="hint">Each install keeps the group it got when it was installed. Weekly users come from 0.12.16's daily ping; accounts are installs that signed up.</p>
+    </>
+  );
+}
+
 export function AdminExtUsers() {
   const [u, setU] = useState<ExtUsers | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -101,6 +184,7 @@ export function AdminExtUsers() {
             Uninstalled: <b>{u.uninstalled}</b> in all, {u.uninstalled_30} in 30 days · why: {list(u.reasons, (k) => REASON[k] ?? k)}
           </p>
           <p className="hint">Left out: test browsers, browsers of test and admin accounts, and every browser this Admin page has been opened in.</p>
+          <NoAccountMode />
         </>
       )}
     </section>

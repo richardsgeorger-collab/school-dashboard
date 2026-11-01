@@ -600,3 +600,27 @@ One line per change, newest last. Proposals that need George's approval are mark
     - **The 61 no-account browsers** in the sync log: 60 are my own test browsers (Chrome for Testing 153, Oct 24–26). One is a real Edge-on-Windows student who used it 8 days without an account.
     - **Where they stop** wasn't measurable before; it is now.
     - **The proposal:** every Free on-Halo feature works from Halo's own page data with no account; the account is only for the app, the phone and Max. It covers the risks and a no-nag nudge plan; build it as a switch and measure two weeks.
+- Loop 305 (2026-11-01): no-account mode, built from docs/no-account-mode-proposal.md, behind a switch in Admin. Extension 0.12.17, zip built, NOT submitted. Screenshots in docs/screens/no-account/ (plain and bh: welcome, popup, Halo home, search, checked, phone-line, signed-up; admin-switch).
+  (1) **The switch and the groups:**
+    - **Settings:** migration 0056 adds 'no_account_new_installs' (Admin → Extension users, a checkbox) and 'no_account_test_installs' (test browsers only, so a test never changes what a real student gets).
+    - **At install:** report's ext-install puts a new Web Store install into ext_installs.grp. With the switch on, half at random go 'no-account' and half 'current', so the two groups are compared over the same weeks; with it off, all 'current'. Installs from Halo+'s own setup and all earlier installs have no group, so existing users are unchanged.
+    - **The extension** keeps noAcct once it is told.
+  (2) **In no-account mode, before an account:**
+    - **Reading Halo:** the extension reads Halo on visits with no key (countUseDay counts the days) and keeps the read on the computer (waiting, haloLive, haloIndex). No hand-off to a signed-out Halo+ tab, no error, and a separate lastReadAt, because "Last synced" is still only for a sync that reached the account.
+    - **On Halo:** NEXT boxes, This week with its boxes, ⌘K search, the calendar and rubrics all run from that. Live items get the id the account will give them (halo-model merge with no snapshot: itemId(h)), so check-offs match after sign-up. No "Set up Halo+" pill.
+    - **Welcome tab:** "You're set: open Halo." with "Make a free account" second (#/welcome?mode=open). Account links from Halo open the form directly (&signup=1).
+    - **Popup:** "Halo+ is on · Open Halo", with "Free account: get Halo+ on your phone too" below.
+    - **No-nag, exactly as proposed:** a check-off shows "Saved on this computer. Make a free account to keep it everywhere." at the foot of This week. After the third day of use, the corner pill slides out once with "Get this on your phone: free account" (then not again for 30 days). No pop-ups, nothing locked.
+  (3) **At sign-up everything on the computer moves:**
+    - The kept read goes into the account (sendWaiting).
+    - Check-offs made before the account (marked pre) are sent once the items exist, retried every 45 s for up to 30 minutes (movePreAccount).
+    - The on-Halo switches (haloFeat, haloUiOn) go to the app, which keeps them unless the account's are newer (src/halo/extPrefs.ts, tested; content-dash posts halo-ext-prefs).
+    - The Gradebook what-ifs are only kept while the page is open, for everyone, so nothing is saved to move. The calendar views stay on the computer as they do for everyone.
+  (4) **Admin:** the Extension users card has the switch and the two groups side by side: installs, active this week, still using a week later, accounts, first sync, uninstalled (admin_ext_groups, real browsers only).
+  (5) **Tests:**
+    - New scripts/e2e-no-account.mjs **PASS** in a fresh Chrome profile, with and without Better Halo, against the real backend and the Halo stand-in (Maya Torres): the group at install, the welcome tab, the popup, the read kept with no error, NEXT boxes, This week with 5 boxes, search, the check-off note with no pop-up, the day-3 line once and not on the next page, then sign-up: linked, 6 classes in the account, the check-off done in the account, the switch moved. Plus a current-way install: today's welcome.
+    - Regressions: e2e-store-install PASS, e2e-onhalo-cards PASS. Unit tests updated for the new rules (extensionReliability; "Last synced" stays account-only); vitest passes.
+    - e2e-onhalo-topic fails one check ("Exam 1" due personally 50h); it fails the same way on 0.12.16, so it is not from this change. Likely the US clock change on 2026-11-01 in the test's own hour math; to look at.
+    - Both switches are off after the tests; test rows removed.
+  (6) **Privacy and listing:** privacy.html now says what happens before an account. LISTING.md: 0.12.17, no new permission, Privacy tab unchanged.
+  **To start the comparison:** Admin → Extension users → tick "No-account mode". It only matters once 0.12.17 is published.

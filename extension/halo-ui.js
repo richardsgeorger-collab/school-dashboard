@@ -53,9 +53,9 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null, haloLockedBox: null, haloMaxOn: null, haloTrialNote: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null, haloLockedBox: null, haloMaxOn: null, haloTrialNote: null, noAcct: null, haloUseDays: null, haloPhoneLine: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey', 'haloFeat', 'haloIndex', 'haloLockedBox', 'haloMaxOn', 'haloTrialNote'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey', 'haloFeat', 'haloIndex', 'haloLockedBox', 'haloMaxOn', 'haloTrialNote', 'noAcct', 'haloUseDays', 'haloPhoneLine'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -81,6 +81,9 @@
   // Halo+ says whether this account can sync (0.11.0: every plan can, Free when it is on Halo); only an account that
   // cannot gets the quiet "synced Oct 3" pill and no class lines. The plan alone no longer decides it.
   const free = () => !view || view.plan === 'free';
+  /** No-account mode (0.12.17): Halo+ on Halo from this computer's own reading of Halo, no account yet. */
+  const acctFree = () => !!st.noAcct && !st.syncKey;
+  const WELCOME = () => `${ORIGIN}/#/welcome?src=store&mode=open&signup=1`;
   const today = () => M.dayOf(Date.now(), view.tz);
   /** Today's memory: peeked, how many re-peeks, closes without a click, what was flagged as due soon. */
   const ui = () => {
@@ -208,8 +211,10 @@
         const { p, via } = peeking;
         endPeek(false);
         hideTip();
+        if (via === 'phone' || acctFree()) return void window.open(WELCOME(), '_blank', 'noopener');
         return openHaloPlus(p && p.key ? p : null, via === 'next' ? 'next' : 'card');
       }
+      if (acctFree()) return void window.open(WELCOME(), '_blank', 'noopener');
       openHaloPlus(null, 'pill');
     };
     el.addEventListener('click', go);
@@ -252,6 +257,15 @@
     else delete el.dataset.peek;
     el.setAttribute('aria-label', peeking ? `Halo+: ${peeking.p.text}` : `Halo+: ${p.text}. Open Halo+`);
   }
+  /**
+   * No-account mode's one quiet line (0.12.17, George: "one quiet line after day 3"): after the third day Halo+ was used,
+   * once; after that, not again for 30 days (whether it was closed or just passed).
+   */
+  function phoneLineDue() {
+    const days = Array.isArray(st.haloUseDays) ? st.haloUseDays.length : 0;
+    const last = st.haloPhoneLine && Date.parse(st.haloPhoneLine.at);
+    return days >= 3 && (!last || Date.now() - last > 30 * 864e5);
+  }
   /** Slide out with one line for about 6 seconds (longer while hovered). */
   function peek(p, via) {
     if (!p) return;
@@ -260,7 +274,7 @@
     renderPill();
     hideTip();
     peeking.timer = setTimeout(guard(() => !(peeking && peeking.hover) && endPeek(false)), PEEK_MS);
-    count(via === 'next' ? 'next-shown' : 'card-shown');
+    if (via !== 'phone') count(via === 'next' ? 'next-shown' : 'card-shown');
   }
   function endPeek(byHand) {
     if (!peeking) return;
@@ -875,6 +889,9 @@ ul{list-style:none;margin:0;padding:0}
 .more:hover{text-decoration:underline}
 .more:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:3px}
 .part{margin:10px 0 0;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.local{margin:8px 0 0;color:var(--muted);font-size:12.5px}
+.local a{color:var(--gold-ink);font-weight:600;text-decoration:none}
+.local a:hover{text-decoration:underline}
 .none{margin:0;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){.chev{transition:none}}`;
 
@@ -982,7 +999,7 @@ ul{list-style:none;margin:0;padding:0}
       out.push(`<h4${g.head === 'Overdue' ? ' class="late"' : ''}>${esc(g.head)}</h4><ul>${rows
         .map((r) => {
           const on = r.id && checking.has(r.id);
-          const box = r.canCheck && st.syncKey ? `<input type="checkbox" data-id="${esc(r.id)}" aria-label="Done: ${esc(r.title)}"${on ? ' checked' : ''}>` : '<span class="sp" aria-hidden="true"></span>';
+          const box = r.canCheck && (st.syncKey || acctFree()) ? `<input type="checkbox" data-id="${esc(r.id)}" aria-label="Done: ${esc(r.title)}"${on ? ' checked' : ''}>` : '<span class="sp" aria-hidden="true"></span>';
           const dot = `<span class="dot" aria-hidden="true"${r.color && /^#[0-9a-f]{3,8}$/i.test(r.color) ? ` style="background:${r.color}"` : ''}></span>`;
           // The gold dot: real extra steps an announcement added (things to bring, a new deliverable); said on hover.
           const x = r.extra.length ? `<span class="x" role="img" aria-label="Has extra steps: ${esc(r.extra.join('; '))}" title="Has extra steps, open for details"></span>` : '';
@@ -997,6 +1014,8 @@ ul{list-style:none;margin:0;padding:0}
     else if (!total) out.push('<p class="none">Nothing else graded is due this week.</p>');
     if (!weekAll && total > WEEK_ROWS) out.push(`<button class="more" type="button">Show all ${total}</button>`);
     if (w.part) out.push(`<p class="part">${esc(w.part)}</p>`);
+    // No-account mode: a check-off made here is only on this computer; said quietly, once there is one (0.12.17).
+    if (acctFree() && Object.values(st.haloMarks || {}).some((m) => m && m.pre)) out.push(`<p class="local">Saved on this computer. <a href="${esc(WELCOME())}" target="_blank" rel="noopener" data-local>Make a free account</a> to keep it everywhere.</p>`);
     return out.join('');
   }
   /** Draw (or redraw) the panel. True when it is on the page, placed cleanly. */
@@ -1198,6 +1217,11 @@ ul{list-style:none;margin:0;padding:0}
     if (!view) return;
     renderPill();
     // An assignment's own page says what matters there (its line); the pill stays quiet on it.
+    if (acctFree() && !peeking && route().kind !== 'unit' && phoneLineDue()) {
+      save({ haloPhoneLine: { at: new Date().toISOString() } });
+      count('phone-line');
+      return peek({ tone: 'calm', text: 'Get this on your phone: free account' }, 'phone');
+    }
     if (free() || peeking || route().kind === 'unit') return;
     const u = ui();
     const now = Date.now();
@@ -1294,7 +1318,7 @@ button:focus-visible{outline:2px solid var(--icon);outline-offset:2px}
   }
 
   const render = guard(function render() {
-    const noAccount = !view && !st.syncKey && !(st.haloUiOn && st.haloUiOn.on === false);
+    const noAccount = !view && !st.syncKey && !st.noAcct && !(st.haloUiOn && st.haloUiOn.on === false);
     setupPill(noAccount);
     if (noAccount) return;
     if (!view || !showing()) {

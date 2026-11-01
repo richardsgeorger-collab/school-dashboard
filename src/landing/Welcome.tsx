@@ -6,6 +6,7 @@ import { forgetSource, pendingSource } from '../auth/source';
 import { funnel } from '../analytics/funnel';
 import { IconHalo } from '../components/Icons';
 import { track } from '../onboarding/track';
+import { useRoute } from '../router';
 
 /**
  * The welcome tab after a Chrome Web Store install (George, 2026-10-25, Loop 268): someone who found the extension in
@@ -16,6 +17,10 @@ import { track } from '../onboarding/track';
 export function Welcome() {
   const { auth } = useAccount();
   const signedIn = !!auth.session;
+  // No-account mode (Loop 305): the extension works on Halo already; the account is offered second, not a gate.
+  const { params } = useRoute();
+  const open = params.get('mode') === 'open';
+  const [showSignUp, setShowSignUp] = useState(params.get('signup') === '1');
   // Signed up on the phone with Google (the laptop page remembers it, Loop 298): one tap here.
   const [hint] = useState(() => {
     try {
@@ -64,11 +69,29 @@ export function Welcome() {
           </div>
           <p className="hint">Nothing else to set up. Your first sync starts on its own the next time you're on Halo.</p>
         </section>
+      ) : open && !showSignUp ? (
+        <section className="login-box welcome-done" aria-label="You're set">
+          <p className="eyebrow">The extension is installed</p>
+          <h1 className="landing-title">You're set: open Halo.</h1>
+          <p className="landing-lede">Halo+ is on your Halo pages now: what's next on every class, all your classes on one calendar, search, rubrics and more. Nothing to sign up for.</p>
+          <div className="welcome-actions">
+            <a className="btn primary" href="https://halo.gcu.edu/">
+              Open Halo
+            </a>
+          </div>
+          <p className="hint">
+            Want Halo+ on your phone too, and your check-offs on every computer?{' '}
+            <button type="button" className="hero-inline" onClick={() => setShowSignUp(true)}>
+              Make a free account
+            </button>
+          </p>
+          <p className="hint">Not affiliated with Grand Canyon University. Halo+ never asks for your GCU password.</p>
+        </section>
       ) : (
         <section className="login-box" aria-label="Make your free account" onSubmitCapture={() => funnel('signup-start', { src: pendingSource() === 'ig' ? 'ig' : 'store' })}>
-          <p className="eyebrow">The extension is installed</p>
-          <h1 className="landing-title">One step left.</h1>
-          <p className="landing-lede">Make your free Halo+ account (not your GCU login). The next time you're on Halo, your classes, due dates and grades come in on their own.</p>
+          <p className="eyebrow">{open ? 'Your free account' : 'The extension is installed'}</p>
+          <h1 className="landing-title">{open ? 'Halo+ on your phone too.' : 'One step left.'}</h1>
+          <p className="landing-lede">{open ? 'Make your free Halo+ account (not your GCU login). Everything you did on Halo moves into it, and your week shows in the Halo+ app on your phone and every computer.' : "Make your free Halo+ account (not your GCU login). The next time you're on Halo, your classes, due dates and grades come in on their own."}</p>
           {hint === 'google' && (
             <div className="welcome-one-tap">
               <p className="hint">You made your account on your phone with Google. Same account here:</p>

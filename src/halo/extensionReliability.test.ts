@@ -98,12 +98,14 @@ describe('Free syncs whenever it is on Halo (0.11.0)', () => {
   it('a Halo visit syncs quietly when nothing tried in 30 minutes, with an account, never a reload or a badge', () => {
     expect(bg).toContain('const VISIT_MS = 30 * 60_000;');
     expect(bg).toMatch(/if \(lastAttemptAt && Date\.now\(\) - new Date\(lastAttemptAt\)\.getTime\(\) < VISIT_MS\) return;[\s\S]{0,120}runSync\(\{ auto: false, quiet: true, visit: true \}\)/);
-    expect(bg).toMatch(/if \(!syncKey \|\| state\.running/);
+    // With an account; or, in no-account mode (0.12.17), kept on this computer for Halo+ on Halo.
+    expect(bg).toMatch(/if \(\(!syncKey && !noAcct\) \|\| state\.running/);
     expect(fn('failed')).toMatch(/if \(visit\) return;/);
   });
   it('a Web Store install opens the welcome tab; one from Halo+ goes back to Halo+', () => {
     // The install is counted before the open tabs get their scripts (the link an open Halo+ tab makes needs the row).
-    expect(bg).toMatch(/const source = dash\.length \? 'site' : 'store';\s+if \(d\.reason === 'install'\) await reportInstall\(source\);[\s\S]{0,700}chrome\.tabs\.create\(\{ url: WELCOME_URL, active: true \}\)[\s\S]{0,80}else await focusDash\(\);/);
+    // No-account mode (0.12.17) opens the same tab in its "open Halo" form.
+    expect(bg).toMatch(/const source = dash\.length \? 'site' : 'store';\s+if \(d\.reason === 'install'\) await reportInstall\(source\);[\s\S]{0,800}chrome\.tabs\.create\(\{ url: noAcct \? `\$\{WELCOME_URL\}&mode=open` : WELCOME_URL, active: true \}\)[\s\S]{0,80}else await focusDash\(\);/);
     expect(bg).toContain("const WELCOME_URL = `${DASH_ORIGIN}/#/welcome?src=store`;");
   });
 });

@@ -1,5 +1,13 @@
 # Chrome Web Store listing kit
 
+## 0.12.17 (2026-11-01): upload this package instead of 0.12.16; everything else as below
+
+0.12.17 (Loop 305): no-account mode, off until Admin's switch is turned on. With it on, half of new Web Store installs
+get Halo+ on Halo at once with no account (search, the calendar, NEXT boxes, rubrics, This week and its check-offs),
+and everything moves into the account if they make one. **No new permission; the Privacy tab is unchanged** (nothing new
+is sent: with no account the extension keeps Halo's data on the computer). Upload
+`webstore-upload/halo-plus-extension-0.12.17.zip`.
+
 ## 0.12.16 (2026-11-01): upload this package instead of 0.12.15; everything else as below
 
 0.12.16 (Loop 304): the extension counts itself, anonymously: one "still installed" note a day (a random id for the
