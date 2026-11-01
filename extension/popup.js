@@ -15,7 +15,8 @@ const time = (d) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit
 function when(iso) {
   const d = new Date(iso);
   const today = new Date();
-  const yesterday = new Date(Date.now() - 86_400_000);
+  // The calendar day before today, not 24 hours ago (a clock change makes a day 23 or 25 hours, Loop 306).
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 12);
   if (d.toDateString() === today.toDateString()) return time(d);
   if (d.toDateString() === yesterday.toDateString()) return `yesterday ${time(d)}`;
   return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time(d)}`;

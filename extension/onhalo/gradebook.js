@@ -107,17 +107,7 @@
   function clear() {
     document.querySelectorAll('[data-haloplus^="wi-"]').forEach((n) => n.remove());
   }
-  const dayWord = (iso) => {
-    if (!iso) return '';
-    const tz = (O.view && O.view.tz) || 'America/Phoenix';
-    const day = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
-    const d = day(iso);
-    const now = Date.now();
-    if (d === day(now)) return 'today';
-    if (d === day(now + 864e5)) return 'tomorrow';
-    const days = (Date.parse(iso) - now) / 864e5;
-    return new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long', ...(days > 6 ? { month: 'short', day: 'numeric' } : {}) }).format(new Date(iso));
-  };
+  const dayWord = (iso) => (iso ? L.dueDayWord(iso, Date.now(), (O.view && O.view.tz) || 'America/Phoenix') : '');
   const an = (l) => (/^[AEFHILMNORSX]/i.test(l) ? 'an' : 'a');
   const r1 = (n) => (Math.round(n * 10) / 10).toFixed(1);
 

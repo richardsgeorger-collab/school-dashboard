@@ -33,7 +33,10 @@
     if (done) return p.querySelectorAll('[data-haloplus="duein"]').forEach((n) => n.remove());
     const zone = O.zone();
     if (!zone) return;
-    const acc = p.querySelector('[class*="FormattedDateTimeDisplay_dateWithPrefix"]');
+    // The personal date sits inside the date line on Halo; a page whose markup put it right after the line counts too.
+    const accSel = '[class*="FormattedDateTimeDisplay_dateWithPrefix"]';
+    const next = p.nextElementSibling;
+    const acc = p.querySelector(accSel) || (next && !next.hasAttribute('data-testid') && next.querySelector(accSel)) || null;
     if (acc) {
       const time = p.querySelector('[class*="FormattedDateTimeDisplay_timePart"]');
       const dateText = [...acc.childNodes].filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join('').trim().replace(/,$/, '');

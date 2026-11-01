@@ -35,7 +35,7 @@ export function TimeAsk() {
   };
   // The reward first (2026-10-02): the assignment's own points (Halo's, not XP) and how much of the class is now done.
   const code = courseById.get(item.courseId)?.code ?? null;
-  const line = doneLine(item.points, code, classProgress(item.courseId, data.items)?.pct ?? null, daysEarly(item.dueAt, item.completedAt ?? new Date().toISOString()));
+  const line = doneLine(item.points, code, classProgress(item.courseId, data.items)?.pct ?? null, daysEarly(item.dueAt, item.completedAt ?? new Date().toISOString(), data.settings.timezone));
   return (
     <div className="time-ask" role="status" aria-live="polite">
       <span className="time-ask-reward">{line}</span>

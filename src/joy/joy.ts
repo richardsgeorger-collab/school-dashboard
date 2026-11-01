@@ -1,4 +1,4 @@
-import { addDays, dateOf, fmtMinutes, weekStart } from '../domain/dates';
+import { addDays, dateOf, diffDays, fmtMinutes, weekStart } from '../domain/dates';
 import { letterFor } from '../domain/grades';
 import type { Course, DateStr, Item } from '../domain/types';
 
@@ -141,10 +141,13 @@ export function topicsCleared(items: Item[]): TopicDone[] {
     .map(([key, list]) => ({ key, courseId: list[0].courseId, topic: list.find((i) => i.topic)?.topic ?? 'A topic' }));
 }
 
-/** Whole days between now and the due time, when it was done at least a day ahead; null otherwise. */
-export function daysEarly(dueAt: string | null, at: string): number | null {
-  if (!dueAt) return null;
-  const d = Math.floor((Date.parse(dueAt) - Date.parse(at)) / 86_400_000);
+/**
+ * How many days early it was done: calendar days in the student's zone between the day it was done and its due day
+ * (Loop 306: counting 24-hour blocks lost a day on a clock change), when that is at least one; null otherwise.
+ */
+export function daysEarly(dueAt: string | null, at: string, tz = 'America/Phoenix'): number | null {
+  if (!dueAt || Date.parse(at) >= Date.parse(dueAt)) return null;
+  const d = diffDays(dateOf(at, tz), dateOf(dueAt, tz));
   return d >= 1 ? d : null;
 }
 

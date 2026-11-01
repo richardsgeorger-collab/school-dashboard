@@ -26,6 +26,19 @@
    * noise). "tomorrow" only when it is due on the next calendar day there and more than 6 hours away, so "tomorrow"
    * never stands in for "in 2h" just after midnight.
    */
+  /**
+   * The What-if line's day: "today", "tomorrow", the weekday, or (a week or more out) "Monday, Nov 9", by calendar days in `tz`, never by
+   * adding 24 hours (Loop 306: a 23- or 25-hour day on a clock change put "tomorrow" on the wrong day).
+   */
+  function dueDayWord(at, now, tz) {
+    const a = dayOf(now, tz);
+    const b = dayOf(at, tz);
+    if (!a || !b) return '';
+    const days = dayNum(b) - dayNum(a);
+    if (days === 0) return 'today';
+    if (days === 1) return 'tomorrow';
+    return new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long', ...(days > 6 || days < 0 ? { month: 'short', day: 'numeric' } : {}) }).format(new Date(at));
+  }
   function dueIn(dueAt, now, tz) {
     const t = Date.parse(dueAt);
     if (!Number.isFinite(t) || !Number.isFinite(now)) return null;
@@ -748,5 +761,6 @@
     return { state: 'needs', avg: Math.ceil(hi - 1e-6) };
   }
 
-  globalThis.HaloPlusOnLogic = { isParticipation, wiLetter, wiGrade, wiExact, wiBig, wiLadder, wiNeed, cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
+  globalThis.HaloPlusOnLogic = {
+    dueDayWord, isParticipation, wiLetter, wiGrade, wiExact, wiBig, wiLadder, wiNeed, cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
 })();
