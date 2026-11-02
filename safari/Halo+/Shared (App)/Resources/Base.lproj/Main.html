@@ -1,20 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-
-    <link rel="stylesheet" href="../Style.css">
-    <script src="../Script.js" defer></script>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Halo+</title>
+  <link rel="stylesheet" href="../Style.css">
+  <script src="../Script.js" defer></script>
 </head>
 <body>
-    <img src="../Icon.png" width="128" height="128" alt="Halo+ Icon">
-    <p class="platform-ios">You can turn on Halo+’s Safari extension in Settings.</p>
-    <p class="platform-mac state-unknown">You can turn on Halo+’s extension in Safari Extensions preferences.</p>
-    <p class="platform-mac state-on">Halo+’s extension is currently on. You can turn it off in Safari Extensions preferences.</p>
-    <p class="platform-mac state-off">Halo+’s extension is currently off. You can turn it on in Safari Extensions preferences.</p>
-    <button class="platform-mac open-preferences">Quit and Open Safari Extensions Preferences…</button>
+  <main>
+    <header>
+      <img src="../Icon.png" width="72" height="72" alt="">
+      <h1>Halo+</h1>
+      <p class="lede">Due dates, grades and search, right on Halo's own pages in Safari.</p>
+    </header>
+
+    <p class="status on" hidden>Halo+ is on in Safari. Open Halo and you'll see it.</p>
+
+    <ol class="steps">
+      <li class="step" data-step="on">
+        <b>Turn on Halo+ in Safari</b>
+        <span class="ios">Settings → Apps → Safari → Extensions → Halo+ → <i>Allow Extension</i>.</span>
+        <span class="mac">Safari → Settings → Extensions → tick <i>Halo+</i>.</span>
+        <button type="button" class="btn" data-do="open-settings"><span class="ios">Open Halo+ in Settings</span><span class="mac">Open Safari Settings</span></button>
+      </li>
+      <li class="step" data-step="allow">
+        <b>Allow it on Halo and Halo+</b>
+        <span class="ios">On the same screen, set <i>halo.gcu.edu</i> and <i>haloplus.app</i> to <i>Allow</i>.</span>
+        <span class="mac">The first time you open Halo, click the Halo+ button in Safari's toolbar and choose <i>Always Allow on This Website</i>. Do the same on haloplus.app.</span>
+      </li>
+      <li class="step" data-step="halo">
+        <b>Open Halo in Safari</b>
+        <span>Your classes, due dates and grades show up on Halo's pages. Nothing to set up there.</span>
+        <button type="button" class="btn primary" data-do="open-halo">Open Halo</button>
+      </li>
+    </ol>
+
+    <p class="account">To see it all in the Halo+ app on your phone too, <button type="button" class="link" data-do="open-account">make a free account at haloplus.app</button>.</p>
+  </main>
 </body>
 </html>

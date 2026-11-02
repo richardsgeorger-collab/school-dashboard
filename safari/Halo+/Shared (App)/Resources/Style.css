@@ -1,61 +1,45 @@
-* {
-    -webkit-user-select: none;
-    -webkit-user-drag: none;
-    cursor: default;
-}
-
+/* The Halo+ app's screen (Loop 308): Halo+'s own colours (the dark of its icon, its gold), light and dark. */
 :root {
-    color-scheme: light dark;
-
-    --spacing: 20px;
+  color-scheme: light dark;
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --ink: #111418;
+  --ink-2: #4a5160;
+  --line: #e2e5ea;
+  --gold: #c98a12;
+  --btn: #0b0d10;
+  --btn-ink: #f2f4f7;
 }
-
-html {
-    height: 100%;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0d10;
+    --card: #15181d;
+    --ink: #f2f4f7;
+    --ink-2: #a3aab6;
+    --line: #262b33;
+    --gold: #f2b84b;
+    --btn: #f2b84b;
+    --btn-ink: #0b0d10;
+  }
 }
-
-body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-
-    gap: var(--spacing);
-    margin: 0 calc(var(--spacing) * 2);
-    height: 100%;
-
-    font: -apple-system-short-body;
-    text-align: center;
-}
-
-body:not(.platform-mac, .platform-ios) :is(.platform-mac, .platform-ios) {
-    display: none;
-}
-
-body.platform-ios .platform-mac {
-    display: none;
-}
-
-body.platform-mac .platform-ios {
-    display: none;
-}
-
-body.platform-ios .platform-mac {
-    display: none;
-}
-
-body:not(.state-on, .state-off) :is(.state-on, .state-off) {
-    display: none;
-}
-
-body.state-on :is(.state-off, .state-unknown) {
-    display: none;
-}
-
-body.state-off :is(.state-on, .state-unknown) {
-    display: none;
-}
-
-button {
-    font-size: 1em;
-}
+* { box-sizing: border-box; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); }
+body { font: -apple-system-body; font-family: -apple-system, system-ui, sans-serif; line-height: 1.45; }
+main { max-width: 520px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom)); }
+header { text-align: center; margin-bottom: 22px; }
+header img { border-radius: 16px; }
+h1 { font-size: 28px; margin: 10px 0 4px; letter-spacing: -0.01em; }
+.lede { margin: 0; color: var(--ink-2); }
+.status { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--gold) 16%, var(--card)); font-weight: 600; text-align: center; }
+.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 12px; }
+.step { counter-increment: s; position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 14px 52px; display: grid; gap: 6px; }
+.step::before { content: counter(s); position: absolute; left: 16px; top: 14px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--gold); color: var(--gold); font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.step.done::before { content: '✓'; background: var(--gold); color: var(--card); }
+.step span { color: var(--ink-2); }
+.step i { font-style: normal; font-weight: 600; color: var(--ink); }
+.btn { justify-self: start; margin-top: 4px; font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--btn); color: var(--btn-ink); border-color: transparent; }
+.btn:focus-visible, .link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.account { margin: 20px 0 0; text-align: center; color: var(--ink-2); font-size: 15px; }
+.link { font: inherit; background: none; border: 0; padding: 0; color: var(--gold); text-decoration: underline; cursor: pointer; }
+body:not(.platform-ios) .ios, body:not(.platform-mac) .mac { display: none; }

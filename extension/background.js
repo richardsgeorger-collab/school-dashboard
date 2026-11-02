@@ -63,8 +63,53 @@ const deviceIdP = chrome.storage.local.get('deviceId').then(async ({ deviceId })
   await chrome.storage.local.set({ deviceId: id });
   return id;
 });
+/**
+ * Halo+ for Safari (Loop 308): this same file runs in Safari on a Mac, an iPhone and an iPad. iOS stops an extension
+ * soon after it is used and has no hidden tabs, so on an iPhone or iPad Halo+ never opens a Halo tab of its own: it
+ * reads Halo when the student opens it (the visit sync), on every plan.
+ */
+const SAFARI = /Safari\//.test(navigator.userAgent) && !/Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent);
+let OS = '';
+const osP = chrome.runtime
+  .getPlatformInfo()
+  .then((p) => (OS = (p && p.os) || ''))
+  .catch(() => '');
+const phone = () => SAFARI && OS === 'ios';
+/**
+ * Windows, safely (Loop 308): Safari on an iPhone or iPad has one window and not all of chrome.windows (a call that is
+ * not there threw before its .catch, and the visit sync never read Halo). There, the one window is the one in front.
+ */
+async function windowOf(id) {
+  try {
+    if (chrome.windows && chrome.windows.get) return await chrome.windows.get(id);
+  } catch {
+    /* below */
+  }
+  return phone() ? { id, focused: true } : null;
+}
+async function windows() {
+  try {
+    if (chrome.windows && chrome.windows.getAll) {
+      const w = await chrome.windows.getAll({ windowTypes: ['normal'] });
+      if (w.length || !phone()) return w;
+    }
+  } catch {
+    /* below */
+  }
+  return phone() ? [{ id: -1, focused: true }] : [];
+}
+async function focusWindow(id) {
+  try {
+    if (chrome.windows && chrome.windows.update) await chrome.windows.update(id, { focused: true });
+  } catch {
+    /* not on this device */
+  }
+}
+/** chrome, edge, safari-mac or safari-ios: the daily count's browser (Admin's Extension users card). */
+const platform = () => (SAFARI ? (OS === 'ios' ? 'safari-ios' : 'safari-mac') : /Edg\//.test(navigator.userAgent) ? 'edge' : 'chrome');
 function browserName() {
   const ua = navigator.userAgent;
+  if (SAFARI) return `Safari ${(ua.match(/Version\/(\d+)/) || [])[1] || ''} on ${OS === 'ios' ? 'iOS' : 'macOS'}`;
   return `${/Edg\//.test(ua) ? 'Edge' : 'Chrome'} ${(ua.match(/(?:Edg|Chrome)\/(\d+)/) || [])[1] || ''} on ${/Mac OS X/.test(ua) ? 'macOS' : /Windows/.test(ua) ? 'Windows' : /CrOS/.test(ua) ? 'ChromeOS' : /Linux/.test(ua) ? 'Linux' : 'unknown'}`;
 }
 /**
@@ -91,15 +136,21 @@ const testBrowserP = (async () => {
  * version, the plan (or "none" without an account) and whether an account is signed in. Nothing about the student, no
  * Halo data. Checked whenever the worker wakes; sent at most once a calendar day.
  */
+let pinging = false;
 async function pingDaily() {
   try {
     const day = new Date().toLocaleDateString('en-CA');
     const { pingDay, tier, syncKey } = await chrome.storage.local.get(['pingDay', 'tier', 'syncKey']);
-    if (pingDay === day) return;
-    await chrome.storage.local.set({ pingDay: day });
-    await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-ping', device_id: await deviceIdP, ext_version: VERSION, plan: syncKey ? tier || 'free' : 'none', signed_in: !!syncKey, test: await testBrowserP }) });
+    if (pingDay === day || pinging) return;
+    pinging = true;
+    // The day is marked only once the count got through (Loop 308: Safari started Halo+ before it could reach the
+    // server, and the day's count was lost).
+    const r = await fetch(REPORT_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'ext-ping', device_id: await deviceIdP, ext_version: VERSION, plan: syncKey ? tier || 'free' : 'none', signed_in: !!syncKey, platform: (await osP, platform()), test: await testBrowserP }) });
+    if (r.ok) await chrome.storage.local.set({ pingDay: day });
   } catch {
     /* a count, never in the way: tried again next time */
+  } finally {
+    pinging = false;
   }
 }
 /** Removing the extension opens haloplus.app/bye (0.12.16): counted as an uninstall, with one optional "what didn't work?". */
@@ -212,7 +263,8 @@ chrome.runtime.onInstalled.addListener(async (d) => {
   // A new install (0.11.0) is counted first, before the open tabs get their scripts: an open Halo+ tab sends the
   // account's key at once, and the link it makes needs the install's row to be there.
   const dash = d.reason === 'install' ? await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }).catch(() => []) : [];
-  const source = dash.length ? 'site' : 'store';
+  // From Apple's App Store (Halo+ for Safari): 'appstore', welcomed like a Web Store install.
+  const source = dash.length ? 'site' : SAFARI ? 'appstore' : 'store';
   if (d.reason === 'install') await reportInstall(source);
   // Tabs already open get this extension's scripts now (0.5.2), not after a reload: an open Halo+ tab learns the plan
   // and the account at once (the setup screen sees the extension in seconds), and an open Halo tab can carry a sync.
@@ -223,13 +275,13 @@ chrome.runtime.onInstalled.addListener(async (d) => {
   if (d.reason === 'install') {
     await sleep(800);
     const { noAcct } = await get(['noAcct']);
-    if (source === 'store') await chrome.tabs.create({ url: noAcct ? `${WELCOME_URL}&mode=open` : WELCOME_URL, active: true }).catch(() => undefined);
+    if (source !== 'site') await chrome.tabs.create({ url: noAcct ? `${WELCOME_URL}&mode=open` : WELCOME_URL, active: true }).catch(() => undefined);
     else await focusDash();
   }
 });
 // A sync that was due while no browser window was open (Windows keeps the browser running in the background) runs when
 // one opens (0.7.6).
-chrome.windows.onCreated.addListener(async (w) => {
+chrome.windows?.onCreated?.addListener(async (w) => {
   if (w.type !== 'normal') return;
   const { syncWhenWindow, tier } = await get(['syncWhenWindow', 'tier']);
   if (!syncWhenWindow) return;
@@ -261,6 +313,8 @@ chrome.runtime.onStartup.addListener(() => void ensureSchedule());
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== ALARM) return;
+  await osP;
+  if (phone()) return;
   const { tier, lastSyncAt } = await get(['tier', 'lastSyncAt']);
   if (!AUTO.includes(tier)) return void chrome.alarms.clear(ALARM);
   // A Sync now a moment ago already did it.
@@ -271,6 +325,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 // ---- messages -------------------------------------------------------------------------------------------------------
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (!msg) return;
+  // iOS wakes Halo+ for the pages' messages, not for alarms: the day's count rides on them (once a day all the same).
+  void pingDaily();
   if (msg.kind === 'tier') {
     void set({ tier: msg.tier }).then(ensureSchedule);
     reply({ ok: true });
@@ -482,7 +538,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       const back = tabs.find((t) => t.id === kitDashTab) ?? tabs[0];
       if (back) {
         await chrome.tabs.update(back.id, { active: true }).catch(() => undefined);
-        await chrome.windows.update(back.windowId, { focused: true }).catch(() => undefined);
+        await focusWindow(back.windowId);
       }
       if (sender.tab && sender.tab.id !== undefined) chrome.tabs.remove(sender.tab.id).catch(() => undefined);
     })();
@@ -556,8 +612,11 @@ function causeOf(raw, kind) {
 async function studentTab() {
   const tabs = await within(chrome.tabs.query({ url: `${HALO}*`, active: true }), TAB_MS, 'The tab list').catch(() => []);
   for (const t of tabs) {
-    if (t.discarded || t.status !== 'complete' || !isHalo(t.url) || /^https:\/\/halo\.gcu\.edu\/(login|auth)/.test(t.url)) continue;
-    const win = await chrome.windows.get(t.windowId).catch(() => null);
+    // On an iPhone or iPad a page can stay "loading" for one slow picture or font; Halo+'s own script answering (it
+    // starts once the page is drawn) is ready enough there.
+    if (t.discarded || (t.status !== 'complete' && !phone()) || !isHalo(t.url) || /^https:\/\/halo\.gcu\.edu\/(login|auth)/.test(t.url)) continue;
+    // On an iPhone or iPad the tab in front is the one in use (Safari there does not call its window focused).
+    const win = phone() ? { focused: true } : await windowOf(t.windowId);
     if (!win || !win.focused) continue;
     const ok = await within(chrome.tabs.sendMessage(t.id, { kind: 'ping' }), 3000, 'The Halo tab').then((r) => !!(r && r.ok)).catch(() => false);
     if (ok) return t;
@@ -581,6 +640,9 @@ async function readHalo({ fresh }) {
   try {
     if (!fresh) tab = await studentTab();
     if (!tab) {
+      // An iPhone or iPad: no Halo tab of Halo+'s own. It waits for the student to open Halo.
+      await osP;
+      if (phone()) return { error: 'Open Halo in Safari to sync', tab: 'none' };
       own = true;
       tab = await quietTab();
     }
@@ -787,7 +849,8 @@ void updateBadge();
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'tier', 'setup'].some((k) => k in changes)) void updateBadge();
 });
-chrome.alarms.create('halo-badge', { periodInMinutes: 10 }).catch?.(() => undefined);
+// Safari's alarms.create gives back nothing, not a promise (Loop 308: `.catch` on it stopped the whole worker there).
+Promise.resolve(chrome.alarms.create('halo-badge', { periodInMinutes: 10 })).catch(() => undefined);
 async function maxOn() {
   const t = await chrome.tabs.create({ url: `${DASH_ORIGIN}/#/now?from=halo&via=max`, active: false }).catch(() => null);
   if (!t) return;
@@ -863,10 +926,10 @@ async function focusDash() {
   let t = tabs.find((x) => x.id === state.askedFrom) ?? tabs[0] ?? null;
   if (t) {
     await chrome.tabs.update(t.id, { active: true }).catch(() => undefined);
-    await chrome.windows.update(t.windowId, { focused: true }).catch(() => undefined);
+    await focusWindow(t.windowId);
     return t;
   }
-  const wins = await chrome.windows.getAll({ windowTypes: ['normal'] }).catch(() => []);
+  const wins = await windows();
   if (!wins.length) return null;
   t = await chrome.tabs.create({ url: `${DASH_ORIGIN}/#/now`, active: true }).catch(() => null);
   return t;
@@ -903,7 +966,7 @@ async function runSync({ auto, quiet = false, setup = false, visit = false }) {
   try {
     // No browser window at all (Windows keeps Chrome and Edge running in the background): nothing to read Halo in.
     // Not a failure: it runs when a window opens.
-    const wins = await within(chrome.windows.getAll({ windowTypes: ['normal'] }), TAB_MS, 'The window list').catch(() => []);
+    const wins = await within(windows(), TAB_MS, 'The window list').catch(() => []);
     if (!wins.length) {
       await set({ syncWhenWindow: true });
       Object.assign(end, { outcome: 'skipped', cause: 'no-window' });
@@ -1332,7 +1395,7 @@ async function land(payload, auto, quiet = false) {
     if (front) {
       if (tabs[0]) {
         await chrome.tabs.update(tabs[0].id, { active: true });
-        await chrome.windows.update(tabs[0].windowId, { focused: true }).catch(() => undefined);
+        await focusWindow(tabs[0].windowId);
       } else await chrome.tabs.create({ url: DASH_URL, active: true }).catch(() => undefined);
     }
     return { landed: true, how: 'account' };
@@ -1347,7 +1410,7 @@ async function land(payload, auto, quiet = false) {
       if (front) {
         if (tabs[0]) {
           await chrome.tabs.update(tabs[0].id, { active: true });
-          await chrome.windows.update(tabs[0].windowId, { focused: true }).catch(() => undefined);
+          await focusWindow(tabs[0].windowId);
         } else await chrome.tabs.create({ url: DASH_URL, active: true });
       }
     }
@@ -1361,7 +1424,7 @@ async function land(payload, auto, quiet = false) {
   let tab = (await chrome.tabs.query({ url: `${DASH_ORIGIN}/*` }))[0] ?? null;
   if (tab && front) {
     await chrome.tabs.update(tab.id, { active: true });
-    await chrome.windows.update(tab.windowId, { focused: true }).catch(() => undefined);
+    await focusWindow(tab.windowId);
   }
   if (!tab && front) tab = await openDash();
   if (tab && (await handTo(tab, payload))) return { landed: true, how: 'tab' };

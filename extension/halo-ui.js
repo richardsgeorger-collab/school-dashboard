@@ -112,7 +112,7 @@
 * { box-sizing: border-box; }
 .wrap { --bg: #16191e; --bg2: #20242b; --ink: #f1f3f5; --ink2: #b9c1cb; --ink3: #8b95a1; --line: rgba(255,255,255,.10); --gold: #f2b84b; --green: #5fd393; --red: #e5484d;
   font: 13px/1.35 Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
-.pill { position: fixed; bottom: 18px; right: 18px; z-index: 2147483000; display: inline-flex; align-items: center; gap: 8px; height: 34px; max-width: 280px;
+.pill { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); right: 18px; z-index: 2147483000; display: inline-flex; align-items: center; gap: 8px; height: 34px; max-width: 280px;
   padding: 0 14px 0 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--gold); cursor: pointer;
   font: 600 13px/1 Inter, -apple-system, "Segoe UI", Roboto, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,.22);
   transition: max-width .45s cubic-bezier(.2,.8,.2,1), background-color .2s, color .2s; overflow: hidden; white-space: nowrap; }
@@ -1185,11 +1185,14 @@ ul{list-style:none;margin:0;padding:0}
    * Where the pill sits: Student Home when "This week" could not be placed, and Halo's other pages; never while a quiz
    * is being taken (0.10.0, George 2026-10-24: "the panel replaces the daily peek… pill stays on other Halo pages").
    */
+  const narrow = () => matchMedia('(max-width: 600px)').matches;
   function pillHere() {
     const r = route().kind;
     // Student Home (0.10.4, George 2026-10-24): the pill while "This week" is folded, never beside it open (the same
     // things twice); no peek there either way.
-    if (r === 'home') return !weekPlaced || !weekOpen();
+    // On a phone (Safari on iPhone, Loop 308) the folded panel is already the day's look, and a corner pill would sit
+    // over the class cards: no pill there.
+    if (r === 'home') return !weekPlaced || (!weekOpen() && !narrow());
     return r === 'other' || r === 'unit';
   }
   function home() {
@@ -1199,7 +1202,7 @@ ul{list-style:none;margin:0;padding:0}
     if (weekPlaced) {
       // The day's look is the panel: no peek here, and it counts as today's (no peek later on another page either).
       // The pill only while the panel is folded.
-      if (weekOpen()) {
+      if (weekOpen() || narrow()) {
         if (!peeking) clearLayer();
       } else renderPill();
       const u = ui();

@@ -13,7 +13,7 @@ export function simDriver(sim, { app = 'settings', taps = [], fresh = false } = 
   const args = [built ? 'test-without-building' : 'test', '-scheme', 'SimDriver', '-destination', `id=${sim}`, '-derivedDataPath', DD];
   // TEST_RUNNER_<NAME> reaches the test as <NAME> only from xcodebuild's own environment.
   const env = { ...process.env, TEST_RUNNER_APP: app, TEST_RUNNER_TAPS: taps.join('>'), TEST_RUNNER_FRESH: fresh ? '1' : '0' };
-  const r = spawnSync('xcodebuild', args, { cwd: DIR, env, encoding: 'utf8', maxBuffer: 64 << 20 });
+  const r = spawnSync('xcodebuild', args, { cwd: DIR, env, encoding: 'utf8', maxBuffer: 64 << 20, timeout: 240000 });
   built = true;
   const out = `${r.stdout}${r.stderr}`;
   const m = out.match(/LIST>>>\n([\s\S]*?)\n<<<LIST/);

@@ -662,3 +662,38 @@ One line per change, newest last. Proposals that need George's approval are mark
   - **Found for the server:** sync-drop's CORS allows only https://halo.gcu.edu, so a sync sent from Safari's background needs it to also allow the extension's own origin (to do, before Safari syncs for real). report already allows any origin.
   - **New for iOS 26.2:** SFSafariSettings.openExtensionsSettings and SFSafariExtensionManager. The iPhone app can open Halo+'s own Safari settings and show whether it is on.
   - **Waiting on George:** step A (Xcode account and Team ID). Safari on the Mac won't run an unsigned extension, so the Mac tests need it.
+- Loop 308 (part 2, 2026-11-02): Halo+ for Safari works on iPhone and iPad. scripts/e2e-safari.mjs passes in full on both, in the iOS 26.5 Simulator, on the stand-in Halo with the made-up student:
+  - Student Home: This week, the week strip within the screen, grades and NEXT on every card, the search box, no ⌘K key on a touch screen, no pill over the cards on a phone, nothing wider than the screen;
+  - search; a topic's countdowns (and the personal 50-hour date: "in 2 days");
+  - the submit check-off: the moment with confetti, this device's mark, the account's mark through sync-drop from Safari's background;
+  - the pill on a class page; the visit sync landing in the account (read in the student's own tab in 0.6 s); the day's count saying safari-ios.
+  - Pictures in docs/screens/safari/ios and ipad.
+  - **Real fixes in the shared extension** (Chrome gets them too):
+    - `chrome.alarms.create(...).catch?.()` threw in Safari (its alarms.create returns nothing), and that stopped the rest of the background worker. Now `Promise.resolve(...)`.
+    - Safari on iPhone/iPad has only part of chrome.windows (get/update/getAll), and a missing call threw before its `.catch`. Now safe helpers (windowOf, windows, focusWindow), and `windows?.onCreated`.
+    - On iPhone/iPad the tab in front counts as the student's tab: there Safari neither calls its window focused nor always finishes "loading". Halo+'s own script answering is enough.
+    - iPhone/iPad: no Halo tab of Halo+'s own and no timed syncs. Halo is read when the student opens it (the visit sync, every plan).
+    - The day's count is marked only once it got through (it was marked before sending, and Safari's first count was lost), is sent on any message (iOS wakes the worker for messages, not alarms), and says which browser (chrome, edge, safari-mac, safari-ios).
+    - Installs from the App Store are source 'appstore' and get the welcome tab.
+    - Phone layout:
+      - the week strip stacks each day (weekday over date, dots below, 48 px to tap) under 600 px;
+      - no ⌘K key on a touch screen with no keyboard;
+      - no corner pill on Student Home under 600 px (the folded panel is already there);
+      - the pill clears the iPhone's home bar (safe area).
+  - **Server, deployed:**
+    - migration 0057: ext_pings.platform, ext_installs.source 'appstore', admin_ext_users by_platform and appstore_installs_30;
+    - report: the ping's platform, from the list only;
+    - sync-drop: answers safari-web-extension:// origins.
+    - Admin's Extension users card shows "By browser" and App Store installs.
+  - **The app:**
+    - its one screen is now Halo+'s own (Shared (App)/Resources): three steps (turn it on, allow halo.gcu.edu and haloplus.app, open Halo), "Halo+ is on" once Safari says so, and a button to Halo+'s own Safari settings (iOS 26.2+ SFSafariSettings; older: Settings). Halo and haloplus.app open in Safari, not another default browser;
+    - icons drawn large from the Halo+ mark (scripts/safari-icons.mjs; iOS opaque 1024, Mac at every size).
+  - **Uploads:** scripts/safari-testflight.mjs archives what ships (refuses the test build) and uploads to TestFlight with George's Developer-role key, read from the Keychain only (service haloplus-asc-key). For the upload's length, Apple's tool reads the key from a private temporary file, deleted at the end. It never submits for review. Not run yet: no key yet.
+  - **The test rig:**
+    - Safari's match patterns and tab search take no port, so the test build matches http://127.0.0.1/*;
+    - the sync script's host check points at the stand-in;
+    - the probe now includes shadow roots and each piece's size and visibility, and talks to one tab by an id kept in sessionStorage. Safari on a phone keeps old tabs, and they took commands, so each run starts with no tabs (simFreshSafari: only the test Simulator's Safari);
+    - a command not taken in time leaves the queue;
+    - the test build records background errors.
+  - **Chrome, to be sure nothing broke:** vitest 1429 passed (two source-text checks updated), tsc and lint clean, e2e-onhalo-cards, -checkoff, -topic PASS. e2e-autosync-alarm FAILS, the same way on the last commit's extension (Halo+ never hands the account key to the extension in that test), so it is not from this loop and is still to look at.
+  - **Still waiting on George:** Xcode → Settings → Accounts has no Apple ID yet, so no Mac build or Mac test, and no TestFlight.

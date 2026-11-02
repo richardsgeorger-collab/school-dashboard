@@ -41,3 +41,13 @@ export function simDevice(name = 'HaloPlus iPhone', type = 'iPhone 17 Pro') {
   }
   return dev.udid;
 }
+
+/**
+ * Safari in the test Simulator with no tabs: quit, and its saved tabs removed (Safari on a phone keeps every tab, and
+ * old test pages kept running and taking the bench's commands). Only ever the test Simulator's own Safari.
+ */
+export function simFreshSafari(sim) {
+  spawnSync('xcrun', ['simctl', 'terminate', sim, 'com.apple.mobilesafari']);
+  const home = execFileSync('xcrun', ['simctl', 'getenv', sim, 'HOME'], { encoding: 'utf8' }).trim();
+  for (const dir of [`${home}/Library/Safari`]) spawnSync('/bin/sh', ['-c', `rm -f "${dir}"/SafariTabs.db* "${dir}"/BrowserState.db*`]);
+}

@@ -48,7 +48,7 @@ describe('a sync never waits forever', () => {
   });
   it('waits for a browser window instead of failing when there is none (Windows background mode)', () => {
     expect(fn('runSync')).toContain("Object.assign(end, { outcome: 'skipped', cause: 'no-window' })");
-    expect(bg).toContain('chrome.windows.onCreated.addListener');
+    expect(bg).toContain('chrome.windows?.onCreated?.addListener');
   });
   it('counts and resumes a sync the browser cut off', () => {
     expect(bg).toContain("cause: 'interrupted'");
@@ -105,7 +105,8 @@ describe('Free syncs whenever it is on Halo (0.11.0)', () => {
   it('a Web Store install opens the welcome tab; one from Halo+ goes back to Halo+', () => {
     // The install is counted before the open tabs get their scripts (the link an open Halo+ tab makes needs the row).
     // No-account mode (0.12.17) opens the same tab in its "open Halo" form.
-    expect(bg).toMatch(/const source = dash\.length \? 'site' : 'store';\s+if \(d\.reason === 'install'\) await reportInstall\(source\);[\s\S]{0,800}chrome\.tabs\.create\(\{ url: noAcct \? `\$\{WELCOME_URL\}&mode=open` : WELCOME_URL, active: true \}\)[\s\S]{0,80}else await focusDash\(\);/);
+    // Loop 308: Safari's installs come from Apple's App Store ('appstore'), welcomed the same.
+    expect(bg).toMatch(/const source = dash\.length \? 'site' : SAFARI \? 'appstore' : 'store';\s+if \(d\.reason === 'install'\) await reportInstall\(source\);[\s\S]{0,800}chrome\.tabs\.create\(\{ url: noAcct \? `\$\{WELCOME_URL\}&mode=open` : WELCOME_URL, active: true \}\)[\s\S]{0,80}else await focusDash\(\);/);
     expect(bg).toContain("const WELCOME_URL = `${DASH_ORIGIN}/#/welcome?src=store`;");
   });
 });

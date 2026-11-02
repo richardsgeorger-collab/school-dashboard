@@ -618,6 +618,31 @@ html[data-hp-home-compact] #Home--main > .better-halo-tabs-wrapper:not(:has(> :n
   font-size: 13px;
   color: var(--hp-text-2);
 }
+/* On a phone (Safari on iPhone, Loop 308): each day's box stacks its weekday over its date, dots below, tall enough
+   to tap, so the seven fit across a phone's width. */
+@media (max-width: 600px) {
+  [data-haloplus='week-strip'] {
+    gap: 4px;
+  }
+  [data-haloplus='week-strip'] .hp-sd {
+    flex-direction: column;
+    justify-content: center;
+    height: 48px;
+    padding: 3px 0;
+    gap: 3px;
+    font-size: 11.5px;
+  }
+  [data-haloplus='week-strip'] .hp-sd-d {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+  }
+  [data-haloplus='week-strip'] .hp-sd-dots i {
+    width: 6px;
+    height: 6px;
+  }
+}
 /* A day the strip opened: marked for a moment. */
 .hp-cal .hp-day.hp-flash {
   box-shadow: inset 0 0 0 2px var(--hp-purple);

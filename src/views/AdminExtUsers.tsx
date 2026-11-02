@@ -14,6 +14,9 @@ export interface ExtUsers {
   signed_out_7: number;
   by_version: Record<string, number>;
   by_plan: Record<string, number>;
+  /** Loop 308: chrome, edge, safari-mac, safari-ios (pings from before say nothing: counted as chrome). */
+  by_platform?: Record<string, number>;
+  appstore_installs_30?: number;
   daily: { day: string; n: number; signed_in: number }[];
   store_installs_30: number;
   welcome_30: number;
@@ -22,6 +25,7 @@ export interface ExtUsers {
   synced_30: number;
 }
 const REASON: Record<string, string> = { 'didnt-work': 'didn’t work', 'not-needed': 'didn’t need it', 'too-much': 'too much on Halo', privacy: 'privacy', other: 'something else', 'no answer': 'no answer' };
+const BROWSERS: Record<string, string> = { chrome: 'Chrome', edge: 'Edge', 'safari-mac': 'Safari on Mac', 'safari-ios': 'Safari on iPhone/iPad' };
 const list = (o: Record<string, number>, label = (k: string) => k) =>
   Object.entries(o)
     .sort((a, b) => b[1] - a[1])
@@ -168,6 +172,12 @@ export function AdminExtUsers() {
           </p>
           <p className="admin-line">By version (this week): {list(u.by_version)}</p>
           <p className="admin-line">By plan (this week): {list(u.by_plan)}</p>
+          {u.by_platform && (
+            <p className="admin-line">
+              By browser (this week): {list(u.by_platform, (k) => BROWSERS[k] ?? k)}
+              {typeof u.appstore_installs_30 === 'number' ? ` · App Store installs (30 days): ${u.appstore_installs_30}` : ''}
+            </p>
+          )}
           <div className="ext-users-chart" role="img" aria-label={`Browsers running the extension each day for 30 days, most ${max}`}>
             {u.daily.map((d) => (
               <span key={d.day} title={`${d.day}: ${d.n} (${d.signed_in} signed in)`} style={{ height: `${(d.n / max) * 100}%` }}>

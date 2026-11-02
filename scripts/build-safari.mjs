@@ -48,6 +48,11 @@ if (TEST) {
   const swap = (s) => Object.entries(TEST_HOSTS).reduce((t, [a, b]) => t.split(a).join(b), s);
   const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
   for (const f of walk(OUT).filter((f) => /\.(js|html)$/.test(f))) writeFileSync(f, swap(readFileSync(f, 'utf8')));
+  // The sync script's own "are we on Halo?" check is by host name: the stand-in's host.
+  {
+    const f = join(OUT, 'sync-inject.js');
+    writeFileSync(f, readFileSync(f, 'utf8').split('location.hostname!=="halo.gcu.edu"').join('location.hostname!=="127.0.0.1"'));
+  }
   Object.assign(m, JSON.parse(swap(JSON.stringify(m))));
   // The stand-in's own ports (gateway, orchestration, Halo+'s server) are other origins: allowed too.
   m.host_permissions.push('http://127.0.0.1/*');
@@ -57,6 +62,19 @@ if (TEST) {
   m.host_permissions = [...new Set(m.host_permissions.map((u) => u.replace(/^http:\/\/127\.0\.0\.1:\d+\//, 'http://127.0.0.1/')))];
   m.name = 'Halo+ (test)';
   cpSync('scripts/lib/safari-probe.js', join(OUT, 'safari-probe.js'));
+  // Safari's tab search takes no port either: the background's Halo tab searches look on the stand-in's host.
+  {
+    const bgf = join(OUT, 'background.js');
+    let code = readFileSync(bgf, 'utf8').split('url: `${HALO}*`').join("url: 'http://127.0.0.1/*'");
+    // What the student's-tab search saw, for the bench (test build only).
+    code = code.replace(/(const tabs = await within\(chrome\.tabs\.query\(\{ url: 'http:\/\/127\.0\.0\.1\/\*', active: true \}\)[^;]*;)/, "$1 chrome.storage.local.set({ __tabs: JSON.stringify(tabs.map((t) => ({ id: t.id, u: t.url, s: t.status, a: t.active, d: t.discarded, w: t.windowId }))) });");
+    // And what Safari answered when the sync's script was put into Halo's page.
+    code = code.replace('chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["sync-inject.js"], world: "MAIN" })', 'chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["sync-inject.js"], world: "MAIN" }).then((r) => (chrome.storage.local.set({ __inject: JSON.stringify(r).slice(0, 300) }), r), (e) => { chrome.storage.local.set({ __inject: "error: " + String(e && e.message || e) }); throw e; })');
+    writeFileSync(bgf, code);
+  }
+  // The background's own errors, kept where the probe can read them (Safari's console is out of a script's reach).
+  const bg = join(OUT, 'background.js');
+  writeFileSync(bg, `try { chrome.storage.local.set({ __bgStart: new Date().toISOString() }); self.addEventListener('error', (e) => chrome.storage.local.set({ __bgError: String(e.message) + ' @' + e.lineno + ':' + e.colno })); self.addEventListener('unhandledrejection', (e) => chrome.storage.local.set({ __bgReject: String(e.reason && (e.reason.stack || e.reason)) })); } catch (e) {}\ntry {\n${readFileSync(bg, 'utf8')}\n} catch (e) { chrome.storage.local.set({ __bgError: String(e && (e.stack || e)) }); }\n`);
   for (const cs of m.content_scripts) cs.js.push('safari-probe.js');
 }
 writeFileSync(join(OUT, 'manifest.json'), `${JSON.stringify(m, null, 2)}\n`);

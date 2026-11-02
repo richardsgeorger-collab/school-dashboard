@@ -5,9 +5,14 @@ import { funnelRow } from '../functions/_shared/laptopLink';
 describe('the extension counting itself (Loop 304)', () => {
   it('a ping: a browser id, the Phoenix day, the version, the plan, signed in; nothing else', () => {
     const r = pingRow({ device_id: 'ext-1234abcd-ef', ext_version: '0.12.16', plan: 'max', signed_in: true, email: 'x@y.z', classes: [1] }, new Date('2026-11-01T05:00:00Z'));
-    expect(r).toEqual({ device_id: 'ext-1234abcd-ef', day: '2026-10-31', ext_version: '0.12.16', plan: 'max', signed_in: true });
+    expect(r).toEqual({ device_id: 'ext-1234abcd-ef', day: '2026-10-31', ext_version: '0.12.16', plan: 'max', signed_in: true, platform: null });
     expect(pingRow({ device_id: 'ext-1234abcd-ef', plan: 'gold', ext_version: '<script>' })).toMatchObject({ plan: 'none', ext_version: null, signed_in: false });
     expect(pingRow({ device_id: 'x' })).toBeNull();
+  });
+  it('which browser, from the list only (Loop 308: Safari on a Mac and on an iPhone or iPad)', () => {
+    expect(pingRow({ device_id: 'ext-1234abcd-ef', platform: 'safari-ios' })?.platform).toBe('safari-ios');
+    expect(pingRow({ device_id: 'ext-1234abcd-ef', platform: 'safari-mac' })?.platform).toBe('safari-mac');
+    expect(pingRow({ device_id: 'ext-1234abcd-ef', platform: 'Safari 26 on iOS' })?.platform).toBeNull();
   });
   it('an uninstall reason only from the list', () => {
     expect(cleanReason('didnt-work')).toBe('didnt-work');

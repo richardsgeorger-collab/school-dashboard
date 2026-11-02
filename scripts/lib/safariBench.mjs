@@ -43,7 +43,7 @@ export async function safariBench(fx, opts = {}) {
     // The probe and the bench (any port).
     if (local.pathname === '/__probe') {
       const p = JSON.parse(body.toString());
-      snaps.set(p.url, p);
+      snaps.set(`${p.tab} ${p.url}`, p);
       return res.writeHead(204).end();
     }
     if (local.pathname === '/__result') {
@@ -53,8 +53,9 @@ export async function safariBench(fx, opts = {}) {
     }
     if (local.pathname === '/__cmd') {
       const url = local.searchParams.get('url') || '';
+      const tab = local.searchParams.get('tab') || '';
       const mine = [];
-      for (let i = queue.length - 1; i >= 0; i--) if (!queue[i].url || url.includes(queue[i].url)) mine.unshift(...queue.splice(i, 1));
+      for (let i = queue.length - 1; i >= 0; i--) if (!queue[i].url || url.includes(queue[i].url) || tab === queue[i].url) mine.unshift(...queue.splice(i, 1));
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       return res.end(JSON.stringify(mine.map(({ url: _u, ...c }) => c)));
     }
@@ -128,15 +129,28 @@ export async function safariBench(fx, opts = {}) {
   // Reading what Safari drew: the probe's copy of the page, in a plain WebKit page with no scripts.
   const wk = await webkit.launch().catch(() => chromium.launch());
   const reader = await wk.newPage();
+  // Loaded as a page (not setContent), so the copy's declarative shadow roots are parsed.
+  let readerHtml = '';
+  await reader.route('http://reader.test/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: readerHtml }));
+  await reader.route(/^https?:\/\/(?!reader\.test)/, (r) => r.abort());
+  const load = async (html) => {
+    readerHtml = html;
+    await reader.goto(`http://reader.test/?${Date.now()}`, { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+  };
 
   const api = {
     ...bench,
     reports,
     snaps,
     halo: (path = '/') => `http://127.0.0.1:${PORTS.halo}${path}`,
-    /** The latest copy of a page whose URL contains `part` (newest first), or null. */
+    /** The browser tab that showed a page whose URL contains `part`: then `part` can be that tab, wherever it goes. */
+    tabOf(part) {
+      const s = [...snaps.values()].filter((x) => x.url.includes(part)).sort((a, b) => b.at - a.at)[0];
+      return s ? s.tab : null;
+    },
+    /** The latest copy of a page whose URL contains `part`, or of the tab `part` (newest first), or null. */
     latest(part = '') {
-      return [...snaps.values()].filter((s) => s.url.includes(part)).sort((a, b) => b.at - a.at)[0] || null;
+      return [...snaps.values()].filter((s) => s.url.includes(part) || s.tab === part).sort((a, b) => b.at - a.at)[0] || null;
     },
     /** Waits until the page's copy passes `fn` (run in the reader, with the copy loaded), up to `ms`. */
     async until(part, fn, arg, ms = 20000) {
@@ -146,7 +160,7 @@ export async function safariBench(fx, opts = {}) {
         const s = api.latest(part);
         if (s && s !== last) {
           last = s;
-          await reader.setContent(s.html, { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+          await load(s.html);
           const v = await reader.evaluate(fn, arg).catch(() => null);
           if (v) return v;
         }
@@ -158,7 +172,7 @@ export async function safariBench(fx, opts = {}) {
     async read(part, fn, arg) {
       const s = api.latest(part);
       if (!s) return null;
-      await reader.setContent(s.html, { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+      await load(s.html);
       return reader.evaluate(fn, arg).catch(() => null);
     },
     /** A command for the page whose URL contains `url` (any page when empty); resolves to its result. */
@@ -170,6 +184,9 @@ export async function safariBench(fx, opts = {}) {
         if (results.has(id)) return results.get(id);
         await sleep(150);
       }
+      // Not taken in time: out of the queue, so it never runs later, out of order.
+      const i = queue.findIndex((q) => q.id === id);
+      if (i >= 0) queue.splice(i, 1);
       return { ok: false, why: 'no page took the command' };
     },
     async close() {

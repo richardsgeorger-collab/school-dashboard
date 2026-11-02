@@ -1,24 +1,15 @@
-function show(platform, enabled, useSettingsInsteadOfPreferences) {
-    document.body.classList.add(`platform-${platform}`);
-
-    if (useSettingsInsteadOfPreferences) {
-        document.getElementsByClassName('platform-mac state-on')[0].innerText = "Halo+’s extension is currently on. You can turn it off in the Extensions section of Safari Settings.";
-        document.getElementsByClassName('platform-mac state-off')[0].innerText = "Halo+’s extension is currently off. You can turn it on in the Extensions section of Safari Settings.";
-        document.getElementsByClassName('platform-mac state-unknown')[0].innerText = "You can turn on Halo+’s extension in the Extensions section of Safari Settings.";
-        document.getElementsByClassName('platform-mac open-preferences')[0].innerText = "Quit and Open Safari Settings…";
-    }
-
-    if (typeof enabled === "boolean") {
-        document.body.classList.toggle(`state-on`, enabled);
-        document.body.classList.toggle(`state-off`, !enabled);
-    } else {
-        document.body.classList.remove(`state-on`);
-        document.body.classList.remove(`state-off`);
-    }
+// The Halo+ app's one screen (Loop 308): how to turn Halo+ on in Safari, and whether it is on.
+// The app calls show(platform, enabled) once it knows; buttons ask the app to open Settings, Halo or haloplus.app.
+function show(platform, enabled) {
+  document.body.classList.add(`platform-${platform}`);
+  const on = enabled === true;
+  document.body.classList.toggle('is-on', on);
+  document.querySelector('.status.on').hidden = !on;
+  const first = document.querySelector('[data-step="on"]');
+  if (first) first.classList.toggle('done', on);
 }
 
-function openPreferences() {
-    webkit.messageHandlers.controller.postMessage("open-preferences");
-}
-
-document.querySelector("button.open-preferences").addEventListener("click", openPreferences);
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-do]');
+  if (b) webkit.messageHandlers.controller.postMessage(b.dataset.do);
+});

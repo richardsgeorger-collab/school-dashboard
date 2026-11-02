@@ -16,7 +16,8 @@ export async function recordExtInstall(db: any, b: Record<string, unknown>): Pro
     const since = new Date(Date.now() - 10 * 60_000).toISOString();
     const { count } = await db.from('ext_installs').select('device_id', { count: 'exact', head: true }).is('user_id', null).gte('installed_at', since);
     if ((count ?? 0) >= 30) return { ok: true, why: 'busy' };
-    const source = b.source === 'store' ? 'store' : 'site';
+    // 'appstore' (Loop 308): Halo+ for Safari, from Apple's App Store; outside the no-account comparison.
+    const source = b.source === 'store' ? 'store' : b.source === 'appstore' ? 'appstore' : 'site';
     // The group (Loop 305): with Admin's switch on, a new Web Store install may go into no-account mode (test browsers
     // follow their own switch, so a test never changes what a real student gets). Installs from Halo+'s own setup, and
     // every install from before, keep the current way.

@@ -19,7 +19,8 @@ const MAX_WIRE = 8_000_000;
 const MAX_BYTES = 40_000_000;
 const PER_HOUR = 30;
 
-const allowed = (origin: string | null) => !!origin && (ORIGINS.includes(origin) || origin.startsWith('chrome-extension://'));
+// Halo+ for Safari's own origin too (Loop 308).
+const allowed = (origin: string | null) => !!origin && (ORIGINS.includes(origin) || origin.startsWith('chrome-extension://') || origin.startsWith('safari-web-extension://'));
 const cors = (origin: string | null) => ({
   'access-control-allow-origin': allowed(origin) ? origin! : ORIGINS[0],
   'access-control-allow-headers': 'content-type, apikey, authorization, x-client-info, x-halo-encoding',
