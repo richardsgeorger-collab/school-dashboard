@@ -1,0 +1,1084 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		247B8AC2309814F900EBAEC3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247B8AC1309814F900EBAEC3 /* AppDelegate.swift */; };
+		247B8AC4309814F900EBAEC3 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247B8AC3309814F900EBAEC3 /* SceneDelegate.swift */; };
+		247B8AC7309814F900EBAEC3 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AC5309814F900EBAEC3 /* LaunchScreen.storyboard */; };
+		247B8ACA309814F900EBAEC3 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AC8309814F900EBAEC3 /* Main.storyboard */; };
+		247B8AD3309814F900EBAEC3 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247B8AD2309814F900EBAEC3 /* AppDelegate.swift */; };
+		247B8AD6309814F900EBAEC3 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AD4309814F900EBAEC3 /* Main.storyboard */; };
+		247B8ADD309814F900EBAEC3 /* Halo+ Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 247B8ADC309814F900EBAEC3 /* Halo+ Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		247B8AE7309814F900EBAEC3 /* Halo+ Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 247B8AE6309814F900EBAEC3 /* Halo+ Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		247B8AEC309814F900EBAEC3 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB1309814F900EBAEC3 /* Main.html */; };
+		247B8AED309814F900EBAEC3 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB1309814F900EBAEC3 /* Main.html */; };
+		247B8AEE309814F900EBAEC3 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB3309814F900EBAEC3 /* Icon.png */; };
+		247B8AEF309814F900EBAEC3 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB3309814F900EBAEC3 /* Icon.png */; };
+		247B8AF0309814F900EBAEC3 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB4309814F900EBAEC3 /* Style.css */; };
+		247B8AF1309814F900EBAEC3 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB4309814F900EBAEC3 /* Style.css */; };
+		247B8AF2309814F900EBAEC3 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB5309814F900EBAEC3 /* Script.js */; };
+		247B8AF3309814F900EBAEC3 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB5309814F900EBAEC3 /* Script.js */; };
+		247B8AF4309814F900EBAEC3 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247B8AB6309814F900EBAEC3 /* ViewController.swift */; };
+		247B8AF5309814F900EBAEC3 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247B8AB6309814F900EBAEC3 /* ViewController.swift */; };
+		247B8AF6309814F900EBAEC3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB7309814F900EBAEC3 /* Assets.xcassets */; };
+		247B8AF7309814F900EBAEC3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 247B8AB7309814F900EBAEC3 /* Assets.xcassets */; };
+		247B8AF8309814F900EBAEC3 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247B8AB9309814F900EBAEC3 /* SafariWebExtensionHandler.swift */; };
+		247B8AF9309814F900EBAEC3 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247B8AB9309814F900EBAEC3 /* SafariWebExtensionHandler.swift */; };
+		247B8B20309814F900EBAEC3 /* content-dash.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0B309814F900EBAEC3 /* content-dash.js */; };
+		247B8B21309814F900EBAEC3 /* icon-16.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0C309814F900EBAEC3 /* icon-16.png */; };
+		247B8B22309814F900EBAEC3 /* onhalo in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0D309814F900EBAEC3 /* onhalo */; };
+		247B8B23309814F900EBAEC3 /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0E309814F900EBAEC3 /* popup.js */; };
+		247B8B24309814F900EBAEC3 /* allow.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0F309814F900EBAEC3 /* allow.js */; };
+		247B8B25309814F900EBAEC3 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B10309814F900EBAEC3 /* background.js */; };
+		247B8B26309814F900EBAEC3 /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B11309814F900EBAEC3 /* popup.html */; };
+		247B8B27309814F900EBAEC3 /* icon-48.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B12309814F900EBAEC3 /* icon-48.png */; };
+		247B8B28309814F900EBAEC3 /* icon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B13309814F900EBAEC3 /* icon.svg */; };
+		247B8B29309814F900EBAEC3 /* sync-inject.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B14309814F900EBAEC3 /* sync-inject.js */; };
+		247B8B2A309814F900EBAEC3 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B15309814F900EBAEC3 /* manifest.json */; };
+		247B8B2B309814F900EBAEC3 /* allow.html in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B16309814F900EBAEC3 /* allow.html */; };
+		247B8B2C309814F900EBAEC3 /* halo-model.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B17309814F900EBAEC3 /* halo-model.js */; };
+		247B8B2D309814F900EBAEC3 /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B18309814F900EBAEC3 /* popup.css */; };
+		247B8B2E309814F900EBAEC3 /* content-halo.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B19309814F900EBAEC3 /* content-halo.js */; };
+		247B8B2F309814F900EBAEC3 /* fonts in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1A309814F900EBAEC3 /* fonts */; };
+		247B8B30309814F900EBAEC3 /* celebrate.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1B309814F900EBAEC3 /* celebrate.js */; };
+		247B8B31309814F900EBAEC3 /* icon-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1C309814F900EBAEC3 /* icon-128.png */; };
+		247B8B32309814F900EBAEC3 /* halo-ui.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1D309814F900EBAEC3 /* halo-ui.js */; };
+		247B8B33309814F900EBAEC3 /* icon-32.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1E309814F900EBAEC3 /* icon-32.png */; };
+		247B8B34309814F900EBAEC3 /* vendor in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1F309814F900EBAEC3 /* vendor */; };
+		247B8B35309814F900EBAEC3 /* content-dash.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0B309814F900EBAEC3 /* content-dash.js */; };
+		247B8B36309814F900EBAEC3 /* icon-16.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0C309814F900EBAEC3 /* icon-16.png */; };
+		247B8B37309814F900EBAEC3 /* onhalo in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0D309814F900EBAEC3 /* onhalo */; };
+		247B8B38309814F900EBAEC3 /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0E309814F900EBAEC3 /* popup.js */; };
+		247B8B39309814F900EBAEC3 /* allow.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B0F309814F900EBAEC3 /* allow.js */; };
+		247B8B3A309814F900EBAEC3 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B10309814F900EBAEC3 /* background.js */; };
+		247B8B3B309814F900EBAEC3 /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B11309814F900EBAEC3 /* popup.html */; };
+		247B8B3C309814F900EBAEC3 /* icon-48.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B12309814F900EBAEC3 /* icon-48.png */; };
+		247B8B3D309814F900EBAEC3 /* icon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B13309814F900EBAEC3 /* icon.svg */; };
+		247B8B3E309814F900EBAEC3 /* sync-inject.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B14309814F900EBAEC3 /* sync-inject.js */; };
+		247B8B3F309814F900EBAEC3 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B15309814F900EBAEC3 /* manifest.json */; };
+		247B8B40309814F900EBAEC3 /* allow.html in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B16309814F900EBAEC3 /* allow.html */; };
+		247B8B41309814F900EBAEC3 /* halo-model.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B17309814F900EBAEC3 /* halo-model.js */; };
+		247B8B42309814F900EBAEC3 /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B18309814F900EBAEC3 /* popup.css */; };
+		247B8B43309814F900EBAEC3 /* content-halo.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B19309814F900EBAEC3 /* content-halo.js */; };
+		247B8B44309814F900EBAEC3 /* fonts in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1A309814F900EBAEC3 /* fonts */; };
+		247B8B45309814F900EBAEC3 /* celebrate.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1B309814F900EBAEC3 /* celebrate.js */; };
+		247B8B46309814F900EBAEC3 /* icon-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1C309814F900EBAEC3 /* icon-128.png */; };
+		247B8B47309814F900EBAEC3 /* halo-ui.js in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1D309814F900EBAEC3 /* halo-ui.js */; };
+		247B8B48309814F900EBAEC3 /* icon-32.png in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1E309814F900EBAEC3 /* icon-32.png */; };
+		247B8B49309814F900EBAEC3 /* vendor in Resources */ = {isa = PBXBuildFile; fileRef = 247B8B1F309814F900EBAEC3 /* vendor */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		247B8ADE309814F900EBAEC3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 247B8AAB309814F800EBAEC3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 247B8ADB309814F900EBAEC3;
+			remoteInfo = "Halo+ Extension (iOS)";
+		};
+		247B8AE8309814F900EBAEC3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 247B8AAB309814F800EBAEC3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 247B8AE5309814F900EBAEC3;
+			remoteInfo = "Halo+ Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		247B8AFF309814F900EBAEC3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				247B8ADD309814F900EBAEC3 /* Halo+ Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8B06309814F900EBAEC3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				247B8AE7309814F900EBAEC3 /* Halo+ Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		247B8AB2309814F900EBAEC3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		247B8AB3309814F900EBAEC3 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		247B8AB4309814F900EBAEC3 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		247B8AB5309814F900EBAEC3 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		247B8AB6309814F900EBAEC3 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		247B8AB7309814F900EBAEC3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		247B8AB9309814F900EBAEC3 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		247B8ABE309814F900EBAEC3 /* Halo+.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Halo+.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		247B8AC1309814F900EBAEC3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		247B8AC3309814F900EBAEC3 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		247B8AC6309814F900EBAEC3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		247B8AC9309814F900EBAEC3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		247B8ACB309814F900EBAEC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		247B8AD0309814F900EBAEC3 /* Halo+.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Halo+.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		247B8AD2309814F900EBAEC3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		247B8AD5309814F900EBAEC3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		247B8AD7309814F900EBAEC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		247B8ADC309814F900EBAEC3 /* Halo+ Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Halo+ Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		247B8AE1309814F900EBAEC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		247B8AE6309814F900EBAEC3 /* Halo+ Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Halo+ Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		247B8AEB309814F900EBAEC3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		247B8B0B309814F900EBAEC3 /* content-dash.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "content-dash.js"; path = "../../build/content-dash.js"; sourceTree = "<group>"; };
+		247B8B0C309814F900EBAEC3 /* icon-16.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-16.png"; path = "../../build/icon-16.png"; sourceTree = "<group>"; };
+		247B8B0D309814F900EBAEC3 /* onhalo */ = {isa = PBXFileReference; lastKnownFileType = folder; name = onhalo; path = ../../build/onhalo; sourceTree = "<group>"; };
+		247B8B0E309814F900EBAEC3 /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../build/popup.js; sourceTree = "<group>"; };
+		247B8B0F309814F900EBAEC3 /* allow.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = allow.js; path = ../../build/allow.js; sourceTree = "<group>"; };
+		247B8B10309814F900EBAEC3 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../build/background.js; sourceTree = "<group>"; };
+		247B8B11309814F900EBAEC3 /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = ../../build/popup.html; sourceTree = "<group>"; };
+		247B8B12309814F900EBAEC3 /* icon-48.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-48.png"; path = "../../build/icon-48.png"; sourceTree = "<group>"; };
+		247B8B13309814F900EBAEC3 /* icon.svg */ = {isa = PBXFileReference; lastKnownFileType = text; name = icon.svg; path = ../../build/icon.svg; sourceTree = "<group>"; };
+		247B8B14309814F900EBAEC3 /* sync-inject.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "sync-inject.js"; path = "../../build/sync-inject.js"; sourceTree = "<group>"; };
+		247B8B15309814F900EBAEC3 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../build/manifest.json; sourceTree = "<group>"; };
+		247B8B16309814F900EBAEC3 /* allow.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = allow.html; path = ../../build/allow.html; sourceTree = "<group>"; };
+		247B8B17309814F900EBAEC3 /* halo-model.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "halo-model.js"; path = "../../build/halo-model.js"; sourceTree = "<group>"; };
+		247B8B18309814F900EBAEC3 /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = popup.css; path = ../../build/popup.css; sourceTree = "<group>"; };
+		247B8B19309814F900EBAEC3 /* content-halo.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "content-halo.js"; path = "../../build/content-halo.js"; sourceTree = "<group>"; };
+		247B8B1A309814F900EBAEC3 /* fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fonts; path = ../../build/fonts; sourceTree = "<group>"; };
+		247B8B1B309814F900EBAEC3 /* celebrate.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = celebrate.js; path = ../../build/celebrate.js; sourceTree = "<group>"; };
+		247B8B1C309814F900EBAEC3 /* icon-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-128.png"; path = "../../build/icon-128.png"; sourceTree = "<group>"; };
+		247B8B1D309814F900EBAEC3 /* halo-ui.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "halo-ui.js"; path = "../../build/halo-ui.js"; sourceTree = "<group>"; };
+		247B8B1E309814F900EBAEC3 /* icon-32.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-32.png"; path = "../../build/icon-32.png"; sourceTree = "<group>"; };
+		247B8B1F309814F900EBAEC3 /* vendor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = vendor; path = ../../build/vendor; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		247B8ABB309814F900EBAEC3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8ACD309814F900EBAEC3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8AD9309814F900EBAEC3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8AE3309814F900EBAEC3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		247B8AAA309814F800EBAEC3 = {
+			isa = PBXGroup;
+			children = (
+				247B8AAF309814F900EBAEC3 /* Shared (App) */,
+				247B8AB8309814F900EBAEC3 /* Shared (Extension) */,
+				247B8AC0309814F900EBAEC3 /* iOS (App) */,
+				247B8AD1309814F900EBAEC3 /* macOS (App) */,
+				247B8AE0309814F900EBAEC3 /* iOS (Extension) */,
+				247B8AEA309814F900EBAEC3 /* macOS (Extension) */,
+				247B8ABF309814F900EBAEC3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		247B8AAF309814F900EBAEC3 /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				247B8AB6309814F900EBAEC3 /* ViewController.swift */,
+				247B8AB7309814F900EBAEC3 /* Assets.xcassets */,
+				247B8AB0309814F900EBAEC3 /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		247B8AB0309814F900EBAEC3 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				247B8AB1309814F900EBAEC3 /* Main.html */,
+				247B8AB3309814F900EBAEC3 /* Icon.png */,
+				247B8AB4309814F900EBAEC3 /* Style.css */,
+				247B8AB5309814F900EBAEC3 /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		247B8AB8309814F900EBAEC3 /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				247B8B0A309814F900EBAEC3 /* Resources */,
+				247B8AB9309814F900EBAEC3 /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		247B8ABF309814F900EBAEC3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				247B8ABE309814F900EBAEC3 /* Halo+.app */,
+				247B8AD0309814F900EBAEC3 /* Halo+.app */,
+				247B8ADC309814F900EBAEC3 /* Halo+ Extension.appex */,
+				247B8AE6309814F900EBAEC3 /* Halo+ Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		247B8AC0309814F900EBAEC3 /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				247B8AC1309814F900EBAEC3 /* AppDelegate.swift */,
+				247B8AC3309814F900EBAEC3 /* SceneDelegate.swift */,
+				247B8AC5309814F900EBAEC3 /* LaunchScreen.storyboard */,
+				247B8AC8309814F900EBAEC3 /* Main.storyboard */,
+				247B8ACB309814F900EBAEC3 /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		247B8AD1309814F900EBAEC3 /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				247B8AD2309814F900EBAEC3 /* AppDelegate.swift */,
+				247B8AD4309814F900EBAEC3 /* Main.storyboard */,
+				247B8AD7309814F900EBAEC3 /* Info.plist */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		247B8AE0309814F900EBAEC3 /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				247B8AE1309814F900EBAEC3 /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		247B8AEA309814F900EBAEC3 /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				247B8AEB309814F900EBAEC3 /* Info.plist */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		247B8B0A309814F900EBAEC3 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				247B8B0B309814F900EBAEC3 /* content-dash.js */,
+				247B8B0C309814F900EBAEC3 /* icon-16.png */,
+				247B8B0D309814F900EBAEC3 /* onhalo */,
+				247B8B0E309814F900EBAEC3 /* popup.js */,
+				247B8B0F309814F900EBAEC3 /* allow.js */,
+				247B8B10309814F900EBAEC3 /* background.js */,
+				247B8B11309814F900EBAEC3 /* popup.html */,
+				247B8B12309814F900EBAEC3 /* icon-48.png */,
+				247B8B13309814F900EBAEC3 /* icon.svg */,
+				247B8B14309814F900EBAEC3 /* sync-inject.js */,
+				247B8B15309814F900EBAEC3 /* manifest.json */,
+				247B8B16309814F900EBAEC3 /* allow.html */,
+				247B8B17309814F900EBAEC3 /* halo-model.js */,
+				247B8B18309814F900EBAEC3 /* popup.css */,
+				247B8B19309814F900EBAEC3 /* content-halo.js */,
+				247B8B1A309814F900EBAEC3 /* fonts */,
+				247B8B1B309814F900EBAEC3 /* celebrate.js */,
+				247B8B1C309814F900EBAEC3 /* icon-128.png */,
+				247B8B1D309814F900EBAEC3 /* halo-ui.js */,
+				247B8B1E309814F900EBAEC3 /* icon-32.png */,
+				247B8B1F309814F900EBAEC3 /* vendor */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		247B8ABD309814F900EBAEC3 /* Halo+ (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 247B8B00309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ (iOS)" */;
+			buildPhases = (
+				247B8ABA309814F900EBAEC3 /* Sources */,
+				247B8ABB309814F900EBAEC3 /* Frameworks */,
+				247B8ABC309814F900EBAEC3 /* Resources */,
+				247B8AFF309814F900EBAEC3 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				247B8ADF309814F900EBAEC3 /* PBXTargetDependency */,
+			);
+			name = "Halo+ (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Halo+ (iOS)";
+			productReference = 247B8ABE309814F900EBAEC3 /* Halo+.app */;
+			productType = "com.apple.product-type.application";
+		};
+		247B8ACF309814F900EBAEC3 /* Halo+ (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 247B8B07309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ (macOS)" */;
+			buildPhases = (
+				247B8ACC309814F900EBAEC3 /* Sources */,
+				247B8ACD309814F900EBAEC3 /* Frameworks */,
+				247B8ACE309814F900EBAEC3 /* Resources */,
+				247B8B06309814F900EBAEC3 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				247B8AE9309814F900EBAEC3 /* PBXTargetDependency */,
+			);
+			name = "Halo+ (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Halo+ (macOS)";
+			productReference = 247B8AD0309814F900EBAEC3 /* Halo+.app */;
+			productType = "com.apple.product-type.application";
+		};
+		247B8ADB309814F900EBAEC3 /* Halo+ Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 247B8AFC309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ Extension (iOS)" */;
+			buildPhases = (
+				247B8AD8309814F900EBAEC3 /* Sources */,
+				247B8AD9309814F900EBAEC3 /* Frameworks */,
+				247B8ADA309814F900EBAEC3 /* Resources */,
+				247B8D01309814F900EBAEC3 /* Halo+ extension files */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Halo+ Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Halo+ Extension (iOS)";
+			productReference = 247B8ADC309814F900EBAEC3 /* Halo+ Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		247B8AE5309814F900EBAEC3 /* Halo+ Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 247B8B03309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ Extension (macOS)" */;
+			buildPhases = (
+				247B8AE2309814F900EBAEC3 /* Sources */,
+				247B8AE3309814F900EBAEC3 /* Frameworks */,
+				247B8AE4309814F900EBAEC3 /* Resources */,
+				247B8D02309814F900EBAEC3 /* Halo+ extension files */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Halo+ Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Halo+ Extension (macOS)";
+			productReference = 247B8AE6309814F900EBAEC3 /* Halo+ Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		247B8AAB309814F800EBAEC3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					247B8ABD309814F900EBAEC3 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					247B8ACF309814F900EBAEC3 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					247B8ADB309814F900EBAEC3 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					247B8AE5309814F900EBAEC3 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = 247B8AAE309814F800EBAEC3 /* Build configuration list for PBXProject "Halo+" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 247B8AAA309814F800EBAEC3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 247B8ABF309814F900EBAEC3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				247B8ABD309814F900EBAEC3 /* Halo+ (iOS) */,
+				247B8ACF309814F900EBAEC3 /* Halo+ (macOS) */,
+				247B8ADB309814F900EBAEC3 /* Halo+ Extension (iOS) */,
+				247B8AE5309814F900EBAEC3 /* Halo+ Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		247B8ABC309814F900EBAEC3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				247B8AEE309814F900EBAEC3 /* Icon.png in Resources */,
+				247B8AC7309814F900EBAEC3 /* LaunchScreen.storyboard in Resources */,
+				247B8AEC309814F900EBAEC3 /* Main.html in Resources */,
+				247B8AF2309814F900EBAEC3 /* Script.js in Resources */,
+				247B8AF6309814F900EBAEC3 /* Assets.xcassets in Resources */,
+				247B8ACA309814F900EBAEC3 /* Main.storyboard in Resources */,
+				247B8AF0309814F900EBAEC3 /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8ACE309814F900EBAEC3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				247B8AEF309814F900EBAEC3 /* Icon.png in Resources */,
+				247B8AF1309814F900EBAEC3 /* Style.css in Resources */,
+				247B8AD6309814F900EBAEC3 /* Main.storyboard in Resources */,
+				247B8AF3309814F900EBAEC3 /* Script.js in Resources */,
+				247B8AF7309814F900EBAEC3 /* Assets.xcassets in Resources */,
+				247B8AED309814F900EBAEC3 /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8ADA309814F900EBAEC3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8AE4309814F900EBAEC3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		247B8D01309814F900EBAEC3 /* Halo+ extension files */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Halo+ extension files";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Halo+ (Loop 308): the extension's files come from extension/, the one source for Chrome and Safari.\n# scripts/build-safari.mjs makes safari/build (SAFARI_TEST=1: the local stand-in build), then it is copied whole.\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\ncd \"$PROJECT_DIR/../..\"\nif [ \"$SAFARI_TEST\" = \"1\" ]; then SAFARI_TEST=1 node scripts/build-safari.mjs; else node scripts/build-safari.mjs; fi\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nmkdir -p \"$DEST\"\nrsync -a --delete --exclude Info.plist --exclude _CodeSignature --exclude '*.lproj' --exclude Assets.car --exclude \"$EXECUTABLE_NAME\" --exclude embedded.mobileprovision --exclude MacOS safari/build/ \"$DEST/\"\n";
+		};
+		247B8D02309814F900EBAEC3 /* Halo+ extension files */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Halo+ extension files";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Halo+ (Loop 308): the extension's files come from extension/, the one source for Chrome and Safari.\n# scripts/build-safari.mjs makes safari/build (SAFARI_TEST=1: the local stand-in build), then it is copied whole.\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\ncd \"$PROJECT_DIR/../..\"\nif [ \"$SAFARI_TEST\" = \"1\" ]; then SAFARI_TEST=1 node scripts/build-safari.mjs; else node scripts/build-safari.mjs; fi\nDEST=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nmkdir -p \"$DEST\"\nrsync -a --delete --exclude Info.plist --exclude _CodeSignature --exclude '*.lproj' --exclude Assets.car --exclude \"$EXECUTABLE_NAME\" --exclude embedded.mobileprovision --exclude MacOS safari/build/ \"$DEST/\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		247B8ABA309814F900EBAEC3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				247B8AF4309814F900EBAEC3 /* ViewController.swift in Sources */,
+				247B8AC2309814F900EBAEC3 /* AppDelegate.swift in Sources */,
+				247B8AC4309814F900EBAEC3 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8ACC309814F900EBAEC3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				247B8AF5309814F900EBAEC3 /* ViewController.swift in Sources */,
+				247B8AD3309814F900EBAEC3 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8AD8309814F900EBAEC3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				247B8AF8309814F900EBAEC3 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		247B8AE2309814F900EBAEC3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				247B8AF9309814F900EBAEC3 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		247B8ADF309814F900EBAEC3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 247B8ADB309814F900EBAEC3 /* Halo+ Extension (iOS) */;
+			targetProxy = 247B8ADE309814F900EBAEC3 /* PBXContainerItemProxy */;
+		};
+		247B8AE9309814F900EBAEC3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 247B8AE5309814F900EBAEC3 /* Halo+ Extension (macOS) */;
+			targetProxy = 247B8AE8309814F900EBAEC3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		247B8AB1309814F900EBAEC3 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				247B8AB2309814F900EBAEC3 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		247B8AC5309814F900EBAEC3 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				247B8AC6309814F900EBAEC3 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		247B8AC8309814F900EBAEC3 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				247B8AC9309814F900EBAEC3 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		247B8AD4309814F900EBAEC3 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				247B8AD5309814F900EBAEC3 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		247B8AFA309814F900EBAEC3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		247B8AFB309814F900EBAEC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		247B8AFD309814F900EBAEC3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+ Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus.Extension;
+				PRODUCT_NAME = "Halo+ Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		247B8AFE309814F900EBAEC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+ Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus.Extension;
+				PRODUCT_NAME = "Halo+ Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		247B8B01309814F900EBAEC3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus;
+				PRODUCT_NAME = "Halo+";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		247B8B02309814F900EBAEC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus;
+				PRODUCT_NAME = "Halo+";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		247B8B04309814F900EBAEC3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+ Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus.Extension;
+				PRODUCT_NAME = "Halo+ Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		247B8B05309814F900EBAEC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+ Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus.Extension;
+				PRODUCT_NAME = "Halo+ Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		247B8B08309814F900EBAEC3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus;
+				PRODUCT_NAME = "Halo+";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		247B8B09309814F900EBAEC3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Halo+";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 0.12.17;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.haloplus.HaloPlus;
+				PRODUCT_NAME = "Halo+";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		247B8AAE309814F800EBAEC3 /* Build configuration list for PBXProject "Halo+" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				247B8AFA309814F900EBAEC3 /* Debug */,
+				247B8AFB309814F900EBAEC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		247B8AFC309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				247B8AFD309814F900EBAEC3 /* Debug */,
+				247B8AFE309814F900EBAEC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		247B8B00309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				247B8B01309814F900EBAEC3 /* Debug */,
+				247B8B02309814F900EBAEC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		247B8B03309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				247B8B04309814F900EBAEC3 /* Debug */,
+				247B8B05309814F900EBAEC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		247B8B07309814F900EBAEC3 /* Build configuration list for PBXNativeTarget "Halo+ (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				247B8B08309814F900EBAEC3 /* Debug */,
+				247B8B09309814F900EBAEC3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 247B8AAB309814F800EBAEC3 /* Project object */;
+}

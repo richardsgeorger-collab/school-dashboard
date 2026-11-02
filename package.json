@@ -15,6 +15,7 @@
     "sync:shared": "node scripts/sync-shared.mjs",
     "build:e2e": "VITE_AI_DIRECT=1 npm run build",
     "build:extension": "tsx scripts/build-extension.ts",
+    "build:safari": "tsx scripts/build-extension.ts && node scripts/build-safari.mjs",
     "ai:compare": "tsx scripts/ai-compare.ts"
   },
   "dependencies": {

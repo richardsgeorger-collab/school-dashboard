@@ -1,0 +1,36 @@
+# The Simulator driver for Halo+'s Safari tests (Loop 308): Apple's UI testing drives the Simulator's Settings and
+# Safari (turn Halo+ on, allow its sites, open its menu), since no script can. scripts/safari-sim.mjs runs it:
+#   xcodegen && xcodebuild test -scheme SimDriver -destination id=<sim> TEST_RUNNER_STEP=<step>
+name: SimDriver
+options:
+  bundleIdPrefix: app.haloplus.simdriver
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  SimDriverHost:
+    type: application
+    platform: iOS
+    sources: [Host]
+    info:
+      path: Host/Info.plist
+      properties:
+        UILaunchScreen: {}
+    settings:
+      CODE_SIGNING_ALLOWED: NO
+  SimDriverUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: SimDriverHost
+    settings:
+      CODE_SIGNING_ALLOWED: NO
+      GENERATE_INFOPLIST_FILE: YES
+schemes:
+  SimDriver:
+    build:
+      targets:
+        SimDriverHost: all
+        SimDriverUITests: [test]
+    test:
+      targets: [SimDriverUITests]

@@ -644,3 +644,21 @@ One line per change, newest last. Proposals that need George's approval are mark
   - **The useful part:** an iPhone with the Safari extension could sync from the phone with no laptop, the step all five October iPhone sign-ups got stuck on.
   - **Sign in with Apple:** George's portal steps (App ID, Services ID with the Supabase callback, key, and email sources for "Hide my email"). I set Supabase through the Management API. The secret expires every 6 months, so it gets a remake script and an Admin warning. The Apple button also goes on the laptop sign-in, and it stays in place in Instagram's browser.
   - **Waiting on George:** OK to build, the App Store name (no "GCU", trademark risk), and whether I upload TestFlight builds. Nothing is submitted to App Review by me.
+
+- Loop 308 (2026-11-01, started): Halo+ for Safari, part 1. George: build it, Mac first, then iPhone/iPad right after; App Store name "Halo+ for Halo LMS"; I upload TestFlight builds with a Developer-role API key kept only in the macOS Keychain; never submit for review.
+  - **One source:** scripts/build-safari.mjs (`npm run build:safari`) makes safari/build/ from extension/. It bundles the background into one plain script and writes the Safari manifest:
+    - name "Halo+", no school name;
+    - only halo.gcu.edu and haloplus.app to allow;
+    - Safari 17 and later.
+  - **The Xcode project** (safari/Halo+/, from Apple's converter; bundle app.haloplus.HaloPlus, extension app.haloplus.HaloPlus.Extension, iOS 17 / macOS 13, version 0.12.17) copies no files of its own. A build step runs the script and copies safari/build whole, so a Chrome change lands in Safari on the next build.
+  - **Builds:** Mac and iOS Simulator both build.
+  - **Testing Safari:**
+    - **The stand-in:** scripts/lib/safariBench.mjs serves the Chrome tests' Halo stand-in (standIn, unchanged, through a Playwright-like adapter) over HTTP on 127.0.0.1:4180–4183. 4183 records what would go to Halo+'s server.
+    - **The test build:** `SAFARI_TEST=1` points Halo+ there and adds a probe (scripts/lib/safari-probe.js, test build only, refused in a shipping build). The probe posts each page Safari draws and runs a fixed set of commands (click, key, type, storage, reload). No eval.
+    - **The Simulator:** safari/SimDriver (XcodeGen, Apple's UI testing) taps through the Simulator's Settings and Safari: Settings → Apps → Safari → Extensions → Halo+ → Allow Extension, and the per-site Ask/Deny/Allow. scripts/lib/safariApp.mjs builds, installs and opens pages; the "HaloPlus iPhone" Simulator is kept between runs.
+  - **First result:** Halo+ runs in iPhone Safari (iOS 26.5 Simulator) on the stand-in's Student Home. It draws the search box, This week, the week strip, grades on cards, NEXT boxes and the calendar.
+    - Fixes seen for the phone: the ⌘K chip shows with no keyboard; the week strip runs past the edge; the "1 due today" pill covers a card.
+    - A trap: Safari's match patterns take no port, so the test build matches http://127.0.0.1/*.
+  - **Found for the server:** sync-drop's CORS allows only https://halo.gcu.edu, so a sync sent from Safari's background needs it to also allow the extension's own origin (to do, before Safari syncs for real). report already allows any origin.
+  - **New for iOS 26.2:** SFSafariSettings.openExtensionsSettings and SFSafariExtensionManager. The iPhone app can open Halo+'s own Safari settings and show whether it is on.
+  - **Waiting on George:** step A (Xcode account and Team ID). Safari on the Mac won't run an unsigned extension, so the Mac tests need it.
