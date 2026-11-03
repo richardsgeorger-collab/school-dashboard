@@ -23,7 +23,8 @@ export const ON_HALO_FEATURES = [
   ['preload', 'Open your next pages faster'],
   ['homeheader', 'Compact Student Home header'],
   ['homecards', 'Class cards: grade and what’s next'],
-  ['whatif', 'What-if on the Gradebook'],
+  ['whatif', 'What-if on class cards and the Gradebook'],
+  ['gpa', 'GPA on Student Home'],
 ] as const;
 
 export type OnHaloFeature = (typeof ON_HALO_FEATURES)[number][0];
@@ -35,7 +36,7 @@ export function featureLabel(label: string): string {
 }
 
 /** Features added after 0.12.0: their switch shows only with that extension version or later on this computer. */
-export const ON_HALO_FEATURE_SINCE: Partial<Record<OnHaloFeature, string>> = { homeheader: '0.12.2', homecards: '0.12.5', whatif: '0.12.14' };
+export const ON_HALO_FEATURE_SINCE: Partial<Record<OnHaloFeature, string>> = { homeheader: '0.12.2', homecards: '0.12.5', whatif: '0.12.14', gpa: '0.12.18' };
 
 /** The first extension with these features: the switches show only with it on this computer. */
 export const ON_HALO_SINCE = '0.12.0';

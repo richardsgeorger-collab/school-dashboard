@@ -462,7 +462,7 @@ describe('each class in its card’s colour, the bold version (feature 1, 0.12.2
   });
 });
 
-describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5; participation posts since 0.12.6, only in leftover spots since 0.12.15)', () => {
+describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5; participation posts since 0.12.6, only when nothing else is due in 10 days since 0.12.18)', () => {
   type N = { id: string; when: string; why?: string; href: string };
   const C = L as unknown as { cardNext: (index: unknown, k: number, live: Map<string, { dueDate: string | null; status: string | null }> | null, now: number, tz: string, o?: { doneIds?: Set<string> }) => N[] | null };
   const PHX = 'America/Phoenix';
@@ -492,27 +492,39 @@ describe('the class card’s NEXT: up to three things, exactly as Halo has them 
     const m = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED', part: 'SUBMITTED' }), now, PHX)!;
     expect(m.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
   });
-  it('participation posts fill a leftover spot; never done work (Halo’s status or a Halo+ check-off), past due, far off, or without an address', () => {
+  it('never done work (Halo’s status or a Halo+ check-off), past due, far off, or without an address; no participation beside other work', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q']) })!;
-    expect(n.map((x) => x.id)).toEqual(['exam', 'later', 'part']);
+    expect(n.map((x) => x.id)).toEqual(['exam', 'later']);
     expect(n.some((x) => ['done', 'late', 'far', 'nohref'].includes(x.id))).toBe(false);
   });
-  it('participation only fills spots nothing else needs: three or more other things means no participation at all', () => {
+  it('participation only when the class has nothing else due in the next 10 days (0.12.18)', () => {
     const P = (id: string, d: number, extra = {}) => ({ c: 0, kind: 'participation', id, title: `Participation ${id}`, href: `/${id}`, cdue: at(d, 20), start: at(-3, 0), ...extra });
     const A = (id: string, d: number, extra = {}) => ({ c: 0, kind: 'assignment', id, title: `Assignment ${id}`, href: `/${id}`, cdue: at(d, 22), start: at(-3, 0), ...extra });
-    // Participation due sooner than everything else still waits behind it, and a can't-do-yet exam outranks it too.
-    const full = [P('p1', 0), P('p2', 0), A('a1', 1), A('a2', 2), { ...A('ex', 2), title: 'Exam 1', ns: 1, inp: 1, cdue: at(2, 9) }];
-    const all = (r: typeof full) => new Map(r.map((x) => [x.id, { dueDate: null, status: 'ACTIVE' }]));
-    expect(C.cardNext({ rows: full }, 0, all(full), now, PHX)!.map((x) => [x.id, x.why ?? ''])).toEqual([['a1', ''], ['a2', ''], ['ex', 'in class Fri']]);
+    type R = { id: string } & Record<string, unknown>;
+    const all = (r: R[]) => new Map(r.map((x) => [x.id, { dueDate: null, status: 'ACTIVE' }]));
+    const ids = (r: R[]) => C.cardNext({ rows: r }, 0, all(r), now, PHX)!.map((x) => x.id);
+    // George's two cases: one quiz in 9 days means no participation; only participation in the next 10 days shows it.
+    expect(ids([P('p1', 0), P('p2', 2), { ...A('q9', 9), kind: 'quiz', title: 'Quiz 4' }])).toEqual(['q9']);
+    expect(ids([P('p1', 0), P('p2', 2)])).toEqual(['p1', 'p2']);
+    // One other thing of any kind holds it back: an assignment, a discussion, an exam done in class, one not open yet,
+    // one the box itself leaves out (no Halo address, or a kind of submission the index cannot tell).
+    expect(ids([P('p1', 0), A('a1', 1)])).toEqual(['a1']);
+    expect(ids([P('p1', 0), { ...A('dq', 3), kind: 'discussion', title: 'Topic 3 DQ 1' }])).toEqual(['dq']);
+    expect(ids([P('p1', 0), { ...A('ex', 2), title: 'Exam 1', ns: 1, inp: 1, cdue: at(2, 9) }])).toEqual(['ex']);
+    expect(ids([P('p1', 0), { ...A('later', 8), start: at(5, 0) }])).toEqual(['later']);
+    expect(ids([P('p1', 0), { ...A('tool', 4), kind: 'lti', href: null }])).toEqual([]);
+    expect(ids([P('p1', 0), { ...A('old', 4), ns: 1 }])).toEqual([]);
+    // Due sooner than everything else makes no difference.
+    expect(ids([P('p1', 0), P('p2', 0), A('a1', 6)])).toEqual(['a1']);
     // Called participation by its title alone (the app's shared rule), it is held back the same way.
-    const titled = [A('a1', 1), A('a2', 2), A('a3', 3), { ...A('dq', 0), kind: 'discussion', title: 'Week 3 Participation' }];
-    expect(C.cardNext({ rows: titled }, 0, all(titled), now, PHX)!.map((x) => x.id)).toEqual(['a1', 'a2', 'a3']);
-    // One other thing: it comes first, then up to two participation posts, soonest first.
-    const one = [P('p3', 3), P('p1', 0), P('p2', 1), A('a1', 2)];
-    expect(C.cardNext({ rows: one }, 0, all(one), now, PHX)!.map((x) => x.id)).toEqual(['a1', 'p1', 'p2']);
-    // Nothing else: participation fills the box.
-    const none = [P('p1', 0), P('p2', 1)];
-    expect(C.cardNext({ rows: none }, 0, all(none), now, PHX)!.map((x) => x.id)).toEqual(['p1', 'p2']);
+    expect(ids([A('a1', 1), { ...A('wk', 0), kind: 'discussion', title: 'Week 3 Participation' }])).toEqual(['a1']);
+    // Something else due only after 10 days, or already done, or past due: participation shows, others first.
+    expect(ids([P('p1', 0), A('a11', 11)])).toEqual(['a11', 'p1']);
+    const doneToo = [P('p1', 0), A('a1', 1)];
+    expect(C.cardNext({ rows: doneToo }, 0, new Map([['p1', { dueDate: null, status: 'ACTIVE' }], ['a1', { dueDate: null, status: 'SUBMITTED' }]]), now, PHX)!.map((x) => x.id)).toEqual(['p1']);
+    expect(ids([P('p1', 0), A('late', -1)])).toEqual(['p1']);
+    // Another class's work does not count.
+    expect(ids([P('p1', 0), { ...A('x', 1), c: 1 }])).toEqual(['p1']);
   });
   it('the participation test is the app’s own rule', () => {
     const I = L as unknown as { isParticipation: (r: { kind?: string; title?: string }) => boolean };

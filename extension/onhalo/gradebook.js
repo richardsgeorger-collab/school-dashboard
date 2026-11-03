@@ -79,8 +79,11 @@
 
   const CSS = `
 [data-haloplus="wi-toggle"]{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:10px 0 2px;font-size:14px;width:100%;flex-basis:100%}
-[data-haloplus="wi-toggle"] > button{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid currentColor;background:transparent;color:inherit;opacity:.8;cursor:pointer}
-[data-haloplus="wi-toggle"] > button[aria-pressed="true"]{opacity:1;background:rgba(127,127,127,.12)}
+[data-haloplus="wi-toggle"] > button{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:15px;font-weight:700;padding:9px 16px;border-radius:6px;border:2px solid #e0a526;background:rgba(242,184,75,.16);color:inherit;cursor:pointer;line-height:1.2}
+[data-haloplus="wi-toggle"] > button:hover{background:rgba(242,184,75,.28)}
+[data-haloplus="wi-toggle"] > button:focus-visible{outline:2px solid #e0a526;outline-offset:2px}
+[data-haloplus="wi-toggle"] > button[aria-pressed="true"]{background:transparent;border-color:rgba(127,127,127,.55);font-size:13px;padding:6px 12px}
+[data-haloplus="wi-toggle"] > .hp-wi-hint{font-size:13px;opacity:.75}
 [data-haloplus="wi-card"]{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
 [data-haloplus="wi-card"] .hp-wi-big{font-size:22px;font-weight:700;line-height:1.1}
 [data-haloplus="wi-card"] .hp-wi-big small{font-size:15px;font-weight:600;margin-left:5px}
@@ -117,7 +120,8 @@
     if (!box) {
       box = document.createElement('div');
       box.setAttribute('data-haloplus', 'wi-toggle');
-      box.innerHTML = `<button type="button" aria-pressed="false" title="Try scores on your assignments. Nothing changes in Halo.">${O.mark()}<span>What-if</span></button>`;
+      // 0.12.18 (George: "you'd never know it exists"): a clear button by Halo's grade total, not a small switch.
+      box.innerHTML = `<button type="button" aria-pressed="false">${O.mark()}<span>What if? Try scores</span></button><span class="hp-wi-hint">See your grade with different scores. Nothing changes in Halo.</span>`;
       box.querySelector('button').addEventListener('click', () => {
         on = !on;
         chrome.storage.local.set({ haloWiOn: on }).catch(() => undefined);
@@ -128,7 +132,12 @@
       t.sec.appendChild(box);
     }
     const b = box.querySelector('button');
-    if (b.getAttribute('aria-pressed') !== String(on)) b.setAttribute('aria-pressed', String(on));
+    if (b.getAttribute('aria-pressed') !== String(on)) {
+      b.setAttribute('aria-pressed', String(on));
+      b.querySelector('span:last-child').textContent = on ? 'Turn what-if off' : 'What if? Try scores';
+      const hint = box.querySelector('.hp-wi-hint');
+      if (hint) hint.hidden = on;
+    }
   }
 
   /** The What-if card beside Halo's own total: the letter and percent with every what-if in, and "What do I need?". */

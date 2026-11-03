@@ -1,3 +1,4 @@
+import { creditsFor } from '../domain/gpa';
 import { dateOf } from '../domain/dates';
 import { isExtraStep } from '../domain/extraStep';
 import { rankItems } from '../domain/now';
@@ -69,6 +70,9 @@ export interface HaloSnapClass {
   col?: string;
   /** The class's own letter scale from Halo, [letter, lowest percent], for the Gradebook what-if (0.12.14). */
   gs?: [string, number][];
+  /** Credits for the GPA on Halo (0.12.18): the app's own (creditsFor), and 1 when the student set them. */
+  cr?: number;
+  crs?: 1;
 }
 
 export interface HaloSnap {
@@ -94,6 +98,8 @@ export interface HaloSnap {
   mx?: 1;
   /** When this account's free week of Max ended, within the last 14 days, on Free: the one note on Halo (0.12.12). */
   te?: string;
+  /** The GPA and credits on the transcript so far, for "GPA so far" on Halo (0.12.18). */
+  gso?: { gpa: number; credits: number };
 }
 
 const DAY = 86_400_000;
@@ -169,6 +175,7 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
     items: items.sort((a, b) => a.due.localeCompare(b.due)),
     ...(input.max ? { mx: 1 as const } : {}),
     ...(!input.max && input.trialEndedAt && Date.parse(input.trialEndedAt) <= t && Date.parse(input.trialEndedAt) > t - 14 * DAY ? { te: input.trialEndedAt } : {}),
-    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.haloGrade?.letter ? { gl: c.haloGrade.letter } : {}), ...(c.haloGrade?.at ? { ga: c.haloGrade.at } : {}), ...(c.color ? { col: c.color } : {}), ...(c.gradeScale?.some((e) => typeof e.minPercent === 'number') ? { gs: c.gradeScale.filter((e) => typeof e.minPercent === 'number').map((e) => [e.label.trim(), e.minPercent as number] as [string, number]) } : {}) })),
+    classes: input.courses.map((c) => ({ id: c.id, code: c.code, cc: classCodeOf(c.haloSlugId), slug: c.haloSlugId ?? '', name: c.name, g: c.haloGrade?.percent ?? null, ...(c.haloGrade?.letter ? { gl: c.haloGrade.letter } : {}), ...(c.haloGrade?.at ? { ga: c.haloGrade.at } : {}), ...(c.color ? { col: c.color } : {}), ...(c.gradeScale?.some((e) => typeof e.minPercent === 'number') ? { gs: c.gradeScale.filter((e) => typeof e.minPercent === 'number').map((e) => [e.label.trim(), e.minPercent as number] as [string, number]) } : {}), cr: creditsFor(c), ...(c.creditsFrom === 'student' ? { crs: 1 as const } : {}) })),
+    ...(input.settings.gpaSoFar ? { gso: input.settings.gpaSoFar } : {}),
   };
 }

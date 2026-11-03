@@ -53,9 +53,9 @@
     };
 
   // ---- state ---------------------------------------------------------------------------------------------------------
-  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null, haloLockedBox: null, haloMaxOn: null, haloTrialNote: null, noAcct: null, haloUseDays: null, haloPhoneLine: null };
+  let st = { haloSnap: null, haloLive: null, haloDone: null, haloMarks: null, haloWeekOpen: null, haloUi: null, haloUiOn: null, haloBase: null, haloLocked: null, haloGrades: null, tier: null, syncKey: null, haloLockedBox: null, haloMaxOn: null, haloTrialNote: null, noAcct: null, haloUseDays: null, haloPhoneLine: null, haloGpa: null };
   let view = null;
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey', 'haloFeat', 'haloIndex', 'haloLockedBox', 'haloMaxOn', 'haloTrialNote', 'noAcct', 'haloUseDays', 'haloPhoneLine'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloWeekOpen', 'haloUi', 'haloUiOn', 'haloBase', 'haloLocked', 'haloGrades', 'tier', 'syncKey', 'haloFeat', 'haloIndex', 'haloLockedBox', 'haloMaxOn', 'haloTrialNote', 'noAcct', 'haloUseDays', 'haloPhoneLine', 'haloGpa'];
   const load = async () => {
     try {
       st = await chrome.storage.local.get(KEYS);
@@ -845,6 +845,9 @@
 .hrow .hd{flex:1;min-width:0}
 .cal{flex:none;margin:0 14px 0 -4px;padding:4px 6px;border-radius:4px;font:600 12.5px/1 var(--font);color:var(--muted);text-decoration:none}
 .cal:hover{color:var(--ink);background:var(--hover)}
+button.cal{all:unset;box-sizing:border-box;flex:none;cursor:pointer;margin:0 6px 0 -4px;padding:4px 6px;border-radius:4px;font:600 12.5px/1 var(--font);color:var(--muted);white-space:nowrap}
+button.cal:hover{color:var(--ink);background:var(--hover)}
+button.cal:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .cal:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .hd{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px 12px 20px;cursor:pointer;font:600 15px/1.3 var(--font);color:var(--ink)}
 .hd:focus-visible{outline:2px solid var(--gold);outline-offset:-3px;border-radius:var(--radius)}
@@ -1044,7 +1047,11 @@ ul{list-style:none;margin:0;padding:0}
     // 0.12.2: a quiet "Calendar" link beside the header, to Halo+'s all-classes calendar below the cards (when it is on).
     const On = liveOn();
     const cal = On && On.enabled('calendar') ? '<a class="cal" href="#hp-home-calendar" data-cal>Calendar</a>' : '';
-    const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}"><div class="hrow">${head}${cal}</div><div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
+    // 0.12.18: the semester GPA beside it ("GPA 3.54", the app's math), opening onhalo/gpa.js's panel. Any plan.
+    const Lg = globalThis.HaloPlusOnLogic;
+    const gp = On && On.enabled('gpa') && Lg && Lg.gpaOf ? Lg.gpaOf(v.classes || [], Lg.gpaMine(st.haloGpa, st.haloSnap).cr).gpa : null;
+    const gpa = gp !== null && gp !== undefined ? `<button type="button" class="cal gpa" data-gpa aria-haspopup="dialog" title="Your semester GPA from your class grades. Click for credits and what-if.">GPA ${Lg.fmtGpa(gp)}</button>` : '';
+    const html = `<section class="wk" aria-label="This week, from Halo+" style="${esc(vars)}"><div class="hrow">${head}${gpa}${cal}</div><div class="bd"${open ? '' : ' hidden'}>${open ? weekBody(w) : ''}</div></section>`;
     let h = old;
     // Right above the cards, or above Halo+'s week strip that sits right above them (0.12.3).
     const nx = h && h.nextElementSibling;
@@ -1095,6 +1102,11 @@ ul{list-style:none;margin:0;padding:0}
       'click',
       guard((e) => {
         const t = e.target;
+        if (t.closest('[data-gpa]')) {
+          e.preventDefault();
+          document.dispatchEvent(new CustomEvent('haloplus-gpa-open'));
+          return undefined;
+        }
         if (t.closest('[data-cal]')) {
           e.preventDefault();
           const sec = document.querySelector('[data-haloplus="home-calendar"]');

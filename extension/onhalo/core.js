@@ -26,7 +26,7 @@
   const FEATURES = globalThis.HaloPlusOnFeatures || [];
 
   // ---- state ----------------------------------------------------------------------------------------------------------
-  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloUiOn', 'haloFeat', 'haloIndex', 'tier', 'haloJustDone'];
+  const KEYS = ['haloSnap', 'haloLive', 'haloDone', 'haloMarks', 'haloUiOn', 'haloFeat', 'haloIndex', 'tier', 'haloJustDone', 'haloGpa'];
   let st = {};
   let view = null;
   let loaded = false;

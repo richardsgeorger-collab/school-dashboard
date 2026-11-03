@@ -428,6 +428,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     // A class grade read straight from Halo's page (0.11.1): to the account, so the app and the GPA match. No sync.
     void sendGrade(msg);
     reply({ ok: true });
+  } else if (msg.kind === 'gpa') {
+    // The GPA on Halo (0.12.18): a class's credits, or the GPA so far, to the account (the app's GPA card has the same).
+    void sendGpa(msg).then(reply);
+    return true;
   } else if (msg.kind === 'max-on') {
     // Back on Halo from Max's checkout (0.12.12): Halo+ opens beside that page, not focused, to take the new plan and
     // read the announcement the heads-up was about; it closes again after a few minutes if the student never looks.
@@ -786,6 +790,19 @@ async function sendGrade(m) {
     await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, grade: { slug: m.slug, letter: m.letter ?? null, points: m.points, maxPoints: m.maxPoints, at: m.at } }) });
   } catch {
     /* the page keeps the grade; the next sync brings it to the account anyway */
+  }
+}
+
+/** { slug, credits } or { soFar }: saved on the account with this browser's sync key; { ok: false } without one. */
+async function sendGpa(m) {
+  try {
+    const { syncKey } = await get(['syncKey']);
+    if (!syncKey) return { ok: false, why: 'no-account' };
+    const gpa = typeof m.slug === 'string' ? { slug: m.slug, credits: m.credits } : { soFar: m.soFar ?? null };
+    const r = await fetch(DROP_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: syncKey, gpa }) });
+    return { ok: r.ok };
+  } catch {
+    return { ok: false, why: 'offline' };
   }
 }
 

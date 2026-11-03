@@ -706,3 +706,35 @@ One line per change, newest last. Proposals that need George's approval are mark
     - scripts/build-local-site.sh builds dist-site with the public URL and anon key from KEYS_ENV;
     - e2e-autosync-alarm now stops at once with that instruction when dist-site has no accounts server.
   - **No product change:** nothing to fix in auto-sync.
+- Loop 310 (2026-11-03): extension 0.12.18, zip built (webstore-upload/halo-plus-extension-0.12.18.zip), NOT submitted. Stand-in Halo pages, throwaway accounts, the made-up Maya Torres only.
+  1. **Participation in NEXT.**
+     - **Which versions have the old fix:** the Web Store listing is 0.12.17 (updated Nov 1), and George's own admin account syncs with 0.12.17. The 0.12.15 "participation only fills leftover spots" rule is in both. George still saw participation because that rule let it fill any of the three spots a class's other work left empty within 14 days.
+     - **The stricter rule** (logic.js cardNext): participation only when the class has nothing else due in the next 10 days. Every open item of Halo's for the class counts, shown in the box or not: an assignment, quiz, discussion, exam done in class, one not open yet, one without a Halo address. It uses the shared participation rule (kind or title).
+     - **Tests:** George's two (a quiz in 9 days: no participation; only participation in 10 days: shown), plus each kind that holds it back, work only after 10 days, done and past-due work, and another class's work. e2e-onhalo-cards works out the same rule on its own and checks it.
+  2. **What-if, easy to find.**
+     - **On each class card:** "What if?" right after the grade, in Halo's link colour with the Halo+ mark (onhalo/whatifcard.js, under the "whatif" switch, now "What-if on class cards and the Gradebook").
+       - It opens a small panel there: the grade big; the next big item ("On Topic 3 Homework (Thursday), you need 90% for an A-…", a letter fills it in); a slider for each item that moves the grade; "Everything else" in one; Reset; "Open full what-if", which opens the Gradebook with its what-if on.
+       - **Data:** Halo's own GradeOverview (the sync's query: the final grade and each assessment's points), possible points from the class index.
+       - **Math:** the Gradebook's (wi*); "Estimate" whenever Halo's rows don't add up to its total or the scale doesn't give Halo's letter.
+       - A slider only redraws the grade, so a drag goes on.
+     - **The Gradebook:** the toggle is now a clear button right under Halo's total: "What if? Try scores" (15 px, 40 px tall, gold), with "See your grade with different scores. Nothing changes in Halo." It reads "Turn what-if off" while on.
+  3. **GPA on Halo.**
+     - **Where:** "GPA 3.53" in the This week bar, right before Calendar (halo-ui.js), opening onhalo/gpa.js's panel.
+     - **The panel:** each class with its letter, grade and editable credits; a what-if letter per class (tried, never saved, marked What-if); the semester GPA big; "GPA so far" for the projected cumulative GPA.
+     - **Math:** the app's (logic.js gpaOf / gpaCumulative), held to src/domain/gpa.ts by src/halo/onHaloGpa.test.ts: GCU's points, Halo's letter, never rounded up, a letter GCU has no points for left out.
+     - **Saving:** credits and "GPA so far" are kept on this computer at once and sent with the sync key through a new sync-drop path ({ gpa: { slug, credits } } → the course's credits with creditsFrom 'student'; { gpa: { soFar } } → settings.gpaSoFar with its stamp, so the app's merge takes it). The app sees the same values.
+     - **The app hands the extension** each class's credits (cr, crs) and gpaSoFar (gso) in the Halo snapshot. The newer of this computer's edit and the account's wins (gpaMine), so a change in the app isn't hidden by an older one on Halo.
+     - **Plan and switch:** Free, own switch ("gpa", "GPA on Student Home", since 0.12.18, in the popup and in You).
+     - **Deployed:** sync-drop. A live check with a throwaway account (deleted): 5 credits saved as the student's, GPA so far saved and cleared, bad values and unknown classes refused.
+  - **Tests:**
+    - **New:** scripts/e2e-onhalo-whatif-gpa.mjs PASS in Chrome and Edge, 96 checks each: plain light, plain dark, Better Halo dark; 1366, 1024 and a 420 phone-width window.
+    - **It checks:**
+      - the link after every grade, in Halo's link colour; the panel with Halo's own grade and no Estimate when exact; a slider moving the grade; Esc;
+      - the GPA equal to its rows' GCU math and the bar; a credit change kept, sent and moving the GPA; a what-if F neither saved nor sent; the cumulative;
+      - "Open full what-if" landing on the Gradebook with what-if on; the Gradebook button; both switches off.
+    - **Regressions:** e2e-onhalo-cards 68, -gradebook 34, -home-extras 10 and -switches 13: PASS in Chrome and Edge. -switches now checks 0.12.18's 20 switches; its 0.12.0 check expects four fewer.
+    - vitest 1435 passed, tsc and lint clean. Screenshots: docs/screens/on-halo/whatif-gpa/.
+  - **Traps found:**
+    - The scratchpad's Better Halo copy had lost its files, so earlier runs quietly skipped Better Halo. Fetched again from the Web Store (0.8.4; its _metadata folder removed so Chrome loads it unpacked).
+    - A `vite preview` on port 4174 left running since Oct 27 served a week-old app to the switches test; stopped.
+  - **Safari:** gets all of this on its next build (safari/build has 49 files; the Xcode version is now 0.12.18).

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       return reply(origin, 400, { ok: false, why: 'The sync arrived damaged. Press Sync now to try again.' });
     }
     if (raw.length > MAX_BYTES) return reply(origin, 413, { ok: false, why: 'That export is too big to send this way. Use Copy and paste it into Halo+.' });
-    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown; done?: unknown; mark?: unknown; grade?: unknown };
+    let body: { key?: unknown; payload?: unknown; via?: unknown; dryRun?: unknown; status?: unknown; done?: unknown; mark?: unknown; grade?: unknown; gpa?: unknown };
     try {
       body = JSON.parse(raw);
     } catch {
@@ -128,6 +128,38 @@ Deno.serve(async (req) => {
       const { error } = await dbg.from('courses').update({ data: next, updated_at: now }).eq('user_id', who.user_id).eq('id', row.id);
       if (error) return reply(origin, 500, { ok: false, why: 'Could not save that. Try again.' });
       return reply(origin, 200, { ok: true });
+    }
+    // The GPA on Halo (0.12.18): a class's credits as the student set them there ({ slug, credits }), or the GPA and
+    // credits so far ({ soFar: { gpa, credits } | null }). The same fields the app's GPA card writes, so the two agree.
+    if (body.gpa && typeof body.gpa === 'object') {
+      const g = body.gpa as { slug?: unknown; credits?: unknown; soFar?: unknown };
+      const dbp = admin();
+      const { data: who } = await dbp.from('sync_keys').select('user_id').eq('key', key).maybeSingle();
+      if (!who) return reply(origin, 401, { ok: false, why: 'This sync key was reset. Open Halo+ once on this computer.' });
+      const now = new Date().toISOString();
+      if (typeof g.slug === 'string') {
+        const slug = g.slug.slice(0, 120);
+        const cr = typeof g.credits === 'number' && Number.isFinite(g.credits) && g.credits >= 0 && g.credits <= 12 ? Math.round(g.credits * 10) / 10 : null;
+        if (!slug || cr === null) return reply(origin, 400, { ok: false, why: 'Which class, how many credits?' });
+        const { data: rows } = await dbp.from('courses').select('id, data').eq('user_id', who.user_id).is('deleted_at', null).eq('data->>haloSlugId', slug).limit(1);
+        const row = rows?.[0];
+        if (!row) return reply(origin, 404, { ok: false, why: 'That class is not in Halo+ yet.' });
+        const next = { ...(row.data as Record<string, unknown>), credits: cr, creditsFrom: 'student', updatedAt: now };
+        const { error } = await dbp.from('courses').update({ data: next, updated_at: now }).eq('user_id', who.user_id).eq('id', row.id);
+        return error ? reply(origin, 500, { ok: false, why: 'Could not save that. Try again.' }) : reply(origin, 200, { ok: true });
+      }
+      if ('soFar' in g) {
+        const v = g.soFar as { gpa?: unknown; credits?: unknown } | null;
+        const ok = v === null || (typeof v === 'object' && typeof v.gpa === 'number' && v.gpa >= 0 && v.gpa <= 4 && typeof v.credits === 'number' && v.credits >= 0 && v.credits <= 300);
+        if (!ok) return reply(origin, 400, { ok: false, why: 'A GPA from 0 to 4 and credits from 0 to 300.' });
+        const { data: row } = await dbp.from('settings').select('data').eq('user_id', who.user_id).maybeSingle();
+        if (!row) return reply(origin, 404, { ok: false, why: 'Open Halo+ once on this computer first.' });
+        const d = row.data as Record<string, unknown> & { stamps?: Record<string, string> };
+        const next = { ...d, gpaSoFar: v === null ? null : { gpa: Math.round((v.gpa as number) * 100) / 100, credits: Math.round(v.credits as number) }, stamps: { ...(d.stamps ?? {}), gpaSoFar: now }, updatedAt: now };
+        const { error } = await dbp.from('settings').update({ data: next, updated_at: now }).eq('user_id', who.user_id);
+        return error ? reply(origin, 500, { ok: false, why: 'Could not save that. Try again.' }) : reply(origin, 200, { ok: true });
+      }
+      return reply(origin, 400, { ok: false, why: 'What to save?' });
     }
     if (body.status === true) {
       const db0 = admin();

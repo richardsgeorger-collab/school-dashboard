@@ -2,7 +2,7 @@
 // six classes (made up) and a finished class added to the page: the grade at the top right beside Halo's Topic chip;
 // Halo's dates, instructor and class size on one quiet line ("28 students" still opens Halo's roster); a NEXT box in a
 // light tint of the class colour with up to three things for the class, exactly as Halo has them (what can be done now,
-// soonest first; then greyed with why: "opens Mon", "in class Fri"; participation only in spots nothing else fills (0.12.15); never done work; each opening the
+// soonest first; then greyed with why: "opens Mon", "in class Fri"; participation only when the class has nothing else due in 10 days (0.12.18); never done work; each opening the
 // item on Halo; "Nothing due soon" when there is nothing); Halo's stripe and Go to class untouched; cards in a row one
 // height with the buttons lined up; a finished class a card like the others in Halo's grid (0.12.6); every colour dot (the
 // week strip, the calendar legend) in the class's own colour, never black or gray; all of it back after Halo redraws.
@@ -40,11 +40,15 @@ function expected(fx, idx, st, now) {
   idx.classes.forEach((c, k) => {
     const can = [];
     const cannot = [];
+    let busy = false;
     for (const r of idx.rows) {
-      if (r.c !== k || !['assignment', 'quiz', 'discussion', 'lti', 'participation'].includes(r.kind) || !r.href) continue;
+      if (r.c !== k || !['assignment', 'quiz', 'discussion', 'lti', 'participation'].includes(r.kind)) continue;
       const due = Date.parse(st.grades[r.id]?.dueDate ?? r.cdue);
       const status = st.grades[r.id]?.status ?? statusOf.get(r.id);
       if (!(due >= now && due <= now + 14 * DAY) || DONE.test(status || '') || r.done) continue;
+      // 0.12.18: anything else of the class's due within 10 days, shown in the box or not, means no participation.
+      if (!(r.kind === 'participation' || /participation/i.test(r.title)) && due <= now + 10 * DAY) busy = true;
+      if (!r.href) continue;
       const it = { title: r.title, href: r.href, due, part: r.kind === 'participation' || /participation/i.test(r.title) };
       if (r.inp === 1) cannot.push({ ...it, w: `in class ${word(due, now)}` });
       else if (r.ns && r.inp === undefined) continue;
@@ -53,8 +57,9 @@ function expected(fx, idx, st, now) {
     }
     const by = (a, b) => a.due - b.due || a.title.localeCompare(b.title);
     const all = [...can.sort(by), ...cannot.sort(by)];
-    out[c.slug] = [...all.filter((i) => !i.part), ...all.filter((i) => i.part)].slice(0, 3);
+    out[c.slug] = [...all.filter((i) => !i.part), ...(busy ? [] : all.filter((i) => i.part))].slice(0, 3);
     out[c.slug].held = all.filter((i) => i.part).length - out[c.slug].filter((i) => i.part).length;
+    out[c.slug].busy = busy;
   });
   return out;
 }
@@ -188,7 +193,7 @@ for (const run of [{ bh: false }, ...(bhPath ? [{ bh: true }] : [])]) {
       check(rowsAll.filter((r) => r.wait).every((r) => r.color !== can.color), `${tag} ${width}: what cannot be done yet in plain gray, not the link colour`);
       const partIn = main.filter((c) => c.next && c.next.rows.some((r) => /participation/i.test(r.t)));
       const held = Object.values(want).reduce((n, w) => n + (w.held || 0), 0);
-      check(partIn.every((c) => c.next.rows.filter((r) => !/participation/i.test(r.t)).length < 3 && c.next.rows.findIndex((r) => /participation/i.test(r.t)) >= c.next.rows.filter((r) => !/participation/i.test(r.t)).length), `${tag} ${width}: participation only after everything else, only where a class has fewer than three other things (${partIn.length} cards show it, ${held} held back)`);
+      check(partIn.every((c) => want[c.slug] && !want[c.slug].busy), `${tag} ${width}: participation only on a class with nothing else due in the next 10 days (${partIn.length} cards show it, ${held} held back)`);
       // Every class colour dot in its class's own colour.
       const dots = await p.evaluate(() => ({ strip: [...document.querySelectorAll('[data-haloplus="week-strip"] .hp-sd-dots i')].map((i) => getComputedStyle(i).borderTopColor), legend: [...document.querySelectorAll('[data-haloplus="home-calendar"] .hp-legend .hp-dot')].map((d) => getComputedStyle(d).backgroundColor) }));
       const bad = [...dots.strip, ...dots.legend].filter((c) => !colourful(c));

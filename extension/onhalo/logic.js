@@ -540,6 +540,8 @@
   }
   // Anything with a way to hand it in on Halo, participation posts too (0.12.6); participation is never urgent.
   const NEXT_KINDS = ['assignment', 'quiz', 'discussion', 'lti', 'participation'];
+  /** Participation shows in NEXT only when nothing else of the class is due within this many days. */
+  const PART_QUIET_DAYS = 10;
   /**
    * The NEXT box on a class card (0.12.5, George): up to three things for that class, one line each, from Halo's own
    * answer for the class (`live`, a Map of id → { dueDate, status }; without it, nothing: never a guess). First what the
@@ -559,14 +561,19 @@
     if (!index || !Array.isArray(index.rows) || !live || !tz) return null;
     const can = [];
     const cannot = [];
+    // Anything else of this class's due in the next 10 days (George, 2026-11-03: participation still showed): then no
+    // participation at all. Counted from every open item Halo has for the class, whatever the box shows of it.
+    let busy = false;
     for (const r of index.rows) {
-      // Only Halo's own addresses ("/courses/…"), never another site or a script link, whatever the stored index holds.
-      if (r.c !== k || !NEXT_KINDS.includes(r.kind) || !r.id || !/^\/(?![/\\])/.test(String(r.href || ''))) continue;
+      if (r.c !== k || !NEXT_KINDS.includes(r.kind) || !r.id) continue;
       const h = live.get(r.id);
       if (!h) continue;
       const due = Date.parse(h.dueDate || r.cdue || '');
       if (!Number.isFinite(due) || due < now || due > now + days * DAY) continue;
       if (HALO_DONE.test(h.status || '') || r.done || doneIds.has(r.id)) continue;
+      if (!isParticipation(r) && due <= now + PART_QUIET_DAYS * DAY) busy = true;
+      // Only Halo's own addresses ("/courses/…"), never another site or a script link, whatever the stored index holds.
+      if (!/^\/(?![/\\])/.test(String(r.href || ''))) continue;
       const start = Date.parse(r.start || '');
       const item = { id: r.id, title: r.title, href: r.href, t: due, when: whenText(due, now, tz), full: haloFormat(due, tz), part: isParticipation(r) };
       if (r.inp === 1) cannot.push({ ...item, why: `in class ${dayWord(due, now, tz)}` });
@@ -577,10 +584,11 @@
     const order = (a, b) => a.t - b.t || a.title.localeCompare(b.title);
     can.sort(order);
     cannot.sort(order);
-    // Participation only fills what is left (George, 2026-10-30): everything else first, what can be done now and then
-    // what cannot yet ("Exam 1 · in class Fri"); participation posts only in the spots still free, up to `max`.
+    // Everything else first, what can be done now and then what cannot yet ("Exam 1 · in class Fri"). Participation
+    // only when the class has nothing else due in the next 10 days (George, 2026-11-03; it filled leftover spots
+    // before), then in the spots still free, up to `max`.
     const other = [...can, ...cannot].filter((i) => !i.part);
-    const part = [...can, ...cannot].filter((i) => i.part);
+    const part = busy ? [] : [...can, ...cannot].filter((i) => i.part);
     return [...other, ...part].slice(0, max).map(({ part: _p, ...i }) => i);
   }
 
@@ -761,6 +769,60 @@
     return { state: 'needs', avg: Math.ceil(hi - 1e-6) };
   }
 
+  // ---- the GPA on Halo (0.12.18) ------------------------------------------------------------------------------------
+  // The app's own GPA (src/domain/gpa.ts, GCU's University Policy Handbook): credits times the grade points of each
+  // class's letter, over the credits of the classes with a letter A to F. Halo's own letter when it has one, else the
+  // letter for the percent on the class's scale (never rounded up). A letter GCU has no points for leaves the class out.
+  const GPA_POINTS = { A: 4.0, 'A-': 3.7, 'B+': 3.3, B: 3.0, 'B-': 2.7, 'C+': 2.3, C: 2.0, D: 1.0, F: 0.0 };
+  const normLetter = (l) => String(l || '').trim().toUpperCase().replace(/\s+/g, '').replace('\u2212', '-');
+  const gpaPoints = (letter) => (normLetter(letter) in GPA_POINTS ? GPA_POINTS[normLetter(letter)] : null);
+  /** Credits: the student's own, else the account's (Halo's or the syllabus), else a lab 1 and any other class 3. */
+  function gpaCredits(cls, own) {
+    const o = own && Number.isFinite(own[cls.slug]) ? own[cls.slug] : null;
+    if (o !== null) return o;
+    if (Number.isFinite(cls.cr)) return cls.cr;
+    return /L$/i.test(String(cls.code || '').trim()) ? 1 : 3;
+  }
+  /**
+   * classes: [{ slug, code, g (percent), gl (Halo's letter), gs (scale), cr }]; own: { slug: credits }; tryLetter:
+   * { slug: letter } (a what-if, never saved). Returns { gpa, credits, rows: [{ slug, code, letter, pct, credits,
+   * tried, left }] }.
+   */
+  function gpaOf(classes, own = {}, tryLetter = {}) {
+    const rows = (classes || []).map((c) => {
+      const credits = gpaCredits(c, own);
+      const tried = typeof tryLetter[c.slug] === 'string' && tryLetter[c.slug] in GPA_POINTS;
+      const pct = Number.isFinite(c.g) ? c.g : null;
+      const letter = tried ? tryLetter[c.slug] : c.gl ? normLetter(c.gl) : pct !== null ? normLetter(wiLetter(pct, c.gs)) : null;
+      const pts = letter ? gpaPoints(letter) : null;
+      const left = letter === null ? 'no-grade' : pts === null ? 'no-points' : credits <= 0 ? 'no-credits' : null;
+      return { slug: c.slug, code: c.code, letter, pct, credits, pts, tried, left };
+    });
+    const counted = rows.filter((r) => r.left === null);
+    const credits = counted.reduce((n, r) => n + r.credits, 0);
+    const sum = counted.reduce((n, r) => n + r.credits * r.pts, 0);
+    return { gpa: credits > 0 ? sum / credits : null, credits, rows };
+  }
+  /** With the GPA so far: this semester's credits added at this semester's GPA (the app's cumulativeGpa). */
+  function gpaCumulative(sofar, sem) {
+    if (!sofar || !(sofar.credits >= 0) || !(sofar.gpa >= 0) || sofar.gpa > 4) return null;
+    if (sem.gpa === null || sem.credits <= 0) return sofar.credits > 0 ? sofar.gpa : null;
+    const total = sofar.credits + sem.credits;
+    return total > 0 ? (sofar.gpa * sofar.credits + sem.gpa * sem.credits) / total : null;
+  }
+  /**
+   * The credits and GPA so far to use: this computer's edits (haloGpa) while they are newer than the account's copy
+   * (the snapshot), else the account's, so a change in the app is never hidden by an older one made on Halo.
+   */
+  function gpaMine(local, snap) {
+    const l = local || {};
+    const newer = !snap || !snap.at || (l.at && l.at > snap.at);
+    return { cr: newer ? l.cr || {} : {}, so: newer && l.so !== undefined ? l.so : (snap && snap.gso) || null };
+  }
+  /** "3.62": to two places, for showing only. */
+  const fmtGpa = (g) => (g === null || !Number.isFinite(g) ? '–' : (Math.round(g * 100) / 100).toFixed(2));
+
   globalThis.HaloPlusOnLogic = {
+    gpaOf, gpaCumulative, gpaCredits, gpaMine, fmtGpa, GPA_POINTS,
     dueDayWord, isParticipation, wiLetter, wiGrade, wiExact, wiBig, wiLadder, wiNeed, cardNext, whenText, dayWord, boldColor, calendarDays, chipTitle, haloTime, preloadOk, haloDateTime, haloFormat, zoned, classColor, djb2xor, hrefFor, buildIndex, KIND_OF, draftWorth, offerDraft, postedAlready, pruneDrafts, participationDays, participationLine, seriesOf, earlierMatch, search, fold, dayOf, dueIn, findUrls, countWords, wordMinimum, requiredType, wrongType, MIN, HOUR, DAY };
 })();

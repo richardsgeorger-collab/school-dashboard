@@ -953,3 +953,31 @@ render();
 let w = window.innerWidth >= 1366;
 window.addEventListener('resize', () => { const n = window.innerWidth >= 1366; if (n !== w) { w = n; render(); } });
 })();`;
+
+/**
+ * Halo's GradeOverview for a class (the sync's own query; extension 0.12.18's what-if on the class card): the class's
+ * final grade and each assessment's points, worked out exactly as the Gradebook stand-in shows them (state.grades
+ * and state.finalGrade change both the same way).
+ */
+export function gradeOverviewGateway(fx) {
+  const scale = [['A', 93], ['A-', 90], ['B+', 87], ['B', 83], ['B-', 80], ['C+', 77], ['C', 70], ['D', 60], ['F', 0]];
+  return {
+    GradeOverview: (v, state) => {
+      const c = fx.payload.classes.find((k) => k.slugId === v.courseClassSlugId);
+      if (!c) return { gradeOverview: [] };
+      const rows = c.assessments.map((a) => {
+        const g = state.grades?.[a.id] ?? {};
+        const status = g.status ?? a.status ?? 'UPCOMING';
+        const score = 'score' in g ? g.score : a.score;
+        return { id: a.id, points: a.points || 0, status, score: status === 'PUBLISHED' && typeof score === 'number' ? score : null };
+      });
+      const pub = rows.filter((r) => r.score !== null);
+      const own = state.finalGrade?.[c.slugId];
+      const fp = own ? own.points : Math.round(pub.reduce((a, r) => a + r.score, 0) * 100) / 100;
+      const mp = own ? own.max : pub.reduce((a, r) => a + r.points, 0);
+      const pct = mp > 0 ? (fp / mp) * 100 : null;
+      const letter = own?.letter ?? (pct === null ? null : scale.find((e) => pct >= e[1])[0]);
+      return { gradeOverview: [{ finalGrade: { id: `fg-${c.slugId}`, finalPoints: fp, gradeValue: letter, isPublished: true, maxPoints: mp }, grades: rows.map((r) => ({ assessment: { id: r.id }, finalPoints: r.score, status: r.status })) }] };
+    },
+  };
+}

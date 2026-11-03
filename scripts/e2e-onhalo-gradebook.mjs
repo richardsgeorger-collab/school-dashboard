@@ -17,7 +17,7 @@ const DAY = 864e5;
 /** Halo's page with everything Halo+ added taken out: what Halo drew. */
 const haloOnly = (p) => p.evaluate(() => { const m = document.querySelector('#hp-gb-root').cloneNode(true); m.querySelectorAll('[data-haloplus]').forEach((n) => n.remove()); return m.innerHTML; });
 // The card's words, the letter picker read as the letter picked.
-const card = (p) => p.evaluate(() => { if (!document.querySelector('[data-haloplus="wi-card"]')) return null; const c = document.querySelector('[data-haloplus="wi-toggle"]'); const k = c.cloneNode(true); const sel = k.querySelector('select'); if (sel) sel.replaceWith(c.querySelector('select').value); return k.textContent.replace(/\s+/g, ' ').trim(); });
+const card = (p) => p.evaluate(() => { if (!document.querySelector('[data-haloplus="wi-card"]')) return null; const c = document.querySelector('[data-haloplus="wi-toggle"]'); const k = c.cloneNode(true); /* 0.12.18: the button says "Turn what-if off" while on; read as "What-if", the hint left out */ const bt = k.querySelector(':scope > button'); if (bt) bt.textContent = 'What-if'; k.querySelectorAll('.hp-wi-hint').forEach((n) => n.remove()); const sel = k.querySelector('select'); if (sel) sel.replaceWith(c.querySelector('select').value); return k.textContent.replace(/\s+/g, ' ').trim(); });
 
 for (const run of [{ bh: false, dark: false }, { bh: false, dark: true }, ...(bhPath ? [{ bh: true, dark: true }] : [])]) {
   const tag = `${run.bh ? 'bh' : 'plain'}-${run.dark ? 'dark' : 'light'}`;
@@ -40,7 +40,7 @@ for (const run of [{ bh: false, dark: false }, { bh: false, dark: true }, ...(bh
     await until(async () => (await p.locator('[data-haloplus="wi-toggle"]').count()) === 1, 10000, 200);
     const before = await haloOnly(p);
     const rowsN = await p.locator('[data-testid^="student_Assessment_Status_Button="]').count();
-    check((await p.locator('[data-haloplus="wi-toggle"] > button[aria-pressed="false"]').count()) === 1 && (await p.locator('[data-haloplus="wi-toggle"] svg').count()) >= 1 && (await p.locator('[data-haloplus="wi-box"]').count()) === 0, `${tag}: a small What-if toggle with the Halo+ mark, off at first, nothing else (${rowsN} rows)`);
+    check((await p.locator('[data-haloplus="wi-toggle"] > button[aria-pressed="false"]').count()) === 1 && (await p.locator('[data-haloplus="wi-toggle"] svg').count()) >= 1 && (await p.locator('[data-haloplus="wi-box"]').count()) === 0, `${tag}: a clear "What if? Try scores" button with the Halo+ mark, off at first, nothing else (${rowsN} rows)`);
     await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-0-off.png`, clip: { x: 0, y: 0, width: 1440, height: 560 } });
     const calls0 = b.bench.calls.gateway.length;
 
