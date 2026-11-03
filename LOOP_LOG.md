@@ -697,3 +697,12 @@ One line per change, newest last. Proposals that need George's approval are mark
     - the test build records background errors.
   - **Chrome, to be sure nothing broke:** vitest 1429 passed (two source-text checks updated), tsc and lint clean, e2e-onhalo-cards, -checkoff, -topic PASS. e2e-autosync-alarm FAILS, the same way on the last commit's extension (Halo+ never hands the account key to the extension in that test), so it is not from this loop and is still to look at.
   - **Still waiting on George:** Xcode → Settings → Accounts has no Apple ID yet, so no Mac build or Mac test, and no TestFlight.
+- Loop 309 (2026-11-02): is auto-sync broken for real students? No.
+  - **Real data (read only, real accounts only):** students' scheduled syncs land every day. 34 landed today across 11 students, and 20–26 a day across 7–11 students since Oct 25.
+    - Most misses are expected: Halo signed out (48 in 7 days, auto-sync pauses and says so), or no browser window open (32, skipped and run when one opens).
+    - "Stalled" (Halo stopped answering mid-sync): 40 in 10 days, mostly on the old 0.11.1 (27 of 240 syncs, 11%) against 0.12.15's 4 of 125 (3%). 39 of the 40 were followed by a landed sync within 24 hours (22 within 4). Occasional and self-healing; not chased further this loop.
+  - **The failing test:** e2e-autosync-alarm failed because of how I built its site, not because of Halo+. This Mac has no .env, so `vite build` made a local-only site with no accounts server: nobody could sign in, the site told the extension "free" with no key, and nothing auto-synced. It failed the same way on the last commit's extension for the same reason. Built with the public settings, it passes in full on today's extension (0.12.17 with the Safari changes): the plan and key handed over without the popup, the alarm's sync landing (auto, 30 s), the logged-out pause and its one Admin report, Now's note, and the pick-up on logging back in.
+  - **So it can't mislead again:**
+    - scripts/build-local-site.sh builds dist-site with the public URL and anon key from KEYS_ENV;
+    - e2e-autosync-alarm now stops at once with that instruction when dist-site has no accounts server.
+  - **No product change:** nothing to fix in auto-sync.

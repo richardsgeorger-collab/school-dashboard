@@ -10,7 +10,7 @@
 //   3. Halo logged in again and opened: a sync runs by itself, lands, and the note goes.
 //   KEYS_ENV=... [EXT_DIR=extension] [LOCAL_SITE=dist-site] node scripts/e2e-autosync-alarm.mjs
 import { spawn } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { extname, join, resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
@@ -19,6 +19,16 @@ import { chromium } from 'playwright-core';
 const env = Object.fromEntries(readFileSync(process.env.KEYS_ENV, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1).trim()]));
 const SRC = resolve(process.env.EXT_DIR ?? 'extension');
 const LOCAL_SITE = process.env.LOCAL_SITE ?? 'dist-site';
+// The local site must be built against the real accounts server (Loop 308: a build with no VITE_SUPABASE_URL is
+// local-only, nobody can sign in, and this test failed as if auto-sync were broken).
+{
+  const host = new URL(env.VITE_SUPABASE_URL).host;
+  const assets = existsSync(join(LOCAL_SITE, 'assets')) ? readdirSync(join(LOCAL_SITE, 'assets')).filter((f) => f.endsWith('.js')) : [];
+  if (!assets.some((f) => readFileSync(join(LOCAL_SITE, 'assets', f), 'utf8').includes(host))) {
+    console.log(`FAIL ${LOCAL_SITE} was built without the accounts server: build it with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from KEYS_ENV, then run again.`);
+    process.exit(2);
+  }
+}
 const OUT = 'docs/screens/extension';
 mkdirSync(OUT, { recursive: true });
 const ref = new URL(env.VITE_SUPABASE_URL).hostname.split('.')[0];
