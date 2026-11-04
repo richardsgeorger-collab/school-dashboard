@@ -738,3 +738,19 @@ One line per change, newest last. Proposals that need George's approval are mark
     - The scratchpad's Better Halo copy had lost its files, so earlier runs quietly skipped Better Halo. Fetched again from the Web Store (0.8.4; its _metadata folder removed so Chrome loads it unpacked).
     - A `vite preview` on port 4174 left running since Oct 27 served a week-old app to the switches test; stopped.
   - **Safari:** gets all of this on its next build (safari/build has 49 files; the Xcode version is now 0.12.18).
+- Loop 311 (2026-11-04): did any loop claim "passes with Better Halo" while Better Halo was really skipped? No. And the runner can no longer skip it quietly.
+  - **How it was checked:**
+    - Every run with Better Halo writes bh-* screenshots, and only the real Better Halo puts its dark theme on the stand-in pages (they ignore dark mode) and its "Export Assignments" button on Student Home (in its own content.js only).
+    - .scratch/bhcheck/scan.mjs read every bh-dark screenshot committed since Oct 25 (19 commits, Loops 269–310). All show Better Halo's dark theme, except the rubric's print view, which is meant to be light. Loop 305's light no-account run shows "Export Assignments".
+    - Screenshot times show Better Halo really ran on Nov 2 at 15:13–15:15 (Loop 308's Chrome checks), and it was missing by Loop 310's first run on Nov 3. The copy broke in that window, and only Loop 309 (no Better Halo claims) and the start of Loop 310 (caught and said) ran in it.
+    - Loop 278 committed no screenshots; it reran the same 0.12.6 code Loop 277 had checked with the real Better Halo two hours before.
+  - **Overstated:** e2e-onhalo-home-extras never loaded the real Better Halo. It uses the stand-in's copy of Better Halo's card buttons to set each counts case. Loops 272 and 278 listed it among tests passing "with Better Halo". The stand-in's Student Home also draws Better Halo-like card buttons when a test asks for Better Halo, so the real check is the extension's own marks, not those buttons.
+  - **Better Halo fails loudly now** (scripts/lib/onHaloRun.mjs):
+    - **Where it lives:** .scratch/better-halo, in the repo folder, git-ignored, so a cleared scratchpad can't take it (or BH_DIR). scripts/get-better-halo.mjs fetches the current Web Store build and removes _metadata.
+    - **Missing, or its files missing:** every on-Halo test stops with FAIL and says how to get it. Without Better Halo is only on purpose, with NO_BH=1, and the run says so.
+    - **During a run:** its worker must start, and every Halo page in a Better Halo run must carry Better Halo's own mark (data-better-halo-theme on <html>, which it sets on every page, themed or not). Otherwise FAIL and stop.
+    - All three outcomes were tried: no copy, content.js missing, NO_BH=1.
+  - **home-extras now also loads the real Better Halo:** its own card buttons (24), and Halo+'s counts (3) only on them, where it shows none of its own. The first try passed with no counts at all because the stand-in returned zero; it now sets real numbers and requires the counts.
+  - **The rerun, on 0.12.18 with the real Better Halo 0.8.5** (updated since 0.8.4): cards, NEXT, compact header, calendar and week strip, search, topic (countdowns, rubric), check-off, submit, gradebook, what-if and GPA, participation, discussion, files-links, first load, Free/Max, home-extras, switches.
+    - Every one PASS in Chrome and in Edge: 810 checks each, the Better Halo pass of each with Better Halo verified on every page. Nothing needed fixing.
+    - vitest 1435 passed, lint clean.

@@ -4,10 +4,12 @@
 // Better Halo's appear; nothing without Better Halo's buttons. 13: once per Halo version, on Student Home, the page code
 // for the student's next assignment is fetched ahead from Halo's file servers (Halo's real files), at most 12 files,
 // nothing asked of Halo's servers; not again on the next visit; not on a slow connection; not on Free.
+// The counts above use the stand-in's copy of Better Halo's card buttons, to set each case exactly; the last part
+// (Loop 311) loads the real Better Halo: its own buttons, and Halo+'s counts only on them, never beside its own.
 //   [BROWSER=chrome|edge] node scripts/e2e-onhalo-home-extras.mjs
 import { readFileSync } from 'node:fs';
 import { countsGateway } from './lib/haloPages.mjs';
-import { BROWSER, checker, openBench, out, sleep, until } from './lib/onHaloRun.mjs';
+import { BROWSER, bhPath, checker, openBench, out, sleep, until } from './lib/onHaloRun.mjs';
 
 const OUT = out('docs/screens/on-halo/home-extras');
 const { check, passed } = checker(BROWSER);
@@ -74,6 +76,36 @@ const hard = setTimeout(() => (console.log('HARD TIMEOUT'), process.exit(3)), 15
     await p.close();
   } catch (e) {
     check(false, `counts: ${e.stack || e.message}`);
+  } finally {
+    await b.close();
+  }
+}
+
+// ---- 26 with the real Better Halo (Loop 311) ----
+if (bhPath) {
+  const b = await openBench({ label: 'counts-real-bh', bh: true, bhDark: true });
+  Object.assign(b.bench.state.gateway, countsGateway(b.fx));
+  const cls = b.fx.payload.classes;
+  // New posts and grades waiting in Halo (the same numbers as the stand-in pass above); Better Halo's own counts off.
+  b.bench.state.counts = { [cls[0].slugId]: { DQ: 3, IDQ: 1, CQ: 5, GROUP: 2, ANNOUNCEMENTS: 2, gradebook: 1 } };
+  try {
+    await b.seed({ lastAttemptAt: new Date().toISOString() });
+    const p = await b.page('https://halo.gcu.edu/', { width: 1366, height: 1000 });
+    await until(async () => (await p.locator('.better-halo-icon-button').count()) > 0, 15000, 200);
+    await until(async () => (await p.locator('[data-haloplus="count"]').count()) > 0, 15000, 300);
+    await sleep(1000);
+    const r = await p.evaluate(() => ({
+      buttons: document.querySelectorAll('.better-halo-icon-button').length,
+      own: document.querySelectorAll('.better-halo-notification-badge').length,
+      ours: [...document.querySelectorAll('[data-haloplus="count"]')].map((n) => !!n.closest('.better-halo-icon-button')),
+    }));
+    check(r.buttons > 0, `counts, real Better Halo: its own card buttons are there (${r.buttons})`);
+    // Better Halo here draws no counts of its own (they need its own calls to Halo): Halo+'s must be there, on its buttons.
+    check(r.own > 0 ? r.ours.length === 0 : r.ours.length > 0 && r.ours.every(Boolean), `counts, real Better Halo: Halo+'s counts on its buttons, and only where it shows none of its own (Better Halo's ${r.own}, Halo+'s ${r.ours.length}, all on its buttons: ${r.ours.every(Boolean)})`);
+    await p.screenshot({ path: `${OUT}/${BROWSER}-real-bh-counts.png`, clip: { x: 0, y: 0, width: 1366, height: 1000 } });
+    await p.close();
+  } catch (e) {
+    check(false, `counts, real Better Halo: ${e.stack || e.message}`);
   } finally {
     await b.close();
   }
