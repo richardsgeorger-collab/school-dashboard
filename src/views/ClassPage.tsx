@@ -28,7 +28,7 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /** Everything about one class on one page: what is next, where the grade stands, what is open, what is on file. */
 export function ClassPage() {
-  const { data, schedule, today } = useStore();
+  const { data, schedule, today, calibrate } = useStore();
   const { params } = useRoute();
   const tz = data.settings.timezone;
   const course = data.courses.find((c) => c.id === params.get('c')) ?? null;
@@ -102,7 +102,8 @@ export function ClassPage() {
   const openItems = items.filter((i) => i.status !== 'done' && !quietNoSubmission(i)).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const done = items.filter((i) => i.status === 'done').sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   const next = openItems.find((i) => dateOf(i.dueAt, tz) >= today) ?? openItems[0] ?? null;
-  const overdue = openItems.filter((i) => (schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz)) < today);
+  // Overdue is past Halo's due date, never past Halo+'s finish-by day (2026-11-04).
+  const overdue = openItems.filter((i) => dateOf(i.dueAt, tz) < today);
   const week = openItems.filter((i) => dateOf(i.dueAt, tz) >= today && dateOf(i.dueAt, tz) <= addDays(today, 6));
   const grade = courseGrade(course.id, data.items, course);
   const concept = conceptLine(conceptWarnings(data.courses, data.items, data.settings.topicLinks ?? [], data.settings.quizStats, today, tz).filter((w) => w.courseId === course.id), 6);
@@ -154,7 +155,7 @@ export function ClassPage() {
                 const d = diffDays(today, dateOf(next.dueAt, tz));
                 return d < 0 ? `${-d} day${d === -1 ? '' : 's'} past` : d === 0 ? 'today' : d === 1 ? 'tomorrow' : `in ${d} days`;
               })()}{' '}
-              · ~{fmtMinutes(next.estimatedMinutes)} · {next.points} pts
+              · ~{fmtMinutes(calibrate(next).minutes)} · {next.points} pts
             </p>
           </>
         ) : (

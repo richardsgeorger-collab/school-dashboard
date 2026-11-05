@@ -17,7 +17,7 @@ export function Requirements({ item: passed, compact = false, onMore }: { item: 
   // Read live (ticks redraw at once), but shown the way every other screen shows them: a line that only restates the
   // assignment itself is left out here too. Reading the raw list is how "Author Chemistry Connections Essay using
   // guides" reached the hero on that very essay (2026-09-29).
-  const all = (item.requirements ?? []).filter((r) => !restatesItem(r.text, item));
+  const all = (item.requirements ?? []).filter((r) => !restatesItem(r.text, item, r.dueAt));
   // Compact (the hero card): the open parts only, three at most, each with its source one tap away.
   const list = compact ? all.filter((r) => !r.done).slice(0, 3) : all;
   if (list.length === 0) return null;

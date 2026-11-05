@@ -1,6 +1,7 @@
 import { creditsFor } from '../domain/gpa';
 import { dateOf } from '../domain/dates';
 import { isExtraStep } from '../domain/extraStep';
+import { openRequirements } from '../domain/requirements';
 import { rankItems } from '../domain/now';
 import { isParticipation } from '../domain/participation';
 import { participationThisWeek } from '../domain/participationWeek';
@@ -131,7 +132,8 @@ export function haloSnap(input: { courses: Course[]; items: Item[]; settings: Se
   });
   let hidden = 0;
   const items: HaloSnapItem[] = keep.map((i) => {
-    const extras = (i.requirements ?? []).filter((r) => r.source?.kind === 'announcement' && !r.done);
+    // Never a part that only restates the assignment and its due date (2026-11-04): no gold dot, no note for it on Halo.
+    const extras = openRequirements(i).filter((r) => r.source?.kind === 'announcement');
     const open = !isWorkDone(i);
     if (open) hidden += extras.length + (i.origin?.kind === 'announcement' ? 1 : 0);
     const moved = i.dateChange && Date.parse(i.dateChange.at) > t - 14 * DAY ? i.dateChange.from : undefined;

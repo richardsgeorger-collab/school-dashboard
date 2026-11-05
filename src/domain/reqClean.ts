@@ -138,15 +138,24 @@ export const looksLikeRule = (text: string): boolean => RULE_SHAPES.some((re) =>
 
 /**
  * A part that only says the assignment's own name and date adds nothing next to it. "Complete and submit Practice
- * Quiz 1 by Sunday" sitting on Practice Quiz 1 is noise; "Cite two peer-reviewed sources" is not.
+ * Quiz 1 by Sunday" sitting on Practice Quiz 1 is noise; "Cite two peer-reviewed sources" is not. Nor is "Submit
+ * Homework 4 by Sunday Nov 8, 11:59 pm" on Homework 4 due then (George, 2026-11-04: "Also required" restated the due
+ * date): dates and times are not news. A deadline of its own on another day is ("Submit Homework 4 by Friday" on work
+ * due Sunday): `dueAt`, the part's own deadline, more than an hour from the item's.
  */
-export function restatesItem(text: string, item: Pick<Item, 'title'> & { label?: string }): boolean {
+export function restatesItem(text: string, item: Pick<Item, 'title'> & { label?: string; dueAt?: string | null }, dueAt?: string | null): boolean {
+  if (dueAt && item.dueAt && Math.abs(Date.parse(dueAt) - Date.parse(item.dueAt)) > 3600_000) return false;
   // Doing-words that only say "do the assignment" ("Author Chemistry Connections Essay" on that essay, 2026-09-29).
   const VERBS = new Set(['complete', 'submit', 'finish', 'turn', 'hand', 'post', 'upload', 'take', 'do', 'due', 'quiz', 'assignment', 'in', 'author', 'write', 'draft', 'compose', 'create', 'prepare', 'produce', 'start', 'begin', 'work', 'on', 'use', 'using', 'follow', 'following', 'per']);
   // Words that add nothing next to the item's own row: when it is due, what it is worth, where it sits in the term.
-  const FILLER = new Set(['week', 'weeks', 'topic', 'topics', 'module', 'points', 'pts', 'point', 'class', 'course', 'today', 'tonight', 'tomorrow', 'end', 'before', 'after', 'midnight', 'pm', 'am', 'day', 'days', 'time', 'date', 'deadline', 'graded', 'grade', 'worth', 'total', 'via', 'through', 'halo', 'lopeswrite', 'dropbox', 'guide', 'guides', 'guideline', 'guidelines', 'instruction', 'instructions', 'direction', 'directions', 'provided', 'given', 'assigned']);
+  const FILLER = new Set(['week', 'weeks', 'topic', 'topics', 'module', 'points', 'pts', 'point', 'class', 'course', 'today', 'tonight', 'tomorrow', 'end', 'before', 'after', 'midnight', 'pm', 'am', 'by', 'until', 'no', 'later', 'than', 'on', 'at', 'day', 'days', 'time', 'date', 'deadline', 'graded', 'grade', 'worth', 'total', 'via', 'through', 'halo', 'lopeswrite', 'dropbox', 'guide', 'guides', 'guideline', 'guidelines', 'instruction', 'instructions', 'direction', 'directions', 'provided', 'given', 'assigned']);
   // Points and term positions are not identity; "Quiz 1" against "Quiz 2" is. Strip the former before tokenising.
-  const stripped = text.replace(/\(\s*\d+\s*(?:points?|pts)?\s*\)/gi, ' ').replace(/\b\d+\s*(?:points?|pts|%)\b/gi, ' ').replace(/\b(?:topic|week|module|unit)\s*\d+\b/gi, ' ');
+  const stripped = text
+    // Times: "11:59 pm", "11:59pm", "noon", "midnight", "11 PM".
+    .replace(/\b\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)(?![a-z])/gi, ' ')
+    .replace(/\b\d{1,2}:\d{2}\b/g, ' ')
+    .replace(/\b(?:noon|midnight|mst|arizona time|az time)\b/gi, ' ')
+    .replace(/\(\s*\d+\s*(?:points?|pts)?\s*\)/gi, ' ').replace(/\b\d+\s*(?:points?|pts|%)\b/gi, ' ').replace(/\b(?:topic|week|module|unit)\s*\d+\b/gi, ' ');
   const left = tokens(stripped).filter((w) => !VERBS.has(w) && !FILLER.has(w));
   // The title and the short label both name it; stems and abbreviations match ("Chem" is "Chemistry").
   const names = [...tokens(item.title), ...tokens(item.label ?? '')].map(stem);
@@ -189,7 +198,7 @@ export function cleanRequirements(item: Pick<Item, 'title' | 'requirements'> & {
   let merged = 0;
   const out: Requirement[] = [];
   for (const r of raw) {
-    if (restatesItem(r.text, item)) {
+    if (restatesItem(r.text, item, r.dueAt)) {
       dropped += 1;
       continue;
     }

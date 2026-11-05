@@ -1,6 +1,6 @@
 import { riskLine } from './pace';
 import { describe, expect, it } from 'vitest';
-import { chunkSuggestion, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine, todayDone, statusLine } from './now';
+import { chunkSuggestion, dueWords, groupByDeadline, heroFraming, nowMode, openCountByDay, pickReason, pressureLine, rankItems, startPhrase, termProgress, todayLine, todayDone, statusLine } from './now';
 import { computeSchedule } from './schedule';
 import { DEFAULT_FLAGS, DEFAULT_SETTINGS, type Item } from './types';
 
@@ -291,5 +291,30 @@ describe('an exam on Now is an item like any other (2026-10-24)', () => {
     const items = [exam, reflection];
     const s = computeSchedule(items, { ...DEFAULT_SETTINGS, timezone: 'America/Phoenix' }, '2026-10-24', { start: '2026-09-01', end: '2026-12-20' }, '2026-10-24T17:00:00.000Z');
     expect(rankItems(items, s, '2026-10-24T17:00:00.000Z', 'America/Phoenix').map((i) => i.id)).toEqual(['refl', 'exam']);
+  });
+});
+
+describe('"due" is always Halo\'s due date; Halo+\'s day is only "best finished by" (2026-11-04)', () => {
+  // George's Chem HW 4: due Sunday Sep 20 here, planned to be finished Saturday (a derived finish-by).
+  const hw = item({ title: 'Homework 4', label: 'Chem HW 4', dueAt: '2026-09-20T23:59:00-07:00', estimatedMinutes: 90 });
+  const derived = { [hw.id]: { deadlineAt: '2026-09-19T23:59:00-07:00', reasons: ['a Sunday due is planned for Saturday'] } };
+  const withFinishBy = computeSchedule([{ ...hw, deadlineAt: derived[hw.id].deadlineAt }], DEFAULT_SETTINGS, TODAY, TERM, NOW);
+  it('the hero and the why line say the real day, then the finish-by day', () => {
+    expect(withFinishBy.byItem[hw.id].deadlineDay).toBe('2026-09-19');
+    expect(dueWords(hw, withFinishBy, TODAY, TZ, derived)).toBe('due Sunday, best finished by Saturday');
+    expect(pickReason(hw, [hw], withFinishBy, TODAY, NOW, TZ, derived)).toMatch(/due Sunday, best finished by Saturday/);
+    expect(pickReason(hw, [hw], withFinishBy, TODAY, NOW, TZ, derived)).not.toMatch(/due Saturday/);
+  });
+  it('no finish-by of Halo+\'s: just the due day', () => {
+    expect(dueWords(hw, sched([hw]), TODAY, TZ, {})).toBe('due Sunday');
+  });
+  it('an early due time planned the night before says the real day and its time', () => {
+    const early = item({ dueAt: '2026-09-18T09:00:00-07:00' });
+    const sc = sched([early]);
+    if (sc.byItem[early.id].deadlineDay !== '2026-09-18') expect(dueWords(early, sc, TODAY, TZ, {})).toBe('due Friday by 9:00 AM');
+    else expect(dueWords(early, sc, TODAY, TZ, {})).toBe('due Friday');
+  });
+  it('the why line\'s time is the one it is given (Now gives it the calibrated time, the card\'s chip)', () => {
+    expect(pickReason({ ...hw, estimatedMinutes: 45 }, [hw], withFinishBy, TODAY, NOW, TZ, derived)).toMatch(/~45m/);
   });
 });

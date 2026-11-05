@@ -776,3 +776,31 @@ One line per change, newest last. Proposals that need George's approval are mark
     - **Edge:** all 18 PASS but what-if/GPA, which failed once (plain light) before the fix and passed on its two reruns after.
     - **Unit, types, lint:** vitest 1438 passed, tsc and lint clean.
     - **Screenshots:** docs/screens/on-halo/outside-tool/ and whatif-gpa/.
+- Loop 313 (2026-11-04): Now fixes from George's Chem HW 4 card. App only, deployed; the extension's gold dot and assignment note follow from the app's snapshot, so there's no new extension version.
+  1. **"Due" is always Halo's due date.**
+     - **The cause:** the "You're good" sentence said "due Saturday" for Chem HW 4, due Sunday. It printed the schedule's deadline day, which is Halo+'s finish-by day.
+     - **The fix:** a shared dueWords (domain/now.ts): "due Sunday, best finished by Saturday" when Halo+ has a finish-by day; "due Friday by 9:00 AM" when an early due time plans it the night before; else "due Sunday". The hero sentence and the why line use it.
+     - **Every other "due" checked:** the same mistake was in the start-window line (pressureLine, now dueWords), the class page's overdue list (overdue was past the finish-by day; now Halo's due date), and the Sunday review ("slipped" and "coming" were by the finish-by day; now the due date). The rest already say Halo's date.
+  2. **One time estimate.**
+     - **The cause:** the card's chip shows the calibrated time (her own pace once there are three timings for that class and kind, which is what the plan uses), while the "Next worth starting" sentence, the why line, Then's rows and the class page's next item showed the raw estimate (~1.5h beside ~45m).
+     - **The fix:** all of them now show the calibrated time. Item sheets still edit the student's own estimate.
+     - **Guarded:** src/views/oneEstimate.test.ts fails if Now or the class page shows the raw estimate again.
+  3. **No extra step that only restates the due date.**
+     - **The cause:** restatesItem (domain/reqClean.ts) counted the time and words like "no later than" as new words, so "Submit Homework 4 by Sunday Nov 8, 11:59 pm" got through.
+     - **The fix:** times and those words are ignored now. A part with its own deadline more than an hour from the item's still counts ("Submit Homework 4 by Friday" on work due Sunday is news).
+     - **One helper everywhere:** openRequirements (domain/requirements.ts) applies it, and every place that shows or counts parts reads from it:
+       - the hero card's "Also required", Now's and every item row's "N parts from announcements";
+       - the class card's "Don't forget";
+       - "Since you last looked" (no longer "1 new ask" for it);
+       - the Halo snapshot's x / xs / xb, so no gold dot in "This week" and no note on the assignment's Halo page.
+  - **Tests:**
+    - **Unit:**
+      - dueWords and pickReason on George's case;
+      - the why line taking the time it's given;
+      - restatesItem on George's exact line and its neighbours, kept and dropped;
+      - the snapshot (no dot or line for the restatement, a real step still has both);
+      - "Since you last looked";
+      - the one-estimate guard.
+      - The reqClean fixtures now give their quizzes the Sunday due date their lines say.
+    - **On the rendered screen:** scripts/screens-now-due.mjs builds George's card from the demo student (due this Sunday, finish-by Saturday, 1.5h estimate, three done at 45m, the restating line), with a throwaway Max account and the local build. Now reads "Next worth starting: Chem HW 4, ~45m, due Sunday, best finished by Saturday", the why line says the same, 45m is the only time on Now, and there's no "Also required" and no "new ask". PASS. docs/screens/now-due/.
+    - vitest 1447 passed, tsc and lint clean, the production build passes.

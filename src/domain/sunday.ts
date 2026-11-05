@@ -33,12 +33,13 @@ export interface WeekReview {
 }
 
 /** Last week done, what slipped, what the next seven days hold, and one sentence that says it. */
-export function weekReview(items: Item[], schedule: Schedule, today: DateStr, tz: string): WeekReview {
+export function weekReview(items: Item[], _schedule: Schedule, today: DateStr, tz: string): WeekReview {
   const weekAgo = addDays(today, -7);
   const work = items.filter((i) => !isParticipation(i));
   const done = work.filter((i) => i.status === 'done' && i.completedAt && dateOf(i.completedAt, tz) >= weekAgo).sort((a, b) => (a.completedAt ?? '').localeCompare(b.completedAt ?? ''));
   const open = work.filter((i) => i.status !== 'done');
-  const day = (i: Item) => schedule.byItem[i.id]?.deadlineDay ?? dateOf(i.dueAt, tz);
+  // Halo's due day: "slipped" and "coming" are about the real deadline, not Halo+'s finish-by advice (2026-11-04).
+  const day = (i: Item) => dateOf(i.dueAt, tz);
   const past = open.filter((i) => day(i) < today).sort((a, b) => a.dueAt.localeCompare(b.dueAt));
   const slipped = past.filter((i) => day(i) >= weekAgo);
   const older = past.filter((i) => day(i) < weekAgo);

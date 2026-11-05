@@ -1,3 +1,4 @@
+import { restatesItem } from './reqClean';
 import { isWorkDone } from '../joy/joy';
 import { addDays, dateOf, diffDays, weekdayOf } from './dates';
 import { isExtraStep, isGateStep } from './extraStep';
@@ -46,6 +47,8 @@ export function urgentFor(courseId: string, items: Item[], today: DateStr, tz: s
     if (item.courseId !== courseId || isWorkDone(item)) continue;
     for (const r of item.requirements ?? []) {
       if (r.done || r.scope === 'reference' || r.scope === 'rule' || r.source?.kind !== 'announcement') continue;
+      // Never "Don't forget: submit Homework 4 by Sunday" on Homework 4 due Sunday (2026-11-04).
+      if (restatesItem(r.text, item, r.dueAt)) continue;
       // Only a real extra step: something to bring, do or hand in (domain/extraStep.ts, the gold dot's rule); never
       // "Acknowledge this announcement after reading it" or "Op-ed follows five-paragraph structure" (2026-10-24).
       const gate = isGateStep(r, PREREQ);

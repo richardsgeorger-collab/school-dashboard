@@ -20,7 +20,7 @@ import { blockedLine, blockPhrase, makeBlock } from '../domain/blocked';
 import { conceptLine, conceptWarnings } from '../domain/concepts';
 import { missedLine, missedRequirement, missedShort } from '../domain/requirements';
 import { cleanAll } from '../domain/reqClean';
-import { isNoise } from '../domain/requirements';
+import { isNoise, openRequirements } from '../domain/requirements';
 import { isQuietPast } from '../domain/submission';
 import { paceLine, riskLine } from '../domain/pace';
 import { pileupAhead } from '../domain/pileup';
@@ -31,7 +31,7 @@ import { finished as sundayFinished, offered as sundayOffered, shouldOfferSunday
 import { SundayReview } from './SundayReview';
 import { isOpen } from '../onboarding/state';
 import { maxOpen } from '../onboarding/maxState';
-import { isBlocked, nowMode, openCountByDay, pickReason, rankItems, statusLine, todayDone } from '../domain/now';
+import { dueWords, isBlocked, nowMode, openCountByDay, pickReason, rankItems, statusLine, todayDone } from '../domain/now';
 import type { DateStr, Item } from '../domain/types';
 import { useAccountChecked, useStore } from '../storage/store';
 import { useLinger } from '../ui/useLinger';
@@ -93,7 +93,7 @@ const whyLine = (reason: string) => {
 
 /** A quiet row for the things after the one thing. */
 function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => void; marker?: string }) {
-  const { courseById, data, today } = useStore();
+  const { courseById, data, today, calibrate } = useStore();
   const course = courseById.get(item.courseId);
   const color = useCourseColor(course);
   const tz = data.settings.timezone;
@@ -113,9 +113,9 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
             {course?.code} · {when}
             <AsOf item={item} />
             {/* A test's "time" is study time, which is not Now's business (2026-10-24). */}
-            {item.type !== 'exam' && item.type !== 'quiz' && <> · {approx(item.estimatedMinutes)}</>}
+            {item.type !== 'exam' && item.type !== 'quiz' && <> · {approx(calibrate(item).minutes)}</>}
             {item.points > 0 ? ` · ${item.points} pts` : ''}
-            {(item.requirements ?? []).some((r) => !r.done) ? ` · ${(item.requirements ?? []).filter((r) => !r.done).length} part${(item.requirements ?? []).filter((r) => !r.done).length === 1 ? '' : 's'} from announcements` : ''}
+            {openRequirements(item).length ? ` · ${openRequirements(item).length} part${openRequirements(item).length === 1 ? '' : 's'} from announcements` : ''}
           </span>
         </span>
         {item.status === 'done' && <IconCheck />}
@@ -133,7 +133,7 @@ function ThenRow({ item, onOpen, marker }: { item: Item; onOpen: (i: Item) => vo
 const SKIPS_KEY = 'school-dashboard:skips';
 
 export function Now() {
-  const { data, schedule, derived, today, actions, progress, previewAward, justDone } = useStore();
+  const { data, schedule, derived, today, actions, progress, previewAward, justDone, calibrate } = useStore();
   const { profile, auth } = useAccount();
   const neverSynced = useNeverSynced();
   // One sync prompt at a time: while the reminder is up, the synced line (its Sync now, the paused note) waits.
@@ -247,7 +247,8 @@ export function Now() {
   // in the hero when it is the next thing and in Then by its date; study plans live in the Study tab, opt-in.
   // A quiz or exam within five days gets Practice offered on Now, whatever the hero is.
   const nextDeadline = Object.keys(counts).filter((d) => d >= today).sort()[0];
-  const why = hero ? whyLine(pickReason(hero, work, schedule, today, now, tz, derived)) : null;
+  // The why line says the same time as the card's chip: the calibrated one (2026-11-04: ~1.5h beside ~45m).
+  const why = hero ? whyLine(pickReason({ ...hero, estimatedMinutes: calibrate(hero).minutes }, work, schedule, today, now, tz, derived)) : null;
 
   // The day: what is due today, how much of it is done, and the time of day.
   const dueToday = useMemo(() => clean.filter((i) => !isParticipation(i) && !isNoise(i) && dateOf(i.dueAt, tz) === today), [clean, tz, today]);
@@ -494,8 +495,8 @@ export function Now() {
       <Ring value={1} max={1} label="Nothing due soon" />
       <h2 className="calm-title">You're good.</h2>
       <p className="calm-text">
-        Nothing due for {mode.mode === 'fine' ? mode.daysUntilNext : 0} days. Next worth starting: {hero.label}, {approx(hero.estimatedMinutes)}, due{' '}
-        {WEEKDAY_LONG[new Date((schedule.byItem[hero.id]?.deadlineDay ?? dateOf(hero.dueAt, tz)) + 'T12:00:00Z').getUTCDay()]}.
+        {/* Halo's real due day, and Halo+'s finish-by only as "best finished by" (2026-11-04); the one time estimate. */}
+        Nothing due for {mode.mode === 'fine' ? mode.daysUntilNext : 0} days. Next worth starting: {hero.label}, {approx(calibrate(hero).minutes)}, {dueWords(hero, schedule, today, tz, derived)}.
       </p>
     </section>
   );

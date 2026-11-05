@@ -96,7 +96,7 @@ export function todoLines(item: Item, tz: string): TodoLine[] {
     push({ id: askKey(text), text, tag: 'Halo', done: ticked.has(askKey(text)), kind: 'ask' });
   }
   for (const r of item.requirements ?? []) {
-    if (r.scope === 'rule' || r.scope === 'reference' || restatesItem(r.text, item)) continue;
+    if (r.scope === 'rule' || r.scope === 'reference' || restatesItem(r.text, item, r.dueAt)) continue;
     push({ id: r.id, text: shortLine(r.text), detail: detailFor(r, tz) || undefined, tag: tagOf(r), done: r.done, kind: 'req', post: r.source.kind === 'announcement' && r.source.id ? `#/inbox?a=${r.source.id}` : null });
   }
   for (const p of item.plan?.prerequisites ?? []) {

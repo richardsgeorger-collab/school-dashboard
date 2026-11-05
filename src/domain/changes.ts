@@ -1,5 +1,5 @@
 import { dateOf } from './dates';
-import { isNoise } from './requirements';
+import { isNoise, openRequirements } from './requirements';
 import type { Item } from './types';
 
 /**
@@ -46,7 +46,8 @@ export function changesSince(before: Snapshot | null, items: Item[], tz: string,
     if (now !== day && (i.source === 'halo' || !!i.dateChange)) out.push({ kind: 'moved', item: i, detail: `${fmtDay(day)} → ${fmtDay(now)}` });
     // A grade from Halo (an override typed here is the student's own doing).
     if (i.score !== null && i.score !== score && i.scoreSource !== 'manual') out.push({ kind: 'graded', item: i, detail: `${+i.score.toFixed(1)}/${i.points}` });
-    const added = (i.requirements ?? []).filter((r) => !reqs.includes(r.id) && r.source?.kind === 'announcement' && !r.done);
+    // Never a line that only restates the item and its due date (2026-11-04): openRequirements leaves those out.
+    const added = openRequirements(i).filter((r) => !reqs.includes(r.id) && r.source?.kind === 'announcement');
     if (added.length && i.status !== 'done') out.push({ kind: 'asks', item: i, detail: added.length === 1 ? added[0].text : `${added.length} things from announcements` });
   }
   return out;

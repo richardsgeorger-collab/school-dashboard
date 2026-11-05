@@ -12,6 +12,7 @@ import { overlap } from '../domain/reqClean';
 import { libraryDb, type Deck } from '../library/db';
 import { decksForItem } from '../library/links';
 import { recordingsDb, type Recording } from '../record/db';
+import { openRequirements } from '../domain/requirements';
 import { useStore } from '../storage/store';
 import { itemTone, toneLabel } from '../domain/status';
 import { skipLine } from '../domain/impact';
@@ -275,7 +276,7 @@ export function HeroCard({ item, optional, why, leaving = false, onOpen, onNotNo
       </p>
 
       {/* The product's promise, on the card itself: what the professor only said in an announcement, with the source one tap away. */}
-      {!done && (item.requirements ?? []).some((r) => !r.done) && <Requirements item={item} compact onMore={() => onOpen(item)} />}
+      {!done && openRequirements(item).length > 0 && <Requirements item={item} compact onMore={() => onOpen(item)} />}
 
       {ranOut && item.blocked && (
         <p className="hero-line" style={{ marginTop: 12 }}>

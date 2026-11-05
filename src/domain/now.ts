@@ -128,6 +128,21 @@ function lowerRel(name: string): string {
   return name === 'Today' || name === 'Tomorrow' ? name.toLowerCase() : name;
 }
 
+/**
+ * When something is due, in words: always Halo's real due date ("due Sunday"); Halo+'s own finish-by day is only ever
+ * "best finished by" (George, 2026-11-04: Now said "due Saturday" for Chem HW 4, due Sunday). An early due time that
+ * pulls the work to the night before says the time ("due Friday by 9 AM").
+ */
+export function dueWords(item: Item, schedule: Schedule, today: DateStr, tz: string, derived: Record<string, DerivedDeadline> = {}): string {
+  const due = dateOf(item.dueAt, tz);
+  const deadline = schedule.byItem[item.id]?.deadlineDay ?? due;
+  if (deadline === due) return `due ${lowerRel(dayName(today, due))}`;
+  // Halo+'s finish-by (a Sunday due planned for Saturday, a big item two days early) is advice, never the deadline.
+  if (derived[item.id]) return `due ${lowerRel(dayName(today, due))}, best finished ${deadline <= today ? 'today' : `by ${WEEKDAY_LONG[weekdayOf(deadline)]}`}`;
+  // Otherwise an early due time planned the night before: the real day and its time.
+  return `due ${lowerRel(dayName(today, due))} by ${fmtTime(item.dueAt, tz)}`;
+}
+
 export function pickReason(item: Item, items: Item[], schedule: Schedule, today: DateStr, now: string, tz: string, derived: Record<string, DerivedDeadline>): string {
   const gate = gatingLine(item, items, tz);
   // "Small" is a claim the chips can check: only a half-hour thing gets called small.
@@ -137,15 +152,7 @@ export function pickReason(item: Item, items: Item[], schedule: Schedule, today:
   if (due === today) return "Picked because it's due today.";
   const s = schedule.byItem[item.id];
   const deadline = s?.deadlineDay ?? due;
-  // An early due time pulls the work to the night before; say the real due day and time, not "due today".
-  const dueWord =
-    derived[item.id] && deadline !== due
-      ? // Halo+'s own finish-by (a Sunday due planned for Saturday, a big item two days early) is advice, never the
-        // deadline: say when it is due, then when to finish (2026-10-24: "needs to be in by Saturday" for a Sunday due).
-        `due ${lowerRel(dayName(today, due))}, best finished ${deadline === today ? 'today' : `by ${WEEKDAY_LONG[weekdayOf(deadline)]}`}`
-      : deadline !== due
-        ? `due ${lowerRel(dayName(today, due))} by ${fmtTime(item.dueAt, tz)}`
-        : `due ${lowerRel(dayName(today, deadline))}`;
+  const dueWord = dueWords(item, schedule, today, tz, derived);
   const others = (openCountByDay(items, schedule)[deadline] ?? 1) - 1;
   const windowOpen = s ? s.startBy <= today : false;
   const alone = windowOpen && !items.some((o) => o.id !== item.id && o.status === 'todo' && (schedule.byItem[o.id]?.startBy ?? '9999') <= today);
@@ -222,10 +229,7 @@ export function pressureLine(items: Item[], schedule: Schedule, settings: Settin
     .sort((a, b) => (schedule.byItem[a.id]?.deadlineDay ?? '').localeCompare(schedule.byItem[b.id]?.deadlineDay ?? ''));
   if (bigOpen.length > 0) {
     const i = bigOpen[0];
-    const d = schedule.byItem[i.id].deadlineDay;
-    const k = diffDays(today, d);
-    const when = k <= 0 ? 'today' : k === 1 ? 'tomorrow' : WEEKDAY_LONG[weekdayOf(d)];
-    return `${i.label} is inside its start window — ~${fmtMinutes(i.estimatedMinutes)}, due ${when}. Start today.`;
+    return `${i.label} is inside its start window — ~${fmtMinutes(i.estimatedMinutes)}, ${dueWords(i, schedule, today, settings.timezone)}. Start today.`;
   }
 
   for (let k = 0; k < 7; k++) {

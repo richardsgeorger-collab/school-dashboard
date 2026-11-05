@@ -37,6 +37,9 @@ describe('since you last looked', () => {
     const snap = snapshotOf(base, TZ, 'x');
     const asks = [{ ...base[0], requirements: [{ id: 'r9', text: 'Bring a calculator', dueAt: null, done: false, doneAt: null, gradedOn: true, source: src, addedAt: 'x' }] }, base[1], { ...base[2], dueAt: at('2026-10-11') }];
     expect(changesSince(snap, asks, TZ, day).map((c) => [c.kind, c.detail])).toEqual([['asks', 'Bring a calculator']]);
+    // A line that only restates the item and its due date is no new ask (2026-11-04).
+    const restate = [{ ...base[0], requirements: [{ id: 'r10', text: `Submit ${base[0].title} by Sunday, 11:59 pm`, dueAt: base[0].dueAt, done: false, doneAt: null, gradedOn: true, source: src, addedAt: 'x' }] }, base[1], base[2]];
+    expect(changesSince(snap, restate, TZ, day).filter((c) => c.kind === 'asks')).toEqual([]);
     // A score typed here by the student, not news.
     expect(changesSince(snap, [base[0], { ...base[1], score: 40, scoreSource: 'manual' as const }, base[2]], TZ, day)).toEqual([]);
   });

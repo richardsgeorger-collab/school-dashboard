@@ -17,7 +17,9 @@ const req = (id: string, text: string, o: Partial<Requirement> & { post?: string
   ...(o.scope ? { scope: o.scope } : {}),
 });
 
-const item = (title: string, reqs: Requirement[], id = 'i1', courseId = 'c1'): Item => ({ ...mkItem({ id, courseId, title }), requirements: reqs });
+// The quizzes in these piles were due Sunday Sep 20, 11:59 PM in Phoenix, the date their restating lines say.
+const SUN = '2026-09-21T06:59:00.000Z';
+const item = (title: string, reqs: Requirement[], id = 'i1', courseId = 'c1', dueAt = SUN): Item => ({ ...mkItem({ id, courseId, title }), dueAt, requirements: reqs });
 
 describe('the same instruction from several posts', () => {
   it('collapses into one part that keeps every source', () => {
@@ -74,6 +76,17 @@ describe('parts that only repeat the assignment', () => {
     const r = cleanRequirements(item('Practice Quiz 1', [req('r20', 'Complete and submit Practice Quiz 1 by Sunday', { dueAt: '2026-09-21T06:59:00.000Z' })]));
     expect(r.parts).toEqual([]);
     expect(r.dropped).toBe(1);
+  });
+  it('the due date said again with its time is no news; a deadline of its own on another day is (2026-11-04)', () => {
+    // George's Chem HW 4: "Also required: Submit Homework 4 by Sunday Nov 8, 11:59 pm" on Homework 4, due then.
+    const hw = { title: 'Homework 4', label: 'Chem HW 4', dueAt: '2026-11-09T06:59:00.000Z' };
+    expect(restatesItem('Submit Homework 4 by Sunday Nov 8, 11:59 pm', hw, '2026-11-09T06:59:00.000Z')).toBe(true);
+    expect(restatesItem('Submit Homework 4 by Sunday Nov 8, 11:59 pm', hw)).toBe(true);
+    expect(restatesItem('Turn in Homework 4 no later than 11:59 PM Sunday', hw)).toBe(true);
+    // Its own earlier deadline is news, and so is anything beyond the name and the date.
+    expect(restatesItem('Submit Homework 4 by Friday', hw, '2026-11-07T06:59:00.000Z')).toBe(false);
+    expect(restatesItem('Submit Homework 4 as one PDF by Sunday Nov 8, 11:59 pm', hw)).toBe(false);
+    expect(restatesItem('Bring a calculator to class Sunday', hw)).toBe(false);
   });
 });
 

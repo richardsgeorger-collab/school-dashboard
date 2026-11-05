@@ -59,3 +59,27 @@ describe('the snapshot Halo+ hands the extension for Halo pages', () => {
     expect(haloSnap(base).mx).toBeUndefined();
   });
 });
+
+describe('no gold dot or Halo note for a part that only restates the due date (2026-11-04)', () => {
+  const d = demoStudent(NOW).data;
+  const today = dateOf(NOW, d.settings.timezone);
+  const schedule = computeSchedule(d.items, d.settings, today, { start: '2026-08-31', end: '2026-12-20' }, NOW);
+  const hw = d.items.find((i) => i.source === 'halo' && i.haloId && i.status !== 'done' && Date.parse(i.dueAt) > Date.parse(NOW) && Date.parse(i.dueAt) < Date.parse(NOW) + 10 * 864e5)!;
+  const ann = (id: string, text: string, dueAt: string | null) => ({ id, text, dueAt, done: false, doneAt: null, gradedOn: true, scope: 'instance' as const, addedAt: NOW, source: { kind: 'announcement' as const, id: 'a1', title: 'Reminder', quote: text, at: NOW } });
+  const snapWith = (reqs: ReturnType<typeof ann>[]) => {
+    const items = d.items.map((i) => (i.id === hw.id ? { ...i, requirements: reqs } : i));
+    return haloSnap({ courses: d.courses, items, settings: d.settings, schedule, canSync: true, now: NOW }).items.find((x) => x.h === hw.haloId)!;
+  };
+  it('"Submit <it> by <its due date>": no dot, no line', () => {
+    const when = new Intl.DateTimeFormat('en-US', { timeZone: d.settings.timezone, weekday: 'long', month: 'short', day: 'numeric' }).format(new Date(hw.dueAt));
+    const s = snapWith([ann('r1', `Submit ${hw.title} by ${when}, 11:59 pm`, hw.dueAt)]);
+    expect(s.x).toBe(0);
+    expect(s.xs).toBeUndefined();
+    expect(s.xb).toBeUndefined();
+  });
+  it('a real extra step still gets its dot and its line', () => {
+    const s = snapWith([ann('r2', 'Bring safety goggles to lab', null)]);
+    expect(s.x).toBe(1);
+    expect(s.xb).toEqual(['Bring safety goggles to lab']);
+  });
+});

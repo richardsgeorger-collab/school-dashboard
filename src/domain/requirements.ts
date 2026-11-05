@@ -1,5 +1,5 @@
 import { dateOf, diffDays } from './dates';
-import { overlap } from './reqClean';
+import { overlap, restatesItem } from './reqClean';
 import type { ClassNote, Course, DateStr, Item, ReqSource, Requirement } from './types';
 
 /**
@@ -49,7 +49,12 @@ export function mergeRequirements(existing: Requirement[] | undefined, incoming:
   return out;
 }
 
-export const openRequirements = (i: Item): Requirement[] => (i.requirements ?? []).filter((r) => !r.done);
+/**
+ * The open extra parts worth showing: never one that only restates the assignment and its due date ("Submit
+ * Homework 4 by Sunday Nov 8, 11:59 pm" on Homework 4, 2026-11-04). Every screen that shows or counts parts, and the
+ * extension's gold dot and assignment note (halo/haloSnap.ts), read them from here.
+ */
+export const openRequirements = (i: Item): Requirement[] => (i.requirements ?? []).filter((r) => !r.done && !restatesItem(r.text, i, r.dueAt));
 export const gradedOpen = (i: Item): Requirement[] => openRequirements(i).filter((r) => r.gradedOn);
 
 /** The assignment is not complete while a graded part is open, whatever its own status says. */

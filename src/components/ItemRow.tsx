@@ -1,6 +1,6 @@
 import { skipNote } from '../domain/blocked';
 import { HaloJump } from './HaloJump';
-import { movedRecently } from '../domain/requirements';
+import { movedRecently, openRequirements } from '../domain/requirements';
 import { dateOf, fmtDate, fmtTime, startByLabel } from '../domain/dates';
 import { useEffect, useState } from 'react';
 import type { Item } from '../domain/types';
@@ -77,9 +77,9 @@ export function ItemRow({ item, onOpen, showStart = false, compact = false, date
             </span>
           )}
           {/* Parts an announcement attached, still open: the row says so, so the sheet is not the only place. */}
-          {!progress && !done && (item.requirements ?? []).some((r) => !r.done) && (
+          {!progress && !done && openRequirements(item).length > 0 && (
             <span className="flag">
-              {(item.requirements ?? []).filter((r) => !r.done).length} part{(item.requirements ?? []).filter((r) => !r.done).length === 1 ? '' : 's'} from announcements
+              {openRequirements(item).length} part{openRequirements(item).length === 1 ? '' : 's'} from announcements
             </span>
           )}
           {/* Skipped from Now ("Can't start yet: waiting on lab", "Not today: back tomorrow"): it stays here, with why. */}
