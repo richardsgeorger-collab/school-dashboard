@@ -772,7 +772,7 @@ One line per change, newest last. Proposals that need George's approval are mark
   3. **Participation in NEXT:** below every real item, can-do and can't-do-yet alike; only in a spot left over; one line at most per card. This replaces 0.12.18's 10-day rule. Unit tests: three real items show no participation; one real item shows it and one participation line below it; only participation shows one line, not three. e2e-onhalo-cards works it out the same way.
   - **Found on the way:** a click on "GPA 3.53" right after the page loads could do nothing (Edge, once in three runs): the bar was drawn before the GPA script had read its settings and classes. The click now waits for them (up to about 3 s). e2e-onhalo-whatif-gpa then passed twice in each browser.
   - **Tests:**
-    - **Every on-Halo test,** plain and with the real Better Halo 0.8.5 (the runner fails loudly if it can't load), in Chrome and Edge: all 18 PASS in Chrome (850 checks).
+    - **Every on-Halo test,** plain and with the real Better Halo 0.8.5 (the runner fails loudly if it can't load), in Chrome and Edge: all 18 PASS in Chrome (781 checks).
     - **Edge:** all 18 PASS but what-if/GPA, which failed once (plain light) before the fix and passed on its two reruns after.
     - **Unit, types, lint:** vitest 1438 passed, tsc and lint clean.
     - **Screenshots:** docs/screens/on-halo/outside-tool/ and whatif-gpa/.
