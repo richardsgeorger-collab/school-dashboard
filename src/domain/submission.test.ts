@@ -27,6 +27,12 @@ describe('work with no Halo submission', () => {
     expect(isQuietPast({ ...quiz, score: 45 }, NOW)).toBe(false);
     expect(isQuietPast(item({ haloType: 'QUIZ' }), NOW)).toBe(false);
   });
+  it('an ALEKS homework due in 4 days is not quiet: it shows on Now and in the class’s next until its date (0.12.19)', () => {
+    const aleks = item({ haloType: 'LTI', type: 'homework', title: 'ALEKS Homework 7', dueAt: new Date(NOW + 4 * 864e5).toISOString() });
+    expect(noHaloSubmission(aleks)).toBe(true);
+    expect(isQuietPast(aleks, NOW)).toBe(false);
+    expect(isQuietPast({ ...aleks, dueAt: new Date(NOW - 3600e3).toISOString() }, NOW)).toBe(true);
+  });
 });
 
 describe('past work with no Halo submission leaves the counts', () => {

@@ -754,3 +754,25 @@ One line per change, newest last. Proposals that need George's approval are mark
   - **The rerun, on 0.12.18 with the real Better Halo 0.8.5** (updated since 0.8.4): cards, NEXT, compact header, calendar and week strip, search, topic (countdowns, rubric), check-off, submit, gradebook, what-if and GPA, participation, discussion, files-links, first load, Free/Max, home-extras, switches.
     - Every one PASS in Chrome and in Edge: 810 checks each, the Better Halo pass of each with Better Halo verified on every page. Nothing needed fixing.
     - vitest 1435 passed, lint clean.
+- Loop 312 (2026-11-04): George's fixes from real Halo on 0.12.18, as extension 0.12.19 (webstore-upload/halo-plus-extension-0.12.19.zip), NOT submitted. Stand-in Halo pages, the made-up Maya Torres only.
+  1. **"What if?" off the class cards.** onhalo/whatifcard.js is removed. The Gradebook's what-if (the clear "What if? Try scores" button) and the GPA panel's what-if letters stay. The switch is "What-if on the Gradebook" again.
+  2. **Outside-tool work before its due date** (George: CHM-113 said "Nothing due soon" with homework due Sunday).
+     - **The cause:** Halo's LTI items (ALEKS, zyBooks) had no address in the class index, and NEXT dropped anything without one. The class line's "Next:" (halo-model.js nextFor) dropped every no-submission item even before its date.
+     - **Fixed:**
+       - an LTI item's address is its topic page on Halo, and an item with none in an older index gets its topic page in NEXT;
+       - an outside-tool item Halo's grade list leaves out keeps its synced due date;
+       - NEXT no longer drops an item whose Halo dropbox an older index can't tell;
+       - nextFor counts no-submission work until its date.
+     - **The rule stays:** no submission goes quiet only after the due date (never overdue, gone from NEXT and This week, a quiet chip on the calendar).
+     - **Also checked:** This week, the week strip, the calendar and the pill already kept such work until its date. So does the app's Now (isQuietPast is after the due date only; a new unit test pins an ALEKS homework due in 4 days).
+     - **New e2e:** scripts/e2e-onhalo-outside-tool.mjs. An ALEKS-style homework due in 4 days in the class whose near work is all handed in ("Nothing due soon" before it):
+       - NEXT shows it, opening its topic page, whether or not Halo's grade list carries it and from an old index too;
+       - This week lists it (not overdue), with its dot on the strip and a plain chip on the calendar;
+       - after its date it's gone from NEXT and This week and quiet on the calendar.
+  3. **Participation in NEXT:** below every real item, can-do and can't-do-yet alike; only in a spot left over; one line at most per card. This replaces 0.12.18's 10-day rule. Unit tests: three real items show no participation; one real item shows it and one participation line below it; only participation shows one line, not three. e2e-onhalo-cards works it out the same way.
+  - **Found on the way:** a click on "GPA 3.53" right after the page loads could do nothing (Edge, once in three runs): the bar was drawn before the GPA script had read its settings and classes. The click now waits for them (up to about 3 s). e2e-onhalo-whatif-gpa then passed twice in each browser.
+  - **Tests:**
+    - **Every on-Halo test,** plain and with the real Better Halo 0.8.5 (the runner fails loudly if it can't load), in Chrome and Edge: all 18 PASS in Chrome (850 checks).
+    - **Edge:** all 18 PASS but what-if/GPA, which failed once (plain light) before the fix and passed on its two reruns after.
+    - **Unit, types, lint:** vitest 1438 passed, tsc and lint clean.
+    - **Screenshots:** docs/screens/on-halo/outside-tool/ and whatif-gpa/.

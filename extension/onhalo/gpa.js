@@ -213,9 +213,16 @@ select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid 
       });
   }
 
+  // The bar can show "GPA 3.53" before this script has read its settings and the classes (a click right after the
+  // page loads, 0.12.19: Edge dropped it): the click waits for them, up to about three seconds, never ignored.
   document.addEventListener('haloplus-gpa-open', () => {
-    if (!O.enabled('gpa') || O.route().kind !== 'home') return;
-    open();
+    let tries = 0;
+    const go = () => {
+      if (O.route().kind !== 'home') return;
+      if (O.enabled('gpa') && classes().length) return open();
+      if (++tries < 20) setTimeout(go, 150);
+    };
+    go();
   });
 
   O.feature({

@@ -540,8 +540,6 @@
   }
   // Anything with a way to hand it in on Halo, participation posts too (0.12.6); participation is never urgent.
   const NEXT_KINDS = ['assignment', 'quiz', 'discussion', 'lti', 'participation'];
-  /** Participation shows in NEXT only when nothing else of the class is due within this many days. */
-  const PART_QUIET_DAYS = 10;
   /**
    * The NEXT box on a class card (0.12.5, George): up to three things for that class, one line each, from Halo's own
    * answer for the class (`live`, a Map of id → { dueDate, status }; without it, nothing: never a guess). First what the
@@ -561,34 +559,37 @@
     if (!index || !Array.isArray(index.rows) || !live || !tz) return null;
     const can = [];
     const cannot = [];
-    // Anything else of this class's due in the next 10 days (George, 2026-11-03: participation still showed): then no
-    // participation at all. Counted from every open item Halo has for the class, whatever the box shows of it.
-    let busy = false;
+    const slug = index.classes && index.classes[k] ? index.classes[k].slug : null;
+    const ok = (href) => /^\/(?![/\\])/.test(String(href || ''));
     for (const r of index.rows) {
       if (r.c !== k || !NEXT_KINDS.includes(r.kind) || !r.id) continue;
-      const h = live.get(r.id);
+      // Halo's own answer for the item; an outside tool's item Halo's grade list may leave out keeps its synced date
+      // (0.12.19, George: CHM-113 said "Nothing due soon" with an ALEKS homework due Sunday).
+      const outside = r.kind === 'lti' || !!r.ns;
+      const h = live.get(r.id) || (outside ? { dueDate: null, status: null } : null);
       if (!h) continue;
-      const due = Date.parse(h.dueDate || r.cdue || '');
+      const due = Date.parse(h.dueDate || r.cdue || r.due || '');
       if (!Number.isFinite(due) || due < now || due > now + days * DAY) continue;
       if (HALO_DONE.test(h.status || '') || r.done || doneIds.has(r.id)) continue;
-      if (!isParticipation(r) && due <= now + PART_QUIET_DAYS * DAY) busy = true;
-      // Only Halo's own addresses ("/courses/…"), never another site or a script link, whatever the stored index holds.
-      if (!/^\/(?![/\\])/.test(String(r.href || ''))) continue;
+      // Only Halo's own addresses ("/courses/…"), never another site or a script link, whatever the stored index holds;
+      // an item with none (an outside tool's, in an index from before 0.12.19) opens its topic page.
+      const href = ok(r.href) ? r.href : slug && r.unit ? `/courses/${encodeURIComponent(slug)}/course-units/${encodeURIComponent(r.unit)}` : null;
+      if (!href) continue;
       const start = Date.parse(r.start || '');
-      const item = { id: r.id, title: r.title, href: r.href, t: due, when: whenText(due, now, tz), full: haloFormat(due, tz), part: isParticipation(r) };
+      const item = { id: r.id, title: r.title, href, t: due, when: whenText(due, now, tz), full: haloFormat(due, tz), part: isParticipation(r) };
+      // Due ahead, any real assignment shows, with a Halo dropbox or not (the no-submission rule is only for after the
+      // due date, when such work goes quiet).
       if (r.inp === 1) cannot.push({ ...item, why: `in class ${dayWord(due, now, tz)}` });
-      else if (r.ns && r.inp === undefined) continue;
       else if (Number.isFinite(start) && start > now) cannot.push({ ...item, why: `opens ${dayWord(start, now, tz)}` });
       else can.push(item);
     }
     const order = (a, b) => a.t - b.t || a.title.localeCompare(b.title);
     can.sort(order);
     cannot.sort(order);
-    // Everything else first, what can be done now and then what cannot yet ("Exam 1 · in class Fri"). Participation
-    // only when the class has nothing else due in the next 10 days (George, 2026-11-03; it filled leftover spots
-    // before), then in the spots still free, up to `max`.
+    // Every real assignment first, what can be done now and then what cannot yet ("Exam 1 · in class Fri");
+    // participation below all of them, only in a spot still free, and one line of it at most (George, 2026-11-04).
     const other = [...can, ...cannot].filter((i) => !i.part);
-    const part = busy ? [] : [...can, ...cannot].filter((i) => i.part);
+    const part = [...can, ...cannot].filter((i) => i.part).slice(0, 1);
     return [...other, ...part].slice(0, max).map(({ part: _p, ...i }) => i);
   }
 
@@ -657,7 +658,8 @@
         if (a.unitId && !units.has(a.unitId)) units.set(a.unitId, { t: a.unit || '', n: a.unitSequence });
         const kind = KIND_OF[a.type] || 'assignment';
         const item = { id: a.id, type: a.type || 'ASSIGNMENT', unitId: a.unitId || null, forumId: forumOf[a.id] || null, group: !!a.isGroupEnabled };
-        const href = kind === 'lti' ? null : hrefFor(c.slugId, item);
+        // An outside tool's item (ALEKS, zyBooks: LTI) opens from its topic page on Halo, where Halo shows it (0.12.19).
+        const href = kind === 'lti' ? (a.unitId ? `/courses/${S}/course-units/${encodeURIComponent(a.unitId)}` : `/courses/${S}`) : hrefFor(c.slugId, item);
         rows.push({ c: k, kind, id: a.id, title: String(a.title).slice(0, 160), topic: a.unit || '', unit: a.unitId || null, href, due: a.dueDate || null, cdue: a.classDueDate || null, start: a.startDate || null, type: a.type || 'ASSIGNMENT', pts: a.points || 0, forum: item.forumId, group: item.group, ns: !a.submittedAt && !/SUBMITTED/i.test(a.status || '') && (a.type === 'LTI' || a.inPerson === true) ? 1 : 0, inp: a.inPerson === true ? 1 : 0, done: !!a.submittedAt || typeof a.score === 'number' || /^(SUBMITTED|LATE|PUBLISHED)$/.test(a.status || '') });
         for (const f of a.attachments || []) if (f && f.resourceId && f.title) rows.push({ c: k, kind: 'file', title: String(f.title).slice(0, 160), topic: a.unit || '', href: `/resource/${encodeURIComponent(f.resourceId)}` });
       }

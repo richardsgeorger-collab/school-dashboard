@@ -1,9 +1,6 @@
-// What-if from the class card, the clearer Gradebook button, and the GPA on Student Home (extension 0.12.18, George
+// The clearer Gradebook what-if button, and the GPA on Student Home (extension 0.12.18, George
 // 2026-11-03), on Halo's page stand-ins with the made-up demo student Maya Torres, nothing sent anywhere real:
-// - each class card: a "What if?" link right after the grade (Halo's link colour, the Halo+ mark); it opens a small
-//   panel there: the grade big (Halo's own, from Halo's GradeOverview, exact here, so no "Estimate"), the next big
-//   item in plain words, a slider for what moves the grade, "Everything else" in one; a slider moves the grade; Esc
-//   closes it; "Open full what-if" goes to the Gradebook with its what-if on;
+// - the class cards: no "What if?" (0.12.19, George: taken off the cards; the Gradebook and the GPA panel keep it);
 // - the Gradebook: "What if? Try scores", a clear button by Halo's total;
 // - "GPA 3.xx" in the This week bar beside Calendar: the panel's classes, letters and credits give exactly that GPA
 //   (GCU's points); a credit change is kept and sent to the account (sync-drop, { gpa: { slug, credits } }) and moves
@@ -19,28 +16,6 @@ const { check, passed } = checker(BROWSER);
 const hard = setTimeout(() => (console.log('HARD TIMEOUT'), process.exit(3)), 1800000);
 const POINTS = { A: 4, 'A-': 3.7, 'B+': 3.3, B: 3, 'B-': 2.7, 'C+': 2.3, C: 2, D: 1, F: 0 };
 
-/** The panel's text and parts, read through its shadow root. */
-const wiPanel = (p) =>
-  p.evaluate(() => {
-    const h = document.querySelector('[data-haloplus="wi-panel"]');
-    const r = h && h.shadowRoot;
-    if (!r || !r.querySelector('.p')) return null;
-    const b = r.querySelector('.p').getBoundingClientRect();
-    return {
-      big: (r.querySelector('.big b') || {}).textContent || null,
-      pct: (r.querySelector('.big span') || {}).textContent || null,
-      est: !!r.querySelector('.est'),
-      sub: (r.querySelector('.sub') || {}).textContent || '',
-      next: ((r.querySelector('.next') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-      sliders: [...r.querySelectorAll('input[type=range]')].map((i) => i.dataset.id),
-      full: (r.querySelector('[data-full]') || {}).getAttribute?.('href') || null,
-      msg: (r.querySelector('.msg') || {}).textContent || null,
-      w: Math.round(b.width),
-      left: Math.round(b.left),
-      right: Math.round(b.right),
-      vw: innerWidth,
-    };
-  });
 const gpaBar = (p) =>
   p.evaluate(() => {
     const h = document.querySelector('[data-haloplus="week"]');
@@ -95,55 +70,13 @@ for (const run of [{ bh: false, dark: false }, { bh: false, dark: true }, ...(bh
 
     for (const width of [1366, 1024]) {
       let p = await b.page('https://halo.gcu.edu/', { width, height: 1100, scheme });
-      await until(async () => (await p.locator('[data-haloplus="wi-link"]').count()) >= 6, 15000, 200);
+      await until(async () => (await p.locator('[data-haloplus="card-grade"], .better-halo-grade-indicator').count()) >= 6, 15000, 200);
       await sleep(800);
-      // ---- the link after each card's grade ----
-      const links = await p.evaluate(() =>
-        [...document.querySelectorAll('#Home--main [class*="CourseCard_cardContainer"]')].map((c) => {
-          const l = c.querySelector('[data-haloplus="wi-link"]');
-          const g = c.querySelector('[data-haloplus="card-grade"], .better-halo-grade-indicator');
-          const btn = l && l.shadowRoot.querySelector('button');
-          return { grade: !!g, link: !!l, after: !!l && l.previousElementSibling === g, mark: !!(btn && btn.querySelector('svg')), text: btn ? btn.textContent.trim() : null, color: btn ? getComputedStyle(btn).color : null, ink: getComputedStyle(c).color };
-        }),
-      );
-      const withGrade = links.filter((x) => x.grade);
-      check(withGrade.length >= 6 && withGrade.every((x) => x.link && x.after && x.mark && x.text === 'What if?'), `${tag} ${width}: "What if?" with the Halo+ mark right after every card's grade (${withGrade.filter((x) => x.after).length} of ${withGrade.length})`);
-      check(withGrade.every((x) => x.color && x.color !== x.ink), `${tag} ${width}: in Halo's link colour, not the card's text colour (${withGrade[0] && withGrade[0].color})`);
+      // ---- no what-if on the class cards (0.12.19, George): the Gradebook and the GPA panel keep theirs ----
+      const links = await p.locator('[data-haloplus="wi-link"], [data-haloplus="wi-panel"]').count();
+      const grades = await p.locator('[data-haloplus="card-grade"], .better-halo-grade-indicator').count();
+      check(links === 0 && grades >= 6, `${tag} ${width}: no "What if?" on the class cards (grades on ${grades} cards, links ${links})`);
       if (width === 1366) await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-1-cards.png`, clip: { x: 0, y: 0, width: 1366, height: 1100 } });
-
-      // ---- the panel ----
-      const card = p.locator('#Home--main [class*="CourseCard_cardContainer"]').filter({ has: p.locator('[data-haloplus="wi-link"]') }).first();
-      const slug = decodeURIComponent(/\/courses\/([^/?#]+)/.exec(await card.locator('a[href^="/courses/"]').first().getAttribute('href'))[1]);
-      await card.locator('[data-haloplus="wi-link"] >> button').click();
-      await until(async () => { const w = await wiPanel(p); return w && w.big ? w : null; }, 10000, 150);
-      const w0 = await wiPanel(p);
-      const go = gradeOverviewGateway(fx).GradeOverview({ courseClassSlugId: slug }, b.bench.state).gradeOverview[0].finalGrade;
-      const pct = go.maxPoints ? `${(Math.round((go.finalPoints / go.maxPoints) * 1000) / 10).toFixed(1)}%` : '–';
-      check(w0 && w0.big === go.gradeValue && w0.pct === pct && !w0.est, `${tag} ${width}: the panel opens there with Halo's own grade, big: ${w0 && w0.big} ${w0 && w0.pct} (Halo ${go.gradeValue} ${pct}), exact, no "Estimate"`);
-      check(w0 && (/^On .+ \(.+\), you need \d+(\.\d)?% for an? [A-F][+-]?/.test(w0.next) || /can’t change your letter/.test(w0.next) || w0.sliders.length === 0), `${tag} ${width}: the next big item in plain words: "${w0 && w0.next}"`);
-      check(w0 && w0.sliders.length >= 1 && w0.full === `/courses/${encodeURIComponent(slug)}/student/gradebook`, `${tag} ${width}: sliders for what moves the grade (${w0 && w0.sliders.filter((s) => s !== '__small').length}), "Everything else" ${w0 && w0.sliders.includes('__small') ? 'in one' : 'none here'}, and "Open full what-if" to the Gradebook`);
-      check(w0 && w0.left >= 0 && w0.right <= w0.vw, `${tag} ${width}: inside the window (${w0 && `${w0.left}–${w0.right} of ${w0.vw}`})`);
-      if (w0 && w0.sliders.length) {
-        const before = `${w0.big} ${w0.pct}`;
-        await p.evaluate(() => {
-          const i = document.querySelector('[data-haloplus="wi-panel"]').shadowRoot.querySelector('input[type=range]');
-          i.value = '0';
-          i.dispatchEvent(new Event('input', { bubbles: true }));
-        });
-        await sleep(300);
-        const w1 = await wiPanel(p);
-        check(w1 && `${w1.big} ${w1.pct}` !== before && /Halo now:/.test(w1.sub), `${tag} ${width}: a slider moves the grade (${before} → ${w1 && `${w1.big} ${w1.pct}`}), Halo's own beside it`);
-        // The letter in the next-item line fills that item's slider.
-        const tryBtn = await p.evaluate(() => !!document.querySelector('[data-haloplus="wi-panel"]').shadowRoot.querySelector('[data-try]'));
-        if (tryBtn) {
-          await p.evaluate(() => document.querySelector('[data-haloplus="wi-panel"]').shadowRoot.querySelector('[data-try]').click());
-          await sleep(300);
-        }
-        if (width === 1366) await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-2-card-whatif.png` });
-      }
-      await p.keyboard.press('Escape');
-      await sleep(200);
-      check(!(await wiPanel(p)), `${tag} ${width}: Esc closes it`);
 
       // ---- the GPA ----
       const bar = await until(() => gpaBar(p), 10000, 200);
@@ -209,12 +142,6 @@ for (const run of [{ bh: false, dark: false }, { bh: false, dark: true }, ...(bh
     // ---- phone width: both panels fit ----
     {
       const p = await b.page('https://halo.gcu.edu/', { width: 420, height: 900, scheme });
-      await until(async () => (await p.locator('[data-haloplus="wi-link"]').count()) >= 1, 15000, 200);
-      await p.locator('[data-haloplus="wi-link"] >> button').first().click();
-      const w = await until(async () => { const x = await wiPanel(p); return x && x.big ? x : null; }, 10000, 150);
-      check(w && w.left >= 0 && w.right <= w.vw, `${tag} 420: the what-if panel fits a phone-width window (${w && `${w.left}–${w.right} of ${w.vw}`})`);
-      await p.screenshot({ path: `${OUT}/${BROWSER}-${tag}-4-phone-whatif.png` });
-      await p.keyboard.press('Escape');
       const hasGpa = await until(() => gpaBar(p), 6000, 200);
       if (hasGpa) {
         await p.evaluate(() => document.querySelector('[data-haloplus="week"]').shadowRoot.querySelector('[data-gpa]').click());
@@ -225,17 +152,13 @@ for (const run of [{ bh: false, dark: false }, { bh: false, dark: true }, ...(bh
       await p.close();
     }
 
-    // ---- "Open full what-if": the Gradebook with its what-if on; and its clearer button ----
+    // ---- the Gradebook: its what-if, a clear button by Halo's total ----
     {
-      await b.store({ haloWiOn: false });
-      const p = await b.page('https://halo.gcu.edu/', { width: 1366, height: 1000, scheme });
-      await until(async () => (await p.locator('[data-haloplus="wi-link"]').count()) >= 1, 15000, 200);
-      const card = p.locator('#Home--main [class*="CourseCard_cardContainer"]').filter({ has: p.locator('[data-haloplus="wi-link"]') }).first();
-      await card.locator('[data-haloplus="wi-link"] >> button').click();
-      await until(async () => (await wiPanel(p))?.full, 8000, 150);
-      await Promise.all([p.waitForURL(/\/student\/gradebook/, { timeout: 10000 }), p.evaluate(() => document.querySelector('[data-haloplus="wi-panel"]').shadowRoot.querySelector('[data-full]').click())]);
+      await b.store({ haloWiOn: true });
+      const slug = fx.payload.classes[0].slugId;
+      const p = await b.page(`https://halo.gcu.edu/courses/${slug}/student/gradebook`, { width: 1366, height: 1000, scheme });
       await until(async () => (await p.locator('[data-haloplus="wi-card"]').count()) === 1, 10000, 200);
-      check((await p.locator('[data-haloplus="wi-card"]').count()) === 1 && (await p.locator('[data-haloplus="wi-toggle"] > button[aria-pressed="true"]').count()) === 1, `${tag}: "Open full what-if" opens the Gradebook with its what-if already on`);
+      check((await p.locator('[data-haloplus="wi-card"]').count()) === 1 && (await p.locator('[data-haloplus="wi-toggle"] > button[aria-pressed="true"]').count()) === 1, `${tag}: the Gradebook's what-if is there and works`);
       await p.locator('[data-haloplus="wi-toggle"] > button').click();
       await sleep(400);
       const btn = await p.evaluate(() => {
@@ -252,11 +175,11 @@ for (const run of [{ bh: false, dark: false }, { bh: false, dark: true }, ...(bh
 
     // ---- each switch off ----
     {
-      await b.store({ haloFeat: { off: ['gpa', 'whatif'], at: new Date().toISOString() } });
+      await b.store({ haloFeat: { off: ['gpa'], at: new Date().toISOString() } });
       const p = await b.page('https://halo.gcu.edu/', { width: 1366, height: 900, scheme });
       await until(async () => (await p.locator('[data-haloplus="card-grade"], .better-halo-grade-indicator').count()) >= 1, 15000, 200);
       await sleep(2500);
-      check((await p.locator('[data-haloplus="wi-link"]').count()) === 0 && !(await gpaBar(p)), `${tag}: switched off: no "What if?" link, no GPA`);
+      check(!(await gpaBar(p)), `${tag}: switched off: no GPA`);
       await p.close();
       await b.store({ haloFeat: { off: [], at: new Date().toISOString() } });
     }

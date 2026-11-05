@@ -362,9 +362,15 @@ describe('next item on the class line (0.12.0, feature 6)', () => {
     const v = M.merge(snap([item({ id: 'a', t: 'Later', due: '2026-10-30T23:59:00-07:00' }), item({ id: 'b', t: 'Sooner', due: '2026-10-28T23:59:00-07:00' }), item({ id: 'd', t: 'Done', due: '2026-10-27T23:59:00-07:00', done: 1 })]), null);
     expect(M.nextFor(v, v.classes[0], NOW)?.id).toBe('b');
   });
-  it('never participation, never no-submission work, never past due, never ungraded', () => {
-    const v = M.merge(snap([item({ id: 'p', t: 'Participation W7', ty: 'participation', pa: 1 }), item({ id: 'n', ns: 1 }), item({ id: 'o', due: '2026-10-27T10:00:00-07:00' }), item({ id: 'z', pts: 0 })]), null);
+  it('never participation, never past due, never ungraded', () => {
+    const v = M.merge(snap([item({ id: 'p', t: 'Participation W7', ty: 'participation', pa: 1 }), item({ id: 'o', due: '2026-10-27T10:00:00-07:00' }), item({ id: 'z', pts: 0 })]), null);
     expect(M.nextFor(v, v.classes[0], NOW)).toBeNull();
+  });
+  it('work with no Halo dropbox (an ALEKS homework) is the next thing until its date, then quiet (0.12.19)', () => {
+    const ahead = M.merge(snap([item({ id: 'n', ns: 1 })]), null);
+    expect(M.nextFor(ahead, ahead.classes[0], NOW)?.id).toBe('n');
+    const past = M.merge(snap([item({ id: 'n', ns: 1, due: '2026-10-27T10:00:00-07:00' })]), null);
+    expect(M.nextFor(past, past.classes[0], NOW)).toBeNull();
   });
   it('a short name, never a cut one', () => {
     expect(M.nextName({ ht: 'Topic 7 DQ 2', t: 'Com DQ 2' })).toBe('Com DQ 2');

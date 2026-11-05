@@ -321,7 +321,8 @@ describe('the index on this computer, and where things open on Halo', () => {
     expect(href('Topic 3 DQ 1')).toBe('/courses/CHM-113-O500-20260908/forums/discussion/forum-9');
     expect(href('Topic 3 DQ 2')).toBeNull();
     expect(href('Group Project')).toBe('/courses/CHM-113-O500-20260908/groups?assessmentId=g-1');
-    expect(href('Publisher Homework')).toBeNull();
+    // An outside tool's item (LTI) opens its topic page on Halo (0.12.19), or the class when it has no topic.
+    expect(href('Publisher Homework')).toBe('/courses/CHM-113-O500-20260908/course-units/u3');
     expect(href('Topic 3: Stoichiometry')).toBe('/courses/CHM-113-O500-20260908/course-units/u3');
     expect(href('Quiz moved')).toBe('/courses/CHM-113-O500-20260908/announcements?pId=p-1');
     expect(href('Slides.pdf')).toBe('/resource/r-ann');
@@ -462,7 +463,7 @@ describe('each class in its card’s colour, the bold version (feature 1, 0.12.2
   });
 });
 
-describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5; participation posts since 0.12.6, only when nothing else is due in 10 days since 0.12.18)', () => {
+describe('the class card’s NEXT: up to three things, exactly as Halo has them (0.12.5; participation posts since 0.12.6, below every real item, one line at most, since 0.12.19)', () => {
   type N = { id: string; when: string; why?: string; href: string };
   const C = L as unknown as { cardNext: (index: unknown, k: number, live: Map<string, { dueDate: string | null; status: string | null }> | null, now: number, tz: string, o?: { doneIds?: Set<string> }) => N[] | null };
   const PHX = 'America/Phoenix';
@@ -483,57 +484,66 @@ describe('the class card’s NEXT: up to three things, exactly as Halo has them 
   ];
   const live = (o: Record<string, string> = {}) => new Map(rows.map((r) => [r.id, { dueDate: null, status: o[r.id] ?? (r.id === 'done' ? 'SUBMITTED' : 'ACTIVE') }]));
   it('what can be done now first, soonest due first; at most three', () => {
-    const n = C.cardNext({ rows }, 0, live(), now, PHX)!;
+    // (The old index's item, which shows since 0.12.19, has its own test below.)
+    const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['oldidx']) })!;
     expect(n.map((x) => [x.id, x.when])).toEqual([['hw', 'today 11:58 PM'], ['dq', 'tomorrow 12:00 PM'], ['q', 'Fri 11:58 PM']]);
   });
   it('then what cannot be acted on yet, with why: done in class, or not open yet', () => {
-    const n = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED' }), now, PHX)!;
+    const n = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED' }), now, PHX, { doneIds: new Set(['oldidx']) })!;
     expect(n.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
-    const m = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED', part: 'SUBMITTED' }), now, PHX)!;
+    const m = C.cardNext({ rows }, 0, live({ hw: 'SUBMITTED', dq: 'SUBMITTED', part: 'SUBMITTED' }), now, PHX, { doneIds: new Set(['oldidx']) })!;
     expect(m.map((x) => [x.id, x.why ?? ''])).toEqual([['q', ''], ['exam', 'in class Fri'], ['later', 'opens Mon']]);
   });
-  it('never done work (Halo’s status or a Halo+ check-off), past due, far off, or without an address; no participation beside other work', () => {
+  it('never done work (Halo’s status or a Halo+ check-off), past due, far off, or without an address; participation in a free spot, last', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q']) })!;
-    expect(n.map((x) => x.id)).toEqual(['exam', 'later']);
+    expect(n.map((x) => x.id)).toEqual(['oldidx', 'exam', 'later']);
     expect(n.some((x) => ['done', 'late', 'far', 'nohref'].includes(x.id))).toBe(false);
   });
-  it('participation only when the class has nothing else due in the next 10 days (0.12.18)', () => {
+  it('participation: below every real item, only in a spot left over, one line at most (0.12.19)', () => {
     const P = (id: string, d: number, extra = {}) => ({ c: 0, kind: 'participation', id, title: `Participation ${id}`, href: `/${id}`, cdue: at(d, 20), start: at(-3, 0), ...extra });
     const A = (id: string, d: number, extra = {}) => ({ c: 0, kind: 'assignment', id, title: `Assignment ${id}`, href: `/${id}`, cdue: at(d, 22), start: at(-3, 0), ...extra });
     type R = { id: string } & Record<string, unknown>;
     const all = (r: R[]) => new Map(r.map((x) => [x.id, { dueDate: null, status: 'ACTIVE' }]));
     const ids = (r: R[]) => C.cardNext({ rows: r }, 0, all(r), now, PHX)!.map((x) => x.id);
-    // George's two cases: one quiz in 9 days means no participation; only participation in the next 10 days shows it.
-    expect(ids([P('p1', 0), P('p2', 2), { ...A('q9', 9), kind: 'quiz', title: 'Quiz 4' }])).toEqual(['q9']);
-    expect(ids([P('p1', 0), P('p2', 2)])).toEqual(['p1', 'p2']);
-    // One other thing of any kind holds it back: an assignment, a discussion, an exam done in class, one not open yet,
-    // one the box itself leaves out (no Halo address, or a kind of submission the index cannot tell).
-    expect(ids([P('p1', 0), A('a1', 1)])).toEqual(['a1']);
-    expect(ids([P('p1', 0), { ...A('dq', 3), kind: 'discussion', title: 'Topic 3 DQ 1' }])).toEqual(['dq']);
-    expect(ids([P('p1', 0), { ...A('ex', 2), title: 'Exam 1', ns: 1, inp: 1, cdue: at(2, 9) }])).toEqual(['ex']);
-    expect(ids([P('p1', 0), { ...A('later', 8), start: at(5, 0) }])).toEqual(['later']);
-    expect(ids([P('p1', 0), { ...A('tool', 4), kind: 'lti', href: null }])).toEqual([]);
-    expect(ids([P('p1', 0), { ...A('old', 4), ns: 1 }])).toEqual([]);
-    // Due sooner than everything else makes no difference.
-    expect(ids([P('p1', 0), P('p2', 0), A('a1', 6)])).toEqual(['a1']);
-    // Called participation by its title alone (the app's shared rule), it is held back the same way.
-    expect(ids([A('a1', 1), { ...A('wk', 0), kind: 'discussion', title: 'Week 3 Participation' }])).toEqual(['a1']);
-    // Something else due only after 10 days, or already done, or past due: participation shows, others first.
-    expect(ids([P('p1', 0), A('a11', 11)])).toEqual(['a11', 'p1']);
-    const doneToo = [P('p1', 0), A('a1', 1)];
-    expect(C.cardNext({ rows: doneToo }, 0, new Map([['p1', { dueDate: null, status: 'ACTIVE' }], ['a1', { dueDate: null, status: 'SUBMITTED' }]]), now, PHX)!.map((x) => x.id)).toEqual(['p1']);
-    expect(ids([P('p1', 0), A('late', -1)])).toEqual(['p1']);
-    // Another class's work does not count.
-    expect(ids([P('p1', 0), { ...A('x', 1), c: 1 }])).toEqual(['p1']);
+    // George's two: three real items, no participation; one real item, it and then one participation line.
+    expect(ids([P('p1', 0), A('a1', 1), A('a2', 2), { ...A('q3', 3), kind: 'quiz' }])).toEqual(['a1', 'a2', 'q3']);
+    expect(ids([P('p1', 0), P('p2', 1), A('a1', 5)])).toEqual(['a1', 'p1']);
+    // Below what can't be done yet too ("Exam 1 · in class Fri"), even when due sooner than all of it.
+    expect(ids([P('p1', 0), A('a1', 1), { ...A('ex', 2), title: 'Exam 1', ns: 1, inp: 1, cdue: at(2, 9) }])).toEqual(['a1', 'ex', 'p1']);
+    // Only participation: one line of it, never three.
+    expect(ids([P('p1', 0), P('p2', 1), P('p3', 2)])).toEqual(['p1']);
+    // Called participation by its title alone (the app's shared rule), the same.
+    expect(ids([{ ...A('wk', 0), kind: 'discussion', title: 'Week 3 Participation' }, A('a1', 1), A('a2', 2), A('a3', 3)])).toEqual(['a1', 'a2', 'a3']);
+  });
+  it('an outside tool’s homework (ALEKS) due in 4 days shows, opening its topic on Halo; quiet once its date passes (0.12.19)', () => {
+    const slugIdx = { classes: [{ slug: 'CHM-113-WF700A-20260908' }] };
+    // As the index has it since 0.12.19 (its topic page as its address), and from an index before (no address).
+    const aleks = { c: 0, kind: 'lti', id: 'aleks', title: 'ALEKS Homework 7', unit: 'u7', href: '/courses/CHM-113-WF700A-20260908/course-units/u7', cdue: at(4, 23.98), start: at(-3, 0), ns: 1, inp: 0, type: 'LTI' };
+    const old = { ...aleks, id: 'aleks-old', href: null };
+    for (const r of [aleks, old]) {
+      // Halo's grade list may or may not carry an outside tool's item: either way it shows.
+      for (const lv of [new Map([[r.id, { dueDate: null, status: 'ACTIVE' }]]), new Map<string, { dueDate: string | null; status: string | null }>()]) {
+        const n = C.cardNext({ ...slugIdx, rows: [r] }, 0, lv, now, PHX)!;
+        expect(n.map((x) => [x.id, x.href, x.why ?? ''])).toEqual([[r.id, '/courses/CHM-113-WF700A-20260908/course-units/u7', '']]);
+      }
+    }
+    // After its due date: gone from NEXT (the no-submission rule, for after the date only).
+    expect(C.cardNext({ ...slugIdx, rows: [{ ...aleks, cdue: at(-1, 23) }] }, 0, new Map(), now, PHX)).toEqual([]);
+    // Done (graded or checked off): gone too.
+    expect(C.cardNext({ ...slugIdx, rows: [{ ...aleks, done: true }] }, 0, new Map(), now, PHX)).toEqual([]);
+    // The index gives it its topic page.
+    const B = L as unknown as { buildIndex: (p: unknown) => { rows: { id: string; href: string | null }[] } };
+    const idx = B.buildIndex({ classes: [{ slugId: 'CHM-113-WF700A-20260908', classCode: 'CHM-113-WF700A', courseCode: 'CHM-113', assessments: [{ id: 'x', title: 'ALEKS Homework 7', type: 'LTI', unitId: 'u7', unit: 'Topic 7', dueDate: at(4, 23.98), points: 20 }] }] });
+    expect(idx.rows.find((r) => r.id === 'x')!.href).toBe('/courses/CHM-113-WF700A-20260908/course-units/u7');
   });
   it('the participation test is the app’s own rule', () => {
     const I = L as unknown as { isParticipation: (r: { kind?: string; title?: string }) => boolean };
     for (const [kind, title] of [['participation', 'Anything'], ['discussion', 'Topic 2 Participation'], ['assignment', 'participation check'], ['discussion', 'Topic 2 DQ 1'], ['assignment', 'Homework 1']] as const)
       expect(I.isParticipation({ kind, title })).toBe(isParticipation({ type: kind, title } as Parameters<typeof isParticipation>[0]));
   });
-  it('an item whose kind of submission the index cannot tell is left out, not guessed', () => {
+  it('an item with no Halo dropbox in an index from before inp was kept shows too, due ahead (0.12.19)', () => {
     const n = C.cardNext({ rows }, 0, live(), now, PHX, { doneIds: new Set(['hw', 'dq', 'q', 'exam', 'later', 'part']) })!;
-    expect(n).toEqual([]);
+    expect(n.map((x) => x.id)).toEqual(['oldidx']);
   });
   it('nothing at all without Halo’s answer for the class', () => {
     expect(C.cardNext({ rows }, 0, null, now, PHX)).toBeNull();

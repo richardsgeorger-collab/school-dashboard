@@ -23,7 +23,7 @@ export const ON_HALO_FEATURES = [
   ['preload', 'Open your next pages faster'],
   ['homeheader', 'Compact Student Home header'],
   ['homecards', 'Class cards: grade and what’s next'],
-  ['whatif', 'What-if on class cards and the Gradebook'],
+  ['whatif', 'What-if on the Gradebook'],
   ['gpa', 'GPA on Student Home'],
 ] as const;
 

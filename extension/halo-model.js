@@ -432,11 +432,12 @@
 
   /**
    * The class's next thing due (0.12.0, feature 6): the soonest graded item still ahead that is not done, never
-   * participation, never something with no submission in Halo. Null when there is none.
+   * participation. Work with no submission in Halo counts until its due date (0.12.19: an ALEKS homework due Sunday
+   * is the class's next thing); after it, it goes quiet. Null when there is none.
    */
   function nextFor(view, cls, now) {
     const t = nowMs(now);
-    const mine = view.items.filter((i) => i.c === cls.key && !i.done && graded(i) && !quietPast(i, t) && i.ns !== 1 && ms(i.due) >= t);
+    const mine = view.items.filter((i) => i.c === cls.key && !i.done && graded(i) && !quietPast(i, t) && ms(i.due) >= t);
     mine.sort((a, b) => ms(a.due) - ms(b.due));
     return mine[0] || null;
   }
