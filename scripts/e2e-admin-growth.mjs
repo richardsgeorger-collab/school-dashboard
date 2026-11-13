@@ -31,15 +31,15 @@ try {
   const diff = (k) => (after.plans[k] ?? 0) - (before.plans[k] ?? 0);
   check(after.total - before.total === ids.length, `real students +${after.total - before.total} (added ${ids.length})`);
   check(after.new_today - before.new_today === ids.length, `+${after.new_today - before.new_today} today`);
-  const expected = { trial: 3, free: 1, plus_paid: 1, max_paid: 1, max_friend: 1 }; // synced, trial-1d, invited on the trial; ended on Free
+  const expected = { trial: 3, free: 1, max_paid: 2, max_friend: 1 }; // synced, trial-1d, invited on the trial; ended on Free; Plus counts as Max since Loop 283
   for (const [k, n] of Object.entries(expected)) check(diff(k) === n, `plan "${k}": +${diff(k)} (expected +${n})`);
   const sumBuckets = Object.values(after.plans).reduce((a, n) => a + n, 0);
   check(sumBuckets === after.total, `the plans add up to the total: ${sumBuckets} = ${after.total}`);
-  check(after.paying.length - before.paying.length === 2, `paying +${after.paying.length - before.paying.length} (the Plus and Max throwaways)`);
+  check(after.paying.length - before.paying.length === 2, `paying +${after.paying.length - before.paying.length} (the Plus and Max throwaways, both Max now)`);
   // Marking one as test takes it out of every number.
   await bossC.rpc('admin_set_test', { uid: made.plus.id, test: true });
   const marked = await growth();
-  check(marked.total === after.total - 1 && (marked.plans.plus_paid ?? 0) === (after.plans.plus_paid ?? 0) - 1 && marked.paying.length === after.paying.length - 1, 'marking an account as test takes it out of the total, its plan and paying');
+  check(marked.total === after.total - 1 && (marked.plans.max_paid ?? 0) === (after.plans.max_paid ?? 0) - 1 && marked.paying.length === after.paying.length - 1, 'marking an account as test takes it out of the total, its plan and paying');
   // The page, dark and light.
   for (const scheme of ['dark', 'light']) {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: scheme, deviceScaleFactor: 1 });
@@ -54,6 +54,19 @@ try {
     if (scheme === 'dark') {
       const mono = await page.$$eval('.admin-grid *', (els) => els.filter((e) => e.childNodes.length && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && /mono|Menlo|Courier|SF Mono/i.test(getComputedStyle(e).fontFamily)).map((e) => e.tagName + '.' + e.className).slice(0, 5));
       check(mono.length === 0, `no monospace on the page${mono.length ? `: ${mono.join(', ')}` : ''}`);
+      // The two numbers read first (2026-11-12): the real students, then the extension users, in the same tiles.
+      const order = await page.$$eval('.admin-grid > section', (els) => els.slice(0, 4).map((e) => e.getAttribute('aria-label') || e.querySelector('h2')?.textContent || ''));
+      check(order[0] === 'Growth' && order[1] === 'Extension users', `Growth, then Extension users, right at the top (${order.join(' → ')})`);
+      const fold = await page.$eval('.admin-ext-users .growth-main', (e) => Math.round(e.getBoundingClientRect().bottom)).catch(() => 9999);
+      check(fold <= 900, `the extension's big tile is on the first screen (its bottom edge at ${fold}px of 900)`);
+      await page.waitForSelector('.admin-ext-users .growth-tile', { timeout: 15000 }).catch(() => undefined);
+      const ext = await page.$$eval('.admin-ext-users .growth-tiles .growth-tile', (ts) => ts.map((t) => [t.querySelector('.growth-num')?.textContent, t.querySelector('.growth-label')?.textContent, t.querySelector('.growth-delta')?.textContent ?? null]));
+      const server = (await (await kit.signIn(boss.email)).c.rpc('admin_ext_users')).data;
+      check(ext.length === 4 && ext[0][1] === 'installed now' && Number(ext[0][0]) === server.installed_now && Number(ext[1][0]) === server.active_today && Number(ext[2][0]) === server.active_7 && Number(ext[3][0]) === server.active_30, `the extension's four tiles match the server: ${JSON.stringify(ext.map((t) => t.slice(0, 2)))}`);
+      if (typeof server.new_today === 'number') check(ext[0][2] === `+${server.new_today} today · +${server.new_week} this week`, `"installed now" has its +N today · +N this week: "${ext[0][2]}"`);
+      else console.log('  (the server does not give new installs yet: migration 0058 not applied; the line is left out)');
+      const tileBox = await page.$$eval('.admin-growth .growth-main, .admin-ext-users .growth-main', (els) => els.map((e) => [Math.round(e.getBoundingClientRect().left), Math.round(e.getBoundingClientRect().width)]));
+      check(tileBox.length === 2 && tileBox[0][0] === tileBox[1][0] && tileBox[0][1] === tileBox[1][1], `the two big tiles line up (${JSON.stringify(tileBox)})`);
       const total = await page.$eval('.growth-main .growth-num', (e) => e.textContent).catch(() => '');
       check(Number(total) === marked.total, `the page shows ${total} real students`);
       const rows = await page.$$eval('.acct-table tbody tr', (r) => r.length);

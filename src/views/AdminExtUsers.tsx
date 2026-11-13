@@ -10,6 +10,9 @@ export interface ExtUsers {
   active_today: number;
   active_7: number;
   active_30: number;
+  /** Loop 314: real installs (never a browser first seen by its ping) today and in the last 7 days, Phoenix days. */
+  new_today?: number;
+  new_week?: number;
   signed_in_7: number;
   signed_out_7: number;
   by_version: Record<string, number>;
@@ -149,22 +152,28 @@ export function AdminExtUsers() {
       {!u && !err && <p className="hint">Loading…</p>}
       {u && (
         <>
-          <div className="ext-users-nums">
-            <div>
-              <b>{u.installed_now}</b>
-              <span>installed now</span>
+          {/* The same tiles as Growth's real students (2026-11-12, George: the two numbers he reads first). */}
+          <div className="growth-tiles">
+            <div className="growth-tile growth-main">
+              <span className="growth-num">{u.installed_now}</span>
+              <span className="growth-label">installed now</span>
+              {typeof u.new_today === 'number' && typeof u.new_week === 'number' && (
+                <span className="growth-delta">
+                  <b>+{u.new_today}</b> today · <b>+{u.new_week}</b> this week
+                </span>
+              )}
             </div>
-            <div>
-              <b>{u.active_today}</b>
-              <span>active today</span>
+            <div className="growth-tile">
+              <span className="growth-num">{u.active_today}</span>
+              <span className="growth-label">active today</span>
             </div>
-            <div>
-              <b>{u.active_7}</b>
-              <span>this week</span>
+            <div className="growth-tile">
+              <span className="growth-num">{u.active_7}</span>
+              <span className="growth-label">active this week</span>
             </div>
-            <div>
-              <b>{u.active_30}</b>
-              <span>this month</span>
+            <div className="growth-tile">
+              <span className="growth-num">{u.active_30}</span>
+              <span className="growth-label">active this month</span>
             </div>
           </div>
           <p className="admin-line">

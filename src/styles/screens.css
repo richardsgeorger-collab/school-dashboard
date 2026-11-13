@@ -3315,6 +3315,7 @@
   font-variant-numeric: tabular-nums;
 }
 .admin-growth,
+.admin-ext-users,
 .admin-accounts {
   grid-column: 1 / -1;
 }
@@ -4855,23 +4856,6 @@ button.wi-rung:hover { border-color: var(--accent); }
 }
 
 /* Admin: Extension users (Loop 304). */
-.ext-users-nums {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-3);
-  margin: var(--s-3) 0;
-}
-.ext-users-nums div {
-  display: grid;
-  gap: 2px;
-}
-.ext-users-nums b {
-  font: 800 28px/1 var(--font-display);
-}
-.ext-users-nums span {
-  font-size: 13px;
-  color: var(--ink-3);
-}
 .ext-users-chart {
   display: flex;
   align-items: flex-end;

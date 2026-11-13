@@ -68,13 +68,15 @@ export function Admin() {
     <>
       <h1 className="page-title">Admin</h1>
       <div className="settings-grid admin-grid">
-        <AdminDemo />
         <AdminGrowth tick={tick} />
+        {/* The two numbers read first: the real students (Growth) and the extension users, right under it. */}
+        <AdminExtUsers />
         <AdminAccounts onChange={() => setTick((k) => k + 1)} />
+        {/* A tool, not a number: below the two cards read first (2026-11-12). */}
+        <AdminDemo />
         <AdminSyncHealth />
         <AdminPlans />
         <AdminTrials />
-        <AdminExtUsers />
         <AdminIgFunnel />
         <AdminSignupFunnel />
         <AdminFunnel />
