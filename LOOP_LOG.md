@@ -811,3 +811,4 @@ One line per change, newest last. Proposals that need George's approval are mark
   - **Test:** scripts/e2e-admin-growth.mjs (real backend, throwaway admin and students, all removed) PASS, 17 checks. New in it: Growth then Extension users at the top, the extension's four tiles equal the server's admin_ext_users, the two big tiles line up, the extension's big tile is on the first 900 px screen, and the "+N today · +N this week" text matches the server's numbers once it has them.
   - **Fixed in the same test:** its plan expectations were stale since Loop 283 (Plus counts as Max): a Plus student is paid Max.
   - vitest 1447 passed, tsc, lint and the production build clean. Screenshots: docs/screens/admin/.
+  - **Migration 0058 applied** to the live database (George said yes). The test now passes with the new line: "installed now" reads "+1 today · +9 this week" and matches the server.
